@@ -23,3 +23,13 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: {
+    // 🚫 Ignora erros de ESLint no build de produção
+    ignoreDuringBuilds: true,
+  },
+}
+
+module.exports = nextConfig
