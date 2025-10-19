@@ -359,7 +359,11 @@ function ModalServicosItem({ item, servicosDisponiveis, onClose, onSave }: Modal
                                             <input
                                                 type="text"
                                                 placeholder={`Sugestão: ${defaultLinearMeasure.toFixed(2).replace('.', ',')}`}
+<<<<<<< HEAD
                                                 value={medidaInputMap[s.id] || ''} // Se não existir, usa string vazia
+=======
+                                                value={getMedidaDisplayValue(currentSelection)}
+>>>>>>> 65b6dd5 (Segundo Comit)
                                                 onChange={(e) => handleMedidaChange(s.id, e.target.value)}
                                                 className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                                             />

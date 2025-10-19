@@ -694,517 +694,558 @@ export default function VidrosPage() {
         }
     };
 
+       // --- FUNÇÃO GERAR PDF ---
     const gerarPDF = async () => {
     if (!vidrosLista.length) { 
         showToast("Não há itens no orçamento para gerar o PDF.", 'warning'); 
-        return 
+        return;
     }
-    
-    showToast("Gerando PDF...", 'success')
-    
-    // 💡 CORREÇÃO 2: A tipagem de `jsPDF` é crucial aqui para usar `autoTable`.
-    // Usar `new (jsPDF as any)()` garante que a instância é criada e o plugin 
-    // `autoTable` (que foi importado acima) estará disponível.
-    const pdf = new (jsPDF as any)("p", "mm", "a4")
-    const pageWidth = pdf.internal.pageSize.getWidth()
-    const margin = 20
+
+    showToast("Gerando PDF...", 'success');
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 20;
+    const usableWidth = pageWidth - 2 * margin;
 
     // --- CABEÇALHO ---
-    pdf.setFontSize(16)
-    pdf.setTextColor(theme.primary)
-    pdf.text("Orçamento de Vidros", margin, 20)
-    
-    const clienteNome = vidrosLista[0]?.cliente || novoVidro.cliente || "Não informado"
-    pdf.setFontSize(12)
-    pdf.text(`Cliente: ${clienteNome}`, margin, 30)
-    pdf.setFontSize(10)
-    pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36)
+    pdf.setFontSize(16);
+    pdf.setTextColor(theme.primary); // RGB
+    pdf.text("Orçamento de Vidros", margin, 20);
 
-    // --- LOGO (Mantido o código assíncrono para carregar a imagem) ---
+    const clienteNome = vidrosLista[0]?.cliente || novoVidro.cliente || "Não informado";
+    pdf.setFontSize(12);
+    pdf.text(`Cliente: ${clienteNome}`, margin, 30);
+    pdf.setFontSize(10);
+    pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36);
+
+    // --- LOGO ---
     try {
-        const imgData = await fetch("/logo.png").then(r => r.blob()).then(blob => new Promise<string>(resolve => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.readAsDataURL(blob)
-        }))
-        const logo = new Image()
-        logo.src = imgData
-        await new Promise(res => logo.onload = res) 
-        const logoHeight = 13
-        const aspectRatio = logo.width / logo.height
-        const logoWidth = logoHeight * aspectRatio
-        pdf.addImage(imgData, "PNG", pageWidth - margin - logoWidth, 10, logoWidth, logoHeight)
+        const imgData = await fetch("/logo.png")
+            .then(r => r.blob())
+            .then(blob => new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            }));
+
+        // Adiciona direto
+        const logoHeight = 13;
+        const img = new Image();
+        img.src = imgData;
+        await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+        });
+        const aspectRatio = img.width / img.height;
+        const logoWidth = logoHeight * aspectRatio;
+        pdf.addImage(imgData, "PNG", pageWidth - margin - logoWidth, 10, logoWidth, logoHeight);
     } catch (error) {
-        console.warn("Não foi possível carregar a logo para o PDF.")
+        console.warn("Não foi possível carregar a logo para o PDF.");
     }
-    
+
     // --- DADOS DA TABELA ---
     const body = vidrosLista.map(e => {
-        const vidro = vidros.find(v => v.id === e.vidro_id)
-        // Calcula o preço por m² APENAS para exibir no PDF se for necessário.
-        // O valor total já está calculado, mas o preço unitário por m² é útil.
+        const vidro = vidros.find(v => v.id === e.vidro_id);
         const precoM2 = getVidroPriceForClient(e.vidro_id, novoVidro.cliente_id);
-        
         return [
-            // Coluna Vidro
             `${vidro?.nome}${vidro?.tipo ? ` (${vidro.tipo})` : ""}${vidro?.espessura ? ` - ${vidro.espessura}` : ""}`,
-            // Coluna Quantidade
             e.quantidade,
-            // Coluna Largura Original
             e.larguraOriginal,
-            // Coluna Altura Original
             e.alturaOriginal,
-            // Coluna Preço/m²
             formatarPreco(precoM2) + "/m²",
-            // Coluna Total
             formatarPreco(e.valorTotal)
-        ]
-    })
+        ];
+    });
 
-    // --- AUTO TABLE ---
-    // O erro "pdf.autoTable is not a function" é resolvido pelo `import "jspdf-autotable"` no topo
-    pdf.autoTable({
-        // Adicionei a coluna Preço/m² para melhor clareza no orçamento
-        head: [["Vidro", "Quant", "Lar (mm)", "Alt (mm)", "Preço/m²", "Total"]], 
-        body,
-        theme: "grid",
-        headStyles: { fillColor: theme.primary, textColor: "#FFF", fontSize: 11 },
-        bodyStyles: { fontSize: 11 , textColor: theme.primary}, 
-        alternateRowStyles: { fillColor: "#fff" }, 
-        margin: { left: margin, right: margin },
-        styles: { cellPadding: 3 },
-        startY: 45, // Inicia após o cabeçalho
-    })
-    
-    // --- RODAPÉ (TOTAL) ---
-    // Usa `pdf.autoTable.previous.finalY` para pegar a posição Y final da tabela.
-    const finalY = (pdf.autoTable as any).previous.finalY || 30 
-    
-    pdf.setFontSize(12)
-    pdf.setTextColor(theme.primary)
-    
-    // Define a posição X para alinhar à direita
-    const totalText = `Total do orçamento: ${formatarPreco(totalOrcamento)}`;
-    const textWidth = pdf.getTextWidth(totalText);
+    const widthMap = {
+        vidro: usableWidth * 0.35,
+        quant: usableWidth * 0.10,
+        larg: usableWidth * 0.10,
+        alt: usableWidth * 0.10,
+        precoM2: usableWidth * 0.15,
+        total: usableWidth * 0.20
+    };
 
-    pdf.text(
-        totalText,
-        pageWidth - margin - textWidth,
-        finalY + 13
-    )
+        autoTable(pdf, {
+            head: [["Vidro", "Qtd", "L (mm)", "A (mm)", "Preço m²", "Total"]],
+            body,
+            theme: "grid",
+            // CENTRALIZAÇÃO VERTICAL E HORIZONTAL DO CABEÇALHO
+            headStyles: { 
+                fillColor: theme.primary, 
+                textColor: "#FFF", 
+                fontSize: 10, 
+                valign: 'middle',
+                halign: 'center' 
+            },
+            // CENTRALIZAÇÃO VERTICAL DO CORPO
+            bodyStyles: { 
+                fontSize: 9.5, 
+                textColor: theme.primary, 
+                valign: 'middle' 
+            }, 
+            margin: { left: margin, right: margin },
+            styles: { cellPadding: 2.5, overflow: 'linebreak' as any, cellWidth: 'wrap' as any },
+            columnStyles: { 
+                // CENTRALIZAÇÃO HORIZONTAL DE TODAS AS COLUNAS
+                0: { cellWidth: widthMap.vidro, halign: 'center' },          
+                1: { cellWidth: widthMap.quant, halign: 'center' },            
+                2: { cellWidth: widthMap.larg, halign: 'center' },         
+                3: { cellWidth: widthMap.alt, halign: 'center' },         
+                4: { cellWidth: widthMap.total, halign: 'center' },          
+            },
+            startY: 45,
+        })
 
-    pdf.save("orcamento.pdf")
-    showToast("PDF gerado e baixado com sucesso!", 'success')
-}
+        // 🔹 Total final
+        const finalY = (pdf as any).lastAutoTable?.finalY || 30
+        pdf.setFontSize(12)
+        pdf.setTextColor(theme.primary)
+        const totalTexto = `Total do orçamento: ${formatarPreco(totalOrcamento)}`
+        
+        pdf.text(totalTexto, pageWidth - margin - pdf.getTextWidth(totalTexto), finalY + 10)
+
+        // 🔹 Salvar
+        pdf.save("orcamento.pdf")
+        showToast("PDF gerado e baixado com sucesso! 🎉")
+    }
 
     const currentGrupo = naoEncontradosModal?.grupos[grupoAtualIndex]
     
-    // ---------------------------------------------------------------------------------------------------------
-    // RENDERIZAÇÃO
-    // ---------------------------------------------------------------------------------------------------------
-    
-    return (
-        <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
-            
-            {toastMessage && (
-                <ToastNotification 
-                    message={toastMessage.message} 
-                    type={toastMessage.type} 
-                    onClose={() => setToastMessage(null)} 
-                />
-            )}
-            
-            <ConfirmModal 
-                state={confirmModalState} 
-                onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))} 
+// ---------------------------------------------------------------------------------------------------------
+// RENDERIZAÇÃO
+// ---------------------------------------------------------------------------------------------------------
+
+return (
+    <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
+        
+        {toastMessage && (
+            <ToastNotification 
+                message={toastMessage.message} 
+                type={toastMessage.type} 
+                onClose={() => setToastMessage(null)} 
             />
-            
-            {/* Modal de Associação Manual (Importação Excel) */}
-            {naoEncontradosModal && currentGrupo && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full">
-                        <h2 className="text-xl font-bold mb-4" style={{ color: theme.primary }}>Associação Manual de Vidros</h2>
-                        <p className="mb-4">
-                            O termo **"{currentGrupo.nomePlanilha}"** da planilha não foi reconhecido.
-                            <br/>
-                            Associe-o a um vidro cadastrado ({grupoAtualIndex + 1} de {naoEncontradosModal.grupos.length}).
-                        </p>
-                        
-                        <div className="mb-4 p-3 border rounded">
-                            <h3 className="font-semibold mb-2">Itens para Associar ({currentGrupo.itens.length}):</h3>
-                            <ul className="list-disc list-inside text-sm max-h-20 overflow-y-auto">
-                                {currentGrupo.itens.slice(0, 5).map((item, i) => (
-                                    <li key={i}>Linha {item.linha}: {item.rawLarg} x {item.rawAlt} (Qtd: {item.rawQtd || 1})</li>
-                                ))}
-                                {currentGrupo.itens.length > 5 && <li>E mais {currentGrupo.itens.length - 5} itens...</li>}
-                            </ul>
-                        </div>
-                        
-                        <div className="mb-6">
-                            <label className="block font-medium mb-1">Vidro Cadastrado:</label>
-                            <select 
-                                value={vidroSelecionadoModal}
-                                onChange={e => setVidroSelecionadoModal(Number(e.target.value))}
-                                className="p-2 rounded border w-full focus:outline-none focus:ring-2"
-                            >
-                                <option value={0}>Ignorar / Selecione o Vidro...</option>
-                                {vidros.map(v => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        <div className="flex justify-end gap-3">
-                            <button 
-                                onClick={() => handleAssociation(null)} // Ignora
-                                className="px-4 py-2 rounded font-medium border text-gray-700 hover:bg-gray-100"
-                            >
-                                Ignorar
-                            </button>
-                            <button 
-                                onClick={() => handleAssociation(vidroSelecionadoModal)}
-                                disabled={vidroSelecionadoModal === 0}
-                                className="px-4 py-2 rounded font-bold text-white disabled:opacity-50 transition" 
-                                style={{ backgroundColor: theme.primary }}
-                            >
-                                Associar e Próximo
-                            </button>
-                        </div>
+        )}
+        
+        <ConfirmModal 
+            state={confirmModalState} 
+            onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))} 
+        />
+        
+        {/* Modal de Associação Manual (Importação Excel) */}
+        {naoEncontradosModal && currentGrupo && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full">
+                    <h2 className="text-xl font-bold mb-4" style={{ color: theme.primary }}>Associação Manual de Vidros</h2>
+                    <p className="mb-4">
+                        O termo **"{currentGrupo.nomePlanilha}"** da planilha não foi reconhecido.
+                        <br/>
+                        Associe-o a um vidro cadastrado ({grupoAtualIndex + 1} de {naoEncontradosModal.grupos.length}).
+                    </p>
+                    
+                    <div className="mb-4 p-3 border rounded">
+                        <h3 className="font-semibold mb-2">Itens para Associar ({currentGrupo.itens.length}):</h3>
+                        <ul className="list-disc list-inside text-sm max-h-20 overflow-y-auto">
+                            {currentGrupo.itens.slice(0, 5).map((item, i) => (
+                                <li key={i}>Linha {item.linha}: {item.rawLarg} x {item.rawAlt} (Qtd: {item.rawQtd || 1})</li>
+                            ))}
+                            {currentGrupo.itens.length > 5 && <li>E mais {currentGrupo.itens.length - 5} itens...</li>}
+                        </ul>
                     </div>
-                </div>
-            )}
-            
-            {/* Modal de Troca em Massa */}
-            {trocaModal.isOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full" style={{ borderColor: theme.border }}>
-                        <div className="flex justify-between items-center border-b pb-2 mb-4" style={{ borderColor: theme.border }}>
-                            <h2 className="text-xl font-bold" style={{ color: theme.primary }}>Troca em Massa</h2>
-                            <button onClick={() => setTrocaModal({ isOpen: false, novoVidroId: 0 })} className="text-gray-500 hover:text-gray-700">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-                        
-                        <p className="mb-4">
-                            Você selecionou <strong className="font-bold">{itensSelecionados.length}</strong> item(s).
-                        </p>
-
-                        <div className="mb-4 relative">
-                            <label className="block font-medium mb-1">Novo Vidro de Destino:</label>
-                            <select 
-                                value={trocaModal.novoVidroId}
-                                onChange={e => setTrocaModal(prev => ({ ...prev, novoVidroId: Number(e.target.value) }))}
-                                className="p-2 rounded border w-full focus:outline-none focus:ring-2"
-                                style={{ borderColor: theme.border }} 
-                            >
-                                <option value={0}>Selecione o Vidro...</option>
-                                {vidros.map(v => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        <div className="flex justify-end gap-2 mt-6">
-                            <button 
-                                onClick={() => setTrocaModal({ isOpen: false, novoVidroId: 0 })}
-                                className="px-4 py-2 rounded font-medium border"
-                                style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: "#FFF" }}
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                onClick={handleTrocarEmMassa}
-                                disabled={trocaModal.novoVidroId === 0}
-                                className="px-4 py-2 rounded font-bold text-white disabled:opacity-50 transition" 
-                                style={{ backgroundColor: theme.primary, color: theme.secondary }}
-                            >
-                                Aplicar Troca
-                            </button>
-                        </div>
+                    
+                    <div className="mb-6">
+                        <label className="block font-medium mb-1">Vidro Cadastrado:</label>
+                        <select 
+                            value={vidroSelecionadoModal}
+                            onChange={e => setVidroSelecionadoModal(Number(e.target.value))}
+                            className="p-2 rounded border w-full focus:outline-none focus:ring-2"
+                        >
+                            <option value={0}>Ignorar / Selecione o Vidro...</option>
+                            {vidros.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                </div>
-            )}
-
-            {/* BARRA SUPERIOR DE AÇÕES */}
-            <div className="flex justify-between items-center mb-4">
-                <button
-                    onClick={() => (window.location.href = "/")}
-                    className="flex items-center gap-2 px-4 py-2 rounded font-semibold shadow hover:opacity-90 transition"
-                    style={{ backgroundColor: theme.secondary, color: theme.primary }}
-                >
-                    <Home className="w-5 h-5 text-white" />
-                    <span className="hidden md:inline">Home</span>
-                </button>
-                <h1 className="text-2xl font-bold flex-1 text-center">Cálculo de Vidros</h1>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={limparTudo}
-                        className="flex items-center gap-2 px-4 py-2 rounded font-medium" 
-                        style={{ color: theme.primary, border: `1px solid ${theme.primary}`, backgroundColor: "#FFF" }}
-                    >
-                        Novo
-                    </button>
-                    <button onClick={gerarPDF} className="flex items-center gap-2 px-4 py-2 rounded font-medium" style={{ color: theme.primary, border: `1px solid ${theme.primary}`, backgroundColor: "#FFF" }}>
-                        Gerar PDF
-                    </button>
-                    <input 
-                        type="file" 
-                        accept=".xlsx, .xls, .csv" 
-                        className="hidden" 
-                        id="inputExcel" 
-                        onChange={importarExcel} 
-                        onClick={e => (e.currentTarget.value = "")} 
-                    />
-                    <label
-                        htmlFor="inputExcel"
-                        className="flex items-center gap-2 px-4 py-2 rounded font-medium cursor-pointer"
-                        style={{ color: theme.primary, border: `1px solid ${theme.primary}`, backgroundColor: "#FFF" }}
-                    >
-                        Importar Excel
-                    </label>
+                    
+                    <div className="flex justify-end gap-3">
+                        <button 
+                            onClick={() => handleAssociation(null)} // Ignora
+                            className="px-4 py-2 rounded font-medium border text-gray-700 hover:bg-gray-100"
+                        >
+                            Ignorar
+                        </button>
+                        <button 
+                            onClick={() => handleAssociation(vidroSelecionadoModal)}
+                            disabled={vidroSelecionadoModal === 0}
+                            className="px-4 py-2 rounded font-bold text-white disabled:opacity-50 transition" 
+                            style={{ backgroundColor: theme.primary }}
+                        >
+                            Associar e Próximo
+                        </button>
+                    </div>
                 </div>
             </div>
+        )}
+        
+        {/* Modal de Troca em Massa */}
+        {trocaModal.isOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full" style={{ borderColor: theme.border }}>
+                    <div className="flex justify-between items-center border-b pb-2 mb-4" style={{ borderColor: theme.border }}>
+                        <h2 className="text-xl font-bold" style={{ color: theme.primary }}>Troca em Massa</h2>
+                        <button onClick={() => setTrocaModal({ isOpen: false, novoVidroId: 0 })} className="text-gray-500 hover:text-gray-700">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+                    
+                    <p className="mb-4">
+                        Você selecionou <strong className="font-bold">{itensSelecionados.length}</strong> item(s).
+                    </p>
 
-            {/* SELEÇÃO DE CLIENTE */}
-            <div className="mb-4 flex flex-wrap gap-2 items-center">
-                <label className="font-medium min-w-[60px]">Cliente:</label>
-                <select 
-                    value={novoVidro.cliente || ""} 
-                    onChange={e => {
-                        const selectedClient = clientes.find(c => c.nome === e.target.value);
-                        if (vidrosLista.length === 0) {
-                            setNovoVidro(prev => ({ 
-                                ...prev, 
-                                cliente: e.target.value,
-                                cliente_id: selectedClient?.id || 0, // ATUALIZA O ID DO CLIENTE
-                            }))
-                        } else {
-                            showToast("Cliente travado: Limpe o orçamento antes de trocar.", 'warning');
-                        }
-                    }} 
-                    disabled={vidrosLista.length > 0} 
-                    className="p-2 rounded border flex-1 md:flex-none md:w-60" 
+                    <div className="mb-4 relative">
+                        <label className="block font-medium mb-1">Novo Vidro de Destino:</label>
+                        <select 
+                            value={trocaModal.novoVidroId}
+                            onChange={e => setTrocaModal(prev => ({ ...prev, novoVidroId: Number(e.target.value) }))}
+                            className="p-2 rounded border w-full focus:outline-none focus:ring-2"
+                            style={{ borderColor: theme.border }} 
+                        >
+                            <option value={0}>Selecione o Vidro...</option>
+                            {vidros.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 mt-6">
+                        <button 
+                            onClick={() => setTrocaModal({ isOpen: false, novoVidroId: 0 })}
+                            className="px-4 py-2 rounded font-medium border"
+                            style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: "#FFF" }}
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            onClick={handleTrocarEmMassa}
+                            disabled={trocaModal.novoVidroId === 0}
+                            className="px-4 py-2 rounded font-bold text-white disabled:opacity-50 transition" 
+                            style={{ backgroundColor: theme.primary, color: theme.secondary }}
+                        >
+                            Aplicar Troca
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+    {/* O DIV EXTRA FOI REMOVIDO AQUI! */}
+        
+        {/* LAYOUT REESTRUTURADO */}
+        {/* CABEÇALHO E BARRA SUPERIOR DE AÇÕES (Padrão: flex justify-between, rounded-xl buttons) */}
+        <div className="flex justify-between items-center mb-4">
+           {/* Botão Home e Título */}
+           <div className="flex items-center gap-3 w-full sm:w-auto">
+             <button
+                onClick={() => (window.location.href = "/")}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold shadow hover:opacity-90 transition"
+                style={{ backgroundColor: theme.secondary, color: theme.primary }}
+            >
+                <Home className="w-5 h-5 text-white" />
+                <span className="hidden md:inline text-theme.primary">Home</span>
+            </button>
+            {/* O título foi movido para o centro visual, mantendo o padrão do componente anterior */}
+            <h1 className="text-xl sm:text-2xl font-bold text-center">Cálculo de Vidros</h1>
+        </div>
+        
+        {/* Botões de Ação à direita */}
+        <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <button
+                onClick={limparTudo}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-medium shadow-md transition hover:bg-gray-100"
+                style={{ color: theme.primary, border: "1px solid " + theme.primary, backgroundColor: "#FFF" }}
+            >
+                Novo
+            </button>
+            <button 
+                onClick={gerarPDF} 
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-medium shadow-md transition hover:bg-gray-100" 
+                style={{ color: theme.primary, border: "1px solid " + theme.primary, backgroundColor: "#FFF" }}
+            >
+                Gerar PDF
+            </button>
+            <input
+                type="file"
+                accept=".xlsx, .xls, .csv"
+                className="hidden"
+                id="inputExcel"
+                onChange={importarExcel}
+                onClick={e => (e.currentTarget.value = "")}
+            />
+            <label
+                htmlFor="inputExcel"
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-medium shadow-md cursor-pointer transition hover:bg-gray-100 hidden md:flex items-center" // Adicionado hidden/md:flex para responsividade
+                style={{ color: theme.primary, border: `1px solid ${theme.primary}`, backgroundColor: "#FFF" }}
+            >
+                Importar Excel
+            </label>
+        </div>
+    </div>
+
+    {/* SELEÇÃO DE CLIENTE (Padrão: bg-white, rounded-xl, shadow-lg) */}
+    <div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-1/3">
+            <label className="font-medium min-w-[70px]">Cliente:</label>
+            <select 
+                value={novoVidro.cliente || ""} 
+                onChange={e => {
+                    const selectedClient = clientes.find(c => c.nome === e.target.value);
+                    if (vidrosLista.length === 0) {
+                        setNovoVidro(prev => ({ 
+                            ...prev, 
+                            cliente: e.target.value,
+                            cliente_id: selectedClient?.id || 0,
+                        }))
+                    } else {
+                        showToast("Cliente travado: Limpe o orçamento antes de trocar.", 'warning');
+                    }
+                }} 
+                disabled={vidrosLista.length > 0} 
+                className="p-3 rounded-xl border w-full disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#92D050]" 
+                style={{ borderColor: theme.border }}
+            >
+                <option value="">Selecione o Cliente</option>
+                {clientes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+            </select>
+        </div>
+        <p className="text-sm italic text-gray-500 w-full sm:w-2/3">
+            {vidrosLista.length > 0 && "Cliente travado. Limpe para trocar."}
+        </p>
+    </div>
+
+    {/* CADASTRO DE ITEM (VIDRO, MEDIDAS, QTD) (Padrão: bg-white, rounded-xl, shadow-lg) */}
+    <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+        <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primary }}>Adicionar Item</h2>
+        
+        {/* Campo de Busca de Vidro (Adaptado para o padrão de autocomplete) */}
+        <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center relative">
+            <label className="font-medium min-w-[70px]">Vidro:</label>
+            <div className="flex-1 relative w-full">
+                <input
+                    type="text"
+                    value={
+                        novoVidro.vidro_id
+                            ? (() => {
+                                  const v = vidros.find(v => v.id === novoVidro.vidro_id);
+                                  const preco = v ? getVidroPriceForClient(v.id, novoVidro.cliente_id) : 0;
+                                  return v 
+                                      ? `${v.nome}${v.tipo ? ` (${v.tipo})` : ""}${v.espessura ? ` - ${v.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
+                                      : inputVidro;
+                              })()
+                            : inputVidro
+                    }
+                    onChange={e => { 
+                        setInputVidro(e.target.value); 
+                        setNovoVidro(prev => ({ ...prev, vidro_id: 0 })); 
+                        setShowAutocomplete(true) 
+                    }}
+                    placeholder="Digite para buscar vidro"
+                    className="p-3 rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-[#92D050]" 
                     style={{ borderColor: theme.border }}
-                >
-                    <option value="">Selecione o Cliente</option>
-                    {clientes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                </select>
-                <p className="text-sm italic text-gray-500 hidden sm:block">
-                    {vidrosLista.length > 0 && "Cliente travado. Limpe para trocar."}
-                </p>
-            </div>
-
-
-            {/* CADASTRO DE ITEM (VIDRO, MEDIDAS, QTD) */}
-            <div className="p-4 rounded shadow-md mb-6" style={{ backgroundColor: theme.cardBg, border: `1px solid ${theme.border}`}}>
-                <div className="mb-4 flex flex-wrap gap-3 items-start relative">
-                    <label className="font-medium pt-2 min-w-[60px]">Vidro:</label>
-                    <div className="flex-1 relative min-w-[200px]">
-                        <input
-                            type="text"
-                            value={
-                                novoVidro.vidro_id
-                                    ? (() => {
-                                            const v = vidros.find(v => v.id === novoVidro.vidro_id);
-                                            // 🎯 INFO DE PREÇO: Exibe o preço atual do vidro no input
-                                            const preco = v ? getVidroPriceForClient(v.id, novoVidro.cliente_id) : 0;
-                                            return v 
-                                                ? `${v.nome}${v.tipo ? ` (${v.tipo})` : ""}${v.espessura ? ` - ${v.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
-                                                : inputVidro;
-                                        })()
-                                    : inputVidro
-                            }
-                            onChange={e => { 
-                                setInputVidro(e.target.value); 
-                                setNovoVidro(prev => ({ ...prev, vidro_id: 0 })); 
-                                setShowAutocomplete(true) 
-                            }}
-                            placeholder="Digite para buscar vidro"
-                            className="p-2 rounded border w-full" 
-                            style={{ borderColor: theme.border }}
-                            onFocus={() => setShowAutocomplete(true)}
-                            onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
-                        />
-                        {showAutocomplete && (
-                            <ul className="absolute top-full left-0 right-0 bg-white border rounded mt-1 max-h-48 overflow-y-auto z-10 shadow-lg">
-                                {vidros.filter(v => matchesVidro(v, inputVidro)).map(v => (
-                                    <li
-                                        key={v.id}
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onMouseDown={() => { 
-                                            setNovoVidro(prev => ({ ...prev, vidro_id: v.id })); 
-                                            const vSelected = vidros.find(vid => vid.id === v.id);
-                                            const preco = vSelected ? getVidroPriceForClient(vSelected.id, novoVidro.cliente_id) : 0;
-                                            setInputVidro(vSelected 
-                                                ? `${vSelected.nome}${vSelected.tipo ? ` (${vSelected.tipo})` : ""}${vSelected.espessura ? ` - ${vSelected.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
-                                                : "");
-                                            setShowAutocomplete(false) 
-                                        }}
-                                    >
-                                        {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""} 
-                                        {/* 🎯 VERIFICADO: Exibe o preço por m² na lista de sugestões */}
-                                        <span className="text-xs text-gray-500"> (R$ {formatarPreco(getVidroPriceForClient(v.id, novoVidro.cliente_id))}/m²)</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-
-                {/* Largura / Altura / Quantidade / Ação */}
-                <div className="flex flex-wrap gap-2 items-center justify-between">
-                    <input
-                        ref={larguraInputRef}
-                        type="text"
-                        placeholder="Largura (mm)"
-                        value={novoVidro.larguraOriginal}
-                        onChange={e => setNovoVidro(prev => ({ ...prev, larguraOriginal: e.target.value }))}
-                        className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-28 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Altura (mm)"
-                        value={novoVidro.alturaOriginal}
-                        onChange={e => setNovoVidro(prev => ({ ...prev, alturaOriginal: e.target.value }))}
-                        className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-28 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
-                    />
-                    <input
-                        type="number"
-                        placeholder="Qtd"
-                        value={novoVidro.quantidade}
-                        min={1}
-                        onChange={e => setNovoVidro(prev => ({ ...prev, quantidade: Number(e.target.value) }))}
-                        className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-20 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
-                    />
-                    <button
-                        onClick={adicionarOuSalvar}
-                        disabled={novoVidro.cliente_id === 0 || novoVidro.vidro_id === 0}
-                        className="px-4 py-2 rounded font-bold text-white flex-1 sm:flex-none disabled:opacity-50 transition" 
-                        style={{ backgroundColor: theme.primary, color: "#FFF" }}
-                    >
-                        {editIndex !== null ? "Salvar Edição" : "Adicionar"}
-                    </button>
-                </div>
-            </div>
-            
-            {/* BARRA DE AÇÃO EM MASSA */}
-            {vidrosLista.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-3 items-center p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: '#f9f9f9' }}>
-                    <span className="font-semibold text-sm">{itensSelecionados.length} item(s) selecionado(s)</span>
-                    <button
-                        onClick={() => setTrocaModal(prev => ({ ...prev, isOpen: true }))}
-                        disabled={itensSelecionados.length === 0}
-                        className="px-4 py-2 rounded text-white font-semibold disabled:opacity-50 transition"
-                        style={{ backgroundColor: theme.secondary, color: theme.primary }}
-                    >
-                        Trocar Vidros Selecionados
-                    </button>
-                    <button
-                        onClick={() => setItensSelecionados([])}
-                        disabled={itensSelecionados.length === 0}
-                        className="px-4 py-2 rounded font-medium border text-gray-700 disabled:opacity-50 transition"
-                        style={{ borderColor: theme.border }}
-                    >
-                        Limpar Seleção
-                    </button>
-                </div>
-            )}
-
-
-            {/* TABELA DE ORÇAMENTO */}
-            <div className="overflow-x-auto shadow rounded">
-                <table className="w-full text-left border-collapse">
-                    <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
-                        <tr>
-                            <th className="p-2 w-10">
-                                <input 
-                                    type="checkbox" 
-                                    checked={itensSelecionados.length === vidrosLista.length && vidrosLista.length > 0}
-                                    onChange={toggleSelectAll}
-                                    className="h-4 w-4 text-white rounded focus:ring-transparent" 
-                                    style={{ color: theme.secondary, backgroundColor: theme.primary }}
-                                />
-                            </th>
-                            <th className="p-2">Vidro</th>
-                            <th className="p-2">Quant</th>
-                            <th className="p-2">Lar (mm)</th>
-                            <th className="p-2">Alt (mm)</th>
-                            <th className="p-2">Total</th>
-                            <th className="p-2">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {vidrosLista.map((item, i) => {
-                            const vidro = vidros.find(v => v.id === item.vidro_id)
-                            const isSelected = itensSelecionados.includes(i);
-                            return (
-                                <tr key={item.larguraOriginal + item.alturaOriginal + item.vidro_id + i} className={`border-b hover:bg-gray-50 ${isSelected ? 'bg-yellow-50/50' : ''}`} style={{ borderColor: theme.border }}>
-                                    <td className="p-2 w-10">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={isSelected}
-                                            onChange={() => toggleItemSelection(i)}
-                                            className="h-4 w-4 rounded" 
-                                            style={{ color: theme.primary, accentColor: theme.secondary }}
-                                        />
-                                    </td>
-                                    <td className="p-2">{vidro?.nome}{vidro?.tipo ? ` (${vidro.tipo})` : ""}{vidro?.espessura ? ` - ${vidro.espessura}` : ""}</td>
-                                    <td className="p-2">{item.quantidade}</td>
-                                    <td className="p-2">{item.larguraOriginal}</td>
-                                    <td className="p-2">{item.alturaOriginal}</td>
-                                    <td className="p-2 font-semibold">{formatarPreco(item.valorTotal)}</td>
-                                    <td className="p-2 flex gap-2">
-                                        <button
-                                            onClick={() => { 
-                                                setEditIndex(i); 
-                                                setNovoVidro(prev => ({
-                                                    ...prev,
-                                                    vidro_id: item.vidro_id,
-                                                    // Mantém o cliente_id e cliente atual, pois não podem ser trocados em orçamento ativo
-                                                    cliente: item.cliente || prev.cliente, 
-                                                    cliente_id: prev.cliente_id || clientes.find(c => c.nome === item.cliente)?.id || 0,
-                                                    quantidade: item.quantidade,
-                                                    larguraOriginal: item.larguraOriginal,
-                                                    alturaOriginal: item.alturaOriginal,
-                                                })); 
-                                                const v = vidros.find(v => v.id === item.vidro_id);
-                                                const preco = v ? getVidroPriceForClient(v.id, novoVidro.cliente_id) : 0;
-                                                setInputVidro(v 
-                                                    ? `${v.nome}${v.tipo ? ` (${v.tipo})` : ""}${v.espessura ? ` - ${v.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
-                                                    : "");
-                                                setTimeout(() => larguraInputRef.current?.focus(), 0) 
-                                            }}
-                                            className="p-1 rounded hover:bg-gray-100"
-                                            title="Editar"
-                                        >
-                                            <Edit2 className="w-4 h-4 text-blue-500" />
-                                        </button>
-                                        <button
-                                            onClick={() => excluirItem(i)}
-                                            className="p-1 rounded hover:bg-gray-100" 
-                                            title="Excluir"
-                                        >
-                                            <Trash2 className="w-4 h-4 text-red-500" /> 
-                                        </button>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                    <tfoot>
-                        <tr className="font-bold border-t-2" style={{ borderColor: theme.primary }}>
-                            <td className="p-2"></td>
-                            <td className="p-2 text-right" colSpan={4} style={{ color: theme.primary }}>Total</td>
-                            <td className="p-2 text-lg" style={{ color: theme.primary }}>{formatarPreco(totalOrcamento)}</td>
-                            <td className="p-2"></td>
-                        </tr>
-                    </tfoot>
-                </table>
+                    onFocus={() => setShowAutocomplete(true)}
+                    onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+                />
+                {showAutocomplete && (
+                    <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto mt-1">
+                        {vidros.filter(v => matchesVidro(v, inputVidro)).map(v => (
+                            <li
+                                key={v.id}
+                                className="p-2 cursor-pointer hover:bg-gray-100"
+                                onMouseDown={() => { 
+                                    setNovoVidro(prev => ({ ...prev, vidro_id: v.id })); 
+                                    const vSelected = vidros.find(vid => vid.id === v.id);
+                                    const preco = vSelected ? getVidroPriceForClient(vSelected.id, novoVidro.cliente_id) : 0;
+                                    setInputVidro(vSelected 
+                                        ? `${vSelected.nome}${vSelected.tipo ? ` (${vSelected.tipo})` : ""}${vSelected.espessura ? ` - ${vSelected.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
+                                        : "");
+                                    setShowAutocomplete(false) 
+                                }}
+                            >
+                                {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""} 
+                                <span className="text-xs text-gray-500"> (R$ {formatarPreco(getVidroPriceForClient(v.id, novoVidro.cliente_id))}/m²)</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </div>
-    )
+
+        {/* Largura / Altura / Quantidade / Ação (Padrão: grid responsivo) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+            <input
+                ref={larguraInputRef}
+                type="text"
+                placeholder="Largura (mm)"
+                value={novoVidro.larguraOriginal}
+                onChange={e => setNovoVidro(prev => ({ ...prev, larguraOriginal: e.target.value }))}
+                className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                style={{ borderColor: theme.border }}
+            />
+            <input
+                type="text"
+                placeholder="Altura (mm)"
+                value={novoVidro.alturaOriginal}
+                onChange={e => setNovoVidro(prev => ({ ...prev, alturaOriginal: e.target.value }))}
+                className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                style={{ borderColor: theme.border }}
+            />
+            <input
+                type="number"
+                placeholder="Qtd"
+                value={novoVidro.quantidade}
+                min={1}
+                onChange={e => setNovoVidro(prev => ({ ...prev, quantidade: Number(e.target.value) }))}
+                className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                style={{ borderColor: theme.border }}
+            />
+            <button
+                onClick={adicionarOuSalvar}
+                disabled={novoVidro.cliente_id === 0 || novoVidro.vidro_id === 0}
+                className="py-3 rounded-xl font-semibold text-white transition hover:brightness-110 disabled:opacity-50" 
+                style={{ backgroundColor: theme.primary }}
+            >
+                {editIndex !== null ? "Salvar Edição" : "Adicionar"}
+            </button>
+        </div>
+    </div>
+    
+    {/* BARRA DE AÇÃO EM MASSA (Padrão: similar ao formulário, com cores de destaque) */}
+    {vidrosLista.length > 0 && (
+        <div className="mb-4 p-4 rounded-xl shadow-md flex flex-wrap gap-4 items-center" style={{ backgroundColor: theme.cardBg, border: `1px solid ${theme.border}` }}>
+            <span className="font-semibold text-sm" style={{ color: theme.primary }}>{itensSelecionados.length} item(s) selecionado(s)</span>
+            
+            <button
+                onClick={() => setTrocaModal(prev => ({ ...prev, isOpen: true }))}
+                disabled={itensSelecionados.length === 0}
+                className="px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50 transition hover:brightness-110"
+                style={{ backgroundColor: theme.secondary, color: theme.primary }}
+            >
+                Trocar Vidros Selecionados
+            </button>
+            <button
+                onClick={() => setItensSelecionados([])}
+                disabled={itensSelecionados.length === 0}
+                className="px-4 py-2 rounded-xl font-medium border text-gray-700 disabled:opacity-50 transition hover:bg-gray-100"
+                style={{ borderColor: theme.border }}
+            >
+                Limpar Seleção
+            </button>
+        </div>
+    )}
+
+    {/* TABELA DE ORÇAMENTO (Padrão: bg-white, rounded-xl, shadow-lg, cabeçalho primário) */}
+    <h2 className="text-xl font-bold mb-3" style={{ color: theme.primary }}>Itens do Orçamento ({vidrosLista.length})</h2>
+    <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
+        <table className="w-full text-left whitespace-nowrap">
+            <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
+                <tr>
+                    <th className="p-3 w-12 rounded-tl-xl">
+                        <input 
+                            type="checkbox" 
+                            checked={itensSelecionados.length === vidrosLista.length && vidrosLista.length > 0}
+                            onChange={toggleSelectAll}
+                            className="h-4 w-4 text-white rounded focus:ring-transparent" 
+                            style={{ color: theme.secondary, accentColor: theme.secondary, backgroundColor: theme.primary }}
+                        />
+                    </th>
+                    <th className="p-3">Vidro</th>
+                    <th className="p-3">Qtd</th>
+                    <th className="p-3">Largura (mm)</th>
+                    <th className="p-3">Altura (mm)</th>
+                    <th className="p-3 text-right">Total</th>
+                    <th className="p-3 text-center rounded-tr-xl">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {vidrosLista.map((item, i) => {
+                    const vidro = vidros.find(v => v.id === item.vidro_id)
+                    const isSelected = itensSelecionados.includes(i);
+                    return (
+                        <tr key={item.larguraOriginal + item.alturaOriginal + item.vidro_id + i} className={`border-b hover:bg-gray-50 ${isSelected ? 'bg-yellow-50/50' : ''}`} style={{ borderColor: theme.border }}>
+                            <td className="p-3 w-12">
+                                <input 
+                                    type="checkbox" 
+                                    checked={isSelected}
+                                    onChange={() => toggleItemSelection(i)}
+                                    className="h-4 w-4 rounded" 
+                                    style={{ color: theme.primary, accentColor: theme.secondary }}
+                                />
+                            </td>
+                            <td className="p-3">
+                                <span className="font-semibold block">{vidro?.nome}</span>
+                                <span className="text-xs italic text-gray-500">
+                                    {vidro?.tipo ? ` (${vidro.tipo})` : ""}{vidro?.espessura ? ` - ${vidro.espessura}` : ""}
+                                </span>
+                            </td>
+                            <td className="p-3">{item.quantidade}</td>
+                            <td className="p-3">{item.larguraOriginal}</td>
+                            <td className="p-3">{item.alturaOriginal}</td>
+                            <td className="p-3 font-bold text-right">{formatarPreco(item.valorTotal)}</td>
+                            <td className="p-3 text-center">
+                                <div className="flex gap-2 justify-center">
+                                    <button
+                                        onClick={() => { 
+                                            setEditIndex(i); 
+                                            setNovoVidro(prev => ({
+                                                ...prev,
+                                                vidro_id: item.vidro_id,
+                                                cliente: item.cliente || prev.cliente, 
+                                                cliente_id: prev.cliente_id || clientes.find(c => c.nome === item.cliente)?.id || 0,
+                                                quantidade: item.quantidade,
+                                                larguraOriginal: item.larguraOriginal,
+                                                alturaOriginal: item.alturaOriginal,
+                                            })); 
+                                            const v = vidros.find(v => v.id === item.vidro_id);
+                                            const preco = v ? getVidroPriceForClient(v.id, novoVidro.cliente_id) : 0;
+                                            setInputVidro(v 
+                                                ? `${v.nome}${v.tipo ? ` (${v.tipo})` : ""}${v.espessura ? ` - ${v.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
+                                                : "");
+                                            setTimeout(() => larguraInputRef.current?.focus(), 0) 
+                                        }}
+                                        className="p-2 rounded-full hover:bg-gray-100 transition"
+                                        title="Editar"
+                                    >
+                                        <Edit2 className="w-5 h-5" style={{ color: theme.primary }} />
+                                    </button>
+                                    <button
+                                        onClick={() => excluirItem(i)}
+                                        className="p-2 rounded-full hover:bg-red-50 transition" 
+                                        title="Excluir"
+                                    >
+                                        <Trash2 className="w-5 h-5 text-red-500" /> 
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    )
+                })}
+            </tbody>
+        </table>
+        {!vidrosLista.length && (
+            <div className="p-8 text-center text-gray-500">Nenhum item adicionado ao orçamento.</div>
+        )}
+    </div>
+
+    {/* TOTAL FINAL (Padrão: Caixa de destaque) */}
+    <div className="text-right p-4 rounded-xl shadow-lg mt-4 font-bold bg-white" style={{ color: theme.primary, border: `1px solid ${theme.secondary}` }}>
+        <span className="text-xl">Total Geral: {formatarPreco(totalOrcamento)}</span>
+    </div>
+
+</div>
+); // <-- Fechamento final do `return` e do componente
 }
+// Se houver código de função ou exportação após isso, mantenha-o.
