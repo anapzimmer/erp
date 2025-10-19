@@ -1,7 +1,7 @@
-# ERP - Ana Zimmer
+# ERP - Sistema de Cálculo de Vidro Temperado
 
-Este é o repositório do projeto **ERP** desenvolvido com **Next.js**, **TypeScript** e **Supabase**.  
-O projeto está pronto para deploy no **Vercel** e inclui funcionalidades para cálculo de vidros, gerenciamento de serviços e clientes.
+Este é um sistema **em desenvolvimento** voltado para vidraceiros, criado para facilitar o **cálculo e gerenciamento de vidro temperado**, serviços e clientes.  
+O projeto é desenvolvido com **Next.js**, **TypeScript** e **Supabase**, e preparado para deploy no **Vercel**.
 
 ---
 
@@ -15,13 +15,15 @@ O projeto está pronto para deploy no **Vercel** e inclui funcionalidades para c
 
 ---
 
-## 🚀 Funcionalidades principais
+## ⚡ Funcionalidades (em andamento)
 
 - Cadastro e gerenciamento de clientes
 - Cadastro de serviços e vidros
-- Geração de PDFs com cálculos
-- Sistema de autenticação e integração com Supabase
-- Layout responsivo e otimizado para desktop e mobile
+- Cálculo de vidro temperado com geração de PDFs
+- Layout responsivo para desktop e mobile
+- Sistema de autenticação via Supabase
+
+> Algumas funcionalidades ainda estão em desenvolvimento e serão atualizadas conforme o projeto evolui.
 
 ---
 
@@ -32,12 +34,4 @@ O projeto está pronto para deploy no **Vercel** e inclui funcionalidades para c
 - Conta no [Supabase](https://supabase.com/) com projeto configurado
 - Conta no [Vercel](https://vercel.com/) para deploy
 
----
 
-## ⚡ Configuração do projeto
-
-1. Clone o repositório:
-
-```bash
-git clone https://github.com/anapzimmer/erp.git
-cd erp
