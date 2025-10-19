@@ -99,7 +99,8 @@ const arredondar5cm = (valorMM: number) => Math.ceil(valorMM / 50) * 50
 
 const parseNumber = (s: string) => {
     if (!s) return NaN
-    const cleaned = s.replace(",", ".").replace(/[^\d.-]/g, "")
+    // Permite vírgulas e pontos, removendo caracteres não-numéricos (exceto ponto/vírgula/sinal)
+    const cleaned = s.replace(",", ".").replace(/[^\d.-]/g, "") 
     return parseFloat(cleaned)
 }
 
@@ -118,7 +119,7 @@ const calcularValorUnidade = (larguraCalcMM: number, alturaCalcMM: number, preco
     return parseFloat((areaM2 * precoM2 * valorMultiplicador).toFixed(2))
 }
 
-// ---------------------- HOOKS DO SISTEMA (NOVOS) ----------------------
+// ---------------------- HOOKS DO SISTEMA ----------------------
 
 type ConfirmModalState = {
     isOpen: boolean
@@ -160,10 +161,9 @@ const useSystemAlerts = () => {
     return { alertModal, setAlertModal, confirmModal, systemAlert, systemConfirm }
 }
 
-// ---------------------- MODAIS DE ALERTA/CONFIRMAÇÃO (NOVOS) ----------------------
+// ---------------------- MODAIS DE ALERTA/CONFIRMAÇÃO ----------------------
 
 function SystemAlertModal({ message, onClose, theme }: { message: string, onClose: () => void, theme: ThemeType }) {
-// Note que 'ThemeType' substitui 'typeof theme' para evitar o erro de referência cíclica.
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999] px-4">
             <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border" style={{ borderColor: theme.primary }}>
@@ -205,7 +205,7 @@ function SystemConfirmModal({ message, onConfirm, onCancel, theme }: { message: 
 }
 
 
-// ---------------------- MODAIS EXISTENTES ----------------------
+// ---------------------- MODAIS ----------------------
 
 type ModalServicosItemProps = {
     item: EspelhoLinha
@@ -216,38 +216,161 @@ type ModalServicosItemProps = {
 
 function ModalServicosItem({ item, servicosDisponiveis, onClose, onSave }: ModalServicosItemProps) {
     const [selecionados, setSelecionados] = useState<EspelhoServico[]>(item.servicos || [])
+    const [medidaInputMap, setMedidaInputMap] = useState<Record<number, string>>(() => {
+        const initialMap: Record<number, string> = {};
+        // Inicializa o mapa com o valor numérico formatado para string com vírgula (se existir)
+        (item.servicos || []).forEach(s => {
+            if (s.servico.unidade === "metro_linear" && s.medidaLinear !== undefined) {
+                // Formata o valor numérico (ex: 0.5) para a string de exibição (ex: "0,5")
+                initialMap[s.servico.id] = s.medidaLinear.toString().replace('.', ',');
+            }
+        });
+        return initialMap;
+    });
+
+    // 1. Calcula o perímetro em metros para usar como sugestão (2 * (L + A) / 1000)
+    const largura = parseNumber(item.larguraOriginal)
+    const altura = parseNumber(item.alturaOriginal)
+    const quantidade = item.quantidade || 1
+
+    // Perímetro em metros: P = 2 * (L + A) / 1000. Usa 0 se medidas inválidas.
+    const defaultLinearMeasure = (isNaN(largura) || isNaN(altura)) ? 0 : parseFloat((2 * (largura + altura) / 1000).toFixed(2));
+
+    // 2. Função centralizada para calcular o valor do serviço
+    const calculateServiceValue = (s: Servico, medida?: number) => {
+        let valorCalculado = 0;
+        // Se a medida for 0 ou NaN, usa 0 no cálculo, permitindo valores fracionários ou zero
+        let medidaUsada = medida !== undefined && !isNaN(medida) ? medida : 0; 
+
+        if (s.unidade === "metro_linear") {
+            // Se for linear, o valor é Preço * Medida Linear * Quantidade
+            valorCalculado = (s.preco * medidaUsada) * quantidade;
+        } else if (s.unidade === "m²") {
+            // Se for m², o valor é Preço * Área Calculada * Quantidade
+            const areaM2 = (item.larguraCalc * item.alturaCalc) / 1000000;
+            valorCalculado = (s.preco * areaM2) * quantidade;
+        } else { // "unitário"
+            // Se for unitário, o valor é Preço * Quantidade
+            valorCalculado = s.preco * quantidade;
+        }
+        return parseFloat(valorCalculado.toFixed(2));
+    }
 
     const toggleServico = (s: Servico) => {
+        // ... (lógica de toggle mantida)
         const exists = selecionados.find(sel => sel.servico.id === s.id)
         if (exists) {
             setSelecionados(prev => prev.filter(sel => sel.servico.id !== s.id))
         } else {
-            setSelecionados(prev => [...prev, { servico: s, valorCalculado: s.preco }])
+            const initialMeasure = s.unidade === "metro_linear" 
+                ? (item.servicos?.find(sel => sel.servico.id === s.id)?.medidaLinear ?? defaultLinearMeasure)
+                : undefined;
+            
+            const initialValue = calculateServiceValue(s, initialMeasure);
+
+            setSelecionados(prev => [...prev, {
+                servico: s, 
+                valorCalculado: initialValue,
+                medidaLinear: initialMeasure 
+            }])
         }
     }
+    
+    /// 3. Manipulador de Mudança para o Campo de Medida Linear (CORRIGIDO)
+        const handleMedidaChange = (servicoId: number, medidaStr: string) => {
+        // 1. Atualiza o estado da string de entrada (MedidaInputMap)
+        setMedidaInputMap(prev => ({
+            ...prev,
+            [servicoId]: medidaStr, // Salva a string exata digitada ("0,", "5", "5,5")
+        }));
+
+        // 2. Tenta parsear para o cálculo: Troca vírgula por ponto. Permite string vazia.
+        const cleanedStr = medidaStr.replace(',', '.');
+        // Se for string vazia, usa 0. Senão, tenta parsear.
+        const medidaNum = cleanedStr === '' ? 0 : parseNumber(cleanedStr);
+        
+        // Usa o valor numérico (medidaNum) para o cálculo
+        const medidaParaEstado = isNaN(medidaNum) ? 0 : medidaNum;
+
+        setSelecionados(prev => prev.map(sel => {
+            if (sel.servico.id === servicoId) {
+                const novoValor = calculateServiceValue(sel.servico, medidaParaEstado);
+                return { 
+                    ...sel, 
+                    medidaLinear: medidaParaEstado, // Salva o valor numérico (ex: 0.5)
+                    valorCalculado: novoValor 
+                };
+            }
+            return sel;
+        }));
+    }
+
+    // Função para obter o valor formatado para o input (COM VÍRGULA) (CORRIGIDO)
+    const getMedidaDisplayValue = (currentSelection: EspelhoServico) => {
+        // Usa o valor numérico salvo (medidaLinear)
+        const valorNumerico = currentSelection.medidaLinear !== undefined 
+            ? currentSelection.medidaLinear
+            : defaultLinearMeasure;
+
+        // Se for zero, retorna uma string vazia para melhor UX, senão formata com vírgula.
+       if (valorNumerico === 0) {
+            return ''; // <--- Isso limpa o input quando o valor é 0
+        }
+
+        // Converte o número de volta para string, garantindo que use a vírgula para exibição
+        // ToFixed(2) ajuda a formatar, mas não é obrigatório aqui
+        return valorNumerico.toString().replace('.', ',');
+    }
+
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
             <div className="p-6 rounded-2xl shadow-lg w-full max-w-md bg-white">
                 <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primary }}>Editar Serviços</h2>
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                     {servicosDisponiveis
                         .filter(s => !normalize(s.nome).includes("espelho"))
-                        .map(s => (
-                            <div key={s.id} className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id={`servico-${s.id}`}
-                                    checked={!!selecionados.find(sel => sel.servico.id === s.id)}
-                                    onChange={() => toggleServico(s)}
-                                    className="rounded text-green-500 focus:ring-green-500"
-                                    style={{ color: theme.secondary }}
-                                />
-                                <label htmlFor={`servico-${s.id}`} className="flex-1 cursor-pointer">
-                                    {s.nome} - {formatarPreco(s.preco)}
-                                </label>
-                            </div>
-                        ))}
+                        .map(s => {
+                            const isSelected = !!selecionados.find(sel => sel.servico.id === s.id)
+                            const currentSelection = selecionados.find(sel => sel.servico.id === s.id)
+                            
+                            // Determina o valor a ser exibido no input
+
+                            return (
+                                <div key={s.id} className="flex flex-col border p-2 rounded-lg" style={{ borderColor: isSelected ? theme.secondary : theme.border }}>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`servico-${s.id}`}
+                                            checked={isSelected}
+                                            onChange={() => toggleServico(s)}
+                                            className="rounded text-green-500 focus:ring-green-500"
+                                            style={{ color: theme.secondary }}
+                                        />
+                                        <label htmlFor={`servico-${s.id}`} className="flex-1 cursor-pointer font-medium">
+                                            {s.nome} - {formatarPreco(s.preco)}/{s.unidade.replace('_', ' ')}
+                                        </label>
+                                    </div>
+
+                                    {/* 4. CAMPO DE INPUT PARA MEDIDA LINEAR */}
+                                    {isSelected && s.unidade === "metro_linear" && currentSelection && (
+                                        <div className="mt-2 pl-6">
+                                            <label className="block text-sm mb-1 text-gray-600">Metros Lineares (m):</label>
+                                            <input
+                                                type="text"
+                                                placeholder={`Sugestão: ${defaultLinearMeasure.toFixed(2).replace('.', ',')}`}
+                                                value={medidaInputMap[s.id] || ''} // Se não existir, usa string vazia
+                                                onChange={(e) => handleMedidaChange(s.id, e.target.value)}
+                                                className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                                            />
+                                            <div className="text-xs mt-1 text-right" style={{ color: theme.primary }}>
+                                                Valor Calculado: {formatarPreco(currentSelection.valorCalculado)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
                 </div>
                 <div className="flex justify-between gap-3 mt-6">
                     <button onClick={onClose} className="flex-1 py-2 rounded-2xl font-semibold bg-gray-300 hover:opacity-90">Cancelar</button>
@@ -263,7 +386,7 @@ type ModalEditarItemProps = {
     vidros: Vidro[]
     onClose: () => void
     onSave: (dados: Omit<EspelhoLinha, "larguraCalc" | "alturaCalc" | "precoUnitarioM2" | "valorTotal">) => void
-    systemAlert: (message: string) => void // Adicionado
+    systemAlert: (message: string) => void
 }
 
 function ModalEditarItem({ item, vidros, onClose, onSave, systemAlert }: ModalEditarItemProps) {
@@ -278,11 +401,13 @@ function ModalEditarItem({ item, vidros, onClose, onSave, systemAlert }: ModalEd
     })
 
     const handleSalvar = () => {
+        // CORREÇÃO: Os dados no estado 'dados' incluem o novo 'acabamento'
         if (isNaN(parseNumber(dados.larguraOriginal)) || isNaN(parseNumber(dados.alturaOriginal)) || !dados.vidro_id) {
-            systemAlert("Preencha as medidas válidas e selecione o vidro.") // ALTERADO AQUI
+            systemAlert("Preencha as medidas válidas e selecione o vidro.")
             return
         }
-        onSave(dados)
+        // Ao chamar onSave, o estado 'dados' é o que contém o acabamento atualizado
+        onSave(dados) 
     }
 
     return (
@@ -331,7 +456,8 @@ function ModalEditarItem({ item, vidros, onClose, onSave, systemAlert }: ModalEd
                     <label className="block">Acabamento:</label>
                     <select
                         value={dados.acabamento}
-                        onChange={e => setDados(prev => ({ ...prev, acabamento: e.target.value }))}
+                        // CORREÇÃO: Atualiza o estado 'dados' com o novo acabamento
+                        onChange={e => setDados(prev => ({ ...prev, acabamento: e.target.value }))} 
                         className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                     >
                         <option value="Nenhum">Nenhum</option>
@@ -353,6 +479,8 @@ function ModalEditarItem({ item, vidros, onClose, onSave, systemAlert }: ModalEd
 // ---------------------- MAIN APP ----------------------
 
 export default function App() {
+    // ... (Estados e useEffects de carregamento de dados omitidos para brevidade, mas devem ser mantidos)
+
     const [vidros, setVidros] = useState<Vidro[]>([])
     const [clientes, setClientes] = useState<Cliente[]>([])
     const [servicos, setServicos] = useState<Servico[]>([])
@@ -377,7 +505,6 @@ export default function App() {
     })
 
     const [editIndex, setEditIndex] = useState<number | null>(null)
-    const [showModalNovoOrcamento, setShowModalNovoOrcamento] = useState(false)
     const [showModalServicos, setShowModalServicos] = useState(false)
     const [servicosEditIndex, setServicosEditIndex] = useState<number | null>(null)
     const [showModalEditar, setShowModalEditar] = useState(false)
@@ -388,12 +515,11 @@ export default function App() {
 
     const larguraInputRef = useRef<HTMLInputElement>(null)
 
-    // --- HOOK DO SISTEMA ---
     const { alertModal, setAlertModal, confirmModal, systemAlert, systemConfirm } = useSystemAlerts()
 
     // --- Funções de Carregamento de Dados (AGORA COM SUPABASE) ---
     const carregarDados = async () => {
-        // 1. Carregar Vidros
+        // ... (Implementação de carregamento de dados mantida)
         const { data: vidrosData, error: vidrosError } = await supabase.from("vidros").select("*").order("nome", { ascending: true })
         if (vidrosError) {
             console.error("Erro ao carregar vidros:", vidrosError)
@@ -407,19 +533,15 @@ export default function App() {
             setVidros(vidrosProcessados || [])
         }
 
-        // 2. Carregar Clientes
         const { data: clientesData, error: clientesError } = await supabase.from("clientes").select("*").order("nome", { ascending: true })
         if (clientesError) console.error("Erro ao carregar clientes:", clientesError)
         else setClientes((clientesData as Cliente[]) || [])
 
-        // 3. Carregar Preços por Cliente
         const { data: precosData, error: precosError } = await supabase.from("vidro_precos_clientes").select("*")
         if (precosError) console.error("Erro ao carregar preços por cliente:", precosError)
         else setPrecosClientes((precosData as PrecoCliente[]) || [])
 
-        // 4. Carregar Serviços (AGORA COM SUPABASE)
         const { data: servicosData, error: servicosError } = await supabase.from("servicos").select("*").order("nome", { ascending: true })
-
         if (servicosError) console.error("Erro ao carregar serviços:", servicosError)
         else setServicos((servicosData as Servico[]) || [])
     }
@@ -434,15 +556,7 @@ export default function App() {
         }
     }, [espelhos])
 
-    // --- Funções de Ação (com lógica de preço ajustada) ---
-
-    const excluirItem = async (index: number) => {
-        const isConfirmed = await systemConfirm("Deseja realmente excluir este item?")
-        if (isConfirmed) {
-            setEspelhos(prev => prev.filter((_, i) => i !== index))
-        }
-    }
-
+    // --- LÓGICA REUTILIZÁVEL E CORRIGIDA PARA ACABAMENTO ---
     const limparFormulario = () => {
         setNovoEspelho(prev => ({
             ...prev,
@@ -453,52 +567,80 @@ export default function App() {
             servicos: []
         }))
     }
+    
+    // NOVO: Função centralizada para calcular e salvar/adicionar um item
+    const processarESalvarItem = (dadosItem: Omit<EspelhoLinha, "larguraCalc" | "alturaCalc" | "precoUnitarioM2" | "valorTotal">, indexParaEditar: number | null) => {
+        const larguraNum = parseNumber(dadosItem.larguraOriginal)
+        const alturaNum = parseNumber(dadosItem.alturaOriginal)
 
-    const adicionarOuSalvar = () => {
-        const larguraNum = parseNumber(novoEspelho.larguraOriginal)
-        const alturaNum = parseNumber(novoEspelho.alturaOriginal)
-
-        if (!novoEspelho.vidro_id || isNaN(larguraNum) || isNaN(alturaNum) || !novoEspelho.cliente) {
+        // Validação básica
+        if (!dadosItem.vidro_id || isNaN(larguraNum) || isNaN(alturaNum) || !dadosItem.cliente) {
             systemAlert("Informe Largura, Altura, selecione um Vidro e um Cliente.")
             return
         }
 
         const larguraCalc = arredondar5cm(larguraNum)
         const alturaCalc = arredondar5cm(alturaNum)
-        const vidro = vidros.find(v => v.id === novoEspelho.vidro_id)
-        const clienteSelecionadoObj = clientes.find(c => c.nome === novoEspelho.cliente)
+        const vidro = vidros.find(v => v.id === dadosItem.vidro_id)
+        const clienteSelecionadoObj = clientes.find(c => c.nome === dadosItem.cliente)
 
-        // Busca preço especial (LÓGICA AJUSTADA)
+        // Busca preço
         const precoCliente = precosClientes.find(
-            p => p.cliente_id === clienteSelecionadoObj?.id && p.vidro_id === novoEspelho.vidro_id
+            p => p.cliente_id === clienteSelecionadoObj?.id && p.vidro_id === dadosItem.vidro_id
         )?.preco
 
         const precoM2 = precoCliente ?? Number(vidro?.preco ?? precoM2Selecionado ?? 0)
-        const valorUnit = calcularValorUnidade(larguraCalc, alturaCalc, precoM2, novoEspelho.acabamento)
-        const totalServicos = novoEspelho.servicos?.reduce((acc, s) => acc + (s.valorCalculado ?? 0), 0) || 0
-        const valorTotal = parseFloat(((valorUnit + totalServicos) * (novoEspelho.quantidade || 1)).toFixed(2))
+        
+        // CÁLCULO: Usa o acabamento de 'dadosItem'
+        const valorUnit = calcularValorUnidade(larguraCalc, alturaCalc, precoM2, dadosItem.acabamento) 
+        const totalServicos = dadosItem.servicos?.reduce((acc, s) => acc + (s.valorCalculado ?? 0), 0) || 0
+        const valorTotal = parseFloat(((valorUnit + totalServicos) * (dadosItem.quantidade || 1)).toFixed(2))
 
         const item: EspelhoLinha = {
-            ...novoEspelho,
+            ...dadosItem,
             larguraCalc,
             alturaCalc,
             precoUnitarioM2: precoM2,
             valorTotal
         }
 
-        if (editIndex !== null) {
+        if (indexParaEditar !== null) {
+            // Modo Edição
             setEspelhos(prev => {
                 const novos = [...prev]
-                novos[editIndex] = item
+                novos[indexParaEditar] = item
                 return novos
             })
-            setEditIndex(null)
+            setEditIndex(null) 
         } else {
+            // Modo Adição
             setEspelhos(prev => [...prev, item])
+            limparFormulario()
+            setTimeout(() => larguraInputRef.current?.focus(), 0)
         }
+    }
 
-        limparFormulario()
-        setTimeout(() => larguraInputRef.current?.focus(), 0)
+    // Função para adicionar um novo item (usa o estado 'novoEspelho')
+    const adicionarItem = () => {
+        processarESalvarItem(novoEspelho, null);
+    }
+
+    // Função chamada pelo ModalEditarItem para salvar a edição
+    const salvarEdicao = (dadosEditados: Omit<EspelhoLinha, "larguraCalc" | "alturaCalc" | "precoUnitarioM2" | "valorTotal">) => {
+        if (editIndex !== null) {
+            // Usa o 'editIndex' salvo e os 'dadosEditados' recebidos
+            processarESalvarItem(dadosEditados, editIndex); 
+        }
+        setShowModalEditar(false);
+    }
+    
+    // ----------------------------------------------------------------------
+    
+    const excluirItem = async (index: number) => {
+        const isConfirmed = await systemConfirm("Deseja realmente excluir este item?")
+        if (isConfirmed) {
+            setEspelhos(prev => prev.filter((_, i) => i !== index))
+        }
     }
 
     const novoOrcamento = async () => {
@@ -525,6 +667,7 @@ export default function App() {
             
             e.servicos = servicosSelecionados
 
+            // Recalcula o valor total com os novos serviços
             const valorUnit = calcularValorUnidade(e.larguraCalc, e.alturaCalc, e.precoUnitarioM2, e.acabamento)
             const totalServicos = e.servicos?.reduce((acc, s) => acc + (s.valorCalculado ?? 0), 0) || 0
             e.valorTotal = parseFloat(((valorUnit + totalServicos) * (e.quantidade || 1)).toFixed(2))
@@ -538,7 +681,8 @@ export default function App() {
     const abrirModalEdicao = (index: number) => {
         setEditIndex(index)
         const item = espelhos[index]
-        setNovoEspelho({
+        // Prepara o estado 'novoEspelho' apenas para preencher os campos do formulário
+        setNovoEspelho({ 
             larguraOriginal: item.larguraOriginal,
             alturaOriginal: item.alturaOriginal,
             quantidade: item.quantidade,
@@ -554,7 +698,7 @@ export default function App() {
         setShowModalEditar(true);
     }
 
-    // --- Função PDF (sem alterações) ---
+    // --- Função PDF (Com correção de alinhamento e largura) ---
     const gerarPDF = async () => {
         if (!espelhos.length) {
             systemAlert("Não há itens no orçamento para gerar o PDF.")
@@ -565,7 +709,8 @@ export default function App() {
 
         const pdf = new jsPDF("p", "mm", "a4")
         const pageWidth = pdf.internal.pageSize.getWidth()
-        const margin = 20
+        const margin = 10 
+        const usableWidth = pageWidth - (2 * margin) 
 
         // 🔹 Cabeçalho
         pdf.setFontSize(16)
@@ -579,7 +724,7 @@ export default function App() {
         pdf.setFontSize(10)
         pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36)
 
-        // 🔹 Logo no canto superior direito
+        // 🔹 Logo (mantido)
         try {
             const imgData = await fetch("/logo.png")
                 .then((r) => r.blob())
@@ -605,26 +750,69 @@ export default function App() {
             console.warn("Logo não carregada para o PDF.")
         }
 
-        // 🔹 Tabela
+        // 🔹 Tabela - Preparação dos Dados
         const body = espelhos.map((e) => {
             const vidro = vidros.find((v) => v.id === e.vidro_id)
+            
+            const servicosTexto = e.servicos && e.servicos.length > 0
+                ? e.servicos.map(s => `${s.servico.nome}`).join(", ")
+                : "" 
+            
+            const acabamentoTexto = e.acabamento && e.acabamento !== "Nenhum"
+                ? e.acabamento
+                : "" 
+
             return [
                 `${vidro?.nome || ""}${vidro?.tipo ? ` (${vidro.tipo})` : ""}${vidro?.espessura ? ` - ${vidro.espessura}` : ""}`,
                 e.quantidade,
                 e.larguraOriginal || e.larguraCalc,
                 e.alturaOriginal || e.alturaCalc,
+                acabamentoTexto, 
+                servicosTexto, 
                 formatarPreco(e.valorTotal),
             ]
         })
 
+        // Distribuição de Largura (Total: 100%)
+        const widthMap = {
+            vidro: usableWidth * 0.30,      
+            qtd: usableWidth * 0.08,        
+            medidas: usableWidth * 0.10,    
+            acabamento: usableWidth * 0.14, 
+            servicos: usableWidth * 0.14,   
+            total: usableWidth * 0.14,      
+        }
+
         autoTable(pdf, {
-            head: [["Vidro", "Qtd", "Largura (mm)", "Altura (mm)", "Total"]],
+            head: [["Vidro", "Qtd", "L (mm)", "A (mm)", "Acabamento", "Serviços", "Total"]],
             body,
             theme: "grid",
-            headStyles: { fillColor: theme.primary, textColor: "#FFF", fontSize: 11 },
-            bodyStyles: { fontSize: 11, textColor: theme.primary },
+            // CENTRALIZAÇÃO VERTICAL E HORIZONTAL DO CABEÇALHO
+            headStyles: { 
+                fillColor: theme.primary, 
+                textColor: "#FFF", 
+                fontSize: 10, 
+                valign: 'middle',
+                halign: 'center' 
+            },
+            // CENTRALIZAÇÃO VERTICAL DO CORPO
+            bodyStyles: { 
+                fontSize: 9.5, 
+                textColor: theme.primary, 
+                valign: 'middle' 
+            }, 
             margin: { left: margin, right: margin },
-            styles: { cellPadding: 3 },
+            styles: { cellPadding: 2.5, overflow: 'linebreak' as any, cellWidth: 'wrap' as any },
+            columnStyles: { 
+                // CENTRALIZAÇÃO HORIZONTAL DE TODAS AS COLUNAS
+                0: { cellWidth: widthMap.vidro, halign: 'center' },          
+                1: { cellWidth: widthMap.qtd, halign: 'center' },            
+                2: { cellWidth: widthMap.medidas, halign: 'center' },         
+                3: { cellWidth: widthMap.medidas, halign: 'center' },         
+                4: { cellWidth: widthMap.acabamento, halign: 'center' },     
+                5: { cellWidth: widthMap.servicos, halign: 'center' },       
+                6: { cellWidth: widthMap.total, halign: 'center' },          
+            },
             startY: 45,
         })
 
@@ -633,11 +821,12 @@ export default function App() {
         pdf.setFontSize(12)
         pdf.setTextColor(theme.primary)
         const totalTexto = `Total do orçamento: ${formatarPreco(totalOrcamento)}`
-        pdf.text(totalTexto, pageWidth - margin - pdf.getTextWidth(totalTexto), finalY + 13)
+        
+        pdf.text(totalTexto, pageWidth - margin - pdf.getTextWidth(totalTexto), finalY + 10)
 
         // 🔹 Salvar
         pdf.save("orcamento.pdf")
-        systemAlert("PDF gerado e baixado com sucesso!")
+        systemAlert("PDF gerado e baixado com sucesso! 🎉")
     }
 
     const totalOrcamento = espelhos.reduce((acc, e) => acc + (e.valorTotal || 0), 0)
@@ -651,7 +840,7 @@ export default function App() {
     return (
         <div className="min-h-screen p-4 sm:p-6 font-sans" style={{ backgroundColor: theme.background, color: theme.text }}>
 
-            {/* Modal de Serviço (EXISTENTE) */}
+            {/* Modal de Serviço */}
             {showModalServicos && servicosEditIndex !== null && (
                 <ModalServicosItem
                     item={espelhos[servicosEditIndex]}
@@ -661,23 +850,18 @@ export default function App() {
                 />
             )}
 
-            {/* Modal de Edição de Item (EXISTENTE) */}
+            {/* Modal de Edição de Item */}
             {showModalEditar && editIndex !== null && (
                 <ModalEditarItem
                     item={espelhos[editIndex]}
                     vidros={vidros}
                     onClose={() => setShowModalEditar(false)}
-                    onSave={(dados) => {
-                        // Lógica de recalculo e salvamento
-                        setNovoEspelho(dados)
-                        adicionarOuSalvar()
-                        setShowModalEditar(false)
-                    }}
-                    systemAlert={systemAlert} // PASSANDO O NOVO HANDLER DE ALERTA CORRETAMENTE
+                    onSave={salvarEdicao} // CHAMADA CORRIGIDA: Envia os dados editados diretamente para a função de salvamento
+                    systemAlert={systemAlert}
                 />
             )}
 
-            {/* Modal de Alerta do Sistema (NOVO) */}
+            {/* Modal de Alerta/Confirmação (mantido) */}
             {alertModal.isOpen && (
                 <SystemAlertModal
                     message={alertModal.message}
@@ -685,8 +869,6 @@ export default function App() {
                     theme={theme}
                 />
             )}
-
-            {/* Modal de Confirmação do Sistema (NOVO) */}
             {confirmModal.isOpen && (
                 <SystemConfirmModal
                     message={confirmModal.message}
@@ -697,8 +879,9 @@ export default function App() {
             )}
 
 
-            {/* JSX PRINCIPAL (SEM ALTERAÇÕES VISUAIS) */}
-              <div className="flex justify-between items-center mb-4">
+            {/* JSX PRINCIPAL (mantido) */}
+            <div className="flex justify-between items-center mb-4">
+                {/* ... (Botão Home e Título) */}
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => (window.location.href = "/")}
@@ -721,6 +904,7 @@ export default function App() {
             </div>
 
             <div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4">
+                {/* ... (Seleção de Cliente e Vidro) */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-1/3">
                     <label className="font-medium min-w-[70px]">Cliente:</label>
                     <select
@@ -751,21 +935,22 @@ export default function App() {
                         onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
                     />
                     {showAutocomplete && (
-                        <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl mt-1 max-h-48 overflow-y-auto z-50 shadow-xl">
+                        <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto mt-1">
                             {vidros
                                 .filter(v => matchesVidro(v, inputVidro))
+                                .slice(0, 10)
                                 .map(v => (
                                     <li
                                         key={v.id}
-                                        className="p-3 hover:bg-gray-100 cursor-pointer text-sm transition"
+                                        className="p-2 cursor-pointer hover:bg-gray-100"
                                         onMouseDown={() => {
-                                            setNovoEspelho(prev => ({ ...prev, vidro_id: v.id }));
                                             setInputVidro(`${v.nome}${v.tipo ? ` (${v.tipo})` : ""}${v.espessura ? ` - ${v.espessura}` : ""}`);
+                                            setNovoEspelho(prev => ({ ...prev, vidro_id: v.id }));
+                                            setPrecoM2Selecionado(v.preco);
                                             setShowAutocomplete(false);
-                                            setPrecoM2Selecionado(Number(v.preco ?? 0));
                                         }}
                                     >
-                                        {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""}
+                                        {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""} ({formatarPreco(v.preco)}/m²)
                                     </li>
                                 ))}
                         </ul>
@@ -773,36 +958,41 @@ export default function App() {
                 </div>
             </div>
 
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl shadow-inner border border-gray-200">
-                <h3 className="text-lg font-semibold mb-3" style={{ color: theme.primary }}>Adicionar Item</h3>
-                <div className="flex flex-wrap items-center gap-3">
+            {/* FORMULÁRIO DE ADIÇÃO (mantido) */}
+            <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primary }}>Adicionar Item</h2>
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-end">
                     <input
+                        ref={larguraInputRef}
                         type="text"
                         placeholder="Largura (mm)"
-                        ref={larguraInputRef}
                         value={novoEspelho.larguraOriginal}
-                        onChange={(e) => setNovoEspelho((prev) => ({ ...prev, larguraOriginal: e.target.value, }))}
-                        className="border border-gray-300 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        onChange={e => setNovoEspelho(prev => ({ ...prev, larguraOriginal: e.target.value }))}
+                        className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        style={{ borderColor: theme.border }}
                     />
                     <input
                         type="text"
                         placeholder="Altura (mm)"
                         value={novoEspelho.alturaOriginal}
-                        onChange={(e) => setNovoEspelho((prev) => ({ ...prev, alturaOriginal: e.target.value, }))}
-                        className="border border-gray-300 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        onChange={e => setNovoEspelho(prev => ({ ...prev, alturaOriginal: e.target.value }))}
+                        className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        style={{ borderColor: theme.border }}
                     />
                     <input
                         type="number"
-                        placeholder="Qtd"
                         min={1}
+                        placeholder="Qtd"
                         value={novoEspelho.quantidade}
-                        onChange={(e) => setNovoEspelho({ ...novoEspelho, quantidade: Number(e.target.value) || 1 })}
-                        className="border border-gray-300 rounded-xl px-3 py-2 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        onChange={e => setNovoEspelho(prev => ({ ...prev, quantidade: Number(e.target.value) || 1 }))}
+                        className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        style={{ borderColor: theme.border }}
                     />
                     <select
                         value={novoEspelho.acabamento}
-                        onChange={(e) => setNovoEspelho((prev) => ({ ...prev, acabamento: e.target.value }))}
-                        className="p-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        onChange={e => setNovoEspelho(prev => ({ ...prev, acabamento: e.target.value }))}
+                        className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+                        style={{ borderColor: theme.border }}
                     >
                         <option value="Nenhum">Nenhum</option>
                         <option value="Redondo Lapidado">Redondo Lapidado</option>
@@ -810,82 +1000,94 @@ export default function App() {
                         <option value="Molde">Molde</option>
                     </select>
                     <button
-                        onClick={adicionarOuSalvar}
-                        className="px-6 py-2 rounded-xl font-bold text-white shadow-md transition hover:brightness-110"
-                        style={{ backgroundColor: editIndex !== null ? theme.primary : theme.secondary }}
+                        onClick={limparFormulario}
+                        className="py-3 rounded-xl font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition"
                     >
-                        {editIndex !== null ? "Salvar Edição" : "Adicionar"}
+                        Limpar
                     </button>
-                    {editIndex !== null && (
-                        <button
-                            onClick={() => { setEditIndex(null); limparFormulario(); setInputVidro("") }}
-                            className="px-4 py-2 rounded-xl font-bold text-gray-700 bg-white border border-gray-300 shadow-md transition hover:bg-gray-100"
-                        >
-                            Cancelar Edição
-                        </button>
-                    )}
+                    <button
+                        onClick={adicionarItem} // CHAMADA CORRIGIDA: Usa a nova função de adição
+                        className="py-3 rounded-xl font-semibold text-white transition hover:brightness-110"
+                        style={{ backgroundColor: theme.primary }}
+                    >
+                        Adicionar
+                    </button>
                 </div>
             </div>
 
-
-            {/* TABELA DE ITENS (JÁ INCLUÍDA NA ETAPA 1) */}
-            <div className="overflow-x-auto shadow rounded-xl">
-                <table className="w-full text-left border-collapse">
+            {/* TABELA DE ITENS (mantido) */}
+            <h2 className="text-xl font-bold mb-3" style={{ color: theme.primary }}>Itens do Orçamento ({espelhos.length})</h2>
+            <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
+                <table className="w-full text-left whitespace-nowrap">
                     <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
                         <tr>
-                            <th className="p-3">Vidro</th>
-                            <th className="p-3">Acabamento</th>
+                            <th className="p-3">Vidro/Acab.</th>
+                            <th className="p-3">Med. Original (mm)</th>
                             <th className="p-3">Qtd</th>
-                            <th className="p-3">Lar/Alt (mm)</th>
-                            <th className="p-3">Valor (m²)</th>
                             <th className="p-3">Serviços</th>
-                            <th className="p-3">Total</th>
-                            <th className="p-3">Ações</th>
+                            <th className="p-3 text-right">Total</th>
+                            <th className="p-3 text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {espelhos.map((item, i) => {
-                            const vidro = vidros.find(v => v.id === item.vidro_id)
+                        {espelhos.map((e, index) => {
+                            const vidro = vidros.find(v => v.id === e.vidro_id)
+                            const totalServicos = e.servicos?.reduce((acc, s) => acc + (s.valorCalculado ?? 0), 0) || 0
+
                             return (
-                                <tr key={i} className="border-b hover:bg-gray-50" style={{ borderColor: theme.border }}>
-                                    <td className="p-3 text-sm font-medium">{vidro?.nome}{vidro?.tipo ? ` (${vidro.tipo})` : ""}{vidro?.espessura ? ` - ${vidro.espessura}` : ""}</td>
-                                    <td className="p-3 text-sm">{item.acabamento}</td>
-                                    <td className="p-3 text-sm">{item.quantidade}</td>
-                                    <td className="p-3 text-sm">{item.larguraOriginal} x {item.alturaOriginal}</td>
-                                    <td className="p-3 text-sm">{formatarPreco(item.precoUnitarioM2)}</td>
-                                    <td className="p-3 text-center">
-                                        <button onClick={() => abrirModalServicosItem(i)} className="text-blue-500 hover:underline text-sm">
-                                            {item.servicos && item.servicos.length > 0 ? `${item.servicos.length} Adic.` : "Adicionar"}
-                                        </button>
+                                <tr key={index} className="border-b" style={{ borderColor: theme.border }}>
+                                    <td className="p-3 text-sm">
+                                        <span className="font-semibold block">{vidro?.nome}</span>
+                                        <span className="text-xs italic" style={{ color: theme.secondary }}>
+                                            {e.acabamento !== "Nenhum" ? e.acabamento : "Corte Reto"}
+                                        </span>
                                     </td>
-                                    <td className="p-3 font-semibold">{formatarPreco(item.valorTotal)}</td>
-                                    <td className="p-3 flex gap-2">
-                                        <button onClick={() => abrirModalEdicao(i)} className="p-1 rounded hover:bg-gray-100" title="Editar">
-                                            <Edit2 className="w-4 h-4 text-blue-500" />
-                                        </button>
-                                        <button onClick={() => excluirItem(i)} className="p-1 rounded hover:bg-gray-100" title="Excluir">
-                                            <Trash2 className="w-4 h-4 text-red-500" />
-                                        </button>
+                                    <td className="p-3 text-sm">{e.larguraOriginal}x{e.alturaOriginal}</td>
+                                    <td className="p-3 text-sm">{e.quantidade}</td>
+                                    <td className="p-3 text-sm">
+                                        {e.servicos?.length ? (
+                                            <ul className="text-xs list-disc list-inside">
+                                                {e.servicos.map(s => (
+                                                    <li key={s.servico.id}>{s.servico.nome}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <span className="text-gray-500 italic text-xs">Nenhum</span>
+                                        )}
+                                    </td>
+                                    <td className="p-3 text-sm font-bold text-right">
+                                        {formatarPreco(e.valorTotal)}
+                                        <span className="block text-xs text-gray-500 font-normal">
+                                            ({formatarPreco(e.valorTotal - totalServicos)}) + ({formatarPreco(totalServicos)})
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                        <div className="flex gap-2 justify-center">
+                                            <button onClick={() => abrirModalEdicao(index)} title="Editar Item" className="p-2 rounded-full hover:bg-gray-100 transition">
+                                                <Edit2 className="w-5 h-5" style={{ color: theme.primary }} />
+                                            </button>
+                                            <button onClick={() => abrirModalServicosItem(index)} title="Editar Serviços" className="p-2 rounded-full hover:bg-gray-100 transition">
+                                                <CheckCircle className="w-5 h-5" style={{ color: theme.secondary }} />
+                                            </button>
+                                            <button onClick={() => excluirItem(index)} title="Excluir Item" className="p-2 rounded-full hover:bg-red-50 transition">
+                                                <Trash2 className="w-5 h-5 text-red-500" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             )
                         })}
                     </tbody>
-                    <tfoot>
-                        <tr className="font-bold border-t-2" style={{ borderColor: theme.primary }}>
-                            <td className="p-3"></td>
-                            <td className="p-3"></td>
-                            <td className="p-3"></td>
-                            <td className="p-3"></td>
-                            <td className="p-3 text-right" colSpan={2} style={{ color: theme.primary }}>Total do Orçamento:</td>
-                            <td className="p-3" style={{ color: theme.primary }}>{formatarPreco(totalOrcamento)}</td>
-                            <td className="p-3"></td>
-                        </tr>
-                    </tfoot>
                 </table>
+                {!espelhos.length && (
+                    <div className="p-8 text-center text-gray-500">Nenhum item adicionado ao orçamento.</div>
+                )}
             </div>
 
-
+            {/* TOTAL FINAL (mantido) */}
+            <div className="text-right p-4 rounded-xl shadow-lg mt-4 font-bold bg-white" style={{ color: theme.primary, border: `1px solid ${theme.secondary}` }}>
+                <span className="text-lg">Total Geral: {formatarPreco(totalOrcamento)}</span>
+            </div>
         </div>
     )
 }
