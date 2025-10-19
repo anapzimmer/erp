@@ -1249,3 +1249,12 @@ return (
 ); // <-- Fechamento final do `return` e do componente
 }
 // Se houver código de função ou exportação após isso, mantenha-o.
+    {/* TOTAL FINAL (Padrão: Caixa de destaque) */}
+    <div className="text-right p-4 rounded-xl shadow-lg mt-4 font-bold bg-white" style={{ color: theme.primary, border: `1px solid ${theme.secondary}` }}>
+        <span className="text-xl">Total Geral: {formatarPreco(totalOrcamento)}</span>
+    </div>
+
+</div>
+); // <-- Fechamento final do `return` e do componente
+}
+// Se houver código de função ou exportação após isso, mantenha-o.
