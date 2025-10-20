@@ -1254,7 +1254,6 @@ return (
         <span className="text-xl">Total Geral: {formatarPreco(totalOrcamento)}</span>
     </div>
 
-</div>
 ); // <-- Fechamento final do `return` e do componente
 }
 // Se houver código de função ou exportação após isso, mantenha-o.
