@@ -5,8 +5,8 @@ import Image from "next/image"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { Home, Box, Star, Tag, DollarSign, Upload, Download } from "lucide-react"
-
-
+import GerenciarPrecosModal from "@/components/GerenciarPrecosModal"
+import { Button } from "@/components/ui/button"
 
 type Vidro = {
   id: number
@@ -87,6 +87,7 @@ export default function VidrosPage() {
     setTimeout(() => alerta.remove(), 300)
   }, 3000)
 }  
+const [abrirModalPrecos, setAbrirModalPrecos] = useState(false)
 
   // --- Exportar CSV ---
 const exportarCSV = () => {
@@ -415,6 +416,9 @@ const salvarVidro = async () => {
         >
           <Upload className="w-5 h-5 text-gray-600" />
         </label>
+        <Button onClick={() => setAbrirModalPrecos(true)}>
+          💰 Gerenciar preços por cliente
+        </Button>
         <input
           type="file"
           id="importarCSV"
@@ -556,6 +560,11 @@ const salvarVidro = async () => {
           </div>
         </div>
       )}
+
+      <GerenciarPrecosModal
+  open={abrirModalPrecos}
+  onClose={() => setAbrirModalPrecos(false)}
+/>
 
       {mostrarConfirmacao && (
   <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
