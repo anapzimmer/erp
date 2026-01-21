@@ -1,292 +1,189 @@
-// src/app/orcamento/page.tsx
 "use client"
 
-import { useState, useMemo } from 'react'
-import { Home, Ruler, Zap, DollarSign } from 'lucide-react'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { 
+  ArrowLeft, 
+  PlusCircle, 
+  Search, 
+  Filter,
+  ArrowRight,
+  Maximize
+} from "lucide-react"
 
-// --- Tipos de Dados da Tipologia (COPIADOS DO PROJETOS/PAGE.TSX) ---
-
-// Funções utilitárias (não incluídas, mas necessárias)
-const formatarPreco = (valor: number) => {
-    return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-}
-
-// O Parser de Fórmulas é a parte mais complexa e crucial
-// Exemplo simples que avalia expressões como 'L_TOTAL/2 - 30'
-const parseFormula = (formula: string, L_TOTAL: number, H_TOTAL: number, unidade: 'mm' | 'cm' | 'm'): number => {
-    
-    // Converte a unidade base para mm para consistência (simulação)
-    let L = L_TOTAL
-    let H = H_TOTAL
-
-    if (unidade === 'cm') { L *= 10; H *= 10 }
-    if (unidade === 'm') { L *= 1000; H *= 1000 }
-
-    let expr = formula.toUpperCase()
-        .replace(/L_TOTAL/g, String(L))
-        .replace(/H_TOTAL/g, String(H))
-        .replace(/ /g, '') // Remove espaços
-    
-    // Tenta avaliar a expressão de forma segura
-    try {
-        // eslint-disable-next-line no-eval
-        const resultado = eval(expr)
-        return Math.round(resultado * 100) / 100 // Arredonda para 2 casas decimais (ou sem casas para corte)
-    } catch (e) {
-        console.error(`Erro ao avaliar fórmula: ${formula}. Expressão: ${expr}`, e)
-        return 0
-    }
-}
-
-// --- Tipos de Itens de Estoque (MOCK para simulação) ---
-
-type ItemEstoque = {
-    id: string | number // UUID ou Number
-    nome: string
-    preco_unitario: number // Preço em BRL/unidade (m, m2 ou peça)
-    unidade_medida: 'm' | 'm2' | 'peça'
-    tipo: 'vidro' | 'perfil' | 'kit' | 'ferragem'
-}
-
-// MOCK: Dados simulados dos bancos de perfis, kits e ferragens
-const MOCK_ESTOQUE: ItemEstoque[] = [
-    // Perfis (Código e Nome)
-    { id: "PF001", nome: "Perfil U Simples", preco_unitario: 15.00, unidade_medida: 'm', tipo: 'perfil' },
-    { id: "PF002", nome: "Perfil Lateral Guia", preco_unitario: 22.50, unidade_medida: 'm', tipo: 'perfil' },
-    // Vidros (Código e Nome)
-    { id: "VD001", nome: "Vidro Temperado 8mm Incolor", preco_unitario: 120.00, unidade_medida: 'm2', tipo: 'vidro' },
-    { id: "VD002", nome: "Vidro Laminado 10mm Fumê", preco_unitario: 250.00, unidade_medida: 'm2', tipo: 'vidro' },
-    // Kits e Ferragens (ID)
-    { id: 1, nome: "Kit Roldana Dupla", preco_unitario: 85.00, unidade_medida: 'peça', tipo: 'kit' },
-    { id: "FGA01", nome: "Fecho Concha Simples", preco_unitario: 12.00, unidade_medida: 'peça', tipo: 'ferragem' },
+// Lista de Modelos - Mantendo os mesmos dados e rotas
+const modelosOrcamento = [
+  {
+    id: "box-frontal",
+    nome: "Box Frontal",
+    categoria: "Box",
+    descricao: "Modelos reto de 2, 3 e 4 folhas",
+    imagem: "/desenhos/box-padrao.png",
+    rota: "/calculobox",
+    tags: ["2 folhas", "3 folhas", "4 folhas"],
+  },
+  {
+    id: "box-canto",
+    nome: "Box de Canto",
+    categoria: "Box",
+    descricao: "Modelos em 'L' para cantos de banheiro",
+    imagem: "/desenhos/box-canto4f.png",
+    rota: "/calculobox",
+    tags: ["90 graus", "Canto"],
+  },
+  {
+    id: "espelhos",
+    nome: "Espelhos",
+    categoria: "Decoração",
+    descricao: "Cálculo de espelhos lapidados e bisotê",
+    imagem: "/desenhos/espelhos.png",
+    rota: "/espelhos",
+    tags: ["Lapidado", "Bisotê"],
+  },
+  {
+    id: "vidro-comum",
+    nome: "Vidro Engenharia",
+    categoria: "Engenharia",
+    descricao: "Janelas, Portas e Vidros Fixos",
+    imagem: "/desenhos/janela-exemplo.png",
+    rota: "/calculovidro",
+    tags: ["Temperado", "Comum"],
+  }
 ]
 
+export default function SelecaoOrcamento() {
+  const router = useRouter()
+  const [busca, setBusca] = useState("")
+  const [filtroAtivo, setFiltroAtivo] = useState("Todos")
 
-// --- TIPOLOGIA COMPLETA (Tipologia de Exemplo do projetos/page.tsx) ---
+  // Categorias para os botões
+  const categoriasFiltro = ["Todos", "Box", "Engenharia", "Decoração"]
 
-type RegraVidro = { id: number; nome_vidro: string; vidro_id: string; largura_formula: string; altura_formula: string }
-type RegraPerfil = { id: number; nome_perfil: string; perfil_id: string; dimensao_formula: string; multiplicador: number; corte_formula?: string }
-type RegraContagem = { id: number; tipo_item: 'kit' | 'ferragem'; nome_item: string; item_id: string | number; multiplicador: number } // Ajustado para ser string | number
-type ProjetoTipologia = { nome: string; linha: string; unidade_medida: 'mm' | 'cm' | 'm'; regras_vidro: RegraVidro[]; regras_perfil: RegraPerfil[]; regras_contagem: RegraContagem[] }
+  // Lógica de Filtragem combinada (Busca + Botão)
+  const modelosFiltrados = modelosOrcamento.filter(item => {
+    const matchBusca = item.nome.toLowerCase().includes(busca.toLowerCase());
+    const matchFiltro = filtroAtivo === "Todos" || item.categoria === filtroAtivo;
+    return matchBusca && matchFiltro;
+  })
 
-
-// Tipologia de Exemplo (Janela de Correr 4 Folhas)
-const tipologiaExemplo: ProjetoTipologia = {
-    nome: "Janela de Correr 4 Folhas - Suprema",
-    linha: "Suprema",
-    unidade_medida: 'mm',
-    regras_vidro: [
-        { id: 1, nome_vidro: "Folha Fixa (2x)", vidro_id: "VD001", largura_formula: "L_TOTAL / 4", altura_formula: "H_TOTAL - 50" },
-        { id: 2, nome_vidro: "Folha Móvel (2x)", vidro_id: "VD001", largura_formula: "L_TOTAL / 4", altura_formula: "H_TOTAL - 70" },
-    ],
-    regras_perfil: [
-        { id: 1, nome_perfil: "Guia Inferior", perfil_id: "PF002", dimensao_formula: "L_TOTAL", multiplicador: 1 },
-        { id: 2, nome_perfil: "Travessa Lateral", perfil_id: "PF001", dimensao_formula: "H_TOTAL", multiplicador: 4 },
-    ],
-    regras_contagem: [
-        { id: 1, tipo_item: 'kit', nome_item: "Kit Roldanas p/ 2 Folhas", item_id: 1, multiplicador: 2 }, // 2 kits de roldana para 4 folhas (2 fixas, 2 móveis)
-        { id: 2, tipo_item: 'ferragem', nome_item: "Fecho Concha", item_id: "FGA01", multiplicador: 2 } // 2 fechos (um para cada folha móvel)
-    ]
-}
-
-
-// --- RESULTADO DO CÁLCULO ---
-
-type ResultadoItem = {
-    nome_item: string
-    unidade: 'm' | 'm2' | 'peça'
-    quantidade: number // Quantidade total (m, m2 ou peça)
-    preco_unitario: number
-    custo_total: number
-    detalhe_formula: string
-}
-
-const theme = {
-    primary: "#1C415B",
-    secondary: "#92D050",
-    text: "#1C415B",
-    background: "#F9FAFB",
-    border: "#E5E7EB",
-}
-
-export default function OrcamentoPage() {
-    const [L_TOTAL, setL_TOTAL] = useState<number>(2000) // 2000 mm
-    const [H_TOTAL, setH_TOTAL] = useState<number>(1500) // 1500 mm
-    const [resultados, setResultados] = useState<ResultadoItem[]>([])
-
-    // Função central de cálculo
-    const calcularItens = (L: number, H: number, tipologia: ProjetoTipologia): ResultadoItem[] => {
-        const itensCalculados: ResultadoItem[] = []
-        const unidade = tipologia.unidade_medida
-
-        // 1. CÁLCULO DE VIDROS (em m2)
-        tipologia.regras_vidro.forEach(regra => {
-            const estoque = MOCK_ESTOQUE.find(i => i.id === regra.vidro_id && i.tipo === 'vidro')
-            if (!estoque) return
-
-            const largura_corte = parseFormula(regra.largura_formula, L, H, unidade)
-            const altura_corte = parseFormula(regra.altura_formula, L, H, unidade)
-            
-            // Área em m2 (largura * altura) / 1.000.000 (para mm)
-            const area_m2_por_peca = (largura_corte * altura_corte) / (unidade === 'mm' ? 1000000 : unidade === 'cm' ? 10000 : 1)
-            
-            // Assume-se que a regra.nome_vidro indica o multiplicador na descrição (ex: '2x', '4x')
-            // Vamos extrair o multiplicador da descrição:
-            const qtd_pecas = Number(regra.nome_vidro.match(/\((\d)x\)/)?.[1] || 1) // (2x) -> 2
-            
-            const quantidade_total = area_m2_por_peca * qtd_pecas
-            
-            itensCalculados.push({
-                nome_item: regra.nome_vidro,
-                unidade: 'm2',
-                quantidade: quantidade_total,
-                preco_unitario: estoque.preco_unitario,
-                custo_total: quantidade_total * estoque.preco_unitario,
-                detalhe_formula: `L=${regra.largura_formula} (${largura_corte}), H=${regra.altura_formula} (${altura_corte}). Qtd: ${qtd_pecas}`
-            })
-        })
-
-        // 2. CÁLCULO DE PERFIS (em metros)
-        tipologia.regras_perfil.forEach(regra => {
-            const estoque = MOCK_ESTOQUE.find(i => i.id === regra.perfil_id && i.tipo === 'perfil')
-            if (!estoque) return
-
-            const dimensao_corte = parseFormula(regra.dimensao_formula, L, H, unidade)
-            
-            // Quantidade em metros (converte mm para m)
-            const dim_metros = dimensao_corte / (unidade === 'mm' ? 1000 : unidade === 'cm' ? 100 : 1)
-            
-            const quantidade_total = dim_metros * regra.multiplicador
-            
-            itensCalculados.push({
-                nome_item: `${regra.nome_perfil} (${regra.perfil_id})`,
-                unidade: 'm',
-                quantidade: quantidade_total,
-                preco_unitario: estoque.preco_unitario,
-                custo_total: quantidade_total * estoque.preco_unitario,
-                detalhe_formula: `${regra.dimensao_formula} (${dimensao_corte}) x ${regra.multiplicador} peças`
-            })
-        })
-
-        // 3. CÁLCULO DE KITS E FERRAGENS (em peças)
-        tipologia.regras_contagem.forEach(regra => {
-            const estoque = MOCK_ESTOQUE.find(i => i.id === regra.item_id && (i.tipo === 'kit' || i.tipo === 'ferragem'))
-            if (!estoque) return
-
-            const quantidade_total = regra.multiplicador
-            
-            itensCalculados.push({
-                nome_item: `${regra.nome_item} (${regra.tipo_item})`,
-                unidade: 'peça',
-                quantidade: quantidade_total,
-                preco_unitario: estoque.preco_unitario,
-                custo_total: quantidade_total * estoque.preco_unitario,
-                detalhe_formula: `Multiplicador: ${regra.multiplicador} peças`
-            })
-        })
-
-        return itensCalculados
-    }
-
-    // Recalcula sempre que as dimensões mudam
-    useMemo(() => {
-        setResultados(calcularItens(L_TOTAL, H_TOTAL, tipologiaExemplo))
-    }, [L_TOTAL, H_TOTAL])
-
-    const custoTotalProjeto = resultados.reduce((acc, item) => acc + item.custo_total, 0)
-    
-    // Simula a conversão da unidade para display
-    const unidadeDisplay = tipologiaExemplo.unidade_medida.toUpperCase()
-
-    return (
-        <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
-            
-            {/* Barra do Topo */}
-            <div className="flex justify-between items-center mb-8 mt-2 px-2">
-                <button
-                    onClick={() => window.location.href = "/"}
-                    className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold hover:opacity-90 transition"
-                    style={{ backgroundColor: theme.secondary, color: theme.primary }}
-                >
-                    <Home className="w-5 h-5 text-white" />
-                    Home
-                </button>
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC]">
+      <main className="flex-1 p-8 md:p-12">
+        
+        {/* HEADER - Mesmo layout anterior */}
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-[#92D050] mb-2">
+               <PlusCircle size={20} />
+               <span className="text-xs font-bold uppercase tracking-widest">Novo Orçamento</span>
             </div>
+            <h1 className="text-4xl font-black text-[#1C415B]">O que vamos calcular?</h1>
+            <p className="text-gray-500 mt-2 font-medium">Selecione o modelo para iniciar o orçamento.</p>
+          </div>
+          
+          <button 
+            onClick={() => router.push("/")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-all shadow-sm w-fit"
+          >
+            <ArrowLeft size={18} /> Voltar
+          </button>
+        </header>
 
-            <h1 className="text-3xl font-bold mb-2 text-center">Orçamento Rápido</h1>
-            <p className="text-center mb-6 text-gray-600">Tipologia: **{tipologiaExemplo.nome}**</p>
+        {/* ÁREA DE BUSCA E FILTROS - Integrada ao layout */}
+        <div className="flex flex-col md:flex-row gap-4 mb-10">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text"
+              placeholder="Pesquisar projeto..."
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#92D050]/50 text-sm shadow-sm transition-all"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
 
-            {/* Input de Dimensões */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-lg mx-auto mb-8">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Ruler className="w-5 h-5 text-[#1C415B]" /> Dimensões do Vão ({unidadeDisplay})
-                </h2>
-                <div className="flex gap-4">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">Largura Total (L_{unidadeDisplay})</label>
-                        <input
-                            type="number"
-                            value={L_TOTAL}
-                            onChange={e => setL_TOTAL(Number(e.target.value))}
-                            className="w-full p-3 border rounded-lg focus:ring-2"
-                            style={{ borderColor: theme.border, outlineColor: theme.secondary }}
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">Altura Total (H_{unidadeDisplay})</label>
-                        <input
-                            type="number"
-                            value={H_TOTAL}
-                            onChange={e => setH_TOTAL(Number(e.target.value))}
-                            className="w-full p-3 border rounded-lg focus:ring-2"
-                            style={{ borderColor: theme.border, outlineColor: theme.secondary }}
-                        />
-                    </div>
-                </div>
-            </div>
-            
-            {/* Resumo do Orçamento */}
-            <div className="w-full max-w-4xl mx-auto mb-8">
-                <div className="bg-[#1C415B] text-white p-4 rounded-2xl shadow-xl flex justify-between items-center">
-                    <h3 className="text-2xl font-light flex items-center gap-3">
-                        <DollarSign className="w-6 h-6" /> Custo Total (Materiais)
-                    </h3>
-                    <p className="text-4xl font-extrabold">{formatarPreco(custoTotalProjeto)}</p>
-                </div>
-            </div>
-
-
-            {/* Tabela de Resultados */}
-            <h2 className="text-2xl font-semibold mb-4 w-full max-w-4xl mx-auto flex items-center gap-2">
-                <Zap className="w-6 h-6 text-[#1C415B]" /> Lista de Itens Calculados
-            </h2>
-            <div className="overflow-x-auto rounded-lg shadow-md w-full max-w-4xl mx-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
-                        <tr>
-                            <th className="p-3">Item</th>
-                            <th className="p-3">Un.</th>
-                            <th className="p-3 text-right">Qtd. Total</th>
-                            <th className="p-3 text-right">Preço Un.</th>
-                            <th className="p-3 text-right">Custo</th>
-                            <th className="p-3">Fórmula Aplicada</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {resultados.map((item, index) => (
-                            <tr key={index} className="border-b hover:bg-[#f3f6f9]" style={{ borderColor: theme.border }}>
-                                <td className="p-3 font-medium">{item.nome_item}</td>
-                                <td className="p-3 uppercase">{item.unidade}</td>
-                                <td className="p-3 text-right">{item.quantidade.toFixed(item.unidade === 'peça' ? 0 : 3)}</td>
-                                <td className="p-3 text-right">{formatarPreco(item.preco_unitario)}</td>
-                                <td className="p-3 text-right font-bold">{formatarPreco(item.custo_total)}</td>
-                                <td className="p-3 text-sm text-gray-500">{item.detalhe_formula}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+            {categoriasFiltro.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFiltroAtivo(cat)}
+                className={`px-6 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  filtroAtivo === cat 
+                  ? "bg-[#1C415B] text-white shadow-md" 
+                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
-    )
+
+        {/* GRID DE MODELOS - Layout idêntico ao anterior */}
+        {modelosFiltrados.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {modelosFiltrados.map((item) => (
+              <div 
+                key={item.id}
+                onClick={() => router.push(item.rota)}
+                className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+              >
+                {/* ÁREA DA IMAGEM (Fundo Cinza) */}
+                <div className="relative aspect-[4/3] bg-[#F1F5F9] flex items-center justify-center p-8 overflow-hidden">
+                  <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                     <Maximize size={16} className="text-[#1C415B]" />
+                  </div>
+                  <img 
+                    src={item.imagem} 
+                    alt={item.nome}
+                    className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://placehold.co/400x300/f1f5f9/1c415b?text=Sem+Imagem"
+                    }}
+                  />
+                </div>
+
+                {/* CONTEÚDO */}
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex gap-1 mb-3">
+                    {item.tags.map(tag => (
+                      <span key={tag} className="px-2 py-0.5 bg-gray-100 text-[10px] font-bold text-gray-400 rounded-md uppercase">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-[#1C415B] mb-2 group-hover:text-[#92D050] transition-colors">
+                    {item.nome}
+                  </h3>
+                  
+                  <p className="text-gray-500 text-sm mb-6 flex-1 line-clamp-2">
+                    {item.descricao}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-[#1C415B] font-bold text-sm flex items-center gap-1">
+                      Selecionar <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <div className="w-10 h-10 rounded-xl bg-[#F0FDF4] flex items-center justify-center group-hover:bg-[#92D050] transition-colors">
+                      <PlusCircle size={20} className="text-[#92D050] group-hover:text-white transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Mensagem caso não encontre nada na busca */
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+            <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="text-gray-300" size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-[#1C415B]">Nenhum projeto encontrado</h3>
+            <p className="text-gray-400 mt-2">Tente ajustar sua pesquisa ou categoria.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  )
 }

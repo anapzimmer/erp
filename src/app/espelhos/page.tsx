@@ -523,6 +523,12 @@ export default function EspelhosPage() {
 
         pdf.save("orcamento.pdf")
     }
+    
+    const [clienteBusca, setClienteBusca] = useState("")
+    const [mostrarListaClientes, setMostrarListaClientes] = useState(false)
+    const clientesFiltrados = clientes.filter(c =>
+    c.nome.toLowerCase().includes(clienteBusca.toLowerCase())
+    )
 
 
     return (
@@ -552,20 +558,49 @@ export default function EspelhosPage() {
 
             {/* Seleção Cliente e Vidro */}
             <div className="bg-white p-4 rounded-xl shadow-lg mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cliente */}
-                <div className="flex flex-col">
-                    <label className="font-medium mb-1 text-sm" style={{ color: theme.text }}>Cliente:</label>
-                    <select 
-                        value={novoEspelho.cliente || ""} 
-                        onChange={e => setNovoEspelho(prev => ({ ...prev, cliente: e.target.value }))} 
-                        disabled={espelhos.length > 0} 
-                        className="p-3 rounded-xl border w-full disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-opacity-50" 
-                        style={{ borderColor: theme.border, boxShadow: theme.secondary }}
-                    >
-                        <option value="">Selecione</option>
-                        {clientes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                    </select>
-                </div>
+                  {/* Cliente pesquisável */}
+                    <div className="flex flex-col relative">
+                    <label className="font-medium mb-1 text-sm" style={{ color: theme.text }}>
+                        Cliente:
+                    </label>
+
+                   <input
+                        type="text"
+                        placeholder="Digite o nome do cliente"
+                        value={clienteBusca}
+                        disabled={espelhos.length > 0}
+                        onChange={(e) => {
+                            const valor = e.target.value
+                            setClienteBusca(valor)
+                            setMostrarListaClientes(true)
+
+                            // limpa cliente selecionado se estiver digitando
+                            setNovoEspelho(prev => ({ ...prev, cliente: "" }))
+                        }}
+                        onFocus={() => setMostrarListaClientes(true)}
+                        className="p-3 rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:bg-gray-100"
+                        style={{ borderColor: theme.border }}
+                    />
+
+                    {mostrarListaClientes && clientesFiltrados.length > 0 && !espelhos.length && (
+                        <ul className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-lg max-h-56 overflow-y-auto z-50 mt-1">
+                        {clientesFiltrados.map(c => (
+                            <li
+                            key={c.id}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                            onClick={() => {
+                                setNovoEspelho(prev => ({ ...prev, cliente: c.nome }))
+                                setClienteBusca(c.nome)
+                                setMostrarListaClientes(false)
+                            }}
+                            >
+                            {c.nome}
+                            </li>
+                        ))}
+                        </ul>
+                    )}
+                    </div>
+
                 
                 {/* Espelho */}
                 <div className="flex flex-col">
@@ -600,6 +635,7 @@ export default function EspelhosPage() {
                         <label className="font-medium mb-1 text-xs sm:text-sm" style={{ color: theme.text }}>Largura (mm)</label>
                         <input
                             type="text"
+                            maxLength={4} // 🔹 impede mais que 4 dígitos
                             placeholder="Largura (mm)"
                             ref={larguraInputRef}
                             value={novoEspelho.larguraOriginal}
@@ -614,6 +650,7 @@ export default function EspelhosPage() {
                         <label className="font-medium mb-1 text-xs sm:text-sm" style={{ color: theme.text }}>Altura (mm)</label>
                         <input
                             type="text"
+                            maxLength={4} // 🔹 impede mais que 4 dígitos
                             placeholder="Altura (mm)"
                             value={novoEspelho.alturaOriginal}
                             onChange={e => setNovoEspelho(prev => ({ ...prev, alturaOriginal: e.target.value }))}

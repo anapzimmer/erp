@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef, useCallback } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import { Home, Edit2, Trash2, X, CheckCircle, AlertTriangle, AlertOctagon } from "lucide-react" 
+import { Home, Edit2, Trash2, X, CheckCircle, AlertTriangle,UserPlus, AlertOctagon } from "lucide-react" 
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { text } from "stream/consumers"
 
 // --- TIPAGENS ---
 
@@ -16,7 +17,7 @@ type Cliente = { id: number; nome: string }
 // 🎯 NOVO: Tipagem para a tabela de preços personalizados
 type PrecoPersonalizado = { 
     vidro_id: number; 
-    cliente_id: string; // Se o seu cliente_id é UUID no Supabase
+    cliente_id: string; 
     preco: number; 
 } 
 
@@ -58,8 +59,6 @@ const theme = {
     cardBg: "#FFFFFF",
 }
 
-// ... (ToastNotification e ConfirmModal mantidos)
-
 const ToastNotification = ({ message, type, onClose }: { message: string, type: ToastType, onClose: () => void }) => {
     // ... (código do ToastNotification)
     const style = {
@@ -87,7 +86,6 @@ const ToastNotification = ({ message, type, onClose }: { message: string, type: 
 };
 
 const ConfirmModal = ({ state, onClose }: { state: ConfirmModalState, onClose: () => void }) => {
-    // ... (código do ConfirmModal)
     if (!state.isOpen) return null;
 
     const handleConfirm = () => {
@@ -99,6 +97,7 @@ const ConfirmModal = ({ state, onClose }: { state: ConfirmModalState, onClose: (
         state.onCancel();
         onClose();
     };
+
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-[100]">
@@ -138,6 +137,9 @@ export default function VidrosPage() {
     
     // 🎯 NOVO ESTADO: Preços personalizados do Supabase (para cache local)
     const [precosPersonalizados, setPrecosPersonalizados] = useState<PrecoPersonalizado[]>([]);
+
+    const [modalClienteAberto, setModalClienteAberto] = useState(false);
+  
 
     const [novoVidro, setNovoVidro] = useState<NovoVidroInput>({
         larguraOriginal: "",
@@ -179,7 +181,8 @@ export default function VidrosPage() {
     const [showAutocomplete, setShowAutocomplete] = useState(false)
     const [inputVidro, setInputVidro] = useState("")
     const larguraInputRef = useRef<HTMLInputElement>(null)
-
+    const alturaInputRef = useRef<HTMLInputElement>(null);
+    const qtdInputRef = useRef<HTMLInputElement>(null);
 
     // ---------------------------------------------------------------------------------------------------------
     // FUNÇÕES DE UTILIDADE E CÁLCULO
@@ -270,11 +273,6 @@ export default function VidrosPage() {
         return vidros.find(v => matchesVidro(v, nVid))
     }
 
-
-    // ---------------------------------------------------------------------------------------------------------
-    // LÓGICA DE CARREGAMENTO DE DADOS (AJUSTADO)
-    // ---------------------------------------------------------------------------------------------------------
-
     const carregarVidros = async () => {
         const { data, error } = await supabase.from("vidros").select("*").order("nome")
         if (error) console.error("Erro ao carregar vidros:", error)
@@ -282,10 +280,6 @@ export default function VidrosPage() {
     }
 
     const carregarClientes = async () => {
-        // Supondo que a coluna 'id' em 'clientes' é um UUID (string) no Supabase,
-        // mas você tipou Cliente.id como 'number'. Vou assumir que o retorno é tratado
-        // ou que o Supabase está convertendo IDs para number se for `int4`.
-        // Se for UUID, a tipagem de Cliente deve ser `type Cliente = { id: string; nome: string }`
         const { data, error } = await supabase.from("clientes").select("id, nome").order("nome")
         if (error) console.error("Erro ao carregar clientes:", error)
         else setClientes(data as Cliente[])
@@ -422,12 +416,19 @@ export default function VidrosPage() {
                 const altura = parseNumber(rawAlt || "")
                 const quantidade = (rawQtd ? parseNumber(rawQtd.toString()) : 1) || 1
                 const nomeVidro = rawVid.trim()
+                const nomeVidroNormalizado = nomeVidro.toLowerCase()
 
-                if (isNaN(largura) || isNaN(altura) || !nomeVidro || largura <= 0 || altura <= 0 || quantidade <= 0) {
-                    continue
-                }
+                const vidroEhComum =
+                       nomeVidroNormalizado.includes("comum") ||
+                        nomeVidroNormalizado.includes("cortado") ||
+                        nomeVidroNormalizado.includes("lam") ||
+                        nomeVidroNormalizado.includes("laminado") ||
+                        nomeVidroNormalizado.includes("temp") ||
+                        nomeVidroNormalizado.includes("temperado")
 
-                const vidro = encontrarVidroMelhorado(nomeVidro)
+                const vidro = vidroEhComum
+                    ? undefined
+                    : encontrarVidroMelhorado(nomeVidro)
 
                 if (!vidro) {
                     const rawItem: NaoEncontradoRaw = { rawLarg, rawAlt, rawQtd, linha: r + 1 }
@@ -619,15 +620,25 @@ export default function VidrosPage() {
 
     const limparTudo = async () => {
         const confirmou = await customConfirm("Tem certeza que deseja limpar o orçamento e começar um novo?");
-        if (confirmou) {
-            setVidrosLista([]); 
-            localStorage.removeItem("vidrosLista"); 
-            setNovoVidro({ larguraOriginal: "", alturaOriginal: "", quantidade: 1, vidro_id: 0, cliente: "", cliente_id: 0 }); // Limpa o ID do cliente
-            setInputVidro("") 
-            setNaoEncontradosModal(null) 
-            showToast("Novo orçamento iniciado.", 'success')
-        }
-    }
+         if (confirmou) {
+            setVidrosLista([]);
+            localStorage.removeItem("vidrosLista");
+
+            setNovoVidro({
+            larguraOriginal: "",
+            alturaOriginal: "",
+            quantidade: 1,
+            vidro_id: 0,
+            cliente: "",
+            cliente_id: 0,
+            });
+
+            setInputVidro("");
+            setNaoEncontradosModal(null);
+
+            showToast("Novo orçamento iniciado.", "success");
+  }
+};
     
     const totalOrcamento = vidrosLista.reduce((acc, e) => acc + (e.valorTotal || 0), 0)
 
@@ -708,16 +719,23 @@ export default function VidrosPage() {
     const margin = 20;
     const usableWidth = pageWidth - 2 * margin;
 
-    // --- CABEÇALHO ---
+        // --- CABEÇALHO ---
     pdf.setFontSize(16);
-    pdf.setTextColor(theme.primary); // RGB
+    pdf.setTextColor(theme.primary);
     pdf.text("Orçamento de Vidros", margin, 20);
 
     const clienteNome = vidrosLista[0]?.cliente || novoVidro.cliente || "Não informado";
-    pdf.setFontSize(12);
-    pdf.text(`Cliente: ${clienteNome}`, margin, 30);
+    const dataHoje = new Date().toLocaleDateString("pt-BR");
+
+    // 👉 DATA PRIMEIRO
     pdf.setFontSize(10);
-    pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36);
+    pdf.setTextColor(theme.primary);
+    pdf.text(`Data: ${dataHoje}`, margin, 30);
+
+    // 👉 CLIENTE EMBAIXO
+    pdf.setFontSize(10);
+    pdf.setTextColor(theme.primary);
+    pdf.text(`Cliente: ${clienteNome}`, margin, 38);
 
     // --- LOGO ---
     try {
@@ -745,19 +763,35 @@ export default function VidrosPage() {
         console.warn("Não foi possível carregar a logo para o PDF.");
     }
 
+    const head = [[
+        "DESCRIÇÃO / VIDRO", 
+        "QTD", 
+        "LARG\n(mm)", 
+        "ALT\n(mm)", 
+        "m²\nTOTAL", 
+        "VALOR\nm²", 
+        "TOTAL"
+    ]];
+
     // --- DADOS DA TABELA ---
     const body = vidrosLista.map(e => {
-        const vidro = vidros.find(v => v.id === e.vidro_id);
-        const precoM2 = getVidroPriceForClient(e.vidro_id, novoVidro.cliente_id);
-        return [
-            `${vidro?.nome}${vidro?.tipo ? ` (${vidro.tipo})` : ""}${vidro?.espessura ? ` - ${vidro.espessura}` : ""}`,
-            e.quantidade,
-            e.larguraOriginal,
-            e.alturaOriginal,
-            formatarPreco(precoM2) + "/m²",
-            formatarPreco(e.valorTotal)
-        ];
-    });
+    const vidro = vidros.find(v => v.id === e.vidro_id);
+    const precoM2 = getVidroPriceForClient(e.vidro_id, novoVidro.cliente_id);
+    const m2Individual = 
+    (e.larguraCalc * e.alturaCalc) / 1000000;
+
+    const m2TotalItem = m2Individual * e.quantidade;
+
+    return [
+        `${vidro?.nome}${vidro?.tipo ? ` (${vidro.tipo})` : ''}${vidro?.espessura ? ` - ${vidro.espessura}` : ''}`,
+        e.quantidade,                                 // Coluna 1: Qtd
+        e.larguraOriginal,                            // Coluna 2: Largura
+        e.alturaOriginal,                             // Coluna 3: Altura
+        m2TotalItem.toFixed(2),                       // Coluna 4: m² Total
+        formatarPreco(precoM2),                       // Coluna 5: Valor m²
+        formatarPreco(e.valorTotal)                   // Coluna 6: Total do item
+    ];
+});
 
     const widthMap = {
         vidro: usableWidth * 0.35,
@@ -768,56 +802,111 @@ export default function VidrosPage() {
         total: usableWidth * 0.20
     };
 
-        autoTable(pdf, {
-            head: [["Vidro", "Qtd", "L (mm)", "A (mm)", "Preço m²", "Total"]],
-            body,
-            theme: "grid",
-            // CENTRALIZAÇÃO VERTICAL E HORIZONTAL DO CABEÇALHO
-            headStyles: { 
-                fillColor: theme.primary, 
-                textColor: "#FFF", 
-                fontSize: 10, 
-                valign: 'middle',
-                halign: 'center' 
-            },
-            // CENTRALIZAÇÃO VERTICAL DO CORPO
-            bodyStyles: { 
-                fontSize: 9.5, 
-                textColor: theme.primary, 
-                valign: 'middle' 
-            }, 
-            margin: { left: margin, right: margin },
-            styles: { cellPadding: 2.5, overflow: 'linebreak' as any, cellWidth: 'wrap' as any },
-            columnStyles: { 
-                // CENTRALIZAÇÃO HORIZONTAL DE TODAS AS COLUNAS
-                0: { cellWidth: widthMap.vidro, halign: 'center' },          
-                1: { cellWidth: widthMap.quant, halign: 'center' },            
-                2: { cellWidth: widthMap.larg, halign: 'center' },         
-                3: { cellWidth: widthMap.alt, halign: 'center' },         
-                4: { cellWidth: widthMap.total, halign: 'center' },          
-            },
-            startY: 45,
-        })
-
-        // 🔹 Total final
-        const finalY = (pdf as any).lastAutoTable?.finalY || 30
-        pdf.setFontSize(12)
-        pdf.setTextColor(theme.primary)
-        const totalTexto = `Total do orçamento: ${formatarPreco(totalOrcamento)}`
         
-        pdf.text(totalTexto, pageWidth - margin - pdf.getTextWidth(totalTexto), finalY + 10)
+ autoTable(pdf, {
+    head: head,
+    body: body,
+    theme: "plain",
+    startY: 55,
+    headStyles: { 
+        fillColor: theme.primary, 
+        textColor: 255, 
+        fontSize: 8, 
+        halign: 'center',     
+        valign: 'middle',      
+        cellPadding: { top: 2, bottom: 2, left: 1, right: 1 } 
+    },
+  bodyStyles: { 
+        fontSize: 8, 
+        textColor: [50, 50, 50],
+        valign: 'middle'
+    },
+    columnStyles: {
+        0: { cellWidth: 55, halign: 'left' },   // Descrição (mais larga)
+        1: { cellWidth: 10, halign: 'center' }, // Qtd
+        2: { cellWidth: 20, halign: 'center' }, // Largura
+        3: { cellWidth: 20, halign: 'center' }, // Altura
+        4: { cellWidth: 20, halign: 'center' }, // m² Total
+        5: { cellWidth: 25, halign: 'center' },  // Valor m²
+        6: { cellWidth: 25, halign: 'center' },  // Total
+    },
+    margin: { left: margin, right: margin }
+});
+// 🔹 TOTALIZADORES FINAIS
+const finalY = (pdf as any).lastAutoTable?.finalY || 30;
 
-        // 🔹 Salvar
-        pdf.save("orcamento.pdf")
-        showToast("PDF gerado e baixado com sucesso! 🎉")
-    }
+// 1. Cálculos (Caso ainda não tenha feito acima)
+const totalM2Geral = vidrosLista.reduce((acc, item) => 
+    acc + (Number(item.larguraOriginal) * Number(item.alturaOriginal) / 1000000) * item.quantidade, 0
+);
+const totalPecas = vidrosLista.reduce((acc, item) => acc + item.quantidade, 0);
+
+pdf.setFontSize(10);
+pdf.setFont("helvetica", "bold");
+pdf.setTextColor(80, 80, 80); // Cinza escuro para leitura clara
+const infoTecnica = `Peças: ${totalPecas}  |  Área Total: ${totalM2Geral.toFixed(2)}m²`;
+pdf.text(infoTecnica, margin, finalY + 25); // Posicionado à esquerda na mesma linha do Total
+
+// 3. BOTÃO DO TOTAL GERAL (Quadrado com contorno verde)
+const larguraBotao = 65;
+const alturaBotao = 12;
+const posX = pageWidth - margin - larguraBotao;
+const posY = finalY + 18;
+
+// Contorno Verde
+pdf.setDrawColor(120, 190, 70); 
+pdf.setLineWidth(0.3);
+pdf.roundedRect(posX, posY, larguraBotao, alturaBotao, 3, 3, 'S'); 
+
+// Texto do Valor
+pdf.setFontSize(12);
+pdf.setTextColor(theme.primary); // Azul escuro
+const totalTexto = `Total Geral: ${formatarPreco(totalOrcamento)}`;
+pdf.text(totalTexto, posX + (larguraBotao / 2), posY + 8, { align: 'center' })
+// 🔹 SALVAR
+pdf.save("orcamento.pdf");
+showToast("PDF gerado e baixado com sucesso! 🎉");   
+}
 
     const currentGrupo = naoEncontradosModal?.grupos[grupoAtualIndex]
-    
-// ---------------------------------------------------------------------------------------------------------
-// RENDERIZAÇÃO
-// ---------------------------------------------------------------------------------------------------------
+    const [inputCliente, setInputCliente] = useState("")
+    const [showClienteAutocomplete, setShowClienteAutocomplete] = useState(false)
+    const [cursorCliente, setCursorCliente] = useState(-1);
+    const [cursorVidro, setCursorVidro] = useState(-1);
 
+    const handleKeyDownCliente = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Filtra a lista de clientes baseada no que foi digitado
+    const clientesFiltrados = clientes.filter(c => 
+        c.nome.toLowerCase().includes(inputCliente.toLowerCase())
+    );
+
+    if (!showClienteAutocomplete || clientesFiltrados.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault(); // Impede o cursor de ir para o fim do texto
+        setCursorCliente(prev => (prev < clientesFiltrados.length - 1 ? prev + 1 : prev));
+    } 
+    else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setCursorCliente(prev => (prev > 0 ? prev - 1 : 0));
+    } 
+    else if (e.key === "Enter") {
+        e.preventDefault();
+        if (cursorCliente >= 0 && cursorCliente < clientesFiltrados.length) {
+            const clienteSel = clientesFiltrados[cursorCliente];
+            // Lógica para selecionar o cliente
+            setNovoVidro(prev => ({ ...prev, cliente: clienteSel.nome, cliente_id: clienteSel.id }));
+            setInputCliente(clienteSel.nome);
+            setShowClienteAutocomplete(false);
+            setCursorCliente(-1);
+        }
+    } 
+    else if (e.key === "Escape") {
+        setShowClienteAutocomplete(false);
+        setCursorCliente(-1);
+    }
+};
+    
 return (
     <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
         
@@ -943,10 +1032,7 @@ return (
                 </div>
             </div>
         )}
-    {/* O DIV EXTRA FOI REMOVIDO AQUI! */}
-        
-        {/* LAYOUT REESTRUTURADO */}
-        {/* CABEÇALHO E BARRA SUPERIOR DE AÇÕES (Padrão: flex justify-between, rounded-xl buttons) */}
+  
         <div className="flex justify-between items-center mb-4">
            {/* Botão Home e Título */}
            <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -996,36 +1082,101 @@ return (
         </div>
     </div>
 
-    {/* SELEÇÃO DE CLIENTE (Padrão: bg-white, rounded-xl, shadow-lg) */}
-    <div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-1/3">
-            <label className="font-medium min-w-[70px]">Cliente:</label>
-            <select 
-                value={novoVidro.cliente || ""} 
+   {/* SELEÇÃO DE CLIENTE (Padrão: bg-white, rounded-xl, shadow-lg) */}
+<div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-1/3">
+        <label className="font-medium min-w-[70px]">Cliente:</label>
+        <div className="relative w-full flex gap-2">
+            <input
+                type="text"
+                placeholder="Digite o nome do cliente"
+                value={novoVidro.cliente || inputCliente}
+                disabled={vidrosLista.length > 0}
                 onChange={e => {
-                    const selectedClient = clientes.find(c => c.nome === e.target.value);
-                    if (vidrosLista.length === 0) {
-                        setNovoVidro(prev => ({ 
-                            ...prev, 
-                            cliente: e.target.value,
-                            cliente_id: selectedClient?.id || 0,
-                        }))
-                    } else {
-                        showToast("Cliente travado: Limpe o orçamento antes de trocar.", 'warning');
+                    if (vidrosLista.length > 0) {
+                        showToast("Cliente travado: Limpe o orçamento antes de trocar.", "warning")
+                        return
                     }
-                }} 
-                disabled={vidrosLista.length > 0} 
-                className="p-3 rounded-xl border w-full disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#92D050]" 
+                    setInputCliente(e.target.value)
+                    setCursorVidro(-1);
+                    setNovoVidro(prev => ({ ...prev, cliente: "", cliente_id: 0 }))
+                    setShowClienteAutocomplete(true)
+                }}
+                onFocus={() => setShowClienteAutocomplete(true)}
+                onBlur={() => setTimeout(() => setShowClienteAutocomplete(false), 150)}
+                className="p-3 rounded-xl border w-full disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                 style={{ borderColor: theme.border }}
+             onKeyDown={e => {
+            const filtrados = clientes.filter(c => normalize(c.nome).includes(normalize(inputCliente))).slice(0, 10);
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault(); // Impede o cursor de texto de pular
+                setCursorCliente(prev => {
+                    const next = prev < filtrados.length - 1 ? prev + 1 : prev;
+                    if (filtrados[next]) setInputCliente(filtrados[next].nome); // Atualiza o texto ao descer
+                    return next;
+                });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setCursorCliente(prev => {
+                    const next = prev > 0 ? prev - 1 : prev;
+                    if (filtrados[next]) setInputCliente(filtrados[next].nome); // Atualiza o texto ao subir
+                    return next;
+                });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const selecionado = cursorCliente >= 0 ? filtrados[cursorCliente] : filtrados[0];
+                if (selecionado) {
+                    setNovoVidro(prev => ({ ...prev, cliente: selecionado.nome, cliente_id: selecionado.id }));
+                    setInputCliente(selecionado.nome);
+                    setShowClienteAutocomplete(false);
+                    setCursorCliente(-1);
+                    setTimeout(() => document.querySelector<HTMLInputElement>('input[placeholder="Digite para buscar vidro"]')?.focus(), 10);
+                }
+            }
+        }}
+            />
+            <button 
+            onClick={() => window.location.href = "/clientes"} 
+            className="p-4 rounded-lg text-white shadow-sm flex-shrink-0 hover:opacity-90 transition-opacity" 
+            style={{ backgroundColor: theme.primary }}
+            title="Ir para Cadastro de Clientes"
             >
-                <option value="">Selecione o Cliente</option>
-                {clientes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-            </select>
+            <UserPlus size={18} />
+            </button>
+                
+            {showClienteAutocomplete && (
+                <ul className="absolute z-10 top-full mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg max-h-40 overflow-y-auto scrollbar-erp">
+                    {clientes
+                        .filter(c =>
+                            normalize(c.nome).includes(normalize(inputCliente))
+                        )
+                        .slice(0, 10)
+                        .map((c, i) => (
+                            <li
+                                key={c.id}
+                                className={`p-2 cursor-pointer ${i === cursorCliente ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                                onMouseDown={() => {
+                                    setNovoVidro(prev => ({
+                                        ...prev,
+                                        cliente: c.nome,
+                                        cliente_id: c.id,
+                                    }))
+                                    setInputCliente(c.nome)
+                                    setShowClienteAutocomplete(false)
+                                }}
+                            >
+                                {c.nome}
+                            </li>
+                        ))}
+                </ul>
+            )}
         </div>
-        <p className="text-sm italic text-gray-500 w-full sm:w-2/3">
-            {vidrosLista.length > 0 && "Cliente travado. Limpe para trocar."}
-        </p>
     </div>
+    <p className="text-sm italic text-gray-500 w-full sm:w-2/3">
+        {vidrosLista.length > 0 && "Cliente travado. Limpe para trocar."}
+    </p>
+</div>
 
     {/* CADASTRO DE ITEM (VIDRO, MEDIDAS, QTD) (Padrão: bg-white, rounded-xl, shadow-lg) */}
     <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
@@ -1058,68 +1209,115 @@ return (
                     style={{ borderColor: theme.border }}
                     onFocus={() => setShowAutocomplete(true)}
                     onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+                  onKeyDown={e => {
+                    const filtrados = vidros.filter(v => matchesVidro(v, inputVidro));
+                    
+                    if (e.key === 'ArrowDown') {
+                        setCursorVidro(prev => (prev < filtrados.length - 1 ? prev + 1 : prev));
+                    } else if (e.key === 'ArrowUp') {
+                        setCursorVidro(prev => (prev > 0 ? prev - 1 : prev));
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const selecionado = cursorVidro >= 0 ? filtrados[cursorVidro] : filtrados[0];
+                        if (selecionado) {
+                            setNovoVidro(prev => ({ ...prev, vidro_id: selecionado.id }));
+                            setInputVidro(selecionado.nome);
+                            setShowAutocomplete(false);
+                            setTimeout(() => larguraInputRef.current?.focus(), 10);
+                        }
+                    }
+                }}
                 />
                 {showAutocomplete && (
-                    <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto mt-1">
-                        {vidros.filter(v => matchesVidro(v, inputVidro)).map(v => (
-                            <li
-                                key={v.id}
-                                className="p-2 cursor-pointer hover:bg-gray-100"
-                                onMouseDown={() => { 
-                                    setNovoVidro(prev => ({ ...prev, vidro_id: v.id })); 
-                                    const vSelected = vidros.find(vid => vid.id === v.id);
-                                    const preco = vSelected ? getVidroPriceForClient(vSelected.id, novoVidro.cliente_id) : 0;
-                                    setInputVidro(vSelected 
-                                        ? `${vSelected.nome}${vSelected.tipo ? ` (${vSelected.tipo})` : ""}${vSelected.espessura ? ` - ${vSelected.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
-                                        : "");
-                                    setShowAutocomplete(false) 
-                                }}
-                            >
-                                {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""} 
-                                <span className="text-xs text-gray-500"> (R$ {formatarPreco(getVidroPriceForClient(v.id, novoVidro.cliente_id))}/m²)</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-        </div>
+                 <ul className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-40 overflow-y-auto mt-1 scrollbar-erp">
+                    {vidros.filter(v => matchesVidro(v, inputVidro)).map((v, i) => (
+                        <li
+                            key={v.id}
+                            ref={(el) => {
+                                if (i === cursorVidro && el) {
+                                    el.scrollIntoView({
+                                        block: 'nearest',
+                                        behavior: 'auto'
+                                    });
+                                }
+                            }}
+                            className={`p-2 cursor-pointer ${
+                                i === cursorVidro 
+                                    ? 'bg-[#1C415B] text-white'
+                                    : 'hover:bg-gray-100 text-gray-900'
+                            }`}
+                            onMouseDown={() => { 
+                                setNovoVidro(prev => ({ ...prev, vidro_id: v.id })); 
+                                const vSelected = vidros.find(vid => vid.id === v.id);
+                                const preco = vSelected ? getVidroPriceForClient(vSelected.id, novoVidro.cliente_id) : 0;
+                                setInputVidro(vSelected 
+                                    ? `${vSelected.nome}${vSelected.tipo ? ` (${vSelected.tipo})` : ""}${vSelected.espessura ? ` - ${vSelected.espessura}` : ""} (R$ ${formatarPreco(preco)}/m²)` 
+                                    : "");
+                                setShowAutocomplete(false) 
+                            }}
+                        >
+                            {v.nome}{v.tipo ? ` (${v.tipo})` : ""}{v.espessura ? ` - ${v.espessura}` : ""} 
+                            <span className="text-xs opacity-80">
+                                (R$ {formatarPreco(getVidroPriceForClient(v.id, novoVidro.cliente_id))}/m²)
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+                                )}
+                            </div>
+                        </div>
 
         {/* Largura / Altura / Quantidade / Ação (Padrão: grid responsivo) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             <input
                 ref={larguraInputRef}
                 type="text"
+                maxLength={4} // 🔹 impede mais que 4 dígitos
                 placeholder="Largura (mm)"
                 value={novoVidro.larguraOriginal}
                 onChange={e => setNovoVidro(prev => ({ ...prev, larguraOriginal: e.target.value }))}
                 className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                 style={{ borderColor: theme.border }}
+                onKeyDown={e => e.key === 'Enter' && alturaInputRef.current?.focus()}
             />
             <input
-                type="text"
-                placeholder="Altura (mm)"
-                value={novoVidro.alturaOriginal}
-                onChange={e => setNovoVidro(prev => ({ ...prev, alturaOriginal: e.target.value }))}
-                className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
-                style={{ borderColor: theme.border }}
-            />
+            type="text"
+            placeholder="Altura (mm)"
+            maxLength={4}
+            value={novoVidro.alturaOriginal}
+            onChange={e => setNovoVidro(prev => ({ ...prev, alturaOriginal: e.target.value }))}
+            onKeyDown={e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.querySelector<HTMLInputElement>('input[placeholder="Qtd"]')?.focus();
+                }
+            }}
+            className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
+            style={{ borderColor: theme.border }}
+        />
             <input
                 type="number"
                 placeholder="Qtd"
                 value={novoVidro.quantidade}
                 min={1}
                 onChange={e => setNovoVidro(prev => ({ ...prev, quantidade: Number(e.target.value) }))}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        adicionarOuSalvar();
+                    }
+                }}
                 className="p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                 style={{ borderColor: theme.border }}
             />
-            <button
-                onClick={adicionarOuSalvar}
-                disabled={novoVidro.cliente_id === 0 || novoVidro.vidro_id === 0}
-                className="py-3 rounded-xl font-semibold text-white transition hover:brightness-110 disabled:opacity-50" 
-                style={{ backgroundColor: theme.primary }}
-            >
-                {editIndex !== null ? "Salvar Edição" : "Adicionar"}
-            </button>
+                <button
+                    onClick={adicionarOuSalvar}
+                    disabled={novoVidro.cliente_id === 0 || novoVidro.vidro_id === 0}
+                    className="py-3 rounded-xl font-semibold text-white transition hover:brightness-110 disabled:opacity-50" 
+                    style={{ backgroundColor: theme.primary }}
+                >
+                    {editIndex !== null ? "Salvar Edição" : "Adicionar"}
+                </button>
         </div>
     </div>
     
@@ -1166,6 +1364,7 @@ return (
                     <th className="p-3">Qtd</th>
                     <th className="p-3">Largura (mm)</th>
                     <th className="p-3">Altura (mm)</th>
+                    <th className="p-3 text-center">M² Total</th> 
                     <th className="p-3 text-right">Total</th>
                     <th className="p-3 text-center rounded-tr-xl">Ações</th>
                 </tr>
@@ -1194,6 +1393,9 @@ return (
                             <td className="p-3">{item.quantidade}</td>
                             <td className="p-3">{item.larguraOriginal}</td>
                             <td className="p-3">{item.alturaOriginal}</td>
+                            <td className="p-3 text-center">
+                                {((Number(item.larguraOriginal) * Number(item.alturaOriginal) / 1000000) * item.quantidade).toFixed(2)}m²
+                            </td>
                             <td className="p-3 font-bold text-right">{formatarPreco(item.valorTotal)}</td>
                             <td className="p-3 text-center">
                                 <div className="flex gap-2 justify-center">
@@ -1246,6 +1448,5 @@ return (
     </div>
 
 </div>
-); // <-- Fechamento final do `return` e do componente
+); 
 }
-// Se houver código de função ou exportação após isso, mantenha-o.

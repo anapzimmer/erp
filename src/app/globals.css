@@ -24,3 +24,70 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  .print-safe {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+  
+.print-no-break {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+  display: block !important;
+}
+.printable-area {
+    display: block !important;
+    width: 100% !important;
+    position: static !important;
+  }
+    .print-force-page {
+    page-break-before: always;
+  }
+  .cabeçalho-fixo-que-some {
+    display: flex !important;
+  }
+  .no-print {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+
+    * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-bg-primary {
+    background-color: var(--theme-primary) !important; 
+    color: white !important;
+  }
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Scrollbar padrão ERP (igual ao cliente) */
+.scrollbar-erp::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-erp::-webkit-scrollbar-thumb {
+  background-color: #3B82F6; /* 🔵 AZUL da rolagem do cliente */
+  border-radius: 6px;
+}
+
+.scrollbar-erp::-webkit-scrollbar-track {
+  background: transparent;
+}
+

@@ -836,6 +836,10 @@ export default function App() {
         ? `${vidroSelecionado.nome}${vidroSelecionado.tipo ? ` (${vidroSelecionado.tipo})` : ""}${vidroSelecionado.espessura ? ` - ${vidroSelecionado.espessura}` : ""}`
         : inputVidro;
 
+
+    const [inputCliente, setInputCliente] = useState("")
+    const [showClienteAutocomplete, setShowClienteAutocomplete] = useState(false)
+
     // --- RENDER ---
     return (
         <div className="min-h-screen p-4 sm:p-6 font-sans" style={{ backgroundColor: theme.background, color: theme.text }}>
@@ -905,19 +909,47 @@ export default function App() {
 
             <div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4">
                 {/* ... (Seleção de Cliente e Vidro) */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-1/3">
-                    <label className="font-medium min-w-[70px]">Cliente:</label>
-                    <select
-                        value={novoEspelho.cliente || ""}
-                        onChange={e => setNovoEspelho(prev => ({ ...prev, cliente: e.target.value }))}
+                <div className="relative w-full">
+                    <input
+                        type="text"
+                        value={novoEspelho.cliente || inputCliente}
+                        placeholder="Digite o nome do cliente"
                         disabled={espelhos.length > 0}
+                        onChange={e => {
+                        setInputCliente(e.target.value)
+                        setNovoEspelho(prev => ({ ...prev, cliente: "" }))
+                        setShowClienteAutocomplete(true)
+                        }}
+                        onFocus={() => setShowClienteAutocomplete(true)}
+                        onBlur={() => setTimeout(() => setShowClienteAutocomplete(false), 150)}
                         className="p-2 rounded-xl border w-full disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#92D050]"
                         style={{ borderColor: theme.border }}
-                    >
-                        <option value="">Selecione</option>
-                        {clientes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                    </select>
-                </div>
+                    />
+
+                    {showClienteAutocomplete && (
+                        <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                        {clientes
+                            .filter(c =>
+                            normalize(c.nome).includes(normalize(inputCliente))
+                            )
+                            .slice(0, 10)
+                            .map(c => (
+                            <li
+                                key={c.id}
+                                className="p-2 cursor-pointer hover:bg-gray-100"
+                                onMouseDown={() => {
+                                setNovoEspelho(prev => ({ ...prev, cliente: c.nome }))
+                                setInputCliente(c.nome)
+                                setShowClienteAutocomplete(false)
+                                }}
+                            >
+                                {c.nome}
+                            </li>
+                            ))}
+                        </ul>
+                    )}
+                    </div>
+
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-2/3 relative">
                     <label className="font-medium min-w-[70px]">Vidro:</label>
                     <input
@@ -965,6 +997,7 @@ export default function App() {
                     <input
                         ref={larguraInputRef}
                         type="text"
+                        maxLength={4} // 🔹 impede mais que 4 dígitos
                         placeholder="Largura (mm)"
                         value={novoEspelho.larguraOriginal}
                         onChange={e => setNovoEspelho(prev => ({ ...prev, larguraOriginal: e.target.value }))}
@@ -973,6 +1006,7 @@ export default function App() {
                     />
                     <input
                         type="text"
+                        maxLength={4} // 🔹 impede mais que 4 dígitos
                         placeholder="Altura (mm)"
                         value={novoEspelho.alturaOriginal}
                         onChange={e => setNovoEspelho(prev => ({ ...prev, alturaOriginal: e.target.value }))}
