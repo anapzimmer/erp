@@ -6,7 +6,7 @@ import {
   Users,
   FileText,
   Image as ImageIcon,
-  BarChart,
+  BarChart3,
   Square,
   Package,
   Wrench,
@@ -34,7 +34,7 @@ const menuPrincipal = [
     ]
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart },
+  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
 
 const menuCadastros = [

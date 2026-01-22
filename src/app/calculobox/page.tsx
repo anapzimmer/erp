@@ -793,7 +793,6 @@ const recalcularTodosOsItens = () => {
   setMostrarModalRecalculo(false);
 };
 
-
    return (
     <div className="p-4 sm:p-8 bg-[#F8FAFC] min-h-screen text-[#1C415B] font-sans relative">
       <style jsx global>{`
