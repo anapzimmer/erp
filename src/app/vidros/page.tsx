@@ -37,6 +37,24 @@ const theme = {
   cardBg: "#FFFFFF",
 }
 
+const padronizarTexto = (texto: string) => {
+  if (!texto) return ""
+  const t = texto.trim().toLowerCase()
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+const padronizarEspessura = (valor: string) => {
+  if (!valor) return ""
+  const limpo = valor.replace(/\s/g, "").toLowerCase()
+  const partes = limpo.split("+").map(p =>
+    p.replace(/\D/g, "").padStart(2, "0")
+  )
+  const partesValidas = partes.filter(p => p !== "00")
+  if (partesValidas.length === 0) return ""
+  return partesValidas.join("+") + "mm"
+}
+
+
 export default function VidrosPage() {
   const [vidros, setVidros] = useState<Vidro[]>([])
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
@@ -126,9 +144,9 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const [nomeRaw, espRaw, tipoRaw, precoRaw] = linha.split(";").map(c => c?.trim());
       if (!nomeRaw) return null;
 
-      const nome = nomeRaw.replace(/"/g, "").trim();
-      const espessura = espRaw?.replace(/"/g, "").trim() || "";
-      const tipo = tipoRaw?.replace(/"/g, "").trim() || "";
+     const nome = padronizarTexto(nomeRaw.replace(/"/g, "").trim());
+      const tipo = padronizarTexto(tipoRaw?.replace(/"/g, "").trim() || "");
+      const espessura = padronizarEspessura(espRaw?.replace(/"/g, "").trim() || "");
       const preco = Number(precoRaw?.replace(",", ".").trim()) || 0;
 
       return { nome, espessura, tipo, preco };
@@ -296,14 +314,29 @@ const salvarVidro = async () => {
   setCarregando(true)
   let vidroId = editando?.id
 
-  if (editando) {
-    const { error } = await supabase.from("vidros").update({ ...novoVidro }).eq("id", editando.id)
-    if (error) { setCarregando(false); mostrarAlerta("Erro ao atualizar vidro: " + error.message); return }
+ const vidroPadronizado = {
+  ...novoVidro,
+  nome: padronizarTexto(novoVidro.nome),
+  tipo: padronizarTexto(novoVidro.tipo),
+  espessura: padronizarEspessura(novoVidro.espessura)
+}
+
+if (editando) {
+  const { error } = await supabase
+    .from("vidros")
+    .update(vidroPadronizado)
+    .eq("id", editando.id)
+
   } else {
-    const { data, error } = await supabase.from("vidros").insert([{ ...novoVidro }]).select().single()
+    const { data, error } = await supabase
+  .from("vidros")
+  .insert([vidroPadronizado])
+  .select()
+  .single()
     if (error) { setCarregando(false); mostrarAlerta("Erro ao salvar vidro: " + error.message); return }
     vidroId = data.id
   }
+  
 
   // 🔹 Buscar preços originais (para saber o que foi removido)
   const { data: precosOriginais } = await supabase
@@ -499,9 +532,9 @@ const salvarVidro = async () => {
             <h2 className="text-xl font-semibold mb-4">{editando ? "Editar Vidro" : "Novo Vidro"}</h2>
 
             <div className="space-y-3">
-              <input type="text" placeholder="Nome *" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
-              <input type="text" placeholder="Espessura *" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
-              <input type="text" placeholder="Tipo *" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
+              <input type="text" placeholder="Nome *" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: padronizarTexto(e.target.value) })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
+              <input type="text" placeholder="Espessura *" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: padronizarEspessura(e.target.value) })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
+              <input type="text" placeholder="Tipo *" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: padronizarTexto(e.target.value) })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
               <input type="number" min={0} placeholder="Preço" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })} className="w-full p-2 rounded border" style={{ borderColor: theme.border }} />
               {/* Preços por cliente */}
               <div className="mt-4">

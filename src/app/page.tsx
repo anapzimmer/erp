@@ -1,23 +1,9 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Image as ImageIcon,
-  BarChart3,
-  Square,
-  Package,
-  Wrench,
-  Boxes,
-  Briefcase,
-  DollarSign,
-  Layers,
-  LogOut,
-  ChevronRight,
-  Settings // Novo ícone para Cadastros
-} from "lucide-react"
+import {LayoutDashboard, Users,FileText,Image as ImageIcon, BarChart3,Square,Package,Wrench,Boxes,Briefcase,DollarSign,Layers,LogOut, ChevronRight,Settings} from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"
 
 // MENU ORGANIZADO POR CATEGORIAS
 const menuPrincipal = [
@@ -37,6 +23,7 @@ const menuPrincipal = [
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
 
+
 const menuCadastros = [
   { nome: "Vidros", rota: "/vidros", icone: Square },
   { nome: "Perfis", rota: "/perfis", icone: Package },
@@ -46,7 +33,7 @@ const menuCadastros = [
 ]
 
 const cards = [
-  { titulo: "Total de Clientes", valor: 1, descricao: "Clientes cadastrados", icone: Users },
+  { titulo: "Total de Clientes", descricao: "Clientes cadastrados", icone: Users },
   { titulo: "Total de Orçamentos", valor: 0, descricao: "Orçamentos criados", icone: FileText },
   { titulo: "Orçamentos em Aberto", valor: 0, descricao: "Aguardando aprovação", icone: DollarSign },
   { titulo: "Imagens Processadas", valor: 0, descricao: "Imagens no sistema", icone: ImageIcon },
@@ -56,7 +43,26 @@ const cards = [
 export default function Dashboard() {
   const router = useRouter()
 
-  // Função auxiliar para renderizar itens de menu
+  const [totalClientes, setTotalClientes] = useState(0)
+
+  useEffect(() => {
+  const fetchTotalClientes = async () => {
+    const { count, error } = await supabase
+      .from("clientes") // 👈 nome da tabela
+      .select("*", { count: "exact", head: true })
+
+    if (error) {
+      console.error("Erro ao buscar clientes:", error)
+      return
+    }
+
+    setTotalClientes(count ?? 0)
+  }
+
+  fetchTotalClientes()
+}, [])
+
+ // Função auxiliar para renderizar itens de menu
   const renderMenuItem = (item: any) => {
     const Icon = item.icone
     return (
@@ -147,7 +153,9 @@ export default function Dashboard() {
                       <Icon className="w-8 h-8 text-[#92D050]" />
                     </div>
                     <div>
-                      <h2 className="text-4xl font-black text-[#1C415B] tracking-tight">{card.valor}</h2>
+                      <h2 className="text-4xl font-black text-[#1C415B] tracking-tight">
+  {card.titulo === "Total de Clientes" ? totalClientes : card.valor}
+</h2>
                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">{card.titulo}</p>
                     </div>
                   </div>

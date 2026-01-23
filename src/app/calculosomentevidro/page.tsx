@@ -3,7 +3,7 @@
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
 
-    export default function CalculoJanelas() {
+    export default function CalculoProjetosVidros() {
     const [vidros, setVidros] = useState<any[]>([])
     const [clientes, setClientes] = useState<any[]>([])
     const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
@@ -29,8 +29,8 @@
     const [modelo, setModelo] = useState("Escolher Tipo")
     const [folhas, setFolhas] = useState("Escolher Folhas")
     const [trinco, setTrinco] = useState("Escolher trinco")
-    const [corKit, setCorKit] = useState("Escolher cor perfil")
-    const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Kit ou Barra") 
+    const [corKit, setCorKit] = useState("Escolher Puxador")
+    const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
     const [anguloCanto, setAnguloCanto] = useState("Padrão")
     
     const [larguraVao, setLarguraVao] = useState("")
@@ -171,8 +171,8 @@
   setModelo("Escolher Tipo")
   setFolhas("Escolher Folhas")
   setTrinco("Escolher trinco")
-  setCorKit("Escolher cor perfil")
-  setTipoOrcamento("Escolher Kit ou Barra")
+  setTipoOrcamento("Escolher Tipo de Trilho")
+  setCorKit("Escolher Puxador")
   setAnguloCanto("Padrão")
 
   // Medidas
@@ -200,7 +200,7 @@
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
             <div className="p-2 bg-[#92D050] rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
-            <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Janelas</h1>
+            <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Projetos - Só VIDRO</h1>
             </div>
             <div className="flex gap-2">
             <button onClick={() => { 
@@ -248,7 +248,7 @@
 
         {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] text-gray-300 uppercase">Janela</label>
+          <label className="text-[10px] text-gray-300 uppercase">PROJETOS</label>
 
           <select
             ref={modeloRef}
@@ -261,9 +261,21 @@
             }}
           >
             <option>Escolher Tipo</option>
-            <option value="Janela Padrão">Janela Padrão</option>
-            <option value="Janela Canto">Janela Canto</option>
+            <option>Basculante</option>
+            <option>Box Tradicional</option>
+            <option>Fixo</option>
+            <option value="Janela Padrão">Janela</option>
             <option value="Janela Bandeira">Janela Bandeira</option>
+            <option value="Janela Canto">Janela Canto</option>
+            <option>Janela Mão Amiga</option>
+            <option>Max</option>
+            <option>Porta </option>
+            <option>Porta com Bandeira</option>
+            <option>Porta Deslizante</option>
+            <option>Porta Fora Vão</option>
+            <option>Porta Giro</option>
+            <option>Porta Mão Amiga</option>
+           
           </select>
 
           {modelo === "Janela Canto" && (
@@ -283,8 +295,12 @@
             onChange={e => setFolhas(e.target.value)}
           >
             <option>Escolher Folhas</option>
+            <option>1 Folha</option>
             <option value="2 folhas">2 Folhas</option>
+            <option>3 Folhas</option>
             <option value="4 folhas">4 Folhas</option>
+            <option>5 Folhas</option>
+            <option>6 Folhas</option>
           </select>
 
           <select
@@ -295,21 +311,26 @@
             <option>Escolher trinco</option>
             <option value="Sem trinco">Sem Trinco</option>
             <option value="Com trinco">Com Trinco</option>
+            <option>Trinco Simples + Chave</option>
+            <option>Chave + Chave</option>
+            <option>Trinco Duplo + Chave</option>
+            <option>Trinco Simples + Trinco Duplo</option>
           </select>
         </div>
 
         {/* 2️⃣ KIT / COR / VIDRO */}
         <div className="flex flex-col gap-2 relative">
-          <label className="text-[10px] text-gray-300 uppercase">Kit / Vidro</label>
+          <label className="text-[10px] text-gray-300 uppercase">Tipo do Trilho</label>
 
           <select
             className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
             value={tipoOrcamento}
             onChange={e => setTipoOrcamento(e.target.value)}
           >
-            <option>Escolher Kit ou Barra</option>
-            <option value="Kit">Kit Pronto</option>
-            <option value="Barra">Barra 6m</option>
+           <option>Escolher Tipo de Trilho</option>
+            <option>Aparente</option>
+            <option>Interrompido</option>
+            <option>Embutido</option>
           </select>
 
           <select
@@ -317,10 +338,9 @@
             value={corKit}
             onChange={e => setCorKit(e.target.value)}
           >
-            <option>Escolher cor perfil</option>
-            <option>Branco</option>
-            <option>Preto</option>
-            <option>Fosco</option>
+            <option>Escolher Puxador</option>
+            <option>Com Puxador</option>
+            <option>Sem Puxador</option>
           </select>
 
           <div className="relative">
