@@ -297,21 +297,8 @@ const excluirAdicionalNoForm = (indexParaRemover: number) => {
 };
 
 const calcularItemBox = ({
-  modelo,
-  folhas,
-  tipoBox,
-  estiloKit,
-  corSel,
-  vidroSel,
-  larguraVao,
-  larguraVaoB,
-  alturaVao,
-  quantidade,
-  adicionaisSelecionados,
-  clienteSel,
-  kits,
-  precosEspeciais
-}: any) => {
+  modelo, folhas, tipoBox, estiloKit, corSel, vidroSel, larguraVao, larguraVaoB, alturaVao, quantidade, adicionaisSelecionados,clienteSel,
+  kits, precosEspeciais}: any) => {
 
   const L = Number(larguraVao);
   const LB = Number(larguraVaoB || 0);

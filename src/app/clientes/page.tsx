@@ -85,9 +85,10 @@ export default function ClientesPage() {
     const rotaFinal = formatarRota(novoCliente.rota)
     const nomeFinal = padronizarNome(novoCliente.nome)
     // Padrão: "ID - Nome"
-    const nomeComposto = `${rotaFinal} - ${nomeFinal}`
-
-    const payload: any = { nome: nomeComposto, rota: rotaFinal }
+   const payload: any = {
+  nome: nomeFinal,
+    rota: rotaFinal
+  }
     if (!telefoneConsiderarVazio(novoCliente.telefone)) payload.telefone = novoCliente.telefone!.trim()
     if (novoCliente.cidade?.trim()) payload.cidade = padronizarNome(novoCliente.cidade)
     return payload
@@ -145,13 +146,12 @@ export default function ClientesPage() {
   const editarCliente = (cliente: Cliente) => {
     setEditando(cliente)
     // Remove o prefixo "ID - " do nome ao editar para não duplicar
-    const nomeLimpo = cliente.nome.includes(" - ") ? cliente.nome.split(" - ")[1] : cliente.nome
-    setNovoCliente({
-      nome: nomeLimpo,
-      telefone: cliente.telefone ?? "",
-      cidade: cliente.cidade ?? "",
-      rota: cliente.rota ?? "",
-    })
+   setNovoCliente({
+  nome: cliente.nome,
+  telefone: cliente.telefone ?? "",
+  cidade: cliente.cidade ?? "",
+  rota: cliente.rota ?? "",
+})
     setMostrarModal(true)
   }
 

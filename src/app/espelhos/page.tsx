@@ -8,10 +8,6 @@ import Link from "next/link"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
-// =========================================================================
-// TIPAGENS (MANTIDAS)
-// =========================================================================
-
 type UnidadeMedida = "m²" | "unitário" | "metro_linear"
 
 type Servico = {
@@ -62,10 +58,6 @@ const theme = {
     border: "#F2F2F2",
 }
 
-// =========================================================================
-// FUNÇÕES DE CÁLCULO E UTILIDADE
-// =========================================================================
-
 // Função mockada para simular a do seu utils/formatarPreco
 function formatarPrecoMock(valor: number): string {
     return `R$ ${valor.toFixed(2).replace('.', ',')}`
@@ -96,10 +88,6 @@ const calcularValorUnidade = (larguraCalcMM: number, alturaCalcMM: number, preco
     const areaM2 = (l * a) / 1000000
     return parseFloat((areaM2 * precoM2 * valorMultiplicador).toFixed(2))
 }
-
-// =========================================================================
-// COMPONENTE PRINCIPAL (EspelhosPage)
-// =========================================================================
 
 export default function EspelhosPage() {
     const [espelhos, setEspelhos] = useState<EspelhoLinha[]>(() => {
@@ -214,7 +202,6 @@ export default function EspelhosPage() {
     }
     }
 
-
     // Funções de carregamento (mantidas para estrutura, mas usando mocks acima)
     useEffect(() => {
         carregarVidros()
@@ -222,6 +209,13 @@ export default function EspelhosPage() {
         carregarClientes()
     }, [])
 
+const formatarMoeda = (valor: number) => {
+    return valor.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2
+    });
+};
 
       // Função Limpar Formulário (Novo)
     const limparFormulario = () => {
@@ -286,10 +280,16 @@ export default function EspelhosPage() {
             let valor = 0
             switch (ss.servico.unidade) {
                 case "unitário": valor = ss.servico.preco; break
-                case "m²":
-                    const areaM2 = (larguraNum * alturaNum) / 1000000
-                    valor = parseFloat((areaM2 * ss.servico.preco).toFixed(2))
-                    break
+              case "m²": {
+            // ALTERAÇÃO AQUI: Usa a função que adiciona 10cm se for orgânico/redondo
+            const areaM2 = calcularAreaParaServico(
+                larguraCalc,
+                alturaCalc,
+                novoEspelho.acabamento
+            )
+            valor = parseFloat((areaM2 * ss.servico.preco).toFixed(2))
+            break
+            }
                 case "metro_linear":
                     if (!ss.medidaLinear) ss.medidaLinear = 0
                     valor = parseFloat((ss.medidaLinear * ss.servico.preco).toFixed(2))
@@ -338,10 +338,16 @@ export default function EspelhosPage() {
             let valor = 0
             switch (ss.servico.unidade) {
                 case "unitário": valor = ss.servico.preco; break
-                case "m²":
-                    const areaM2 = (larguraNum * alturaNum) / 1000000
-                    valor = parseFloat((areaM2 * ss.servico.preco).toFixed(2))
-                    break
+                case "m²": {
+            // ALTERAÇÃO AQUI: Garante o cálculo correto na edição
+            const areaM2 = calcularAreaParaServico(
+                larguraCalc,
+                alturaCalc,
+                novoEspelho.acabamento
+            )
+            valor = parseFloat((areaM2 * ss.servico.preco).toFixed(2))
+            break
+        }
                 case "metro_linear":
                     if (!ss.medidaLinear) ss.medidaLinear = 0
                     valor = parseFloat((ss.medidaLinear * ss.servico.preco).toFixed(2))
@@ -387,7 +393,13 @@ export default function EspelhosPage() {
             const e = newEspelhos[servicosEditIndex!]
             
             // 1. Atualiza a lista de serviços
-            e.servicos = servicosSelecionados
+            e.servicos = servicosSelecionados.map(ss => {
+                if (ss.servico.unidade === "m²") {
+                    const areaM2 = calcularAreaParaServico(e.larguraCalc, e.alturaCalc, e.acabamento)
+                    return { ...ss, valorCalculado: parseFloat((areaM2 * ss.servico.preco).toFixed(2)) }
+                }
+                return ss
+            })
             
             // 2. Recalcula o valor total do item
             const larguraNum = parseNumber(e.larguraOriginal)
@@ -406,7 +418,6 @@ export default function EspelhosPage() {
 
     const totalOrcamento = espelhos.reduce((acc, e) => acc + (e.valorTotal || 0), 0)
 
-
     // Função PDF (Mantida com ajustes de formatação)
     const gerarPDF = async () => {
         if (!espelhos.length) {
@@ -420,21 +431,25 @@ export default function EspelhosPage() {
         const usableWidth = pageWidth - (2 * margin)
 
         // Cabeçalho centralizado
-        pdf.setFontSize(16)
+        pdf.setFontSize(18);
+        pdf.setTextColor(themePDF.primary);
+        const title = "ORÇAMENTO DE ESPELHOS";
+        // O primeiro parâmetro 'margin' garante o alinhamento à esquerda [cite: 2026-01-21]
+        pdf.text(title, margin, 20);
+
+        // Data menor
+        pdf.setFontSize(11)
         pdf.setTextColor(theme.primary)
-        const title = "Orçamento de Espelhos"
-        pdf.text(title, margin, 20) 
+        pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36)
+        
 
         // Cliente
         const clienteNome = espelhos[0]?.cliente || "Não informado"
-        pdf.setFontSize(12)
+        pdf.setFontSize(11)
         pdf.setTextColor(theme.primary)
         pdf.text(`Cliente: ${clienteNome}`, margin, 30)
 
-        // Data menor
-        pdf.setFontSize(10)
-        pdf.setTextColor(theme.primary)
-        pdf.text(`Data: ${new Date().toLocaleDateString()}`, margin, 36)
+        
 
         // Logo (Mockado para evitar erro no ambiente de demonstração)
         try {
@@ -484,51 +499,117 @@ export default function EspelhosPage() {
                 formatarPrecoMock(e.valorTotal)
             ]
         })
+   
+
+autoTable(pdf, {
+        head: [["DESCRIÇÃO / VIDRO", "QTD", "LARG", "ALT", "m² TOTAL", "VALOR m²", "TOTAL"]],
+        body: espelhos.map(e => {
+            const vidro = vidros.find(v => v.id === e.vidro_id);
+            const areaM2 = calcularAreaParaServico(Number(e.larguraOriginal), Number(e.alturaOriginal), e.acabamento);
+            const areaTotalLinha = areaM2 * e.quantidade;
+
+            // Criamos a descrição separada
+            const nomeVidro = `${vidro?.nome} ${vidro?.tipo ? `(${vidro.tipo})` : ""}`;
+            const servicosTexto = e.servicos?.map(s => s.servico?.nome).filter(Boolean).join(", ");
+            const detalhes = `Acabamento: ${e.acabamento}${servicosTexto ? ` | Serviços: ${servicosTexto}` : ""}`;
+
+            return [
+                {
+                    // O segredo está em usar o 'content' para o texto e deixar o estilo para o didDrawCell ou manipular via hooks
+                    content: `${nomeVidro}\n${detalhes}`,
+                },
+                e.quantidade,
+                e.larguraOriginal,
+                e.alturaOriginal,
+                areaTotalLinha.toFixed(2),
+               formatarMoeda(e.precoUnitarioM2), // <--- Troque aqui
+                formatarMoeda(e.valorTotal)
+            ];
+        }),
+        startY: 50,
+        margin: { left: margin, right: margin },
+        theme: 'grid',
+        headStyles: { fillColor: themePDF.primary, textColor: "#FFFFFF", halign: 'center' },
+        styles: { fontSize: 8, cellPadding: 3 },
+
         
-        // Colunas com largura ajustada
-        const columnStyles = { 
-            0: { cellWidth: usableWidth * 0.25 }, // Vidro
-            1: { cellWidth: usableWidth * 0.20 }, // Serviços
-            2: { cellWidth: usableWidth * 0.08, halign: 'center' as const }, // Qtd
-            3: { cellWidth: usableWidth * 0.15, halign: 'center' as const }, // L x A
-            4: { cellWidth: usableWidth * 0.17 }, // Acabamento
-            5: { cellWidth: usableWidth * 0.15, halign: 'right' as const }, // Total
-        }
-
-
-        autoTable(pdf, {
-            head: [["Espelho", "Serviços", "Qtd", "L x A (mm)", "Acabamento", "Total"]],
-            body,
-            theme: "grid",
-            headStyles: { fillColor: theme.primary, textColor: "#FFF", fontSize: 10 },
-            bodyStyles: { fontSize: 9, cellPadding: 2 },
-            margin: { left: margin, right: margin },
-            columnStyles: columnStyles,
-            styles: { cellPadding: 2.5, overflow: 'linebreak' as const, cellWidth: 'wrap' as const },
-            startY: 45,
-        })
-
-
-        // Total destacado
-        const finalY = (pdf as any).lastAutoTable?.finalY || 30
-        pdf.setFontSize(12)
-        pdf.setTextColor(theme.primary)
-        const totalTexto = `Total do orçamento: ${formatarPrecoMock(totalOrcamento)}`
         
-        pdf.text(
-            totalTexto,
-            pageWidth - margin - pdf.getTextWidth(totalTexto),
-            finalY + 13
-        )
+        // 3. A MÁGICA DAS CORES: Aqui pintamos o Vidro de Azul e o resto de Verde
+      didDrawCell: (data) => {
+            if (data.section === 'body' && data.column.index === 0) {
+                const cell = data.cell;
+                const textLines = cell.text; 
+                
+                // Posição inicial do texto dentro da célula
+                let currentY = cell.y + 4; 
 
-        pdf.save("orcamento.pdf")
-    }
+               
+            }
+        },
+        // Ajuste de colunas para dar espaço à descrição
+        columnStyles: {
+                    0: { cellWidth: 65 }, 
+                    1: { halign: 'center' },
+                    2: { halign: 'center' },
+                    3: { halign: 'center' },
+                    4: { halign: 'center' },
+                    5: { halign: 'center' },
+                    6: { halign: 'center' }
+                }
+            });
+
+    // 4. Rodapé (Mantendo seu padrão de quadro verde)
+    const finalY = (pdf as any).lastAutoTable.finalY + 15;
+    const totalPecas = espelhos.reduce((acc, e) => acc + e.quantidade, 0);
+    const totalM2 = espelhos.reduce((acc, e) => acc + (calcularAreaParaServico(Number(e.larguraOriginal), Number(e.alturaOriginal), e.acabamento) * e.quantidade), 0);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(themePDF.text);
+    pdf.text(`Peças: ${totalPecas}  |  Área Total: ${totalM2.toFixed(2)}m²`, margin, finalY + 8);
+
+    const rectWidth = 70;
+    const rectX = pageWidth - margin - rectWidth;
+    pdf.setDrawColor(themePDF.secondary);
+    pdf.roundedRect(rectX, finalY, rectWidth, 15, 3, 3, 'D');
+    pdf.setTextColor(themePDF.primary);
+    pdf.setFontSize(14);
+    pdf.text(`Total Geral:${formatarMoeda(totalOrcamento)}`, rectX + 35, finalY + 9, { align: "center" });
+
+    pdf.save(`Orcamento_${clienteNome.replace(/\s+/g, '_')}.pdf`);
+}
     
     const [clienteBusca, setClienteBusca] = useState("")
     const [mostrarListaClientes, setMostrarListaClientes] = useState(false)
     const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(clienteBusca.toLowerCase())
     )
+
+    const calcularAreaParaServico = (
+    larguraCalc: number,
+    alturaCalc: number,
+    acabamento: string
+    ) => {
+    let l = larguraCalc
+    let a = alturaCalc
+
+    if (
+        acabamento === "Orgânico" ||
+        acabamento === "Molde" ||
+        acabamento.includes("Redondo")
+    ) {
+        l += 100
+        a += 100
+    }
+
+    return (l * a) / 1_000_000
+    }
+
+    const themePDF = {
+    primary: "#1C415B", // Azul escuro da tabela
+    secondary: "#92D050", // Verde do quadro de total
+    text: "#444444",
+    lightGray: "#F8F9FA"
+    }
 
 
     return (
@@ -822,10 +903,6 @@ export default function EspelhosPage() {
     )
 }
 
-// =========================================================================
-// Modal Novo Orçamento (Novo componente)
-// =========================================================================
-
 type ModalNovoOrcamentoProps = {
     onConfirm: () => void
     onCancel: () => void
@@ -858,11 +935,6 @@ function ModalNovoOrcamento({ onConfirm, onCancel, theme }: ModalNovoOrcamentoPr
     )
 }
 
-
-// =========================================================================
-// Modal Serviços Item (Ajustado)
-// =========================================================================
-
 type ModalServicosItemProps = {
     item: EspelhoLinha
     servicos: Servico[]
@@ -884,7 +956,7 @@ function ModalServicosItem({ item, servicos, onClose, onSave }: ModalServicosIte
             // Valores iniciais para o novo serviço selecionado
             switch (s.unidade) {
                 case "unitário": valorCalculado = s.preco; break
-                case "m²": valorCalculado = 0; break // Será calculado no save
+                case "m²": valorCalculado = 0; break 
                 case "metro_linear": medidaLinear = 0; valorCalculado = 0; break // Será calculado no save
             }
 
@@ -967,11 +1039,6 @@ function ModalServicosItem({ item, servicos, onClose, onSave }: ModalServicosIte
         </div>
     )
 }
-
-
-// =========================================================================
-// MODAL DE EDIÇÃO (Ajustado)
-// =========================================================================
 
 type ModalEdicaoItemProps = {
     item: EspelhoLinha
