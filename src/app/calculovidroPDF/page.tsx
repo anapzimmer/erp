@@ -808,6 +808,11 @@ export default function VidrosPage() {
     body: body,
     theme: "plain",
     startY: 55,
+    pageBreak: "auto", 
+    rowPageBreak: "avoid", 
+      styles: {
+        overflow: "linebreak"
+    },
     headStyles: { 
         fillColor: theme.primary, 
         textColor: 255, 
@@ -830,8 +835,9 @@ export default function VidrosPage() {
         5: { cellWidth: 25, halign: 'center' },  // Valor m²
         6: { cellWidth: 25, halign: 'center' },  // Total
     },
-    margin: { left: margin, right: margin }
+    margin: { left: margin, right: margin, bottom: 30 }
 });
+
 // 🔹 TOTALIZADORES FINAIS
 const finalY = (pdf as any).lastAutoTable?.finalY || 30;
 
