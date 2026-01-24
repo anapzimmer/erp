@@ -2,6 +2,7 @@
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
+    import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 
     export default function CalculoProjetosVidros() {
     const [vidros, setVidros] = useState<any[]>([])
@@ -102,56 +103,115 @@
         return areaTotal * precoM2;
     };
 
-    const imgPath = ((): string => {
-        if (modelo.includes("Escolher") || folhas.includes("Escolher") || trinco.includes("Escolher")) return "";
+const imgPath = ((): string => {
+    if (!modelo || modelo.includes("Escolher")) return "";
+
+    const modeloBase = modelo.toLowerCase();
+    const folhasBase = folhas.toLowerCase();
+    const puxadorBase = corKit.toLowerCase();
+
+    // === MODELO: FIXO (1 a 6 folhas) ===
+    if (modeloBase === "fixo") {
+        if (folhasBase.includes("escolher")) return "";
+        
+        // Mapeamento direto de 1 a 6
+        if (folhasBase.includes("1 folha")) return "/desenhos/fixo-1folha.png";
+        if (folhasBase.includes("2 folhas")) return "/desenhos/fixo-2folhas.png";
+        if (folhasBase.includes("3 folhas")) return "/desenhos/fixo-3folhas.png";
+        if (folhasBase.includes("4 folhas")) return "/desenhos/fixo-4folhas.png";
+        if (folhasBase.includes("5 folhas")) return "/desenhos/fixo-5folhas.png";
+        if (folhasBase.includes("6 folhas")) return "/desenhos/fixo-6folhas.png";
+    }
+
+    // === MODELO: BASCULANTE ===
+    if (modeloBase.includes("basculante")) {
+        if (folhasBase.includes("1 folha")) return "/desenhos/basculate-unica.png";
+        return "/desenhos/sem-imagem.png"; 
+    }
+
+    // === MODELO: BOX TRADICIONAL ===
+    if (modeloBase.includes("box tradicional")) {
+        if (folhasBase.includes("1 folha") || folhasBase.includes("5") || folhasBase.includes("6")) {
+            return "/desenhos/sem-imagem.png";
+        }
+        if (folhasBase.includes("2 folhas")) {
+            return puxadorBase.includes("puxador") 
+                ? "/desenhos/box-puxadorduplo.png" 
+                : "/desenhos/box-padrao.png";
+        }
+        if (folhasBase.includes("3 folhas")) return "/desenhos/box-padrao3f.png";
+        if (folhasBase.includes("4 folhas")) return "/desenhos/box-padrao4f.png";
+    }
+
+    // === MODELO: BOX CANTO ===
+    if (modeloBase.includes("box canto")) {
+        if (folhasBase.includes("1") || folhasBase.includes("2") || folhasBase.includes("5") || folhasBase.includes("6")) {
+            return "/desenhos/sem-imagem.png";
+        }
+        if (folhasBase.includes("3 folhas")) return "/desenhos/box-canto3f.png";
+        if (folhasBase.includes("4 folhas")) return "/desenhos/box-canto4f.png";
+    }
+
+    // === MODELO: JANELAS (Padrão, Bandeira, Canto) ===
+    if (modeloBase.includes("janela")) {
+        if (folhasBase.includes("1") || folhasBase.includes("3") || folhasBase.includes("5") || folhasBase.includes("6")) {
+            return "/desenhos/sem-imagem.png";
+        }
+
+        if (trinco.includes("Escolher")) return "";
         const t = trinco === "Com trinco" ? "c" : "s";
-        const f = folhas === "2 folhas" ? "2fls" : "4fls";
-        if (modelo === "Janela Padrão") return `/desenhos/janela-${t}-trinco-${f}.png`;
-        if (modelo === "Janela Bandeira") {
-        const bType = trinco === "Com trinco" ? "bct" : "bst";
-        return `/desenhos/janela-${bType}-trinco-${f}.png`;
-        }
-        if (modelo === "Janela Canto") {
-        const cType = anguloCanto === "90°" ? "canto90" : "canto";
-        const tSuffix = trinco === "Com trinco" ? "ct" : "st";
-        return `/desenhos/janela-${cType}-${tSuffix}.png`;
-        }
-        return "";
-    })();
+        const f = folhasBase.includes("2") ? "2fls" : "4fls";
+
+        if (modeloBase === "janela padrão") return `/desenhos/janela-${t}-trinco-${f}.png`;
+        if (modeloBase === "janela bandeira") return `/desenhos/janela-${trinco === "Com trinco" ? "bct" : "bst"}-trinco-${f}.png`;
+        if (modeloBase === "janela canto") return `/desenhos/janela-${anguloCanto === "90°" ? "canto90" : "canto"}-${trinco === "Com trinco" ? "ct" : "st"}.png`;
+    }
+
+    return "";
+})();
 
     const adicionarItem = () => {
-        if (!larguraVao || !alturaVao || !vidroSel || modelo.includes("Escolher")) return;
-        
-        let descMedida = `${larguraVao}x${alturaVao}`;
-        let descComplemento = "";
-        if (modelo === "Janela Canto") {
-            descMedida = `${larguraVao}+${larguraVaoB}x${alturaVao}`;
-            descComplemento = ` (${anguloCanto})`;
-        }
-        if (modelo === "Janela Bandeira") descMedida = `${larguraVao}x${alturaVao}+${alturaBandeira}`;
+    // 1. Validação básica
+    if (!larguraVao || !alturaVao || !vidroSel || modelo.includes("Escolher")) return;
 
-        const valorVidroTotal = calcularPrecoVidro() * parseFloat(quantidade);
-        const valorAdicionais = adicionaisPendentes.reduce((acc, adic) => {
-        const v = parseFloat(adic.valor.toString().replace(',', '.'));
-        return acc + (v * parseFloat(adic.qtd));
-        }, 0) * parseFloat(quantidade);
+    // 2. Executa o cálculo técnico usando o "motor" da Etapa 1
+    const resultado = calcularProjeto({
+        modelo,
+        folhas,
+        largura: larguraVao,
+        larguraB: larguraVaoB,
+        altura: alturaVao,
+        alturaB: alturaBandeira,
+        precoM2: vidroSel.preco
+    });
 
-        const novoItem = {
+    // 3. Calcula os adicionais (Ferragens/Perfis)
+    const totalAdicionais = adicionaisPendentes.reduce((acc, adic) => {
+        return acc + (parseNumber(adic.valor) * parseNumber(adic.qtd));
+    }, 0);
+
+    // 4. Soma tudo e multiplica pela quantidade de vãos
+    const qtdVao = parseNumber(quantidade);
+    const valorFinal = (resultado.valorVidro + totalAdicionais) * qtdVao;
+
+    // 5. Monta o objeto para a tabela
+    const novoItem = {
         id: Date.now(),
-        descricao: `${modelo} ${folhas} ${trinco}${descComplemento}`,
-        vidroInfo: buscaVidro,
+        descricao: `${modelo} ${folhas} - ${trinco}`,
+        vidroInfo: `${vidroSel.nome} ${vidroSel.espessura}mm`,
         adicionais: [...adicionaisPendentes], 
-        medidaVao: descMedida,
-        quantidade,
+        medidaVao: modelo === "Janela Canto" ? `${larguraVao}+${larguraVaoB}x${alturaVao}` : `${larguraVao}x${alturaVao}`,
+        quantidade: quantidade,
         imagem: imgPath,
-        total: valorVidroTotal + valorAdicionais 
-        };
-
-        setItens([...itens, novoItem]);
-        setLarguraVao(""); setLarguraVaoB(""); setAlturaVao(""); setAlturaBandeira("");
-        setAdicionaisPendentes([]); 
-        larguraRef.current?.focus();
+        total: valorFinal 
     };
+
+    // 6. Atualiza a lista e limpa o formulário
+    setItens([...itens, novoItem]);
+    setLarguraVao(""); setLarguraVaoB(""); setAlturaVao(""); setAlturaBandeira("");
+    setAdicionaisPendentes([]); 
+    larguraRef.current?.focus();
+};
 
     const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
 
@@ -263,6 +323,7 @@
             <option>Escolher Tipo</option>
             <option>Basculante</option>
             <option>Box Tradicional</option>
+            <option>Box Canto</option>
             <option>Fixo</option>
             <option value="Janela Padrão">Janela</option>
             <option value="Janela Bandeira">Janela Bandeira</option>
@@ -525,8 +586,10 @@
                     <td className="p-4 flex items-start gap-4">
                     {item.imagem && <img src={item.imagem} className="w-20 h-20 object-contain" alt="item" />}
                     <div>
-                        <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-                        <span className="text-[10px] text-gray-400 font-normal block">{item.vidroInfo}</span>
+                       <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
+                      <span className="text-[10px] text-gray-400 font-normal block">
+                        {item.vidroInfo} | Área: {item.areaM2.toFixed(2)}m²
+                      </span>
                         {item.adicionais && item.adicionais.map((a: any, i: number) => (
                         <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
                         ))}
