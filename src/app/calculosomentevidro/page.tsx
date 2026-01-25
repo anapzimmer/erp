@@ -50,70 +50,147 @@
       const larguraRef = useRef<HTMLInputElement>(null)
       const alturaRef = useRef<HTMLInputElement>(null);
       const qtdRef = useRef<HTMLInputElement>(null);
+      const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
+      const [clienteSel, setClienteSel] = useState<any>(null);
       const formatarNomeVidro = (v: any) => {
-        const textoBase = `${v.nome} ${v.espessura}`.replace(/mm/gi, '').trim();
-        return `${textoBase}mm`;
-    };
+        const nome = v.nome?.trim() || "";
+        const espessura = String(v.espessura || "")
+            .replace(/mm/gi, "")   // remove qualquer mm existente
+            .trim();
+
+        return `${nome} ${espessura}mm`;
+        };
+
+    const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
+    const { data, error } = await supabase
+      .from('vidro_precos_clientes')
+      .select('preco')
+      .eq('vidro_id', vidroId)
+      .eq('cliente_id', clienteId)
+      .single();
+
+    if (data && !error) return data.preco;
+    return null;
+  };
 
     useEffect(() => {
-        async function load() {
-            const { data: v } = await supabase.from('vidros').select('*')
-            if (v) setVidros(v)
-            const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
-            if (c) setClientes(c)
-            const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-            const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
-            setAdicionaisDB([...(p || []), ...(f || [])])
-        }
-        load()
-    }, [])
+    async function load() {
+      const { data: v } = await supabase.from('vidros').select('*')
+      if (v) setVidros(v)
+      const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
+      if (c) setClientes(c)
+      const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
+      const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
+      setAdicionaisDB([...(p || []), ...(f || [])])
+    }
+    load()
+  }, []);
 
-    // Filtros para as buscas
-    const clientesFiltrados = clientes.filter(c => c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()));
-    const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()) || v.nome?.toLowerCase().includes(buscaVidroBandeira.toLowerCase()));
-    const adicionaisFiltrados = adicionaisDB.filter(a => 
-        a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
-        a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
-    ).slice(0, 8);
+  // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
+  useEffect(() => {
+    async function atualizarPreco() {
+      if (clienteSel?.id && vidroSel?.id) {
+        const precoEspecial = await buscarPrecoEspecial(vidroSel.id, clienteSel.id);
+        if (precoEspecial) {
+          // Atualiza o vidro selecionado com o preço do cliente
+          setVidroSel((prev: any) => ({
+            ...prev,
+            preco: precoEspecial
+          }));
+          console.log("🚀 Preço Especial Aplicado:", precoEspecial);
+        }
+      }
+    }
+    atualizarPreco();
+  }, [clienteSel?.id, vidroSel?.id]); // Roda sempre que mudar o cliente ou o vidro
+
+  // --- FILTROS (MANTENHA OS SEUS) ---
+  const clientesFiltrados = clientes.filter(c => c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()));
+  const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()) || v.nome?.toLowerCase().includes(buscaVidroBandeira.toLowerCase()));
+  const adicionaisFiltrados = adicionaisDB.filter(a => 
+      a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
+      a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
+  ).slice(0, 8);
 
     const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
 
-    const calcularPrecoVidro = () => {
-        if (!vidroSel || !larguraVao || !alturaVao) return 0;
-        
-        const L = parseFloat(larguraVao);
-        const LB = parseFloat(larguraVaoB || "0");
-        const LTOT = modelo === "Janela Canto" ? L + LB : L;
-        const A = parseFloat(alturaVao);
-        const AB = parseFloat(alturaBandeira || "0");
-        const precoM2 = typeof vidroSel.preco === 'string' ? parseFloat(vidroSel.preco.replace(',', '.')) : vidroSel.preco;
-        
-        let areaTotal = 0;
+ const calcularPrecoVidro = () => {
+    if (!vidroSel || !larguraVao || !alturaVao) return 0;
+    
+    const L = parseFloat(larguraVao);
+    const LB = parseFloat(larguraVaoB || "0"); 
+    const A = parseFloat(alturaVao);
+    // Convertemos para minúsculo para garantir que o "if" sempre ache a palavra
+    const mod = modelo.toLowerCase(); 
+    const fls = folhas.toLowerCase();
+    
+    const precoM2 = typeof vidroSel.preco === 'string' 
+        ? parseFloat(vidroSel.preco.replace(',', '.')) 
+        : vidroSel.preco;
+    
+    let areaTotal = 0;
 
-        if (folhas === "2 folhas") {
-        const fixoL = LTOT / 2;
-        const fixoA = A - 65;
-        const movelL = fixoL + 50;
-        const movelA = A - 25;
-        areaTotal += (arredondar5(fixoL) * arredondar5(fixoA)) / 1000000;
-        areaTotal += (arredondar5(movelL) * arredondar5(movelA)) / 1000000;
+    // --- 1. BASCULANTE, MAX E PORTA GIRO (FOLGA -12mm) ---
+    // Agora usando .includes() de forma mais abrangente
+    if (mod.includes("basculante") || mod.includes("max") || mod.includes("giro") || mod === "porta") {
+        // Se for Porta de Giro ou apenas Porta, entra aqui
+        const divisor = (fls.includes("2")) ? 2 : (fls.includes("4")) ? 4 : 1;
+        const pecaL = (L / divisor) - 12;
+        const pecaA = A - 12;
+        
+        // Cálculo individual por peça com arredondamento de 50mm
+        const areaPeca = (arredondar5(pecaL) * arredondar5(pecaA)) / 1000000;
+        areaTotal = areaPeca * divisor;
+    }
+
+    // --- 2. JANELAS DE CORRER (2, 4, 6 E CANTO) ---
+    else if (mod.includes("janela")) {
+        const L_TOTAL = mod.includes("canto") ? (L + LB) : L;
+        const divisor = (fls.includes("4")) ? 4 : (fls.includes("6")) ? 6 : 2;
+        
+        const baseL = L_TOTAL / divisor;
+        const fixoA = A - 60;
+        const movelA = A - 20;
+        const movelL = baseL + 50;
+        
+        const qtdMovel = (fls.includes("6")) ? 2 : (divisor / 2);
+        const qtdFixo = divisor - qtdMovel;
+
+        areaTotal += ((arredondar5(baseL) * arredondar5(fixoA)) / 1000000) * qtdFixo;
+        areaTotal += ((arredondar5(movelL) * arredondar5(movelA)) / 1000000) * qtdMovel;
+    }
+
+    // --- 3. BOX TRADICIONAL E CANTO ---
+    else if (mod.includes("box")) {
+        if (mod.includes("tradicional")) {
+            const divisor = (fls.includes("3")) ? 3 : (fls.includes("4")) ? 4 : 2;
+            const baseL = L / divisor;
+            const qtdMovel = (fls.includes("4")) ? 2 : 1;
+            const qtdFixo = divisor - qtdMovel;
+
+            // Fixo: Altura - 35 | Móvel: Altura Vão Cheio
+            areaTotal += ((arredondar5(baseL) * arredondar5(A - 35)) / 1000000) * qtdFixo;
+            areaTotal += ((arredondar5(baseL + 50) * arredondar5(A)) / 1000000) * qtdMovel;
         } 
-        else if (folhas === "4 folhas" || modelo === "Janela Canto") {
-        const altJanela = modelo === "Janela Bandeira" ? (A - AB) : A;
-        const fixoL = LTOT / 4;
-        const fixoA = altJanela - 65;
-        const movelL = fixoL + 50;
-        const movelA = altJanela - 25;
-        areaTotal += ((arredondar5(fixoL) * arredondar5(fixoA)) / 1000000) * 2;
-        areaTotal += ((arredondar5(movelL) * arredondar5(movelA)) / 1000000) * 2;
+        else if (mod.includes("canto")) {
+            // Lado A (Se 3 fls, o lado A é 1 fixa inteira. Se 4 fls, é 1 fixa + 1 móvel)
+            const is3fls = fls.includes("3");
+            if(is3fls) {
+                areaTotal += (arredondar5(L) * arredondar5(A - 35)) / 1000000;
+            } else {
+                const baseLA = L / 2;
+                areaTotal += (arredondar5(baseLA) * arredondar5(A - 35)) / 1000000;
+                areaTotal += (arredondar5(baseLA + 50) * arredondar5(A)) / 1000000;
+            }
+            // Lado B (Sempre Fixo + Móvel)
+            const baseLB = LB / 2;
+            areaTotal += (arredondar5(baseLB) * arredondar5(A - 35)) / 1000000;
+            areaTotal += (arredondar5(baseLB + 50) * arredondar5(A)) / 1000000;
+        }
+    }
 
-        if (modelo === "Janela Bandeira" && AB > 0) {
-            const bandL = L / 2;
-            areaTotal += ((arredondar5(bandL) * arredondar5(AB)) / 1000000) * 2;
-        }
-        }
-        return areaTotal * precoM2;
-    };
+    return areaTotal * precoM2;
+};
 
     const imgPath = ((): string => {
     if (!modelo || modelo.includes("Escolher")) return "";
@@ -338,10 +415,11 @@ if (modeloBase.includes("porta com bandeira")) {
     const valorFinal = (resultado.valorVidro + totalAdicionais) * qtdVao;
 
     // Ajuste no nome do vidro (limpando mm duplicado)
-    const nomeVidroLimpo = `${vidroSel.nome} ${vidroSel.espessura}`.replace(/mm/gi, '').trim() + "mm";
+    const nomeVidroLimpo = formatarNomeVidro(vidroSel);
+
 
     // 5. Monta o objeto para a tabela
-  const novoItem = {
+     const novoItem = {
         id: Date.now(),
         descricao: `${modelo} ${folhas}`, 
         vidroInfo: nomeVidroLimpo,        
@@ -446,14 +524,14 @@ if (modeloBase.includes("porta com bandeira")) {
                 if (e.key === "ArrowUp") setClienteIndex(p => Math.max(p - 1, 0));
                 if (e.key === "Enter") {
                     const sel = clienteIndex >= 0 ? clientesFiltrados[clienteIndex] : clientesFiltrados[0];
-                    if (sel) { setBuscaCliente(sel.nome); setMostrarClientes(false); modeloRef.current?.focus(); }
+                    if (sel) { setClienteSel(sel); setBuscaCliente(sel.nome);  setMostrarClientes(false); modeloRef.current?.focus(); }
                 }
                 }}
             />
             {mostrarClientes && buscaCliente && (
                 <div className="absolute top-full w-full bg-white border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
                 {clientesFiltrados.map((c, i) => (
-                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} onClick={() => { setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
+                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} onClick={() => { setClienteSel(c); setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
                 ))}
                 </div>
             )}
@@ -654,7 +732,7 @@ if (modeloBase.includes("porta com bandeira")) {
                             setMostrarVidros(false)
                         }}
                     >
-                        {v.nome} {v.espessura}mm
+                        {formatarNomeVidro(v)}
                     </div>
                 ))}
             </div>
@@ -779,7 +857,7 @@ if (modeloBase.includes("porta com bandeira")) {
                     setVidroSelBandeira(v);
                     // LÓGICA DE LIMPEZA: Remove o 'mm' se ele já existir no nome ou espessura
                     const nomeLimpo = `${v.nome} ${v.espessura}`.replace(/mm/gi, '');
-                    setBuscaVidroBandeira(`${v.nome} ${v.espessura}mm`.replace('mmmm', 'mm'));
+                    setBuscaVidroBandeira(formatarNomeVidro(v));
                     setMostrarVidrosBandeira(false);
                 }
             }
