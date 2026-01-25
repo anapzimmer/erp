@@ -302,21 +302,32 @@ if (modeloBase.includes("porta com bandeira")) {
 
     return "";
 })();
-    const adicionarItem = () => {
-    // 1. Validação básica
-    if (!larguraVao || !alturaVao || !vidroSel) return;
 
-    // 2. Executa o cálculo técnico usando o "motor" da Etapa 1
+ const adicionarItem = () => {
+    // Se o usuário não escolheu vidro, força o primeiro da lista ou avisa
+    if (!vidroSel) {
+        alert("Por favor, selecione um vidro antes de adicionar.");
+        return;
+    }
+
+    if (!larguraVao || !alturaVao) {
+        alert("Preencha largura e altura.");
+        return;
+    }
+
+    // Se o modelo estiver vazio, define um padrão para não quebrar o cálculo
+    const modeloAtual = modelo || "Janela";
+    const folhasAtuais = folhas || "2 folhas";
+
     const resultado = calcularProjeto({
-        modelo,
-        folhas,
+        modelo: modeloAtual,
+        folhas: folhasAtuais,
         largura: larguraVao,
         larguraB: larguraVaoB,
         altura: alturaVao,
         alturaB: alturaBandeira,
         precoM2: vidroSel.preco
     });
-
     // 3. Calcula os adicionais (Ferragens/Perfis)
     const totalAdicionais = adicionaisPendentes.reduce((acc, adic) => {
         return acc + (parseNumber(adic.valor) * parseNumber(adic.qtd));
@@ -326,31 +337,40 @@ if (modeloBase.includes("porta com bandeira")) {
     const qtdVao = parseNumber(quantidade);
     const valorFinal = (resultado.valorVidro + totalAdicionais) * qtdVao;
 
-    const infoVidroFinal = vidroSelBandeira 
-        ? `Corpo: ${vidroSel.nome} ${vidroSel.espessura}mm | Band: ${vidroSelBandeira.nome} ${vidroSelBandeira.espessura}mm`
-        : `${vidroSel.nome} ${vidroSel.espessura}mm`;
+    // Ajuste no nome do vidro (limpando mm duplicado)
+    const nomeVidroLimpo = `${vidroSel.nome} ${vidroSel.espessura}`.replace(/mm/gi, '').trim() + "mm";
 
     // 5. Monta o objeto para a tabela
-    const novoItem = {
+  const novoItem = {
         id: Date.now(),
-        descricao: `${modelo} ${folhas} - ${trinco}`,
-        vidroInfo: `${vidroSel.nome} ${vidroSel.espessura}mm`,
+        descricao: `${modelo} ${folhas}`, 
+        vidroInfo: nomeVidroLimpo,        
+        areaM2: resultado.area,           
         adicionais: [...adicionaisPendentes], 
-        medidaVao: modelo === "Janela Canto" ? `${larguraVao}+${larguraVaoB}x${alturaVao}` : `${larguraVao}x${alturaVao}`,
+        medidaVao: (modelo === "Janela Canto") 
+            ? `${larguraVao}+${larguraVaoB}x${alturaVao}` 
+            : `${larguraVao}x${alturaVao}`,
         quantidade: quantidade,
         imagem: imgPath,
         total: valorFinal 
     };
 
-    // 6. Atualiza a lista e limpa o formulário
     setItens([...itens, novoItem]);
+    
+    // Limpeza inteligente: mantém o modelo e vidro, limpa as medidas
     setLarguraVao(""); 
     setLarguraVaoB(""); 
     setAlturaVao(""); 
-    // Mantenha a Quantidade como "1" para o próximo item
+    // Se quiser que a altura da bandeira resete também:
+    // setAlturaBandeira(""); 
+    
     setQuantidade("1");
     setAdicionaisPendentes([]); 
-    larguraRef.current?.focus();
+
+    // O pulo do gato: volta o foco para a largura para a próxima peça
+    setTimeout(() => {
+        larguraRef.current?.focus();
+    }, 100);
 };
 
     const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
@@ -707,13 +727,15 @@ if (modeloBase.includes("porta com bandeira")) {
           <div className="flex flex-col gap-2">
             <label className="text-[10px] text-gray-300 uppercase">Qtd</label>
             <input
+              ref={qtdRef}
               type="number"
               className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
               value={quantidade}
               onChange={e => setQuantidade(e.target.value)}
-              onKeyDown={e => {
+              onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                adicionarItem(); // Chama a função que já limpa e volta o foco para Largura
+                e.preventDefault(); // Evita comportamentos estranhos do navegador
+                adicionarItem();    // CHAMA A SUA FUNÇÃO DE CÁLCULO
               }
             }}
             />
@@ -781,7 +803,6 @@ if (modeloBase.includes("porta com bandeira")) {
                         setMostrarVidrosBandeira(false);
                       }}
                     >
-                      {/* AQUI: mudamos de {v.nome} {v.espessura}mm para o nomeFormatado */}
                       {nomeFormatado}
                     </div>
                   );
