@@ -5,60 +5,72 @@
     import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 
     export default function CalculoProjetosVidros() {
-    const [vidros, setVidros] = useState<any[]>([])
-    const [clientes, setClientes] = useState<any[]>([])
-    const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
-    const [itens, setItens] = useState<any[]>([])
-    
-    const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
-    
-    const [buscaCliente, setBuscaCliente] = useState("")
-    const [mostrarClientes, setMostrarClientes] = useState(false)
-    const [clienteIndex, setClienteIndex] = useState(-1)
+      const [vidros, setVidros] = useState<any[]>([])
+      const [clientes, setClientes] = useState<any[]>([])
+      const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
+      const [itens, setItens] = useState<any[]>([])
+      
+      const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
+      
+      const [buscaCliente, setBuscaCliente] = useState("")
+      const [mostrarClientes, setMostrarClientes] = useState(false)
+      const [clienteIndex, setClienteIndex] = useState(-1)
 
-    const [buscaVidro, setBuscaVidro] = useState("")
-    const [mostrarVidros, setMostrarVidros] = useState(false)
-    const [vidroIndex, setVidroIndex] = useState(-1)
-    const [vidroSel, setVidroSel] = useState<any>(null)
+      const [buscaVidro, setBuscaVidro] = useState("")
+      const [mostrarVidros, setMostrarVidros] = useState(false)
+      const [vidroIndex, setVidroIndex] = useState(-1)
+      const [vidroSel, setVidroSel] = useState<any>(null)
 
-    const [buscaAdicional, setBuscaAdicional] = useState("")
-    const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
-    const [adicionalIndex, setAdicionalIndex] = useState(-1)
-    const [qtdAdicional, setQtdAdicional] = useState("1")
-    const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+      const [buscaAdicional, setBuscaAdicional] = useState("")
+      const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
+      const [adicionalIndex, setAdicionalIndex] = useState(-1)
+      const [qtdAdicional, setQtdAdicional] = useState("1")
+      const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
 
-    const [modelo, setModelo] = useState("Escolher Tipo")
-    const [folhas, setFolhas] = useState("Escolher Folhas")
-    const [trinco, setTrinco] = useState("Escolher trinco")
-    const [corKit, setCorKit] = useState("Escolher Puxador")
-    const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
-    const [anguloCanto, setAnguloCanto] = useState("Padrão")
-    
-    const [larguraVao, setLarguraVao] = useState("")
-    const [larguraVaoB, setLarguraVaoB] = useState("") 
-    const [alturaVao, setAlturaVao] = useState("")
-    const [alturaBandeira, setAlturaBandeira] = useState("")
-    const [quantidade, setQuantidade] = useState("1")
-
-    const modeloRef = useRef<HTMLSelectElement>(null)
-    const larguraRef = useRef<HTMLInputElement>(null)
+      const [modelo, setModelo] = useState("Escolher Tipo")
+      const [folhas, setFolhas] = useState("Escolher Folhas")
+      const [trinco, setTrinco] = useState("Escolher trinco")
+      const [corKit, setCorKit] = useState("Escolher Puxador")
+      const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
+      const [anguloCanto, setAnguloCanto] = useState("Padrão")
+      
+      const [larguraVao, setLarguraVao] = useState("")
+      const [larguraVaoB, setLarguraVaoB] = useState("") 
+      const [alturaVao, setAlturaVao] = useState("")
+      const [alturaBandeira, setAlturaBandeira] = useState("")
+      const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
+      const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
+      const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
+      const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
+      const [quantidade, setQuantidade] = useState("1")
+      const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
+      const [roldana, setRoldana] = useState("Carrinho Simples");
+      const clienteInputRef = useRef<HTMLInputElement>(null);
+      const modeloRef = useRef<HTMLSelectElement>(null)
+      const larguraRef = useRef<HTMLInputElement>(null)
+      const alturaRef = useRef<HTMLInputElement>(null);
+      const qtdRef = useRef<HTMLInputElement>(null);
+      const formatarNomeVidro = (v: any) => {
+        const textoBase = `${v.nome} ${v.espessura}`.replace(/mm/gi, '').trim();
+        return `${textoBase}mm`;
+    };
 
     useEffect(() => {
         async function load() {
-        const { data: v } = await supabase.from('vidros').select('*')
-        if (v) setVidros(v)
-        const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
-        if (c) setClientes(c)
-        const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-        const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
-        setAdicionaisDB([...(p || []), ...(f || [])])
+            const { data: v } = await supabase.from('vidros').select('*')
+            if (v) setVidros(v)
+            const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
+            if (c) setClientes(c)
+            const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
+            const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
+            setAdicionaisDB([...(p || []), ...(f || [])])
         }
         load()
     }, [])
 
     // Filtros para as buscas
     const clientesFiltrados = clientes.filter(c => c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()));
-    const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()));
+    const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()) || v.nome?.toLowerCase().includes(buscaVidroBandeira.toLowerCase()));
     const adicionaisFiltrados = adicionaisDB.filter(a => 
         a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
         a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
@@ -103,76 +115,196 @@
         return areaTotal * precoM2;
     };
 
-const imgPath = ((): string => {
+    const imgPath = ((): string => {
     if (!modelo || modelo.includes("Escolher")) return "";
 
-    const modeloBase = modelo.toLowerCase();
+    const modeloBase = modelo.toLowerCase().trim();
     const folhasBase = folhas.toLowerCase();
     const puxadorBase = corKit.toLowerCase();
 
-    // === MODELO: FIXO (1 a 6 folhas) ===
+    // 1️⃣ MÃO AMIGA
+    if (modeloBase.includes("mão amiga")) {
+        if (configMaoAmiga.includes("Escolher")) return "";
+        let fSufixo = "";
+        if (configMaoAmiga === "Todas Correm") {
+            if (folhasBase.includes("escolher")) return "";
+            fSufixo = `${folhasBase.replace(/\D/g, "")}fs`;
+        } else {
+            fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fs`;
+        }
+        let tipoSufixo = "simples";
+        if (modeloBase.includes("porta") && puxadorBase === "com puxador") {
+            tipoSufixo = "completo";
+        }
+        return `/desenhos/pma-${fSufixo}-${tipoSufixo}.png`;
+    }
+
+    // 2️⃣ DESLIZANTE (NOVO)
+    if (modeloBase.includes("deslizante")) {
+        if (configMaoAmiga.includes("Escolher")) return "";
+
+        let fSufixo = "";
+        if (configMaoAmiga === "Todas Correm") {
+            if (folhasBase.includes("escolher")) return "";
+            fSufixo = `${folhasBase.replace(/\D/g, "")}fls`;
+        } else {
+            // Extrai números: "1 Fixa + 2 Móveis" vira "12"
+            fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fls`;
+        }
+
+        const rSufixo = roldana === "Carrinho Inteiro" ? "ci" : "cs";
+        const tipoSufixo = puxadorBase === "com puxador" ? "completo" : "simples";
+
+        return `/desenhos/deslizante-${fSufixo}-${rSufixo}-${tipoSufixo}.png`;
+    }
+
+    // 3️⃣ FIXO, BASCULANTE E BOX
     if (modeloBase === "fixo") {
         if (folhasBase.includes("escolher")) return "";
-        
-        // Mapeamento direto de 1 a 6
-        if (folhasBase.includes("1 folha")) return "/desenhos/fixo-1folha.png";
-        if (folhasBase.includes("2 folhas")) return "/desenhos/fixo-2folhas.png";
-        if (folhasBase.includes("3 folhas")) return "/desenhos/fixo-3folhas.png";
-        if (folhasBase.includes("4 folhas")) return "/desenhos/fixo-4folhas.png";
-        if (folhasBase.includes("5 folhas")) return "/desenhos/fixo-5folhas.png";
-        if (folhasBase.includes("6 folhas")) return "/desenhos/fixo-6folhas.png";
+        return `/desenhos/fixo-${folhasBase.replace(" ", "")}.png`;
     }
-
-    // === MODELO: BASCULANTE ===
     if (modeloBase.includes("basculante")) {
         if (folhasBase.includes("1 folha")) return "/desenhos/basculate-unica.png";
-        return "/desenhos/sem-imagem.png"; 
+        return "/desenhos/sem-imagem.png";
     }
-
-    // === MODELO: BOX TRADICIONAL ===
     if (modeloBase.includes("box tradicional")) {
-        if (folhasBase.includes("1 folha") || folhasBase.includes("5") || folhasBase.includes("6")) {
-            return "/desenhos/sem-imagem.png";
-        }
-        if (folhasBase.includes("2 folhas")) {
-            return puxadorBase.includes("puxador") 
-                ? "/desenhos/box-puxadorduplo.png" 
-                : "/desenhos/box-padrao.png";
-        }
+        if (folhasBase.includes("1 folha") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
+        if (folhasBase.includes("2 folhas")) return puxadorBase === "com puxador" ? "/desenhos/box-puxadorduplo.png" : "/desenhos/box-padrao.png";
         if (folhasBase.includes("3 folhas")) return "/desenhos/box-padrao3f.png";
         if (folhasBase.includes("4 folhas")) return "/desenhos/box-padrao4f.png";
     }
-
-    // === MODELO: BOX CANTO ===
     if (modeloBase.includes("box canto")) {
-        if (folhasBase.includes("1") || folhasBase.includes("2") || folhasBase.includes("5") || folhasBase.includes("6")) {
-            return "/desenhos/sem-imagem.png";
-        }
+        if (folhasBase.includes("1") || folhasBase.includes("2") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
         if (folhasBase.includes("3 folhas")) return "/desenhos/box-canto3f.png";
         if (folhasBase.includes("4 folhas")) return "/desenhos/box-canto4f.png";
     }
 
-    // === MODELO: JANELAS (Padrão, Bandeira, Canto) ===
-    if (modeloBase.includes("janela")) {
-        if (folhasBase.includes("1") || folhasBase.includes("3") || folhasBase.includes("5") || folhasBase.includes("6")) {
-            return "/desenhos/sem-imagem.png";
-        }
+    // 4️⃣ MAX
+    if (modeloBase === "max") {
+        return folhasBase.includes("1 folha") ? "/desenhos/max-unica.png" : "/desenhos/sem-imagem.png";
+    }
 
+    // 5️⃣ JANELAS GENÉRICAS
+    if (modeloBase.includes("janela")) {
+        if (folhasBase.includes("1") || folhasBase.includes("3") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
         if (trinco.includes("Escolher")) return "";
         const t = trinco === "Com trinco" ? "c" : "s";
         const f = folhasBase.includes("2") ? "2fls" : "4fls";
-
         if (modeloBase === "janela padrão") return `/desenhos/janela-${t}-trinco-${f}.png`;
         if (modeloBase === "janela bandeira") return `/desenhos/janela-${trinco === "Com trinco" ? "bct" : "bst"}-trinco-${f}.png`;
         if (modeloBase === "janela canto") return `/desenhos/janela-${anguloCanto === "90°" ? "canto90" : "canto"}-${trinco === "Com trinco" ? "ct" : "st"}.png`;
     }
 
+    // 6️⃣ PORTA
+    if (modeloBase === "porta") {
+        if (folhasBase.includes("escolher")) return "";
+
+        const trincosEspeciais = [
+            "trinco simples + chave", 
+            "chave + chave", 
+            "trinco duplo + chave", 
+            "trinco simples + trinco duplo"
+        ];
+        const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
+
+        if (folhasBase.includes("2 folhas")) {
+            if (puxadorBase === "com puxador") {
+                if (trinco === "Com trinco") return "/desenhos/porta2fls-completo.png";
+                return "/desenhos/porta2fls-completo1.png";
+            } else {
+                if (trinco === "Com trinco") return "/desenhos/porta2fls-simples.png";
+                return "/desenhos/janela-s-trinco-2fls.png";
+            }
+        }
+
+        if (folhasBase.includes("4 folhas")) {
+            if (puxadorBase === "com puxador") {
+                if (trinco === "Com trinco") return "/desenhos/porta4fls-completo2.png";
+                if (trinco === "Sem trinco" || trinco.includes("Escolher")) return "/desenhos/porta4fls-completo3.png";
+                return "/desenhos/porta4fls-completo1.png";
+            } else {
+                if (trinco === "Com trinco") return "/desenhos/porta4fls-completo4.png";
+                if (eTrincoEspecial) return "/desenhos/porta4fls-completo5.png";
+                return "/desenhos/janela-s-trinco-4fls.png";
+            }
+        }
+
+        if (folhasBase.includes("6 folhas")) {
+            return (puxadorBase === "com puxador") 
+                ? "/desenhos/porta6fls-4f2m-completo.png" 
+                : "/desenhos/porta6fls-4f2m-simples.png";
+        }
+    }
+    // 7️⃣ PORTA FORA DO VÃO
+if (modeloBase.includes("porta fora vão")) {
+    const f = folhasBase.replace(/\D/g, "");
+    if (f === "1" || f === "2") {
+        const sufixo = puxadorBase === "com puxador" ? "completo" : "";
+        return `/desenhos/portaforavao-${f}fls${sufixo}.png`;
+    }
+    return "/desenhos/sem-imagem.png";
+}
+
+// 8️⃣ PORTA DE GIRO
+if (modeloBase.includes("porta giro")) {
+    const f = folhasBase.replace(/\D/g, "");
+    if (["1", "2", "4"].includes(f)) {
+        const sufixo = puxadorBase === "com puxador" ? "completo" : "";
+        return `/desenhos/portagiro-${f}fls${sufixo}.png`;
+    }
+    return "/desenhos/sem-imagem.png";
+}
+
+// 9️⃣ PORTA COM BANDEIRA (Regras de Sufixos Corrigidas)
+if (modeloBase.includes("porta com bandeira")) {
+    const f = folhasBase.replace(/\D/g, "");
+    
+    const trincosEspeciais = [
+        "trinco simples + chave", 
+        "chave + chave", 
+        "trinco duplo + chave", 
+        "trinco simples + trinco duplo"
+    ];
+    const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
+
+    // --- Lógica para 4 Folhas (Seguindo sua lista exata) ---
+    if (f === "4") {
+        if (puxadorBase === "com puxador") {
+            // Puxadores + Trincos Compostos
+            if (eTrincoEspecial) return "/desenhos/portaband4fls-completa2.png";
+            
+            // Puxadores + 1 Trinco Simples
+            if (trinco === "Com trinco") return "/desenhos/portaband4fls-completa.png";
+            
+            // Só Puxador (Sem trinco)
+            return "/desenhos/portaband4fls-completa1.png";
+        } else {
+            // SEM PUXADOR + Trincos Compostos
+            if (eTrincoEspecial) return "/desenhos/portaband4fls-completa3.png";
+            
+            // SEM PUXADOR + Somente 1 Trinco
+            if (trinco === "Com trinco") return "/desenhos/portaband4fls-simples.png";
+            
+            // SEM PUXADOR e SEM TRINCO
+            return "/desenhos/portaband4fls.png";
+        }
+    }
+
+    // --- Lógica para 2 Folhas (Mantendo o padrão funcional) ---
+    if (f === "2") {
+        if (puxadorBase === "com puxador" && trinco === "Com trinco") return "/desenhos/portaband2fls-completa.png";
+        if (trinco === "Com trinco") return "/desenhos/portaband2fls-simples.png";
+        return "/desenhos/portaband2fls.png";
+    }
+
+    return "/desenhos/sem-imagem.png";
+}
+
     return "";
 })();
-
     const adicionarItem = () => {
     // 1. Validação básica
-    if (!larguraVao || !alturaVao || !vidroSel || modelo.includes("Escolher")) return;
+    if (!larguraVao || !alturaVao || !vidroSel) return;
 
     // 2. Executa o cálculo técnico usando o "motor" da Etapa 1
     const resultado = calcularProjeto({
@@ -194,6 +326,10 @@ const imgPath = ((): string => {
     const qtdVao = parseNumber(quantidade);
     const valorFinal = (resultado.valorVidro + totalAdicionais) * qtdVao;
 
+    const infoVidroFinal = vidroSelBandeira 
+        ? `Corpo: ${vidroSel.nome} ${vidroSel.espessura}mm | Band: ${vidroSelBandeira.nome} ${vidroSelBandeira.espessura}mm`
+        : `${vidroSel.nome} ${vidroSel.espessura}mm`;
+
     // 5. Monta o objeto para a tabela
     const novoItem = {
         id: Date.now(),
@@ -208,7 +344,11 @@ const imgPath = ((): string => {
 
     // 6. Atualiza a lista e limpa o formulário
     setItens([...itens, novoItem]);
-    setLarguraVao(""); setLarguraVaoB(""); setAlturaVao(""); setAlturaBandeira("");
+    setLarguraVao(""); 
+    setLarguraVaoB(""); 
+    setAlturaVao(""); 
+    // Mantenha a Quantidade como "1" para o próximo item
+    setQuantidade("1");
     setAdicionaisPendentes([]); 
     larguraRef.current?.focus();
 };
@@ -240,7 +380,7 @@ const imgPath = ((): string => {
   setLarguraVaoB("")
   setAlturaVao("")
   setAlturaBandeira("")
-  setQuantidade("1")
+  setQuantidade("")
 
   // Adicionais
   setBuscaAdicional("")
@@ -249,9 +389,13 @@ const imgPath = ((): string => {
   setQtdAdicional("1")
   setValorUnitAdicional("0,00")
   setAdicionaisPendentes([])
-
+  setBuscaVidroBandeira("");
+  setVidroSelBandeira(null);
+  setAlturaBandeira("");
   // Foco inicial
-  larguraRef.current?.focus()
+  setTimeout(() => {
+        clienteInputRef.current?.focus();
+    }, 100); // O timeout garante que o foco ocorra após a limpeza dos estados
 }
 
     return (
@@ -275,7 +419,7 @@ const imgPath = ((): string => {
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-4 relative">
             <span className="text-[11px] font-bold text-gray-400 uppercase">Cliente:</span>
             <div className="relative w-96">
-            <input tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-gray-200 bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..." 
+            <input ref={clienteInputRef} tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-gray-200 bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..." 
                 onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
                 onKeyDown={(e) => {
                 if (e.key === "ArrowDown") setClienteIndex(p => Math.min(p + 1, clientesFiltrados.length - 1));
@@ -306,79 +450,128 @@ const imgPath = ((): string => {
 
       <div className="grid grid-cols-4 gap-4">
 
-        {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] text-gray-300 uppercase">PROJETOS</label>
+      {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
+<div className="flex flex-col gap-2">
+  <label className="text-[10px] text-gray-300 uppercase">PROJETOS</label>
 
-          <select
-            ref={modeloRef}
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-            value={modelo}
-            onChange={e => {
-              setModelo(e.target.value)
-              setLarguraVaoB("")
-              setAlturaBandeira("")
-            }}
-          >
-            <option>Escolher Tipo</option>
-            <option>Basculante</option>
-            <option>Box Tradicional</option>
-            <option>Box Canto</option>
-            <option>Fixo</option>
-            <option value="Janela Padrão">Janela</option>
-            <option value="Janela Bandeira">Janela Bandeira</option>
-            <option value="Janela Canto">Janela Canto</option>
-            <option>Janela Mão Amiga</option>
-            <option>Max</option>
-            <option>Porta </option>
-            <option>Porta com Bandeira</option>
-            <option>Porta Deslizante</option>
-            <option>Porta Fora Vão</option>
-            <option>Porta Giro</option>
-            <option>Porta Mão Amiga</option>
-           
-          </select>
+  <select
+    ref={modeloRef}
+    className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+    value={modelo}
+    onChange={e => {
+      setModelo(e.target.value)
+      setLarguraVaoB("")
+      setAlturaBandeira("")
+    }}
+  >
+    <option>Escolher Tipo</option>
+    <option>Basculante</option>
+    <option>Box Tradicional</option>
+    <option>Box Canto</option>
+    <option>Fixo</option>
+    <option value="Janela Padrão">Janela</option>
+    <option value="Janela Bandeira">Janela Bandeira</option>
+    <option value="Janela Canto">Janela Canto</option>
+    <option>Janela Mão Amiga</option>
+    <option>Max</option>
+    <option>Porta </option>
+    <option>Porta com Bandeira</option>
+    <option>Porta Deslizante</option>
+    <option>Porta Fora Vão</option>
+    <option>Porta Giro</option>
+    <option>Porta Mão Amiga</option>
+  </select>
 
-          {modelo === "Janela Canto" && (
-            <select
-              className={`border border-[#92D050] rounded-xl p-2.5 text-sm ${focusClass}`}
-              value={anguloCanto}
-              onChange={e => setAnguloCanto(e.target.value)}
-            >
-              <option value="Padrão">Canto Padrão</option>
-              <option value="90°">Canto 90°</option>
-            </select>
-          )}
+  {/* CONFIGURAÇÃO PARA CANTO */}
+  {modelo === "Janela Canto" && (
+    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
+      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+        Tipo do fecho (Canto)
+      </label>
+      <select
+        className={`border border-[#92D050] rounded-xl p-2.5 text-sm ${focusClass}`}
+        value={anguloCanto}
+        onChange={e => setAnguloCanto(e.target.value)}
+      >
+        <option>Escolher Modelo</option>
+        <option value="Padrão">Canto Padrão (Perfil)</option>
+        <option value="90°">Canto 90° (Vidro/Vidro)</option>
+      </select>
+    </div>
+  )}
 
-          <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-            value={folhas}
-            onChange={e => setFolhas(e.target.value)}
-          >
-            <option>Escolher Folhas</option>
-            <option>1 Folha</option>
-            <option value="2 folhas">2 Folhas</option>
-            <option>3 Folhas</option>
-            <option value="4 folhas">4 Folhas</option>
-            <option>5 Folhas</option>
-            <option>6 Folhas</option>
-          </select>
+  {/* NOVO: TIPO DE ROLDANA (Aparece apenas para Deslizante) */}
+  {modelo === "Porta Deslizante" && (
+    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
+      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+        Tipo de Roldana
+      </label>
+      <select
+        className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+        value={roldana}
+        onChange={e => setRoldana(e.target.value)}
+      >
+        <option value="Carrinho Simples">Carrinho Simples</option>
+        <option value="Carrinho Inteiro">Carrinho Inteiro</option>
+      </select>
+    </div>
+  )}
 
-          <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-            value={trinco}
-            onChange={e => setTrinco(e.target.value)}
-          >
-            <option>Escolher trinco</option>
-            <option value="Sem trinco">Sem Trinco</option>
-            <option value="Com trinco">Com Trinco</option>
-            <option>Trinco Simples + Chave</option>
-            <option>Chave + Chave</option>
-            <option>Trinco Duplo + Chave</option>
-            <option>Trinco Simples + Trinco Duplo</option>
-          </select>
-        </div>
+    {/* CAIXA UNIFICADA: Mão Amiga e Deslizante */}
+  {(modelo === "Janela Mão Amiga" || modelo === "Porta Mão Amiga" || modelo === "Porta Deslizante") && (
+    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
+      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+        Qual modelo de porta?
+      </label>
+      <select
+        className={`border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-[#1C415B] transition-all bg-white shadow-sm`}
+        value={configMaoAmiga}
+        onChange={(e) => setConfigMaoAmiga(e.target.value)}
+      >
+        <option>Escolher Modelo</option>
+        <option value="Todas Correm">Todas Correm</option>
+        <option value="1 Fixa + 2 Móveis">1 Fixa + 2 Móveis</option>
+        <option value="1 Fixa + 3 Móveis">1 Fixa + 3 Móveis</option>
+        <option value="1 Fixa + 4 Móveis">1 Fixa + 4 Móveis</option>
+        <option value="1 Fixa + 5 Móveis">1 Fixa + 5 Móveis</option>
+        <option value="2 Fixas + 4 Móveis">2 Fixas + 4 Móveis</option>
+      </select>
+    </div>
+  )}
 
+  {/* Lógica Condicional: Esconde o campo Folhas */}
+  {(!modelo.toLowerCase().includes("mão amiga") && !modelo.toLowerCase().includes("deslizante") || configMaoAmiga === "Todas Correm") && (
+    <div className="flex flex-col gap-1 animate-in fade-in duration-300">
+      <select
+        className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+        value={folhas}
+        onChange={e => setFolhas(e.target.value)}
+      >
+        <option>Escolher Folhas</option>
+        <option value="1 folha">1 Folha</option>
+        <option value="2 folhas">2 Folhas</option>
+        <option value="3 folhas">3 Folhas</option>
+        <option value="4 folhas">4 Folhas</option>
+        <option value="5 folhas">5 Folhas</option>
+        <option value="6 folhas">6 Folhas</option>
+      </select>
+    </div>
+  )}
+
+  <select
+    className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+    value={trinco}
+    onChange={e => setTrinco(e.target.value)}
+  >
+    <option>Escolher trinco</option>
+    <option value="Sem trinco">Sem Trinco</option>
+    <option value="Com trinco">Com Trinco</option>
+    <option>Trinco Simples + Chave</option>
+    <option>Chave + Chave</option>
+    <option>Trinco Duplo + Chave</option>
+    <option>Trinco Simples + Trinco Duplo</option>
+  </select>
+</div>
         {/* 2️⃣ KIT / COR / VIDRO */}
         <div className="flex flex-col gap-2 relative">
           <label className="text-[10px] text-gray-300 uppercase">Tipo do Trilho</label>
@@ -405,51 +598,49 @@ const imgPath = ((): string => {
           </select>
 
           <div className="relative">
-            <input
-              type="text"
-              className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-              value={buscaVidro}
-              placeholder="Vidro..."
-              onChange={e => {
+          <input
+            type="text"
+            className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-[#92D050] outline-none`}
+            value={buscaVidro}
+            placeholder="Pesquisar vidro..."
+            onChange={e => {
                 setBuscaVidro(e.target.value)
                 setMostrarVidros(true)
                 setVidroIndex(-1)
-              }}
-              onKeyDown={e => {
+            }}
+            onKeyDown={e => {
                 if (e.key === "ArrowDown") setVidroIndex(p => Math.min(p + 1, vidrosFiltrados.length - 1))
                 if (e.key === "ArrowUp") setVidroIndex(p => Math.max(p - 1, 0))
                 if (e.key === "Enter") {
-                  const v = vidroIndex >= 0 ? vidrosFiltrados[vidroIndex] : vidrosFiltrados[0]
-                  if (v) {
-                    setVidroSel(v)
-                    setBuscaVidro(`${v.nome} ${v.espessura}mm ${v.tipo}`)
-                    setMostrarVidros(false)
+                    const v = vidroIndex >= 0 ? vidrosFiltrados[vidroIndex] : vidrosFiltrados[0]
+                    if (v) {
+                        setVidroSel(v)
+                        setBuscaVidro(formatarNomeVidro(v))
+                        setMostrarVidros(false)
                   }
                 }
               }}
             />
 
-            {mostrarVidros && buscaVidro && (
-              <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
+           {mostrarVidros && buscaVidro && (
+            <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                 {vidrosFiltrados.map((v, i) => (
-                  <div
-                    key={v.id}
-                    className={`px-4 py-2 text-xs cursor-pointer ${
-                      i === vidroIndex ? "bg-[#F4FFF0]" : "hover:bg-gray-50"
-                    }`}
-                    onClick={() => {
-                      setVidroSel(v)
-                      setBuscaVidro(`${v.nome} ${v.espessura}mm ${v.tipo}`)
-                      setMostrarVidros(false)
-                    }}
-                  >
-                    {v.nome} {v.espessura}mm {v.tipo}
-                  </div>
+                    <div
+                        key={v.id}
+                        className={`px-4 py-2 text-xs cursor-pointer ${i === vidroIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`}
+                        onClick={() => {
+                            setVidroSel(v)
+                            setBuscaVidro(formatarNomeVidro(v))
+                            setMostrarVidros(false)
+                        }}
+                    >
+                        {v.nome} {v.espessura}mm
+                    </div>
                 ))}
-              </div>
-            )}
-          </div>
-        </div>
+            </div>
+        )}
+    </div>
+</div>
 
         {/* 3️⃣ MEDIDAS */}
         <div className="col-span-2 grid grid-cols-3 gap-2">
@@ -460,7 +651,10 @@ const imgPath = ((): string => {
               type="number"
               className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
               value={larguraVao}
-              onChange={e => setLarguraVao(e.target.value)}
+              onChange={e => {if (e.target.value.length <= 4) setLarguraVao(e.target.value);}}
+              onKeyDown={e => {
+              if (e.key === 'Enter') alturaRef.current?.focus();
+            }}
             />
           </div>
 
@@ -482,7 +676,14 @@ const imgPath = ((): string => {
               type="number"
               className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
               value={alturaVao}
-              onChange={e => setAlturaVao(e.target.value)}
+              onChange={e => {if (e.target.value.length <= 4) setAlturaVao(e.target.value);}}
+              onKeyDown={e => {
+              if (e.key === 'Enter') {
+                      if (modelo === "Janela Bandeira") {
+                          }
+                qtdRef.current?.focus();
+              }
+  }}
             />
           </div>
 
@@ -493,7 +694,12 @@ const imgPath = ((): string => {
                 type="number"
                 className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
                 value={alturaBandeira}
-                onChange={e => setAlturaBandeira(e.target.value)}
+                onChange={e => {
+                    if (e.target.value.length <= 4) setAlturaBandeira(e.target.value);
+                }}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') qtdRef.current?.focus();
+                }}
               />
             </div>
           )}
@@ -505,11 +711,87 @@ const imgPath = ((): string => {
               className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
               value={quantidade}
               onChange={e => setQuantidade(e.target.value)}
+              onKeyDown={e => {
+              if (e.key === 'Enter') {
+                adicionarItem(); // Chama a função que já limpa e volta o foco para Largura
+              }
+            }}
             />
           </div>
         </div>
+{modelo.toLowerCase().includes("bandeira") && (
+        <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Bandeira (mm)</label>
+                <input
+                    type="number"
+                    className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
+                    placeholder="Ex: 400"
+                    value={alturaBandeira}
+                    onChange={e => setAlturaBandeira(e.target.value)}
+                />
+            </div>
 
-      </div>
+           <div className="flex flex-col gap-1 relative">
+    <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Vidro da Bandeira</label>
+    <input
+        type="text"
+        className={`border border-gray-200 rounded-xl p-2.5 text-sm bg-white ${focusClass}`}
+        placeholder="Pesquisar vidro..."
+        value={buscaVidroBandeira}
+        onChange={e => {
+            setBuscaVidroBandeira(e.target.value);
+            setMostrarVidrosBandeira(true);
+            setVidroBandeiraIndex(-1);
+        }}
+        onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+                setVidroBandeiraIndex(p => Math.min(p + 1, vidrosFiltrados.length - 1));
+            }
+            if (e.key === "ArrowUp") {
+                setVidroBandeiraIndex(p => Math.max(p - 1, 0));
+            }
+            if (e.key === "Enter") {
+                const v = vidroBandeiraIndex >= 0 ? vidrosFiltrados[vidroBandeiraIndex] : vidrosFiltrados[0];
+                if (v) {
+                    setVidroSelBandeira(v);
+                    // LÓGICA DE LIMPEZA: Remove o 'mm' se ele já existir no nome ou espessura
+                    const nomeLimpo = `${v.nome} ${v.espessura}`.replace(/mm/gi, '');
+                    setBuscaVidroBandeira(`${v.nome} ${v.espessura}mm`.replace('mmmm', 'mm'));
+                    setMostrarVidrosBandeira(false);
+                }
+            }
+        }}
+    />
+            {mostrarVidrosBandeira && buscaVidroBandeira && (
+              <div className="absolute top-full w-full bg-white border z-[60] max-h-40 overflow-auto shadow-xl rounded-xl py-2">
+                {vidrosFiltrados.map((v, i) => {
+                  // Criamos o nome formatado uma única vez para usar na lista e no clique
+                  const nomeFormatado = `${v.nome} ${v.espessura}`.replace(/mm/gi, '').trim() + "mm";
+
+                  return (
+                    <div
+                      key={v.id}
+                      className={`px-4 py-2 text-xs cursor-pointer ${
+                        i === vidroBandeiraIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => {
+                        setVidroSelBandeira(v);
+                        setBuscaVidroBandeira(nomeFormatado); // Usa o nome limpo
+                        setMostrarVidrosBandeira(false);
+                      }}
+                    >
+                      {/* AQUI: mudamos de {v.nome} {v.espessura}mm para o nomeFormatado */}
+                      {nomeFormatado}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+    )}
+  </div>
 
 
                 {/* ADICIONAIS */}
