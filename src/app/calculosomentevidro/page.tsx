@@ -114,84 +114,7 @@
 
     const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
 
- const calcularPrecoVidro = () => {
-    if (!vidroSel || !larguraVao || !alturaVao) return 0;
-    
-    const L = parseFloat(larguraVao);
-    const LB = parseFloat(larguraVaoB || "0"); 
-    const A = parseFloat(alturaVao);
-    // Convertemos para minúsculo para garantir que o "if" sempre ache a palavra
-    const mod = modelo.toLowerCase(); 
-    const fls = folhas.toLowerCase();
-    
-    const precoM2 = typeof vidroSel.preco === 'string' 
-        ? parseFloat(vidroSel.preco.replace(',', '.')) 
-        : vidroSel.preco;
-    
-    let areaTotal = 0;
-
-    // --- 1. BASCULANTE, MAX E PORTA GIRO (FOLGA -12mm) ---
-    // Agora usando .includes() de forma mais abrangente
-    if (mod.includes("basculante") || mod.includes("max") || mod.includes("giro") || mod === "porta") {
-        // Se for Porta de Giro ou apenas Porta, entra aqui
-        const divisor = (fls.includes("2")) ? 2 : (fls.includes("4")) ? 4 : 1;
-        const pecaL = (L / divisor) - 12;
-        const pecaA = A - 12;
-        
-        // Cálculo individual por peça com arredondamento de 50mm
-        const areaPeca = (arredondar5(pecaL) * arredondar5(pecaA)) / 1000000;
-        areaTotal = areaPeca * divisor;
-    }
-
-    // --- 2. JANELAS DE CORRER (2, 4, 6 E CANTO) ---
-    else if (mod.includes("janela")) {
-        const L_TOTAL = mod.includes("canto") ? (L + LB) : L;
-        const divisor = (fls.includes("4")) ? 4 : (fls.includes("6")) ? 6 : 2;
-        
-        const baseL = L_TOTAL / divisor;
-        const fixoA = A - 60;
-        const movelA = A - 20;
-        const movelL = baseL + 50;
-        
-        const qtdMovel = (fls.includes("6")) ? 2 : (divisor / 2);
-        const qtdFixo = divisor - qtdMovel;
-
-        areaTotal += ((arredondar5(baseL) * arredondar5(fixoA)) / 1000000) * qtdFixo;
-        areaTotal += ((arredondar5(movelL) * arredondar5(movelA)) / 1000000) * qtdMovel;
-    }
-
-    // --- 3. BOX TRADICIONAL E CANTO ---
-    else if (mod.includes("box")) {
-        if (mod.includes("tradicional")) {
-            const divisor = (fls.includes("3")) ? 3 : (fls.includes("4")) ? 4 : 2;
-            const baseL = L / divisor;
-            const qtdMovel = (fls.includes("4")) ? 2 : 1;
-            const qtdFixo = divisor - qtdMovel;
-
-            // Fixo: Altura - 35 | Móvel: Altura Vão Cheio
-            areaTotal += ((arredondar5(baseL) * arredondar5(A - 35)) / 1000000) * qtdFixo;
-            areaTotal += ((arredondar5(baseL + 50) * arredondar5(A)) / 1000000) * qtdMovel;
-        } 
-        else if (mod.includes("canto")) {
-            // Lado A (Se 3 fls, o lado A é 1 fixa inteira. Se 4 fls, é 1 fixa + 1 móvel)
-            const is3fls = fls.includes("3");
-            if(is3fls) {
-                areaTotal += (arredondar5(L) * arredondar5(A - 35)) / 1000000;
-            } else {
-                const baseLA = L / 2;
-                areaTotal += (arredondar5(baseLA) * arredondar5(A - 35)) / 1000000;
-                areaTotal += (arredondar5(baseLA + 50) * arredondar5(A)) / 1000000;
-            }
-            // Lado B (Sempre Fixo + Móvel)
-            const baseLB = LB / 2;
-            areaTotal += (arredondar5(baseLB) * arredondar5(A - 35)) / 1000000;
-            areaTotal += (arredondar5(baseLB + 50) * arredondar5(A)) / 1000000;
-        }
-    }
-
-    return areaTotal * precoM2;
-};
-
+ 
     const imgPath = ((): string => {
     if (!modelo || modelo.includes("Escolher")) return "";
 
@@ -381,29 +304,29 @@ if (modeloBase.includes("porta com bandeira")) {
 })();
 
  const adicionarItem = () => {
-    // Se o usuário não escolheu vidro, força o primeiro da lista ou avisa
     if (!vidroSel) {
         alert("Por favor, selecione um vidro antes de adicionar.");
         return;
     }
-
     if (!larguraVao || !alturaVao) {
         alert("Preencha largura e altura.");
         return;
     }
 
-    // Se o modelo estiver vazio, define um padrão para não quebrar o cálculo
     const modeloAtual = modelo || "Janela";
     const folhasAtuais = folhas || "2 folhas";
 
-    const resultado = calcularProjeto({
-        modelo: modeloAtual,
+   const resultado = calcularProjeto({
+       modelo: modeloAtual,
         folhas: folhasAtuais,
         largura: larguraVao,
         larguraB: larguraVaoB,
-        altura: alturaVao,
-        alturaB: alturaBandeira,
-        precoM2: vidroSel.preco
+        altura: alturaVao,        
+        alturaPorta: alturaBandeira, 
+        precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco, 
+        precoM2: vidroSel.preco,
+        configMaoAmiga: configMaoAmiga,
+        tipoOrcamento: tipoOrcamento,
     });
     // 3. Calcula os adicionais (Ferragens/Perfis)
     const totalAdicionais = adicionaisPendentes.reduce((acc, adic) => {
@@ -422,15 +345,15 @@ if (modeloBase.includes("porta com bandeira")) {
      const novoItem = {
         id: Date.now(),
         descricao: `${modelo} ${folhas}`, 
-        vidroInfo: nomeVidroLimpo,        
-        areaM2: resultado.area,           
+       vidroInfo: modelo.toLowerCase().includes("bandeira") 
+    ? `Porta: ${formatarNomeVidro(vidroSel)} | Band: ${vidroSelBandeira ? formatarNomeVidro(vidroSelBandeira) : formatarNomeVidro(vidroSel)}`
+    : formatarNomeVidro(vidroSel),
+        areaM2: resultado.area,           
         adicionais: [...adicionaisPendentes], 
-        medidaVao: (modelo === "Janela Canto") 
-            ? `${larguraVao}+${larguraVaoB}x${alturaVao}` 
-            : `${larguraVao}x${alturaVao}`,
+        medidaVao: `${larguraVao}x${alturaVao}`,
         quantidade: quantidade,
         imagem: imgPath,
-        total: valorFinal 
+        total: valorFinal
     };
 
     setItens([...itens, novoItem]);
@@ -822,7 +745,7 @@ if (modeloBase.includes("porta com bandeira")) {
 {modelo.toLowerCase().includes("bandeira") && (
         <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
             <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Bandeira (mm)</label>
+                <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
                 <input
                     type="number"
                     className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
