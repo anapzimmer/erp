@@ -62,24 +62,27 @@ export const calcularProjeto = (config: any) => {
     }
   }
 
-  // --- 3. JANELA PADRÃO (Ajustada para 1.05m²) ---
-  else if (modeloNorm.includes("janela")) {
-    if (folhasNorm === "2 folhas") {
-      const baseL = LTOT / 2;
-      const fixoL = baseL; // 500
-      const movelL = baseL + 50; // 550
-      // 0,50 + 0,55 = 1,05
-      areaTotalM2 = (arred50(fixoL) * arred50(alturaCorpo) + arred50(movelL) * arred50(alturaCorpo)) / 1000000;
-      detalhePecas = `Fixo: ${arred50(fixoL)}x${arred50(alturaCorpo)} | Móvel: ${arred50(movelL)}x${arred50(alturaCorpo)}`;
-    }
-    else if (folhasNorm === "4 folhas") {
-      const baseL = LTOT / 4;
-      const fixoL = baseL;
-      const movelL = baseL + 50;
-      areaTotalM2 = ((arred50(fixoL) * arred50(alturaCorpo) * 2) + (arred50(movelL) * arred50(alturaCorpo) * 2)) / 1000000;
-      detalhePecas = `2 Fixos: ${arred50(fixoL)}x${arred50(alturaCorpo)} | 2 Móveis: ${arred50(movelL)}x${arred50(alturaCorpo)}`;
-    }
+ // --- 3. JANELA PADRÃO (COM DESCONTOS DE ALTURA 60/20) ---
+else if (modeloNorm.includes("janela") && !modeloNorm.includes("bandeira") && !modeloNorm.includes("canto")) {
+  let fixas = 0, moveis = 0, numPecas = 0;
+
+  if (folhasNorm.includes("2 folhas")) { numPecas = 2; fixas = 1; moveis = 1; }
+  else if (folhasNorm.includes("4 folhas")) { numPecas = 4; fixas = 2; moveis = 2; }
+
+  if (numPecas > 0) {
+    const baseL = L / numPecas;
+    
+    // Descontos padrão informados por você
+    const altFixa = alturaCorpo - 60;
+    const altMovel = alturaCorpo - 20;
+
+    const areaFixas = (arred50(baseL) * arred50(altFixa) / 1000000) * fixas;
+    const areaMoveis = (arred50(baseL + 50) * arred50(altMovel) / 1000000) * moveis;
+
+    areaTotalM2 = areaFixas + areaMoveis;
+    detalhePecas = `${fixas} Fixas (${arred50(altFixa)}mm alt) | ${moveis} Móveis (${arred50(altMovel)}mm alt)`;
   }
+}
 
 // --- 4. SISTEMA MÃO AMIGA (PORTAS E JANELAS) ---
 if (modeloNorm.includes("mão amiga") || modeloNorm.includes("deslizante")) {

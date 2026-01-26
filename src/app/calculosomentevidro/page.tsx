@@ -419,6 +419,16 @@ if (modeloBase.includes("porta com bandeira")) {
     }, 100); // O timeout garante que o foco ocorra após a limpeza dos estados
 }
 
+// Criamos um objeto para somar m² por tipo de vidro e contar peças
+const resumoVidros = itens.reduce((acc: any, item) => {
+  const nomeVidro = item.vidroInfo.split('|')[0].trim(); // Pega o nome do vidro
+  acc[nomeVidro] = (acc[nomeVidro] || 0) + item.areaM2;
+  return acc;
+}, {});
+
+const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
+const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
+
     return (
         <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
         {/* HEADER */}
@@ -888,10 +898,10 @@ if (modeloBase.includes("porta com bandeira")) {
                 {itens.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 flex items-start gap-4">
-                    {item.imagem && <img src={item.imagem} className="w-20 h-20 object-contain" alt="item" />}
+                    {item.imagem && <img src={item.imagem} className="w-22 h-22 object-contain" alt="item" />}
                     <div>
                        <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-                      <span className="text-[10px] text-gray-400 font-normal block">
+                      <span className="text-[12px] text-gray-400 font-normal block">
                         {item.vidroInfo} | Área: {item.areaM2.toFixed(2)}m²
                       </span>
                         {item.adicionais && item.adicionais.map((a: any, i: number) => (
@@ -901,7 +911,7 @@ if (modeloBase.includes("porta com bandeira")) {
                     </td>
                     <td className="p-4 text-center">{item.quantidade}</td>
                     <td className="p-4 text-center font-mono text-xs">{item.medidaVao}</td>
-                    <td className="p-4 text-center text-[#92D050] font-bold">
+                    <td className="p-4 text-center text-[#1C415B] font-bold">
                     {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
                     <td className="p-4 text-center">
@@ -910,6 +920,23 @@ if (modeloBase.includes("porta com bandeira")) {
                 </tr>
                 ))}
             </tbody>
+            {/* RODAPÉ DE TOTAIS */}
+{itens.length > 0 && (
+  <div className="mt-4 p-4 bg-white border-2 border-[#92D050] rounded-xl flex justify-end items-center shadow-sm">
+    <div className="flex flex-col items-end">
+      <span className="text-[#1C415B] font-bold text-xl uppercase tracking-tight">
+        Total Geral: {itens.reduce((acc, item) => acc + item.total, 0).toLocaleString('pt-BR', { 
+          style: 'currency', 
+          currency: 'BRL' 
+        })}
+      </span>
+      {/* Opcional: Mostrar área total se desejar */}
+      <span className="text-gray-400 text-xs font-semibold">
+        Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²
+      </span>
+    </div>
+  </div>
+)}
             </table>
         </div>
         </div>
