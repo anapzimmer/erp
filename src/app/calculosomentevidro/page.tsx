@@ -358,13 +358,14 @@ if (modeloBase.includes("porta com bandeira")) {
     const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
     // 4. Montar os Detalhes (Trinco, Puxador, Trilho, etc.) - Pula o que for "Escolher"
-    const opcionaisArray = [];
-    if (trinco && !trinco.includes("Escolher")) opcionaisArray.push(`Trinco: ${trinco}`);
-    if (corKit && !corKit.includes("Escolher")) opcionaisArray.push(corKit);
-    if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) opcionaisArray.push(`Trilho: ${tipoOrcamento}`);
-    if (configMaoAmiga && !configMaoAmiga.includes("Escolher")) opcionaisArray.push(`Modelo: ${configMaoAmiga}`);
-    if (roldana && modelo.includes("Deslizante")) opcionaisArray.push(`Roldana: ${roldana}`);
-    
+const opcionaisArray = [];
+  // Só adiciona se não for "Escolher" e se não for "Sem..." (opcional)
+  if (trinco && !trinco.toLowerCase().includes("escolher")) opcionaisArray.push(`Trinco: ${trinco}`);
+  if (puxador && !puxador.toLowerCase().includes("escolher")) opcionaisArray.push(puxador);
+  if (tipoOrcamento && !tipoOrcamento.toLowerCase().includes("escolher")) opcionaisArray.push(`Trilho: ${tipoOrcamento}`);
+  if (configMaoAmiga && !configMaoAmiga.toLowerCase().includes("escolher")) opcionaisArray.push(`Modelo: ${configMaoAmiga}`);
+
+   
     // Adiciona também os nomes das ferragens extras da lista
     adicionaisPendentes.forEach(a => opcionaisArray.push(`${a.nome} (x${a.qtd})`));
 
