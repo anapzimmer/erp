@@ -3,8 +3,10 @@
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
     import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
+    import { useRouter } from 'next/navigation' 
 
     export default function CalculoProjetosVidros() {
+      const router = useRouter()
       const [vidros, setVidros] = useState<any[]>([])
       const [clientes, setClientes] = useState<any[]>([])
       const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
@@ -332,8 +334,9 @@ if (modeloBase.includes("porta com bandeira")) {
     const modeloAtual = modelo || "Janela";
     const folhasAtuais = folhas || "2 folhas";
 
-   const resultado = calcularProjeto({
-       modelo: modeloAtual,
+    // 1. Cálculo base do projeto (Vidro + Perfis padrão do cálculo)
+    const resultado = calcularProjeto({
+        modelo: modeloAtual,
         folhas: folhasAtuais,
         largura: larguraVao,
         larguraB: larguraVaoB,
@@ -344,50 +347,58 @@ if (modeloBase.includes("porta com bandeira")) {
         configMaoAmiga: configMaoAmiga,
         tipoOrcamento: tipoOrcamento,
     });
-    // 3. Calcula os adicionais (Ferragens/Perfis)
-    const totalAdicionais = adicionaisPendentes.reduce((acc, adic) => {
+
+    // 2. Cálculo dos Adicionais da Lista (Ferragens/Perfis extras que você clicou em Adicionar)
+    const totalAdicionaisExtras = adicionaisPendentes.reduce((acc, adic) => {
         return acc + (parseNumber(adic.valor) * parseNumber(adic.qtd));
     }, 0);
 
-    // 4. Soma tudo e multiplica pela quantidade de vãos
+    // 3. SOMA TUDO: (Valor do Vidro/Projeto + Adicionais Extras) * Quantidade de Vãos
     const qtdVao = parseNumber(quantidade);
-    const valorFinal = (resultado.valorVidro + totalAdicionais) * qtdVao;
+    const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
-    // Ajuste no nome do vidro (limpando mm duplicado)
-    const nomeVidroLimpo = formatarNomeVidro(vidroSel);
+    // 4. Montar os Detalhes (Trinco, Puxador, Trilho, etc.) - Pula o que for "Escolher"
+    const opcionaisArray = [];
+    if (trinco && !trinco.includes("Escolher")) opcionaisArray.push(`Trinco: ${trinco}`);
+    if (corKit && !corKit.includes("Escolher")) opcionaisArray.push(corKit);
+    if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) opcionaisArray.push(`Trilho: ${tipoOrcamento}`);
+    if (configMaoAmiga && !configMaoAmiga.includes("Escolher")) opcionaisArray.push(`Modelo: ${configMaoAmiga}`);
+    if (roldana && modelo.includes("Deslizante")) opcionaisArray.push(`Roldana: ${roldana}`);
+    
+    // Adiciona também os nomes das ferragens extras da lista
+    adicionaisPendentes.forEach(a => opcionaisArray.push(`${a.nome} (x${a.qtd})`));
 
+    const detalhesTexto = opcionaisArray.join(" • ");
 
     // 5. Monta o objeto para a tabela
-     const novoItem = {
-        id: Date.now(),
-        descricao: `${modelo} ${folhas}`, 
-       vidroInfo: modelo.toLowerCase().includes("bandeira") 
-    ? `Porta: ${formatarNomeVidro(vidroSel)} | Band: ${vidroSelBandeira ? formatarNomeVidro(vidroSelBandeira) : formatarNomeVidro(vidroSel)}`
-    : formatarNomeVidro(vidroSel),
-        areaM2: resultado.area,           
-        adicionais: [...adicionaisPendentes], 
-        medidaVao: `${larguraVao}x${alturaVao}`,
-        quantidade: quantidade,
-        imagem: imgPath,
-        total: valorFinal
-    };
+const novoItem = {
+    id: Date.now(),
+    descricao: `${modelo} ${folhas}`, 
+    vidroInfo: modelo.toLowerCase().includes("bandeira") 
+        ? `Porta: ${formatarNomeVidro(vidroSel)} | Band: ${vidroSelBandeira ? formatarNomeVidro(vidroSelBandeira) : formatarNomeVidro(vidroSel)}`
+        : formatarNomeVidro(vidroSel),
+    detalhes: opcionaisArray, // Agora salvamos como ARRAY para listar um embaixo do outro
+    areaM2: resultado.area,           
+    adicionais: adicionaisPendentes.map(a => ({
+        qtd: a.qtd,
+        nome: a.nome || a.descricao || "Item sem nome" // Garante que não apareça undefined
+    })), 
+    medidaVao: `${larguraVao}x${alturaVao}`,
+    quantidade: quantidade,
+    imagem: imgPath,
+    total: valorFinal
+};
 
     setItens([...itens, novoItem]);
     
-    // Limpeza inteligente: mantém o modelo e vidro, limpa as medidas
+    // Limpeza
     setLarguraVao(""); 
     setLarguraVaoB(""); 
     setAlturaVao(""); 
-    // Se quiser que a altura da bandeira resete também:
-    // setAlturaBandeira(""); 
-    
     setQuantidade("1");
     setAdicionaisPendentes([]); 
 
-    // O pulo do gato: volta o foco para a largura para a próxima peça
-    setTimeout(() => {
-        larguraRef.current?.focus();
-    }, 100);
+    setTimeout(() => { larguraRef.current?.focus(); }, 100);
 };
 
     const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
@@ -485,8 +496,14 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
                 </div>
             )}
             </div>
-            <button className="p-2 bg-[#1C415B] text-white rounded-xl"><UserPlus size={20} /></button>
-        </div>
+            <button 
+              onClick={() => router.push('/clientes')} 
+              className="p-2 bg-[#1C415B] text-white rounded-xl hover:bg-opacity-90 transition-all shadow-md active:scale-95"
+              title="Cadastrar Novo Cliente"
+            >
+              <UserPlus size={20} />
+            </button>
+           </div>
 
         {/* BOX CONFIGURAÇÃO */}
 <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
@@ -962,38 +979,56 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
           <th className="p-4 text-center">AÇÕES</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-50">
-        {itens.map(item => (
-          <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-            <td className="p-4 flex items-start gap-4">
-              {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="item" />}
-              <div>
-                <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-                <span className="text-[12px] text-gray-400 font-normal block">
-                  {item.vidroInfo} | Área: {item.areaM2.toFixed(2)}m²
-                </span>
-                {item.adicionais && item.adicionais.map((a: any, i: number) => (
-                  <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
-                ))}
-              </div>
-            </td>
-            <td className="p-4 text-center">{item.quantidade}</td>
-            <td className="p-4 text-center font-mono text-xs">{item.medidaVao}</td>
-            <td className="p-4 text-center text-[#1C415B] font-bold">
-              {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </td>
-            <td className="p-4 text-center">
-              <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-red-300 hover:text-red-500 transition-colors">
-                <Trash2 size={18} />
-              </button>
-            </td>
-          </tr>
+    <tbody className="divide-y divide-gray-50">
+  {itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
+    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+     <td className="p-4 flex items-start gap-4">
+  {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="item" />}
+  <div className="flex flex-col gap-0.5">
+    <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
+    
+    <span className="text-[11px] text-gray-400 font-normal block">
+      {item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²
+    </span>
+
+    {/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
+    {item.detalhes && item.detalhes.map((det: string, idx: number) => (
+      <span key={idx} className="text-[10px] text-[#92D050] font-medium italic block leading-tight">
+        • {det}
+      </span>
+    ))}
+
+    {/* LISTA DE ADICIONAIS EXTRAS (Ferragens da busca) */}
+    {item.adicionais && item.adicionais.length > 0 && (
+      <div className="mt-1 pt-1 border-t border-dotted border-gray-200">
+        {item.adicionais.map((a: any, i: number) => (
+          <span key={i} className="text-[10px] text-gray-500 font-medium block leading-tight">
+            + {a.qtd}x {a.nome}
+          </span>
         ))}
-      </tbody>
+      </div>
+    )}
+  </div>
+</td>
+      <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
+      <td className="p-4 text-center font-mono text-xs text-gray-500">{item.medidaVao}</td>
+      <td className="p-4 text-center text-[#1C415B] font-bold">
+        {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      </td>
+      <td className="p-4 text-center">
+        <button 
+          onClick={() => setItens(itens.filter(i => i.id !== item.id))} 
+          className="text-gray-300 hover:text-red-500 transition-colors"
+        >
+          <Trash2 size={18} />
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
     </table>
   </div>
 
- {/* RESUMO E TOTAL GERAL (LAYOUT UNIFORME) */}
 {/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
 {itens.length > 0 && (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
