@@ -50,6 +50,7 @@
       const larguraRef = useRef<HTMLInputElement>(null)
       const alturaRef = useRef<HTMLInputElement>(null);
       const qtdRef = useRef<HTMLInputElement>(null);
+      const scrollVidrosRef = useRef(null);
       const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
       const [clienteSel, setClienteSel] = useState<any>(null);
       const formatarNomeVidro = (v: any) => {
@@ -105,12 +106,27 @@
   }, [clienteSel?.id, vidroSel?.id]); // Roda sempre que mudar o cliente ou o vidro
 
   // --- FILTROS (MANTENHA OS SEUS) ---
-  const clientesFiltrados = clientes.filter(c => c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()));
-  const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()) || v.nome?.toLowerCase().includes(buscaVidroBandeira.toLowerCase()));
-  const adicionaisFiltrados = adicionaisDB.filter(a => 
-      a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
-      a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
-  ).slice(0, 8);
+  // --- FILTROS CORRIGIDOS E TIPADOS ---
+const clientesFiltrados = clientes.filter((c: any) => 
+  c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
+);
+
+// Filtro para o Vidro Principal
+const vidrosFiltrados = vidros.filter((v: any) => {
+  const nomeFormatado = formatarNomeVidro(v).toLowerCase();
+  return nomeFormatado.includes(buscaVidro.toLowerCase());
+});
+
+// Filtro para o Vidro da Bandeira (Independente)
+const vidrosBandeiraFiltrados = vidros.filter((v: any) => {
+  const nomeFormatado = formatarNomeVidro(v).toLowerCase();
+  return nomeFormatado.includes(buscaVidroBandeira.toLowerCase());
+});
+
+const adicionaisFiltrados = adicionaisDB.filter((a: any) => 
+    a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
+    a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
+).slice(0, 8);
 
     const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
 
@@ -603,6 +619,7 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
     <option>Trinco Simples + Trinco Duplo</option>
   </select>
 </div>
+
         {/* 2️⃣ KIT / COR / VIDRO */}
         <div className="flex flex-col gap-2 relative">
           <label className="text-[10px] text-gray-300 uppercase">Tipo do Trilho</label>
@@ -630,47 +647,76 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 
           <div className="relative">
           <input
-            type="text"
-            className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-[#92D050] outline-none`}
-            value={buscaVidro}
-            placeholder="Pesquisar vidro..."
-            onChange={e => {
-                setBuscaVidro(e.target.value)
-                setMostrarVidros(true)
-                setVidroIndex(-1)
-            }}
-            onKeyDown={e => {
-                if (e.key === "ArrowDown") setVidroIndex(p => Math.min(p + 1, vidrosFiltrados.length - 1))
-                if (e.key === "ArrowUp") setVidroIndex(p => Math.max(p - 1, 0))
-                if (e.key === "Enter") {
-                    const v = vidroIndex >= 0 ? vidrosFiltrados[vidroIndex] : vidrosFiltrados[0]
-                    if (v) {
-                        setVidroSel(v)
-                        setBuscaVidro(formatarNomeVidro(v))
-                        setMostrarVidros(false)
-                  }
-                }
-              }}
-            />
+    type="text"
+    className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-[#92D050] outline-none`}
+    value={buscaVidro}
+    placeholder="Pesquisar vidro (ex: Incolor 08)..."
+    onChange={e => {
+      setBuscaVidro(e.target.value);
+      setMostrarVidros(true);
+      setVidroIndex(0); // Começa sempre no primeiro da lista filtrada
+    }}
+    onKeyDown={e => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setVidroIndex(p => {
+          const next = Math.min(p + 1, vidrosFiltrados.length - 1);
+          // Lógica de Scroll Automático
+          const el = document.getElementById(`vidro-item-${next}`);
+          el?.scrollIntoView({ block: 'nearest' });
+          return next;
+        });
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setVidroIndex(p => {
+          const prev = Math.max(p - 1, 0);
+          const el = document.getElementById(`vidro-item-${prev}`);
+          el?.scrollIntoView({ block: 'nearest' });
+          return prev;
+        });
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const v = vidrosFiltrados[vidroIndex];
+        if (v) {
+          setVidroSel(v);
+          setBuscaVidro(formatarNomeVidro(v));
+          setMostrarVidros(false);
+        }
+      }
+    }}
+  />
 
            {mostrarVidros && buscaVidro && (
-            <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
-                {vidrosFiltrados.map((v, i) => (
-                    <div
-                        key={v.id}
-                        className={`px-4 py-2 text-xs cursor-pointer ${i === vidroIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`}
-                        onClick={() => {
-                            setVidroSel(v)
-                            setBuscaVidro(formatarNomeVidro(v))
-                            setMostrarVidros(false)
-                        }}
-                    >
-                        {formatarNomeVidro(v)}
-                    </div>
-                ))}
-            </div>
-        )}
+    <div 
+      ref={scrollVidrosRef}
+      className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth"
+    >
+      {vidrosFiltrados.length > 0 ? (
+        vidrosFiltrados.map((v, i) => (
+          <div
+            id={`vidro-item-${i}`} // ID essencial para o scrollIntoView
+            key={v.id}
+            className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
+              i === vidroIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
+            }`}
+            onClick={() => {
+              setVidroSel(v);
+              setBuscaVidro(formatarNomeVidro(v));
+              setMostrarVidros(false);
+            }}
+          >
+            <span>{formatarNomeVidro(v)}</span>
+            {i === vidroIndex && <div className="w-1 h-4 bg-[#92D050] rounded-full" />}
+          </div>
+        ))
+      ) : (
+        <div className="px-4 py-2 text-xs text-gray-400">Nenhum vidro encontrado...</div>
+      )}
     </div>
+  )}
+</div>
 </div>
 
         {/* 3️⃣ MEDIDAS */}
@@ -753,76 +799,91 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
           </div>
         </div>
 {modelo.toLowerCase().includes("bandeira") && (
-        <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
-            <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
-                <input
-                    type="number"
-                    className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
-                    placeholder="Ex: 400"
-                    value={alturaBandeira}
-                    onChange={e => setAlturaBandeira(e.target.value)}
-                />
-            </div>
+  <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
+    
+    {/* Campo Altura */}
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
+      <input
+        type="number"
+        className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
+        placeholder="Ex: 400"
+        value={alturaBandeira}
+        onChange={e => setAlturaBandeira(e.target.value)}
+      />
+    </div>
 
-           <div className="flex flex-col gap-1 relative">
-    <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Vidro da Bandeira</label>
-    <input
+    {/* Campo Vidro da Bandeira */}
+    <div className="flex flex-col gap-1 relative">
+      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Vidro da Bandeira</label>
+      <input
         type="text"
-        className={`border border-gray-200 rounded-xl p-2.5 text-sm bg-white ${focusClass}`}
-        placeholder="Pesquisar vidro..."
+        className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+        placeholder="Pesquisar vidro da bandeira..."
         value={buscaVidroBandeira}
         onChange={e => {
-            setBuscaVidroBandeira(e.target.value);
-            setMostrarVidrosBandeira(true);
-            setVidroBandeiraIndex(-1);
+          setBuscaVidroBandeira(e.target.value);
+          setMostrarVidrosBandeira(true);
+          setVidroBandeiraIndex(0);
         }}
-        onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-                setVidroBandeiraIndex(p => Math.min(p + 1, vidrosFiltrados.length - 1));
+        onKeyDown={e => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setVidroBandeiraIndex(p => {
+              const next = Math.min(p + 1, vidrosBandeiraFiltrados.length - 1);
+              document.getElementById(`vidro-band-${next}`)?.scrollIntoView({ block: 'nearest' });
+              return next;
+            });
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setVidroBandeiraIndex(p => {
+              const prev = Math.max(p - 1, 0);
+              document.getElementById(`vidro-band-${prev}`)?.scrollIntoView({ block: 'nearest' });
+              return prev;
+            });
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const v = vidrosBandeiraFiltrados[vidroBandeiraIndex];
+            if (v) {
+              setVidroSelBandeira(v);
+              setBuscaVidroBandeira(formatarNomeVidro(v));
+              setMostrarVidrosBandeira(false);
             }
-            if (e.key === "ArrowUp") {
-                setVidroBandeiraIndex(p => Math.max(p - 1, 0));
-            }
-            if (e.key === "Enter") {
-                const v = vidroBandeiraIndex >= 0 ? vidrosFiltrados[vidroBandeiraIndex] : vidrosFiltrados[0];
-                if (v) {
-                    setVidroSelBandeira(v);
-                    // LÓGICA DE LIMPEZA: Remove o 'mm' se ele já existir no nome ou espessura
-                    const nomeLimpo = `${v.nome} ${v.espessura}`.replace(/mm/gi, '');
-                    setBuscaVidroBandeira(formatarNomeVidro(v));
-                    setMostrarVidrosBandeira(false);
-                }
-            }
+          }
         }}
-    />
-            {mostrarVidrosBandeira && buscaVidroBandeira && (
-              <div className="absolute top-full w-full bg-white border z-[60] max-h-40 overflow-auto shadow-xl rounded-xl py-2">
-                {vidrosFiltrados.map((v, i) => {
-                  // Criamos o nome formatado uma única vez para usar na lista e no clique
-                  const nomeFormatado = `${v.nome} ${v.espessura}`.replace(/mm/gi, '').trim() + "mm";
+      />
 
-                  return (
-                    <div
-                      key={v.id}
-                      className={`px-4 py-2 text-xs cursor-pointer ${
-                        i === vidroBandeiraIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => {
-                        setVidroSelBandeira(v);
-                        setBuscaVidroBandeira(nomeFormatado); // Usa o nome limpo
-                        setMostrarVidrosBandeira(false);
-                      }}
-                    >
-                      {nomeFormatado}
-                    </div>
-                  );
-                })}
+      {/* Lista de Sugestões da Bandeira */}
+      {mostrarVidrosBandeira && buscaVidroBandeira && (
+        <div className="absolute top-full w-full bg-white border z-[100] max-h-40 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth">
+          {vidrosBandeiraFiltrados.length > 0 ? (
+            vidrosBandeiraFiltrados.map((v: any, i: number) => (
+              <div
+                id={`vidro-band-${i}`} // ID para o scroll funcionar
+                key={v.id}
+                className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
+                  i === vidroBandeiraIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
+                }`}
+                onClick={() => {
+                  setVidroSelBandeira(v);
+                  setBuscaVidroBandeira(formatarNomeVidro(v));
+                  setMostrarVidrosBandeira(false);
+                }}
+              >
+                <span>{formatarNomeVidro(v)}</span>
+                {i === vidroBandeiraIndex && <div className="w-1 h-3 bg-[#92D050] rounded-full" />}
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="px-4 py-2 text-xs text-gray-400 italic">Nenhum vidro encontrado...</div>
+          )}
         </div>
-    )}
+      )}
+    </div>
+  </div>
+)}
   </div>
 
 
@@ -889,56 +950,93 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
         </div>
 
         {/* TABELA RESULTADOS */}
-        <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-            <thead className="bg-[#1C415B] text-white text-[10px] uppercase font-bold tracking-widest">
-                <tr><th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th><th className="p-4 text-center">QTD</th><th className="p-4 text-center">MEDIDA DO VÃO (MM)</th><th className="p-4 text-center">TOTAL</th><th className="p-4 text-center">AÇÕES</th></tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-                {itens.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 flex items-start gap-4">
-                    {item.imagem && <img src={item.imagem} className="w-22 h-22 object-contain" alt="item" />}
-                    <div>
-                       <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-                      <span className="text-[12px] text-gray-400 font-normal block">
-                        {item.vidroInfo} | Área: {item.areaM2.toFixed(2)}m²
-                      </span>
-                        {item.adicionais && item.adicionais.map((a: any, i: number) => (
-                        <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
-                        ))}
-                    </div>
-                    </td>
-                    <td className="p-4 text-center">{item.quantidade}</td>
-                    <td className="p-4 text-center font-mono text-xs">{item.medidaVao}</td>
-                    <td className="p-4 text-center text-[#1C415B] font-bold">
-                    {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </td>
-                    <td className="p-4 text-center">
-                    <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-red-300 hover:text-red-500"><Trash2 size={18} /></button>
-                    </td>
-                </tr>
+<div className="space-y-4">
+  <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
+    <table className="w-full text-left text-sm">
+      <thead className="bg-[#1C415B] text-white text-[10px] uppercase font-bold tracking-widest">
+        <tr>
+          <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
+          <th className="p-4 text-center">QTD</th>
+          <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
+          <th className="p-4 text-center">TOTAL</th>
+          <th className="p-4 text-center">AÇÕES</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-50">
+        {itens.map(item => (
+          <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+            <td className="p-4 flex items-start gap-4">
+              {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="item" />}
+              <div>
+                <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
+                <span className="text-[12px] text-gray-400 font-normal block">
+                  {item.vidroInfo} | Área: {item.areaM2.toFixed(2)}m²
+                </span>
+                {item.adicionais && item.adicionais.map((a: any, i: number) => (
+                  <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
                 ))}
-            </tbody>
-            {/* RODAPÉ DE TOTAIS */}
+              </div>
+            </td>
+            <td className="p-4 text-center">{item.quantidade}</td>
+            <td className="p-4 text-center font-mono text-xs">{item.medidaVao}</td>
+            <td className="p-4 text-center text-[#1C415B] font-bold">
+              {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </td>
+            <td className="p-4 text-center">
+              <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-red-300 hover:text-red-500 transition-colors">
+                <Trash2 size={18} />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+ {/* RESUMO E TOTAL GERAL (LAYOUT UNIFORME) */}
+{/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
 {itens.length > 0 && (
-  <div className="mt-4 p-4 bg-white border-2 border-[#92D050] rounded-xl flex justify-end items-center shadow-sm">
-    <div className="flex flex-col items-end">
-      <span className="text-[#1C415B] font-bold text-xl uppercase tracking-tight">
-        Total Geral: {itens.reduce((acc, item) => acc + item.total, 0).toLocaleString('pt-BR', { 
-          style: 'currency', 
-          currency: 'BRL' 
-        })}
-      </span>
-      {/* Opcional: Mostrar área total se desejar */}
-      <span className="text-gray-400 text-xs font-semibold">
-        Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²
-      </span>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+    
+    {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+      <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
+      
+      {/* Cabeçalho do Bloco com Itens e Área Total */}
+      <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
+        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
+        <div className="flex gap-3">
+          <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
+          <span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
+        </div>
+      </div>
+
+      {/* Lista de Vidros Detalhada */}
+      <div className="space-y-2">
+        {Object.entries(resumoVidros).map(([nome, area]: any) => (
+          <div key={nome} className="flex justify-between items-center text-xs">
+            <span className="text-gray-500">{nome}</span>
+            <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+          </div>
+        ))}
+      </div>
     </div>
+
+    {/* Bloco 2: Total Financeiro (Limpo) */}
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
+      <div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
+      
+      <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
+      <p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
+      
+      <div className="text-4xl font-black text-[#1C415B]">
+        {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      </div>
+    </div>
+
   </div>
 )}
-            </table>
-        </div>
-        </div>
+</div>
+</div>
     )
     }
