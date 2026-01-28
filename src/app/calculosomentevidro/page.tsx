@@ -1,7 +1,8 @@
     "use client"
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
-    import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
+    import { useReactToPrint } from 'react-to-print';
+    import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
     import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
     import { useRouter } from 'next/navigation' 
 
@@ -321,6 +322,37 @@ if (modeloBase.includes("porta com bandeira")) {
     return "";
 })();
 
+const editarItem = (item: any) => {
+  // 1. Limpa estados atuais para evitar conflitos
+  setAdicionaisPendentes([]);
+
+  // 2. Restaura medidas básicas
+  const [L, A] = item.medidaVao.split('x');
+  setLarguraVao(L);
+  setAlturaVao(A);
+  setQuantidade(item.quantidade.toString());
+
+  // 3. Restaura o Vidro na busca visual
+  setBuscaVidro(item.vidroInfo);
+  // Nota: Se você tiver o objeto original do vidro, pode usar setVidroSel(item.objetoVidroOriginal)
+
+  // 4. Recupera os Adicionais (Ferragens)
+  if (item.adicionais && item.adicionais.length > 0) {
+    const formatadosParaEdicao = item.adicionais.map((a: any) => ({
+      nome: a.nome,
+      qtd: a.qtd,
+      valor: a.valor || "0,00"
+    }));
+    setAdicionaisPendentes(formatadosParaEdicao);
+  }
+
+  // 5. Remove o item da lista para que ele seja "substituído" ao clicar em adicionar
+  setItens(itens.filter((i: any) => i.id !== item.id));
+
+  // 6. Feedback visual: sobe a tela para o formulário
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};;
+
  const adicionarItem = () => {
   if (!vidroSel) return alert("Selecione um vidro");
   let nomeFormatado = modelo.toUpperCase();
@@ -372,6 +404,8 @@ if (modeloBase.includes("porta com bandeira")) {
       nome: a.nome // Usando 'nome' como padrão
     })),
     medidaVao: `${larguraVao}x${alturaVao}`,
+    larguraVao: larguraVao, 
+    alturaVao: alturaVao,
     quantidade: qtdVao,
     imagem: imgPath,
     total: valorFinal,
@@ -440,9 +474,15 @@ const resumoVidros = itens.reduce((acc: any, item) => {
 
 const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
 const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
+const contentRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef,
+    documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
+  });
 
     return (
         <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
+          <div className="print:hidden">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
@@ -454,7 +494,7 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
                 setItens([])
                 handleNovo()
                 }}className="px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50">Novo Orçamento</button>
-            <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
+            <button onClick={() =>handlePrint()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
             </div>
         </div>
 
@@ -492,16 +532,16 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 
         {/* BOX CONFIGURAÇÃO */}
 <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
-  <div className="grid grid-cols-12 gap-8">
+ <div className="grid grid-cols-12 gap-6 items-start">
 
     {/* ================= COLUNA ESQUERDA ================= */}
-    <div className="col-span-10">
+    <div className="col-span-9">
 
       <div className="grid grid-cols-4 gap-4">
 
       {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
 <div className="flex flex-col gap-2">
-  <label className="text-[10px] text-gray-300 uppercase">PROJETOS</label>
+  <label className="text-[10px] text-gray-400  font-bold  uppercase">PROJETOS</label>
 
   <select
     ref={modeloRef}
@@ -624,7 +664,7 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 
         {/* 2️⃣ KIT / COR / VIDRO */}
         <div className="flex flex-col gap-2 relative">
-          <label className="text-[10px] text-gray-300 uppercase">Tipo do Trilho</label>
+          <label className="text-[10px] text-gray-400  font-bold uppercase">Tipo do Trilho</label>
 
           <select
             className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
@@ -721,85 +761,67 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 </div>
 </div>
 
-        {/* 3️⃣ MEDIDAS */}
-        <div className="col-span-2 grid grid-cols-3 gap-2">
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Largura</label>
-            <input
-              ref={larguraRef}
-              type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
-              value={larguraVao}
-              onChange={e => {if (e.target.value.length <= 4) setLarguraVao(e.target.value);}}
-              onKeyDown={e => {
-              if (e.key === 'Enter') alturaRef.current?.focus();
-            }}
-            />
-          </div>
+{/* 3️⃣ MEDIDAS - AGORA EM COLUNA VERTICAL */}
+<div className="col-span-1 flex flex-col gap-3"> 
+  
+  {/* CAMPO LARGURA */}
+  <div className="flex flex-col">
+    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Largura</label>
+    <input
+      ref={larguraRef}
+      type="number"
+      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+      value={larguraVao}
+      onChange={e => { if (e.target.value.length <= 4) setLarguraVao(e.target.value); }}
+      onKeyDown={e => { if (e.key === 'Enter') alturaRef.current?.focus(); }}
+    />
+  </div>
 
-          {modelo === "Janela Canto" && (
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] text-gray-300 uppercase">Largura B</label>
-              <input
-                type="number"
-                className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
-                value={larguraVaoB}
-                onChange={e => setLarguraVaoB(e.target.value)}
-              />
-            </div>
-          )}
+  {/* LARGURA B (SÓ APARECE EM CANTO) */}
+  {modelo === "Janela Canto" && (
+    <div className="flex flex-col">
+      <label className="text-[10px] text-gray-400 uppercase ml-2 mb-1">Largura B</label>
+      <input
+        type="number"
+        className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
+        value={larguraVaoB}
+        onChange={e => setLarguraVaoB(e.target.value)}
+      />
+    </div>
+  )}
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Altura</label>
-            <input
-              type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
-              value={alturaVao}
-              onChange={e => {if (e.target.value.length <= 4) setAlturaVao(e.target.value);}}
-              onKeyDown={e => {
-              if (e.key === 'Enter') {
-                      if (modelo === "Janela Bandeira") {
-                          }
-                qtdRef.current?.focus();
-              }
-  }}
-            />
-          </div>
+  {/* CAMPO ALTURA */}
+  <div className="flex flex-col">
+    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Altura</label>
+    <input
+      ref={alturaRef}
+      type="number"
+      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+      value={alturaVao}
+      onChange={e => { if (e.target.value.length <= 4) setAlturaVao(e.target.value); }}
+      onKeyDown={e => { if (e.key === 'Enter') qtdRef.current?.focus(); }}
+    />
+  </div>
 
-          {modelo === "Janela Bandeira" && (
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] text-gray-300 uppercase">Alt. Band.</label>
-              <input
-                type="number"
-                className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
-                value={alturaBandeira}
-                onChange={e => {
-                    if (e.target.value.length <= 4) setAlturaBandeira(e.target.value);
-                }}
-                onKeyDown={e => {
-                    if (e.key === 'Enter') qtdRef.current?.focus();
-                }}
-              />
-            </div>
-          )}
+  {/* CAMPO QUANTIDADE */}
+  <div className="flex flex-col">
+    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 text-[#92D050]">Qtd</label>
+    <input
+      ref={qtdRef}
+      type="number"
+      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass} bg-[#F4FFF0]`}
+      value={quantidade}
+      onChange={e => setQuantidade(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          adicionarItem();
+        }
+      }}
+    />
+  </div>
+</div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Qtd</label>
-            <input
-              ref={qtdRef}
-              type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
-              value={quantidade}
-              onChange={e => setQuantidade(e.target.value)}
-              onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault(); // Evita comportamentos estranhos do navegador
-                adicionarItem();    // CHAMA A SUA FUNÇÃO DE CÁLCULO
-              }
-            }}
-            />
-          </div>
-        </div>
 {modelo.toLowerCase().includes("bandeira") && (
   <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
     
@@ -891,7 +913,7 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 
                 {/* ADICIONAIS */}
                 <div className="mt-8 pt-4">
-                    <div className="flex items-center gap-2 mb-2"><Plus size={14} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
+                    <div className="flex items-center gap-2 mb-2"><Plus size={15} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
                     <div className="grid grid-cols-12 gap-4 mb-3">
                     <div className="col-span-8 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
@@ -933,8 +955,8 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
     setValorUnitAdicional("0,00"); 
     setQtdAdicional("1");
 }} 
-className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] uppercase shadow-md">
-    + Selecionar
+className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all outline-none">
+    + Adicionar Item
 </button></div>
                     </div>
 
@@ -954,12 +976,12 @@ className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] 
 )}
                  
                     <div className="flex justify-end gap-3">
-                    <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Item ao Orçamento</button>
+                    <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Projeto</button>
                     </div>
                 </div>
             </div>
 
-            <div className="col-span-2 flex items-center justify-center">
+            <div className="col-span-3 flex items-center justify-center">
                 <div className="w-full aspect-square bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
                     {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={40} />}
                 </div>
@@ -971,7 +993,7 @@ className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] 
 <div className="space-y-4">
   <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
     <table className="w-full text-left text-sm">
-      <thead className="bg-[#1C415B] text-white text-[10px] uppercase font-bold tracking-widest">
+      <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
         <tr>
           <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
           <th className="p-4 text-center">QTD</th>
@@ -984,7 +1006,7 @@ className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] 
   {itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
      <td className="p-4 flex items-start gap-4">
-  {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="item" />}
+  {item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
   <div className="flex flex-col gap-0.5">
     <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
     
@@ -1016,19 +1038,127 @@ className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] 
       <td className="p-4 text-center text-[#1C415B] font-bold">
         {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
       </td>
-      <td className="p-4 text-center">
-        <button 
-          onClick={() => setItens(itens.filter(i => i.id !== item.id))} 
-          className="text-gray-300 hover:text-red-500 transition-colors"
-        >
-          <Trash2 size={18} />
-        </button>
-      </td>
+     <td className="p-4 text-center flex justify-center gap-2">
+  {/* Botão Editar */}
+  <button 
+    onClick={() => editarItem(item)} 
+    className="text-gray-300 hover:text-[#92D050] transition-colors"
+    title="Editar item"
+  >
+    <Pencil size={18} />
+  </button>
+
+  {/* Botão Excluir (já existente) */}
+  <button 
+    onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} 
+    className="text-gray-300 hover:text-red-500 transition-colors"
+  >
+    <Trash2 size={18} />
+  </button>
+</td>
     </tr>
   ))}
 </tbody>
     </table>
   </div>
+
+  {/* ==========================================================
+          FOLHA DE ORÇAMENTO (O que sai no PDF - Escondida na tela)
+          ========================================================== */}
+      <div style={{ display: 'none' }}>
+        <div ref={contentRef} className="p-8 bg-white min-h-screen text-black font-sans print:block w-full">
+          
+          {/* Cabeçalho Profissional */}
+          <div className="flex justify-between items-end border-b-4 border-[#1C415B] pb-6 mb-8">
+            <div>
+              <h1 className="text-4xl font-black text-[#1C415B] mb-1">ORÇAMENTO</h1>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">SÓ VIDROS E ACESSÓRIOS</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold">{new Date().toLocaleDateString('pt-BR')}</p>
+              <p className="text-xs text-gray-500">Documento gerado digitalmente</p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl mb-8 border border-gray-100">
+            <h2 className="text-[10px] font-black text-gray-400 uppercase mb-1">DADOS DO CLIENTE</h2>
+            <p className="text-xl font-bold text-[#1C415B]">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
+          </div>
+
+          {/* Tabela do Orçamento Limpa */}
+          <table className="w-full mb-10 border-collapse">
+  <thead>
+    <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
+      <th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
+      <th className="py-3 text-center">Medidas do Vão</th>
+      <th className="py-3 text-center">Qtd</th>
+      <th className="py-3 text-right">Subtotal</th>
+    </tr>
+  </thead>
+ <tbody className="divide-y divide-gray-100">
+  {itens.map((item: any) => (
+    <tr key={item.id} className="text-sm">
+      <td className="py-4 flex items-center gap-4">
+        {/* DESENHO */}
+        {item.imagem && (
+          <img src={item.imagem} className="w-16 h-16 object-contain border border-gray-100 rounded" alt="Desenho" />
+        )}
+        <div>
+          <p className="font-normal text-[#1C415B] uppercase">{item.descricao}</p>
+          <p className="text-[10px] text-gray-500 italic">{item.vidroInfo}</p>
+        </div>
+      </td>
+      
+      {/* MEDIDAS - AZUL E SEM NEGRITO */}
+      <td className="py-4 text-center font-mono text-xs text-[#1C415B]">
+        <div className="flex flex-col gap-1">
+          <span className="font-normal">
+            {item.larguraVao || item.medidaVao?.split('x')[0]}mm (Largura)
+          </span>
+          <span className="text-[10px] opacity-50">x</span>
+          <span className="font-normal">
+            {item.alturaVao || item.medidaVao?.split('x')[1]}mm (Altura)
+          </span>
+        </div>
+      </td>
+
+      {/* QUANTIDADE - AZUL E SEM NEGRITO */}
+      <td className="py-4 text-center font-normal text-[#1C415B]">
+        {item.quantidade}
+      </td>
+
+      {/* SUBTOTAL - AZUL E SEM NEGRITO */}
+      <td className="py-4 text-right font-normal text-[#1C415B]">
+        {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      </td>
+    </tr>
+  ))}
+</tbody>
+</table>
+
+          {/* Totais do Orçamento */}
+          <div className="flex justify-between items-start border-t-2 border-gray-100 pt-6">
+            <div className="text-[10px] text-gray-400 max-w-[300px]">
+              <p className="font-bold mb-1 uppercase">Observações Técnicas:</p>
+              <p>Validade do orçamento: 7 dias. O vidro temperado não permite cortes ou furos após a têmpera. As medidas são de responsabilidade do solicitante.</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-black text-gray-300 uppercase block">Total Geral</span>
+              <span className="text-5xl font-black text-[#1C415B]">
+                {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            </div>
+          </div>
+
+          {/* Assinaturas */}
+          <div className="grid grid-cols-2 gap-20 mt-32">
+            <div className="border-t border-gray-300 pt-2 text-center text-[10px] uppercase text-gray-400">Assinatura Responsável</div>
+            <div className="border-t border-gray-300 pt-2 text-center text-[10px] uppercase text-gray-400">Aceite do Cliente</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
 
 {/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
 {itens.length > 0 && (
@@ -1071,7 +1201,10 @@ className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] 
     </div>
 
   </div>
-)}
+)
+}
+
+
 </div>
 </div>
     )
