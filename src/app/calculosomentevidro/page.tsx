@@ -322,84 +322,68 @@ if (modeloBase.includes("porta com bandeira")) {
 })();
 
  const adicionarItem = () => {
-    if (!vidroSel) {
-        alert("Por favor, selecione um vidro antes de adicionar.");
-        return;
-    }
-    if (!larguraVao || !alturaVao) {
-        alert("Preencha largura e altura.");
-        return;
-    }
+  if (!vidroSel) return alert("Selecione um vidro");
+  let nomeFormatado = modelo.toUpperCase();
+  if (modelo.toLowerCase().includes("mão amiga") && configMaoAmiga) {
+    nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
+  } else if (folhas && !folhas.includes("Escolher")) {
+    nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
+  }
+  
+  const modeloPrincipal = modelo || "Janela";
+  // Se for Mão Amiga, anexamos a configuração ao nome
+  const nomeCompleto = modeloPrincipal.toLowerCase().includes("mão amiga") && configMaoAmiga 
+    ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
+    : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
 
-    const modeloAtual = modelo || "Janela";
-    const folhasAtuais = folhas || "2 folhas";
+  const resultado = calcularProjeto({
+    modelo: modelo,
+    folhas: folhas,
+    largura: larguraVao,
+    larguraB: larguraVaoB,
+    altura: alturaVao,
+    alturaPorta: alturaBandeira,
+    precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco,
+    precoM2: vidroSel.preco,
+    configMaoAmiga: configMaoAmiga,
+    tipoOrcamento: tipoOrcamento,
+  });
 
-    // 1. Cálculo base do projeto (Vidro + Perfis padrão do cálculo)
-    const resultado = calcularProjeto({
-        modelo: modeloAtual,
-        folhas: folhasAtuais,
-        largura: larguraVao,
-        larguraB: larguraVaoB,
-        altura: alturaVao,        
-        alturaPorta: alturaBandeira, 
-        precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco, 
-        precoM2: vidroSel.preco,
-        configMaoAmiga: configMaoAmiga,
-        tipoOrcamento: tipoOrcamento,
-    });
+  const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
+    const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
+    return acc + (valor * Number(adic.qtd));
+  }, 0);
 
-    // 2. Cálculo dos Adicionais da Lista (Ferragens/Perfis extras que você clicou em Adicionar)
-    const totalAdicionaisExtras = adicionaisPendentes.reduce((acc, adic) => {
-        return acc + (parseNumber(adic.valor) * parseNumber(adic.qtd));
-    }, 0);
+  const qtdVao = Number(quantidade) || 1;
+  const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
-    // 3. SOMA TUDO: (Valor do Vidro/Projeto + Adicionais Extras) * Quantidade de Vãos
-    const qtdVao = parseNumber(quantidade);
-    const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
+  const detalhesTecnicos = [];
+  if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
+  if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
+  if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) detalhesTecnicos.push(`Trilho: ${tipoOrcamento}`);
 
-    // 4. Montar os Detalhes (Trinco, Puxador, Trilho, etc.) - Pula o que for "Escolher"
-const opcionaisArray = [];
-  // Só adiciona se não for "Escolher" e se não for "Sem..." (opcional)
-  if (trinco && !trinco.toLowerCase().includes("escolher")) opcionaisArray.push(`Trinco: ${trinco}`);
-  if (puxador && !puxador.toLowerCase().includes("escolher")) opcionaisArray.push(puxador);
-  if (tipoOrcamento && !tipoOrcamento.toLowerCase().includes("escolher")) opcionaisArray.push(`Trilho: ${tipoOrcamento}`);
-  if (configMaoAmiga && !configMaoAmiga.toLowerCase().includes("escolher")) opcionaisArray.push(`Modelo: ${configMaoAmiga}`);
-
-   
-    // Adiciona também os nomes das ferragens extras da lista
-    adicionaisPendentes.forEach(a => opcionaisArray.push(`${a.nome} (x${a.qtd})`));
-
-    const detalhesTexto = opcionaisArray.join(" • ");
-
-    // 5. Monta o objeto para a tabela
-const novoItem = {
-    id: Date.now(),
-    descricao: `${modelo} ${folhas}`, 
-    vidroInfo: modelo.toLowerCase().includes("bandeira") 
-        ? `Porta: ${formatarNomeVidro(vidroSel)} | Band: ${vidroSelBandeira ? formatarNomeVidro(vidroSelBandeira) : formatarNomeVidro(vidroSel)}`
-        : formatarNomeVidro(vidroSel),
-    detalhes: opcionaisArray, // Agora salvamos como ARRAY para listar um embaixo do outro
-    areaM2: resultado.area,           
-    adicionais: adicionaisPendentes.map(a => ({
-        qtd: a.qtd,
-        nome: a.nome || a.descricao || "Item sem nome" // Garante que não apareça undefined
-    })), 
+  const novoItem = {
+   id: Date.now(),
+    descricao: nomeFormatado,
+    vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
+    detalhes: detalhesTecnicos,
+    adicionais: adicionaisPendentes.map((a: any) => ({
+      qtd: a.qtd,
+      nome: a.nome // Usando 'nome' como padrão
+    })),
     medidaVao: `${larguraVao}x${alturaVao}`,
-    quantidade: quantidade,
+    quantidade: qtdVao,
     imagem: imgPath,
-    total: valorFinal
-};
+    total: valorFinal,
+    areaM2: resultado.area
+  };
 
-    setItens([...itens, novoItem]);
-    
-    // Limpeza
-    setLarguraVao(""); 
-    setLarguraVaoB(""); 
-    setAlturaVao(""); 
-    setQuantidade("1");
-    setAdicionaisPendentes([]); 
-
-    setTimeout(() => { larguraRef.current?.focus(); }, 100);
+  setItens([...itens, novoItem]);
+  
+  // Limpa campos
+  setAdicionaisPendentes([]);
+  setLarguraVao("");
+  setAlturaVao("");
 };
 
     const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
@@ -936,23 +920,39 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
                     </div>
                     <div className="col-span-2"><input type="text" className={`w-full p-2 bg-[#F4FFF0] border border-[#92D050]/20 rounded-xl text-sm text-center ${focusClass}`} value={qtdAdicional} onChange={e => setQtdAdicional(e.target.value)} /></div>
                     <div className="col-span-2"><button onClick={() => {
-                        if (!buscaAdicional) return;
-                        setAdicionaisPendentes([...adicionaisPendentes, { texto: buscaAdicional, qtd: qtdAdicional, valor: valorUnitAdicional }]);
-                        setBuscaAdicional(""); setValorUnitAdicional("0,00"); setQtdAdicional("1");
-                    }} className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] uppercase shadow-md">+ Selecionar</button></div>
+    if (!buscaAdicional) return;
+    setAdicionaisPendentes([
+        ...adicionaisPendentes, 
+        { 
+            nome: buscaAdicional, // Mudamos de 'texto' para 'nome'
+            qtd: qtdAdicional, 
+            valor: valorUnitAdicional 
+        }
+    ]);
+    setBuscaAdicional(""); 
+    setValorUnitAdicional("0,00"); 
+    setQtdAdicional("1");
+}} 
+className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] uppercase shadow-md">
+    + Selecionar
+</button></div>
                     </div>
 
                     {adicionaisPendentes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
-                        {adicionaisPendentes.map((adic, idx) => (
-                        <div key={idx} className="bg-white px-3 py-1 rounded-full border border-gray-200 text-[10px] flex items-center gap-2">
-                            <span className="font-bold text-[#92D050]">{adic.qtd}x</span> {adic.texto}
-                            <button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}><X size={12} className="text-red-300" /></button>
-                        </div>
-                        ))}
-                    </div>
-                    )}
-
+  <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+    {adicionaisPendentes.map((adic, idx) => (
+      <div key={idx} className="bg-white px-3 py-1 rounded-full border border-gray-200 text-[10px] flex items-center gap-2">
+        <span className="font-bold text-[#92D050]">{adic.qtd}x</span> 
+        {/* Mude de adic.texto para adic.nome abaixo */}
+        <span className="text-gray-600">{adic.nome}</span>
+        <button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}>
+          <X size={12} className="text-red-300" />
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+                 
                     <div className="flex justify-end gap-3">
                     <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Item ao Orçamento</button>
                     </div>
@@ -999,16 +999,16 @@ const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
       </span>
     ))}
 
-    {/* LISTA DE ADICIONAIS EXTRAS (Ferragens da busca) */}
-    {item.adicionais && item.adicionais.length > 0 && (
-      <div className="mt-1 pt-1 border-t border-dotted border-gray-200">
-        {item.adicionais.map((a: any, i: number) => (
-          <span key={i} className="text-[10px] text-gray-500 font-medium block leading-tight">
-            + {a.qtd}x {a.nome}
-          </span>
-        ))}
-      </div>
-    )}
+   {/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
+{item.adicionais && item.adicionais.length > 0 && (
+  <div className="mt-1 pt-1 border-t border-dotted border-gray-200">
+    {item.adicionais.map((a: any, i: number) => (
+      <span key={i} className="text-[10px] text-gray-500 font-medium block leading-tight">
+        + {a.qtd}x {a.nome}
+      </span>
+    ))}
+  </div>
+)}
   </div>
 </td>
       <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
