@@ -1015,19 +1015,19 @@ className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl f
     </span>
 
     {/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
-    {item.detalhes && item.detalhes.map((det: string, idx: number) => (
-      <span key={idx} className="text-[10px] text-[#92D050] font-medium italic block leading-tight">
+{item.detalhes && item.detalhes.map((det: string, idx: number) => (
+      <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
         • {det}
-      </span>
+      </p>
     ))}
 
    {/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
 {item.adicionais && item.adicionais.length > 0 && (
-  <div className="mt-1 pt-1 border-t border-dotted border-gray-200">
-    {item.adicionais.map((a: any, i: number) => (
-      <span key={i} className="text-[10px] text-gray-500 font-medium block leading-tight">
-        + {a.qtd}x {a.nome}
-      </span>
+      <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
+        {item.adicionais.map((a: any, i: number) => (
+          <p key={i} className="text-[10px] text-gray-500 font-normal">
+            + {a.qtd}x {a.nome}
+          </p>
     ))}
   </div>
 )}
@@ -1098,14 +1098,28 @@ className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl f
  <tbody className="divide-y divide-gray-100">
   {itens.map((item: any) => (
     <tr key={item.id} className="text-sm">
-      <td className="py-4 flex items-center gap-4">
+     <td className="py-4 flex items-start gap-4">
         {/* DESENHO */}
-        {item.imagem && (
-          <img src={item.imagem} className="w-16 h-16 object-contain border border-gray-100 rounded" alt="Desenho" />
-        )}
+       {item.imagem && (
+        <img src={item.imagem} className="w-24 h-24 object-contain border border-gray-100 rounded" alt="Desenho" />
+      )}
         <div>
-          <p className="font-normal text-[#1C415B] uppercase">{item.descricao}</p>
-          <p className="text-[10px] text-gray-500 italic">{item.vidroInfo}</p>
+         <p className="text-xs font-bold text-[#1C415B] uppercase tracking-wide">{item.descricao} </p>
+         <p className="text-[10px] text-gray-400 font-normal">{item.vidroInfo} | Área: {item.areaM2?.toFixed(3)}m²</p>
+         {item.detalhes && item.detalhes.map((det: string, idx: number) => (
+      <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
+        • {det}
+      </p>
+    ))}
+    {item.adicionais && item.adicionais.length > 0 && (
+      <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
+        {item.adicionais.map((a: any, i: number) => (
+          <p key={i} className="text-[10px] text-gray-500 font-normal">
+            + {a.qtd}x {a.nome}
+          </p>
+        ))}
+      </div>
+    )}
         </div>
       </td>
       
