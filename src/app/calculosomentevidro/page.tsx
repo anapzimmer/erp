@@ -1,1225 +1,1228 @@
-    "use client"
-    import { useState, useEffect, useRef } from 'react'
-    import { supabase } from "@/lib/supabaseClient"
-    import { useReactToPrint } from 'react-to-print';
-    import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
-    import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
-    import { useRouter } from 'next/navigation' 
+"use client"
+  import { useState, useEffect, useRef } from 'react'
+  import { supabase } from "@/lib/supabaseClient"
+  import { useReactToPrint } from 'react-to-print';
+  import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
+  import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
+  import { useRouter } from 'next/navigation' 
 
-    export default function CalculoProjetosVidros() {
-      const router = useRouter()
-      const [vidros, setVidros] = useState<any[]>([])
-      const [clientes, setClientes] = useState<any[]>([])
-      const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
-      const [itens, setItens] = useState<any[]>([])
-      
-      const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
-      
-      const [buscaCliente, setBuscaCliente] = useState("")
-      const [mostrarClientes, setMostrarClientes] = useState(false)
-      const [clienteIndex, setClienteIndex] = useState(-1)
+export default function CalculoProjetosVidros() {
+  const router = useRouter()
+  const [vidros, setVidros] = useState<any[]>([])
+  const [clientes, setClientes] = useState<any[]>([])
+  const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
+  const [itens, setItens] = useState<any[]>([])
+  const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
+  const [buscaCliente, setBuscaCliente] = useState("")
+  const [mostrarClientes, setMostrarClientes] = useState(false)
+  const [clienteIndex, setClienteIndex] = useState(-1)
+  const [buscaVidro, setBuscaVidro] = useState("")
+  const [mostrarVidros, setMostrarVidros] = useState(false)
+  const [vidroIndex, setVidroIndex] = useState(-1)
+  const [vidroSel, setVidroSel] = useState<any>(null)
+  const [buscaAdicional, setBuscaAdicional] = useState("")
+  const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
+  const [adicionalIndex, setAdicionalIndex] = useState(-1)
+  const [qtdAdicional, setQtdAdicional] = useState("1")
+  const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+  const [modelo, setModelo] = useState("Escolher Tipo")
+  const [folhas, setFolhas] = useState("Escolher Folhas")
+  const [trinco, setTrinco] = useState("Escolher trinco")
+  const [corKit, setCorKit] = useState("Escolher Puxador")
+  const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
+  const [anguloCanto, setAnguloCanto] = useState("Padrão")
+  const [kits, setKits] = useState([]);
+  const [larguraVao, setLarguraVao] = useState("")
+  const [larguraVaoB, setLarguraVaoB] = useState("") 
+  const [alturaVao, setAlturaVao] = useState("")
+  const [alturaBandeira, setAlturaBandeira] = useState("")
+  const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
+  const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
+  const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
+  const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
+  const [quantidade, setQuantidade] = useState("1")
+  const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
+  const [roldana, setRoldana] = useState("Carrinho Simples");
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const modeloRef = useRef<HTMLSelectElement>(null)
+  const larguraRef = useRef<HTMLInputElement>(null)
+  const alturaRef = useRef<HTMLInputElement>(null);
+  const qtdRef = useRef<HTMLInputElement>(null);
+  const scrollVidrosRef = useRef(null);
+  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
+  const [clienteSel, setClienteSel] = useState<any>(null);
+  const formatarNomeVidro = (v: any) => {
+  const nome = v.nome?.trim() || "";
+  const espessura = String(v.espessura || "")
+    .replace(/mm/gi, "")   // remove qualquer mm existente
+    .trim();
+  return `${nome} ${espessura}mm`;
+  };
+  const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
+  const { data, error } = await supabase
+  .from('vidro_precos_clientes')
+  .select('preco')
+  .eq('vidro_id', vidroId)
+  .eq('cliente_id', clienteId)
+  .single();
 
-      const [buscaVidro, setBuscaVidro] = useState("")
-      const [mostrarVidros, setMostrarVidros] = useState(false)
-      const [vidroIndex, setVidroIndex] = useState(-1)
-      const [vidroSel, setVidroSel] = useState<any>(null)
-
-      const [buscaAdicional, setBuscaAdicional] = useState("")
-      const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
-      const [adicionalIndex, setAdicionalIndex] = useState(-1)
-      const [qtdAdicional, setQtdAdicional] = useState("1")
-      const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
-
-      const [modelo, setModelo] = useState("Escolher Tipo")
-      const [folhas, setFolhas] = useState("Escolher Folhas")
-      const [trinco, setTrinco] = useState("Escolher trinco")
-      const [corKit, setCorKit] = useState("Escolher Puxador")
-      const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
-      const [anguloCanto, setAnguloCanto] = useState("Padrão")
-      
-      const [larguraVao, setLarguraVao] = useState("")
-      const [larguraVaoB, setLarguraVaoB] = useState("") 
-      const [alturaVao, setAlturaVao] = useState("")
-      const [alturaBandeira, setAlturaBandeira] = useState("")
-      const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
-      const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
-      const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
-      const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
-      const [quantidade, setQuantidade] = useState("1")
-      const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
-      const [roldana, setRoldana] = useState("Carrinho Simples");
-      const clienteInputRef = useRef<HTMLInputElement>(null);
-      const modeloRef = useRef<HTMLSelectElement>(null)
-      const larguraRef = useRef<HTMLInputElement>(null)
-      const alturaRef = useRef<HTMLInputElement>(null);
-      const qtdRef = useRef<HTMLInputElement>(null);
-      const scrollVidrosRef = useRef(null);
-      const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
-      const [clienteSel, setClienteSel] = useState<any>(null);
-      const formatarNomeVidro = (v: any) => {
-        const nome = v.nome?.trim() || "";
-        const espessura = String(v.espessura || "")
-            .replace(/mm/gi, "")   // remove qualquer mm existente
-            .trim();
-
-        return `${nome} ${espessura}mm`;
-        };
-
-    const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
-    const { data, error } = await supabase
-      .from('vidro_precos_clientes')
-      .select('preco')
-      .eq('vidro_id', vidroId)
-      .eq('cliente_id', clienteId)
-      .single();
-
-    if (data && !error) return data.preco;
-    return null;
+  if (data && !error) return data.preco;
+  return null;
   };
 
-    useEffect(() => {
-    async function load() {
-      const { data: v } = await supabase.from('vidros').select('*')
-      if (v) setVidros(v)
-      const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
-      if (c) setClientes(c)
-      const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-      const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
-      setAdicionaisDB([...(p || []), ...(f || [])])
-    }
-    load()
+useEffect(() => {
+  async function load() {
+  const { data: v } = await supabase.from('vidros').select('*')
+  if (v) setVidros(v)
+  const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
+  if (c) setClientes(c)
+  const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
+  const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
+  setAdicionaisDB([...(p || []), ...(f || [])])
+  }
+  load()
   }, []);
 
-  // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
-  useEffect(() => {
-    async function atualizarPreco() {
-      if (clienteSel?.id && vidroSel?.id) {
-        const precoEspecial = await buscarPrecoEspecial(vidroSel.id, clienteSel.id);
-        if (precoEspecial) {
-          // Atualiza o vidro selecionado com o preço do cliente
-          setVidroSel((prev: any) => ({
-            ...prev,
-            preco: precoEspecial
-          }));
-          console.log("🚀 Preço Especial Aplicado:", precoEspecial);
-        }
-      }
-    }
-    atualizarPreco();
-  }, [clienteSel?.id, vidroSel?.id]); // Roda sempre que mudar o cliente ou o vidro
+useEffect(() => {
+  if (itens.length > 0) {
+  setTimeout(() => {
+  larguraRef.current?.focus();
+  }, 50);
+  }
+  }, [itens]);
 
-  // --- FILTROS (MANTENHA OS SEUS) ---
-  // --- FILTROS CORRIGIDOS E TIPADOS ---
-const clientesFiltrados = clientes.filter((c: any) => 
+// --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
+useEffect(() => {
+  async function atualizarPreco() {
+  if (clienteSel?.id && vidroSel?.id) {
+  const precoEspecial = await buscarPrecoEspecial(vidroSel.id, clienteSel.id);
+  if (precoEspecial) {
+  // Atualiza o vidro selecionado com o preço do cliente
+  setVidroSel((prev: any) => ({
+  ...prev,
+  preco: precoEspecial
+  }));
+  console.log("🚀 Preço Especial Aplicado:", precoEspecial);
+  }}}
+  atualizarPreco();
+  }, [clienteSel?.id, vidroSel?.id]); // Roda sempre que mudar o cliente ou o vidro
+  const clientesFiltrados = clientes.filter((c: any) => 
   c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
-);
+  );
 
 // Filtro para o Vidro Principal
-const vidrosFiltrados = vidros.filter((v: any) => {
+  const vidrosFiltrados = vidros.filter((v: any) => {
   const nomeFormatado = formatarNomeVidro(v).toLowerCase();
   return nomeFormatado.includes(buscaVidro.toLowerCase());
-});
+  });
 
 // Filtro para o Vidro da Bandeira (Independente)
-const vidrosBandeiraFiltrados = vidros.filter((v: any) => {
+  const vidrosBandeiraFiltrados = vidros.filter((v: any) => {
   const nomeFormatado = formatarNomeVidro(v).toLowerCase();
   return nomeFormatado.includes(buscaVidroBandeira.toLowerCase());
-});
+  });
 
-const adicionaisFiltrados = adicionaisDB.filter((a: any) => 
-    a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
-    a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
-).slice(0, 8);
+  const adicionaisFiltrados = adicionaisDB.filter((a: any) => 
+  a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
+  a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
+  ).slice(0, 8);
 
-    const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
+  const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
 
- 
-    const imgPath = ((): string => {
-    if (!modelo || modelo.includes("Escolher")) return "";
 
-    const modeloBase = modelo.toLowerCase().trim();
-    const folhasBase = folhas.toLowerCase();
-    const puxadorBase = corKit.toLowerCase();
+const imgPath = ((): string => {
+  if (!modelo || modelo.includes("Escolher")) return "";
 
-    // 1️⃣ MÃO AMIGA
-    if (modeloBase.includes("mão amiga")) {
-        if (configMaoAmiga.includes("Escolher")) return "";
-        let fSufixo = "";
-        if (configMaoAmiga === "Todas Correm") {
-            if (folhasBase.includes("escolher")) return "";
-            fSufixo = `${folhasBase.replace(/\D/g, "")}fs`;
-        } else {
-            fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fs`;
-        }
-        let tipoSufixo = "simples";
-        if (modeloBase.includes("porta") && puxadorBase === "com puxador") {
-            tipoSufixo = "completo";
-        }
-        return `/desenhos/pma-${fSufixo}-${tipoSufixo}.png`;
-    }
+  const modeloBase = modelo.toLowerCase().trim();
+  const folhasBase = folhas.toLowerCase();
+  const puxadorBase = corKit.toLowerCase();
 
-    // 2️⃣ DESLIZANTE (NOVO)
-    if (modeloBase.includes("deslizante")) {
-        if (configMaoAmiga.includes("Escolher")) return "";
+// 1️⃣ MÃO AMIGA
+  if (modeloBase.includes("mão amiga")) {
+  if (configMaoAmiga.includes("Escolher")) return "";
+  let fSufixo = "";
+  if (configMaoAmiga === "Todas Correm") {
+  if (folhasBase.includes("escolher")) return "";
+  fSufixo = `${folhasBase.replace(/\D/g, "")}fs`;
+  } else {
+  fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fs`;
+  }
+  let tipoSufixo = "simples";
+  if (modeloBase.includes("porta") && puxadorBase === "com puxador") {
+  tipoSufixo = "completo";
+  }
+  return `/desenhos/pma-${fSufixo}-${tipoSufixo}.png`;
+  }
 
-        let fSufixo = "";
-        if (configMaoAmiga === "Todas Correm") {
-            if (folhasBase.includes("escolher")) return "";
-            fSufixo = `${folhasBase.replace(/\D/g, "")}fls`;
-        } else {
-            // Extrai números: "1 Fixa + 2 Móveis" vira "12"
-            fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fls`;
-        }
+// 2️⃣ DESLIZANTE (NOVO)
+if (modeloBase.includes("deslizante")) {
+if (configMaoAmiga.includes("Escolher")) return "";
 
-        const rSufixo = roldana === "Carrinho Inteiro" ? "ci" : "cs";
-        const tipoSufixo = puxadorBase === "com puxador" ? "completo" : "simples";
-
-        return `/desenhos/deslizante-${fSufixo}-${rSufixo}-${tipoSufixo}.png`;
-    }
-
-    // 3️⃣ FIXO, BASCULANTE E BOX
-    if (modeloBase === "fixo") {
-        if (folhasBase.includes("escolher")) return "";
-        return `/desenhos/fixo-${folhasBase.replace(" ", "")}.png`;
-    }
-    if (modeloBase.includes("basculante")) {
-        if (folhasBase.includes("1 folha")) return "/desenhos/basculate-unica.png";
-        return "/desenhos/sem-imagem.png";
-    }
-    if (modeloBase.includes("box tradicional")) {
-        if (folhasBase.includes("1 folha") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
-        if (folhasBase.includes("2 folhas")) return puxadorBase === "com puxador" ? "/desenhos/box-puxadorduplo.png" : "/desenhos/box-padrao.png";
-        if (folhasBase.includes("3 folhas")) return "/desenhos/box-padrao3f.png";
-        if (folhasBase.includes("4 folhas")) return "/desenhos/box-padrao4f.png";
-    }
-    if (modeloBase.includes("box canto")) {
-        if (folhasBase.includes("1") || folhasBase.includes("2") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
-        if (folhasBase.includes("3 folhas")) return "/desenhos/box-canto3f.png";
-        if (folhasBase.includes("4 folhas")) return "/desenhos/box-canto4f.png";
-    }
-
-    // 4️⃣ MAX
-    if (modeloBase === "max") {
-        return folhasBase.includes("1 folha") ? "/desenhos/max-unica.png" : "/desenhos/sem-imagem.png";
-    }
-
-    // 5️⃣ JANELAS GENÉRICAS
-    if (modeloBase.includes("janela")) {
-        if (folhasBase.includes("1") || folhasBase.includes("3") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
-        if (trinco.includes("Escolher")) return "";
-        const t = trinco === "Com trinco" ? "c" : "s";
-        const f = folhasBase.includes("2") ? "2fls" : "4fls";
-        if (modeloBase === "janela padrão") return `/desenhos/janela-${t}-trinco-${f}.png`;
-        if (modeloBase === "janela bandeira") return `/desenhos/janela-${trinco === "Com trinco" ? "bct" : "bst"}-trinco-${f}.png`;
-        if (modeloBase === "janela canto") return `/desenhos/janela-${anguloCanto === "90°" ? "canto90" : "canto"}-${trinco === "Com trinco" ? "ct" : "st"}.png`;
-    }
-
-    // 6️⃣ PORTA
-    if (modeloBase === "porta") {
-        if (folhasBase.includes("escolher")) return "";
-
-        const trincosEspeciais = [
-            "trinco simples + chave", 
-            "chave + chave", 
-            "trinco duplo + chave", 
-            "trinco simples + trinco duplo"
-        ];
-        const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
-
-        if (folhasBase.includes("2 folhas")) {
-            if (puxadorBase === "com puxador") {
-                if (trinco === "Com trinco") return "/desenhos/porta2fls-completo.png";
-                return "/desenhos/porta2fls-completo1.png";
-            } else {
-                if (trinco === "Com trinco") return "/desenhos/porta2fls-simples.png";
-                return "/desenhos/janela-s-trinco-2fls.png";
-            }
-        }
-
-        if (folhasBase.includes("4 folhas")) {
-            if (puxadorBase === "com puxador") {
-                if (trinco === "Com trinco") return "/desenhos/porta4fls-completo2.png";
-                if (trinco === "Sem trinco" || trinco.includes("Escolher")) return "/desenhos/porta4fls-completo3.png";
-                return "/desenhos/porta4fls-completo1.png";
-            } else {
-                if (trinco === "Com trinco") return "/desenhos/porta4fls-completo4.png";
-                if (eTrincoEspecial) return "/desenhos/porta4fls-completo5.png";
-                return "/desenhos/janela-s-trinco-4fls.png";
-            }
-        }
-
-        if (folhasBase.includes("6 folhas")) {
-            return (puxadorBase === "com puxador") 
-                ? "/desenhos/porta6fls-4f2m-completo.png" 
-                : "/desenhos/porta6fls-4f2m-simples.png";
-        }
-    }
-    // 7️⃣ PORTA FORA DO VÃO
-if (modeloBase.includes("porta fora vão")) {
-    const f = folhasBase.replace(/\D/g, "");
-    if (f === "1" || f === "2") {
-        const sufixo = puxadorBase === "com puxador" ? "completo" : "";
-        return `/desenhos/portaforavao-${f}fls${sufixo}.png`;
-    }
-    return "/desenhos/sem-imagem.png";
+let fSufixo = "";
+if (configMaoAmiga === "Todas Correm") {
+if (folhasBase.includes("escolher")) return "";
+fSufixo = `${folhasBase.replace(/\D/g, "")}fls`;
+} else {
+// Extrai números: "1 Fixa + 2 Móveis" vira "12"
+fSufixo = `${configMaoAmiga.replace(/\D/g, "")}fls`;
 }
+
+const rSufixo = roldana === "Carrinho Inteiro" ? "ci" : "cs";
+const tipoSufixo = puxadorBase === "com puxador" ? "completo" : "simples";
+
+return `/desenhos/deslizante-${fSufixo}-${rSufixo}-${tipoSufixo}.png`;
+}
+
+// 3️⃣ FIXO, BASCULANTE E BOX
+  if (modeloBase === "fixo") {
+  if (folhasBase.includes("escolher")) return "";
+  return `/desenhos/fixo-${folhasBase.replace(" ", "")}.png`;
+  }
+  if (modeloBase.includes("basculante")) {
+  if (folhasBase.includes("1 folha")) return "/desenhos/basculate-unica.png";
+  return "/desenhos/sem-imagem.png";
+  }
+  if (modeloBase.includes("box tradicional")) {
+  if (folhasBase.includes("1 folha") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
+  if (folhasBase.includes("2 folhas")) return puxadorBase === "com puxador" ? "/desenhos/box-puxadorduplo.png" : "/desenhos/box-padrao.png";
+  if (folhasBase.includes("3 folhas")) return "/desenhos/box-padrao3f.png";
+  if (folhasBase.includes("4 folhas")) return "/desenhos/box-padrao4f.png";
+  }
+  if (modeloBase.includes("box canto")) {
+  if (folhasBase.includes("1") || folhasBase.includes("2") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
+  if (folhasBase.includes("3 folhas")) return "/desenhos/box-canto3f.png";
+  if (folhasBase.includes("4 folhas")) return "/desenhos/box-canto4f.png";
+  }
+
+  // 4️⃣ MAX
+  if (modeloBase === "max") {
+  return folhasBase.includes("1 folha") ? "/desenhos/max-unica.png" : "/desenhos/sem-imagem.png";
+  }
+
+// 5️⃣ JANELAS GENÉRICAS
+  if (modeloBase.includes("janela")) {
+  if (folhasBase.includes("1") || folhasBase.includes("3") || folhasBase.includes("5") || folhasBase.includes("6")) return "/desenhos/sem-imagem.png";
+  if (trinco.includes("Escolher")) return "";
+  const t = trinco === "Com trinco" ? "c" : "s";
+  const f = folhasBase.includes("2") ? "2fls" : "4fls";
+  if (modeloBase === "janela padrão") return `/desenhos/janela-${t}-trinco-${f}.png`;
+  if (modeloBase === "janela bandeira") return `/desenhos/janela-${trinco === "Com trinco" ? "bct" : "bst"}-trinco-${f}.png`;
+  if (modeloBase === "janela canto") return `/desenhos/janela-${anguloCanto === "90°" ? "canto90" : "canto"}-${trinco === "Com trinco" ? "ct" : "st"}.png`;
+  }
+
+// 6️⃣ PORTA
+  if (modeloBase === "porta") {
+  if (folhasBase.includes("escolher")) return "";
+
+  const trincosEspeciais = [
+  "trinco simples + chave", 
+  "chave + chave", 
+  "trinco duplo + chave", 
+  "trinco simples + trinco duplo"
+  ];
+const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
+  if (folhasBase.includes("2 folhas")) {
+  if (puxadorBase === "com puxador") {
+  if (trinco === "Com trinco") return "/desenhos/porta2fls-completo.png";
+  return "/desenhos/porta2fls-completo1.png";
+  } else {
+  if (trinco === "Com trinco") return "/desenhos/porta2fls-simples.png";
+  return "/desenhos/janela-s-trinco-2fls.png";
+  }}
+
+  if (folhasBase.includes("4 folhas")) {
+  if (puxadorBase === "com puxador") {
+  if (trinco === "Com trinco") return "/desenhos/porta4fls-completo2.png";
+  if (trinco === "Sem trinco" || trinco.includes("Escolher")) return "/desenhos/porta4fls-completo3.png";
+  return "/desenhos/porta4fls-completo1.png";
+  } else {
+  if (trinco === "Com trinco") return "/desenhos/porta4fls-completo4.png";
+  if (eTrincoEspecial) return "/desenhos/porta4fls-completo5.png";
+  return "/desenhos/janela-s-trinco-4fls.png";
+  }}
+  if (folhasBase.includes("6 folhas")) {
+  return (puxadorBase === "com puxador") 
+  ? "/desenhos/porta6fls-4f2m-completo.png" 
+  : "/desenhos/porta6fls-4f2m-simples.png";
+  }}
+
+// 7️⃣ PORTA FORA DO VÃO
+  if (modeloBase.includes("porta fora vão")) {
+  const f = folhasBase.replace(/\D/g, "");
+  if (f === "1" || f === "2") {
+  const sufixo = puxadorBase === "com puxador" ? "completo" : "";
+  return `/desenhos/portaforavao-${f}fls${sufixo}.png`;
+  }
+  return "/desenhos/sem-imagem.png";
+  }
 
 // 8️⃣ PORTA DE GIRO
-if (modeloBase.includes("porta giro")) {
-    const f = folhasBase.replace(/\D/g, "");
-    if (["1", "2", "4"].includes(f)) {
-        const sufixo = puxadorBase === "com puxador" ? "completo" : "";
-        return `/desenhos/portagiro-${f}fls${sufixo}.png`;
-    }
-    return "/desenhos/sem-imagem.png";
-}
+  if (modeloBase.includes("porta giro")) {
+  const f = folhasBase.replace(/\D/g, "");
+  if (["1", "2", "4"].includes(f)) {
+  const sufixo = puxadorBase === "com puxador" ? "completo" : "";
+  return `/desenhos/portagiro-${f}fls${sufixo}.png`;
+  }
+  return "/desenhos/sem-imagem.png";
+  }
 
 // 9️⃣ PORTA COM BANDEIRA (Regras de Sufixos Corrigidas)
-if (modeloBase.includes("porta com bandeira")) {
-    const f = folhasBase.replace(/\D/g, "");
-    
-    const trincosEspeciais = [
-        "trinco simples + chave", 
-        "chave + chave", 
-        "trinco duplo + chave", 
-        "trinco simples + trinco duplo"
-    ];
-    const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
+  if (modeloBase.includes("porta com bandeira")) {
+  const f = folhasBase.replace(/\D/g, "");
 
-    // --- Lógica para 4 Folhas (Seguindo sua lista exata) ---
-    if (f === "4") {
-        if (puxadorBase === "com puxador") {
-            // Puxadores + Trincos Compostos
-            if (eTrincoEspecial) return "/desenhos/portaband4fls-completa2.png";
-            
-            // Puxadores + 1 Trinco Simples
-            if (trinco === "Com trinco") return "/desenhos/portaband4fls-completa.png";
-            
-            // Só Puxador (Sem trinco)
-            return "/desenhos/portaband4fls-completa1.png";
-        } else {
-            // SEM PUXADOR + Trincos Compostos
-            if (eTrincoEspecial) return "/desenhos/portaband4fls-completa3.png";
-            
-            // SEM PUXADOR + Somente 1 Trinco
-            if (trinco === "Com trinco") return "/desenhos/portaband4fls-simples.png";
-            
-            // SEM PUXADOR e SEM TRINCO
-            return "/desenhos/portaband4fls.png";
-        }
+  const trincosEspeciais = [
+  "trinco simples + chave", 
+  "chave + chave", 
+  "trinco duplo + chave", 
+  "trinco simples + trinco duplo"
+  ];
+  const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
+
+// --- Lógica para 4 Folhas (Seguindo sua lista exata) ---
+  if (f === "4") {
+    if (puxadorBase === "com puxador") {
+    // Puxadores + Trincos Compostos
+    if (eTrincoEspecial) return "/desenhos/portaband4fls-completa2.png";
+
+    // Puxadores + 1 Trinco Simples
+    if (trinco === "Com trinco") return "/desenhos/portaband4fls-completa.png";
+
+    // Só Puxador (Sem trinco)
+    return "/desenhos/portaband4fls-completa1.png";
+    } else {
+    // SEM PUXADOR + Trincos Compostos
+    if (eTrincoEspecial) return "/desenhos/portaband4fls-completa3.png";
+
+    // SEM PUXADOR + Somente 1 Trinco
+    if (trinco === "Com trinco") return "/desenhos/portaband4fls-simples.png";
+
+    // SEM PUXADOR e SEM TRINCO
+    return "/desenhos/portaband4fls.png";
     }
+  }
 
-    // --- Lógica para 2 Folhas (Mantendo o padrão funcional) ---
-    if (f === "2") {
-        if (puxadorBase === "com puxador" && trinco === "Com trinco") return "/desenhos/portaband2fls-completa.png";
-        if (trinco === "Com trinco") return "/desenhos/portaband2fls-simples.png";
-        return "/desenhos/portaband2fls.png";
-    }
-
-    return "/desenhos/sem-imagem.png";
-}
-
-    return "";
-})();
+// --- Lógica para 2 Folhas (Mantendo o padrão funcional) ---
+  if (f === "2") {
+  if (puxadorBase === "com puxador" && trinco === "Com trinco") return "/desenhos/portaband2fls-completa.png";
+  if (trinco === "Com trinco") return "/desenhos/portaband2fls-simples.png";
+  return "/desenhos/portaband2fls.png";
+  }
+  return "/desenhos/sem-imagem.png";
+  }
+  return "";
+  })();
 
 const editarItem = (item: any) => {
-  // 1. Limpa estados atuais para evitar conflitos
   setAdicionaisPendentes([]);
-
-  // 2. Restaura medidas básicas
   const [L, A] = item.medidaVao.split('x');
   setLarguraVao(L);
   setAlturaVao(A);
   setQuantidade(item.quantidade.toString());
-
-  // 3. Restaura o Vidro na busca visual
   setBuscaVidro(item.vidroInfo);
-  // Nota: Se você tiver o objeto original do vidro, pode usar setVidroSel(item.objetoVidroOriginal)
-
-  // 4. Recupera os Adicionais (Ferragens)
   if (item.adicionais && item.adicionais.length > 0) {
-    const formatadosParaEdicao = item.adicionais.map((a: any) => ({
-      nome: a.nome,
-      qtd: a.qtd,
-      valor: a.valor || "0,00"
-    }));
-    setAdicionaisPendentes(formatadosParaEdicao);
+  const formatadosParaEdicao = item.adicionais.map((a: any) => ({
+  nome: a.nome,
+  qtd: a.qtd,
+  valor: a.valor || "0,00"
+  }));
+  setAdicionaisPendentes(formatadosParaEdicao);
   }
-
-  // 5. Remove o item da lista para que ele seja "substituído" ao clicar em adicionar
   setItens(itens.filter((i: any) => i.id !== item.id));
-
-  // 6. Feedback visual: sobe a tela para o formulário
   window.scrollTo({ top: 0, behavior: 'smooth' });
-};;
+  };;
 
- const adicionarItem = () => {
+  const adicionarItem = () => {
   if (!vidroSel) return alert("Selecione um vidro");
   let nomeFormatado = modelo.toUpperCase();
   if (modelo.toLowerCase().includes("mão amiga") && configMaoAmiga) {
-    nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
+  nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
   } else if (folhas && !folhas.includes("Escolher")) {
-    nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
+  nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
   }
-  
+
   const modeloPrincipal = modelo || "Janela";
   // Se for Mão Amiga, anexamos a configuração ao nome
   const nomeCompleto = modeloPrincipal.toLowerCase().includes("mão amiga") && configMaoAmiga 
-    ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
-    : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
+  ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
+  : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
 
   const resultado = calcularProjeto({
-    modelo: modelo,
-    folhas: folhas,
-    largura: larguraVao,
-    larguraB: larguraVaoB,
-    altura: alturaVao,
-    alturaPorta: alturaBandeira,
-    precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco,
-    precoM2: vidroSel.preco,
-    configMaoAmiga: configMaoAmiga,
-    tipoOrcamento: tipoOrcamento,
+  modelo: modelo,
+  folhas: folhas,
+  largura: larguraVao,
+  larguraB: larguraVaoB,
+  altura: alturaVao,
+  alturaPorta: alturaBandeira,
+  precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco,
+  precoM2: vidroSel.preco,
+  configMaoAmiga: configMaoAmiga,
+  tipoOrcamento: tipoOrcamento,
   });
 
   const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
-    const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
-    return acc + (valor * Number(adic.qtd));
+  const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
+  return acc + (valor * Number(adic.qtd));
   }, 0);
 
   const qtdVao = Number(quantidade) || 1;
   const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
-  const detalhesTecnicos = [];
-  if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
-  if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
-  if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) detalhesTecnicos.push(`Trilho: ${tipoOrcamento}`);
+const detalhesTecnicos = [];
+if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
+if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
+if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) detalhesTecnicos.push(`Trilho: ${tipoOrcamento}`);
 
-  const novoItem = {
-   id: Date.now(),
-    descricao: nomeFormatado,
-    vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
-    detalhes: detalhesTecnicos,
-    adicionais: adicionaisPendentes.map((a: any) => ({
-      qtd: a.qtd,
-      nome: a.nome // Usando 'nome' como padrão
-    })),
-    medidaVao: `${larguraVao}x${alturaVao}`,
-    larguraVao: larguraVao, 
-    alturaVao: alturaVao,
-    quantidade: qtdVao,
-    imagem: imgPath,
-    total: valorFinal,
-    areaM2: resultado.area
-  };
-
-  setItens([...itens, novoItem]);
-  
-  // Limpa campos
-  setAdicionaisPendentes([]);
-  setLarguraVao("");
-  setAlturaVao("");
+const novoItem = {
+id: Date.now(),
+descricao: nomeFormatado,
+vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
+detalhes: detalhesTecnicos,
+adicionais: adicionaisPendentes.map((a: any) => ({
+qtd: a.qtd,
+nome: a.nome 
+})),
+medidaVao: `${larguraVao}x${alturaVao}`,
+larguraVao: larguraVao, 
+alturaVao: alturaVao,
+quantidade: qtdVao,
+imagem: imgPath,
+total: valorFinal,
+areaM2: resultado.area
 };
 
-    const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
+setItens([...itens, novoItem]);
 
-    const handleNovo = () => {
-  // Cliente
-  setBuscaCliente("")
-  setMostrarClientes(false)
-  setClienteIndex(-1)
+// Limpa campos
+setAdicionaisPendentes([]);
+setLarguraVao("");
+setAlturaVao("");
+};
 
-  // Vidro
-  setBuscaVidro("")
-  setVidroSel(null)
-  setMostrarVidros(false)
-  setVidroIndex(-1)
+const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
 
-  // Configurações
-  setModelo("Escolher Tipo")
-  setFolhas("Escolher Folhas")
-  setTrinco("Escolher trinco")
-  setTipoOrcamento("Escolher Tipo de Trilho")
-  setCorKit("Escolher Puxador")
-  setAnguloCanto("Padrão")
+const handleNovo = () => {
+// Cliente
+setBuscaCliente("")
+setMostrarClientes(false)
+setClienteIndex(-1)
 
-  // Medidas
-  setLarguraVao("")
-  setLarguraVaoB("")
-  setAlturaVao("")
-  setAlturaBandeira("")
-  setQuantidade("")
+// Vidro
+setBuscaVidro("")
+setVidroSel(null)
+setMostrarVidros(false)
+setVidroIndex(-1)
 
-  // Adicionais
-  setBuscaAdicional("")
-  setMostrarAdicionais(false)
-  setAdicionalIndex(-1)
-  setQtdAdicional("1")
-  setValorUnitAdicional("0,00")
-  setAdicionaisPendentes([])
-  setBuscaVidroBandeira("");
-  setVidroSelBandeira(null);
-  setAlturaBandeira("");
-  // Foco inicial
-  setTimeout(() => {
-        clienteInputRef.current?.focus();
-    }, 100); // O timeout garante que o foco ocorra após a limpeza dos estados
-}
+// Configurações
+setModelo("Escolher Tipo")
+setFolhas("Escolher Folhas")
+setTrinco("Escolher trinco")
+setTipoOrcamento("Escolher Tipo de Trilho")
+setCorKit("Escolher Puxador")
+setAnguloCanto("Padrão")
+
+// Medidas
+setLarguraVao("")
+setLarguraVaoB("")
+setAlturaVao("")
+setAlturaBandeira("")
+setQuantidade("1")
+
+// Adicionais
+setBuscaAdicional("")
+setMostrarAdicionais(false)
+setAdicionalIndex(-1)
+setQtdAdicional("1")
+setValorUnitAdicional("0,00")
+setAdicionaisPendentes([])
+setBuscaVidroBandeira("");
+setVidroSelBandeira(null);
+setAlturaBandeira("");
+setTimeout(() => {
+larguraRef.current?.focus()
+}, 50)
+};
 
 // Criamos um objeto para somar m² por tipo de vidro e contar peças
 const resumoVidros = itens.reduce((acc: any, item) => {
-  const nomeVidro = item.vidroInfo.split('|')[0].trim(); // Pega o nome do vidro
-  acc[nomeVidro] = (acc[nomeVidro] || 0) + item.areaM2;
-  return acc;
+const nomeVidro = item.vidroInfo.split('|')[0].trim(); // Pega o nome do vidro
+acc[nomeVidro] = (acc[nomeVidro] || 0) + item.areaM2;
+return acc;
 }, {});
 
 const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
 const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
 const contentRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
-    contentRef,
-    documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
-  });
+const handlePrint = useReactToPrint({
+contentRef,
+documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
+});
 
-    return (
-        <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
-          <div className="print:hidden">
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#92D050] rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
-            <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Projetos - Só VIDRO</h1>
-            </div>
-            <div className="flex gap-2">
-            <button onClick={() => { 
-                setItens([])
-                handleNovo()
-                }}className="px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50">Novo Orçamento</button>
-            <button onClick={() =>handlePrint()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
-            </div>
-        </div>
-
-        {/* CLIENTE */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-4 relative">
-            <span className="text-[11px] font-bold text-gray-400 uppercase">Cliente:</span>
-            <div className="relative w-96">
-            <input ref={clienteInputRef} tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-gray-200 bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..." 
-                onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
-                onKeyDown={(e) => {
-                if (e.key === "ArrowDown") setClienteIndex(p => Math.min(p + 1, clientesFiltrados.length - 1));
-                if (e.key === "ArrowUp") setClienteIndex(p => Math.max(p - 1, 0));
-                if (e.key === "Enter") {
-                    const sel = clienteIndex >= 0 ? clientesFiltrados[clienteIndex] : clientesFiltrados[0];
-                    if (sel) { setClienteSel(sel); setBuscaCliente(sel.nome);  setMostrarClientes(false); modeloRef.current?.focus(); }
-                }
-                }}
-            />
-            {mostrarClientes && buscaCliente && (
-                <div className="absolute top-full w-full bg-white border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
-                {clientesFiltrados.map((c, i) => (
-                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} onClick={() => { setClienteSel(c); setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
-                ))}
-                </div>
-            )}
-            </div>
-            <button 
-              onClick={() => router.push('/clientes')} 
-              className="p-2 bg-[#1C415B] text-white rounded-xl hover:bg-opacity-90 transition-all shadow-md active:scale-95"
-              title="Cadastrar Novo Cliente"
-            >
-              <UserPlus size={20} />
-            </button>
-           </div>
-
-        {/* BOX CONFIGURAÇÃO */}
-<div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
- <div className="grid grid-cols-12 gap-6 items-start">
-
-    {/* ================= COLUNA ESQUERDA ================= */}
-    <div className="col-span-9">
-
-      <div className="grid grid-cols-4 gap-4">
-
-      {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
-<div className="flex flex-col gap-2">
-  <label className="text-[10px] text-gray-400  font-bold  uppercase">PROJETOS</label>
-
-  <select
-    ref={modeloRef}
-    className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-    value={modelo}
-    onChange={e => {
-      setModelo(e.target.value)
-      setLarguraVaoB("")
-      setAlturaBandeira("")
-    }}
-  >
-    <option>Escolher Tipo</option>
-    <option>Basculante</option>
-    <option>Box Tradicional</option>
-    <option>Box Canto</option>
-    <option>Fixo</option>
-    <option value="Janela Padrão">Janela</option>
-    <option value="Janela Bandeira">Janela Bandeira</option>
-    <option value="Janela Canto">Janela Canto</option>
-    <option>Janela Mão Amiga</option>
-    <option>Max</option>
-    <option>Porta </option>
-    <option>Porta com Bandeira</option>
-    <option>Porta Deslizante</option>
-    <option>Porta Fora Vão</option>
-    <option>Porta Giro</option>
-    <option>Porta Mão Amiga</option>
-  </select>
-
-  {/* CONFIGURAÇÃO PARA CANTO */}
-  {modelo === "Janela Canto" && (
-    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
-      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
-        Tipo do fecho (Canto)
-      </label>
-      <select
-        className={`border border-[#92D050] rounded-xl p-2.5 text-sm ${focusClass}`}
-        value={anguloCanto}
-        onChange={e => setAnguloCanto(e.target.value)}
-      >
-        <option>Escolher Modelo</option>
-        <option value="Padrão">Canto Padrão (Perfil)</option>
-        <option value="90°">Canto 90° (Vidro/Vidro)</option>
-      </select>
-    </div>
-  )}
-
-  {/* NOVO: TIPO DE ROLDANA (Aparece apenas para Deslizante) */}
-  {modelo === "Porta Deslizante" && (
-    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
-      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
-        Tipo de Roldana
-      </label>
-      <select
-        className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-        value={roldana}
-        onChange={e => setRoldana(e.target.value)}
-      >
-        <option value="Carrinho Simples">Carrinho Simples</option>
-        <option value="Carrinho Inteiro">Carrinho Inteiro</option>
-      </select>
-    </div>
-  )}
-
-    {/* CAIXA UNIFICADA: Mão Amiga e Deslizante */}
-  {(modelo === "Janela Mão Amiga" || modelo === "Porta Mão Amiga" || modelo === "Porta Deslizante") && (
-    <div className="flex flex-col gap-1 animate-in fade-in duration-500">
-      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
-        Qual modelo de porta?
-      </label>
-      <select
-        className={`border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-[#1C415B] transition-all bg-white shadow-sm`}
-        value={configMaoAmiga}
-        onChange={(e) => setConfigMaoAmiga(e.target.value)}
-      >
-        <option>Escolher Modelo</option>
-        <option value="Todas Correm">Todas Correm</option>
-        <option value="1 Fixa + 2 Móveis">1 Fixa + 2 Móveis</option>
-        <option value="1 Fixa + 3 Móveis">1 Fixa + 3 Móveis</option>
-        <option value="1 Fixa + 4 Móveis">1 Fixa + 4 Móveis</option>
-        <option value="1 Fixa + 5 Móveis">1 Fixa + 5 Móveis</option>
-        <option value="2 Fixas + 4 Móveis">2 Fixas + 4 Móveis</option>
-      </select>
-    </div>
-  )}
-
-  {/* Lógica Condicional: Esconde o campo Folhas */}
-  {(!modelo.toLowerCase().includes("mão amiga") && !modelo.toLowerCase().includes("deslizante") || configMaoAmiga === "Todas Correm") && (
-    <div className="flex flex-col gap-1 animate-in fade-in duration-300">
-      <select
-        className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-        value={folhas}
-        onChange={e => setFolhas(e.target.value)}
-      >
-        <option>Escolher Folhas</option>
-        <option value="1 folha">1 Folha</option>
-        <option value="2 folhas">2 Folhas</option>
-        <option value="3 folhas">3 Folhas</option>
-        <option value="4 folhas">4 Folhas</option>
-        <option value="5 folhas">5 Folhas</option>
-        <option value="6 folhas">6 Folhas</option>
-      </select>
-    </div>
-  )}
-
-  <select
-    className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-    value={trinco}
-    onChange={e => setTrinco(e.target.value)}
-  >
-    <option>Escolher trinco</option>
-    <option value="Sem trinco">Sem Trinco</option>
-    <option value="Com trinco">Com Trinco</option>
-    <option>Trinco Simples + Chave</option>
-    <option>Chave + Chave</option>
-    <option>Trinco Duplo + Chave</option>
-    <option>Trinco Simples + Trinco Duplo</option>
-  </select>
+return (
+<div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
+<div className="print:hidden">
+{/* HEADER */}
+<div className="flex justify-between items-center mb-8">
+<div className="flex items-center gap-3">
+<div className="p-2 bg-[#92D050] rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
+<h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Projetos - Só VIDRO</h1>
+</div>
+<div className="flex gap-2">
+<button onClick={() => { 
+setItens([])
+handleNovo()
+}}className="px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50">Novo Orçamento</button>
+<button onClick={() =>handlePrint()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
+</div>
 </div>
 
-        {/* 2️⃣ KIT / COR / VIDRO */}
-        <div className="flex flex-col gap-2 relative">
-          <label className="text-[10px] text-gray-400  font-bold uppercase">Tipo do Trilho</label>
+{/* CLIENTE */}
+<div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-4 relative">
+<span className="text-[11px] font-bold text-gray-400 uppercase">Cliente:</span>
+<div className="relative w-96">
+<input ref={clienteInputRef} tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-gray-200 bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..." 
+onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
+onKeyDown={(e) => {
+if (e.key === "ArrowDown") setClienteIndex(p => Math.min(p + 1, clientesFiltrados.length - 1));
+if (e.key === "ArrowUp") setClienteIndex(p => Math.max(p - 1, 0));
+if (e.key === "Enter") {
+    const sel = clienteIndex >= 0 ? clientesFiltrados[clienteIndex] : clientesFiltrados[0];
+    if (sel) { setClienteSel(sel); setBuscaCliente(sel.nome);  setMostrarClientes(false); modeloRef.current?.focus(); }
+}
+}}
+/>
+{mostrarClientes && buscaCliente && (
+<div className="absolute top-full w-full bg-white border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
+{clientesFiltrados.map((c, i) => (
+    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} onClick={() => { setClienteSel(c); setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
+))}
+</div>
+)}
+</div>
+<button 
+onClick={() => router.push('/clientes')} 
+className="p-2 bg-[#1C415B] text-white rounded-xl hover:bg-opacity-90 transition-all shadow-md active:scale-95"
+title="Cadastrar Novo Cliente"
+>
+<UserPlus size={20} />
+</button>
+</div>
 
-          <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-            value={tipoOrcamento}
-            onChange={e => setTipoOrcamento(e.target.value)}
-          >
-           <option>Escolher Tipo de Trilho</option>
-            <option>Aparente</option>
-            <option>Interrompido</option>
-            <option>Embutido</option>
-          </select>
+{/* BOX CONFIGURAÇÃO */}
+<div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
+<div className="grid grid-cols-12 gap-6 items-start">
 
-          <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-            value={corKit}
-            onChange={e => setCorKit(e.target.value)}
-          >
-            <option>Escolher Puxador</option>
-            <option>Com Puxador</option>
-            <option>Sem Puxador</option>
-          </select>
+{/* ================= COLUNA ESQUERDA ================= */}
+<div className="col-span-9">
 
-          <div className="relative">
-          <input
-    type="text"
-    className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-[#92D050] outline-none`}
-    value={buscaVidro}
-    placeholder="Pesquisar vidro (ex: Incolor 08)..."
-    onChange={e => {
-      setBuscaVidro(e.target.value);
-      setMostrarVidros(true);
-      setVidroIndex(0); // Começa sempre no primeiro da lista filtrada
-    }}
-    onKeyDown={e => {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setVidroIndex(p => {
-          const next = Math.min(p + 1, vidrosFiltrados.length - 1);
-          // Lógica de Scroll Automático
-          const el = document.getElementById(`vidro-item-${next}`);
-          el?.scrollIntoView({ block: 'nearest' });
-          return next;
-        });
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setVidroIndex(p => {
-          const prev = Math.max(p - 1, 0);
-          const el = document.getElementById(`vidro-item-${prev}`);
-          el?.scrollIntoView({ block: 'nearest' });
-          return prev;
-        });
-      }
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const v = vidrosFiltrados[vidroIndex];
-        if (v) {
-          setVidroSel(v);
-          setBuscaVidro(formatarNomeVidro(v));
-          setMostrarVidros(false);
-        }
-      }
-    }}
-  />
+<div className="grid grid-cols-4 gap-4">
 
-           {mostrarVidros && buscaVidro && (
-    <div 
-      ref={scrollVidrosRef}
-      className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth"
-    >
-      {vidrosFiltrados.length > 0 ? (
-        vidrosFiltrados.map((v, i) => (
-          <div
-            id={`vidro-item-${i}`} // ID essencial para o scrollIntoView
-            key={v.id}
-            className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
-              i === vidroIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
-            }`}
-            onClick={() => {
-              setVidroSel(v);
-              setBuscaVidro(formatarNomeVidro(v));
-              setMostrarVidros(false);
-            }}
-          >
-            <span>{formatarNomeVidro(v)}</span>
-            {i === vidroIndex && <div className="w-1 h-4 bg-[#92D050] rounded-full" />}
-          </div>
-        ))
-      ) : (
-        <div className="px-4 py-2 text-xs text-gray-400">Nenhum vidro encontrado...</div>
-      )}
-    </div>
-  )}
+{/* 1️⃣ JANELA / FOLHAS / TRINCO */}
+<div className="flex flex-col gap-2">
+<label className="text-[10px] text-gray-400  font-bold  uppercase">PROJETOS</label>
+
+<select
+ref={modeloRef}
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={modelo}
+onChange={e => {
+setModelo(e.target.value)
+setLarguraVaoB("")
+setAlturaBandeira("")
+}}
+>
+<option>Escolher Tipo</option>
+<option>Basculante</option>
+<option>Box Tradicional</option>
+<option>Box Canto</option>
+<option>Fixo</option>
+<option value="Janela Padrão">Janela</option>
+<option value="Janela Bandeira">Janela Bandeira</option>
+<option value="Janela Canto">Janela Canto</option>
+<option>Janela Mão Amiga</option>
+<option>Max</option>
+<option>Porta </option>
+<option>Porta com Bandeira</option>
+<option>Porta Deslizante</option>
+<option>Porta Fora Vão</option>
+<option>Porta Giro</option>
+<option>Porta Mão Amiga</option>
+</select>
+
+{/* CONFIGURAÇÃO PARA CANTO */}
+{modelo === "Janela Canto" && (
+<div className="flex flex-col gap-1 animate-in fade-in duration-500">
+<label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+Tipo do fecho (Canto)
+</label>
+<select
+className={`border border-[#92D050] rounded-xl p-2.5 text-sm ${focusClass}`}
+value={anguloCanto}
+onChange={e => setAnguloCanto(e.target.value)}
+>
+<option>Escolher Modelo</option>
+<option value="Padrão">Canto Padrão (Perfil)</option>
+<option value="90°">Canto 90° (Vidro/Vidro)</option>
+</select>
+</div>
+)}
+
+{/* NOVO: TIPO DE ROLDANA (Aparece apenas para Deslizante) */}
+{modelo === "Porta Deslizante" && (
+<div className="flex flex-col gap-1 animate-in fade-in duration-500">
+<label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+Tipo de Roldana
+</label>
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={roldana}
+onChange={e => setRoldana(e.target.value)}
+>
+<option value="Carrinho Simples">Carrinho Simples</option>
+<option value="Carrinho Inteiro">Carrinho Inteiro</option>
+</select>
+</div>
+)}
+
+{/* CAIXA UNIFICADA: Mão Amiga e Deslizante */}
+{(modelo === "Janela Mão Amiga" || modelo === "Porta Mão Amiga" || modelo === "Porta Deslizante") && (
+<div className="flex flex-col gap-1 animate-in fade-in duration-500">
+<label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">
+Qual modelo de porta?
+</label>
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-[#1C415B] transition-all bg-white shadow-sm`}
+value={configMaoAmiga}
+onChange={(e) => setConfigMaoAmiga(e.target.value)}
+>
+<option>Escolher Modelo</option>
+<option value="Todas Correm">Todas Correm</option>
+<option value="1 Fixa + 2 Móveis">1 Fixa + 2 Móveis</option>
+<option value="1 Fixa + 3 Móveis">1 Fixa + 3 Móveis</option>
+<option value="1 Fixa + 4 Móveis">1 Fixa + 4 Móveis</option>
+<option value="1 Fixa + 5 Móveis">1 Fixa + 5 Móveis</option>
+<option value="2 Fixas + 4 Móveis">2 Fixas + 4 Móveis</option>
+</select>
+</div>
+)}
+
+{/* Lógica Condicional: Esconde o campo Folhas */}
+{(!modelo.toLowerCase().includes("mão amiga") && !modelo.toLowerCase().includes("deslizante") || configMaoAmiga === "Todas Correm") && (
+<div className="flex flex-col gap-1 animate-in fade-in duration-300">
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={folhas}
+onChange={e => setFolhas(e.target.value)}
+>
+<option>Escolher Folhas</option>
+<option value="1 folha">1 Folha</option>
+<option value="2 folhas">2 Folhas</option>
+<option value="3 folhas">3 Folhas</option>
+<option value="4 folhas">4 Folhas</option>
+<option value="5 folhas">5 Folhas</option>
+<option value="6 folhas">6 Folhas</option>
+</select>
+</div>
+)}
+
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={trinco}
+onChange={e => setTrinco(e.target.value)}
+>
+<option>Escolher trinco</option>
+<option value="Sem trinco">Sem Trinco</option>
+<option value="Com trinco">Com Trinco</option>
+<option>Trinco Simples + Chave</option>
+<option>Chave + Chave</option>
+<option>Trinco Duplo + Chave</option>
+<option>Trinco Simples + Trinco Duplo</option>
+</select>
+</div>
+
+{/* 2️⃣ KIT / COR / VIDRO */}
+<div className="flex flex-col gap-2 relative">
+<label className="text-[10px] text-gray-400  font-bold uppercase">Tipo do Trilho</label>
+
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={tipoOrcamento}
+onChange={e => setTipoOrcamento(e.target.value)}
+>
+<option>Escolher Tipo de Trilho</option>
+<option>Aparente</option>
+<option>Interrompido</option>
+<option>Embutido</option>
+</select>
+
+<select
+className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+value={corKit}
+onChange={e => setCorKit(e.target.value)}
+>
+<option>Escolher Puxador</option>
+<option>Com Puxador</option>
+<option>Sem Puxador</option>
+</select>
+
+<div className="relative">
+<input
+type="text"
+className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-[#92D050] outline-none`}
+value={buscaVidro}
+placeholder="Pesquisar vidro (ex: Incolor 08)..."
+onChange={e => {
+setBuscaVidro(e.target.value);
+setMostrarVidros(true);
+setVidroIndex(0); // Começa sempre no primeiro da lista filtrada
+}}
+onKeyDown={e => {
+if (e.key === "ArrowDown") {
+e.preventDefault();
+setVidroIndex(p => {
+const next = Math.min(p + 1, vidrosFiltrados.length - 1);
+// Lógica de Scroll Automático
+const el = document.getElementById(`vidro-item-${next}`);
+el?.scrollIntoView({ block: 'nearest' });
+return next;
+});
+}
+if (e.key === "ArrowUp") {
+e.preventDefault();
+setVidroIndex(p => {
+const prev = Math.max(p - 1, 0);
+const el = document.getElementById(`vidro-item-${prev}`);
+el?.scrollIntoView({ block: 'nearest' });
+return prev;
+});
+}
+if (e.key === "Enter") {
+e.preventDefault();
+const v = vidrosFiltrados[vidroIndex];
+if (v) {
+setVidroSel(v);
+setBuscaVidro(formatarNomeVidro(v));
+setMostrarVidros(false);
+}
+}
+}}
+/>
+
+{mostrarVidros && buscaVidro && (
+<div 
+ref={scrollVidrosRef}
+className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth"
+>
+{vidrosFiltrados.length > 0 ? (
+vidrosFiltrados.map((v, i) => (
+<div
+id={`vidro-item-${i}`} // ID essencial para o scrollIntoView
+key={v.id}
+className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
+i === vidroIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
+}`}
+onClick={() => {
+setVidroSel(v);
+setBuscaVidro(formatarNomeVidro(v));
+setMostrarVidros(false);
+}}
+>
+<span>{formatarNomeVidro(v)}</span>
+{i === vidroIndex && <div className="w-1 h-4 bg-[#92D050] rounded-full" />}
+</div>
+))
+) : (
+<div className="px-4 py-2 text-xs text-gray-400">Nenhum vidro encontrado...</div>
+)}
+</div>
+)}
 </div>
 </div>
 
 {/* 3️⃣ MEDIDAS - AGORA EM COLUNA VERTICAL */}
 <div className="col-span-1 flex flex-col gap-3"> 
-  
-  {/* CAMPO LARGURA */}
-  <div className="flex flex-col">
-    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Largura</label>
-    <input
-      ref={larguraRef}
-      type="number"
-      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
-      value={larguraVao}
-      onChange={e => { if (e.target.value.length <= 4) setLarguraVao(e.target.value); }}
-      onKeyDown={e => { if (e.key === 'Enter') alturaRef.current?.focus(); }}
-    />
-  </div>
 
-  {/* LARGURA B (SÓ APARECE EM CANTO) */}
-  {modelo === "Janela Canto" && (
-    <div className="flex flex-col">
-      <label className="text-[10px] text-gray-400 uppercase ml-2 mb-1">Largura B</label>
-      <input
-        type="number"
-        className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
-        value={larguraVaoB}
-        onChange={e => setLarguraVaoB(e.target.value)}
-      />
-    </div>
-  )}
+{/* CAMPO LARGURA */}
+<div className="flex flex-col">
+<label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Largura</label>
+<input
+ref={larguraRef}
+type="number"
+className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+value={larguraVao}
+onChange={e => { if (e.target.value.length <= 4) setLarguraVao(e.target.value); }}
+onKeyDown={e => { if (e.key === 'Enter') alturaRef.current?.focus(); }}
+/>
+</div>
 
-  {/* CAMPO ALTURA */}
-  <div className="flex flex-col">
-    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Altura</label>
-    <input
-      ref={alturaRef}
-      type="number"
-      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
-      value={alturaVao}
-      onChange={e => { if (e.target.value.length <= 4) setAlturaVao(e.target.value); }}
-      onKeyDown={e => { if (e.key === 'Enter') qtdRef.current?.focus(); }}
-    />
-  </div>
+{/* LARGURA B (SÓ APARECE EM CANTO) */}
+{(modelo === "Janela Canto" || modelo === "Box Canto") && (
+<div className="flex flex-col">
+<label className="text-[10px] text-gray-400 uppercase ml-2 mb-1">Largura B</label>
+<input
+type="number"
+className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
+value={larguraVaoB}
+onChange={e => setLarguraVaoB(e.target.value)}
+/>
+</div>
+)}
 
-  {/* CAMPO QUANTIDADE */}
-  <div className="flex flex-col">
-    <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 text-[#92D050]">Qtd</label>
-    <input
-      ref={qtdRef}
-      type="number"
-      className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass} bg-[#F4FFF0]`}
-      value={quantidade}
-      onChange={e => setQuantidade(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          adicionarItem();
-        }
-      }}
-    />
-  </div>
+{/* CAMPO ALTURA */}
+<div className="flex flex-col">
+<label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Altura</label>
+<input
+ref={alturaRef}
+type="number"
+className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+value={alturaVao}
+onChange={e => { if (e.target.value.length <= 4) setAlturaVao(e.target.value); }}
+onKeyDown={e => { if (e.key === 'Enter') qtdRef.current?.focus(); }}
+/>
+</div>
+
+{/* CAMPO QUANTIDADE */}
+<div className="flex flex-col">
+<label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 text-[#92D050]">Qtd</label>
+<input
+ref={qtdRef}
+type="number"
+className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass} bg-[#F4FFF0]`}
+value={quantidade}
+onChange={e => setQuantidade(e.target.value)}
+onKeyDown={(e) => {
+if (e.key === 'Enter') {
+e.preventDefault()
+e.stopPropagation()
+adicionarItem()
+}
+}}
+/>
+</div>
 </div>
 
 {modelo.toLowerCase().includes("bandeira") && (
-  <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
-    
-    {/* Campo Altura */}
-    <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
-      <input
-        type="number"
-        className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
-        placeholder="Ex: 400"
-        value={alturaBandeira}
-        onChange={e => setAlturaBandeira(e.target.value)}
-      />
-    </div>
+<div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
 
-    {/* Campo Vidro da Bandeira */}
-    <div className="flex flex-col gap-1 relative">
-      <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Vidro da Bandeira</label>
-      <input
-        type="text"
-        className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
-        placeholder="Pesquisar vidro da bandeira..."
-        value={buscaVidroBandeira}
-        onChange={e => {
-          setBuscaVidroBandeira(e.target.value);
-          setMostrarVidrosBandeira(true);
-          setVidroBandeiraIndex(0);
-        }}
-        onKeyDown={e => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setVidroBandeiraIndex(p => {
-              const next = Math.min(p + 1, vidrosBandeiraFiltrados.length - 1);
-              document.getElementById(`vidro-band-${next}`)?.scrollIntoView({ block: 'nearest' });
-              return next;
-            });
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setVidroBandeiraIndex(p => {
-              const prev = Math.max(p - 1, 0);
-              document.getElementById(`vidro-band-${prev}`)?.scrollIntoView({ block: 'nearest' });
-              return prev;
-            });
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            const v = vidrosBandeiraFiltrados[vidroBandeiraIndex];
-            if (v) {
-              setVidroSelBandeira(v);
-              setBuscaVidroBandeira(formatarNomeVidro(v));
-              setMostrarVidrosBandeira(false);
-            }
-          }
-        }}
-      />
+{/* Campo Altura */}
+<div className="flex flex-col gap-1">
+<label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
+<input
+type="number"
+className={`border border-[#92D050] rounded-xl p-2.5 text-center text-sm bg-white ${focusClass}`}
+placeholder="Ex: 400"
+value={alturaBandeira}
+onChange={e => setAlturaBandeira(e.target.value)}
+/>
+</div>
 
-      {/* Lista de Sugestões da Bandeira */}
-      {mostrarVidrosBandeira && buscaVidroBandeira && (
-        <div className="absolute top-full w-full bg-white border z-[100] max-h-40 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth">
-          {vidrosBandeiraFiltrados.length > 0 ? (
-            vidrosBandeiraFiltrados.map((v: any, i: number) => (
-              <div
-                id={`vidro-band-${i}`} // ID para o scroll funcionar
-                key={v.id}
-                className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
-                  i === vidroBandeiraIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
-                }`}
-                onClick={() => {
-                  setVidroSelBandeira(v);
-                  setBuscaVidroBandeira(formatarNomeVidro(v));
-                  setMostrarVidrosBandeira(false);
-                }}
-              >
-                <span>{formatarNomeVidro(v)}</span>
-                {i === vidroBandeiraIndex && <div className="w-1 h-3 bg-[#92D050] rounded-full" />}
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-2 text-xs text-gray-400 italic">Nenhum vidro encontrado...</div>
-          )}
-        </div>
-      )}
-    </div>
-  </div>
+{/* Campo Vidro da Bandeira */}
+<div className="flex flex-col gap-1 relative">
+<label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Vidro da Bandeira</label>
+<input
+type="text"
+className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+placeholder="Pesquisar vidro da bandeira..."
+value={buscaVidroBandeira}
+onChange={e => {
+setBuscaVidroBandeira(e.target.value);
+setMostrarVidrosBandeira(true);
+setVidroBandeiraIndex(0);
+}}
+onKeyDown={e => {
+if (e.key === "ArrowDown") {
+e.preventDefault();
+setVidroBandeiraIndex(p => {
+const next = Math.min(p + 1, vidrosBandeiraFiltrados.length - 1);
+document.getElementById(`vidro-band-${next}`)?.scrollIntoView({ block: 'nearest' });
+return next;
+});
+}
+if (e.key === "ArrowUp") {
+e.preventDefault();
+setVidroBandeiraIndex(p => {
+const prev = Math.max(p - 1, 0);
+document.getElementById(`vidro-band-${prev}`)?.scrollIntoView({ block: 'nearest' });
+return prev;
+});
+}
+if (e.key === "Enter") {
+e.preventDefault();
+const v = vidrosBandeiraFiltrados[vidroBandeiraIndex];
+if (v) {
+setVidroSelBandeira(v);
+setBuscaVidroBandeira(formatarNomeVidro(v));
+setMostrarVidrosBandeira(false);
+}
+}
+}}
+/>
+
+{/* Lista de Sugestões da Bandeira */}
+{mostrarVidrosBandeira && buscaVidroBandeira && (
+<div className="absolute top-full w-full bg-white border z-[100] max-h-40 overflow-y-auto shadow-xl rounded-xl py-2 scroll-smooth">
+{vidrosBandeiraFiltrados.length > 0 ? (
+vidrosBandeiraFiltrados.map((v: any, i: number) => (
+<div
+id={`vidro-band-${i}`} // ID para o scroll funcionar
+key={v.id}
+className={`px-4 py-2 text-xs cursor-pointer flex justify-between items-center ${
+  i === vidroBandeiraIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50 text-gray-600"
+}`}
+onClick={() => {
+  setVidroSelBandeira(v);
+  setBuscaVidroBandeira(formatarNomeVidro(v));
+  setMostrarVidrosBandeira(false);
+}}
+>
+<span>{formatarNomeVidro(v)}</span>
+{i === vidroBandeiraIndex && <div className="w-1 h-3 bg-[#92D050] rounded-full" />}
+</div>
+))
+) : (
+<div className="px-4 py-2 text-xs text-gray-400 italic">Nenhum vidro encontrado...</div>
 )}
-  </div>
+</div>
+)}
+</div>
+</div>
+)}
+</div>
 
 
-                {/* ADICIONAIS */}
-                <div className="mt-8 pt-4">
-                    <div className="flex items-center gap-2 mb-2"><Plus size={15} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
-                    <div className="grid grid-cols-12 gap-4 mb-3">
-                    <div className="col-span-8 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-                        <input type="text" placeholder="Pesquisar adicional..." className={`w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm ${focusClass}`} value={buscaAdicional} 
-                        onChange={(e) => { setBuscaAdicional(e.target.value); setMostrarAdicionais(true); setAdicionalIndex(-1); }}
-                        onKeyDown={(e) => {
-                            if (e.key === "ArrowDown") setAdicionalIndex(p => Math.min(p + 1, adicionaisFiltrados.length - 1));
-                            if (e.key === "ArrowUp") setAdicionalIndex(p => Math.max(p - 1, 0));
-                            if (e.key === "Enter") {
-                            const a = adicionalIndex >= 0 ? adicionaisFiltrados[adicionalIndex] : adicionaisFiltrados[0];
-                            if (a) { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }
-                            }
-                        }}
-                        />
-                        {mostrarAdicionais && buscaAdicional && (
-                        <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
-                            {adicionaisFiltrados.map((a, i) => (
-                            <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} 
-                                onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }}>
-                                <span>{a.codigo} - {a.nome} <span className="text-gray-400 font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
-                                <span className="text-[#92D050] font-bold">R$ {a.preco}</span>
-                            </div>
-                            ))}
-                        </div>
-                        )}
-                    </div>
-                    <div className="col-span-2"><input type="text" className={`w-full p-2 bg-[#F4FFF0] border border-[#92D050]/20 rounded-xl text-sm text-center ${focusClass}`} value={qtdAdicional} onChange={e => setQtdAdicional(e.target.value)} /></div>
-                    <div className="col-span-2"><button onClick={() => {
-    if (!buscaAdicional) return;
-    setAdicionaisPendentes([
-        ...adicionaisPendentes, 
-        { 
-            nome: buscaAdicional, // Mudamos de 'texto' para 'nome'
-            qtd: qtdAdicional, 
-            valor: valorUnitAdicional 
-        }
-    ]);
-    setBuscaAdicional(""); 
-    setValorUnitAdicional("0,00"); 
-    setQtdAdicional("1");
+{/* ADICIONAIS */}
+<div className="mt-8 pt-4">
+    <div className="flex items-center gap-2 mb-2"><Plus size={15} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
+    <div className="grid grid-cols-12 gap-4 mb-3">
+    <div className="col-span-8 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+        <input type="text" placeholder="Pesquisar adicional..." className={`w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm ${focusClass}`} value={buscaAdicional} 
+        onChange={(e) => { setBuscaAdicional(e.target.value); setMostrarAdicionais(true); setAdicionalIndex(-1); }}
+        onKeyDown={(e) => {
+            if (e.key === "ArrowDown") setAdicionalIndex(p => Math.min(p + 1, adicionaisFiltrados.length - 1));
+            if (e.key === "ArrowUp") setAdicionalIndex(p => Math.max(p - 1, 0));
+            if (e.key === "Enter") {
+            const a = adicionalIndex >= 0 ? adicionaisFiltrados[adicionalIndex] : adicionaisFiltrados[0];
+            if (a) { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }
+            }
+        }}
+        />
+        {mostrarAdicionais && buscaAdicional && (
+        <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
+            {adicionaisFiltrados.map((a, i) => (
+            <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} 
+                onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }}>
+                <span>{a.codigo} - {a.nome} <span className="text-gray-400 font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
+                <span className="text-[#92D050] font-bold">R$ {a.preco}</span>
+            </div>
+            ))}
+        </div>
+        )}
+    </div>
+    <div className="col-span-2"><input type="text" className={`w-full p-2 bg-[#F4FFF0] border border-[#92D050]/20 rounded-xl text-sm text-center ${focusClass}`} value={qtdAdicional} onChange={e => setQtdAdicional(e.target.value)} /></div>
+    <div className="col-span-2"><button onClick={() => {
+if (!buscaAdicional) return;
+setAdicionaisPendentes([
+...adicionaisPendentes, 
+{ 
+nome: buscaAdicional, // Mudamos de 'texto' para 'nome'
+qtd: qtdAdicional, 
+valor: valorUnitAdicional 
+}
+]);
+setBuscaAdicional(""); 
+setValorUnitAdicional("0,00"); 
+setQtdAdicional("1");
 }} 
 className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all outline-none">
-    + Adicionar Item
++ Adicionar Item
 </button></div>
-                    </div>
+    </div>
 
-                    {adicionaisPendentes.length > 0 && (
-  <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
-    {adicionaisPendentes.map((adic, idx) => (
-      <div key={idx} className="bg-white px-3 py-1 rounded-full border border-gray-200 text-[10px] flex items-center gap-2">
-        <span className="font-bold text-[#92D050]">{adic.qtd}x</span> 
-        {/* Mude de adic.texto para adic.nome abaixo */}
-        <span className="text-gray-600">{adic.nome}</span>
-        <button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}>
-          <X size={12} className="text-red-300" />
-        </button>
-      </div>
-    ))}
-  </div>
+    {adicionaisPendentes.length > 0 && (
+<div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+{adicionaisPendentes.map((adic, idx) => (
+<div key={idx} className="bg-white px-3 py-1 rounded-full border border-gray-200 text-[10px] flex items-center gap-2">
+<span className="font-bold text-[#92D050]">{adic.qtd}x</span> 
+{/* Mude de adic.texto para adic.nome abaixo */}
+<span className="text-gray-600">{adic.nome}</span>
+<button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}>
+<X size={12} className="text-red-300" />
+</button>
+</div>
+))}
+</div>
 )}
-                 
-                    <div className="flex justify-end gap-3">
-                    <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Projeto</button>
-                    </div>
-                </div>
-            </div>
+  
+    <div className="flex justify-end gap-3">
+    <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Projeto</button>
+    </div>
+</div>
+</div>
 
-            <div className="col-span-3 flex items-center justify-center">
-                <div className="w-full aspect-square bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
-                    {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={40} />}
-                </div>
-            </div>
-            </div>
-        </div>
+<div className="col-span-3 flex items-center justify-center">
+<div className="w-full aspect-square bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
+    {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={40} />}
+</div>
+</div>
+</div>
+</div>
 
-        {/* TABELA RESULTADOS */}
+{/* TABELA RESULTADOS */}
 <div className="space-y-4">
-  <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
-    <table className="w-full text-left text-sm">
-      <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
-        <tr>
-          <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
-          <th className="p-4 text-center">QTD</th>
-          <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
-          <th className="p-4 text-center">TOTAL</th>
-          <th className="p-4 text-center">AÇÕES</th>
-        </tr>
-      </thead>
-    <tbody className="divide-y divide-gray-50">
-  {itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
-    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-     <td className="p-4 flex items-start gap-4">
-  {item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
-  <div className="flex flex-col gap-0.5">
-    <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-    
-    <span className="text-[11px] text-gray-400 font-normal block">
-      {item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²
-    </span>
+<div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
+<table className="w-full text-left text-sm">
+<thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
+<tr>
+<th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
+<th className="p-4 text-center">QTD</th>
+<th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
+<th className="p-4 text-center">TOTAL</th>
+<th className="p-4 text-center">AÇÕES</th>
+</tr>
+</thead>
+<tbody className="divide-y divide-gray-50">
+{itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
+<tr key={item.id} className="hover:bg-gray-50 transition-colors">
+<td className="p-4 flex items-start gap-4">
+{item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
+<div className="flex flex-col gap-0.5">
+<span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
 
-    {/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
+<span className="text-[11px] text-gray-400 font-normal block">
+{item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²
+</span>
+
+{/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
 {item.detalhes && item.detalhes.map((det: string, idx: number) => (
-      <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
-        • {det}
-      </p>
-    ))}
+<p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
+• {det}
+</p>
+))}
 
-   {/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
+{/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
 {item.adicionais && item.adicionais.length > 0 && (
-      <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
-        {item.adicionais.map((a: any, i: number) => (
-          <p key={i} className="text-[10px] text-gray-500 font-normal">
-            + {a.qtd}x {a.nome}
-          </p>
-    ))}
-  </div>
+<div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
+{item.adicionais.map((a: any, i: number) => (
+<p key={i} className="text-[10px] text-gray-500 font-normal">
++ {a.qtd}x {a.nome}
+</p>
+))}
+</div>
 )}
-  </div>
+</div>
 </td>
-      <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
-      <td className="p-4 text-center font-mono text-xs text-gray-500">{item.medidaVao}</td>
-      <td className="p-4 text-center text-[#1C415B] font-bold">
-        {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-      </td>
-     <td className="p-4 text-center flex justify-center gap-2">
-  {/* Botão Editar */}
-  <button 
-    onClick={() => editarItem(item)} 
-    className="text-gray-300 hover:text-[#92D050] transition-colors"
-    title="Editar item"
-  >
-    <Pencil size={18} />
-  </button>
+<td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
+<td className="p-4 text-center font-mono text-xs text-gray-500">{item.medidaVao}</td>
+<td className="p-4 text-center text-[#1C415B] font-bold">
+{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+</td>
+<td className="p-4">
+{/* O segredo é usar h-full e items-center para alinhar verticalmente */}
+<div className="flex items-center justify-center gap-4 h-full">
+{/* Botão Editar */}
+<button 
+onClick={() => editarItem(item)} 
+className="text-gray-400 hover:text-[#92D050] transition-all transform hover:scale-110"
+title="Editar item"
+>
+<Pencil size={18} />
+</button>
 
-  {/* Botão Excluir (já existente) */}
-  <button 
-    onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} 
-    className="text-gray-300 hover:text-red-500 transition-colors"
-  >
-    <Trash2 size={18} />
-  </button>
+{/* Botão Excluir */}
+<button 
+onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} 
+className="text-gray-400 hover:text-red-500 transition-all transform hover:scale-110"
+title="Excluir item"
+>
+<Trash2 size={18} />
+</button>
+</div>
 </td>
-    </tr>
-  ))}
+</tr>
+))}
 </tbody>
-    </table>
-  </div>
+</table>
+</div>
 
-  {/* ==========================================================
-          FOLHA DE ORÇAMENTO (O que sai no PDF - Escondida na tela)
-          ========================================================== */}
-      <div style={{ display: 'none' }}>
-        <div ref={contentRef} className="p-8 bg-white min-h-screen text-black font-sans print:block w-full">
-          
-          {/* Cabeçalho Profissional */}
-          <div className="flex justify-between items-end border-b-4 border-[#1C415B] pb-6 mb-8">
-            <div>
-              <h1 className="text-4xl font-black text-[#1C415B] mb-1">ORÇAMENTO</h1>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">SÓ VIDROS E ACESSÓRIOS</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold">{new Date().toLocaleDateString('pt-BR')}</p>
-              <p className="text-xs text-gray-500">Documento gerado digitalmente</p>
-            </div>
-          </div>
+<div style={{ display: 'none' }}>
+<div ref={contentRef} className="p-8 bg-white min-h-screen text-black font-sans print:block w-full">
+<div className="flex justify-between items-end border-b-4 border-[#1C415B] pb-6 mb-8">
+<div>
+<h1 className="text-3xl font-black text-[#1C415B] mb-1">ORÇAMENTO</h1>
+<p className="text-sm font-bold text-gray-400 uppercase tracking-widest">SÓ VIDROS E ACESSÓRIOS</p>
+</div>
+<div className="text-right">
+<p className="text-sm font-bold text-[#1C415B]">{new Date().toLocaleDateString('pt-BR')}</p>
+<p className="text-xs text-gray-500">Documento gerado digitalmente</p>
+</div>
+</div>
 
-          <div className="bg-gray-50 p-4 rounded-xl mb-8 border border-gray-100">
-            <h2 className="text-[10px] font-black text-gray-400 uppercase mb-1">DADOS DO CLIENTE</h2>
-            <p className="text-xl font-bold text-[#1C415B]">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
-          </div>
+<div className="bg-gray-50 p-3 rounded-xl mb-8 border border-gray-100">
+<h2 className="text-[10px] font-black text-gray-400 uppercase mb-1">CLIENTE</h2>
+<p className="text-xl font-bold text-[#1C415B]">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
+</div>
 
-          {/* Tabela do Orçamento Limpa */}
-          <table className="w-full mb-10 border-collapse">
-  <thead>
-    <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
-      <th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
-      <th className="py-3 text-center">Medidas do Vão</th>
-      <th className="py-3 text-center">Qtd</th>
-      <th className="py-3 text-right">Subtotal</th>
-    </tr>
-  </thead>
- <tbody className="divide-y divide-gray-100">
-  {itens.map((item: any) => (
-    <tr key={item.id} className="text-sm">
-     <td className="py-4 flex items-start gap-4">
-        {/* DESENHO */}
-       {item.imagem && (
-        <img src={item.imagem} className="w-24 h-24 object-contain border border-gray-100 rounded" alt="Desenho" />
-      )}
-        <div>
-         <p className="text-xs font-bold text-[#1C415B] uppercase tracking-wide">{item.descricao} </p>
-         <p className="text-[10px] text-gray-400 font-normal">{item.vidroInfo} | Área: {item.areaM2?.toFixed(3)}m²</p>
-         {item.detalhes && item.detalhes.map((det: string, idx: number) => (
-      <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
-        • {det}
-      </p>
-    ))}
-    {item.adicionais && item.adicionais.length > 0 && (
-      <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
-        {item.adicionais.map((a: any, i: number) => (
-          <p key={i} className="text-[10px] text-gray-500 font-normal">
-            + {a.qtd}x {a.nome}
-          </p>
-        ))}
-      </div>
-    )}
-        </div>
-      </td>
-      
-      {/* MEDIDAS - AZUL E SEM NEGRITO */}
-      <td className="py-4 text-center font-mono text-xs text-[#1C415B]">
-        <div className="flex flex-col gap-1">
-          <span className="font-normal">
-            {item.larguraVao || item.medidaVao?.split('x')[0]}mm (Largura)
-          </span>
-          <span className="text-[10px] opacity-50">x</span>
-          <span className="font-normal">
-            {item.alturaVao || item.medidaVao?.split('x')[1]}mm (Altura)
-          </span>
-        </div>
-      </td>
+{/* Tabela do Orçamento Limpa */}
+<table className="w-full mb-10 border-collapse">
+<thead>
+<tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
+<th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
+<th className="py-3 text-center">Medidas do Vão</th>
+<th className="py-3 text-center">Qtd</th>
+<th className="py-3 text-right">Subtotal</th>
+</tr>
+</thead>
+<tbody className="divide-y divide-gray-100">
+{itens.map((item: any) => (
+<tr key={item.id} className="text-sm">
+<td className="py-4 flex items-start gap-4">
+{/* DESENHO */}
+{item.imagem && (
+<img src={item.imagem} className="w-24 h-24 object-contain border border-gray-100 rounded" alt="Desenho" />
+)}
+<div>
+<p className="text-xs font-bold text-[#1C415B] uppercase tracking-wide">{item.descricao} </p>
+<p className="text-[10px] text-gray-400 font-normal">{item.vidroInfo} | Área: {item.areaM2?.toFixed(3)}m²</p>
+{item.detalhes && item.detalhes.map((det: string, idx: number) => (
+<p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
+• {det}
+</p>
+))}
+{item.adicionais && item.adicionais.length > 0 && (
+<div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
+{item.adicionais.map((a: any, i: number) => (
+<p key={i} className="text-[10px] text-gray-500 font-normal">
++ {a.qtd}x {a.nome}
+</p>
+))}
+</div>
+)}
+</div>
+</td>
 
-      {/* QUANTIDADE - AZUL E SEM NEGRITO */}
-      <td className="py-4 text-center font-normal text-[#1C415B]">
-        {item.quantidade}
-      </td>
+{/* MEDIDAS - AZUL E SEM NEGRITO */}
+<td className="py-4 text-center font-mono text-xs text-[#1C415B]">
+<div className="flex flex-col gap-1">
+<span className="font-normal">
+{item.larguraVao || item.medidaVao?.split('x')[0]}mm (Largura)
+</span>
+<span className="text-[10px] opacity-50">x</span>
+<span className="font-normal">
+{item.alturaVao || item.medidaVao?.split('x')[1]}mm (Altura)
+</span>
+</div>
+</td>
 
-      {/* SUBTOTAL - AZUL E SEM NEGRITO */}
-      <td className="py-4 text-right font-normal text-[#1C415B]">
-        {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-      </td>
-    </tr>
-  ))}
+{/* QUANTIDADE - AZUL E SEM NEGRITO */}
+<td className="py-4 text-center font-normal text-[#1C415B]">
+{item.quantidade}
+</td>
+
+{/* SUBTOTAL - AZUL E SEM NEGRITO */}
+<td className="py-4 text-right font-normal text-[#1C415B]">
+{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+</td>
+</tr>
+))}
 </tbody>
 </table>
 
-          {/* Totais do Orçamento */}
-          <div className="flex justify-between items-start border-t-2 border-gray-100 pt-6">
-            <div className="text-[10px] text-gray-400 max-w-[300px]">
-              <p className="font-bold mb-1 uppercase">Observações Técnicas:</p>
-              <p>Validade do orçamento: 7 dias. O vidro temperado não permite cortes ou furos após a têmpera. As medidas são de responsabilidade do solicitante.</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-black text-gray-300 uppercase block">Total Geral</span>
-              <span className="text-5xl font-black text-[#1C415B]">
-                {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </span>
-            </div>
-          </div>
+{/* RODAPÉ DO ORÇAMENTO: RESUMO TÉCNICO + TOTAIS */}
+<div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
 
-          {/* Assinaturas */}
-          <div className="grid grid-cols-2 gap-20 mt-32">
-            <div className="border-t border-gray-300 pt-2 text-center text-[10px] uppercase text-gray-400">Assinatura Responsável</div>
-            <div className="border-t border-gray-300 pt-2 text-center text-[10px] uppercase text-gray-400">Aceite do Cliente</div>
-          </div>
+{/* COLUNA ESQUERDA: RESUMO DE PEÇAS E OBSERVAÇÕES */}
+<div className="flex flex-col gap-4">
+<div>
+<h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
+Detalhamento de Peças para Produção
+</h3>
+<div className="flex flex-col gap-1 ">
+{(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
+const totalPecasVidro = itens
+.filter((item: any) => item.vidroInfo.includes(nome))
+.reduce((acc: number, item: any) => {
+const folhasNoItem = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+return acc + (folhasNoItem * Number(item.quantidade));
+}, 0);
 
-        </div>
-      </div>
-    </div>
+return (
+<div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
+<span className="font-medium text-[#1C415B]">• {nome}</span>
+<span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
+<span className="text-[#1C415B]">{area.toFixed(2)} m²</span>
+</div>
+);
+})}
+{/* TOTAL UNIFICADO ABAIXO DA LISTA */}
+<div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
+<span>
+Total de Peças: {itens.reduce((acc: number, item: any) => {
+const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+return acc + (folhas * Number(item.quantidade));
+}, 0)}
+</span>
+<span>
+Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
+</span>
+</div>
+</div>
+</div>
+</div>
+
+{/* COLUNA DIREITA: TOTAL GERAL */}
+<div className="text-right flex flex-col justify-center h-full">
+<span className="text-[10px] font-black text-gray-300 uppercase block tracking-tighter">Total Geral do Orçamento</span>
+<span className="text-3xl font-black text-[#1C415B]">
+{valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
 
 {/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
 {itens.length > 0 && (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-    
-    {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
-    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-      <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
-      
-      {/* Cabeçalho do Bloco com Itens e Área Total */}
-      <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
-        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
-        <div className="flex gap-3">
-          <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
-          <span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
-        </div>
-      </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-      {/* Lista de Vidros Detalhada */}
-      <div className="space-y-2">
-        {Object.entries(resumoVidros).map(([nome, area]: any) => (
-          <div key={nome} className="flex justify-between items-center text-xs">
-            <span className="text-gray-500">{nome}</span>
-            <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
-          </div>
-        ))}
-      </div>
-    </div>
+{/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
+<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+<div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
 
-    {/* Bloco 2: Total Financeiro (Limpo) */}
-    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
-      <div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
-      
-      <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
-      <p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
-      
-      <div className="text-4xl font-black text-[#1C415B]">
-        {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-      </div>
-    </div>
-
-  </div>
-)
-}
-
-
+{/* Cabeçalho do Bloco com Itens e Área Total */}
+<div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
+<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
+<div className="flex gap-3">
+<span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
+<span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
 </div>
 </div>
-    )
-    }
+
+{/* Lista de Vidros Detalhada */}
+<div className="space-y-2">
+{Object.entries(resumoVidros).map(([nome, area]: any) => (
+<div key={nome} className="flex justify-between items-center text-xs">
+<span className="text-gray-500">{nome}</span>
+<span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+</div>
+))}
+</div>
+</div>
+
+{/* Bloco 2: Total Financeiro (Limpo) */}
+<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
+<div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
+
+<h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
+<p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
+
+<div className="text-4xl font-black text-[#1C415B]">
+{valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+</div>
+</div>
+
+</div>
+)}
+</div>
+</div>
+)}
