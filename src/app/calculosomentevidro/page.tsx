@@ -31,7 +31,7 @@ export default function CalculoProjetosVidros() {
   const [corKit, setCorKit] = useState("Escolher Puxador")
   const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
   const [anguloCanto, setAnguloCanto] = useState("Padrão")
-  const [kits, setKits] = useState([]);
+  const [kitsDB, setKitsDB] = useState<any[]>([])
   const [larguraVao, setLarguraVao] = useState("")
   const [larguraVaoB, setLarguraVaoB] = useState("") 
   const [alturaVao, setAlturaVao] = useState("")
@@ -72,16 +72,44 @@ export default function CalculoProjetosVidros() {
 
 useEffect(() => {
   async function load() {
-  const { data: v } = await supabase.from('vidros').select('*')
-  if (v) setVidros(v)
-  const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
-  if (c) setClientes(c)
-  const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-  const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
-  setAdicionaisDB([...(p || []), ...(f || [])])
+    const { data: v } = await supabase.from('vidros').select('*')
+    if (v) setVidros(v)
+    
+    const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
+    if (c) setClientes(c)
+    
+    const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
+    const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
+    
+    // --- NOVA BUSCA DE KITS ---
+    const { data: k } = await supabase
+    .from('kits')
+    .select('id, nome, preco, categoria, cores, preco_por_cor')
+      if (k) setKitsDB(k)
+
+    // Unificando todos na lista de busca de adicionais
+setAdicionaisDB([
+  ...(p || []), 
+  ...(f || []), 
+  ...(k || []).map((kit: any) => {
+    // Lógica para tratar o preço que vem como texto ou número
+    let valorFinal = kit.preco; 
+    
+    if (!valorFinal && kit.preco_por_cor) {
+      // Se preco for nulo, tenta limpar o preco_por_cor (remove R$ e troca vírgula por ponto)
+      valorFinal = kit.preco_por_cor.replace('R$', '').replace(',', '.').trim();
+    }
+
+    return {
+      ...kit,
+      codigo: 'KIT', 
+      preco: valorFinal || "0,00"
+    };
+  })
+]);// Fechamento do setAdicionaisDB
   }
   load()
-  }, []);
+}, []);
 
 useEffect(() => {
   if (itens.length > 0) {
@@ -126,6 +154,7 @@ useEffect(() => {
   a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
   a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
   ).slice(0, 8);
+  
 
   const arredondar5 = (medida: number) => Math.ceil(medida / 50) * 50;
 
@@ -346,6 +375,7 @@ const editarItem = (item: any) => {
   ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
   : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
 
+  
   const resultado = calcularProjeto({
   modelo: modelo,
   folhas: folhas,
@@ -912,7 +942,7 @@ onClick={() => {
             <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} 
                 onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }}>
                 <span>{a.codigo} - {a.nome} <span className="text-gray-400 font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
-                <span className="text-[#92D050] font-bold">R$ {a.preco}</span>
+               <span className="text-[#92D050] font-bold">{a.preco ? `R$ ${a.preco}` : 'R$ 0,00'}</span>
             </div>
             ))}
         </div>
@@ -1065,11 +1095,11 @@ title="Excluir item"
 {/* Tabela do Orçamento Limpa */}
 <table className="w-full mb-10 border-collapse">
 <thead>
-<tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
-<th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
-<th className="py-3 text-center">Medidas do Vão</th>
-<th className="py-3 text-center">Qtd</th>
-<th className="py-3 text-right">Subtotal</th>
+  <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
+  <th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
+  <th className="py-3 text-center">Medidas do Vão</th>
+  <th className="py-3 text-center">Qtd</th>
+  <th className="py-3 text-right">Subtotal</th>
 </tr>
 </thead>
 <tbody className="divide-y divide-gray-100">
