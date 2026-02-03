@@ -353,29 +353,39 @@ const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
   })();
 
 const editarItem = (item: any) => {
+  // 1. Limpa o formulário antes de carregar o novo
   handleNovo();
-  setAdicionaisPendentes([]);
   
-  // Carrega medidas principais
+  // 2. Carrega Medidas
   setLarguraVao(item.larguraVao || "");
   setLarguraVaoB(item.larguraVaoB || "");
   setAlturaVao(item.alturaVao || "");
   setAlturaBandeira(item.alturaBandeira || "");
-  
-  setQuantidade(item.quantidade.toString());
-  setBuscaVidro(item.vidroInfo);
-  
-  // Carrega adicionais
+  setQuantidade(item.quantidade?.toString() || "1");
+
+  // 3. Carrega Vidro (Importante para o preço especial continuar funcionando)
+  if (item.vidroOriginal) {
+    setVidroSel(item.vidroOriginal);
+    setBuscaVidro(item.vidroInfo);
+  }
+
+  // 4. Carrega Selects (O bug morre aqui)
+  setModelo(item.modeloOriginal || "Escolher Tipo");
+  setFolhas(item.folhasOriginal || "Escolher Folhas");
+  setTrinco(item.trincoOriginal || "Escolher trinco");
+  setCorKit(item.corKitOriginal || "Escolher Puxador");
+  setTipoOrcamento(item.tipoOrcamentoOriginal || "Escolher Tipo de Trilho");
+  setConfigMaoAmiga(item.configMaoAmigaOriginal || "Escolher Configuração");
+
+  // 5. Carrega Adicionais
   if (item.adicionais && item.adicionais.length > 0) {
-    const formatadosParaEdicao = item.adicionais.map((a: any) => ({
-      nome: a.nome,
-      qtd: a.qtd,
-      valor: a.valor || "0,00"
-    }));
-    setAdicionaisPendentes(formatadosParaEdicao);
+    setAdicionaisPendentes([...item.adicionais]);
   }
   
-  setItens(itens.filter((i: any) => i.id !== item.id));
+  // 6. Filtra a lista removendo o item que entrou em edição pelo ID único
+  setItens(prev => prev.filter(i => i.id !== item.id));
+
+  // 7. Sobe a página
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -429,6 +439,15 @@ const detalhesTecnicos = [];
 
 const novoItem = {
     id: Date.now(),
+    // SALVANDO OS ESTADOS ORIGINAIS PARA A EDIÇÃO
+    modeloOriginal: modelo,
+    folhasOriginal: folhas,
+    trincoOriginal: trinco,
+    corKitOriginal: corKit,
+    tipoOrcamentoOriginal: tipoOrcamento,
+    configMaoAmigaOriginal: configMaoAmiga,
+    vidroOriginal: vidroSel, // Salva o objeto do vidro todo
+
     descricao: modelo.toLowerCase().includes("mão amiga") && configMaoAmiga 
       ? `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`
       : `${modelo} ${folhas}`.replace("Escolher Folhas", "").toUpperCase(),
@@ -439,12 +458,11 @@ const novoItem = {
       tipoOrcamento !== "Escolher Tipo de Trilho" && `Trilho: ${tipoOrcamento}`
     ].filter(Boolean),
     adicionais: [...adicionaisPendentes],
-    // Salvando as medidas individuais para a lógica da tabela
     larguraVao: larguraVao,
     larguraVaoB: larguraVaoB, 
     alturaVao: alturaVao,
     alturaBandeira: alturaBandeira,
-    quantidade: qtdVao,
+    quantidade: Number(quantidade) || 1,
     imagem: imgPath,
     total: valorFinal,
     areaM2: resultado.area
