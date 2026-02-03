@@ -214,52 +214,55 @@ else if (modeloNorm.includes("canto")) {
   }
 }
 
-// --- 8. PORTA COM BANDEIRA (AJUSTE FINAL PARA OS CAMPOS DA IMAGEM) ---
+
+// --- 8. LÓGICA PARA BANDEIRAS (JANELA OU PORTA) ---
 if (modeloNorm.includes("bandeira")) {
-  const alturaTotal = A; // Campo Altura (3000)
-  const altPorta = parseNumber(config.alturaPorta); // Campo Altura Porta até Tubo (2100)
-  const altBand = alturaTotal - altPorta; // Sobra para a Bandeira (900)
+  const altTotal = A;
+  const altBand = AB; 
+  const altCorpo = altTotal - altBand; 
 
-  // 1. DEFINIR FOLHAS
-  let fixas = 1, moveis = 1, numPecasPorta = 2; // Padrão 2 folhas da imagem
-  if (folhasNorm.includes("4 folhas")) { numPecasPorta = 4; fixas = 2; moveis = 2; }
-  if (folhasNorm.includes("6 folhas")) { numPecasPorta = 6; fixas = 4; moveis = 2; }
-
-  // 2. DESCONTOS DE TRILHO (Aparente na imagem)
-  let descF = 60, descM = 25;
-  if ((tipoOrcamento || "").toLowerCase().includes("embutido")) {
-    descF = 40; descM = 0;
+  // Se a altura do corpo ou da bandeira for <= 0, algo está errado nos campos
+  if (altCorpo <= 0 || altBand <= 0) {
+    console.warn("⚠️ Alturas inválidas: Total", altTotal, "Bandeira", altBand);
   }
 
-  // 3. CÁLCULO DAS ÁREAS (Arredondando peça por peça)
-  const baseL = L / numPecasPorta; // 2000 / 2 = 1000
-  
-  // Peça Fixa: 1000 x (2100 - 60) = 1000 x 2040 -> Arred. 1000 x 2050
-  const areaFixoUnico = (arred50(baseL) * arred50(altPorta - descF)) / 1000000;
-  
-  // Peça Móvel: 1050 x (2100 - 25) = 1050 x 2075 -> Arred. 1050 x 2100
-  const areaMovelUnico = (arred50(baseL + 50) * arred50(altPorta - descM)) / 1000000;
+  let fixas = 1, moveis = 1, numPecas = 2;
+  if (folhasNorm.includes("4 folhas")) { numPecas = 4; fixas = 2; moveis = 2; }
+  if (folhasNorm.includes("6 folhas")) { numPecas = 6; fixas = 4; moveis = 2; }
 
-  const areaTotalPorta = (areaFixoUnico * fixas) + (areaMovelUnico * moveis);
+  const baseL = L / numPecas;
   
-  // Bandeira: 2000 x 900
+  // Descontos padrão: 60mm na fixa e 25mm na móvel (ajuste conforme sua necessidade)
+  const descF = 60;
+  const descM = modeloNorm.includes("porta") ? 25 : 20;
+
+  const areaF = (arred50(baseL) * arred50(altCorpo - descF) / 1000000) * fixas;
+  const areaM = (arred50(baseL + 50) * arred50(altCorpo - descM) / 1000000) * moveis;
+  const areaTotalCorpo = areaF + areaM;
+  
+  // Cálculo da Bandeira
   const areaBandeira = (arred50(L) * arred50(altBand)) / 1000000;
 
-  // 4. PREÇOS (Conforme as cores da sua imagem)
-  const precoPorta = parseNumber(config.precoM2); // Amarelo: Incolor 10mm
-  const precoBand = parseNumber(config.precoVidroBandeira); // Azul: Incolor 08mm
+  // GARANTIA DE PREÇO: Se precoVidroBandeira for 0, usa o preco (180,00)
+  const pCorpo = preco; 
+  const pBand = parseNumber(config.precoVidroBandeira) > 0 
+                ? parseNumber(config.precoVidroBandeira) 
+                : preco;
 
-  const valorTotal = (areaTotalPorta * precoPorta) + (areaBandeira * precoBand);
+  const valorTotal = (areaTotalCorpo * pCorpo) + (areaBandeira * pBand);
 
   return {
-    area: Number((areaTotalPorta + areaBandeira).toFixed(3)),
+    area: Number((areaTotalCorpo + areaBandeira).toFixed(3)),
     valorVidro: Number(valorTotal.toFixed(2)),
-    detalhe: `Porta: ${areaTotalPorta.toFixed(2)}m² | Bandeira: ${areaBandeira.toFixed(2)}m²`
+    detalhe: `Corpo: ${areaTotalCorpo.toFixed(2)}m² (R$${pCorpo}) | Band: ${areaBandeira.toFixed(2)}m² (R$${pBand})`
   };
 }
-  return {
-    area: Number(areaTotalM2.toFixed(3)),
-    valorVidro: Number((areaTotalM2 * preco).toFixed(2)),
-    detalhe: detalhePecas
-  };
+
+// Retorno padrão para modelos sem bandeira
+return {
+  area: Number(areaTotalM2.toFixed(3)),
+  valorVidro: Number((areaTotalM2 * preco).toFixed(2)),
+  detalhe: detalhePecas
+};
+
 };

@@ -120,23 +120,34 @@ useEffect(() => {
   }, [itens]);
 
 // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
+// --- 2. MONITOR DE PREÇO ESPECIAL (CORRIGIDO PARA AMBOS OS VIDROS) ---
 useEffect(() => {
-  async function atualizarPreco() {
-  if (clienteSel?.id && vidroSel?.id) {
-  const precoEspecial = await buscarPrecoEspecial(vidroSel.id, clienteSel.id);
-  if (precoEspecial) {
-  // Atualiza o vidro selecionado com o preço do cliente
-  setVidroSel((prev: any) => ({
-  ...prev,
-  preco: precoEspecial
-  }));
-  console.log("🚀 Preço Especial Aplicado:", precoEspecial);
-  }}}
-  atualizarPreco();
-  }, [clienteSel?.id, vidroSel?.id]); // Roda sempre que mudar o cliente ou o vidro
-  const clientesFiltrados = clientes.filter((c: any) => 
+  async function atualizarPrecos() {
+    if (!clienteSel?.id) return;
+
+    // Atualiza preço do Vidro Principal
+    if (vidroSel?.id) {
+      const precoEspecial = await buscarPrecoEspecial(vidroSel.id, clienteSel.id);
+      if (precoEspecial && precoEspecial !== vidroSel.preco) {
+        setVidroSel((prev: any) => ({ ...prev, preco: precoEspecial }));
+      }
+    }
+
+    // Atualiza preço do Vidro da Bandeira
+    if (vidroSelBandeira?.id) {
+      const precoEspecialB = await buscarPrecoEspecial(vidroSelBandeira.id, clienteSel.id);
+      if (precoEspecialB && precoEspecialB !== vidroSelBandeira.preco) {
+        setVidroSelBandeira((prev: any) => ({ ...prev, preco: precoEspecialB }));
+      }
+    }
+  }
+  
+  atualizarPrecos();
+  // Agora ele "vigia" o cliente, o vidro de baixo e o vidro de cima!
+}, [clienteSel?.id, vidroSel?.id, vidroSelBandeira?.id]);
+const clientesFiltrados = clientes.filter((c: any) => 
   c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
-  );
+);
 
 // Filtro para o Vidro Principal
   const vidrosFiltrados = vidros.filter((v: any) => {
@@ -362,11 +373,15 @@ const editarItem = (item: any) => {
 
   const adicionarItem = () => {
   if (!vidroSel) return alert("Selecione um vidro");
+  const precoFinalVidro = parseNumber(vidroSel.preco);
+  const precoFinalBandeira = vidroSelBandeira 
+    ? parseNumber(vidroSelBandeira.preco) 
+    : precoFinalVidro;
   let nomeFormatado = modelo.toUpperCase();
   if (modelo.toLowerCase().includes("mão amiga") && configMaoAmiga) {
-  nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
+    nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
   } else if (folhas && !folhas.includes("Escolher")) {
-  nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
+    nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
   }
 
   const modeloPrincipal = modelo || "Janela";
@@ -375,50 +390,52 @@ const editarItem = (item: any) => {
   ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
   : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
 
+  const precoEfetivoVidro = parseNumber(vidroSel.preco);
   
   const resultado = calcularProjeto({
   modelo: modelo,
-  folhas: folhas,
-  largura: larguraVao,
-  larguraB: larguraVaoB,
-  altura: alturaVao,
-  alturaPorta: alturaBandeira,
-  precoVidroBandeira: vidroSelBandeira?.preco || vidroSel.preco,
-  precoM2: vidroSel.preco,
-  configMaoAmiga: configMaoAmiga,
-  tipoOrcamento: tipoOrcamento,
-  });
+    folhas: folhas,
+    largura: larguraVao,
+    larguraB: larguraVaoB,
+    altura: alturaVao,     
+    alturaB: alturaBandeira, 
+    precoM2: precoFinalVidro, // Forçamos os 180,00 aqui
+    precoVidroBandeira: precoFinalBandeira, // Forçamos os 180,00 (ou o da bandeira) aqui
+    configMaoAmiga: configMaoAmiga,
+    tipoOrcamento: tipoOrcamento,
+});
 
-  const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
-  const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
-  return acc + (valor * Number(adic.qtd));
+const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
+    const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
+    return acc + (valor * Number(adic.qtd));
   }, 0);
 
-  const qtdVao = Number(quantidade) || 1;
-  const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
+const qtdVao = Number(quantidade) || 1;
+  // O valor final agora virá do resultado que já multiplicou m2 pelo preço correto
+const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
 const detalhesTecnicos = [];
-if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
-if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
-if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) detalhesTecnicos.push(`Trilho: ${tipoOrcamento}`);
+  if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
+  if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
+  if (tipoOrcamento && !tipoOrcamento.includes("Escolher")) detalhesTecnicos.push(`Trilho: ${tipoOrcamento}`);
 
 const novoItem = {
-id: Date.now(),
-descricao: nomeFormatado,
-vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
-detalhes: detalhesTecnicos,
-adicionais: adicionaisPendentes.map((a: any) => ({
-qtd: a.qtd,
-nome: a.nome 
-})),
-medidaVao: `${larguraVao}x${alturaVao}`,
-larguraVao: larguraVao, 
-alturaVao: alturaVao,
-quantidade: qtdVao,
-imagem: imgPath,
-total: valorFinal,
-areaM2: resultado.area
-};
+    id: Date.now(),
+    descricao: nomeFormatado,
+    vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
+    detalhes: detalhesTecnicos,
+    adicionais: adicionaisPendentes.map((a: any) => ({
+      qtd: a.qtd,
+      nome: a.nome 
+    })),
+    medidaVao: `${larguraVao}x${alturaVao}`,
+    larguraVao: larguraVao, 
+    alturaVao: alturaVao,
+    quantidade: qtdVao,
+    imagem: imgPath,
+    total: valorFinal,
+    areaM2: resultado.area
+  };
 
 setItens([...itens, novoItem]);
 
