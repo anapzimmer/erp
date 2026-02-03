@@ -353,23 +353,31 @@ const eTrincoEspecial = trincosEspeciais.includes(trinco.toLowerCase());
   })();
 
 const editarItem = (item: any) => {
+  handleNovo();
   setAdicionaisPendentes([]);
-  const [L, A] = item.medidaVao.split('x');
-  setLarguraVao(L);
-  setAlturaVao(A);
+  
+  // Carrega medidas principais
+  setLarguraVao(item.larguraVao || "");
+  setLarguraVaoB(item.larguraVaoB || "");
+  setAlturaVao(item.alturaVao || "");
+  setAlturaBandeira(item.alturaBandeira || "");
+  
   setQuantidade(item.quantidade.toString());
   setBuscaVidro(item.vidroInfo);
+  
+  // Carrega adicionais
   if (item.adicionais && item.adicionais.length > 0) {
-  const formatadosParaEdicao = item.adicionais.map((a: any) => ({
-  nome: a.nome,
-  qtd: a.qtd,
-  valor: a.valor || "0,00"
-  }));
-  setAdicionaisPendentes(formatadosParaEdicao);
+    const formatadosParaEdicao = item.adicionais.map((a: any) => ({
+      nome: a.nome,
+      qtd: a.qtd,
+      valor: a.valor || "0,00"
+    }));
+    setAdicionaisPendentes(formatadosParaEdicao);
   }
+  
   setItens(itens.filter((i: any) => i.id !== item.id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  };;
+};
 
   const adicionarItem = () => {
   if (!vidroSel) return alert("Selecione um vidro");
@@ -393,14 +401,14 @@ const editarItem = (item: any) => {
   const precoEfetivoVidro = parseNumber(vidroSel.preco);
   
   const resultado = calcularProjeto({
-  modelo: modelo,
+    modelo: modelo,
     folhas: folhas,
     largura: larguraVao,
     larguraB: larguraVaoB,
     altura: alturaVao,     
     alturaB: alturaBandeira, 
-    precoM2: precoFinalVidro, // Forçamos os 180,00 aqui
-    precoVidroBandeira: precoFinalBandeira, // Forçamos os 180,00 (ou o da bandeira) aqui
+    precoM2: precoFinalVidro,
+    precoVidroBandeira: precoFinalBandeira,
     configMaoAmiga: configMaoAmiga,
     tipoOrcamento: tipoOrcamento,
 });
@@ -421,16 +429,21 @@ const detalhesTecnicos = [];
 
 const novoItem = {
     id: Date.now(),
-    descricao: nomeFormatado,
+    descricao: modelo.toLowerCase().includes("mão amiga") && configMaoAmiga 
+      ? `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`
+      : `${modelo} ${folhas}`.replace("Escolher Folhas", "").toUpperCase(),
     vidroInfo: `${formatarNomeVidro(vidroSel)}`, 
-    detalhes: detalhesTecnicos,
-    adicionais: adicionaisPendentes.map((a: any) => ({
-      qtd: a.qtd,
-      nome: a.nome 
-    })),
-    medidaVao: `${larguraVao}x${alturaVao}`,
-    larguraVao: larguraVao, 
+    detalhes: [
+      trinco !== "Escolher trinco" && `Trinco: ${trinco}`,
+      corKit !== "Escolher Puxador" && corKit,
+      tipoOrcamento !== "Escolher Tipo de Trilho" && `Trilho: ${tipoOrcamento}`
+    ].filter(Boolean),
+    adicionais: [...adicionaisPendentes],
+    // Salvando as medidas individuais para a lógica da tabela
+    larguraVao: larguraVao,
+    larguraVaoB: larguraVaoB, 
     alturaVao: alturaVao,
+    alturaBandeira: alturaBandeira,
     quantidade: qtdVao,
     imagem: imgPath,
     total: valorFinal,
@@ -442,7 +455,11 @@ setItens([...itens, novoItem]);
 // Limpa campos
 setAdicionaisPendentes([]);
 setLarguraVao("");
+setLarguraVaoB("");
 setAlturaVao("");
+setAlturaBandeira("");
+setBuscaVidroBandeira("")
+setVidroSelBandeira(null);
 };
 
 const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
@@ -1059,7 +1076,26 @@ className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl f
 </div>
 </td>
 <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
-<td className="p-4 text-center font-mono text-xs text-gray-500">{item.medidaVao}</td>
+<td className="p-4 text-center font-mono text-xs text-gray-500">
+  <div className="flex flex-col items-center justify-center gap-0.5">
+    {/* Lógica da Largura */}
+    <span>
+      {item.larguraVaoB ? `${item.larguraVao} + ${item.larguraVaoB} (L)` : `${item.larguraVao} (L)`}
+    </span>
+    
+    <span className="text-[10px] font-bold text-[#1C415B]">x</span>
+    
+    {/* Lógica da Altura com Identificação */}
+    <div className="flex flex-col">
+      <span>{item.alturaVao} (A)</span>
+      {item.alturaBandeira && (
+        <span className="text-[#92D050] text-[10px]">
+          + {item.alturaBandeira} (Bandeira)
+        </span>
+      )}
+    </div>
+  </div>
+</td>
 <td className="p-4 text-center text-[#1C415B] font-bold">
 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
 </td>
@@ -1149,15 +1185,24 @@ title="Excluir item"
 
 {/* MEDIDAS - AZUL E SEM NEGRITO */}
 <td className="py-4 text-center font-mono text-xs text-[#1C415B]">
-<div className="flex flex-col gap-1">
-<span className="font-normal">
-{item.larguraVao || item.medidaVao?.split('x')[0]}mm (Largura)
-</span>
-<span className="text-[10px] opacity-50">x</span>
-<span className="font-normal">
-{item.alturaVao || item.medidaVao?.split('x')[1]}mm (Altura)
-</span>
-</div>
+  <div className="flex flex-col gap-1">
+    {/* Larguras */}
+    <span className="font-normal text-[11px]">
+      {item.larguraVaoB ? `${item.larguraVao} + ${item.larguraVaoB} mm (L)` : `${item.larguraVao} mm (L)`}
+    </span>
+    
+    <span className="text-[10px] opacity-30">x</span>
+    
+    {/* Alturas Separadas */}
+    <div className="flex flex-col leading-tight">
+      <span className="font-normal text-[11px]">{item.alturaVao} mm (Alt. Porta)</span>
+      {item.alturaBandeira && (
+        <span className="text-[10px] font-bold text-gray-400">
+          + {item.alturaBandeira} mm (Bandeira)
+        </span>
+      )}
+    </div>
+  </div>
 </td>
 
 {/* QUANTIDADE - AZUL E SEM NEGRITO */}
@@ -1183,23 +1228,30 @@ title="Excluir item"
 <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
 Detalhamento de Peças para Produção
 </h3>
-<div className="flex flex-col gap-1 ">
-{(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
-const totalPecasVidro = itens
-.filter((item: any) => item.vidroInfo.includes(nome))
-.reduce((acc: number, item: any) => {
-const folhasNoItem = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-return acc + (folhasNoItem * Number(item.quantidade));
-}, 0);
+<div className="flex flex-col gap-1">
+  {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
+    const totalPecasVidro = itens
+      .filter((item: any) => item.vidroInfo.includes(nome))
+      .reduce((acc: number, item: any) => {
+        // Pega o número de folhas (ex: "4" de "4 folhas")
+        const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+        
+        // Se o item tem bandeira, ele tem o dobro de peças (vidro de cima + vidro de baixo)
+        const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
+        
+        return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
+      }, 0);
 
 return (
-<div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
-<span className="font-medium text-[#1C415B]">• {nome}</span>
-<span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
-<span className="text-[#1C415B]">{area.toFixed(2)} m²</span>
+      <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
+        <span className="font-medium text-[#1C415B]">• {nome}</span>
+        <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
+        <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
+      </div>
+    );
+  })}
 </div>
-);
-})}
+
 {/* TOTAL UNIFICADO ABAIXO DA LISTA */}
 <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
 <span>
@@ -1271,5 +1323,5 @@ Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0
 </div>
 )}
 </div>
-</div>
+
 )}

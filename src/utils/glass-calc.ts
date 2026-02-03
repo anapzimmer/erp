@@ -181,7 +181,6 @@ if (modeloNorm.includes("fixo")) {
     detalhePecas = `${numPecas} Peça(s) Fixa(s): ${arred50(pecaL)}x${arred50(pecaA)}`;
   }
 }
-
 // --- 7. JANELAS DE CANTO ---
 else if (modeloNorm.includes("canto")) {
   const LA = parseNumber(largura);  // Lado A
@@ -189,28 +188,37 @@ else if (modeloNorm.includes("canto")) {
   const A = alturaCorpo;
 
   if (folhasNorm.includes("4 folhas")) {
-    // Como se fossem 2 janelas de 2 folhas
-    // Lado A (1 Fixo + 1 Móvel)
+    // Lado A: 1 Fixo (sem transpasse, -60mm altura) + 1 Móvel (+50mm transpasse, -20mm altura)
     const baseLA = LA / 2;
-    const areaA = (arred50(baseLA) * arred50(A) + arred50(baseLA + 50) * arred50(A)) / 1000000;
+    const areaA = (
+      (arred50(baseLA) * arred50(A - 60)) + // Peça Fixa
+      (arred50(baseLA + 50) * arred50(A - 20)) // Peça Móvel
+    ) / 1000000;
     
-    // Lado B (1 Fixo + 1 Móvel)
+    // Lado B: Mesma lógica
     const baseLB = LB / 2;
-    const areaB = (arred50(baseLB) * arred50(A) + arred50(baseLB + 50) * arred50(A)) / 1000000;
+    const areaB = (
+      (arred50(baseLB) * arred50(A - 60)) + // Peça Fixa
+      (arred50(baseLB + 50) * arred50(A - 20)) // Peça Móvel
+    ) / 1000000;
 
     areaTotalM2 = areaA + areaB;
-    detalhePecas = `Canto 4f: LadoA(2p) + LadoB(2p)`;
+    detalhePecas = `Canto 4f: (F: ${baseLA}x${A-60} | M: ${baseLA+50}x${A-20}) x2 lados`;
   } 
+  
   else if (folhasNorm.includes("3 folhas")) {
-    // Lado A: 1 folha fixa (Largura A * Altura - 60mm)
+    // Lado A: Geralmente é um vidro fixo único
     const areaA = (arred50(LA) * arred50(A - 60)) / 1000000;
 
-    // Lado B: Como janela 2 folhas (1 Fixo + 1 Móvel sobre a Largura B)
+    // Lado B: 1 Fixo + 1 Móvel
     const baseLB = LB / 2;
-    const areaB = (arred50(baseLB) * arred50(A) + arred50(baseLB + 50) * arred50(A)) / 1000000;
+    const areaB = (
+      (arred50(baseLB) * arred50(A - 60)) + 
+      (arred50(baseLB + 50) * arred50(A - 20))
+    ) / 1000000;
 
     areaTotalM2 = areaA + areaB;
-    detalhePecas = `Canto 3f: LadoA(1f fixa) + LadoB(2f padrão)`;
+    detalhePecas = `Canto 3f: LadoA(Fixo único) + LadoB(Padrão 2f)`;
   }
 }
 
@@ -221,18 +229,19 @@ if (modeloNorm.includes("bandeira")) {
   const altBand = AB; 
   const altCorpo = altTotal - altBand; 
 
-  // Se a altura do corpo ou da bandeira for <= 0, algo está errado nos campos
   if (altCorpo <= 0 || altBand <= 0) {
     console.warn("⚠️ Alturas inválidas: Total", altTotal, "Bandeira", altBand);
   }
 
+  // Identifica a quantidade de folhas para fatiar a bandeira igual ao corpo
   let fixas = 1, moveis = 1, numPecas = 2;
   if (folhasNorm.includes("4 folhas")) { numPecas = 4; fixas = 2; moveis = 2; }
-  if (folhasNorm.includes("6 folhas")) { numPecas = 6; fixas = 4; moveis = 2; }
+  else if (folhasNorm.includes("6 folhas")) { numPecas = 6; fixas = 4; moveis = 2; }
+  else if (folhasNorm.includes("1 folha")) { numPecas = 1; fixas = 1; moveis = 0; }
 
   const baseL = L / numPecas;
   
-  // Descontos padrão: 60mm na fixa e 25mm na móvel (ajuste conforme sua necessidade)
+  // 1. CÁLCULO DO CORPO (Janela/Porta)
   const descF = 60;
   const descM = modeloNorm.includes("porta") ? 25 : 20;
 
@@ -240,21 +249,23 @@ if (modeloNorm.includes("bandeira")) {
   const areaM = (arred50(baseL + 50) * arred50(altCorpo - descM) / 1000000) * moveis;
   const areaTotalCorpo = areaF + areaM;
   
-  // Cálculo da Bandeira
-  const areaBandeira = (arred50(L) * arred50(altBand)) / 1000000;
+  // 2. CÁLCULO DA BANDEIRA (Fatiada por peça com arredondamento de 5cm em cada uma)
+  // Aqui é onde estava o erro. Agora arredondamos a baseL (cada pedaço) antes de multiplicar.
+  const areaBandeiraIndividual = (arred50(baseL) * arred50(altBand)) / 1000000;
+  const areaTotalBandeira = areaBandeiraIndividual * numPecas;
 
-  // GARANTIA DE PREÇO: Se precoVidroBandeira for 0, usa o preco (180,00)
+  // 3. DEFINIÇÃO DE PREÇOS
   const pCorpo = preco; 
   const pBand = parseNumber(config.precoVidroBandeira) > 0 
                 ? parseNumber(config.precoVidroBandeira) 
                 : preco;
 
-  const valorTotal = (areaTotalCorpo * pCorpo) + (areaBandeira * pBand);
+  const valorTotal = (areaTotalCorpo * pCorpo) + (areaTotalBandeira * pBand);
 
   return {
-    area: Number((areaTotalCorpo + areaBandeira).toFixed(3)),
+    area: Number((areaTotalCorpo + areaTotalBandeira).toFixed(3)),
     valorVidro: Number(valorTotal.toFixed(2)),
-    detalhe: `Corpo: ${areaTotalCorpo.toFixed(2)}m² (R$${pCorpo}) | Band: ${areaBandeira.toFixed(2)}m² (R$${pBand})`
+    detalhe: `Corpo: ${numPecas} fatias | Bandeira: ${numPecas} pçs de ${arred50(baseL)}x${arred50(altBand)}`
   };
 }
 
