@@ -1298,6 +1298,47 @@ Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0
 </div>
 </div>
 
+{/* BARRA DE RESUMO FLUTUANTE */}
+{itens.length > 0 && (
+  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl bg-[#1C415B] text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between animate-in slide-in-from-bottom-10 duration-500 z-[100] border border-[#92D050]/30">
+    <div className="flex gap-8 items-center">
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase font-bold text-[#92D050]">Total de Peças</span>
+        <span className="text-xl font-bold">{itens.reduce((acc, item) => {
+          // Lógica para contar vidros (considerando bandeira)
+          const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+          const mult = item.alturaBandeira ? 2 : 1;
+          return acc + (numFolhas * item.quantidade * mult);
+        }, 0)} un.</span>
+      </div>
+
+      <div className="h-10 w-[1px] bg-white/10" />
+
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase font-bold text-[#92D050]">Área Total</span>
+        <span className="text-xl font-bold">{itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
+      </div>
+
+      <div className="h-10 w-[1px] bg-white/10" />
+
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase font-bold text-[#92D050]">Valor Geral</span>
+        <span className="text-xl font-bold text-[#92D050]">
+          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalGeral)}
+        </span>
+      </div>
+    </div>
+
+    <button 
+      onClick={() => handlePrint()}
+      className="bg-[#92D050] hover:bg-[#82bd45] text-[#1C415B] px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg"
+    >
+      <Printer size={20} />
+      GERAR ORÇAMENTO
+    </button>
+  </div>
+)}
+
 {/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
 {itens.length > 0 && (
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
