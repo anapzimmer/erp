@@ -1,57 +1,71 @@
 "use client"
-  import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { useReactToPrint } from 'react-to-print';
-import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList, RefreshCw, PlusCircle 
-} from "lucide-react"
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
 
 export default function CalculoProjetosVidros() {
   const router = useRouter()
+
+// --- 1. ESTADOS DE DADOS (O que vem do Banco) ---  
   const [vidros, setVidros] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
   const [itens, setItens] = useState<any[]>([])
   const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
+  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
+  const [modoProducao, setModoProducao] = useState(false);
+  const [modoSeparacao, setModoSeparacao] = useState(false);
+
+  // --- 2. ESTADOS DE BUSCA E SELEÇÃO ---
+  const [clienteSel, setClienteSel] = useState<any>(null);
   const [buscaCliente, setBuscaCliente] = useState("")
   const [mostrarClientes, setMostrarClientes] = useState(false)
-  const [clienteIndex, setClienteIndex] = useState(-1)
+  const [vidroSel, setVidroSel] = useState<any>(null)
   const [buscaVidro, setBuscaVidro] = useState("")
   const [mostrarVidros, setMostrarVidros] = useState(false)
   const [vidroIndex, setVidroIndex] = useState(-1)
-  const [vidroSel, setVidroSel] = useState<any>(null)
+  const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
+  const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
+  const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
+  const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
   const [buscaAdicional, setBuscaAdicional] = useState("")
   const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
   const [adicionalIndex, setAdicionalIndex] = useState(-1)
-  const [qtdAdicional, setQtdAdicional] = useState("1")
-  const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+  const [clienteIndex, setClienteIndex] = useState(-1)
+
+  // --- 3. CONFIGURAÇÕES DO PROJETO ---
   const [modelo, setModelo] = useState("Escolher Tipo")
   const [folhas, setFolhas] = useState("Escolher Folhas")
   const [trinco, setTrinco] = useState("Escolher trinco")
   const [corKit, setCorKit] = useState("Escolher Puxador")
   const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
+  const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
+  const [roldana, setRoldana] = useState("Carrinho Simples");
   const [anguloCanto, setAnguloCanto] = useState("Padrão")
-  const [kitsDB, setKitsDB] = useState<any[]>([])
+  const [abaAtiva, setAbaAtiva] = useState<'orcamento' | 'producao'>('orcamento');
+
+  // --- 4. MEDIDAS E QUANTIDADES ---
   const [larguraVao, setLarguraVao] = useState("")
   const [larguraVaoB, setLarguraVaoB] = useState("") 
   const [alturaVao, setAlturaVao] = useState("")
   const [alturaBandeira, setAlturaBandeira] = useState("")
-  const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
-  const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
-  const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
-  const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
   const [quantidade, setQuantidade] = useState("1")
-  const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
-  const [roldana, setRoldana] = useState("Carrinho Simples");
-  const clienteInputRef = useRef<HTMLInputElement>(null);
-  const modeloRef = useRef<HTMLSelectElement>(null)
+  const [qtdAdicional, setQtdAdicional] = useState("1")
+  const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+
+  // --- 5. REFS PARA ACESSIBILIDADE E IMPRESSÃO ---
   const larguraRef = useRef<HTMLInputElement>(null)
   const alturaRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null)
   const scrollVidrosRef = useRef(null);
-  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
-  const [clienteSel, setClienteSel] = useState<any>(null);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const modeloRef = useRef<HTMLSelectElement>(null)
+
+ // --- 6. FUNÇÕES AUXILIARES ---
   const formatarNomeVidro = (v: any) => {
   const nome = v.nome?.trim() || "";
   const espessura = String(v.espessura || "")
@@ -59,6 +73,8 @@ export default function CalculoProjetosVidros() {
     .trim();
   return `${nome} ${espessura}mm`;
   };
+ 
+ // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
   const { data, error } = await supabase
   .from('vidro_precos_clientes')
@@ -71,55 +87,46 @@ export default function CalculoProjetosVidros() {
   return null;
   };
 
-useEffect(() => {
-  async function load() {
-    const { data: v } = await supabase.from('vidros').select('*')
-    if (v) setVidros(v)
-    
-    const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
-    if (c) setClientes(c)
-    
-    const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-    const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
-    
-    // --- NOVA BUSCA DE KITS ---
-    const { data: k } = await supabase
-    .from('kits')
-    .select('id, nome, preco, categoria, cores, preco_por_cor')
-      if (k) setKitsDB(k)
 
-    // Unificando todos na lista de busca de adicionais
-setAdicionaisDB([
-  ...(p || []), 
-  ...(f || []), 
-  ...(k || []).map((kit: any) => {
-    // Lógica para tratar o preço que vem como texto ou número
-    let valorFinal = kit.preco; 
-    
-    if (!valorFinal && kit.preco_por_cor) {
-      // Se preco for nulo, tenta limpar o preco_por_cor (remove R$ e troca vírgula por ponto)
-      valorFinal = kit.preco_por_cor.replace('R$', '').replace(',', '.').trim();
+// Carrega Vidros, Clientes e Adicionais (Perfis/Ferragens/Kits)
+  useEffect(() => {
+    async function loadData() {
+      const { data: v } = await supabase.from('vidros').select('*')
+      if (v) setVidros(v)
+
+      const { data: c } = await supabase.from('clientes').select('*').order('nome')
+      if (c) setClientes(c)
+
+      const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, cores')
+      const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, cores')
+      const { data: k } = await supabase.from('kits').select('id, nome, preco, preco_por_cor, cores')
+
+      setAdicionaisDB([
+        ...(p || []),
+        ...(f || []),
+        ...(k || []).map((kit: any) => ({
+          ...kit,
+          codigo: 'KIT',
+          preco: kit.preco || kit.preco_por_cor?.replace('R$', '').replace(',', '.').trim() || "0"
+        }))
+      ])
     }
+    loadData()
+  }, [])
 
-    return {
-      ...kit,
-      codigo: 'KIT', 
-      preco: valorFinal || "0,00"
-    };
-  })
-]);// Fechamento do setAdicionaisDB
-  }
-  load()
-}, []);
+  // Monitora troca de cliente/vidro para aplicar Preço Especial
+  useEffect(() => {
+    async function checkSpecialPrice() {
+      if (!clienteSel?.id) return
+      if (vidroSel?.id) {
+        const precoEsp = await buscarPrecoEspecial(vidroSel.id, clienteSel.id)
+        if (precoEsp) setVidroSel((prev: any) => ({ ...prev, preco: precoEsp }))
+      }
+    }
+    checkSpecialPrice()
+  }, [clienteSel?.id, vidroSel?.id])
 
-useEffect(() => {
-  if (itens.length > 0) {
-  setTimeout(() => {
-  larguraRef.current?.focus();
-  }, 50);
-  }
-  }, [itens]);
-
+  
 // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
 useEffect(() => {
   async function atualizarPrecos() {
@@ -145,6 +152,8 @@ useEffect(() => {
   atualizarPrecos();
   // Agora ele "vigia" o cliente, o vidro de baixo e o vidro de cima!
 }, [clienteSel?.id, vidroSel?.id, vidroSelBandeira?.id]);
+
+// --- 7. LÓGICA DE FILTROS (Busca dinâmica) ---
 const clientesFiltrados = clientes.filter((c: any) => 
   c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
 );
@@ -533,11 +542,10 @@ return acc;
 
 const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
 const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
-const contentRef = useRef<HTMLDivElement>(null);
 const handlePrint = useReactToPrint({
-contentRef,
-documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
-});
+    contentRef, // Ele vai usar a ref que definimos lá no Bloco 5
+    documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
+  });
 
 return (
 <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
@@ -1049,6 +1057,33 @@ className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl f
 </div>
 </div>
 
+{/* --- ABINHAS DE NAVEGAÇÃO ESTILO REFERÊNCIA --- */}
+<div className="flex items-center gap-2 mb-6 no-print"> 
+  {/* Botão Voltar/Edição */}
+  <button 
+    onClick={() => { setModoProducao(false); setModoSeparacao(false); }}
+    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${!modoProducao && !modoSeparacao ? 'bg-white shadow-sm border border-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'}`}
+  >
+    <Search size={16} /> Ver Orçamento
+  </button>
+
+  {/* Botão Produção */}
+  <button 
+    onClick={() => { setModoProducao(true); setModoSeparacao(false); }}
+    className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoProducao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+  >
+    <Package size={16} /> Pedido de Produção
+  </button>
+
+  {/* Botão Separação */}
+  <button 
+    onClick={() => { setModoSeparacao(true); setModoProducao(false); }}
+    className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoSeparacao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+  >
+    <ClipboardList size={16} /> Separação de Materiais
+  </button>
+</div>
+
 {/* TABELA RESULTADOS */}
 <div className="space-y-4">
 <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
@@ -1146,22 +1181,48 @@ title="Excluir item"
 </div>
 
 <div style={{ display: 'none' }}>
-<div ref={contentRef} className="p-8 bg-white min-h-screen text-black font-sans print:block w-full">
-<div className="flex justify-between items-end border-b-4 border-[#1C415B] pb-6 mb-8">
-<div>
-<h1 className="text-3xl font-black text-[#1C415B] mb-1">ORÇAMENTO</h1>
-<p className="text-sm font-bold text-gray-400 uppercase tracking-widest">SÓ VIDROS E ACESSÓRIOS</p>
-</div>
-<div className="text-right">
-<p className="text-sm font-bold text-[#1C415B]">{new Date().toLocaleDateString('pt-BR')}</p>
-<p className="text-xs text-gray-500">Documento gerado digitalmente</p>
-</div>
-</div>
+  <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
+    
+    {/* CABEÇALHO: TÍTULO E DADOS À ESQUERDA | LOGO À DIREITA */}
+    <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-10">
+      <div className="flex-1">
+        <h1 className="text-4xl font-black text-[#1C415B] tracking-tighter leading-none mb-3">
+          ORÇAMENTO
+        </h1>
+        <div className="space-y-0.5">
+          <p className="text-[9px] text-gray-400 font-bold uppercase ">Somente Vidros</p>
+          <div className="text-[10px] text-gray-500 uppercase font-bold leading-tight">
+             <p className="text-[10px] font-black text-[#1C415B] uppercase tracking-widest">
+            Data: {new Date().toLocaleDateString('pt-BR')}
+          </p>
+          </div>
+        </div>
+      </div>
 
-<div className="bg-gray-50 p-3 rounded-xl mb-8 border border-gray-100">
-<h2 className="text-[10px] font-black text-gray-400 uppercase mb-1">CLIENTE</h2>
-<p className="text-xl font-bold text-[#1C415B]">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
-</div>
+      {/* LOGO NO LADO DIREITO */}
+     <div className="flex flex-col items-end">
+        <img 
+          src="/logo.png" 
+          alt="Logo Empresa" 
+          className="h-14 w-auto object-contain mb-2"
+          onError={(e) => (e.currentTarget.style.display = 'none')} // Esconde se a imagem falhar
+        />
+      </div>
+    </div>
+
+<div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
+      <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+        Cliente / Obra
+      </h2>
+      <p className="text-2xl font-bold text-[#1C415B] uppercase tracking-tight">
+        {clienteSel?.nome || buscaCliente || "Consumidor Final"}
+      </p>
+      {clienteSel?.telefone && (
+        <p className="text-xs text-gray-600 font-bold mt-1 tracking-wide">
+          CONTATO: {clienteSel.telefone}
+        </p>
+      )}
+    </div>
 
 {/* Tabela do Orçamento Limpa */}
 <table className="w-full mb-10 border-collapse">
@@ -1337,9 +1398,7 @@ Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0
 {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
 </div>
 </div>
-
 </div>
 )}
 </div>
-
-)}
+);}
