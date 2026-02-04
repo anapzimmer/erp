@@ -1416,7 +1416,7 @@ const recalcularTodosOsItens = () => {
         )}
 
 {/* ÁREA DE IMPRESSÃO */}
-<main className="printable-area">
+<main className="printable-area ">
 
   {/* 1. CABEÇALHO */}
   <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">

@@ -1,10 +1,11 @@
 "use client"
   import { useState, useEffect, useRef } from 'react'
-  import { supabase } from "@/lib/supabaseClient"
-  import { useReactToPrint } from 'react-to-print';
-  import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
-  import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
-  import { useRouter } from 'next/navigation' 
+import { supabase } from "@/lib/supabaseClient"
+import { useReactToPrint } from 'react-to-print';
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList, RefreshCw, PlusCircle 
+} from "lucide-react"
+import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
+import { useRouter } from 'next/navigation'
 
 export default function CalculoProjetosVidros() {
   const router = useRouter()
@@ -120,7 +121,6 @@ useEffect(() => {
   }, [itens]);
 
 // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
-// --- 2. MONITOR DE PREÇO ESPECIAL (CORRIGIDO PARA AMBOS OS VIDROS) ---
 useEffect(() => {
   async function atualizarPrecos() {
     if (!clienteSel?.id) return;
