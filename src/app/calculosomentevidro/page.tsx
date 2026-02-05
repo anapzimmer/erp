@@ -2,55 +2,74 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { useReactToPrint } from 'react-to-print';
-import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
 
 export default function CalculoProjetosVidros() {
   const router = useRouter()
+
+  // --- 1. ESTADOS DE DADOS (O que vem do Banco) ---  
   const [vidros, setVidros] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
   const [itens, setItens] = useState<any[]>([])
   const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
+  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
+  const [modoProducao, setModoProducao] = useState(false);
+  const [modoSeparacao, setModoSeparacao] = useState(false);
+
+  // --- 2. ESTADOS DE BUSCA E SELEÇÃO ---
+  const [clienteSel, setClienteSel] = useState<any>(null);
   const [buscaCliente, setBuscaCliente] = useState("")
   const [mostrarClientes, setMostrarClientes] = useState(false)
-  const [clienteIndex, setClienteIndex] = useState(-1)
+  const [vidroSel, setVidroSel] = useState<any>(null)
   const [buscaVidro, setBuscaVidro] = useState("")
   const [mostrarVidros, setMostrarVidros] = useState(false)
   const [vidroIndex, setVidroIndex] = useState(-1)
-  const [vidroSel, setVidroSel] = useState<any>(null)
+  const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
+  const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
+  const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
+  const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
   const [buscaAdicional, setBuscaAdicional] = useState("")
   const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
   const [adicionalIndex, setAdicionalIndex] = useState(-1)
-  const [qtdAdicional, setQtdAdicional] = useState("1")
-  const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+  const [clienteIndex, setClienteIndex] = useState(-1)
+  const [nomeObraTemp, setNomeObraTemp] = useState("");
+
+  // --- 3. CONFIGURAÇÕES DO PROJETO ---
   const [modelo, setModelo] = useState("Escolher Tipo")
   const [folhas, setFolhas] = useState("Escolher Folhas")
   const [trinco, setTrinco] = useState("Escolher trinco")
   const [corKit, setCorKit] = useState("Escolher Puxador")
   const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Tipo de Trilho")
+  const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
+  const [roldana, setRoldana] = useState("Carrinho Simples");
   const [anguloCanto, setAnguloCanto] = useState("Padrão")
-  const [kitsDB, setKitsDB] = useState<any[]>([])
+  const [abaAtiva, setAbaAtiva] = useState<'orcamento' | 'producao'>('orcamento');
+
+  // --- 4. MEDIDAS E QUANTIDADES ---
   const [larguraVao, setLarguraVao] = useState("")
   const [larguraVaoB, setLarguraVaoB] = useState("")
   const [alturaVao, setAlturaVao] = useState("")
   const [alturaBandeira, setAlturaBandeira] = useState("")
-  const [buscaVidroBandeira, setBuscaVidroBandeira] = useState("");
-  const [vidroSelBandeira, setVidroSelBandeira] = useState<any>(null);
-  const [mostrarVidrosBandeira, setMostrarVidrosBandeira] = useState(false);
-  const [vidroBandeiraIndex, setVidroBandeiraIndex] = useState(-1);
   const [quantidade, setQuantidade] = useState("1")
-  const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
-  const [roldana, setRoldana] = useState("Carrinho Simples");
-  const clienteInputRef = useRef<HTMLInputElement>(null);
-  const modeloRef = useRef<HTMLSelectElement>(null)
+  const [qtdAdicional, setQtdAdicional] = useState("1")
+  const [valorUnitAdicional, setValorUnitAdicional] = useState("0,00")
+
+  // --- 5. REFS PARA ACESSIBILIDADE E IMPRESSÃO ---
   const larguraRef = useRef<HTMLInputElement>(null)
   const alturaRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null)
   const scrollVidrosRef = useRef(null);
-  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
-  const [clienteSel, setClienteSel] = useState<any>(null);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const modeloRef = useRef<HTMLSelectElement>(null)
+  const componentRef = useRef<HTMLDivElement>(null);
+  const [modalImpressaoAberto, setModalImpressaoAberto] = useState(false);
+  const [modoParaImprimir, setModoParaImprimir] = useState(""); 
+
+  // --- 6. FUNÇÕES AUXILIARES ---
   const formatarNomeVidro = (v: any) => {
     const nome = v.nome?.trim() || "";
     const espessura = String(v.espessura || "")
@@ -58,6 +77,9 @@ export default function CalculoProjetosVidros() {
       .trim();
     return `${nome} ${espessura}mm`;
   };
+  
+
+  // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
     const { data, error } = await supabase
       .from('vidro_precos_clientes')
@@ -70,57 +92,47 @@ export default function CalculoProjetosVidros() {
     return null;
   };
 
+
+  // Carrega Vidros, Clientes e Adicionais (Perfis/Ferragens/Kits)
   useEffect(() => {
-    async function load() {
+    async function loadData() {
       const { data: v } = await supabase.from('vidros').select('*')
       if (v) setVidros(v)
 
-      const { data: c } = await supabase.from('clientes').select('*').order('nome', { ascending: true })
+      const { data: c } = await supabase.from('clientes').select('*').order('nome')
       if (c) setClientes(c)
 
-      const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, categoria, cores')
-      const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, categoria, cores')
+      const { data: p } = await supabase.from('perfis').select('id, codigo, nome, preco, cores')
+      const { data: f } = await supabase.from('ferragens').select('id, codigo, nome, preco, cores')
+      const { data: k } = await supabase.from('kits').select('id, nome, preco, preco_por_cor, cores')
 
-      // --- NOVA BUSCA DE KITS ---
-      const { data: k } = await supabase
-        .from('kits')
-        .select('id, nome, preco, categoria, cores, preco_por_cor')
-      if (k) setKitsDB(k)
-
-      // Unificando todos na lista de busca de adicionais
       setAdicionaisDB([
         ...(p || []),
         ...(f || []),
-        ...(k || []).map((kit: any) => {
-          // Lógica para tratar o preço que vem como texto ou número
-          let valorFinal = kit.preco;
-
-          if (!valorFinal && kit.preco_por_cor) {
-            // Se preco for nulo, tenta limpar o preco_por_cor (remove R$ e troca vírgula por ponto)
-            valorFinal = kit.preco_por_cor.replace('R$', '').replace(',', '.').trim();
-          }
-
-          return {
-            ...kit,
-            codigo: 'KIT',
-            preco: valorFinal || "0,00"
-          };
-        })
-      ]);// Fechamento do setAdicionaisDB
+        ...(k || []).map((kit: any) => ({
+          ...kit,
+          codigo: 'KIT',
+          preco: kit.preco || kit.preco_por_cor?.replace('R$', '').replace(',', '.').trim() || "0"
+        }))
+      ])
     }
-    load()
-  }, []);
+    loadData()
+  }, [])
 
+  // Monitora troca de cliente/vidro para aplicar Preço Especial
   useEffect(() => {
-    if (itens.length > 0) {
-      setTimeout(() => {
-        larguraRef.current?.focus();
-      }, 50);
+    async function checkSpecialPrice() {
+      if (!clienteSel?.id) return
+      if (vidroSel?.id) {
+        const precoEsp = await buscarPrecoEspecial(vidroSel.id, clienteSel.id)
+        if (precoEsp) setVidroSel((prev: any) => ({ ...prev, preco: precoEsp }))
+      }
     }
-  }, [itens]);
+    checkSpecialPrice()
+  }, [clienteSel?.id, vidroSel?.id])
+
 
   // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
-  // --- 2. MONITOR DE PREÇO ESPECIAL (CORRIGIDO PARA AMBOS OS VIDROS) ---
   useEffect(() => {
     async function atualizarPrecos() {
       if (!clienteSel?.id) return;
@@ -145,6 +157,8 @@ export default function CalculoProjetosVidros() {
     atualizarPrecos();
     // Agora ele "vigia" o cliente, o vidro de baixo e o vidro de cima!
   }, [clienteSel?.id, vidroSel?.id, vidroSelBandeira?.id]);
+
+  // --- 7. LÓGICA DE FILTROS (Busca dinâmica) ---
   const clientesFiltrados = clientes.filter((c: any) =>
     c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
   );
@@ -536,9 +550,8 @@ export default function CalculoProjetosVidros() {
 
   const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
   const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
-  const contentRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
-    contentRef,
+    contentRef, // Ele vai usar a ref que definimos lá no Bloco 5
     documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
   });
 
@@ -598,11 +611,13 @@ export default function CalculoProjetosVidros() {
 
             {/* ================= COLUNA ESQUERDA ================= */}
             <div className="col-span-9">
+
               <div className="grid grid-cols-4 gap-4">
 
                 {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-gray-400  font-bold  uppercase">PROJETOS</label>
+
                   <select
                     ref={modeloRef}
                     className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
@@ -987,8 +1002,6 @@ export default function CalculoProjetosVidros() {
                         }
                       }}
                     />
-
-
                     {mostrarAdicionais && buscaAdicional && (
                       <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                         {adicionaisFiltrados.map((a, i) => (
@@ -1050,118 +1063,391 @@ export default function CalculoProjetosVidros() {
           </div>
         </div>
 
-        {/* TABELA RESULTADOS */}
+        {/* --- ABINHAS DE NAVEGAÇÃO ESTILO REFERÊNCIA --- */}
+        <div className="flex items-center gap-2 mb-6 no-print">
+          {/* Botão Voltar/Edição */}
+          <button
+            onClick={() => { setModoProducao(false); setModoSeparacao(false); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${!modoProducao && !modoSeparacao ? 'bg-white shadow-sm border border-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <Search size={16} /> Ver Orçamento
+          </button>
+
+          {/* Botão Produção */}
+          <button
+            onClick={() => { setModoProducao(true); setModoSeparacao(false); }}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoProducao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            <Package size={16} /> Pedido de Produção
+          </button>
+
+          {/* Botão Separação */}
+          <button
+            onClick={() => { setModoSeparacao(true); setModoProducao(false); }}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoSeparacao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            <ClipboardList size={16} /> Separação de Materiais
+          </button>
+        </div>
+
+        {/* --- ÁREA DE RESULTADOS (TABELA E PRODUÇÃO) --- */}
         <div className="space-y-4">
-          <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
-                <tr>
-                  <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
-                  <th className="p-4 text-center">QTD</th>
-                  <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
-                  <th className="p-4 text-center">TOTAL</th>
-                  <th className="p-4 text-center">AÇÕES</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 flex items-start gap-4">
-                      {item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
 
-                        <span className="text-[11px] text-gray-400 font-normal block">
-                          {item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²
-                        </span>
-
-                        {/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
-                        {item.detalhes && item.detalhes.map((det: string, idx: number) => (
-                          <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
-                            • {det}
-                          </p>
-                        ))}
-
-                        {/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
-                        {item.adicionais && item.adicionais.length > 0 && (
-                          <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
-                            {item.adicionais.map((a: any, i: number) => (
-                              <p key={i} className="text-[10px] text-gray-500 font-normal">
-                                + {a.qtd}x {a.nome}
-                              </p>
+          {/* 2. TELA DE ORÇAMENTO (SÓ MOSTRA SE NÃO FOR PRODUÇÃO NEM SEPARAÇÃO) */}
+          {!modoProducao && !modoSeparacao && (
+            <div className="animate-in fade-in duration-500">
+              <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
+                    <tr>
+                      <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
+                      <th className="p-4 text-center">QTD</th>
+                      <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
+                      <th className="p-4 text-center">TOTAL</th>
+                      <th className="p-4 text-center">AÇÕES</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {itens.map((item: any) => (
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4 flex items-start gap-4">
+                          {item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
+                            <span className="text-[11px] text-gray-400 font-normal block">{item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²</span>
+                            {item.detalhes?.map((det: string, idx: number) => (
+                              <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">• {det}</p>
                             ))}
                           </div>
+                        </td>
+                        <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
+                        <td className="p-4 text-center font-mono text-xs text-gray-500">
+                          {item.larguraVao} x {item.alturaVao}
+                        </td>
+                        <td className="p-4 text-center text-[#1C415B] font-bold">
+                          {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-4">
+                            <button onClick={() => editarItem(item)} className="text-gray-400 hover:text-[#92D050]"><Pencil size={18} /></button>
+                            <button onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} className="text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* RESUMO TÉCNICO E FINANCEIRO (SÓ NO ORÇAMENTO NA TELA) */}
+              {itens.length > 0 && !modoProducao && !modoSeparacao && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+
+                  {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
+
+                    {/* Cabeçalho do Bloco com Itens e Área Total */}
+                    <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
+                      <div className="flex gap-3">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
+                        <span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
+                      </div>
+                    </div>
+
+                    {/* Lista de Vidros Detalhada */}
+                    <div className="space-y-2">
+                      {Object.entries(resumoVidros).map(([nome, area]: any) => (
+                        <div key={nome} className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">{nome}</span>
+                          <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bloco 2: Total Financeiro (Limpo) */}
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
+                    <div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
+
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
+                    <p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
+
+                    <div className="text-4xl font-black text-[#1C415B]">
+                      {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. TELA DE PRODUÇÃO (MODO FÁBRICA) */}
+          {modoProducao && (
+            <div className="space-y-8 animate-in slide-in-from-right duration-500">
+              {/* CABEÇALHO TÉCNICO - REFERÊNCIA ATUALIZADO */}
+              <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-8 mb-8 printable-area">
+                <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
+                  <div>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter text-[#1C415B]">
+                      {modoSeparacao
+                        ? "Relatório de Separação de Materiais"
+                        : modoProducao
+                          ? "Ordem de Produção / Pedido"
+                          : "Orçamento de Vidros"}
+                    </h2>
+
+                    <div className="mt-2 space-y-0.5">
+                      <p className="text-[12px] font-normal text-[#1C415B]">
+                        Emissão: {new Date().toLocaleDateString('pt-BR')}
+                      </p>
+
+                      <div className="mt-4 space-y-1">
+                        <p className="text-[12px] font-normal text-[#1C415B]">
+                          Cliente: <strong className="uppercase">{clienteSel?.nome || "Consumidor"}</strong>
+                        </p>
+                        {/* AQUI ESTÁ A LÓGICA DO NOME DA OBRA */}
+                        {nomeObraTemp && nomeObraTemp.trim() !== "" && (
+                          <p className="text-[12px] font-normal text-[#1C415B]">
+                            Obra: <strong className="uppercase">{nomeObraTemp}</strong>
+                          </p>
                         )}
                       </div>
-                    </td>
-                    <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
-                    <td className="p-4 text-center font-mono text-xs text-gray-500">
-                      <div className="flex flex-col items-center justify-center gap-0.5">
-                        {/* Lógica da Largura */}
-                        <span>
-                          {item.larguraVaoB ? `${item.larguraVao} + ${item.larguraVaoB} (L)` : `${item.larguraVao} (L)`}
-                        </span>
-
-                        <span className="text-[10px] font-bold text-[#1C415B]">x</span>
-
-                        {/* Lógica da Altura com Identificação */}
-                        <div className="flex flex-col">
-                          <span>{item.alturaVao} (A)</span>
-                          {item.alturaBandeira && (
-                            <span className="text-[#92D050] text-[10px]">
-                              + {item.alturaBandeira} (Bandeira)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-center text-[#1C415B] font-bold">
-                      {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </td>
-                    <td className="p-4">
-                      {/* O segredo é usar h-full e items-center para alinhar verticalmente */}
-                      <div className="flex items-center justify-center gap-4 h-full">
-                        {/* Botão Editar */}
-                        <button
-                          onClick={() => editarItem(item)}
-                          className="text-gray-400 hover:text-[#92D050] transition-all transform hover:scale-110"
-                          title="Editar item"
-                        >
-                          <Pencil size={18} />
-                        </button>
-
-                        {/* Botão Excluir */}
-                        <button
-                          onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))}
-                          className="text-gray-400 hover:text-red-500 transition-all transform hover:scale-110"
-                          title="Excluir item"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ display: 'none' }}>
-            <div ref={contentRef} className="p-8 bg-white min-h-screen text-black font-sans print:block w-full">
-              <div className="flex justify-between items-end border-b-4 border-[#1C415B] pb-6 mb-8">
-                <div>
-                  <h1 className="text-3xl font-black text-[#1C415B] mb-1">ORÇAMENTO</h1>
-                  <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">SÓ VIDROS E ACESSÓRIOS</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[#1C415B]">{new Date().toLocaleDateString('pt-BR')}</p>
-                  <p className="text-xs text-gray-500">Documento gerado digitalmente</p>
+                    </div>
+                  </div>
+                  <div className="w-40">
+                    <img src="/logo.png" alt="Logo" className="w-full h-auto object-contain" />
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-3 rounded-xl mb-8 border border-gray-100">
-                <h2 className="text-[10px] font-black text-gray-400 uppercase mb-1">CLIENTE</h2>
-                <p className="text-xl font-bold text-[#1C415B]">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
+              {itens.map((item: any, idx: number) => (
+                <div key={idx} className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md overflow-hidden">
+                  <div className="bg-[#F8FAFC] px-10 py-5 border-b border-gray-100 flex justify-between items-center">
+                    <h2 className="text-[#1C415B] font-black text-lg uppercase italic">ITEM {idx + 1}: {item.descricao}</h2>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ordem de Produção</span>
+                  </div>
+                  <div className="grid grid-cols-12 min-h-[400px]">
+                    <div className="col-span-8 p-12 flex flex-col items-center justify-center relative border-r border-gray-50">
+                      <div className="absolute right-12 top-1/2 -translate-y-1/2 text-center">
+                        <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Altura</span>
+                        <div className="bg-white border-[3px] border-gray-100 rounded-2xl px-6 py-4 shadow-sm">
+                          <span className="text-5xl font-black text-[#1C415B]">{item.alturaVao}</span>
+                        </div>
+                      </div>
+                      <div className="relative w-80 h-80 border-2 border-[#1C415B]/20 flex items-center justify-center p-6 bg-gray-50 rounded-xl">
+                        {item.imagem ? <img src={item.imagem} className="max-w-full max-h-full object-contain" /> : <ImageIcon size={60} className="text-gray-200" />}
+                      </div>
+                      <div className="mt-12 text-center">
+                        <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Largura (mm)</span>
+                        <div className="bg-white border-[3px] border-gray-100 rounded-[2rem] px-20 py-6 shadow-sm">
+                          <span className="text-6xl font-black text-[#1C415B] tracking-tighter">{item.larguraVao}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-4 p-12 flex flex-col justify-between bg-[#FCFDFF]">
+                      <div className="text-center">
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest block">Quantidade</span>
+                        <p className="text-[120px] font-black text-red-600 leading-none">{item.quantidade}</p>
+                      </div>
+                      <div className="border-t-2 border-dashed border-gray-100 pt-8">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase block mb-2 tracking-widest">Vidro</span>
+                        <p className="text-3xl font-black text-[#1C415B] uppercase leading-tight">{item.vidroInfo.split('|')[0]}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 3. TELA DE SEPARAÇÃO DE MATERIAIS */}
+{modoSeparacao && (
+  <div className="space-y-8 animate-in slide-in-from-right duration-500">
+    {/* CABEÇALHO TÉCNICO - REFERÊNCIA ATUALIZADO */}
+<div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-8 mb-8 printable-area">
+  <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
+    <div>
+      <h2 className="text-2xl font-bold uppercase tracking-tighter text-[#1C415B]">
+        {modoSeparacao
+          ? "Relatório de Separação de Materiais"
+          : modoProducao
+            ? "Ordem de Produção / Pedido"
+            : "Orçamento de Vidros"}
+      </h2>
+
+      <div className="mt-2 space-y-0.5">
+        <p className="text-[12px] font-normal text-[#1C415B]">
+          Emissão: {new Date().toLocaleDateString('pt-BR')}
+        </p>
+
+        <div className="mt-4 space-y-1">
+          <p className="text-[12px] font-normal text-[#1C415B]">
+            Cliente: <strong className="uppercase">{clienteSel?.nome || "Consumidor"}</strong>
+          </p>
+          {/* AQUI ESTÁ A LÓGICA DO NOME DA OBRA */}
+          {nomeObraTemp && nomeObraTemp.trim() !== "" && (
+            <p className="text-[12px] font-normal text-[#1C415B]">
+              Obra: <strong className="uppercase">{nomeObraTemp}</strong>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div className="w-40">
+      <img src="/logo.png" alt="Logo" className="w-full h-auto object-contain" />
+    </div>
+  </div>
+</div>
+    <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-10">
+      <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-5">
+        <h2 className="text-[#1C415B] font-black text-2xl uppercase">
+          <ClipboardList className="inline mr-3" />
+          Checklist de Separação
+        </h2>
+        <span className="text-xs font-bold text-[#92D050] bg-[#F4FFF0] px-4 py-2 rounded-full uppercase tracking-widest">
+          {itens.length} Itens no Pedido
+        </span>
+      </div>
+
+      <div className="space-y-6">
+        {itens.map((item: any, idx: number) => (
+          <div key={item.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-sm transition-all">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#1C415B] text-white font-black">
+                {idx + 1}
+              </span>
+              <h3 className="text-lg font-bold text-[#1C415B] uppercase">
+                {item.descricao} - Qtd: {item.quantidade}
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-bold text-gray-500 mb-2">Vidros</p>
+                <p className="text-[#1C415B] font-medium">{item.vidroInfo}</p>
+                <p className="text-xs text-gray-400">Área: {item.areaM2.toFixed(2)} m²</p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-bold text-gray-500 mb-2">Ferragens / Extras</p>
+                {item.adicionais && item.adicionais.length > 0 ? (
+                  item.adicionais.map((extra: any, i: number) => (
+                    <p key={i} className="text-[#1C415B] text-xs">• {extra.qtd}x {extra.nome}</p>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-xs">Nenhum adicional</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Botão de finalizar separação (opcional) */}
+      <div className="mt-10 text-right">
+        <button className="bg-[#92D050] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#7bc043] transition-all">
+          Finalizar Separação
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+          {/* 4. CONTEÚDO PARA IMPRESSÃO (ESTE BLOCOR DEVE FICAR OCULTO NA TELA) */}
+          <div style={{ display: 'none' }}>
+            <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
+              {/* Cabeçalho do PDF */}
+              <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-10">
+                <div>
+                  <h1 className="text-4xl font-black text-[#1C415B]">ORÇAMENTO</h1>
+                  <p className="text-sm text-gray-500">Data: {new Date().toLocaleDateString('pt-BR')}</p>
+                </div>
+                <img src="/logo.png" alt="Logo" className="h-14 w-auto object-contain" />
+              </div>
+
+              {/* Dados do Cliente */}
+              <div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
+                <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cliente / Obra</h2>
+                <p className="text-2xl font-bold text-[#1C415B] uppercase">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
+              </div>
+
+              {/* Tabela do PDF */}
+              <table className="w-full mb-10 border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
+                    <th className="py-3 text-left">Projeto / Desenho</th>
+                    <th className="py-3 text-center">Medidas</th>
+                    <th className="py-3 text-center">Qtd</th>
+                    <th className="py-3 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {itens.map((item: any) => (
+                    <tr key={item.id} className="text-sm">
+                      <td className="py-4 flex items-center gap-4">
+                        {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="desenho" />}
+                        <div>
+                          <p className="font-bold text-[#1C415B] uppercase">{item.descricao}</p>
+                          <p className="text-[10px] text-gray-400">{item.vidroInfo}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 text-center font-mono text-xs">{item.larguraVao} x {item.alturaVao}</td>
+                      <td className="py-4 text-center">{item.quantidade}</td>
+                      <td className="py-4 text-right font-bold text-[#1C415B]">{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+            </div>
+          </div>
+
+
+          <div style={{ display: 'none' }}>
+            <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
+
+              {/* CABEÇALHO: TÍTULO E DADOS À ESQUERDA | LOGO À DIREITA */}
+              <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-10">
+                <div className="flex-1">
+                  <h1 className="text-4xl font-black text-[#1C415B] tracking-tighter leading-none mb-3">
+                    ORÇAMENTO
+                  </h1>
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-gray-400 font-bold uppercase ">Somente Vidros</p>
+                    <div className="text-[10px] text-gray-500 uppercase font-bold leading-tight">
+                      <p className="text-[10px] font-black text-[#1C415B] uppercase tracking-widest">
+                        Data: {new Date().toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LOGO NO LADO DIREITO */}
+                <div className="flex flex-col items-end">
+                  <img
+                    src="/logo.png"
+                    alt="Logo Empresa"
+                    className="h-14 w-auto object-contain mb-2"
+                    onError={(e) => (e.currentTarget.style.display = 'none')} // Esconde se a imagem falhar
+                  />
+                </div>
+              </div>
+
+              <div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
+                <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+                  Cliente / Obra
+                </h2>
+                <p className="text-2xl font-bold text-[#1C415B] uppercase tracking-tight">
+                  {clienteSel?.nome || buscaCliente || "Consumidor Final"}
+                </p>
+                {clienteSel?.telefone && (
+                  <p className="text-xs text-gray-600 font-bold mt-1 tracking-wide">
+                    CONTATO: {clienteSel.telefone}
+                  </p>
+                )}
               </div>
 
               {/* Tabela do Orçamento Limpa */}
@@ -1190,6 +1476,7 @@ export default function CalculoProjetosVidros() {
                               • {det}
                             </p>
                           ))}
+
                           {item.adicionais && item.adicionais.length > 0 && (
                             <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
                               {item.adicionais.map((a: any, i: number) => (
@@ -1298,50 +1585,6 @@ export default function CalculoProjetosVidros() {
           </div>
         </div>
       </div>
-
-      {/* RESUMO TÉCNICO E FINANCEIRO UNIFICADOS */}
-      {itens.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-
-          {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
-
-            {/* Cabeçalho do Bloco com Itens e Área Total */}
-            <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
-              <div className="flex gap-3">
-                <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
-                <span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
-              </div>
-            </div>
-
-            {/* Lista de Vidros Detalhada */}
-            <div className="space-y-2">
-              {Object.entries(resumoVidros).map(([nome, area]: any) => (
-                <div key={nome} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500">{nome}</span>
-                  <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bloco 2: Total Financeiro (Limpo) */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
-            <div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
-
-            <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
-            <p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
-
-            <div className="text-4xl font-black text-[#1C415B]">
-              {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </div>
-          </div>
-
-        </div>
-      )}
     </div>
-
-  )
+  );
 }
