@@ -1086,99 +1086,126 @@ className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl f
 
 {/* TABELA RESULTADOS */}
 <div className="space-y-4">
-<div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
-<table className="w-full text-left text-sm">
-<thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
-<tr>
-<th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
-<th className="p-4 text-center">QTD</th>
-<th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
-<th className="p-4 text-center">TOTAL</th>
-<th className="p-4 text-center">AÇÕES</th>
-</tr>
-</thead>
-<tbody className="divide-y divide-gray-50">
-{itens.map((item: any) => ( // Adicionado : any para evitar erro de tipo
-<tr key={item.id} className="hover:bg-gray-50 transition-colors">
-<td className="p-4 flex items-start gap-4">
-{item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
-<div className="flex flex-col gap-0.5">
-<span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
 
-<span className="text-[11px] text-gray-400 font-normal block">
-{item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²
-</span>
+  {/* 1. TELA DE ORÇAMENTO (VISÃO DO CLIENTE) */}
+  {!modoProducao && !modoSeparacao && (
+    <div className="animate-in fade-in duration-500">
+      <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm mb-6">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
+            <tr>
+              <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
+              <th className="p-4 text-center">QTD</th>
+              <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
+              <th className="p-4 text-center">TOTAL</th>
+              <th className="p-4 text-center">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {itens.map((item: any) => (
+              <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                <td className="p-4 flex items-start gap-4">
+                  {item.imagem && <img src={item.imagem} className="w-24 h-24 object-contain" alt="item" />}
+                  <div className="flex flex-col gap-0.5">
+                    <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
+                    <span className="text-[11px] text-gray-400 font-normal block">{item.vidroInfo} | Área: {item.areaM2.toFixed(3)}m²</span>
+                    {item.detalhes?.map((det: string, idx: number) => (
+                      <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">• {det}</p>
+                    ))}
+                  </div>
+                </td>
+                <td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
+                <td className="p-4 text-center font-mono text-xs text-gray-500">
+                  {item.larguraVao} x {item.alturaVao}
+                </td>
+                <td className="p-4 text-center text-[#1C415B] font-bold">
+                  {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </td>
+                <td className="p-4">
+                  <div className="flex items-center justify-center gap-4">
+                    <button onClick={() => editarItem(item)} className="text-gray-400 hover:text-[#92D050]"><Pencil size={18} /></button>
+                    <button onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} className="text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-{/* LISTA DE DETALHES (Trinco, Trilho, etc) */}
-{item.detalhes && item.detalhes.map((det: string, idx: number) => (
-<p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
-• {det}
-</p>
-))}
+      {/* BLOCO DE VALOR TOTAL (SÓ APARECE NO ORÇAMENTO) */}
+      {itens.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          {/* Resumo de Materiais */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+            <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Resumo de Materiais</h4>
+            <div className="space-y-2">
+              {Object.entries(resumoVidros).map(([nome, area]: any) => (
+                <div key={nome} className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500">{nome}</span>
+                  <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-{/* LISTA DE ADICIONAIS EXTRAS (Abaixo da linha pontilhada) */}
-{item.adicionais && item.adicionais.length > 0 && (
-<div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
-{item.adicionais.map((a: any, i: number) => (
-<p key={i} className="text-[10px] text-gray-500 font-normal">
-+ {a.qtd}x {a.nome}
-</p>
-))}
-</div>
-)}
-</div>
-</td>
-<td className="p-4 text-center text-sm font-medium">{item.quantidade}</td>
-<td className="p-4 text-center font-mono text-xs text-gray-500">
-  <div className="flex flex-col items-center justify-center gap-0.5">
-    {/* Lógica da Largura */}
-    <span>
-      {item.larguraVaoB ? `${item.larguraVao} + ${item.larguraVaoB} (L)` : `${item.larguraVao} (L)`}
-    </span>
-    
-    <span className="text-[10px] font-bold text-[#1C415B]">x</span>
-    
-    {/* Lógica da Altura com Identificação */}
-    <div className="flex flex-col">
-      <span>{item.alturaVao} (A)</span>
-      {item.alturaBandeira && (
-        <span className="text-[#92D050] text-[10px]">
-          + {item.alturaBandeira} (Bandeira)
-        </span>
+          {/* Total Financeiro */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
+            <div className="absolute right-0 top-0 h-full w-1 bg-[#1C415B]"></div>
+            <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
+            <div className="text-4xl font-black text-[#1C415B]">
+              {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
-  </div>
-</td>
-<td className="p-4 text-center text-[#1C415B] font-bold">
-{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-</td>
-<td className="p-4">
-{/* O segredo é usar h-full e items-center para alinhar verticalmente */}
-<div className="flex items-center justify-center gap-4 h-full">
-{/* Botão Editar */}
-<button 
-onClick={() => editarItem(item)} 
-className="text-gray-400 hover:text-[#92D050] transition-all transform hover:scale-110"
-title="Editar item"
->
-<Pencil size={18} />
-</button>
+  )}
 
-{/* Botão Excluir */}
-<button 
-onClick={() => setItens(itens.filter((i: any) => i.id !== item.id))} 
-className="text-gray-400 hover:text-red-500 transition-all transform hover:scale-110"
-title="Excluir item"
->
-<Trash2 size={18} />
-</button>
-</div>
-</td>
-</tr>
-))}
-</tbody>
-</table>
-</div>
+  
+  {/* 2. TELA DE PRODUÇÃO (IDENTICO AO REFERÊNCIA) */}
+{modoProducao && (
+    <div className="space-y-8 animate-in slide-in-from-right duration-500">
+      {itens.map((item: any, idx: number) => (
+        <div key={idx} className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md overflow-hidden">
+          <div className="bg-[#F8FAFC] px-10 py-5 border-b border-gray-100 flex justify-between items-center">
+            <h2 className="text-[#1C415B] font-black text-lg uppercase italic">ITEM {idx + 1}: {item.descricao}</h2>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ordem de Produção</span>
+          </div>
+          <div className="grid grid-cols-12 min-h-[400px]">
+            <div className="col-span-8 p-12 flex flex-col items-center justify-center relative border-r border-gray-50">
+              <div className="absolute right-12 top-1/2 -translate-y-1/2 text-center">
+                <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Altura</span>
+                <div className="bg-white border-[3px] border-gray-100 rounded-2xl px-6 py-4 shadow-sm">
+                  <span className="text-5xl font-black text-[#1C415B]">{item.alturaVao}</span>
+                </div>
+              </div>
+              <div className="relative w-80 h-80 border-2 border-[#1C415B]/20 flex items-center justify-center p-6 bg-gray-50 rounded-xl">
+                 {item.imagem ? <img src={item.imagem} className="max-w-full max-h-full object-contain" /> : <ImageIcon size={60} className="text-gray-200" />}
+              </div>
+              <div className="mt-12 text-center">
+                <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Largura (mm)</span>
+                <div className="bg-white border-[3px] border-gray-100 rounded-[2rem] px-20 py-6 shadow-sm">
+                  <span className="text-6xl font-black text-[#1C415B] tracking-tighter">{item.larguraVao}</span>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-4 p-12 flex flex-col justify-between bg-[#FCFDFF]">
+              <div className="text-center">
+                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest block">Quantidade</span>
+                <p className="text-[120px] font-black text-red-600 leading-none">{item.quantidade}</p>
+              </div>
+              <div className="border-t-2 border-dashed border-gray-100 pt-8">
+                <span className="text-[10px] font-bold text-gray-400 uppercase block mb-2 tracking-widest">Vidro</span>
+                <p className="text-3xl font-black text-[#1C415B] uppercase leading-tight">{item.vidroInfo.split('|')[0]}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
 
 <div style={{ display: 'none' }}>
   <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
@@ -1250,6 +1277,7 @@ title="Excluir item"
 • {det}
 </p>
 ))}
+
 {item.adicionais && item.adicionais.length > 0 && (
 <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
 {item.adicionais.map((a: any, i: number) => (
