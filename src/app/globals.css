@@ -26,55 +26,61 @@ body {
 }
 
 @media print {
-  .print-safe {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
 
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-  
-.print-no-break {
-  page-break-inside: avoid !important;
-  break-inside: avoid !important;
-  display: block !important;
-}
-.printable-area {
-    display: block !important;
-    width: 100% !important;
-    position: static !important;
-  }
-    .print-force-page {
-    page-break-before: always;
-  }
-  .cabeçalho-fixo-que-some {
-    display: flex !important;
-  }
-  .no-print {
-    display: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-
-    * {
+  /* Força cores de fundo (como o cabeçalho da tabela) a aparecerem na impressão */
+  * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .print-bg-primary {
-    background-color: var(--theme-primary) !important; 
-    color: white !important;
-  }
-  }
-
-  html,
-  body {
+  .no-print {
+    display: none !important;
+    height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  .printable-area {
+    display: block !important;
+    width: 100% !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Evita que uma ficha de produção seja cortada entre duas páginas */
+  .print-no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+    margin-bottom: 20px;
+    /* Espaçamento entre fichas na impressão */
+  }
+
+  /* Força o fundo das tabelas mesmo se o usuário desativar "gráficos de plano de fundo" */
+  .print-bg-primary {
+    background-color: var(--primary-color, #1C415B) !important;
+    color: white !important;
+  }
+
+  /* Garante que o conteúdo ocupe a folha toda */
+  html,
+  body {
+    width: 210mm;
+    /* Largura A4 padrão */
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
+/* Scrollbar ERP */
+.scrollbar-erp::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-erp::-webkit-scrollbar-thumb {
+  background-color: #3B82F6;
+  border-radius: 6px;
 }
 
 /* Scrollbar padrão ERP (igual ao cliente) */
@@ -83,11 +89,11 @@ body {
 }
 
 .scrollbar-erp::-webkit-scrollbar-thumb {
-  background-color: #3B82F6; /* 🔵 AZUL da rolagem do cliente */
+  background-color: #3B82F6;
+  /* 🔵 AZUL da rolagem do cliente */
   border-radius: 6px;
 }
 
 .scrollbar-erp::-webkit-scrollbar-track {
   background: transparent;
 }
-
