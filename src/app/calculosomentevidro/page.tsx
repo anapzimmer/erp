@@ -5,6 +5,10 @@ import { useReactToPrint } from 'react-to-print';
 import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function CalculoProjetosVidros() {
   const router = useRouter()
@@ -550,10 +554,12 @@ export default function CalculoProjetosVidros() {
 
   const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
   const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
-  const handlePrint = useReactToPrint({
-    contentRef, // Ele vai usar a ref que definimos lá no Bloco 5
-    documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
-  });
+  
+const handlePrint = useReactToPrint({
+  contentRef: componentRef, 
+  documentTitle: `Ordem_${nomeObraTemp || "Pedido"}_${new Date().getTime()}`,
+  pageStyle: "@page { size: auto; margin: 10mm; }",
+});
 
   return (
     <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
@@ -1348,8 +1354,15 @@ export default function CalculoProjetosVidros() {
       
       {/* Botão de finalizar separação (opcional) */}
       <div className="mt-10 text-right">
-        <button className="bg-[#92D050] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#7bc043] transition-all">
-          Finalizar Separação
+      <button
+          onClick={() => {
+            setModoParaImprimir("producao"); // Define o que está sendo impresso
+            setModalImpressaoAberto(true); // Abre o modal
+          }}
+          className="bg-[#1C415B] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
+        >
+          <Printer size={18} />
+          Imprimir Ordem
         </button>
       </div>
     </div>
@@ -1584,6 +1597,48 @@ export default function CalculoProjetosVidros() {
             </div>
           </div>
         </div>
+        <Dialog open={modalImpressaoAberto} onOpenChange={setModalImpressaoAberto}>
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogHeader>
+      <DialogTitle>Finalizar Impressão</DialogTitle>
+      <DialogDescription>
+        Digite o nome da obra para identificar a impressão.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="obra" className="text-right">
+          Obra
+        </Label>
+        <Input
+          id="obra"
+          value={nomeObraTemp}
+          onChange={(e) => setNomeObraTemp(e.target.value)}
+          placeholder="Ex: Edifício Solar"
+          className="col-span-3"
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setModalImpressaoAberto(false)}
+      >
+        Cancelar
+      </Button>
+      <Button
+        onClick={() => {
+          setModalImpressaoAberto(false);
+          handlePrint(); // Inicia a impressão de fato
+          setNomeObraTemp(""); // Limpa o nome após imprimir
+        }}
+        className="bg-[#92D050] text-white"
+      >
+        Imprimir
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       </div>
     </div>
   );
