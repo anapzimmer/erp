@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { useReactToPrint } from 'react-to-print';
-import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
 
@@ -35,7 +35,7 @@ export default function CalculoProjetosVidros() {
   const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
   const [adicionalIndex, setAdicionalIndex] = useState(-1)
   const [clienteIndex, setClienteIndex] = useState(-1)
-  const [nomeObraTemp, setNomeObraTemp] = useState("");
+
 
   // --- 3. CONFIGURAÇÕES DO PROJETO ---
   const [modelo, setModelo] = useState("Escolher Tipo")
@@ -65,9 +65,6 @@ export default function CalculoProjetosVidros() {
   const scrollVidrosRef = useRef(null);
   const clienteInputRef = useRef<HTMLInputElement>(null);
   const modeloRef = useRef<HTMLSelectElement>(null)
-  const componentRef = useRef<HTMLDivElement>(null);
-  const [modalImpressaoAberto, setModalImpressaoAberto] = useState(false);
-  const [modoParaImprimir, setModoParaImprimir] = useState(""); 
 
   // --- 6. FUNÇÕES AUXILIARES ---
   const formatarNomeVidro = (v: any) => {
@@ -91,7 +88,6 @@ export default function CalculoProjetosVidros() {
     if (data && !error) return data.preco;
     return null;
   };
-
 
   // Carrega Vidros, Clientes e Adicionais (Perfis/Ferragens/Kits)
   useEffect(() => {
@@ -130,7 +126,6 @@ export default function CalculoProjetosVidros() {
     }
     checkSpecialPrice()
   }, [clienteSel?.id, vidroSel?.id])
-
 
   // --- 2. MONITOR DE PREÇO ESPECIAL (O QUE ESTAVA FALTANDO) ---
   useEffect(() => {
@@ -1064,33 +1059,6 @@ export default function CalculoProjetosVidros() {
           </div>
         </div>
 
-        {/* --- ABINHAS DE NAVEGAÇÃO ESTILO REFERÊNCIA --- */}
-        <div className="flex items-center gap-2 mb-6 no-print">
-          {/* Botão Voltar/Edição */}
-          <button
-            onClick={() => { setModoProducao(false); setModoSeparacao(false); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${!modoProducao && !modoSeparacao ? 'bg-white shadow-sm border border-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <Search size={16} /> Ver Orçamento
-          </button>
-
-          {/* Botão Produção */}
-          <button
-            onClick={() => { setModoProducao(true); setModoSeparacao(false); }}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoProducao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Package size={16} /> Pedido de Produção
-          </button>
-
-          {/* Botão Separação */}
-          <button
-            onClick={() => { setModoSeparacao(true); setModoProducao(false); }}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${modoSeparacao ? 'bg-[#1C415B] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
-            <ClipboardList size={16} /> Separação de Materiais
-          </button>
-        </div>
-
         {/* --- ÁREA DE RESULTADOS (TABELA E PRODUÇÃO) --- */}
         <div className="space-y-4">
 
@@ -1183,180 +1151,6 @@ export default function CalculoProjetosVidros() {
               )}
             </div>
           )}
-
-          {/* 3. TELA DE PRODUÇÃO (MODO FÁBRICA) */}
-          {modoProducao && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-500">
-              {/* CABEÇALHO TÉCNICO - REFERÊNCIA ATUALIZADO */}
-              <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-8 mb-8 printable-area">
-                <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
-                  <div>
-                    <h2 className="text-2xl font-bold uppercase tracking-tighter text-[#1C415B]">
-                      {modoSeparacao
-                        ? "Relatório de Separação de Materiais"
-                        : modoProducao
-                          ? "Ordem de Produção / Pedido"
-                          : "Orçamento de Vidros"}
-                    </h2>
-
-                    <div className="mt-2 space-y-0.5">
-                      <p className="text-[12px] font-normal text-[#1C415B]">
-                        Emissão: {new Date().toLocaleDateString('pt-BR')}
-                      </p>
-
-                      <div className="mt-4 space-y-1">
-                        <p className="text-[12px] font-normal text-[#1C415B]">
-                          Cliente: <strong className="uppercase">{clienteSel?.nome || "Consumidor"}</strong>
-                        </p>
-                        {/* AQUI ESTÁ A LÓGICA DO NOME DA OBRA */}
-                        {nomeObraTemp && nomeObraTemp.trim() !== "" && (
-                          <p className="text-[12px] font-normal text-[#1C415B]">
-                            Obra: <strong className="uppercase">{nomeObraTemp}</strong>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-40">
-                    <img src="/logo.png" alt="Logo" className="w-full h-auto object-contain" />
-                  </div>
-                </div>
-              </div>
-
-              {itens.map((item: any, idx: number) => (
-                <div key={idx} className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md overflow-hidden">
-                  <div className="bg-[#F8FAFC] px-10 py-5 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-[#1C415B] font-black text-lg uppercase italic">ITEM {idx + 1}: {item.descricao}</h2>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ordem de Produção</span>
-                  </div>
-                  <div className="grid grid-cols-12 min-h-[400px]">
-                    <div className="col-span-8 p-12 flex flex-col items-center justify-center relative border-r border-gray-50">
-                      <div className="absolute right-12 top-1/2 -translate-y-1/2 text-center">
-                        <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Altura</span>
-                        <div className="bg-white border-[3px] border-gray-100 rounded-2xl px-6 py-4 shadow-sm">
-                          <span className="text-5xl font-black text-[#1C415B]">{item.alturaVao}</span>
-                        </div>
-                      </div>
-                      <div className="relative w-80 h-80 border-2 border-[#1C415B]/20 flex items-center justify-center p-6 bg-gray-50 rounded-xl">
-                        {item.imagem ? <img src={item.imagem} className="max-w-full max-h-full object-contain" /> : <ImageIcon size={60} className="text-gray-200" />}
-                      </div>
-                      <div className="mt-12 text-center">
-                        <span className="text-[10px] font-bold text-gray-300 uppercase block mb-1">Largura (mm)</span>
-                        <div className="bg-white border-[3px] border-gray-100 rounded-[2rem] px-20 py-6 shadow-sm">
-                          <span className="text-6xl font-black text-[#1C415B] tracking-tighter">{item.larguraVao}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-span-4 p-12 flex flex-col justify-between bg-[#FCFDFF]">
-                      <div className="text-center">
-                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest block">Quantidade</span>
-                        <p className="text-[120px] font-black text-red-600 leading-none">{item.quantidade}</p>
-                      </div>
-                      <div className="border-t-2 border-dashed border-gray-100 pt-8">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block mb-2 tracking-widest">Vidro</span>
-                        <p className="text-3xl font-black text-[#1C415B] uppercase leading-tight">{item.vidroInfo.split('|')[0]}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 3. TELA DE SEPARAÇÃO DE MATERIAIS */}
-{modoSeparacao && (
-  <div className="space-y-8 animate-in slide-in-from-right duration-500">
-    {/* CABEÇALHO TÉCNICO - REFERÊNCIA ATUALIZADO */}
-<div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-8 mb-8 printable-area">
-  <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
-    <div>
-      <h2 className="text-2xl font-bold uppercase tracking-tighter text-[#1C415B]">
-        {modoSeparacao
-          ? "Relatório de Separação de Materiais"
-          : modoProducao
-            ? "Ordem de Produção / Pedido"
-            : "Orçamento de Vidros"}
-      </h2>
-
-      <div className="mt-2 space-y-0.5">
-        <p className="text-[12px] font-normal text-[#1C415B]">
-          Emissão: {new Date().toLocaleDateString('pt-BR')}
-        </p>
-
-        <div className="mt-4 space-y-1">
-          <p className="text-[12px] font-normal text-[#1C415B]">
-            Cliente: <strong className="uppercase">{clienteSel?.nome || "Consumidor"}</strong>
-          </p>
-          {/* AQUI ESTÁ A LÓGICA DO NOME DA OBRA */}
-          {nomeObraTemp && nomeObraTemp.trim() !== "" && (
-            <p className="text-[12px] font-normal text-[#1C415B]">
-              Obra: <strong className="uppercase">{nomeObraTemp}</strong>
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-
-    <div className="w-40">
-      <img src="/logo.png" alt="Logo" className="w-full h-auto object-contain" />
-    </div>
-  </div>
-</div>
-    <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-md p-10">
-      <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-5">
-        <h2 className="text-[#1C415B] font-black text-2xl uppercase">
-          <ClipboardList className="inline mr-3" />
-          Checklist de Separação
-        </h2>
-        <span className="text-xs font-bold text-[#92D050] bg-[#F4FFF0] px-4 py-2 rounded-full uppercase tracking-widest">
-          {itens.length} Itens no Pedido
-        </span>
-      </div>
-
-      <div className="space-y-6">
-        {itens.map((item: any, idx: number) => (
-          <div key={item.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-sm transition-all">
-            <div className="flex items-center gap-4 mb-4">
-              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#1C415B] text-white font-black">
-                {idx + 1}
-              </span>
-              <h3 className="text-lg font-bold text-[#1C415B] uppercase">
-                {item.descricao} - Qtd: {item.quantidade}
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="font-bold text-gray-500 mb-2">Vidros</p>
-                <p className="text-[#1C415B] font-medium">{item.vidroInfo}</p>
-                <p className="text-xs text-gray-400">Área: {item.areaM2.toFixed(2)} m²</p>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="font-bold text-gray-500 mb-2">Ferragens / Extras</p>
-                {item.adicionais && item.adicionais.length > 0 ? (
-                  item.adicionais.map((extra: any, i: number) => (
-                    <p key={i} className="text-[#1C415B] text-xs">• {extra.qtd}x {extra.nome}</p>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-xs">Nenhum adicional</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {/* Botão de finalizar separação (opcional) */}
-      <div className="mt-10 text-right">
-        <button className="bg-[#92D050] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#7bc043] transition-all">
-          Finalizar Separação
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
           {/* 4. CONTEÚDO PARA IMPRESSÃO (ESTE BLOCOR DEVE FICAR OCULTO NA TELA) */}
           <div style={{ display: 'none' }}>
             <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
@@ -1375,7 +1169,7 @@ export default function CalculoProjetosVidros() {
                 <p className="text-2xl font-bold text-[#1C415B] uppercase">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
               </div>
 
-              {/* Tabela do PDF */}
+                            {/* Tabela do PDF */}
               <table className="w-full mb-10 border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
@@ -1402,7 +1196,14 @@ export default function CalculoProjetosVidros() {
                   ))}
                 </tbody>
               </table>
-
+              {!modoSeparacao && (
+                    <div className="text-right mt-10 border-t-2 pt-4">
+                      <p className="text-sm text-gray-500">Valor Total</p>
+                      <p className="text-4xl font-black text-[#1C415B]">
+                        {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </p>
+                    </div>
+                  )}
             </div>
           </div>
 
