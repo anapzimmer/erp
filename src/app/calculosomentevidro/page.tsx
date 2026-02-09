@@ -65,7 +65,7 @@ export default function CalculoProjetosVidros() {
   const clienteInputRef = useRef<HTMLInputElement>(null);
   const modeloRef = useRef<HTMLSelectElement>(null)
 
-  
+
   // --- 6. FUNÇÕES AUXILIARES ---
   const formatarNomeVidro = (v: any) => {
     const nome = v.nome?.trim() || "";
@@ -75,7 +75,7 @@ export default function CalculoProjetosVidros() {
     return `${nome} ${espessura}mm`;
   };
 
-   // Busca Preço Especial na tabela do banco
+  // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
     const { data, error } = await supabase
       .from('vidro_precos_clientes')
@@ -435,8 +435,7 @@ export default function CalculoProjetosVidros() {
     });
 
     const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
-      const valor = typeof adic.valor === 'string' ? parseFloat(adic.valor.replace(',', '.')) : adic.valor;
-      return acc + (valor * Number(adic.qtd));
+      return acc + (parseNumber(adic.valor) * Number(adic.qtd));
     }, 0);
 
     const qtdVao = Number(quantidade) || 1;
@@ -551,7 +550,7 @@ export default function CalculoProjetosVidros() {
   });
 
   return (
-        <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
+    <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
       <div className="print:hidden">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
@@ -1320,7 +1319,7 @@ export default function CalculoProjetosVidros() {
 
                       {/* SUBTOTAL - AZUL E SEM NEGRITO */}
                       <td className="py-4 align-top text-right font-normal text-[#1C415B]">
-                        {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {item.total ? item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "R$ 0,00"}
                       </td>
                     </tr>
                   ))}
@@ -1328,62 +1327,62 @@ export default function CalculoProjetosVidros() {
               </table>
 
               {/* RODAPÉ DO ORÇAMENTO: RESUMO TÉCNICO + TOTAIS */}
-<div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
+              <div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
 
-  {/* COLUNA ESQUERDA */}
-  <div className="flex flex-col gap-4">
-    <div>
-      <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
-        Detalhamento de Peças para Produção
-      </h3>
+                {/* COLUNA ESQUERDA */}
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
+                      Detalhamento de Peças para Produção
+                    </h3>
 
-      <div className="flex flex-col gap-1">
-        {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
-          const totalPecasVidro = itens
-            .filter((item: any) => item.vidroInfo.includes(nome))
-            .reduce((acc: number, item: any) => {
-              const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-              const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
-              return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
-            }, 0);
+                    <div className="flex flex-col gap-1">
+                      {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
+                        const totalPecasVidro = itens
+                          .filter((item: any) => item.vidroInfo.includes(nome))
+                          .reduce((acc: number, item: any) => {
+                            const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+                            const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
+                            return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
+                          }, 0);
 
-          return (
-            <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
-              <span className="font-medium text-[#1C415B]">• {nome}</span>
-              <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
-              <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
-            </div>
-          );
-        })}
-      </div>
+                        return (
+                          <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
+                            <span className="font-medium text-[#1C415B]">• {nome}</span>
+                            <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
+                            <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
+                          </div>
+                        );
+                      })}
+                    </div>
 
-      <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
-        <span>
-          Total de Peças: {itens.reduce((acc: number, item: any) => {
-            const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-            return acc + (folhas * Number(item.quantidade));
-          }, 0)}
-        </span>
-        <span>
-          Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
-        </span>
-      </div>
-    </div>
-  </div>
+                    <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
+                      <span>
+                        Total de Peças: {itens.reduce((acc: number, item: any) => {
+                          const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+                          return acc + (folhas * Number(item.quantidade));
+                        }, 0)}
+                      </span>
+                      <span>
+                        Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-  {/* COLUNA DIREITA */}
-  <div className="flex flex-col items-end justify-start text-right">
-    <span className="text-[10px] font-black text-gray-300 uppercase tracking-tight">
-      Total Geral do Orçamento
-    </span>
-    <span className="text-3xl font-black text-[#1C415B]">
-      {valorTotalGeral.toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      })}
-    </span>
-  </div>
-  </div>
+                {/* COLUNA DIREITA */}
+                <div className="flex flex-col items-end justify-start text-right">
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-tight">
+                    Total Geral do Orçamento
+                  </span>
+                  <span className="text-3xl font-black text-[#1C415B]">
+                    {valorTotalGeral.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

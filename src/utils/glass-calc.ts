@@ -90,6 +90,52 @@ export const calcularProjeto = (config: any) => {
     pecasProducao.push({ desc: "Vidro Móvel", medida: `${arred50(baseL + 50)} x ${arred50(alturaCorpo - descMovel)}`, qtd: moveis });
   }
 
+else if (modeloNorm.includes("mão amiga")) {
+    const numPecas = parseNumber(folhasNorm.replace(/\D/g, "")) || 2;
+    
+    // 1. Lógica de Largura (Mantida da última atualização)
+    let acrescimoL = 0;
+    if (numPecas === 2) acrescimoL = 50;
+    else if (numPecas === 3) acrescimoL = 20;
+    else if (numPecas === 4) acrescimoL = 30;
+    else if (numPecas === 5) acrescimoL = 40;
+    else if (numPecas === 6) acrescimoL = 50;
+
+    const larguraFolha = (L + acrescimoL) / numPecas;
+
+    // 2. Lógica de Altura (NOVAS REGRAS)
+    let areaCorpoLocal = 0;
+    let descFixa = 0;
+    let descMovel = 0;
+    let fixas = 0;
+    let moveis = 0;
+
+    // Suposição: Se configMaoAmiga indicar "1 Fixa"
+    if (configMaoAmiga && configMaoAmiga.includes("1 Fixa")) {
+      // Regra: fixa 25mm, moveis 40mm
+      descFixa = 25;
+      descMovel = 40;
+      fixas = 1;
+      moveis = numPecas - 1;
+    } else {
+      // Regra padrão: Todas Correm -> desconta 40mm em todas
+      descFixa = 40; // Neste caso todas são móveis
+      descMovel = 40;
+      fixas = 0;
+      moveis = numPecas;
+    }
+
+    // 3. Cálculo da Área
+    const areaFixas = fixas > 0 ? (arred50(larguraFolha) * arred50(alturaCorpo - descFixa) / 1000000) * fixas : 0;
+    const areaMoveis = moveis > 0 ? (arred50(larguraFolha) * arred50(alturaCorpo - descMovel) / 1000000) * moveis : 0;
+    
+    areaTotalCorpo = areaFixas + areaMoveis;
+    
+    // 4. Detalhamento para produção
+    if(fixas > 0) pecasProducao.push({ desc: "Vidro Fixo M.A.", medida: `${arred50(larguraFolha)} x ${arred50(alturaCorpo - descFixa)}`, qtd: fixas });
+    if(moveis > 0) pecasProducao.push({ desc: "Vidro Móvel M.A.", medida: `${arred50(larguraFolha)} x ${arred50(alturaCorpo - descMovel)}`, qtd: moveis });
+  }
+
   // --- CÁLCULO BANDEIRA ---
   let areaBandeira = 0;
   if (modeloNorm.includes("bandeira") && AB > 0) {
