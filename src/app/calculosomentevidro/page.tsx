@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { useReactToPrint } from 'react-to-print';
-import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil } from "lucide-react"
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
 
@@ -15,9 +15,9 @@ export default function CalculoProjetosVidros() {
   const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
   const [itens, setItens] = useState<any[]>([])
   const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
-  const [precoVidroFinal, setPrecoVidroFinal] = useState<number | null>(null);
   const [modoProducao, setModoProducao] = useState(false);
   const [modoSeparacao, setModoSeparacao] = useState(false);
+  const componentRef = useRef(null); // Ref para a área de impressão
 
   // --- 2. ESTADOS DE BUSCA E SELEÇÃO ---
   const [clienteSel, setClienteSel] = useState<any>(null);
@@ -46,7 +46,6 @@ export default function CalculoProjetosVidros() {
   const [configMaoAmiga, setConfigMaoAmiga] = useState("Escolher Configuração");
   const [roldana, setRoldana] = useState("Carrinho Simples");
   const [anguloCanto, setAnguloCanto] = useState("Padrão")
-  const [abaAtiva, setAbaAtiva] = useState<'orcamento' | 'producao'>('orcamento');
 
   // --- 4. MEDIDAS E QUANTIDADES ---
   const [larguraVao, setLarguraVao] = useState("")
@@ -66,6 +65,7 @@ export default function CalculoProjetosVidros() {
   const clienteInputRef = useRef<HTMLInputElement>(null);
   const modeloRef = useRef<HTMLSelectElement>(null)
 
+  
   // --- 6. FUNÇÕES AUXILIARES ---
   const formatarNomeVidro = (v: any) => {
     const nome = v.nome?.trim() || "";
@@ -74,9 +74,8 @@ export default function CalculoProjetosVidros() {
       .trim();
     return `${nome} ${espessura}mm`;
   };
-  
 
-  // Busca Preço Especial na tabela do banco
+   // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
     const { data, error } = await supabase
       .from('vidro_precos_clientes')
@@ -545,14 +544,14 @@ export default function CalculoProjetosVidros() {
 
   const totalPecas = itens.reduce((acc, item) => acc + item.quantidade, 0);
   const valorTotalGeral = itens.reduce((acc, item) => acc + item.total, 0);
-  
+
   const handlePrint = useReactToPrint({
     contentRef, // Ele vai usar a ref que definimos lá no Bloco 5
     documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
   });
 
   return (
-    <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
+        <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
       <div className="print:hidden">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
@@ -600,6 +599,7 @@ export default function CalculoProjetosVidros() {
             <UserPlus size={20} />
           </button>
         </div>
+
 
         {/* BOX CONFIGURAÇÃO */}
         <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
@@ -1053,7 +1053,7 @@ export default function CalculoProjetosVidros() {
 
             <div className="col-span-3 flex items-center justify-center">
               <div className="w-full aspect-square bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
-                {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={40} />}
+                {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={30} />}
               </div>
             </div>
           </div>
@@ -1165,11 +1165,11 @@ export default function CalculoProjetosVidros() {
 
               {/* Dados do Cliente */}
               <div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
-                <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cliente / Obra</h2>
-                <p className="text-2xl font-bold text-[#1C415B] uppercase">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
+                <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] mb-1">Cliente / Obra</h2>
+                <p className="text-lg font-semibold text-[#1C415B] uppercase tracking-wide">{clienteSel?.nome || buscaCliente || "Consumidor Final"}</p>
               </div>
 
-                            {/* Tabela do PDF */}
+              {/* Tabela do PDF */}
               <table className="w-full mb-10 border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
@@ -1181,29 +1181,29 @@ export default function CalculoProjetosVidros() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {itens.map((item: any) => (
-                    <tr key={item.id} className="text-sm">
-                      <td className="py-4 flex items-center gap-4">
+                    <tr key={item.id} className="text-sm align-top">
+                      <td className="py-4 align-top flex items-center gap-4">
                         {item.imagem && <img src={item.imagem} className="w-16 h-16 object-contain" alt="desenho" />}
                         <div>
                           <p className="font-bold text-[#1C415B] uppercase">{item.descricao}</p>
                           <p className="text-[10px] text-gray-400">{item.vidroInfo}</p>
                         </div>
                       </td>
-                      <td className="py-4 text-center font-mono text-xs">{item.larguraVao} x {item.alturaVao}</td>
-                      <td className="py-4 text-center">{item.quantidade}</td>
-                      <td className="py-4 text-right font-bold text-[#1C415B]">{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                      <td className="py-4 align-top text-center font-mono text-xs">{item.larguraVao} x {item.alturaVao}</td>
+                      <td className="py-4 align-top text-center">{item.quantidade}</td>
+                      <td className="py-4 align-top text-right font-bold text-[#1C415B]">{item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {!modoSeparacao && (
-                    <div className="text-right mt-10 border-t-2 pt-4">
-                      <p className="text-sm text-gray-500">Valor Total</p>
-                      <p className="text-4xl font-black text-[#1C415B]">
-                        {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </p>
-                    </div>
-                  )}
+                <div className="text-right mt-10 border-t-2 pt-4">
+                  <p className="text-sm text-gray-500">Valor Total</p>
+                  <p className="text-4xl font-black text-[#1C415B]">
+                    {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1214,10 +1214,10 @@ export default function CalculoProjetosVidros() {
               {/* CABEÇALHO: TÍTULO E DADOS À ESQUERDA | LOGO À DIREITA */}
               <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-10">
                 <div className="flex-1">
-                  <h1 className="text-4xl font-black text-[#1C415B] tracking-tighter leading-none mb-3">
+                  <h1 className="text-3xl font-black text-[#1C415B] tracking-tighter leading-none mb-3">
                     ORÇAMENTO
                   </h1>
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.2">
                     <p className="text-[9px] text-gray-400 font-bold uppercase ">Somente Vidros</p>
                     <div className="text-[10px] text-gray-500 uppercase font-bold leading-tight">
                       <p className="text-[10px] font-black text-[#1C415B] uppercase tracking-widest">
@@ -1239,10 +1239,10 @@ export default function CalculoProjetosVidros() {
               </div>
 
               <div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
-                <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+                <h2 className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
                   Cliente / Obra
                 </h2>
-                <p className="text-2xl font-bold text-[#1C415B] uppercase tracking-tight">
+                <p className="text-1xl font-bold text-[#1C415B] uppercase tracking-tight">
                   {clienteSel?.nome || buscaCliente || "Consumidor Final"}
                 </p>
                 {clienteSel?.telefone && (
@@ -1264,8 +1264,8 @@ export default function CalculoProjetosVidros() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {itens.map((item: any) => (
-                    <tr key={item.id} className="text-sm">
-                      <td className="py-4 flex items-start gap-4">
+                    <tr key={item.id} className="text-sm align-top">
+                      <td className="py-4 align-top flex items-start gap-4">
                         {/* DESENHO */}
                         {item.imagem && (
                           <img src={item.imagem} className="w-24 h-24 object-contain border border-gray-100 rounded" alt="Desenho" />
@@ -1292,7 +1292,7 @@ export default function CalculoProjetosVidros() {
                       </td>
 
                       {/* MEDIDAS - AZUL E SEM NEGRITO */}
-                      <td className="py-4 text-center font-mono text-xs text-[#1C415B]">
+                      <td className="py-4 align-top text-center font-mono text-xs text-[#1C415B]">
                         <div className="flex flex-col gap-1">
                           {/* Larguras */}
                           <span className="font-normal text-[11px]">
@@ -1314,12 +1314,12 @@ export default function CalculoProjetosVidros() {
                       </td>
 
                       {/* QUANTIDADE - AZUL E SEM NEGRITO */}
-                      <td className="py-4 text-center font-normal text-[#1C415B]">
+                      <td className="py-4 align-top text-center font-normal text-[#1C415B]">
                         {item.quantidade}
                       </td>
 
                       {/* SUBTOTAL - AZUL E SEM NEGRITO */}
-                      <td className="py-4 text-right font-normal text-[#1C415B]">
+                      <td className="py-4 align-top text-right font-normal text-[#1C415B]">
                         {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
                     </tr>
@@ -1328,61 +1328,62 @@ export default function CalculoProjetosVidros() {
               </table>
 
               {/* RODAPÉ DO ORÇAMENTO: RESUMO TÉCNICO + TOTAIS */}
-              <div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
+<div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
 
-                {/* COLUNA ESQUERDA: RESUMO DE PEÇAS E OBSERVAÇÕES */}
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
-                      Detalhamento de Peças para Produção
-                    </h3>
-                    <div className="flex flex-col gap-1">
-                      {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
-                        const totalPecasVidro = itens
-                          .filter((item: any) => item.vidroInfo.includes(nome))
-                          .reduce((acc: number, item: any) => {
-                            // Pega o número de folhas (ex: "4" de "4 folhas")
-                            const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+  {/* COLUNA ESQUERDA */}
+  <div className="flex flex-col gap-4">
+    <div>
+      <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
+        Detalhamento de Peças para Produção
+      </h3>
 
-                            // Se o item tem bandeira, ele tem o dobro de peças (vidro de cima + vidro de baixo)
-                            const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
+      <div className="flex flex-col gap-1">
+        {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
+          const totalPecasVidro = itens
+            .filter((item: any) => item.vidroInfo.includes(nome))
+            .reduce((acc: number, item: any) => {
+              const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+              const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
+              return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
+            }, 0);
 
-                            return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
-                          }, 0);
+          return (
+            <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
+              <span className="font-medium text-[#1C415B]">• {nome}</span>
+              <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
+              <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
+            </div>
+          );
+        })}
+      </div>
 
-                        return (
-                          <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
-                            <span className="font-medium text-[#1C415B]">• {nome}</span>
-                            <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
-                            <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+      <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
+        <span>
+          Total de Peças: {itens.reduce((acc: number, item: any) => {
+            const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
+            return acc + (folhas * Number(item.quantidade));
+          }, 0)}
+        </span>
+        <span>
+          Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
+        </span>
+      </div>
+    </div>
+  </div>
 
-                    {/* TOTAL UNIFICADO ABAIXO DA LISTA */}
-                    <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
-                      <span>
-                        Total de Peças: {itens.reduce((acc: number, item: any) => {
-                          const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-                          return acc + (folhas * Number(item.quantidade));
-                        }, 0)}
-                      </span>
-                      <span>
-                        Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* COLUNA DIREITA: TOTAL GERAL */}
-              <div className="text-right flex flex-col justify-center h-full">
-                <span className="text-[10px] font-black text-gray-300 uppercase block tracking-tighter">Total Geral do Orçamento</span>
-                <span className="text-3xl font-black text-[#1C415B]">
-                  {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </span>
-              </div>
+  {/* COLUNA DIREITA */}
+  <div className="flex flex-col items-end justify-start text-right">
+    <span className="text-[10px] font-black text-gray-300 uppercase tracking-tight">
+      Total Geral do Orçamento
+    </span>
+    <span className="text-3xl font-black text-[#1C415B]">
+      {valorTotalGeral.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      })}
+    </span>
+  </div>
+  </div>
             </div>
           </div>
         </div>
