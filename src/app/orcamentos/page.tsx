@@ -11,8 +11,17 @@ import {
   Maximize
 } from "lucide-react"
 
-// Lista de Modelos - Mantendo os mesmos dados e rotas
+// Lista de Modelos - Adicionado o item aberturas.png
 const modelosOrcamento = [
+  {
+    id: "aberturas",
+    nome: "Cálculo Projetos",
+    categoria: "Engenharia",
+    descricao: "Calculadora somente vidros",
+    imagem: "/desenhos/aberturas.png", // <--- IMAGEM REFERENCIADA AQUI
+    rota: "/calculosomentevidro",    // <--- ROTA CONFIGURADA AQUI
+    tags: ["Somente vidros", "kis"],
+  },
   {
     id: "box-frontal",
     nome: "Box Frontal",
@@ -48,7 +57,8 @@ const modelosOrcamento = [
     imagem: "/desenhos/janela-exemplo.png",
     rota: "/calculovidro",
     tags: ["Temperado", "Comum"],
-  }
+  },
+
 ]
 
 export default function SelecaoOrcamento() {
@@ -182,6 +192,7 @@ export default function SelecaoOrcamento() {
             <h3 className="text-xl font-bold text-[#1C415B]">Nenhum projeto encontrado</h3>
             <p className="text-gray-400 mt-2">Tente ajustar sua pesquisa ou categoria.</p>
           </div>
+          
         )}
       </main>
     </div>
