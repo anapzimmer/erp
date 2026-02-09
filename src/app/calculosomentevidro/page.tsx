@@ -75,6 +75,13 @@ export default function CalculoProjetosVidros() {
     return `${nome} ${espessura}mm`;
   };
 
+    const theme = {
+    primary: "#1C415B",
+    secondary: "#92D050",
+    danger: "#EF4444"
+  };
+
+
   // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
     const { data, error } = await supabase
@@ -555,7 +562,13 @@ export default function CalculoProjetosVidros() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#92D050] rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
+           <button 
+              onClick={() => router.push('/orcamentos')} // <--- ROTA DE VOLTA
+              className="p-2 bg-[#92D050] rounded-lg shadow-sm hover:bg-[#1C415B] transition-all"
+              title="Voltar para Orçamentos"
+            >
+              <Home className="text-white" size={24} />
+            </button>
             <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Projetos - Só VIDRO</h1>
           </div>
           <div className="flex gap-2">
