@@ -11,6 +11,13 @@ type Cliente = {
   telefone?: string | null
   cidade?: string | null
   rota: string
+  grupo_preco_id?: number | null // --- NOVO ---
+}
+
+// --- NOVO: Tipo para o grupo ---
+type GrupoPreco = {
+  id: number
+  nome: string
 }
 
 const theme = {
@@ -25,8 +32,10 @@ const theme = {
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [grupos, setGrupos] = useState<GrupoPreco[]>([]) // --- NOVO ---
+  
   const [novoCliente, setNovoCliente] = useState<Omit<Cliente, "id">>({
-    nome: "", telefone: "", cidade: "", rota: "",
+    nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null // --- NOVO ---
   })
   const [editando, setEditando] = useState<Cliente | null>(null)
   const [carregando, setCarregando] = useState(false)
@@ -34,14 +43,12 @@ export default function ClientesPage() {
   const [filtroRota, setFiltroRota] = useState("")
   const [filtroCidade, setFiltroCidade] = useState("")
 
-  // --- ESTADO DO MODAL DE AVISO ---
   const [modalAviso, setModalAviso] = useState<{
     titulo: string
     mensagem: string
     confirmar?: () => void
   } | null>(null)
 
-  // --- FUNÇÕES DE PADRONIZAÇÃO SOLICITADAS ---
   const padronizarNome = (texto: string) => {
     if (!texto) return ""
     return texto.toLowerCase().trim()
@@ -57,12 +64,31 @@ export default function ClientesPage() {
   }
 
   // --- LÓGICA DE NEGÓCIO ---
-  const carregarClientes = async () => {
-    const { data, error } = await supabase.from("clientes").select("*").order("nome", { ascending: true })
-    if (error) console.error("Erro ao carregar clientes:", error)
-    else setClientes((data as Cliente[]) || [])
+  const carregarDados = async () => {
+    setCarregando(true)
+    
+    // Carregar Clientes
+    const { data: dataClientes, error: errorClientes } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("nome", { ascending: true })
+    
+    // --- NOVO: Carregar Grupos de Preço ---
+    const { data: dataGrupos, error: errorGrupos } = await supabase
+      .from("tabelas")
+      .select("*")
+      .order("nome", { ascending: true })
+
+    if (errorClientes) console.error("Erro ao carregar clientes:", errorClientes)
+    else setClientes((dataClientes as Cliente[]) || [])
+
+    if (errorGrupos) console.error("Erro ao carregar grupos:", errorGrupos)
+    else setGrupos((dataGrupos as GrupoPreco[]) || [])
+    
+    setCarregando(false)
   }
-  useEffect(() => { carregarClientes() }, [])
+  
+  useEffect(() => { carregarDados() }, [])
 
   function formatarTelefoneRaw(valor: string) {
     const nums = valor.replace(/\D/g, "")
@@ -84,13 +110,15 @@ export default function ClientesPage() {
   function montarPayload() {
     const rotaFinal = formatarRota(novoCliente.rota)
     const nomeFinal = padronizarNome(novoCliente.nome)
-    // Padrão: "ID - Nome"
-   const payload: any = {
-  nome: nomeFinal,
-    rota: rotaFinal
-  }
+    
+    const payload: any = {
+      nome: nomeFinal,
+      rota: rotaFinal,
+      grupo_preco_id: novoCliente.grupo_preco_id // --- NOVO ---
+    }
     if (!telefoneConsiderarVazio(novoCliente.telefone)) payload.telefone = novoCliente.telefone!.trim()
     if (novoCliente.cidade?.trim()) payload.cidade = padronizarNome(novoCliente.cidade)
+    
     return payload
   }
 
@@ -112,12 +140,11 @@ export default function ClientesPage() {
         const { error } = await supabase.from("clientes").update(payload).eq("id", editando.id)
         if (error) throw error
       } else {
-        const { data, error } = await supabase.from("clientes").insert([payload]).select().single()
+        const { error } = await supabase.from("clientes").insert([payload])
         if (error) throw error
-        if (data) setClientes(prev => [...prev, data as Cliente])
       }
-      await carregarClientes()
-      setNovoCliente({ nome: "", telefone: "", cidade: "", rota: "" })
+      await carregarDados() // --- Atualizado para carregar grupos também ---
+      setNovoCliente({ nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null })
       setEditando(null)
       setMostrarModal(false)
     } catch (e: any) {
@@ -145,13 +172,13 @@ export default function ClientesPage() {
 
   const editarCliente = (cliente: Cliente) => {
     setEditando(cliente)
-    // Remove o prefixo "ID - " do nome ao editar para não duplicar
-   setNovoCliente({
-  nome: cliente.nome,
-  telefone: cliente.telefone ?? "",
-  cidade: cliente.cidade ?? "",
-  rota: cliente.rota ?? "",
-})
+    setNovoCliente({
+      nome: cliente.nome,
+      telefone: cliente.telefone ?? "",
+      cidade: cliente.cidade ?? "",
+      rota: cliente.rota ?? "",
+      grupo_preco_id: cliente.grupo_preco_id // --- NOVO ---
+    })
     setMostrarModal(true)
   }
 
@@ -190,7 +217,7 @@ export default function ClientesPage() {
       </div>
 
       <div className="flex justify-center mb-6">
-        <button onClick={() => { setEditando(null); setNovoCliente({ nome: "", telefone: "(00) 0000-0000", cidade: "", rota: "" }); setMostrarModal(true); }} className="px-6 py-2 rounded-2xl font-bold shadow" style={{ backgroundColor: theme.secondary, color: theme.primary }}>
+        <button onClick={() => { setEditando(null); setNovoCliente({ nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null }); setMostrarModal(true); }} className="px-6 py-2 rounded-2xl font-bold shadow" style={{ backgroundColor: theme.secondary, color: theme.primary }}>
           Novo Cliente
         </button>
       </div>
@@ -216,9 +243,8 @@ export default function ClientesPage() {
           <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
             <tr>
               <th className="p-3">Nome</th>
-              <th className="p-3">Telefone</th>
               <th className="p-3">Cidade</th>
-              <th className="p-3">Rota</th>
+              <th className="p-3">Grupo</th> {/* --- NOVO --- */}
               <th className="p-3 text-center">Ações</th>
             </tr>
           </thead>
@@ -226,9 +252,11 @@ export default function ClientesPage() {
             {clientesFiltrados.map(cliente => (
               <tr key={cliente.id} className="border-b hover:bg-[#f3f6f9]" style={{ borderColor: theme.border }}>
                 <td className="p-3">{cliente.nome}</td>
-                <td className="p-3">{cliente.telefone ?? "-"}</td>
                 <td className="p-3">{cliente.cidade ?? "-"}</td>
-                <td className="p-3">{cliente.rota}</td>
+                {/* --- NOVO: Exibir nome do grupo --- */}
+                <td className="p-3 text-sm">
+                    {grupos.find(g => g.id === cliente.grupo_preco_id)?.nome || "Padrão"}
+                </td>
                 <td className="p-3 flex justify-center gap-2">
                   <button onClick={() => editarCliente(cliente)} className="p-1 rounded hover:bg-[#E5E7EB]">
                     <Image src="/icons/editar.png" alt="Editar" width={20} height={20} />
@@ -253,6 +281,19 @@ export default function ClientesPage() {
               <input type="text" placeholder="Telefone" value={novoCliente.telefone ?? ""} onChange={e => handleTelefoneChange(e.target.value)} className="w-full p-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#92D050]"/>
               <input type="text" placeholder="Cidade" value={novoCliente.cidade ?? ""} onChange={e => setNovoCliente({ ...novoCliente, cidade: e.target.value })} className="w-full p-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#92D050]" />
               <input type="text" placeholder="Rota *" value={novoCliente.rota} onChange={e => setNovoCliente({ ...novoCliente, rota: e.target.value })} className="w-full p-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#92D050]" />
+              
+              {/* --- NOVO: Select de Grupo de Preço --- */}
+              <select 
+                value={novoCliente.grupo_preco_id || ""}
+                onChange={e => setNovoCliente({ ...novoCliente, grupo_preco_id: e.target.value ? Number(e.target.value) : null })}
+                className="w-full p-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#92D050] bg-white"
+              >
+                <option value="">Grupo Padrão</option>
+                {grupos.map(g => (
+                    <option key={g.id} value={g.id}>{g.nome}</option>
+                ))}
+              </select>
+
               <div className="flex justify-between gap-3 mt-4">
                 <button onClick={() => setMostrarModal(false)} className="flex-1 py-3 rounded-xl font-semibold text-gray-400 border border-gray-200 hover:opacity-90 transition">Cancelar</button>
                 <button onClick={salvarCliente} disabled={carregando} className="flex-1 py-3 rounded-xl font-semibold text-white shadow-md" style={{ backgroundColor: theme.secondary, color: theme.primary}}>
@@ -264,7 +305,7 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* MODAL DE AVISO / CONFIRMAÇÃO (O SEU NOVO PADRÃO) */}
+      {/* MODAL DE AVISO / CONFIRMAÇÃO */}
       {modalAviso && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full border border-gray-100">
