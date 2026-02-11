@@ -306,50 +306,151 @@ export default function FerragensPage() {
 
       {/* Modal - Cadastro/Edição Melhorado 🔥 */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4 backdrop-blur-sm">
-          <div className="p-6 rounded-2xl shadow-2xl w-full max-w-lg bg-white">
-            <h2 className="text-2xl font-bold mb-5" style={{ color: theme.primary }}>
-              {editando ? "Editar Ferragem" : "Nova Ferragem"}
-            </h2>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <input type="text" autoFocus placeholder="Código *" value={novoItem.codigo} onChange={e => setNovoItem({ ...novoItem, codigo: e.target.value })} className="p-3 rounded-xl border" />
-              <input type="text" placeholder="Preço (ex: 10,50)" value={novoItem.preco} onChange={e => setNovoItem({ ...novoItem, preco: e.target.value })} className="p-3 rounded-xl border" />
-              <input type="text" placeholder="Nome *" value={novoItem.nome} onChange={e => setNovoItem({ ...novoItem, nome: padronizarTexto(e.target.value) })} className="col-span-2 p-3 rounded-xl border" />
-              <input type="text" placeholder="Cores" value={novoItem.cores} onChange={e => setNovoItem({ ...novoItem, cores: padronizarTexto(e.target.value) })} className="p-3 rounded-xl border" />
-              <input type="text" placeholder="Categoria" value={novoItem.categoria} onChange={e => setNovoItem({ ...novoItem, categoria: padronizarTexto(e.target.value) })} className="p-3 rounded-xl border" />
-              <input type="text" placeholder="Código Interno (ID)" value={novoItem.codigo_interno || ""} onChange={e => setNovoItem({ ...novoItem, codigo_interno: e.target.value })} className="col-span-2 p-3 rounded-xl border text-xs font-mono" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-2xl">
+
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <Package className="text-[#92D050]" size={24} />
+                {editando ? "Editar Ferragem" : "Nova Ferragem"}
+              </h2>
+
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                ✕
+              </button>
             </div>
 
+            {/* FORM */}
+            <div className="grid grid-cols-2 gap-4">
+
+              <input
+                type="text"
+                autoFocus
+                placeholder="Código *"
+                value={novoItem.codigo}
+                onChange={e => setNovoItem({ ...novoItem, codigo: e.target.value })}
+                className="p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+
+              <input
+                type="text"
+                placeholder="Preço (ex: 10,50)"
+                value={novoItem.preco}
+                onChange={e => setNovoItem({ ...novoItem, preco: e.target.value })}
+                className="p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+
+              <input
+                type="text"
+                placeholder="Nome *"
+                value={novoItem.nome}
+                onChange={e => setNovoItem({ ...novoItem, nome: padronizarTexto(e.target.value) })}
+                className="col-span-2 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+
+              <input
+                type="text"
+                placeholder="Cores"
+                value={novoItem.cores}
+                onChange={e => setNovoItem({ ...novoItem, cores: padronizarTexto(e.target.value) })}
+                className="p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+
+              <input
+                type="text"
+                placeholder="Categoria"
+                value={novoItem.categoria}
+                onChange={e => setNovoItem({ ...novoItem, categoria: padronizarTexto(e.target.value) })}
+                className="p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+
+              <input
+                type="text"
+                placeholder="Código Interno"
+                value={novoItem.codigo_interno || ""}
+                onChange={e => setNovoItem({ ...novoItem, codigo_interno: e.target.value })}
+                className="col-span-2 p-3 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-[#92D050] outline-none"
+              />
+            </div>
+
+            {/* FOOTER */}
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setMostrarModal(false)} className="px-6 py-2.5 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 transition">
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="px-6 py-2.5 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 transition"
+              >
                 Cancelar
               </button>
-              <button onClick={salvarFerragem} disabled={carregando} className="px-6 py-2.5 rounded-xl font-semibold text-white hover:opacity-90 transition disabled:opacity-50" style={{ backgroundColor: theme.primary }}>
+
+              <button
+                onClick={salvarFerragem}
+                disabled={carregando}
+                className="px-6 py-2.5 rounded-xl font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: theme.primary }}
+              >
                 {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
               </button>
             </div>
+
           </div>
         </div>
       )}
 
+
       {/* Modal Deletar 🔥 */}
       {modalDeletar && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4 backdrop-blur-sm">
-          <div className="p-6 rounded-2xl shadow-2xl w-full max-w-sm bg-white">
-            <h2 className="text-xl font-bold mb-4">Confirmar exclusão</h2>
-            <p className="mb-6 text-gray-600">Deseja realmente excluir <strong>{modalDeletar.nome}</strong>? Esta ação não pode ser desfeita.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setModalDeletar(null)} className="px-5 py-2 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 transition">
-                Cancelar
-              </button>
-              <button onClick={confirmarDelecao} className="px-5 py-2 rounded-xl font-semibold text-white bg-red-600 hover:bg-red-700 transition">
-                Excluir
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-xl font-bold flex items-center gap-3">
+                <Trash2 className="text-red-500" size={22} />
+                Confirmar Exclusão
+              </h3>
+
+              <button
+                onClick={() => setModalDeletar(null)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                ✕
               </button>
             </div>
+
+            {/* MENSAGEM */}
+            <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl border border-red-100 text-sm">
+              Deseja realmente excluir <span className="font-bold">{modalDeletar.nome}</span>?
+              <br />
+              Esta ação não poderá ser desfeita.
+            </p>
+
+            {/* BOTÕES */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setModalDeletar(null)}
+                className="px-6 py-2.5 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={confirmarDelecao}
+                className="px-6 py-2.5 rounded-xl font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sim, excluir
+              </button>
+            </div>
+
           </div>
         </div>
       )}
+
     </div>
   )
 }

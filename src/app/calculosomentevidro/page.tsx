@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { useReactToPrint } from 'react-to-print';
-import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, ClipboardList } from "lucide-react"
+import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X, Pencil, Package, AlertTriangle } from "lucide-react"
 import { calcularProjeto, parseNumber } from "@/utils/glass-calc"
 import { useRouter } from 'next/navigation'
 
@@ -17,7 +17,10 @@ export default function CalculoProjetosVidros() {
   const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
   const [modoProducao, setModoProducao] = useState(false);
   const [modoSeparacao, setModoSeparacao] = useState(false);
-  const componentRef = useRef(null); // Ref para a área de impressão
+  const [modalConfirmar, setModalConfirmar] = useState(false);
+  const [modalErro, setModalErro] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState("");
+
 
   // --- 2. ESTADOS DE BUSCA E SELEÇÃO ---
   const [clienteSel, setClienteSel] = useState<any>(null);
@@ -81,7 +84,6 @@ export default function CalculoProjetosVidros() {
     danger: "#EF4444"
   };
 
-
   // Busca Preço Especial na tabela do banco
   const buscarPrecoEspecial = async (vidroId: number, clienteId: string) => {
     const { data, error } = await supabase
@@ -109,7 +111,7 @@ export default function CalculoProjetosVidros() {
       const { data: k } = await supabase.from('kits').select('id, nome, preco, preco_por_cor, cores')
 
       setAdicionaisDB([
-        ...(p || []).map(p => ({...p, preco: p.preco})),
+        ...(p || []).map(p => ({ ...p, preco: p.preco })),
         ...(f || []),
         ...(k || []).map((kit: any) => ({
           ...kit,
@@ -406,9 +408,50 @@ export default function CalculoProjetosVidros() {
     // 7. Sobe a página
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  // 🔴 VALIDAÇÃO DOS CAMPOS
+  const validarCampos = () => {
+
+    if (!clienteSel) {
+      setMensagemErro("Selecione um cliente antes de adicionar o item.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!modelo || modelo.includes("Escolher")) {
+      setMensagemErro("Selecione o tipo de projeto.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!vidroSel) {
+      setMensagemErro("Selecione o tipo de vidro.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!larguraVao || parseNumber(larguraVao) <= 0) {
+      setMensagemErro("Informe uma largura válida.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!alturaVao || parseNumber(alturaVao) <= 0) {
+      setMensagemErro("Informe uma altura válida.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!quantidade || Number(quantidade) <= 0) {
+      setMensagemErro("Informe a quantidade desejada.");
+      setModalErro(true);
+      return false;
+    }
+
+    return true;
+  };
 
   const adicionarItem = () => {
-    if (!vidroSel) return alert("Selecione um vidro");
+    if (!validarCampos()) return;
 
     // 1. Preparar dados base
     const precoFinalVidro = parseNumber(vidroSel.preco);
@@ -437,15 +480,15 @@ export default function CalculoProjetosVidros() {
     });
 
     // 4. CORREÇÃO AQUI: Calcular o custo unitário dos adicionais
-const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: any) => {
-  // AQUI É O PONTO CRÍTICO: adic.valor precisa passar pelo parseNumber
-  const valorLimpo = parseNumber(adic.valor); 
-  const quantidade = Number(adic.qtd);
-  
-  console.log(`Adicional: ${adic.nome}, Valor Original: ${adic.valor}, Valor Limpo: ${valorLimpo}`);
-  
-  return acc + (valorLimpo * quantidade);
-}, 0);
+    const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: any) => {
+      // AQUI É O PONTO CRÍTICO: adic.valor precisa passar pelo parseNumber
+      const valorLimpo = parseNumber(adic.valor);
+      const quantidade = Number(adic.qtd);
+
+      console.log(`Adicional: ${adic.nome}, Valor Original: ${adic.valor}, Valor Limpo: ${valorLimpo}`);
+
+      return acc + (valorLimpo * quantidade);
+    }, 0);
 
     const qtdVao = Number(quantidade) || 1;
 
@@ -504,7 +547,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
     setBuscaVidro("");
     setVidroSel(null);
   };
-
 
   const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
 
@@ -565,7 +607,29 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
     documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
   });
 
-  
+  const validarAntesDeGerar = () => {
+
+    if (!clienteSel) {
+      setMensagemErro("Selecione um cliente antes de gerar o PDF.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!modelo || modelo.includes("Escolher")) {
+      setMensagemErro("Selecione o tipo de projeto.");
+      setModalErro(true);
+      return false;
+    }
+
+    if (!itens || itens.length === 0) {
+      setMensagemErro("Adicione pelo menos um item ao orçamento antes de gerar o PDF.");
+      setModalErro(true);
+      return false;
+    }
+
+    return true;
+  };
+
 
   return (
     <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
@@ -587,7 +651,11 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
               setItens([])
               handleNovo()
             }} className="px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50">Novo Orçamento</button>
-            <button onClick={() => handlePrint()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
+            <button onClick={() => {
+              if (validarAntesDeGerar()) {
+                handlePrint();
+              }
+            }} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
           </div>
         </div>
 
@@ -622,7 +690,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
             <UserPlus size={20} />
           </button>
         </div>
-
 
         {/* BOX CONFIGURAÇÃO */}
         <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
@@ -856,7 +923,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
 
                 {/* 3️⃣ MEDIDAS - AGORA EM COLUNA VERTICAL */}
                 <div className="col-span-1 flex flex-col gap-3">
-
                   {/* CAMPO LARGURA */}
                   <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Largura</label>
@@ -869,7 +935,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
                       onKeyDown={e => { if (e.key === 'Enter') alturaRef.current?.focus(); }}
                     />
                   </div>
-
                   {/* LARGURA B (SÓ APARECE EM CANTO) */}
                   {(modelo === "Janela Canto" || modelo === "Box Canto") && (
                     <div className="flex flex-col">
@@ -882,7 +947,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
                       />
                     </div>
                   )}
-
                   {/* CAMPO ALTURA */}
                   <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1">Altura</label>
@@ -895,7 +959,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
                       onKeyDown={e => { if (e.key === 'Enter') qtdRef.current?.focus(); }}
                     />
                   </div>
-
                   {/* CAMPO QUANTIDADE */}
                   <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 text-[#92D050]">Qtd</label>
@@ -918,7 +981,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
 
                 {modelo.toLowerCase().includes("bandeira") && (
                   <div className="flex flex-col gap-3 p-4 bg-[#F4FFF0]/50 rounded-2xl border border-[#92D050]/30 animate-in slide-in-from-top-2 duration-300">
-
                     {/* Campo Altura */}
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] font-bold text-[#1C415B] uppercase ml-1">Altura da Porta até Tubo (mm)</label>
@@ -1003,7 +1065,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
                 )}
               </div>
 
-
               {/* ADICIONAIS */}
               <div className="mt-8 pt-4">
                 <div className="flex items-center gap-2 mb-2"><Plus size={15} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
@@ -1085,7 +1146,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
 
         {/* --- ÁREA DE RESULTADOS (TABELA E PRODUÇÃO) --- */}
         <div className="space-y-4">
-
           {/* 2. TELA DE ORÇAMENTO (SÓ MOSTRA SE NÃO FOR PRODUÇÃO NEM SEPARAÇÃO) */}
           {!modoProducao && !modoSeparacao && (
             <div className="animate-in fade-in duration-500">
@@ -1127,34 +1187,32 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
               </div>
 
               {/* RESUMO TÉCNICO E FINANCEIRO (SÓ NO ORÇAMENTO NA TELA) */}
-             {itens.length > 0 && !modoProducao && !modoSeparacao && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-
+              {itens.length > 0 && !modoProducao && !modoSeparacao && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-              <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
-
+                    <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
                     {/* Cabeçalho do Bloco com Itens e Área Total */}
                     <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
-                <div className="flex gap-3">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
-                  <span className="text-[10px] text-[#1C415B] font-bold uppercase">
-                    Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²
-                  </span>
-                </div>
-              </div>
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
+                      <div className="flex gap-3">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
+                        <span className="text-[10px] text-[#1C415B] font-bold uppercase">
+                          Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²
+                        </span>
+                      </div>
+                    </div>
 
                     {/* Lista de Vidros Detalhada */}
-                   <div className="space-y-2">
-                {Object.entries(resumoVidros).map(([nome, area]: any) => (
-                  <div key={nome} className="flex justify-between items-center text-xs">
-                    <span className="text-gray-500">{nome}</span>
-                    <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+                    <div className="space-y-2">
+                      {Object.entries(resumoVidros).map(([nome, area]: any) => (
+                        <div key={nome} className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">{nome}</span>
+                          <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
                   {/* Bloco 2: Total Financeiro (Limpo) */}
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
@@ -1162,7 +1220,6 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
 
                     <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Valor Total do Orçamento</h4>
                     <p className="text-[11px] text-gray-300 mb-4 max-w-[250px]">Total de todos os itens e acessórios selecionados</p>
-
                     <div className="text-4xl font-black text-[#1C415B]">
                       {valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </div>
@@ -1226,188 +1283,44 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
               )}
             </div>
           </div>
+        </div>
+      </div>
+      
+      {modalErro && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
 
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-xl font-bold flex items-center gap-3">
+                <Package className="text-amber-500" size={24} />
+                Atenção
+              </h3>
+              <button
+                onClick={() => setModalErro(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={22} />
+              </button>
+            </div>
 
-          <div style={{ display: 'none' }}>
-            <div ref={contentRef} className="p-12 bg-white min-h-screen text-black font-sans print:block w-full">
+            {/* MENSAGEM */}
+            <p className="text-gray-600 mb-8 bg-amber-50 p-4 rounded-xl border border-amber-100 text-sm">
+              {mensagemErro}
+            </p>
 
-              {/* CABEÇALHO: TÍTULO E DADOS À ESQUERDA | LOGO À DIREITA */}
-              <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-10">
-                <div className="flex-1">
-                  <h1 className="text-3xl font-black text-[#1C415B] tracking-tighter leading-none mb-3">
-                    ORÇAMENTO
-                  </h1>
-                  <div className="space-y-0.2">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase ">Somente Vidros</p>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold leading-tight">
-                      <p className="text-[10px] font-black text-[#1C415B] uppercase tracking-widest">
-                        Data: {new Date().toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* LOGO NO LADO DIREITO */}
-                <div className="flex flex-col items-end">
-                  <img
-                    src="/logo.png"
-                    alt="Logo Empresa"
-                    className="h-14 w-auto object-contain mb-2"
-                    onError={(e) => (e.currentTarget.style.display = 'none')} // Esconde se a imagem falhar
-                  />
-                </div>
-              </div>
-
-              <div className="mb-10 pl-2 border-l-4 border-[#1C415B]">
-                <h2 className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
-                  Cliente / Obra
-                </h2>
-                <p className="text-1xl font-bold text-[#1C415B] uppercase tracking-tight">
-                  {clienteSel?.nome || buscaCliente || "Consumidor Final"}
-                </p>
-                {clienteSel?.telefone && (
-                  <p className="text-xs text-gray-600 font-bold mt-1 tracking-wide">
-                    CONTATO: {clienteSel.telefone}
-                  </p>
-                )}
-              </div>
-
-              {/* Tabela do Orçamento Limpa */}
-              <table className="w-full mb-10 border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-200 text-[11px] uppercase text-gray-400">
-                    <th className="py-3 text-left">Projeto / Desenho</th> {/* Adicionado Desenho */}
-                    <th className="py-3 text-center">Medidas do Vão</th>
-                    <th className="py-3 text-center">Qtd</th>
-                    <th className="py-3 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {itens.map((item: any) => (
-                    <tr key={item.id} className="text-sm align-top">
-                      <td className="py-4 align-top flex items-start gap-4">
-                        {/* DESENHO */}
-                        {item.imagem && (
-                          <img src={item.imagem} className="w-24 h-24 object-contain border border-gray-100 rounded" alt="Desenho" />
-                        )}
-                        <div>
-                          <p className="text-xs font-bold text-[#1C415B] uppercase tracking-wide">{item.descricao} </p>
-                          <p className="text-[10px] text-gray-400 font-normal">{item.vidroInfo} | Área: {item.areaM2?.toFixed(3)}m²</p>
-                          {item.detalhes && item.detalhes.map((det: string, idx: number) => (
-                            <p key={idx} className="text-[10px] text-[#92D050] font-normal italic leading-tight">
-                              • {det}
-                            </p>
-                          ))}
-
-                          {item.adicionais && item.adicionais.length > 0 && (
-                            <div className="mt-1 pt-1 border-t border-dotted border-gray-200 flex flex-col gap-0.5">
-                              {item.adicionais.map((a: any, i: number) => (
-                                <p key={i} className="text-[10px] text-gray-500 font-normal">
-                                  + {a.qtd}x {a.nome}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* MEDIDAS - AZUL E SEM NEGRITO */}
-                      <td className="py-4 align-top text-center font-mono text-xs text-[#1C415B]">
-                        <div className="flex flex-col gap-1">
-                          {/* Larguras */}
-                          <span className="font-normal text-[11px]">
-                            {item.larguraVaoB ? `${item.larguraVao} + ${item.larguraVaoB} mm (L)` : `${item.larguraVao} mm (L)`}
-                          </span>
-
-                          <span className="text-[10px] opacity-30">x</span>
-
-                          {/* Alturas Separadas */}
-                          <div className="flex flex-col leading-tight">
-                            <span className="font-normal text-[11px]">{item.alturaVao} mm (A)</span>
-                            {item.alturaBandeira && (
-                              <span className="text-[10px] font-bold text-gray-400">
-                                + {item.alturaBandeira} mm (Bandeira)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* QUANTIDADE - AZUL E SEM NEGRITO */}
-                      <td className="py-4 align-top text-center font-normal text-[#1C415B]">
-                        {item.quantidade}
-                      </td>
-
-                      {/* SUBTOTAL - AZUL E SEM NEGRITO */}
-                      <td className="py-4 align-top text-right font-normal text-[#1C415B]">
-                        {item.total ? item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "R$ 0,00"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* RODAPÉ DO ORÇAMENTO: RESUMO TÉCNICO + TOTAIS */}
-              <div className="mt-8 grid grid-cols-2 gap-8 items-start border-t-2 border-gray-100 pt-6">
-
-                {/* COLUNA ESQUERDA */}
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">
-                      Detalhamento de Peças para Produção
-                    </h3>
-
-                    <div className="flex flex-col gap-1">
-                      {(Object.entries(resumoVidros) as [string, number][]).map(([nome, area]) => {
-                        const totalPecasVidro = itens
-                          .filter((item: any) => item.vidroInfo.includes(nome))
-                          .reduce((acc: number, item: any) => {
-                            const numFolhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-                            const multiplicadorBandeira = item.alturaBandeira ? 2 : 1;
-                            return acc + (numFolhas * Number(item.quantidade) * multiplicadorBandeira);
-                          }, 0);
-
-                        return (
-                          <div key={nome} className="flex items-center gap-3 text-[9px] text-gray-500">
-                            <span className="font-medium text-[#1C415B]">• {nome}</span>
-                            <span className="text-[#1C415B]">{totalPecasVidro} Peça(s)</span>
-                            <span className="text-[#1C415B]">{area.toFixed(2)} m² (Arred. 5cm)</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-2 pt-1 border-t border-dotted border-gray-200 flex gap-4 text-[9px] text-[#1C415B] font-black uppercase">
-                      <span>
-                        Total de Peças: {itens.reduce((acc: number, item: any) => {
-                          const folhas = parseInt(item.descricao.match(/\d+/)?.[0]) || 1;
-                          return acc + (folhas * Number(item.quantidade));
-                        }, 0)}
-                      </span>
-                      <span>
-                        Total m²: {itens.reduce((acc: number, item: any) => acc + (item.areaM2 || 0), 0).toFixed(2)} m²
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* COLUNA DIREITA */}
-                <div className="flex flex-col items-end justify-start text-right">
-                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-tight">
-                    Total Geral do Orçamento
-                  </span>
-                  <span className="text-3xl font-black text-[#1C415B]">
-                    {valorTotalGeral.toLocaleString('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    })}
-                  </span>
-                </div>
-              </div>
+            {/* BOTÕES */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setModalErro(false)}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition"
+              >
+                Entendi
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

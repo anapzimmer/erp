@@ -60,9 +60,17 @@ export default function KitsPage() {
   }
 
   // Confirmação padrão do sistema
-  const mostrarConfirmacao = (mensagem: string, onConfirm: () => void, onCancel?: () => void) => {
-    setModalConfirm({ mensagem, onConfirm, onCancel: onCancel || (() => setMostrarConfirm(false)) });
-  }
+ const mostrarConfirmacao = (
+  mensagem: string,
+  onConfirm: () => void,
+  onCancel?: () => void
+) => {
+  setModalConfirm({
+    mensagem,
+    onConfirm,
+    onCancel: onCancel || (() => setModalConfirm(null)),
+  });
+};
 
   // Exportar CSV
   const exportarCSV = () => {
@@ -354,54 +362,149 @@ const deletarKit = (id: number) => {
       </div>
 
       {/* Modal Novo/Editar Kit */}
-      {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
-          <div className="p-6 rounded-2xl shadow-lg w-full max-w-md bg-white">
-            <h2 className="text-xl font-semibold mb-4">{editando ? "Editar Kit" : "Novo Kit"}</h2>
-            <div className="space-y-3">
-              <input type="text" placeholder="Nome *" value={novoKit.nome} onChange={e => setNovoKit({ ...novoKit, nome: e.target.value })} className="w-full p-2 rounded-lg border" />
-              <input type="number" placeholder="Largura *" value={novoKit.largura} onChange={e => setNovoKit({ ...novoKit, largura: Number(e.target.value) })} className="w-full p-2 rounded-lg border" />
-              <input type="number" placeholder="Altura *" value={novoKit.altura} onChange={e => setNovoKit({ ...novoKit, altura: Number(e.target.value) })} className="w-full p-2 rounded-lg border" />
-              <input type="text" placeholder="Categoria" value={novoKit.categoria} onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })} className="w-full p-2 rounded-lg border" />
-              <input type="text" placeholder="Cor *" value={novoKit.cores} onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })} className="w-full p-2 rounded-lg border" />
-              <input type="text" placeholder="Preço por cor *" value={novoKit.preco_por_cor} onChange={e => setNovoKit({ ...novoKit, preco_por_cor: e.target.value })} className="w-full p-2 rounded-lg border" />
+{mostrarModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+    <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
 
-              <div className="flex justify-between gap-3 mt-4">
-                <button onClick={() => setMostrarModal(false)} className="flex-1 py-2 rounded-2xl font-semibold bg-gray-300 hover:opacity-90 transition">
-                  Cancelar
-                </button>
-                <button onClick={salvarKit} disabled={carregando} className="flex-1 py-2 rounded-2xl font-semibold" style={{ backgroundColor: theme.secondary, color: "#FFF" }}>
-                  {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold flex items-center gap-3 text-[#1C415B]">
+          <Package className="text-[#92D050]" size={24} />
+          {editando ? "Editar Kit" : "Novo Kit"}
+        </h3>
+
+        <button
+          onClick={() => setMostrarModal(false)}
+          className="text-gray-400 hover:text-gray-600 transition"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* FORM */}
+      <div className="space-y-4">
+
+        <input
+          type="text"
+          placeholder="Nome *"
+          value={novoKit.nome}
+          onChange={e => setNovoKit({ ...novoKit, nome: e.target.value })}
+          className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="number"
+            placeholder="Largura *"
+            value={novoKit.largura}
+            onChange={e => setNovoKit({ ...novoKit, largura: Number(e.target.value) })}
+            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+          />
+
+          <input
+            type="number"
+            placeholder="Altura *"
+            value={novoKit.altura}
+            onChange={e => setNovoKit({ ...novoKit, altura: Number(e.target.value) })}
+            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+          />
         </div>
-      )}
 
-      {/* Modal de confirmação */}
-{modalConfirm && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
-    <div className="p-6 rounded-2xl shadow-lg w-full max-w-md bg-white">
-      <h2 className="text-xl font-semibold mb-4">{modalConfirm.mensagem}</h2>
-      <div className="flex justify-between mt-4 gap-3">
-        <button
-          onClick={() => modalConfirm.onCancel?.()}
-          className="flex-1 py-2 rounded-2xl font-semibold bg-gray-300 hover:opacity-90 transition"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={() => modalConfirm.onConfirm()}
-          className="flex-1 py-2 rounded-2xl font-semibold"
-          style={{ backgroundColor: theme.secondary, color: "#FFF" }}
-        >
-          Confirmar
-        </button>
+        <input
+          type="text"
+          placeholder="Categoria"
+          value={novoKit.categoria}
+          onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })}
+          className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+        />
+
+        <input
+          type="text"
+          placeholder="Cor *"
+          value={novoKit.cores}
+          onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })}
+          className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+        />
+
+        <input
+          type="text"
+          placeholder="Preço por cor *"
+          value={novoKit.preco_por_cor}
+          onChange={e => setNovoKit({ ...novoKit, preco_por_cor: e.target.value })}
+          className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#92D050] outline-none"
+        />
+
+        {/* BOTÕES */}
+        <div className="flex gap-3 justify-end pt-4">
+          <button
+            onClick={() => setMostrarModal(false)}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition"
+          >
+            Cancelar
+          </button>
+
+          <button
+            onClick={salvarKit}
+            disabled={carregando}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-md"
+            style={{ backgroundColor: theme.secondary }}
+          >
+            {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
+          </button>
+        </div>
+
       </div>
     </div>
   </div>
 )}
+
+
+      {/* Modal de confirmação */}
+{modalConfirm && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+    <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-5">
+        <h3 className="text-xl font-bold flex items-center gap-3 text-[#1C415B]">
+          <Package className="text-red-500" size={24} />
+          Confirmação
+        </h3>
+
+        <button
+          onClick={() => setModalConfirm(null)}
+          className="text-gray-400 hover:text-gray-600 transition"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* MENSAGEM */}
+      <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl border border-red-100 text-sm">
+        {modalConfirm.mensagem}
+      </p>
+
+      {/* BOTÕES */}
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={() => modalConfirm.onCancel?.()}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition"
+        >
+          Cancelar
+        </button>
+
+        <button
+          onClick={() => modalConfirm.onConfirm()}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-md"
+        >
+          Confirmar
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
 
     </div>
   )
