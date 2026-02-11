@@ -75,7 +75,7 @@ export default function CalculoProjetosVidros() {
     return `${nome} ${espessura}mm`;
   };
 
-    const theme = {
+  const theme = {
     primary: "#1C415B",
     secondary: "#92D050",
     danger: "#EF4444"
@@ -109,7 +109,7 @@ export default function CalculoProjetosVidros() {
       const { data: k } = await supabase.from('kits').select('id, nome, preco, preco_por_cor, cores')
 
       setAdicionaisDB([
-        ...(p || []),
+        ...(p || []).map(p => ({...p, preco: p.preco})),
         ...(f || []),
         ...(k || []).map((kit: any) => ({
           ...kit,
@@ -409,25 +409,20 @@ export default function CalculoProjetosVidros() {
 
   const adicionarItem = () => {
     if (!vidroSel) return alert("Selecione um vidro");
+
+    // 1. Preparar dados base
     const precoFinalVidro = parseNumber(vidroSel.preco);
     const precoFinalBandeira = vidroSelBandeira
       ? parseNumber(vidroSelBandeira.preco)
       : precoFinalVidro;
-    let nomeFormatado = modelo.toUpperCase();
-    if (modelo.toLowerCase().includes("mão amiga") && configMaoAmiga) {
-      nomeFormatado = `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`;
-    } else if (folhas && !folhas.includes("Escolher")) {
-      nomeFormatado = `${modelo} ${folhas}`.toUpperCase();
-    }
 
-    const modeloPrincipal = modelo || "Janela";
-    // Se for Mão Amiga, anexamos a configuração ao nome
-    const nomeCompleto = modeloPrincipal.toLowerCase().includes("mão amiga") && configMaoAmiga
-      ? `${modeloPrincipal} - ${configMaoAmiga}`.toUpperCase()
-      : `${modeloPrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
+    // 2. Lógica de Nome formatado
+    let nomePrincipal = modelo || "Janela";
+    let nomeCompleto = nomePrincipal.toLowerCase().includes("mão amiga") && configMaoAmiga
+      ? `${nomePrincipal} - ${configMaoAmiga}`.toUpperCase()
+      : `${nomePrincipal} ${folhas}`.replace("Escolher Folhas", "").toUpperCase();
 
-    const precoEfetivoVidro = parseNumber(vidroSel.preco);
-
+    // 3. Chamar a função de cálculo do motor
     const resultado = calcularProjeto({
       modelo: modelo,
       folhas: folhas,
@@ -441,14 +436,32 @@ export default function CalculoProjetosVidros() {
       tipoOrcamento: tipoOrcamento,
     });
 
-    const totalAdicionaisExtras = adicionaisPendentes.reduce((acc: any, adic: any) => {
-      return acc + (parseNumber(adic.valor) * Number(adic.qtd));
-    }, 0);
+    // 4. CORREÇÃO AQUI: Calcular o custo unitário dos adicionais
+const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: any) => {
+  // AQUI É O PONTO CRÍTICO: adic.valor precisa passar pelo parseNumber
+  const valorLimpo = parseNumber(adic.valor); 
+  const quantidade = Number(adic.qtd);
+  
+  console.log(`Adicional: ${adic.nome}, Valor Original: ${adic.valor}, Valor Limpo: ${valorLimpo}`);
+  
+  return acc + (valorLimpo * quantidade);
+}, 0);
 
     const qtdVao = Number(quantidade) || 1;
-    // O valor final agora virá do resultado que já multiplicou m2 pelo preço correto
-    const valorFinal = (resultado.valorVidro + totalAdicionaisExtras) * qtdVao;
 
+    // 5. CORREÇÃO AQUI: Cálculo do valor final
+    // Valor do Vidro/Projeto total + (Custo Adicionais * Quantidade de Vãos)
+    const valorFinal = (resultado.valorVidro * qtdVao) + (custoUnitarioAdicionais * qtdVao);
+
+    // Debug para verificar se agora bate
+    console.log("--- DEBUG CÁLCULO ---");
+    console.log("Preço Vidro/M²:", resultado.valorVidro);
+    console.log("Custo Adicionais (Un):", custoUnitarioAdicionais);
+    console.log("Quantidade Vãos:", qtdVao);
+    console.log("Valor Final Item:", valorFinal);
+    console.log("---------------------");
+
+    // 6. Detalhes e Montagem do Item
     const detalhesTecnicos = [];
     if (trinco && !trinco.includes("Escolher")) detalhesTecnicos.push(`Trinco: ${trinco}`);
     if (corKit && !corKit.includes("Escolher")) detalhesTecnicos.push(corKit);
@@ -456,46 +469,42 @@ export default function CalculoProjetosVidros() {
 
     const novoItem = {
       id: Date.now(),
-      // SALVANDO OS ESTADOS ORIGINAIS PARA A EDIÇÃO
       modeloOriginal: modelo,
       folhasOriginal: folhas,
       trincoOriginal: trinco,
       corKitOriginal: corKit,
       tipoOrcamentoOriginal: tipoOrcamento,
       configMaoAmigaOriginal: configMaoAmiga,
-      vidroOriginal: vidroSel, // Salva o objeto do vidro todo
-
-      descricao: modelo.toLowerCase().includes("mão amiga") && configMaoAmiga
-        ? `PORTA MÃO AMIGA - ${configMaoAmiga.toUpperCase()}`
-        : `${modelo} ${folhas}`.replace("Escolher Folhas", "").toUpperCase(),
+      vidroOriginal: vidroSel,
+      descricao: nomeCompleto,
       vidroInfo: `${formatarNomeVidro(vidroSel)}`,
-      detalhes: [
-        trinco !== "Escolher trinco" && `Trinco: ${trinco}`,
-        corKit !== "Escolher Puxador" && corKit,
-        tipoOrcamento !== "Escolher Tipo de Trilho" && `Trilho: ${tipoOrcamento}`
-      ].filter(Boolean),
+      detalhes: detalhesTecnicos,
       adicionais: [...adicionaisPendentes],
       larguraVao: larguraVao,
       larguraVaoB: larguraVaoB,
       alturaVao: alturaVao,
       alturaBandeira: alturaBandeira,
-      quantidade: Number(quantidade) || 1,
+      quantidade: qtdVao,
       imagem: imgPath,
-      total: valorFinal,
+      total: valorFinal, // Agora está correto
       areaM2: resultado.area
     };
 
+    // 7. Atualizar Estado
     setItens([...itens, novoItem]);
 
-    // Limpa campos
+    // 8. Limpar campos após salvar
     setAdicionaisPendentes([]);
     setLarguraVao("");
     setLarguraVaoB("");
     setAlturaVao("");
     setAlturaBandeira("");
-    setBuscaVidroBandeira("")
+    setBuscaVidroBandeira("");
     setVidroSelBandeira(null);
+    setBuscaVidro("");
+    setVidroSel(null);
   };
+
 
   const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
 
@@ -562,7 +571,7 @@ export default function CalculoProjetosVidros() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
-           <button 
+            <button
               onClick={() => router.push('/orcamentos')} // <--- ROTA DE VOLTA
               className="p-2 bg-[#92D050] rounded-lg shadow-sm hover:bg-[#1C415B] transition-all"
               title="Voltar para Orçamentos"
@@ -1039,7 +1048,8 @@ export default function CalculoProjetosVidros() {
                   }}
                     className="w-full bg-gray-200 hover:bg-gray-300 text-[#1C415B] py-2 rounded-xl font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all outline-none">
                     + Adicionar Item
-                  </button></div>
+                  </button>
+                  </div>
                 </div>
 
                 {adicionaisPendentes.length > 0 && (
@@ -1080,13 +1090,7 @@ export default function CalculoProjetosVidros() {
               <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#1C415B] text-white text-[11px] uppercase font-bold tracking-widest">
-                    <tr>
-                      <th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th>
-                      <th className="p-4 text-center">QTD</th>
-                      <th className="p-4 text-center">MEDIDA DO VÃO (MM)</th>
-                      <th className="p-4 text-center">TOTAL</th>
-                      <th className="p-4 text-center">AÇÕES</th>
-                    </tr>
+                    <tr><th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th><th className="p-4 text-center">QTD</th><th className="p-4 text-center">MEDIDA DO VÃO (MM)</th><th className="p-4 text-center">TOTAL</th><th className="p-4 text-center">AÇÕES</th></tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {itens.map((item: any) => (

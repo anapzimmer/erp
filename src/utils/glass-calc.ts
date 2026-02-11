@@ -1,9 +1,29 @@
 // src/utils/glass-calc.ts
 
+// src/utils/glass-calc.ts
+
 export const parseNumber = (value: any): number => {
   if (!value) return 0;
   if (typeof value === 'number') return value;
-  const limpo = value.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+
+  // 1. Converte para string e remove o R$
+  let limpo = value.toString().replace('R$', '').trim();
+
+  // 2. Lógica para tratar o ponto como decimal e remover vírgulas de milhar (se houver)
+  // Se o número vem como "36.75", ele deve virar 36.75
+  // Se o número vem como "3.675,00", ele deve virar 3675.00
+  
+  if (limpo.includes(',') && limpo.includes('.')) {
+    // Caso: 3.675,00 (ponto é milhar, vírgula é decimal)
+    limpo = limpo.replace(/\./g, '').replace(',', '.');
+  } else if (limpo.includes(',')) {
+    // Caso: 36,75 (vírgula é decimal)
+    limpo = limpo.replace(',', '.');
+  } else if (limpo.includes('.')) {
+    // Caso: 36.75 (ponto é decimal)
+    // Não faz nada, o parseFloat já entende ponto como decimal
+  }
+
   return parseFloat(limpo) || 0;
 };
 
