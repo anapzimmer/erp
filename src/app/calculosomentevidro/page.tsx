@@ -565,6 +565,8 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
     documentTitle: `Orcamento_${clienteSel?.nome || 'Cliente'}`,
   });
 
+  
+
   return (
     <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
       <div className="print:hidden">
@@ -1125,32 +1127,34 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
               </div>
 
               {/* RESUMO TÉCNICO E FINANCEIRO (SÓ NO ORÇAMENTO NA TELA) */}
-              {itens.length > 0 && !modoProducao && !modoSeparacao && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+             {itens.length > 0 && !modoProducao && !modoSeparacao && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
                   {/* Bloco 1: Detalhamento Técnico (Materiais + Itens + Área) */}
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                    <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
+              <div className="absolute left-0 top-0 h-full w-1 bg-[#92D050]"></div>
 
                     {/* Cabeçalho do Bloco com Itens e Área Total */}
                     <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-3">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
-                      <div className="flex gap-3">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
-                        <span className="text-[10px] text-[#1C415B] font-bold uppercase">Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²</span>
-                      </div>
-                    </div>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resumo de Materiais</h4>
+                <div className="flex gap-3">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase">Itens: {itens.length}</span>
+                  <span className="text-[10px] text-[#1C415B] font-bold uppercase">
+                    Área Total: {itens.reduce((acc, item) => acc + item.areaM2, 0).toFixed(2)} m²
+                  </span>
+                </div>
+              </div>
 
                     {/* Lista de Vidros Detalhada */}
-                    <div className="space-y-2">
-                      {Object.entries(resumoVidros).map(([nome, area]: any) => (
-                        <div key={nome} className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500">{nome}</span>
-                          <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
-                        </div>
-                      ))}
-                    </div>
+                   <div className="space-y-2">
+                {Object.entries(resumoVidros).map(([nome, area]: any) => (
+                  <div key={nome} className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500">{nome}</span>
+                    <span className="font-bold text-[#92D050] bg-[#F4FFF0] px-2 py-0.5 rounded-lg">{area.toFixed(2)} m²</span>
                   </div>
+                ))}
+              </div>
+            </div>
 
                   {/* Bloco 2: Total Financeiro (Limpo) */}
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-center items-end text-right">
@@ -1319,7 +1323,7 @@ const custoUnitarioAdicionais = adicionaisPendentes.reduce((acc: number, adic: a
 
                           {/* Alturas Separadas */}
                           <div className="flex flex-col leading-tight">
-                            <span className="font-normal text-[11px]">{item.alturaVao} mm (Alt. Porta)</span>
+                            <span className="font-normal text-[11px]">{item.alturaVao} mm (A)</span>
                             {item.alturaBandeira && (
                               <span className="text-[10px] font-bold text-gray-400">
                                 + {item.alturaBandeira} mm (Bandeira)
