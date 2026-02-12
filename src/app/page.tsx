@@ -79,6 +79,18 @@ export default function Dashboard() {
     fetchTotalClientes()
   }, [])
 
+  useEffect(() => {
+  const checkUser = async () => {
+    const { data } = await supabase.auth.getSession();
+
+    if (!data.session) {
+      router.push("/login"); // manda para login se não estiver logado
+    }
+  };
+
+  checkUser();
+}, []);
+
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
     return (
@@ -162,7 +174,10 @@ export default function Dashboard() {
           </div>
 
           <button 
-            onClick={() => alert("Saindo...")}
+            onClick={async () => {
+  await supabase.auth.signOut();
+  router.push("/login");
+}}
             className="flex items-center justify-center gap-2 w-full bg-[#92D050] text-[#1C415B] font-bold py-3 rounded-xl hover:scale-[1.02] transition-transform active:scale-95 shadow-lg"
           >
             <LogOut size={18} />

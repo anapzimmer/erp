@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from "@/lib/supabaseClient";
+
 
 const LoginPage = () => {
   const router = useRouter();
@@ -26,28 +28,19 @@ const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
 
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    const data = await res.json();
+  if (error) {
     setLoading(false);
-
-    if (!res.ok) {
-      showModal("Falha na Autenticação", data.error || "Usuário ou senha incorretos");
-      return;
-    }
-
-    // Login bem-sucedido: redireciona para Dashboard
-    router.push("/");
-
-  } catch (err) {
-    setLoading(false);
-    showModal("Falha na Autenticação", "Erro de conexão");
+    showModal("Falha na Autenticação", error.message);
+    return;
   }
+
+  // Login bem-sucedido
+  router.push("/");
 };
 
 
@@ -127,46 +120,46 @@ const handleLogin = async (e: React.FormEvent) => {
         </div>
       </div>
 
-     {/* --- MODAL --- */}
-{modalConfig.show && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-    
-    {/* Overlay */}
-    <div
-      className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-      onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-    />
+      {/* --- MODAL --- */}
+      {modalConfig.show && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
 
-    {/* Card */}
-    <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in fade-in zoom-in-95 border border-gray-100">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+          />
 
-      {/* Ícone minimalista */}
-      <div className="flex justify-center mb-5">
-        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-50">
-          <X className="text-red-500" size={22} strokeWidth={2.5} />
+          {/* Card */}
+          <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in fade-in zoom-in-95 border border-gray-100">
+
+            {/* Ícone minimalista */}
+            <div className="flex justify-center mb-5">
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-50">
+                <X className="text-red-500" size={22} strokeWidth={2.5} />
+              </div>
+            </div>
+
+            {/* Título */}
+            <h3 className="text-lg font-bold text-[#1C415B] text-center">
+              {modalConfig.title}
+            </h3>
+
+            {/* Mensagem */}
+            <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
+              {modalConfig.message}
+            </p>
+
+            {/* Botão */}
+            <button
+              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+              className="mt-6 w-full bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            >
+              Fechar
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Título */}
-      <h3 className="text-lg font-bold text-[#1C415B] text-center">
-        {modalConfig.title}
-      </h3>
-
-      {/* Mensagem */}
-      <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
-        {modalConfig.message}
-      </p>
-
-      {/* Botão */}
-      <button
-        onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-        className="mt-6 w-full bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-      >
-        Fechar
-      </button>
-    </div>
-  </div>
-)}
+      )}
 
     </div>
   );
