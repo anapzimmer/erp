@@ -16,9 +16,9 @@ type MenuItem = {
 
 const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  { 
-    nome: "Orçamentos", 
-    rota: "/orcamentos", 
+  {
+    nome: "Orçamentos",
+    rota: "/orcamentos",
     icone: FileText,
     submenu: [
       { nome: "Espelhos", rota: "/espelhos" },
@@ -82,19 +82,19 @@ export default function Dashboard() {
     fetchTotalClientes()
   }, [])
 
-useEffect(() => {
-  const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-      router.replace("/login");
-    } else {
-      setCheckingAuth(false);
-    }
-  };
+      if (!session) {
+        router.replace("/login");
+      } else {
+        setCheckingAuth(false);
+      }
+    };
 
-  checkSession();
-}, [router]);
+    checkSession();
+  }, [router]);
 
 
   const renderMenuItem = (item: MenuItem) => {
@@ -125,13 +125,12 @@ useEffect(() => {
   }
 
   if (checkingAuth) {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-8 h-8 border-4 border-[#1C415B] border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
-}
-
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-[#1C415B] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -157,15 +156,15 @@ useEffect(() => {
 
         {/* RODAPÉ DO MENU */}
         <div className="p-4 bg-[#163449] space-y-3 relative" ref={dropdownRef}>
-          
+
           {/* BOTÃO CONFIGURAÇÃO 👈 ATIVADOR DO DROPDOWN */}
           <div className="relative">
-            <button 
-             // 👈 Mude de setMostrarDropdown(!mostrarDropdown) para ir direto para a página
-  onClick={() => router.push("/configuracoes")} 
-  className="flex items-center gap-2 w-full text-white/80 hover:text-white font-medium p-3 rounded-xl hover:bg-[#285A7B] transition-all"
->
-            
+            <button
+              // 👈 Mude de setMostrarDropdown(!mostrarDropdown) para ir direto para a página
+              onClick={() => router.push("/configuracoes")}
+              className="flex items-center gap-2 w-full text-white/80 hover:text-white font-medium p-3 rounded-xl hover:bg-[#285A7B] transition-all"
+            >
+
               <Settings size={18} className="text-[#92D050]" />
               Configurações
             </button>
@@ -173,7 +172,7 @@ useEffect(() => {
             {/* 👈 DROPDOWN DE CONFIGURAÇÕES */}
             {mostrarDropdown && (
               <div className="absolute bottom-full mb-2 left-0 w-full bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 animate-fade-in-up">
-                <div 
+                <div
                   onClick={() => {
                     setMostrarDropdown(false);
                     router.push("/admin/tabelas"); // 👈 ROTA DE TABELAS
@@ -188,11 +187,11 @@ useEffect(() => {
             )}
           </div>
 
-          <button 
+          <button
             onClick={async () => {
-  await supabase.auth.signOut();
-  router.push("/login");
-}}
+              await supabase.auth.signOut();
+              router.push("/login");
+            }}
             className="flex items-center justify-center gap-2 w-full bg-[#92D050] text-[#1C415B] font-bold py-3 rounded-xl hover:scale-[1.02] transition-transform active:scale-95 shadow-lg"
           >
             <LogOut size={18} />
@@ -227,7 +226,7 @@ useEffect(() => {
                   </div>
                 </div>
                 <div className="mt-6 pt-6 border-t border-gray-50">
-                   <p className="text-sm text-gray-500 font-medium">{card.descricao}</p>
+                  <p className="text-sm text-gray-500 font-medium">{card.descricao}</p>
                 </div>
               </div>
             )
