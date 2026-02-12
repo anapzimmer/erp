@@ -1,3 +1,4 @@
+//app/admin/tabelas/page.tsx
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
