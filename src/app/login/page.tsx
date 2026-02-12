@@ -1,3 +1,4 @@
+//app/login/page.tsx
 "use client";
 
 import { useState } from 'react';
@@ -28,19 +29,24 @@ const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
+    if (error) {
+      showModal("Falha na Autenticação", error.message);
+      return;
+    }
+
+    router.push("/");
+
+  } catch (err) {
+    showModal("Erro", "Erro ao conectar com o servidor.");
+  } finally {
     setLoading(false);
-    showModal("Falha na Autenticação", error.message);
-    return;
   }
-
-  // Login bem-sucedido
-  router.push("/");
 };
 
 

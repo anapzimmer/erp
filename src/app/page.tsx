@@ -1,3 +1,4 @@
+//app/page.tsx
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -79,17 +80,33 @@ export default function Dashboard() {
     fetchTotalClientes()
   }, [])
 
-  useEffect(() => {
-  const checkUser = async () => {
-    const { data } = await supabase.auth.getSession();
+useEffect(() => {
+  let isMounted = true;
 
-    if (!data.session) {
-      router.push("/login"); // manda para login se não estiver logado
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session && isMounted) {
+      router.replace("/login");
     }
   };
 
-  checkUser();
-}, []);
+  checkSession();
+
+  const { data: authListener } = supabase.auth.onAuthStateChange(
+    (event, session) => {
+      if (!session) {
+        router.replace("/login");
+      }
+    }
+  );
+
+  return () => {
+    isMounted = false;
+    authListener.subscription.unsubscribe();
+  };
+}, [router]);
+
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
