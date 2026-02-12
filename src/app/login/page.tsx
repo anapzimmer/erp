@@ -127,35 +127,47 @@ const handleLogin = async (e: React.FormEvent) => {
         </div>
       </div>
 
-      {/* --- MODAL DE ERRO --- */}
-      {modalConfig.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in"
-            onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-          />
+     {/* --- MODAL --- */}
+{modalConfig.show && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    
+    {/* Overlay */}
+    <div
+      className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+      onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+    />
 
-          <div className="relative bg-white rounded-[2rem] p-8 shadow-2xl w-full max-w-md animate-fade-in border border-gray-100 flex flex-col items-center text-center">
-            <div className="bg-red-50 p-4 rounded-full mb-6 border-4 border-red-100">
-              <X className="text-red-500" size={30} strokeWidth={3} />
-            </div>
+    {/* Card */}
+    <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in fade-in zoom-in-95 border border-gray-100">
 
-            <h3 className="text-xl font-black text-[#1C415B] mb-2 uppercase tracking-wide">
-              {modalConfig.title}
-            </h3>
-            <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-              {modalConfig.message}
-            </p>
-
-            <button
-              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-              className="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest transition-all active:scale-95 bg-red-500 hover:bg-red-600 text-white"
-            >
-              Entendi
-            </button>
-          </div>
+      {/* Ícone minimalista */}
+      <div className="flex justify-center mb-5">
+        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-50">
+          <X className="text-red-500" size={22} strokeWidth={2.5} />
         </div>
-      )}
+      </div>
+
+      {/* Título */}
+      <h3 className="text-lg font-bold text-[#1C415B] text-center">
+        {modalConfig.title}
+      </h3>
+
+      {/* Mensagem */}
+      <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
+        {modalConfig.message}
+      </p>
+
+      {/* Botão */}
+      <button
+        onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+        className="mt-6 w-full bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+      >
+        Fechar
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
