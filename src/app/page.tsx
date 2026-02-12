@@ -52,6 +52,8 @@ export default function Dashboard() {
   const [totalClientes, setTotalClientes] = useState(0)
   const [mostrarDropdown, setMostrarDropdown] = useState(false) // 👈 Estado do Dropdown
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -81,30 +83,17 @@ export default function Dashboard() {
   }, [])
 
 useEffect(() => {
-  let isMounted = true;
-
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session && isMounted) {
+    if (!session) {
       router.replace("/login");
+    } else {
+      setCheckingAuth(false);
     }
   };
 
   checkSession();
-
-  const { data: authListener } = supabase.auth.onAuthStateChange(
-    (event, session) => {
-      if (!session) {
-        router.replace("/login");
-      }
-    }
-  );
-
-  return () => {
-    isMounted = false;
-    authListener.subscription.unsubscribe();
-  };
 }, [router]);
 
 
@@ -134,6 +123,15 @@ useEffect(() => {
       </div>
     )
   }
+
+  if (checkingAuth) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="w-8 h-8 border-4 border-[#1C415B] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+}
+
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
