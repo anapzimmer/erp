@@ -82,6 +82,36 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+  const handleForgotPassword = async () => {
+    if (!email) {
+      showModal("Informe seu e-mail", "Digite seu e-mail para redefinir sua senha.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "http://localhost:3000/update-password",
+      });
+
+      if (error) {
+        showModal("Erro", error.message);
+        return;
+      }
+
+      showModal(
+        "E-mail enviado",
+        "Enviamos um link para redefinir sua senha. Verifique sua caixa de entrada.",
+        "success"
+      );
+    } catch (err) {
+      showModal("Erro", "Não foi possível enviar o e-mail.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   return (
@@ -164,6 +194,15 @@ const LoginPage = () => {
                 Criar Conta
               </button>
             </div>
+            <div className="text-right">
+  <button
+    type="button"
+    onClick={handleForgotPassword}
+    className="text-xs text-[#1C415B] hover:text-[#39b89f] transition"
+  >
+    Esqueci minha senha
+  </button>
+</div>
           </form>
         </div>
       </div>
@@ -229,7 +268,7 @@ const LoginPage = () => {
                 placeholder="Nome da Empresa"
                 value={empresaNome}
                 onChange={(e) => setEmpresaNome(e.target.value)}
-               className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
                 required
               />
 
