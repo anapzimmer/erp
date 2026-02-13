@@ -13,6 +13,8 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
 
   const [modalConfig, setModalConfig] = useState({
     show: false,
@@ -55,33 +57,46 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
 
+    const passwordError = validateSignupPassword(signupPassword);
+
+    if (passwordError) {
+      showModal("Senha inválida", passwordError);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: signupEmail,
+        password: signupPassword,
       });
 
       if (error) {
         showModal("Erro no Cadastro", error.message);
+        setLoading(false);
         return;
       }
 
       showModal(
         "Confirme seu e-mail",
-        "Enviamos um link de confirmação para seu e-mail. Verifique sua caixa de entrada.",
+        "Enviamos um link de confirmação para seu e-mail.",
         "success"
       );
 
       setShowSignup(false);
       setEmpresaNome('');
       setNomeResponsavel('');
-      setPassword('');
+      setSignupEmail('');
+      setSignupPassword('');
+
     } catch (err) {
       showModal("Erro", "Erro ao criar conta.");
     } finally {
       setLoading(false);
     }
   };
+
+
   const handleForgotPassword = async () => {
     if (!email) {
       showModal("Informe seu e-mail", "Digite seu e-mail para redefinir sua senha.");
@@ -112,6 +127,17 @@ const LoginPage = () => {
     }
   };
 
+  const validateSignupPassword = (pass: string) => {
+    const minLength = pass.length >= 8;
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasNumber = /[0-9]/.test(pass);
+
+    if (!minLength) return "A senha deve ter no mínimo 8 caracteres.";
+    if (!hasUpper) return "A senha deve conter pelo menos uma letra maiúscula.";
+    if (!hasNumber) return "A senha deve conter pelo menos um número.";
+
+    return "";
+  };
 
 
   return (
@@ -144,8 +170,8 @@ const LoginPage = () => {
               <input
                 type="email"
                 placeholder="seuemail@empresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
                 required
               />
@@ -157,8 +183,8 @@ const LoginPage = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
                 className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
                 required
               />
@@ -195,14 +221,14 @@ const LoginPage = () => {
               </button>
             </div>
             <div className="text-right">
-  <button
-    type="button"
-    onClick={handleForgotPassword}
-    className="text-xs text-[#1C415B] hover:text-[#39b89f] transition"
-  >
-    Esqueci minha senha
-  </button>
-</div>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-xs text-[#1C415B] hover:text-[#39b89f] transition"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -284,8 +310,8 @@ const LoginPage = () => {
               <input
                 type="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
                 required
               />
@@ -293,8 +319,8 @@ const LoginPage = () => {
               <input
                 type="password"
                 placeholder="Senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
                 required
               />
