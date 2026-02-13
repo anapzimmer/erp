@@ -27,6 +27,17 @@ const LoginPage = () => {
     setModalConfig({ show: true, title, message, type });
   };
 
+  const translateAuthError = (message: string) => {
+  switch (message) {
+    case "Invalid login credentials":
+      return "Email ou senha inválidos.";
+    case "Email not confirmed":
+      return "Confirme seu e-mail antes de acessar.";
+    default:
+      return "Não foi possível autenticar. Tente novamente.";
+  }
+};
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -37,10 +48,10 @@ const LoginPage = () => {
         password,
       });
 
-      if (error) {
-        showModal("Falha na Autenticação", error.message);
-        return;
-      }
+     if (error) {
+  showModal("Falha na Autenticação", translateAuthError(error.message));
+  return;
+}
 
       router.push("/");
 
@@ -128,17 +139,28 @@ const LoginPage = () => {
   };
 
   const validateSignupPassword = (pass: string) => {
-    const minLength = pass.length >= 8;
-    const hasUpper = /[A-Z]/.test(pass);
-    const hasNumber = /[0-9]/.test(pass);
+    if (pass.length < 6) {
+      return "A senha deve ter no mínimo 6 caracteres.";
+    }
 
-    if (!minLength) return "A senha deve ter no mínimo 8 caracteres.";
-    if (!hasUpper) return "A senha deve conter pelo menos uma letra maiúscula.";
-    if (!hasNumber) return "A senha deve conter pelo menos um número.";
+    if (!/[a-z]/.test(pass)) {
+      return "A senha deve conter pelo menos uma letra minúscula.";
+    }
+
+    if (!/[A-Z]/.test(pass)) {
+      return "A senha deve conter pelo menos uma letra maiúscula.";
+    }
+
+    if (!/[0-9]/.test(pass)) {
+      return "A senha deve conter pelo menos um número.";
+    }
+
+    if (!/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(pass)) {
+      return "A senha deve conter pelo menos um caractere especial.";
+    }
 
     return "";
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -170,8 +192,8 @@ const LoginPage = () => {
               <input
                 type="email"
                 placeholder="seuemail@empresa.com"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
                 required
               />
@@ -180,14 +202,16 @@ const LoginPage = () => {
             {/* Input Senha */}
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
                 required
               />
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -196,6 +220,7 @@ const LoginPage = () => {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
 
             {/* Botão Submit */}
             <button
@@ -220,15 +245,16 @@ const LoginPage = () => {
                 Criar Conta
               </button>
             </div>
-            <div className="text-right">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-xs text-[#1C415B] hover:text-[#39b89f] transition"
-              >
-                Esqueci minha senha
-              </button>
-            </div>
+      <div className="mt-6 text-center">
+  <button
+    type="button"
+    onClick={handleForgotPassword}
+    className="text-sm text-gray-400 hover:text-[#39b89f] transition-colors duration-200"
+  >
+    Esqueci minha senha
+  </button>
+</div>
+
           </form>
         </div>
       </div>
@@ -324,6 +350,39 @@ const LoginPage = () => {
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
                 required
               />
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">
+                  Sua senha deve conter:
+                </p>
+
+                <ul className="text-xs space-y-1">
+                  <li className={`flex items-center gap-2 ${signupPassword.length >= 6 ? "text-green-600" : "text-gray-400"}`}>
+                    <span>•</span>
+                    <span>Mínimo 6 caracteres</span>
+                  </li>
+
+                  <li className={`flex items-center gap-2 ${/[a-z]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                    <span>•</span>
+                    <span>Pelo menos 1 letra minúscula</span>
+                  </li>
+
+                  <li className={`flex items-center gap-2 ${/[A-Z]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                    <span>•</span>
+                    <span>Pelo menos 1 letra maiúscula</span>
+                  </li>
+
+                  <li className={`flex items-center gap-2 ${/[0-9]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                    <span>•</span>
+                    <span>Pelo menos 1 número</span>
+                  </li>
+
+                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                    <span>•</span>
+                    <span>Pelo menos 1 caractere especial</span>
+                  </li>
+                </ul>
+              </div>
+
 
               <button
                 type="submit"
