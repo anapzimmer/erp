@@ -25,29 +25,63 @@ const LoginPage = () => {
     setModalConfig({ show: true, title, message, type });
   };
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      showModal("Falha na Autenticação", error.message);
-      return;
+      if (error) {
+        showModal("Falha na Autenticação", error.message);
+        return;
+      }
+
+      router.push("/");
+
+    } catch (err) {
+      showModal("Erro", "Erro ao conectar com o servidor.");
+    } finally {
+      setLoading(false);
     }
+  };
+  const [showSignup, setShowSignup] = useState(false);
+  const [empresaNome, setEmpresaNome] = useState('');
+  const [nomeResponsavel, setNomeResponsavel] = useState('');
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    router.push("/");
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-  } catch (err) {
-    showModal("Erro", "Erro ao conectar com o servidor.");
-  } finally {
-    setLoading(false);
-  }
-};
+      if (error) {
+        showModal("Erro no Cadastro", error.message);
+        return;
+      }
+
+      showModal(
+        "Confirme seu e-mail",
+        "Enviamos um link de confirmação para seu e-mail. Verifique sua caixa de entrada.",
+        "success"
+      );
+
+      setShowSignup(false);
+      setEmpresaNome('');
+      setNomeResponsavel('');
+      setPassword('');
+    } catch (err) {
+      showModal("Erro", "Erro ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
@@ -122,6 +156,14 @@ const handleLogin = async (e: React.FormEvent) => {
                 </>
               )}
             </button>
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowSignup(true)}
+                className="text-sm text-[#1C415B] hover:text-[#39b89f] font-medium"
+              >
+                Criar Conta
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -167,6 +209,69 @@ const handleLogin = async (e: React.FormEvent) => {
         </div>
       )}
 
+      {showSignup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowSignup(false)}
+          />
+
+          <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-gray-100">
+
+            <h3 className="text-xl font-bold text-[#1C415B] mb-6 text-center">
+              Criar Conta
+            </h3>
+
+            <form onSubmit={handleSignup} className="space-y-4">
+
+              <input
+                type="text"
+                placeholder="Nome da Empresa"
+                value={empresaNome}
+                onChange={(e) => setEmpresaNome(e.target.value)}
+               className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="Seu Nome"
+                value={nomeResponsavel}
+                onChange={(e) => setNomeResponsavel(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                required
+              />
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                required
+              />
+
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#1C415B] text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest"
+              >
+                {loading ? "Criando..." : "Criar Conta"}
+              </button>
+
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

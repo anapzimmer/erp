@@ -83,18 +83,20 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  const checkUser = async () => {
+    const { data } = await supabase.auth.getUser();
 
-      if (!session) {
-        router.replace("/login");
-      } else {
-        setCheckingAuth(false);
-      }
-    };
+    if (!data.user) {
+      router.push("/login");
+      return;
+    }
 
-    checkSession();
-  }, [router]);
+    setCheckingAuth(false); // 🔥 ESSA LINHA RESOLVE
+  };
+
+  checkUser();
+}, [router]);
+
 
 
   const renderMenuItem = (item: MenuItem) => {
