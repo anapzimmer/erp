@@ -76,22 +76,21 @@ export default function UpdatePasswordPage() {
 };
 
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("access_token");
 
-      if (!data.session) {
-        router.push("/login");
-        return;
-      }
+  if (!token) {
+    // Se não tiver token, redireciona para login
+    router.push("/login");
+    return;
+  }
 
-      setCheckingSession(false);
-    };
+  setCheckingSession(false);
+}, [router]);
 
-    checkSession();
-  }, [router]);
+if (checkingSession) return null;
 
-  if (checkingSession) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
