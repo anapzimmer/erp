@@ -1,4 +1,4 @@
-// app/senha-reset/page.tsx
+// app/update-password/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -77,17 +77,20 @@ export default function UpdatePasswordPage() {
 
 
 useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("access_token");
+  const handleRecoverySession = async () => {
+    const { data, error } = await supabase.auth.getSession();
 
-  if (!token) {
-    // Se não tiver token, redireciona para login
-    router.push("/login");
-    return;
-  }
+    if (!data.session || error) {
+      router.push("/login");
+      return;
+    }
 
-  setCheckingSession(false);
+    setCheckingSession(false);
+  };
+
+  handleRecoverySession();
 }, [router]);
+
 
 if (checkingSession) return null;
 
