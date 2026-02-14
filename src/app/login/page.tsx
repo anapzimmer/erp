@@ -194,7 +194,7 @@ const LoginPage = () => {
                 placeholder="seuemail@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] outline-none transition-all"
                 required
               />
             </div>
@@ -208,7 +208,7 @@ const LoginPage = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
+                className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] outline-none transition-all"
                 required
               />
 
@@ -320,7 +320,7 @@ const LoginPage = () => {
                 placeholder="Nome da Empresa"
                 value={empresaNome}
                 onChange={(e) => setEmpresaNome(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f]transition-all"
                 required
               />
 
@@ -329,7 +329,7 @@ const LoginPage = () => {
                 placeholder="Seu Nome"
                 value={nomeResponsavel}
                 onChange={(e) => setNomeResponsavel(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f]transition-all"
                 required
               />
 
@@ -338,7 +338,7 @@ const LoginPage = () => {
                 placeholder="Email"
                 value={signupEmail}
                 onChange={(e) => setSignupEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f]transition-all"
                 required
               />
 
@@ -347,7 +347,7 @@ const LoginPage = () => {
                 placeholder="Senha"
                 value={signupPassword}
                 onChange={(e) => setSignupPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] focus:outline-none focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050]transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f]transition-all"
                 required
               />
               <div className="mt-3">
@@ -356,27 +356,27 @@ const LoginPage = () => {
                 </p>
 
                 <ul className="text-xs space-y-1">
-                  <li className={`flex items-center gap-2 ${signupPassword.length >= 6 ? "text-green-600" : "text-gray-400"}`}>
+                  <li className={`flex items-center gap-2 ${signupPassword.length >= 6 ? "text-[#39b89f]" : "text-gray-400"}`}>
                     <span>•</span>
                     <span>Mínimo 6 caracteres</span>
                   </li>
 
-                  <li className={`flex items-center gap-2 ${/[a-z]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                  <li className={`flex items-center gap-2 ${/[a-z]/.test(signupPassword) ? "text-[#39b89f]" : "text-gray-400"}`}>
                     <span>•</span>
                     <span>Pelo menos 1 letra minúscula</span>
                   </li>
 
-                  <li className={`flex items-center gap-2 ${/[A-Z]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                  <li className={`flex items-center gap-2 ${/[A-Z]/.test(signupPassword) ? "text-[#39b89f]" : "text-gray-400"}`}>
                     <span>•</span>
                     <span>Pelo menos 1 letra maiúscula</span>
                   </li>
 
-                  <li className={`flex items-center gap-2 ${/[0-9]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                  <li className={`flex items-center gap-2 ${/[0-9]/.test(signupPassword) ? "text-[#39b89f]" : "text-gray-400"}`}>
                     <span>•</span>
                     <span>Pelo menos 1 número</span>
                   </li>
 
-                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(signupPassword) ? "text-green-600" : "text-gray-400"}`}>
+                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(signupPassword) ? "text-[#39b89f]" : "text-gray-400"}`}>
                     <span>•</span>
                     <span>Pelo menos 1 caractere especial</span>
                   </li>
