@@ -28,15 +28,15 @@ const LoginPage = () => {
   };
 
   const translateAuthError = (message: string) => {
-  switch (message) {
-    case "Invalid login credentials":
-      return "Email ou senha inválidos.";
-    case "Email not confirmed":
-      return "Confirme seu e-mail antes de acessar.";
-    default:
-      return "Não foi possível autenticar. Tente novamente.";
-  }
-};
+    switch (message) {
+      case "Invalid login credentials":
+        return "Email ou senha inválidos.";
+      case "Email not confirmed":
+        return "Confirme seu e-mail antes de acessar.";
+      default:
+        return "Não foi possível autenticar. Tente novamente.";
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,10 +48,10 @@ const LoginPage = () => {
         password,
       });
 
-     if (error) {
-  showModal("Falha na Autenticação", translateAuthError(error.message));
-  return;
-}
+      if (error) {
+        showModal("Falha na Autenticação", translateAuthError(error.message));
+        return;
+      }
 
       router.push("/");
 
@@ -77,9 +77,15 @@ const LoginPage = () => {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
+        options: {
+          data: {
+            empresa_nome: empresaNome,
+            nome_responsavel: nomeResponsavel,
+          },
+        },
       });
 
       if (error) {
@@ -87,6 +93,13 @@ const LoginPage = () => {
         setLoading(false);
         return;
       }
+
+      if (!data.user) {
+        showModal("Erro no Cadastro", "Não foi possível criar o usuário.");
+        setLoading(false);
+        return;
+      }
+
 
       showModal(
         "Confirme seu e-mail",
@@ -245,15 +258,15 @@ const LoginPage = () => {
                 Criar Conta
               </button>
             </div>
-      <div className="mt-6 text-center">
-  <button
-    type="button"
-    onClick={handleForgotPassword}
-    className="text-sm text-[#1C415B]/50 hover:text-[#39b89f] transition-colors duration-200"
-  >
-    Esqueci minha senha
-  </button>
-</div>
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-[#1C415B]/50 hover:text-[#39b89f] transition-colors duration-200"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
 
           </form>
         </div>
@@ -273,21 +286,20 @@ const LoginPage = () => {
           <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in fade-in zoom-in-95 border border-gray-100">
 
             {/* Ícone minimalista */}
-           <div className="flex justify-center mb-5">
-  <div
-    className={`w-12 h-12 flex items-center justify-center rounded-full ${
-      modalConfig.type === "success"
-        ? "bg-[#39B89F]/10"
-        : "bg-red-500/10"
-    }`}
-  >
-    {modalConfig.type === "success" ? (
-      <CheckCircle className="text-[#39B89F]" size={22} strokeWidth={2.5} />
-    ) : (
-      <X className="text-red-500" size={22} strokeWidth={2.5} />
-    )}
-  </div>
-</div>
+            <div className="flex justify-center mb-5">
+              <div
+                className={`w-12 h-12 flex items-center justify-center rounded-full ${modalConfig.type === "success"
+                  ? "bg-[#39B89F]/10"
+                  : "bg-red-500/10"
+                  }`}
+              >
+                {modalConfig.type === "success" ? (
+                  <CheckCircle className="text-[#39B89F]" size={22} strokeWidth={2.5} />
+                ) : (
+                  <X className="text-red-500" size={22} strokeWidth={2.5} />
+                )}
+              </div>
+            </div>
 
             {/* Título */}
             <h3 className="text-lg font-bold text-[#1C415B] text-center">
