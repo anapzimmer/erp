@@ -1,12 +1,13 @@
-//app/page.tsx
+//app/configuracoes/page.tsx
 "use client"
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { LayoutDashboard, Users, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, DollarSign, LogOut, ChevronRight, Settings, UsersRound, TableProperties } from "lucide-react"
+import { LayoutDashboard, Users, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, DollarSign, LogOut, ChevronRight, Settings, UsersRound, Bell, Search, ChevronDown, Building2, Menu, X } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import Image from "next/image"
 
-// ... (Tipagens e Arrays menuPrincipal, menuCadastros, cards permanecem iguais)
+// --- Tipagens e Menus ---
 type MenuItem = {
   nome: string
   rota: string
@@ -39,84 +40,124 @@ const menuCadastros: MenuItem[] = [
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
 ]
 
-const cards = [
-  { titulo: "Total de Clientes", key: "totalClientes", descricao: "Clientes cadastrados", icone: Users },
-  { titulo: "Total de Orçamentos", valor: 0, descricao: "Orçamentos criados", icone: FileText },
-  { titulo: "Orçamentos em Aberto", valor: 0, descricao: "Aguardando aprovação", icone: DollarSign },
-  { titulo: "Imagens Processadas", valor: 0, descricao: "Imagens no sistema", icone: ImageIcon },
-  { titulo: "Projetos Cadastrados", valor: 0, descricao: "Projetos disponíveis", icone: Briefcase },
-]
-
 export default function Dashboard() {
   const router = useRouter()
   const [totalClientes, setTotalClientes] = useState(0)
-  const [mostrarDropdown, setMostrarDropdown] = useState(false) // 👈 Estado do Dropdown
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [usuarioEmail, setUsuarioEmail] = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // --- Estados de Branding ---
+  const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
+  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
+  const [darkPrimary, setDarkPrimary] = useState("#1C415B"); // Sidebar Background
+  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF"); // Texto da Sidebar
+  const [darkTertiary, setDarkTertiary] = useState("#39B89F"); // Ícones da Sidebar
+  const [darkHover, setDarkHover] = useState("#39B89F");
+  const [lightPrimary, setLightPrimary] = useState("#F4F7FA"); // Background Geral
+  const [lightSecondary, setLightSecondary] = useState("#FFFFFF"); // Background Cards
+  const [lightTertiary, setLightTertiary] = useState("#1C415B"); // Títulos
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setMostrarDropdown(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    };
+    document.addEventListener("mousedown", handleClickOutside);
 
-  useEffect(() => {
-    const fetchTotalClientes = async () => {
-      const { count, error } = await supabase
-        .from("clientes")
-        .select("*", { count: "exact", head: true })
-
-      if (error) {
-        console.error("Erro ao buscar clientes:", error)
-        return
+    const fetchData = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        router.push("/login");
+        return;
       }
-      setTotalClientes(count ?? 0)
-    }
+      setUsuarioEmail(authData.user.email || "Usuário");
 
-    fetchTotalClientes()
-  }, [])
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("empresa_id")
+        .eq("id", authData.user.id)
+        .single();
 
-  useEffect(() => {
-  const checkUser = async () => {
-    const { data } = await supabase.auth.getUser();
+      if (perfil) {
+        // --- BUSCAR NOME DA EMPRESA ---
+        const { data: empresaData } = await supabase
+          .from("empresas")
+          .select("nome")
+          .eq("id", perfil.empresa_id)
+          .single();
+        
+        if (empresaData) {
+          setNomeEmpresa(empresaData.nome);
+        }
 
-    if (!data.user) {
-      router.push("/login");
-      return;
-    }
+        // --- BUSCAR CONFIGURAÇÕES DE BRANDING ---
+        const { data: brandingData } = await supabase
+          .from("configuracoes_branding")
+          .select("*")
+          .eq("empresa_id", perfil.empresa_id)
+          .single();
 
-    setCheckingAuth(false); // 🔥 ESSA LINHA RESOLVE
-  };
+        if (brandingData) {
+          setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+          setDarkPrimary(brandingData.dark_primary);
+          setDarkSecondary(brandingData.dark_secondary);
+          setDarkTertiary(brandingData.dark_tertiary);
+          setDarkHover(brandingData.dark_hover);
+          setLightPrimary(brandingData.light_primary);
+          setLightSecondary(brandingData.light_secondary);
+          setLightTertiary(brandingData.light_tertiary);
+        }
+      }
+      
+      const { count } = await supabase.from("clientes").select("*", { count: "exact", head: true });
+      setTotalClientes(count ?? 0);
+      setCheckingAuth(false);
+    };
+    fetchData();
 
-  checkUser();
-}, [router]);
-
-
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [router]);
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
     return (
-      <div key={item.nome} className="group">
+      <div key={item.nome} className="group mb-1">
         <div
-          onClick={() => router.push(item.rota)}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer text-white/80 hover:bg-[#285A7B] hover:text-white transition-all duration-200"
+          onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
+          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
+          // --- ALTERAÇÃO AQUI: Removi o 'B3' (opacidade) para usar a cor sólida ---
+          style={{ color: darkSecondary }} 
+          onMouseEnter={(e) => {
+            // Cor de hover permanece com transparência para não cobrir o texto
+            e.currentTarget.style.backgroundColor = `${darkHover}33`;
+            e.currentTarget.style.color = darkSecondary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            // --- ALTERAÇÃO AQUI: Removi o 'B3' na saída também ---
+            e.currentTarget.style.color = darkSecondary;
+          }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5 text-[#92D050]" />
+            {/* Ícones do menu usando a cor terciária */}
+            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          {item.submenu && <ChevronRight className="w-4 h-4 opacity-50" />}
+          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />}
         </div>
         {item.submenu && (
-          <div className="ml-9 mt-1 flex flex-col gap-1 border-l border-[#285A7B]">
+          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${darkSecondary}4D` }}>
             {item.submenu.map((sub) => (
-              <div key={sub.nome} onClick={() => router.push(sub.rota)} className="p-2 pl-4 text-xs text-gray-400 hover:text-[#92D050] hover:bg-[#285A7B]/30 cursor-pointer rounded-r-lg transition-all">
+              <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }} className="p-2 text-xs rounded-lg cursor-pointer transition-all"
+                // --- ALTERAÇÃO AQUI: Removi o '80' para usar a cor sólida ---
+                style={{ color: darkSecondary }}
+                onMouseEnter={(e) => e.currentTarget.style.color = darkSecondary}
+                onMouseLeave={(e) => e.currentTarget.style.color = darkSecondary}
+              >
                 {sub.nome}
               </div>
             ))}
@@ -126,115 +167,132 @@ export default function Dashboard() {
     )
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-[#1C415B] border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
 
+  // --- Cards com cores baseadas no branding ---
+  const stats = [
+    { titulo: "Clientes Ativos", valor: totalClientes, icone: UsersRound, color: darkTertiary, bg: `${darkTertiary}10` },
+    { titulo: "Orçamentos", valor: "12", icone: FileText, color: "#4FA2D9", bg: "#4FA2D910" },
+    { titulo: "Projetos", valor: "5", icone: Briefcase, color: "#92D050", bg: "#92D05010" },
+    { titulo: "Faturamento", valor: "R$ 15.2k", icone: DollarSign, color: darkTertiary, bg: `${darkTertiary}10` },
+  ]
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* MENU LATERAL */}
-      <aside className="w-64 bg-[#1C415B] text-white flex flex-col shadow-xl">
-        <div className="p-6 border-b border-[#285A7B]">
-          <h2 className="text-xl font-extrabold tracking-tight flex items-center gap-2">
-            <div className="w-2 h-8 bg-[#92D050] rounded-full"></div>
-            VIDRAÇARIA
-          </h2>
+    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
+
+      {/* SIDEBAR - totalmente conectada ao branding */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
+          <X size={24} />
+        </button>
+        <div className="px-3 py-4 mb-4 flex justify-center">
+          {/* Logo dinâmico */}
+          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
 
-        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-6">
+        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div>
-            <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Principal</p>
+            {/* Título da seção usando darkTertiary */}
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
             {menuPrincipal.map(renderMenuItem)}
           </div>
           <div>
-            <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Cadastros</p>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p>
             {menuCadastros.map(renderMenuItem)}
           </div>
         </nav>
-
-        {/* RODAPÉ DO MENU */}
-        <div className="p-4 bg-[#163449] space-y-3 relative" ref={dropdownRef}>
-
-          {/* BOTÃO CONFIGURAÇÃO 👈 ATIVADOR DO DROPDOWN */}
-          <div className="relative">
-            <button
-              // 👈 Mude de setMostrarDropdown(!mostrarDropdown) para ir direto para a página
-              onClick={() => router.push("/configuracoes")}
-              className="flex items-center gap-2 w-full text-white/80 hover:text-white font-medium p-3 rounded-xl hover:bg-[#285A7B] transition-all"
-            >
-
-              <Settings size={18} className="text-[#92D050]" />
-              Configurações
-            </button>
-
-            {/* 👈 DROPDOWN DE CONFIGURAÇÕES */}
-            {mostrarDropdown && (
-              <div className="absolute bottom-full mb-2 left-0 w-full bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 animate-fade-in-up">
-                <div
-                  onClick={() => {
-                    setMostrarDropdown(false);
-                    router.push("/admin/tabelas"); // 👈 ROTA DE TABELAS
-                  }}
-                  className="flex items-center gap-2 p-3 text-sm text-[#1C415B] hover:bg-[#F1F8E9] rounded-lg cursor-pointer font-medium"
-                >
-                  <TableProperties size={16} className="text-[#92D050]" />
-                  Tabela
-                </div>
-                {/* Outras opções de configuração virão aqui */}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.push("/login");
-            }}
-            className="flex items-center justify-center gap-2 w-full bg-[#92D050] text-[#1C415B] font-bold py-3 rounded-xl hover:scale-[1.02] transition-transform active:scale-95 shadow-lg"
-          >
-            <LogOut size={18} />
-            Sair do Sistema
-          </button>
-        </div>
       </aside>
 
+      {/* Overlay */}
+      {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
+
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 p-10 overflow-y-auto">
-        <header className="mb-10">
-          <h1 className="text-4xl font-black text-[#1C415B]">Dashboard</h1>
-          <p className="text-gray-500 mt-2 font-medium">Gestão e controle de orçamentos.</p>
+      <div className="flex-1 flex flex-col w-full">
+
+        {/* TOPBAR */}
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+          <div className="flex items-center gap-2 md:gap-4">
+            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
+              <Menu size={24} className="text-gray-600" />
+            </button>
+            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
+              <Search className="text-gray-400" size={18} />
+              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                  <Building2 size={16} />
+                </div>
+                {/* Nome da empresa dinâmico */}
+                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Menu Dropdown */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-400">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
+                  </div>
+                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
+                    <Settings size={18} className="text-gray-400" /> Configurações
+                  </button>
+                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl">
+                    <LogOut size={18} /> Sair
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </header>
 
-        {/* GRID DE CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {cards.map((card) => {
-            const Icon = card.icone
-            const displayValue = card.key === "totalClientes" ? totalClientes : card.valor
-            return (
-              <div key={card.titulo} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-2xl inline-block bg-[#F1F8E9]">
-                      <Icon className="w-8 h-8 text-[#92D050]" />
-                    </div>
-                    <div>
-                      <h2 className="text-4xl font-black text-[#1C415B] tracking-tight">{displayValue}</h2>
-                      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">{card.titulo}</p>
+        {/* CONTAINER DE DADOS */}
+        <main className="p-4 md:p-8 flex-1">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10">
+            <div>
+              <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Dashboard</h1>
+              <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Bem-vindo de volta, gerencie sua vidraçaria.</p>
+            </div>
+          </div>
+
+          {/* GRID DE STATS REFINADO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat) => {
+              const Icon = stat.icone;
+              return (
+                <div key={stat.titulo} className="p-6 md:p-7 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4 transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1 cursor-pointer" style={{ backgroundColor: lightSecondary }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-gray-500 tracking-tight">{stat.titulo}</span>
+                    <div className={`p-3 rounded-2xl`} style={{ backgroundColor: stat.bg }}>
+                      <Icon className={`w-6 h-6`} style={{ color: stat.color }} />
                     </div>
                   </div>
+                  <span className="text-4xl md:text-5xl font-extrabold tracking-tighter" style={{ color: lightTertiary }}>{stat.valor}</span>
                 </div>
-                <div className="mt-6 pt-6 border-t border-gray-50">
-                  <p className="text-sm text-gray-500 font-medium">{card.descricao}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </main>
+              );
+            })}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

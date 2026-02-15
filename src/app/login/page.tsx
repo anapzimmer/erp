@@ -77,6 +77,8 @@ const LoginPage = () => {
     }
 
     try {
+      console.log("Tentando cadastrar:", signupEmail);
+
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
@@ -89,10 +91,13 @@ const LoginPage = () => {
       });
 
       if (error) {
+        console.error("ERRO SUPABASE SIGNUP:", error); // <--- LOG DE ERRO DETALHADO
         showModal("Erro no Cadastro", error.message);
-        setLoading(false);
+        setLoading(false); 
         return;
       }
+
+      console.log("Cadastro realizado:", data); // <--- LOG DE SUCESSO
 
       if (!data.user) {
         showModal("Erro no Cadastro", "Não foi possível criar o usuário.");
@@ -113,10 +118,12 @@ const LoginPage = () => {
       setSignupEmail('');
       setSignupPassword('');
 
-    } catch (err) {
+   } catch (err) {
+      console.error("ERRO CATCH SIGNUP:", err); 
       showModal("Erro", "Erro ao criar conta.");
+      setLoading(false); 
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 

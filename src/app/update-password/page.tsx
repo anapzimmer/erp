@@ -96,8 +96,8 @@ if (checkingSession) return null;
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4">
+      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-[#1C415B]/10">
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
@@ -114,7 +114,7 @@ if (checkingSession) return null;
           Redefinir Senha
         </h2>
 
-        <p className="text-sm text-gray-500 text-center mt-2 mb-6">
+        <p className="text-sm text-[#1C415B]/70 text-center mt-2 mb-6">
           Crie uma nova senha segura para acessar sua conta.
         </p>
 
@@ -128,7 +128,7 @@ if (checkingSession) return null;
                 placeholder="Nova senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
+                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39B89F] focus:border-[#39B89F] outline-none transition-all"
                 required
               />
               <button
@@ -149,12 +149,12 @@ if (checkingSession) return null;
               placeholder="Confirmar nova senha"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all"
+              className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39B89F] focus:border-[#39B89F] outline-none transition-all"
               required
             />
 
             {/* Dica de senha */}
-            <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+            <p className="mt-2 text-xs text-[#1C415B]/50 leading-relaxed">
               A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula,
               número e caractere especial.
             </p>
@@ -163,7 +163,7 @@ if (checkingSession) return null;
               onClick={() =>
                 setShowConfirmPassword(!showConfirmPassword)
               }
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-[#1C415B]/50 hover:text-[#39b89f]"
             >
               {showConfirmPassword ? (
                 <EyeOff size={18} />
@@ -174,7 +174,7 @@ if (checkingSession) return null;
           </div>
 
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-xs p-3 rounded-xl">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-600 text-xs p-3 rounded-xl">
               {errorMsg}
             </div>
           )}
