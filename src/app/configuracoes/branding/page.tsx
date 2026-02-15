@@ -180,6 +180,7 @@ export default function ConfiguracoesBrandingPage() {
   const ColorInput = ({ label, color, setter }: { label: string; color: string; setter: (c: string) => void }) => {
     const [localColor, setLocalColor] = useState(color);
 
+    // 🔥 SOLUÇÃO: Atualiza o estado local quando a cor pai mudar (ex: ao carregar do banco)
     useEffect(() => {
       setLocalColor(color);
     }, [color]);
@@ -189,15 +190,17 @@ export default function ConfiguracoesBrandingPage() {
     };
 
     const handleBlur = () => {
-      setter(localColor);
+      setter(localColor); // Atualiza o estado pai apenas quando tirar o foco
     };
 
+    // 🔥 SOLUÇÃO: Garante que o input color sempre tenha um valor HEX válido
     const validHex = /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : "#000000";
 
     return (
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold text-gray-500">{label}</label>
-        {/* CORRIGIDO: Input box usa lightSecondary */}
+
+        {/* 🟢 O card que contém o input usa lightSecondary como fundo */}
         <div className="flex items-center gap-2 border border-gray-200 rounded-xl p-2" style={{ backgroundColor: lightSecondary }}>
           <input
             type="color"
@@ -212,6 +215,7 @@ export default function ConfiguracoesBrandingPage() {
             onChange={handleChange}
             onBlur={handleBlur}
             className="font-mono text-sm w-full outline-none"
+            // 🟢 O texto dentro do input usa lightTertiary
             style={{ backgroundColor: 'transparent', color: lightTertiary }}
           />
         </div>
@@ -226,7 +230,7 @@ export default function ConfiguracoesBrandingPage() {
         <div
           onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-            style={{ backgroundColor: "transparent", color: darkSecondary }}
+          style={{ backgroundColor: "transparent", color: darkSecondary }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = `${darkHover}33`;
             e.currentTarget.style.color = darkSecondary;
