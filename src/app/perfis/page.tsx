@@ -1,532 +1,616 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { formatarPreco } from "@/utils/formatarPreco"
-import { Home, Layers, Palette, Tag, Package, Copy } from "lucide-react"
-import { Download, Upload } from "lucide-react";
+import { formatarPreco } from "@/utils/formatarPreco" // 🔥 Certifique-se que este arquivo existe
+import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square, DollarSign, ArrowUp } from "lucide-react"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
 
+// --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = {
-  id: string // UUID gerado pelo Supabase
-  codigo: string
-  nome: string
-  cores: string
-  preco: number | null   // <- corrigido
-  categoria: string
+  id: string;
+  codigo: string;
+  nome: string;
+  cores: string;
+  preco: number | null;
+  categoria: string;
+  empresa_id?: string
 }
 
-const theme = {
-  primary: "#1C415B",
-  secondary: "#92D050",
-  text: "#1C415B",
-  background: "#F9FAFB",
-  border: "#E5E7EB",
-  cardBg: "#FFFFFF",
-  hover: "#F3F4F6",
+type MenuItem = {
+  nome: string;
+  rota: string;
+  icone: any;
+  submenu?: { nome: string; rota: string }[]
 }
+
+// --- 2. 🔥 CONSTANTES DE MENU (Corrigindo erro de "menuPrincipal" e "menuCadastros") ---
+const menuPrincipal: MenuItem[] = [
+  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
+  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
+  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
+  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
+]
+
+const menuCadastros: MenuItem[] = [
+  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
+  { nome: "Vidros", rota: "/vidros", icone: Square },
+  { nome: "Perfis", rota: "/perfis", icone: Package },
+  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
+  { nome: "Kits", rota: "/kits", icone: Boxes },
+  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
+]
+
+// --- Utils ---
+// Função para padronizar o texto (Primeira letra de cada palavra em Maiúscula)
+const padronizarTexto = (texto: string) => {
+  if (!texto) return "";
+  return texto
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
+};
 
 export default function PerfisPage() {
+  const router = useRouter()
+
+  // --- Estados de UI e Branding ---
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null); // 🔥 Corrigindo erro do "user"
+
+  const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
+  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
+  const [darkPrimary, setDarkPrimary] = useState("#1C415B");
+  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
+  const [darkTertiary, setDarkTertiary] = useState("#39B89F");
+  const [darkHover, setDarkHover] = useState("#39B89F");
+  const [lightPrimary, setLightPrimary] = useState("#F4F7FA");
+  const [lightSecondary, setLightSecondary] = useState("#FFFFFF");
+  const [lightTertiary, setLightTertiary] = useState("#1C415B");
+
+  // --- Estados da Lógica de Negócio ---
   const [perfis, setPerfis] = useState<Perfil[]>([])
-  const [novoPerfil, setNovoPerfil] = useState<Omit<Perfil, "id">>({
-    codigo: "",
-    nome: "",
-    cores: "",
-    preco: null,   // <- corrigido
-    categoria: "",
-  })
+  const [novoPerfil, setNovoPerfil] = useState<Omit<Perfil, "id">>({ codigo: "", nome: "", cores: "", preco: null, categoria: "" })
   const [editando, setEditando] = useState<Perfil | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
+  const [modalCarregando, setModalCarregando] = useState(false);
 
+  // --- Estados de Filtro ---
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState("")
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const [mensagem, setMensagem] = useState<string>("")
-  const [mostrarMensagem, setMostrarMensagem] = useState(false)
-  const [precoTexto, setPrecoTexto] = useState("")
+  // --- Efeitos de Inicialização e Auth ---
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) { setShowUserMenu(false); } };
+    document.addEventListener("mousedown", handleClickOutside);
 
-// Para controle do modal de confirmação
-  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
-  const [idParaDeletar, setIdParaDeletar] = useState<string | null>(null)
+    const fetchData = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) { router.push("/login"); return; }
 
-  const pedirConfirmacaoDeletar = (id: string) => {
-  setIdParaDeletar(id)
-  setMostrarConfirmacao(true)
-}
+      setUserEmail(authData.user.email || null); // 🔥 Define o email do usuário
 
-const confirmarDeletar = async () => {
-  if (!idParaDeletar) return
+      const { data: perfilVinculo } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", authData.user.id)
+        .single();
 
-  const { error } = await supabase.from("perfis").delete().eq("id", idParaDeletar)
-  if (error) {
-    exibirMensagem("Erro ao excluir perfil: " + error.message)
-  } else {
-    setPerfis(prev => prev.filter(p => p.id !== idParaDeletar))
-    exibirMensagem("Perfil excluído com sucesso!")
-  }
+      if (perfilVinculo) {
+        setEmpresaIdUsuario(perfilVinculo.empresa_id);
 
-  setMostrarConfirmacao(false)
-  setIdParaDeletar(null)
-}
+        const { data: empresaData } = await supabase
+          .from("empresas")
+          .select("nome")
+          .eq("id", perfilVinculo.empresa_id)
+          .single();
 
+        if (empresaData) setNomeEmpresa(empresaData.nome);
+      }
 
-  const exibirMensagem = (texto: string) => {
-  setMensagem(texto)
-  setMostrarMensagem(true)
-  setTimeout(() => setMostrarMensagem(false), 4000) // fecha automático após 4s
-}
+      await carregarDados();
+      setCheckingAuth(false);
+    };
+    fetchData();
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [router]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      // Mostra o botão se rolar mais de 300px
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
 
-// Adicione este useEffect dentro do componente PerfisPage
-useEffect(() => {
-  if (!mostrarConfirmacao) return;
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  const handleEnter = (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      confirmarDeletar();
+  // --- Função de Scroll ---
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // --- Funções de Dados ---
+  const carregarDados = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await supabase
+      .from("perfis")
+      .select("*")
+      .order("codigo", { ascending: true });
+
+    if (error) console.error("Erro ao carregar perfis:", error);
+    else {
+      // 🔥 SOLUÇÃO: Usar o código Unicode \uFFFD para identificar o caractere corrompido
+      const dadosLimpos = (data as Perfil[]).map(perfil => ({
+        ...perfil,
+        nome: perfil.nome ? perfil.nome.replace(/\uFFFD/g, "ã") : perfil.nome,
+        cores: perfil.cores ? perfil.cores.replace(/\uFFFD/g, "ã") : perfil.cores,
+        categoria: perfil.categoria ? perfil.categoria.replace(/\uFFFD/g, "ã") : perfil.categoria,
+      }));
+      setPerfis(dadosLimpos);
     }
-  };
 
-  window.addEventListener("keydown", handleEnter);
+    setCarregando(false);
+  }, []);
 
-  return () => {
-    window.removeEventListener("keydown", handleEnter);
-  };
-}, [mostrarConfirmacao]); // <- array de dependências consistente
+  // --- Funções de Dados ---
+  const eliminarDuplicados = () => {
+    setModalAviso({
+      titulo: "Eliminar Duplicados",
+      mensagem: "Tem certeza que deseja remover perfis que tenham o MESMO CÓDIGO e a MESMA COR? Manteremos apenas o primeiro registro de cada combinação.",
+      confirmar: async () => {
+        setCarregando(true);
+        try {
+          const combinacoesExistentes = new Set();
+          const idsParaDeletar: string[] = [];
 
-  
-  // --- CARREGAMENTO ---
-  const carregarPerfis = async () => {
-    const { data, error } = await supabase.from("perfis").select("*").order("codigo", { ascending: true })
-    if (error) console.error("Erro ao carregar perfis:", error)
-    else setPerfis((data as Perfil[]) || [])
+          // Ordena para garantir consistência (ex: pelo ID mais antigo)
+          const perfisOrdenados = [...perfis].sort((a, b) => a.id.localeCompare(b.id));
+
+          perfisOrdenados.forEach(perfil => {
+            const chave = `${perfil.codigo.trim().toLowerCase()}-${perfil.cores.trim().toLowerCase()}`;
+
+            if (combinacoesExistentes.has(chave)) {
+              idsParaDeletar.push(perfil.id);
+            } else {
+              combinacoesExistentes.add(chave);
+            }
+          });
+
+          if (idsParaDeletar.length === 0) {
+            console.log("Nada para deletar.");
+            setModalAviso(null);
+            setTimeout(() => {
+              setModalAviso({
+                titulo: "Aviso",
+                mensagem: "Nenhum par CÓDIGO+COR duplicado encontrado para limpar."
+              });
+            }, 10);
+
+            return;
+          }
+
+          const { error } = await supabase
+            .from("perfis")
+            .delete()
+            .in("id", idsParaDeletar);
+
+          if (error) throw error;
+
+          await carregarDados();
+          setModalAviso({ titulo: "Sucesso", mensagem: `${idsParaDeletar.length} itens duplicados removidos.` });
+        } catch (e: any) {
+          setModalAviso({ titulo: "Erro", mensagem: "Erro ao remover duplicados: " + e.message });
+        } finally {
+          setCarregando(false);
+        }
+      }
+    });
+  }
+  // --- Funções de Importação/Exportação ---
+  const exportarCSV = () => {
+    if (perfis.length === 0) { setModalAviso({ titulo: "Aviso", mensagem: "Nenhum perfil para exportar." }); return; }
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + "Codigo;Nome;Cores;Preco;Categoria\n"
+      + perfis.map(p =>
+        `${p.codigo.trim()};${p.nome.trim()};${p.cores.trim()};${p.preco || ""};${p.categoria.trim()}`
+      ).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "perfis.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
-  useEffect(() => { carregarPerfis() }, [])
-  
+  const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !empresaIdUsuario) return;
 
-  // --- SALVAR ---
+    setModalCarregando(true);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const decoder = new TextDecoder("utf-8");
+      const text = decoder.decode(e.target?.result as ArrayBuffer);
+
+      if (typeof text !== "string") {
+        setModalAviso({ titulo: "Erro", mensagem: "Arquivo inválido." });
+        setModalCarregando(false);
+        return;
+      }
+
+      const rows = text.split("\n").slice(1);
+      let importados = 0;
+      let atualizados = 0;
+      let erros = 0;
+      let detalhesErros = "";
+
+      for (const row of rows) {
+        if (!row.trim()) continue;
+        const columns = row.split(";").map((c) => c.replace(/['"]+/g, "").trim());
+        const [codigo, nome, cores, precoRaw, categoria] = columns;
+
+        if (codigo && cores) {
+          const preco = precoRaw ? Number(precoRaw.replace(",", ".")) : null;
+
+          // 🔥 SOLUÇÃO: Usar .upsert() para atualizar se o código+cor já existir
+          const { error } = await supabase.from("perfis").upsert([{
+            codigo: codigo.trim(),
+            nome: padronizarTexto(nome),
+            cores: padronizarTexto(cores),
+            preco: preco,
+            categoria: padronizarTexto(categoria),
+            empresa_id: empresaIdUsuario
+          }], {
+            onConflict: 'codigo,cores'
+          });
+
+          if (error) {
+            console.error("Erro na linha:", error);
+            erros++;
+            detalhesErros += `Linha ${importados + erros + 1}: ${error.message}\n`;
+          } else {
+            importados++;
+          }
+        } else { erros++; }
+      }
+      await carregarDados();
+      setModalCarregando(false);
+      let mensagemFinal = `✅ Sucesso: ${importados}\n❌ Erros: ${erros}`;
+      if (detalhesErros) {
+        mensagemFinal += `\n\nDetalhes:\n${detalhesErros}`;
+      }
+      setModalAviso({
+        titulo: "Importação Concluída",
+        mensagem: mensagemFinal
+      });
+      event.target.value = "";
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  // --- Funções Lógicas ---
   const salvarPerfil = async () => {
-if (!novoPerfil.codigo.trim()) { 
-  exibirMensagem("Código é obrigatório."); 
-  return; 
-}
+    if (!novoPerfil.codigo.trim() || !novoPerfil.nome.trim()) { setModalAviso({ titulo: "Atenção", mensagem: "Código e Nome são obrigatórios." }); return }
 
-if (!novoPerfil.nome.trim()) { 
-  exibirMensagem("Nome é obrigatório."); 
-  return; 
-}
-    
-    setCarregando(true)
-
-    const perfilParaSalvar = { ...novoPerfil, preco: novoPerfil.preco ?? null }
-
-    if (editando) {
-      const { error } = await supabase.from("perfis").update(perfilParaSalvar).eq("id", editando.id)
-      setCarregando(false)
-      if (error) { exibirMensagem("Erro ao atualizar perfil: " + error.message); return }
-    } else {
-      // Inserção sem id, Supabase gera UUID
-      const { error } = await supabase.from("perfis").insert([perfilParaSalvar])
-      setCarregando(false)
-      if (error) { exibirMensagem("Erro ao salvar perfil: " + error.message); return }
+    if (!empresaIdUsuario) {
+      setModalAviso({ titulo: "Erro", mensagem: "Usuário não vinculado a uma empresa." });
+      return;
     }
 
-    await carregarPerfis()
-    setNovoPerfil({ codigo: "", nome: "", cores: "", preco: null, categoria: "" })
-    setEditando(null)
-    setMostrarModal(false)
+    setCarregando(true)
+    const perfilFormatado = {
+      ...novoPerfil,
+      codigo: novoPerfil.codigo.trim(),
+      nome: padronizarTexto(novoPerfil.nome),
+      cores: padronizarTexto(novoPerfil.cores),
+      preco: novoPerfil.preco ? Number(novoPerfil.preco) : null,
+      categoria: padronizarTexto(novoPerfil.categoria),
+      empresa_id: empresaIdUsuario
+    }
+
+    try {
+      if (editando) {
+        const { error } = await supabase.from("perfis").update(perfilFormatado).eq("id", editando.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from("perfis").insert([perfilFormatado])
+        if (error) throw error
+      }
+      setNovoPerfil({ codigo: "", nome: "", cores: "", preco: null, categoria: "" });
+      setEditando(null);
+      setMostrarModal(false);
+      await carregarDados();
+    } catch (e: any) { setModalAviso({ titulo: "Erro", mensagem: "Erro: " + e.message }) } finally { setCarregando(false) }
   }
 
-  // --- EDITAR ---
-  const editarPerfil = (perfil: Perfil) => {
-    setEditando(perfil)
-    setNovoPerfil({ ...perfil })
-    setMostrarModal(true)
+  const deletarPerfil = (id: string) => {
+    setModalAviso({
+      titulo: "Confirmar Exclusão",
+      mensagem: "Tem certeza que deseja excluir este perfil?",
+      confirmar: async () => {
+        const { error } = await supabase.from("perfis").delete().eq("id", id)
+        if (error) {
+          setModalAviso({ titulo: "Erro", mensagem: "Erro ao excluir: " + error.message });
+        } else {
+          setPerfis(prev => prev.filter(p => p.id !== id));
+          setModalAviso(null);
+        }
+      }
+    })
   }
 
-  // --- DELETAR ---
-  const deletarPerfil = async (id: string) => {
-  // Mostra alerta de confirmação no topo do sistema
-  const confirmar = window.confirm("Tem certeza que deseja excluir?") // temporário, podemos trocar por modal
-  if (!confirmar) return
-
-  const { error } = await supabase.from("perfis").delete().eq("id", id)
-  if (error) {
-    exibirMensagem("Erro ao excluir perfil: " + error.message)
-  } else {
-    setPerfis(prev => prev.filter(p => p.id !== id))
-    exibirMensagem("Perfil excluído com sucesso!")
-  }
-}
-
-
-  // --- DUPLICAR ---
   const duplicarPerfil = (perfil: Perfil) => {
-    setEditando(null)
+    setEditando(null);
     setNovoPerfil({
-      codigo: perfil.codigo,
+      codigo: perfil.codigo + " (Cópia)",
       nome: perfil.nome,
       cores: perfil.cores,
       preco: perfil.preco,
-      categoria: perfil.categoria,
-    })
-    setMostrarModal(true)
+      categoria: perfil.categoria
+    });
+    setMostrarModal(true);
   }
 
-  // --- FILTROS ---
+  const abrirModalParaEdicao = (perfil: Perfil) => { setEditando(perfil); setNovoPerfil(perfil); setMostrarModal(true); }
+  const abrirModalParaNovo = () => { setEditando(null); setNovoPerfil({ codigo: "", nome: "", cores: "", preco: null, categoria: "" }); setMostrarModal(true); }
+
+  // --- Lógica de Filtros e Métricas ---
   const perfisFiltrados = perfis.filter(p =>
-    p.nome.toLowerCase().includes(filtroNome.toLowerCase()) &&
-    p.cores.toLowerCase().includes(filtroCor.toLowerCase()) &&
-    p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase())
+    (filtroNome ? p.nome.toLowerCase().includes(filtroNome.toLowerCase()) : true) &&
+    (filtroCor ? p.cores.toLowerCase().includes(filtroCor.toLowerCase()) : true) &&
+    (filtroCategoria ? p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()) : true)
   )
 
-  // --- MÉTRICAS ---
   const totalPerfis = perfis.length
   const categoriasDistintas = Array.from(new Set(perfis.map(p => p.categoria).filter(Boolean))).length
   const coresDistintas = Array.from(new Set(perfis.map(p => p.cores).filter(Boolean))).length
   const comPreco = perfis.filter(p => p.preco !== null).length
 
-// --- EXPORTAR CSV ---
-const exportarCSV = () => {
-  if (perfis.length === 0) {
-    exibirMensagem("Não há perfis para exportar!");
-    return;
-  }
+  const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
-  const header = ["Código", "Nome", "Cores", "Preço", "Categoria"];
+  // --- Renderização do Menu ---
+  const renderMenuItem = (item: MenuItem) => { const Icon = item.icone; return (<div key={item.nome} className="group mb-1"> <div onClick={() => { router.push(item.rota); setShowMobileMenu(false); }} className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1" style={{ color: darkSecondary }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }} > <div className="flex items-center gap-3"> <Icon className="w-5 h-5" style={{ color: darkTertiary }} /> <span className="font-medium text-sm">{item.nome}</span> </div> {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />} </div> </div>) }
 
-  const rows = perfis.map(p => [
-    `"${p.codigo.replace(/"/g, '""')}"`,
-    `"${p.nome.replace(/"/g, '""')}"`,
-    `"${p.cores.replace(/"/g, '""')}"`,
-    p.preco !== null && !isNaN(Number(p.preco)) 
-  ? Number(p.preco).toFixed(2).replace(".", ",") 
-  : "",
-    `"${p.categoria.replace(/"/g, '""')}"`
-  ]);
-
-  // junta tudo usando ponto e vírgula como separador
-  const csvContent = [header, ...rows].map(e => e.join(";")).join("\r\n");
-
-  // cria o arquivo e força o download
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "perfis.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-
-// --- IMPORTAR CSV ---
-const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    // Lê como ArrayBuffer
-    const arrayBuffer = e.target?.result as ArrayBuffer;
-
-    // Decodifica como Latin1 (ISO-8859-1) para lidar com acentos
-    const decoder = new TextDecoder("iso-8859-1");
-    const text = decoder.decode(arrayBuffer);
-
-    const linhas = text.split(/\r?\n/).filter(l => l.trim() !== "");
-    const [header, ...rows] = linhas;
-
-    // Espera-se cabeçalho: Código;Nome;Cores;Preço;Categoria
-    const novosPerfis: any[] = rows.map(linha => {
-      const [codigo, nome, cores, preco, categoria] = linha
-        .split(";")
-        .map(c =>
-          c
-            .replace(/^"|"$/g, "")
-            .trim()
-            // Normaliza acentuação e caracteres especiais
-            .normalize("NFC")
-        );
-
-      return {
-        codigo,
-        nome,
-        cores,
-        preco: preco ? parseFloat(preco.replace("R$", "").replace(",", ".")) : null,
-        categoria,
-      };
-    });
-
-    const perfisExistentes = [...perfis];
-    const novosParaInserir: any[] = [];
-    const paraAtualizar: any[] = [];
-
-    novosPerfis.forEach(novo => {
-      const existente = perfisExistentes.find(
-        e =>
-          e.codigo === novo.codigo &&
-          e.nome === novo.nome &&
-          e.cores === novo.cores
-      );
-
-      if (!existente) {
-        novosParaInserir.push(novo);
-      } else if (existente.preco !== novo.preco) {
-        paraAtualizar.push({ ...existente, preco: novo.preco });
-      }
-    });
-
-    if (novosParaInserir.length === 0 && paraAtualizar.length === 0) {
-      exibirMensagem("Nenhuma mudança detectada. Todos os itens já estão atualizados!");
-      return;
-    }
-
-    // Atualiza preços diferentes
-    if (paraAtualizar.length > 0) {
-      for (const item of paraAtualizar) {
-        const { error } = await supabase
-          .from("perfis")
-          .update({ preco: item.preco })
-          .eq("codigo", item.codigo)
-          .eq("nome", item.nome)
-          .eq("cores", item.cores);
-
-        if (error) {
-          exibirMensagem("Erro ao atualizar item: " + error.message);
-          return;
-        }
-      }
-    }
-
-    // Insere novos itens
-    if (novosParaInserir.length > 0) {
-      const { error } = await supabase.from("perfis").insert(novosParaInserir);
-      if (error) {
-        exibirMensagem("Erro ao importar CSV: " + error.message);
-        return;
-      }
-    }
-
-    // Atualiza estado local
-    const atualizados = perfis.map(e => {
-      const alterado = paraAtualizar.find(
-        p => p.codigo === e.codigo && p.nome === e.nome && p.cores === e.cores
-      );
-      return alterado ? { ...e, preco: alterado.preco } : e;
-    });
-
-    setPerfis([...atualizados, ...novosParaInserir]);
-
-    exibirMensagem(
-      `Importação concluída! 
-      • ${novosParaInserir.length} novos itens adicionados 
-      • ${paraAtualizar.length} preços atualizados`
-    );
-  };
-
-  // Lê o arquivo como ArrayBuffer
-  reader.readAsArrayBuffer(file);
-};
-
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
   return (
-    
-    <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
-      {mostrarMensagem && (
-  <div
-    className="fixed top-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-2xl shadow-lg z-50"
-    style={{ backgroundColor: theme.secondary, color: theme.primary }}
-  >
-    {mensagem}
-  </div>
-)}
+    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
 
-{/* BARRA DO TOPO */}
-<div className="flex justify-between items-center mb-6 mt-2 px-2">
-  {/* Botão Home - esquerda */}
-  <button
-    onClick={() => window.location.href = "/"}
-    className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold hover:opacity-90 transition"
-    style={{ backgroundColor: theme.secondary, color: theme.primary }}
-  >
-    <Home className="w-5 h-5 text-white" />
-    Home
-  </button>
+      {/* SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
+        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
+        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
+          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
+          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
+        </nav>
+      </aside>
 
-  {/* Botões de importação/exportação - direita */}
-  <div className="flex gap-2">
-    <button
-      onClick={exportarCSV}
-      className="p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
-      title="Exportar CSV"
-    >
-      <Download className="w-5 h-5 text-gray-600" />
-    </button>
+      {/* CONTEÚDO PRINCIPAL */}
+      <div className="flex-1 flex flex-col w-full">
 
-    <label
-      htmlFor="importarCSV"
-      className="p-2 rounded-full shadow-sm cursor-pointer hover:bg-gray-100 transition"
-      title="Importar CSV"
-    >
-      <Upload className="w-5 h-5 text-gray-600" />
-    </label>
-    <input
-      type="file"
-      id="importarCSV"
-      accept=".csv"
-      className="hidden"
-      onChange={importarCSV}
-    />
-  </div>
-</div>
-
-
-      <h1 className="text-3xl font-bold mb-6 text-center">Dashboard de Perfis</h1>
-
-      
-
-      {/* CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { titulo: "Total", valor: totalPerfis, icone: Layers },
-          { titulo: "Com Preço", valor: comPreco, icone: Tag },
-          { titulo: "Cores Distintas", valor: coresDistintas, icone: Palette },
-          { titulo: "Categorias", valor: categoriasDistintas, icone: Package }
-        ].map(card => (
-          <div key={card.titulo} className="bg-white p-4 rounded-2xl shadow flex flex-col items-center justify-center">
-            <card.icone className="w-6 h-6 mb-2 text-[#92D050]" />
-            <h3 className="text-gray-500">{card.titulo}</h3>
-            <p className="text-2xl font-bold text-[#1C415B]">{card.valor}</p>
+        {/* TOPBAR */}
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+          <div className="flex items-center gap-2 md:gap-4">
+            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
           </div>
-        ))}
-      </div>
 
-      {/* Botão Novo Perfil */}
-      <div className="flex justify-center mb-6">
-        <button
-          onClick={() => { setEditando(null); setNovoPerfil({ codigo: "", nome: "", cores: "", preco: null, categoria: "" }); setMostrarModal(true) }}
-          className="px-6 py-2 rounded-2xl font-bold shadow"
-          style={{ backgroundColor: theme.secondary, color: theme.primary }}>
-          Novo Perfil
-        </button> 
-        
-        </div>
-       
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={userMenuRef}>
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
+                <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
 
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100 mb-2">
+                    <p className="text-xs text-gray-400">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate"> {userEmail} </p>
+                  </div>
+                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> <Settings size={18} className="text-gray-400" />Configurações </button>
+                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"> <LogOut size={18} />Sair </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap justify-center gap-3 mb-6">
-        <input type="text" placeholder="Filtrar por nome" value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2 rounded border" style={{ borderColor: theme.border }} />
-        <input type="text" placeholder="Filtrar por cor" value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2 rounded border" style={{ borderColor: theme.border }} />
-        <input type="text" placeholder="Filtrar por categoria" value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="p-2 rounded border" style={{ borderColor: theme.border }} />
-      </div>
-
-      {/* Tabela */}
-      <div className="overflow-x-auto rounded-lg shadow-md">
-        <table className="w-full text-left border-collapse">
-          <thead style={{ backgroundColor: theme.primary, color: "#FFF" }}>
-            <tr>
-              <th className="p-3">Código</th>
-              <th className="p-3">Nome</th>
-              <th className="p-3">Cores</th>
-              <th className="p-3">Preço</th>
-              <th className="p-3">Categoria</th>
-              <th className="p-3 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-     {perfisFiltrados.map((perfil, index) => (
-  <tr
-    key={perfil.id ?? `${perfil.nome}-${index}`}
-    className="border-b hover:bg-[#f3f6f9]"
-    style={{ borderColor: theme.border }}
-  >
-    <td className="p-3">{perfil.codigo}</td>
-    <td className="p-3">{perfil.nome}</td>
-    <td className="p-3">{perfil.cores}</td>
-    <td className="p-3">
-  {perfil.preco !== null && !isNaN(Number(perfil.preco))
-    ? formatarPreco(Number(perfil.preco))
-    : "-"}
-</td>
-    <td className="p-3">{perfil.categoria}</td>
-    <td className="p-3 flex justify-center gap-2">
-      <button
-        onClick={() => editarPerfil(perfil)}
-        className="p-1 rounded hover:bg-[#E5E7EB]"
-      >
-        <Image src="/icons/editar.png" alt="Editar" width={20} height={20} />
-      </button>
-      <button
-        onClick={() => duplicarPerfil(perfil)}
-        className="p-1 rounded hover:bg-[#E5E7EB]"
-      >
-        <Copy className="w-5 h-5 text-gray-500" />
-      </button>
-      <button 
-  onClick={() => pedirConfirmacaoDeletar(perfil.id)} 
-  className="p-1 rounded hover:bg-[#E5E7EB]"
->
-  <Image src="/icons/delete.png" alt="Deletar" width={20} height={20} />
-</button>
-
-    </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Modal */}
-      {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
-          <div className="p-6 rounded-2xl shadow-lg w-full max-w-md bg-white">
-            <h2 className="text-xl font-semibold mb-4">{editando ? "Editar Perfil" : "Novo Perfil"}</h2>
-            <div className="space-y-3">
-              <input type="text" placeholder="Código *" value={novoPerfil.codigo} onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })} className="w-full p-2 rounded-lg border"/>
-              <input type="text" placeholder="Nome *" value={novoPerfil.nome} onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })} className="w-full p-2 rounded-lg border" />
-              <input type="text" placeholder="Cores" value={novoPerfil.cores} onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })} className="w-full p-2 rounded-lg border" />
-             <input type="number" placeholder="Preço" value={novoPerfil.preco !== null ? novoPerfil.preco : ""} onChange={e => {const valor = e.target.value.replace(",", ".");setNovoPerfil({ ...novoPerfil, preco: valor === "" ? null : Number(valor) })}}  className="w-full p-2 rounded-lg border"/>
-              <input type="text" placeholder="Categoria" value={novoPerfil.categoria} onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })} className="w-full p-2 rounded-lg border" />
-              <div className="flex justify-between gap-3 mt-4">
-                <button onClick={() => setMostrarModal(false)} className="flex-1 py-2 rounded-2xl font-semibold bg-gray-300 hover:opacity-90 transition">
-                  Cancelar
-                </button>
-                <button onClick={salvarPerfil} disabled={carregando} className="flex-1 py-2 rounded-2xl font-semibold" style={{ backgroundColor: theme.secondary, color: "#FFF" }}>
-                  {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
-                </button>
+        {/* CONTEÚDO ESPECÍFICO */}
+        <main className="p-4 md:p-8 flex-1">
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}>
+                <Package size={28} />
               </div>
+              <div>
+                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Dashboard de Perfis</h1>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de perfis e preços.</p>
+              </div>
+            </div>
+
+            {/* BOTÕES DE AÇÕES SUPERIORES */}
+            <div className="flex gap-2">
+              <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50" title="Exportar CSV">
+                <Download className="w-5 h-5 text-gray-600" />
+              </button>
+              <label htmlFor="importarCSV" className="p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:bg-gray-50" title="Importar CSV">
+                <Upload className="w-5 h-5 text-gray-600" />
+              </label>
+              <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
+            </div>
+          </div>
+
+          {/* CARDS INDICADORES */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[
+              { titulo: "Total", valor: totalPerfis, icone: Layers },
+              { titulo: "Com Preço", valor: comPreco, icone: DollarSign },
+              { titulo: "Cores", valor: coresDistintas, icone: Palette },
+              { titulo: "Categorias", valor: categoriasDistintas, icone: Package }
+            ].map(card => (
+              <div key={card.titulo} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                <card.icone className="w-7 h-7 mb-2" style={{ color: darkTertiary }} />
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
+                <p className="text-2xl font-bold" style={{ color: darkPrimary }}>{card.valor}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* FILTROS E BOTOES DE ACAO INFERIORES */}
+          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+            <div className="flex flex-wrap gap-3">
+              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              <input type="text" placeholder="Categoria..." value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+            </div>
+
+            {/* BOTÕES DE AÇÃO PRINCIPAIS */}
+            <div className="flex items-center gap-2">
+              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} /> Limpar Duplicados
+              </button>
+              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+                <PlusCircle size={20} /> Novo Perfil
+              </button>
+            </div>
+          </div>
+
+          {/* TABELA */}
+          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+            <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
+              <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
+                <tr>
+                  <th className="p-4 font-semibold">Código</th>
+                  <th className="p-4 font-semibold">Nome</th>
+                  <th className="p-4 font-semibold">Cores</th>
+                  <th className="p-4 font-semibold">Preço</th>
+                  <th className="p-4 font-semibold">Categoria</th>
+                  <th className="p-4 font-semibold text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
+                {perfisFiltrados.map(p => (
+                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 font-medium text-gray-900">{p.codigo}</td>
+                    <td className="p-4">{p.nome}</td>
+                    <td className="p-4">{p.cores}</td>
+                    <td className="p-4 font-semibold" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
+                    <td className="p-4">{p.categoria}</td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => abrirModalParaEdicao(p)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }} title="Editar"> <Edit2 size={18} /> </button>
+                        <button onClick={() => duplicarPerfil(p)} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500" title="Duplicar"> <Copy size={18} /> </button>
+                        <button onClick={() => deletarPerfil(p.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50" title="Deletar"> <Trash2 size={18} /> </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </main>
+      </div>
+
+      {/* MODAL DE CARREGANDO (IMPORTAÇÃO) */}
+      {modalCarregando && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 rounded-full animate-spin" style={{ borderColor: darkTertiary, borderTopColor: 'transparent' }}></div>
+            <p className="text-gray-700 font-semibold">Processando...</p>
+            <p className="text-gray-400 text-sm">Não feche esta janela.</p>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CADASTRO/EDIÇÃO */}
+      {mostrarModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-40 animate-fade-in px-4">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-extrabold" style={{ color: darkPrimary }}>{editando ? "Editar Perfil" : "Cadastrar Perfil"}</h2>
+              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="col-span-2">
+                <label className="text-sm font-semibold text-gray-600 mb-1 block">Código *</label>
+                <input type="text" placeholder="Ex: P001" value={novoPerfil.codigo} onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-semibold text-gray-600 mb-1 block">Nome *</label>
+                <input type="text" placeholder="Ex: Trilho Superior" value={novoPerfil.nome} onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-600 mb-1 block">Cores</label>
+                <input type="text" placeholder="Ex: Branco, Preto" value={novoPerfil.cores} onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-600 mb-1 block">Categoria</label>
+                <input type="text" placeholder="Ex: Box, Porta" value={novoPerfil.categoria} onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-semibold text-gray-600 mb-1 block">Preço Base (R$)</label>
+                <input type="number" step="0.01" placeholder="0,00" value={novoPerfil.preco ?? ""} onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button onClick={() => setMostrarModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
+              <button onClick={salvarPerfil} disabled={carregando} className="px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition flex items-center gap-2" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+                {carregando ? "Salvando..." : (editando ? "Atualizar" : "Salvar")}
+              </button>
             </div>
           </div>
         </div>
       )}
-      {mostrarConfirmacao && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
-    <div className="p-6 rounded-2xl shadow-lg w-full max-w-sm bg-white">
-      <h2 className="text-xl font-semibold mb-4 text-center">Confirmar Exclusão</h2>
-      <p className="text-center mb-6">Tem certeza que deseja excluir este perfil?</p>
-      <div className="flex justify-between gap-3">
+
+      {/* MODAL DE AVISO/CONFIRMAÇÃO */}
+      {modalAviso && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 px-4">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100">
+            <h3 className="text-lg font-bold mb-2 text-center" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
+            <p className="text-gray-600 text-sm mb-6 text-center whitespace-pre-line">{modalAviso.mensagem}</p>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition">
+                {modalAviso.confirmar ? "Cancelar" : "Entendido"}
+              </button>
+              {modalAviso.confirmar && (
+                <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">
+                  Confirmar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showScrollTop && (
         <button
-          onClick={() => setMostrarConfirmacao(false)}
-          className="flex-1 py-2 rounded-2xl font-semibold bg-gray-300 hover:opacity-90 transition"
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 z-50"
+          style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+          title="Voltar ao topo"
         >
-          Cancelar
+          <ArrowUp size={24} />
         </button>
-        <button
-          onClick={confirmarDeletar}
-          className="flex-1 py-2 rounded-2xl font-semibold"
-          style={{ backgroundColor: theme.secondary, color: "#FFF" }}
-        >
-          Confirmar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   )
 }

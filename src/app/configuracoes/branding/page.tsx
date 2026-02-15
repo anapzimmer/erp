@@ -87,7 +87,7 @@ export default function ConfiguracoesBrandingPage() {
       setUsuarioEmail(userData.user.email || "Usuário");
 
       const { data: perfil, error: perfilError } = await supabase
-        .from("perfis")
+        .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", userData.user.id)
         .single();

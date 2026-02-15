@@ -76,7 +76,7 @@ export default function ConfiguracoesPage() {
       setUsuarioEmail(authData.user.email || "Usuário");
 
       const { data: perfil } = await supabase
-        .from("perfis")
+        .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", authData.user.id)
         .single();

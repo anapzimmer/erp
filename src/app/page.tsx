@@ -1,4 +1,4 @@
-//app/configuracoes/page.tsx
+//app/page.tsx
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -49,7 +49,7 @@ export default function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // --- Estados de Branding ---
+  // --- Estados de Branding (Padrões Glass Code) ---
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
   const [darkPrimary, setDarkPrimary] = useState("#1C415B"); // Sidebar Background
@@ -69,53 +69,69 @@ export default function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
 
     const fetchData = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        router.push("/login");
-        return;
-      }
-      setUsuarioEmail(authData.user.email || "Usuário");
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData.user) {
+          router.push("/login");
+          return;
+        }
+        setUsuarioEmail(authData.user.email || "Usuário");
 
-      const { data: perfil } = await supabase
-        .from("perfis")
-        .select("empresa_id")
-        .eq("id", authData.user.id)
-        .single();
-
-      if (perfil) {
-        // --- BUSCAR NOME DA EMPRESA ---
-        const { data: empresaData } = await supabase
-          .from("empresas")
-          .select("nome")
-          .eq("id", perfil.empresa_id)
+        // 1. Buscar Perfil
+        const { data: perfil, error: perfilError } = await supabase
+          .from("perfis_usuarios")
+          .select("empresa_id")
+          .eq("id", authData.user.id)
           .single();
+
+        if (perfil && perfil.empresa_id) {
+          // 2. Buscar Nome da Empresa
+          const { data: empresaData } = await supabase
+            .from("empresas")
+            .select("nome")
+            .eq("id", perfil.empresa_id)
+            .single();
+          
+          if (empresaData) {
+            setNomeEmpresa(empresaData.nome);
+          } else {
+            setNomeEmpresa("Empresa não encontrada");
+          }
+
+          // 3. Buscar Configurações de Branding
+          const { data: brandingData } = await supabase
+            .from("configuracoes_branding")
+            .select("*")
+            .eq("empresa_id", perfil.empresa_id)
+            .single();
+
+          if (brandingData) {
+            setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+            setDarkPrimary(brandingData.dark_primary);
+            setDarkSecondary(brandingData.dark_secondary);
+            setDarkTertiary(brandingData.dark_tertiary);
+            setDarkHover(brandingData.dark_hover);
+            setLightPrimary(brandingData.light_primary);
+            setLightSecondary(brandingData.light_secondary);
+            setLightTertiary(brandingData.light_tertiary);
+          }
+        } else {
+          // 🔥 ESTE É O PONTO: Se cair aqui, a tabela 'perfis'
+          // do usuário não tem um 'empresa_id' válido.
+          setNomeEmpresa("Perfil sem Empresa");
+        }
         
-        if (empresaData) {
-          setNomeEmpresa(empresaData.nome);
-        }
+        // 4. Buscar Contagem de Clientes
+        const { count } = await supabase.from("clientes").select("*", { count: "exact", head: true });
+        setTotalClientes(count ?? 0);
 
-        // --- BUSCAR CONFIGURAÇÕES DE BRANDING ---
-        const { data: brandingData } = await supabase
-          .from("configuracoes_branding")
-          .select("*")
-          .eq("empresa_id", perfil.empresa_id)
-          .single();
-
-        if (brandingData) {
-          setLogoDark(brandingData.logo_dark || "/glasscode2.png");
-          setDarkPrimary(brandingData.dark_primary);
-          setDarkSecondary(brandingData.dark_secondary);
-          setDarkTertiary(brandingData.dark_tertiary);
-          setDarkHover(brandingData.dark_hover);
-          setLightPrimary(brandingData.light_primary);
-          setLightSecondary(brandingData.light_secondary);
-          setLightTertiary(brandingData.light_tertiary);
-        }
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        setNomeEmpresa("Erro ao carregar");
+      } finally {
+        // 🔥 IMPORTANTE: Garante que o loading pare mesmo se der erro
+        setCheckingAuth(false);
       }
-      
-      const { count } = await supabase.from("clientes").select("*", { count: "exact", head: true });
-      setTotalClientes(count ?? 0);
-      setCheckingAuth(false);
     };
     fetchData();
 
@@ -129,21 +145,18 @@ export default function Dashboard() {
         <div
           onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          // --- ALTERAÇÃO AQUI: Removi o 'B3' (opacidade) para usar a cor sólida ---
           style={{ color: darkSecondary }} 
           onMouseEnter={(e) => {
-            // Cor de hover permanece com transparência para não cobrir o texto
+            // Cor de hover com leve transparência para destaque
             e.currentTarget.style.backgroundColor = `${darkHover}33`;
             e.currentTarget.style.color = darkSecondary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = "transparent";
-            // --- ALTERAÇÃO AQUI: Removi o 'B3' na saída também ---
             e.currentTarget.style.color = darkSecondary;
           }}
         >
           <div className="flex items-center gap-3">
-            {/* Ícones do menu usando a cor terciária */}
             <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
@@ -153,9 +166,8 @@ export default function Dashboard() {
           <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${darkSecondary}4D` }}>
             {item.submenu.map((sub) => (
               <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }} className="p-2 text-xs rounded-lg cursor-pointer transition-all"
-                // --- ALTERAÇÃO AQUI: Removi o '80' para usar a cor sólida ---
                 style={{ color: darkSecondary }}
-                onMouseEnter={(e) => e.currentTarget.style.color = darkSecondary}
+                onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
                 onMouseLeave={(e) => e.currentTarget.style.color = darkSecondary}
               >
                 {sub.nome}
@@ -172,6 +184,7 @@ export default function Dashboard() {
     router.push("/login");
   };
 
+  // Tela de Loading Refinada
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -180,7 +193,7 @@ export default function Dashboard() {
     );
   }
 
-  // --- Cards com cores baseadas no branding ---
+  // Cards com cores baseadas no branding
   const stats = [
     { titulo: "Clientes Ativos", valor: totalClientes, icone: UsersRound, color: darkTertiary, bg: `${darkTertiary}10` },
     { titulo: "Orçamentos", valor: "12", icone: FileText, color: "#4FA2D9", bg: "#4FA2D910" },
@@ -191,19 +204,17 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
 
-      {/* SIDEBAR - totalmente conectada ao branding */}
+      {/* SIDEBAR - Conectada ao branding */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
           <X size={24} />
         </button>
         <div className="px-3 py-4 mb-4 flex justify-center">
-          {/* Logo dinâmico */}
           <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
 
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div>
-            {/* Título da seção usando darkTertiary */}
             <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
             {menuPrincipal.map(renderMenuItem)}
           </div>
@@ -214,13 +225,13 @@ export default function Dashboard() {
         </nav>
       </aside>
 
-      {/* Overlay */}
+      {/* Overlay Mobile */}
       {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
 
-      {/* CONTEÚDO PRINCIPAL */}
+      {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col w-full">
 
-        {/* TOPBAR */}
+        {/* Topbar */}
         <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
           <div className="flex items-center gap-2 md:gap-4">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
@@ -241,12 +252,11 @@ export default function Dashboard() {
                 <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
                   <Building2 size={16} />
                 </div>
-                {/* Nome da empresa dinâmico */}
                 <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Menu Dropdown */}
+              {/* Menu Dropdown User */}
               {showUserMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
                   <div className="px-3 py-2 border-b border-gray-100">
@@ -265,7 +275,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* CONTAINER DE DADOS */}
+        {/* Container de Dados */}
         <main className="p-4 md:p-8 flex-1">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10">
             <div>
@@ -274,7 +284,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* GRID DE STATS REFINADO */}
+          {/* Grid de Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
             {stats.map((stat) => {
               const Icon = stat.icone;

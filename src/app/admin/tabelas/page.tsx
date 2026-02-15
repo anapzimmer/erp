@@ -1,12 +1,12 @@
-//app/admin/tabelas/page.tsx
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, Trash2, Zap, Percent, Check, GlassWater, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save } from "lucide-react"
+import { PlusCircle, ChevronRight, Trash2, Zap, Percent, Check, GlassWater, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save, Menu, Building2, ChevronDown, LogOut, Settings, Palette, Brush, TableProperties } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
-// Tipos baseados na estrutura do banco
+// --- Tipagens ---
 type TabelaPreco = { id: number; nome: string }
 type Vidro = { id: number; nome: string; preco: number; espessura: string; tipo: string; }
 type ItemTabela = {
@@ -17,42 +17,148 @@ type ItemTabela = {
   vidros?: { nome: string; espessura: string; tipo: string; }
 }
 
-const theme = {
-  primary: "#1C415B",
-  secondary: "#92D050",
-  text: "#1C415B",
-  background: "#F3F4F6",
-  border: "#E5E7EB",
-  white: "#FFFFFF"
+type MenuItem = {
+  nome: string
+  rota: string
+  icone: any
+  submenu?: { nome: string; rota: string }[]
 }
+
+// Menus fixos (devem ser os mesmos em todas as páginas)
+const menuPrincipal: MenuItem[] = [
+  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
+  {
+    nome: "Orçamentos",
+    rota: "/orcamentos",
+    icone: FileText,
+    submenu: [
+      { nome: "Espelhos", rota: "/espelhos" },
+      { nome: "Vidros", rota: "/calculovidro" },
+      { nome: "Vidros PDF", rota: "/calculovidroPDF" },
+    ]
+  },
+  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
+  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
+]
+
+const menuCadastros: MenuItem[] = [
+  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
+  { nome: "Vidros", rota: "/vidros", icone: Square },
+  { nome: "Perfis", rota: "/perfis", icone: Package },
+  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
+  { nome: "Kits", rota: "/kits", icone: Boxes },
+  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
+]
+import { LayoutDashboard, Users, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound } from "lucide-react"
 
 export default function GestaoPrecosPage() {
   const router = useRouter()
+
+  // --- Estados de Auth e UI ---
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [usuarioEmail, setUsuarioEmail] = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // --- Estados de Branding ---
+  const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
+  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
+  const [darkPrimary, setDarkPrimary] = useState("#1C415B");
+  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
+  const [darkTertiary, setDarkTertiary] = useState("#39B89F");
+  const [darkHover, setDarkHover] = useState("#39B89F");
+  const [lightPrimary, setLightPrimary] = useState("#F4F7FA");
+  const [lightSecondary, setLightSecondary] = useState("#FFFFFF");
+  const [lightTertiary, setLightTertiary] = useState("#1C415B");
+
+  // --- Estados da Lógica de Negócio ---
   const [tabelas, setTabelas] = useState<TabelaPreco[]>([])
   const [vidros, setVidros] = useState<Vidro[]>([])
   const [tabelaSelecionada, setTabelaSelecionada] = useState<TabelaPreco | null>(null)
   const [itensTabela, setItensTabela] = useState<ItemTabela[]>([])
-  
+
   const [nomeNovaTabela, setNomeNovaTabela] = useState("")
   const [percentualReajuste, setPercentualReajuste] = useState<string>("5")
   const [termoPesquisa, setTermoPesquisa] = useState("")
   const [novoVidroId, setNovoVidroId] = useState("")
   const [novoPrecoVidro, setNovoPrecoVidro] = useState("")
   const [carregando, setCarregando] = useState(false)
-
-  // --- ESTADOS DE EDIÇÃO E MODAIS ---
   const [modalReajusteAberto, setModalReajusteAberto] = useState(false)
-  const [modalExclusaoAberto, setModalExclusaoAberto] = useState<{aberto: boolean, item: ItemTabela | null}>({aberto: false, item: null})
+  const [modalExclusaoAberto, setModalExclusaoAberto] = useState<{ aberto: boolean, item: ItemTabela | null }>({ aberto: false, item: null })
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [tempPreco, setTempPreco] = useState<string>("");
 
-  // 1. Carregar Grupos/Tabelas
+  // --- Efeitos de Inicialização e Auth ---
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
+    const fetchData = async () => {
+      // 1. Auth check
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        router.push("/login");
+        return;
+      }
+      setUsuarioEmail(authData.user.email || "Usuário");
+
+      // 2. Fetch Empresa ID
+      const { data: perfil } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (perfil) {
+        // 3. Fetch Branding & Company Name
+        const { data: empresaData } = await supabase
+          .from("empresas")
+          .select("nome")
+          .eq("id", perfil.empresa_id)
+          .single();
+
+        if (empresaData) setNomeEmpresa(empresaData.nome);
+
+        const { data: brandingData } = await supabase
+          .from("configuracoes_branding")
+          .select("*")
+          .eq("empresa_id", perfil.empresa_id)
+          .single();
+
+        if (brandingData) {
+          setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+          setDarkPrimary(brandingData.dark_primary);
+          setDarkSecondary(brandingData.dark_secondary);
+          setDarkTertiary(brandingData.dark_tertiary);
+          setDarkHover(brandingData.dark_hover);
+          setLightPrimary(brandingData.light_primary);
+          setLightSecondary(brandingData.light_secondary);
+          setLightTertiary(brandingData.light_tertiary);
+        }
+      }
+
+      // Carregar dados da página
+      await carregarTabelas();
+      await carregarTodosVidros();
+
+      setCheckingAuth(false);
+    };
+    fetchData();
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [router]);
+
+  // --- Funções de Carregamento de Dados ---
   const carregarTabelas = useCallback(async () => {
     const { data } = await supabase.from("tabelas").select("*").order("nome", { ascending: true })
     setTabelas(data || [])
   }, [])
 
-  // 2. Carregar Lista de Vidros e formatar
   const carregarTodosVidros = useCallback(async () => {
     const { data, error } = await supabase.from("vidros").select("id, nome, espessura, tipo, preco")
     if (error) console.error("Erro ao carregar vidros:", error)
@@ -68,7 +174,6 @@ export default function GestaoPrecosPage() {
     }
   }, [])
 
-  // 3. Carregar itens da tabela selecionada
   const carregarItensTabela = useCallback(async (tabelaId: number) => {
     setCarregando(true)
     const { data } = await supabase
@@ -76,15 +181,10 @@ export default function GestaoPrecosPage() {
       .select("*, vidros(nome, espessura, tipo)")
       .eq("grupo_preco_id", tabelaId)
       .order("vidros(nome)", { ascending: true })
-    
+
     if (data) setItensTabela(data)
     setCarregando(false)
   }, [])
-
-  useEffect(() => {
-    carregarTabelas()
-    carregarTodosVidros()
-  }, [carregarTabelas, carregarTodosVidros])
 
   useEffect(() => {
     if (tabelaSelecionada) {
@@ -94,7 +194,7 @@ export default function GestaoPrecosPage() {
     }
   }, [tabelaSelecionada, carregarItensTabela])
 
-  // AÇÕES
+  // --- Ações ---
   const criarTabela = async () => {
     if (!nomeNovaTabela.trim()) return
     const { error } = await supabase.from("tabelas").insert({ nome: nomeNovaTabela })
@@ -119,7 +219,6 @@ export default function GestaoPrecosPage() {
     } else alert("Erro ao adicionar vidro.")
   }
 
-  // --- LÓGICA DE EDIÇÃO DIRETA ---
   const iniciarEdicao = (item: ItemTabela) => {
     setEditingItemId(item.id);
     setTempPreco(item.preco.toString());
@@ -130,7 +229,7 @@ export default function GestaoPrecosPage() {
       .from("vidro_precos_grupos")
       .update({ preco: parseFloat(tempPreco) })
       .eq("id", itemId);
-    
+
     if (!error) {
       setEditingItemId(null);
       carregarItensTabela(tabelaSelecionada!.id);
@@ -145,7 +244,7 @@ export default function GestaoPrecosPage() {
       .eq("id", modalExclusaoAberto.item.id);
     if (!error) {
       carregarItensTabela(tabelaSelecionada!.id);
-      setModalExclusaoAberto({aberto: false, item: null});
+      setModalExclusaoAberto({ aberto: false, item: null });
     }
   };
 
@@ -164,8 +263,8 @@ export default function GestaoPrecosPage() {
     const fator = 1 + (perc / 100)
     setCarregando(true)
     const { error } = await supabase.rpc('reajustar_precos_tabela', {
-        p_tabela_id: tabelaSelecionada.id,
-        p_fator: fator
+      p_tabela_id: tabelaSelecionada.id,
+      p_fator: fator
     })
     if (error) alert("Erro: " + error.message)
     else carregarItensTabela(tabelaSelecionada.id)
@@ -173,132 +272,295 @@ export default function GestaoPrecosPage() {
     setModalReajusteAberto(false)
   }
 
-  return (
-    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
-        <button onClick={() => router.push("/")} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold hover:bg-white transition text-sm" style={{ color: theme.primary }}>
-          <ArrowLeft size={18} /> Voltar
-        </button>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-center flex-1">Gestão de Preços</h1>
-        <div className="w-20"></div>
-      </div>
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 bg-white p-5 rounded-3xl shadow-sm border border-gray-100 h-fit">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Layers3 size={20} style={{ color: theme.secondary }} /> Grupos de Preço
-          </h2>
-          <div className="flex gap-2 mb-5">
-            <input type="text" value={nomeNovaTabela} onChange={e => setNomeNovaTabela(e.target.value)} placeholder="Novo grupo..." className="flex-1 p-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none" />
-            <button onClick={criarTabela} className="p-2.5 rounded-xl transition hover:opacity-90" style={{ backgroundColor: theme.primary, color: "#FFF" }}>
-              <PlusCircle size={20} />
-            </button>
+  // --- Renderização do Menu ---
+  const renderMenuItem = (item: MenuItem) => {
+    const Icon = item.icone
+    return (
+      <div key={item.nome} className="group mb-1">
+        <div
+          onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
+          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
+          style={{ color: darkSecondary }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${darkHover}33`;
+            e.currentTarget.style.color = darkSecondary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = darkSecondary;
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+            <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-            {tabelas.map(t => (
-              <button key={t.id} onClick={() => setTabelaSelecionada(t)} className={`w-full text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'bg-blue-50 text-blue-800 shadow-inner' : 'hover:bg-gray-50'}`} style={{ border: `1px solid ${tabelaSelecionada?.id === t.id ? '#BFDBFE' : theme.border}`}}>
-                <span className="truncate">{t.nome}</span>
-                {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
-              </button>
+          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />}
+        </div>
+        {item.submenu && (
+          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${darkSecondary}4D` }}>
+            {item.submenu.map((sub) => (
+              <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
+                className="p-2 text-xs rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
+                style={{ color: darkSecondary }}
+                onMouseEnter={(e) => e.currentTarget.style.color = darkSecondary}
+                onMouseLeave={(e) => e.currentTarget.style.color = darkSecondary}
+              >
+                {sub.nome}
+              </div>
             ))}
           </div>
+        )}
+      </div>
+    )
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
+
+      {/* SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
+          <X size={24} />
+        </button>
+        <div className="px-3 py-4 mb-4 flex justify-center">
+          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
 
-        <div className="md:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-          {tabelaSelecionada ? (
-            <>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Tabela Selecionada</p>
-                  <h2 className="text-3xl font-extrabold" style={{ color: theme.primary }}>{tabelaSelecionada.nome}</h2>
+        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
+          <div>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
+            {menuPrincipal.map(renderMenuItem)}
+          </div>
+          <div>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p>
+            {menuCadastros.map(renderMenuItem)}
+          </div>
+        </nav>
+      </aside>
+
+      {/* Overlay */}
+      {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <div className="flex-1 flex flex-col w-full">
+
+        {/* TOPBAR */}
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+          <div className="flex items-center gap-2 md:gap-4">
+            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
+              <Menu size={24} className="text-gray-600" />
+            </button>
+            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
+              <Search className="text-gray-400" size={18} />
+              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                  <Building2 size={16} />
                 </div>
-                <div className="flex gap-2 items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                  <div className="relative">
-                      <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                      <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 p-2.5 pl-9 border border-gray-200 rounded-xl text-sm font-bold" />
+                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Menu Dropdown */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-400">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
                   </div>
-                  <button onClick={() => setModalReajusteAberto(true)} disabled={carregando} className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: theme.secondary, color: theme.primary }}>
-                    {carregando ? "Processando..." : "Reajustar %"}
+
+                  <button
+                    onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+                  >
+                    <Settings size={18} className="text-gray-400" />
+                    Configurações
+                  </button>
+
+                  <button
+                    onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+                  >
+                    <Palette size={18} className="text-gray-400" />
+                    Identidade Visual
+                  </button>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+                  >
+                    <LogOut size={18} />
+                    Sair
                   </button>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <div className="md:col-span-5 relative">
-                    <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full p-2.5 pl-10 rounded-xl border border-gray-200 text-sm" />
-                </div>
-                <select value={novoVidroId} onChange={e => setNovoVidroId(e.target.value)} className="md:col-span-4 p-2.5 rounded-xl border border-gray-200 text-sm bg-white">
-                  <option value="">Selecione o Vidro</option>
-                  {vidrosFiltrados.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
-                </select>
-                <div className="md:col-span-2 relative">
-                    <DollarSign size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                    <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full p-2.5 pl-8 rounded-xl border border-gray-200 text-sm" />
-                </div>
-                <button onClick={adicionarVidroATabela} className="md:col-span-1 p-2.5 rounded-xl text-sm font-semibold flex items-center justify-center transition hover:opacity-90" style={{ backgroundColor: theme.primary, color: "#FFF" }}>
+        {/* CONTEÚDO ESPECÍFICO */}
+        <main className="p-4 md:p-8 flex-1">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => router.back()} className="p-2 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
+              <ArrowLeft size={20} className="text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Gestão de Preços</h1>
+              <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie tabelas e reajustes de preços dos vidros.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+
+            {/* COLUNA ESQUERDA - GRUPOS */}
+            <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: lightSecondary }}>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Layers3 size={20} style={{ color: darkTertiary }} /> Grupos de Preço
+              </h2>
+              <div className="flex gap-2 mb-5">
+                <input type="text" value={nomeNovaTabela} onChange={e => setNomeNovaTabela(e.target.value)} placeholder="Novo grupo..." className="flex-1 p-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none" />
+                <button onClick={criarTabela} className="p-2.5 rounded-xl transition hover:opacity-90" style={{ backgroundColor: darkPrimary, color: "#FFF" }}>
                   <PlusCircle size={20} />
                 </button>
               </div>
-
-              <div className="overflow-x-auto border border-gray-100 rounded-2xl">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-700">
-                    <tr>
-                      <th className="p-4 text-left font-semibold">Vidro / Especificação</th>
-                      <th className="p-4 text-right font-semibold">Preço (R$)</th>
-                      <th className="p-4 text-center font-semibold">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {itensTabela.map(item => (
-                      <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-4 font-medium text-gray-900">
-                            <div className="font-bold">{item.vidros?.nome}</div>
-                            <div className="text-xs text-gray-500">{item.vidros?.espessura}mm | {item.vidros?.tipo}</div>
-                        </td>
-                        <td className="p-4 text-right">
-                          {editingItemId === item.id ? (
-                            <input type="number" value={tempPreco} onChange={e => setTempPreco(e.target.value)} className="w-28 p-1.5 border rounded-lg text-right font-mono" />
-                          ) : (
-                            <span className="font-mono text-base font-semibold" style={{color: theme.primary}}>
-                              {item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex justify-center gap-2">
-                            {editingItemId === item.id ? (
-                              <button onClick={() => salvarEdicao(item.id)} className="p-2.5 text-green-600 hover:bg-green-50 rounded-xl" title="Salvar">
-                                <Save size={18} />
-                              </button>
-                            ) : (
-                              <button onClick={() => iniciarEdicao(item)} className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl" title="Editar">
-                                <Edit2 size={18} />
-                              </button>
-                            )}
-                            <button onClick={() => setModalExclusaoAberto({aberto: true, item})} className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl" title="Excluir">
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {itensTabela.length === 0 && <tr><td colSpan={3} className="text-center py-10 text-gray-500">Nenhum vidro adicionado.</td></tr>}
-                  </tbody>
-                </table>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                {tabelas.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTabelaSelecionada(t)}
+                    className={`w-full text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'bg-blue-50 text-blue-800 shadow-inner' : 'hover:bg-gray-50'}`}
+                    style={{ border: `1px solid ${tabelaSelecionada?.id === t.id ? '#BFDBFE' : '#E5E7EB'}` }}
+                  >
+                    <span className="truncate">{t.nome}</span>
+                    {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
+                  </button>
+                ))}
               </div>
-            </>
-          ) : (
-            <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-              <GlassWater size={50} className="mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-semibold">Nenhuma tabela selecionada</p>
             </div>
-          )}
-        </div>
+
+            {/* COLUNA DIREITA - ITENS */}
+            <div className="md:col-span-3 p-6 rounded-3xl border border-gray-100 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+              {tabelaSelecionada ? (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Tabela Selecionada</p>
+                      <h2 className="text-3xl font-extrabold" style={{ color: lightTertiary }}>{tabelaSelecionada.nome}</h2>
+                    </div>
+                    <div className="flex gap-2 items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                      <div className="relative">
+                        <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                        <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 p-2.5 pl-9 border border-gray-200 rounded-xl text-sm font-bold" />
+                      </div>
+                      <button onClick={() => setModalReajusteAberto(true)} disabled={carregando} className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkSecondary }}>
+                        {carregando ? "Processando..." : "Reajustar %"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="md:col-span-5 relative">
+                      <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                      <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full p-2.5 pl-10 rounded-xl border border-gray-200 text-sm" />
+                    </div>
+                    <select value={novoVidroId} onChange={e => setNovoVidroId(e.target.value)} className="md:col-span-4 p-2.5 rounded-xl border border-gray-200 text-sm bg-white">
+                      <option value="">Selecione o Vidro</option>
+                      {vidrosFiltrados.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                    </select>
+                    <div className="md:col-span-2 relative">
+                      <DollarSign size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                      <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full p-2.5 pl-8 rounded-xl border border-gray-200 text-sm" />
+                    </div>
+                    <button onClick={adicionarVidroATabela} className="md:col-span-1 p-2.5 rounded-xl text-sm font-semibold flex items-center justify-center transition hover:opacity-90" style={{ backgroundColor: darkPrimary, color: "#FFF" }}>
+                      <PlusCircle size={20} />
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto border border-gray-100 rounded-2xl">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-700">
+                        <tr>
+                          <th className="p-4 text-left font-semibold">Vidro / Especificação</th>
+                          <th className="p-4 text-right font-semibold">Preço (R$)</th>
+                          <th className="p-4 text-center font-semibold">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {itensTabela.map(item => (
+                          <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                            <td className="p-4 font-medium" style={{ color: darkPrimary }}>
+                              {/* Título do Vidro em negrito com cor primária */}
+                              <div className="font-bold">{item.vidros?.nome}</div>
+                              {/* Detalhes em fonte menor e cor suave */}
+                              <div className="text-xs text-gray-500 font-normal">{item.vidros?.espessura}mm | {item.vidros?.tipo}</div>
+                            </td>
+                            <td className="p-4 text-right">
+                              {editingItemId === item.id ? (
+                                <input type="number" value={tempPreco} onChange={e => setTempPreco(e.target.value)} className="w-28 p-1.5 border rounded-lg text-right font-mono text-sm" />
+                              ) : (
+                                // PREÇO PADRONIZADO: Fonte Monoespaçada, cor primária e tamanho base
+                                <span className="font-mono text-sm font-semibold" style={{ color: darkPrimary }}>
+                                  {item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="flex justify-center gap-2">
+                                {editingItemId === item.id ? (
+                                  <button onClick={() => salvarEdicao(item.id)} className="p-2.5 rounded-xl text-green-600 hover:bg-green-50" title="Salvar">
+                                    <Save size={18} />
+                                  </button>
+                                ) : (
+                                  <button onClick={() => iniciarEdicao(item)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }} title="Editar">
+                                    <Edit2 size={18} />
+                                  </button>
+                                )}
+                                <button onClick={() => setModalExclusaoAberto({ aberto: true, item })} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50" title="Excluir">
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {itensTabela.length === 0 && <tr><td colSpan={3} className="text-center py-10 text-gray-500">Nenhum vidro adicionado.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                  <TableProperties size={50} className="mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-semibold">Nenhuma tabela selecionada</p>
+                  <p className="text-sm">Selecione um grupo de preço ao lado para gerenciar.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
       </div>
 
-      {/* --- MODAIS (Limpados e Unificados) --- */}
+      {/* --- MODAIS --- */}
       {modalReajusteAberto && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
@@ -311,7 +573,7 @@ export default function GestaoPrecosPage() {
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setModalReajusteAberto(false)} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
-              <button onClick={aplicarReajuste} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: theme.primary }}>Confirmar</button>
+              <button onClick={aplicarReajuste} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: darkPrimary }}>Confirmar</button>
             </div>
           </div>
         </div>
@@ -322,13 +584,13 @@ export default function GestaoPrecosPage() {
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-xl font-bold flex items-center gap-3"><AlertTriangle className="text-red-500" size={24} /> Remover Item</h3>
-              <button onClick={() => setModalExclusaoAberto({aberto: false, item: null})} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+              <button onClick={() => setModalExclusaoAberto({ aberto: false, item: null })} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
             </div>
             <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl border border-red-100 text-sm">
               Remover <span className="font-bold">{modalExclusaoAberto.item?.vidros?.nome}</span> da tabela <span className="font-semibold">{tabelaSelecionada?.nome}</span>?
             </p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setModalExclusaoAberto({aberto: false, item: null})} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
+              <button onClick={() => setModalExclusaoAberto({ aberto: false, item: null })} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
               <button onClick={confirmarExclusao} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Sim, remover</button>
             </div>
           </div>
