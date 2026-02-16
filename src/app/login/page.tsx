@@ -36,7 +36,7 @@ const LoginPage = () => {
         return "Não foi possível autenticar. Tente novamente.";
     }
   };
-  
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -62,88 +62,52 @@ const LoginPage = () => {
     }
   };
   const [showSignup, setShowSignup] = useState(false);
-  const [empresaNome, setEmpresaNome] = useState('');
-  const [nomeResponsavel, setNomeResponsavel] = useState('');
-  
 
-  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const passwordError = validateSignupPassword(signupPassword);
-    if (passwordError) {
-      showModal("Senha inválida", passwordError);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // 1. Cadastrar no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          data: {
-            nome_responsavel: nomeResponsavel,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error("Não foi possível criar o usuário.");
-      }
-
-// 2. 🔥 CORREÇÃO: Criar a Empresa primeiro para obter o ID
-const { data: empresaData, error: empresaError } = await supabase
-  .from('empresas')
-  .insert([{ nome: empresaNome }])
-  .select()
-  .single();
-
-if (empresaError) throw empresaError;
-
-// 3. 🛡️ Criar o Perfil vinculado à Empresa
-const { error: dbError } = await supabase
-  .from('perfis_usuarios')
-  .insert([
-    {
-      id: authData.user.id,
-      empresa_id: empresaData.id,
-      nome_responsavel: nomeResponsavel,
-    },
-  ]);
-
-
-      showModal(
-  "Confirme seu e-mail",
-  "Enviamos um link de confirmação para seu e-mail.",
-  "success"
-);
-
-setShowSignup(false);
-setEmpresaNome('');
-setNomeResponsavel('');
-setSignupEmail('');
-setSignupPassword('');
-
-
-} catch (err: any) {
-  console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
-
-  if (err.code === "over_email_send_rate_limit") {
-    showModal(
-      "Muitas tentativas",
-      "Você solicitou muitos e-mails de confirmação. Aguarde alguns minutos antes de tentar novamente."
-    );
+  const passwordError = validateSignupPassword(signupPassword);
+  if (passwordError) {
+    showModal("Senha inválida", passwordError);
+    setLoading(false);
     return;
   }
 
-  showModal("Erro", err?.message || "Erro ao criar conta.");
-}
+  try {
+    // 1. Cadastrar no Supabase Auth
+    // A TRIGGER no banco de dados vai cuidar de criar a empresa e o perfil automaticamente
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword,
+    });
 
-  };
+    if (authError) throw authError;
+
+    if (!authData.user) {
+      throw new Error("Não foi possível criar o usuário.");
+    }
+
+    // 2. 🔥 A MÁGICA: Não inserimos manualmente na tabela 'empresas' aqui!
+    // A Trigger criada no Supabase faz isso no banco de dados.
+
+    showModal(
+      "Confirme seu e-mail",
+      "Enviamos um link de confirmação para seu e-mail.",
+      "success"
+    );
+
+    setShowSignup(false);
+    setSignupEmail('');
+    setSignupPassword('');
+
+  } catch (err: any) {
+    console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
+    showModal("Erro", err?.message || "Erro ao criar conta.");
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   const handleForgotPassword = async () => {
@@ -205,7 +169,7 @@ setSignupPassword('');
             className="h-28 w-auto mx-auto object-contain"
           />
         </div>
-        
+
         <div className="w-full bg-white rounded-[2rem] shadow-2xl p-8 md:p-10 border border-[#1C415B]/10">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-black text-[#1C415B]">Bem-vindo</h2>
@@ -260,7 +224,7 @@ setSignupPassword('');
                 </>
               )}
             </button>
-            
+
             <div className="mt-4 text-center">
               <button
                 type="button"
@@ -270,7 +234,7 @@ setSignupPassword('');
                 Criar Conta
               </button>
             </div>
-            
+
             <div className="mt-6 text-center">
               <button
                 type="button"
@@ -286,7 +250,7 @@ setSignupPassword('');
 
       {/* --- MODAL --- */}
       {modalConfig.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-[#1C415B]/30 backdrop-blur-sm"
             onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
@@ -297,7 +261,7 @@ setSignupPassword('');
                 className={`w-12 h-12 flex items-center justify-center rounded-full ${modalConfig.type === "success"
                   ? "bg-[#39B89F]/10"
                   : "bg-red-500/10"
-                }`}
+                  }`}
               >
                 {modalConfig.type === "success" ? (
                   <CheckCircle className="text-[#39B89F]" size={22} strokeWidth={2.5} />
@@ -335,22 +299,6 @@ setSignupPassword('');
             </h3>
             <form onSubmit={handleSignup} className="space-y-4">
               <input
-                type="text"
-                placeholder="Nome da Empresa"
-                value={empresaNome}
-                onChange={(e) => setEmpresaNome(e.target.value)}
-                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Seu Nome"
-                value={nomeResponsavel}
-                onChange={(e) => setNomeResponsavel(e.target.value)}
-                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                required
-              />
-              <input
                 type="email"
                 placeholder="Email"
                 value={signupEmail}
@@ -366,7 +314,7 @@ setSignupPassword('');
                 className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
                 required
               />
-              
+
               <div className="mt-3">
                 <p className="text-xs font-semibold text-[#1C415B]/70 mb-2">
                   Sua senha deve conter:
