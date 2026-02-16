@@ -95,49 +95,54 @@ const LoginPage = () => {
         throw new Error("Não foi possível criar o usuário.");
       }
 
-      // 2. 🔥 CORREÇÃO: Criar a Empresa primeiro para obter o ID
-      const { data: empresaData, error: empresaError } = await supabase
-        .from('empresas') // A tabela deve existir
-        .insert([{ nome: empresaNome }])
-        .select() // Retorna os dados da empresa inserida, incluindo o ID
-        .single();
+// 2. 🔥 CORREÇÃO: Criar a Empresa primeiro para obter o ID
+const { data: empresaData, error: empresaError } = await supabase
+  .from('empresas')
+  .insert([{ nome: empresaNome }])
+  .select()
+  .single();
 
-      if (empresaError) throw empresaError;
+if (empresaError) throw empresaError;
 
-      // 3. 🛡️ Criar o Perfil vinculado à Empresa
-      const { error: dbError } = await supabase
-        .from('perfis') // A tabela deve existir
-        .insert([
-          {
-            id: authData.user.id, // ID do usuário Auth
-            empresa_id: empresaData.id, // 👈 ID da empresa que acabamos de criar
-            nome_responsavel: nomeResponsavel,
-          },
-        ]);
+// 3. 🛡️ Criar o Perfil vinculado à Empresa
+const { error: dbError } = await supabase
+  .from('perfis_usuarios')
+  .insert([
+    {
+      id: authData.user.id,
+      empresa_id: empresaData.id,
+      nome_responsavel: nomeResponsavel,
+    },
+  ]);
 
-      if (dbError) {
-        console.error("Erro ao criar perfil no banco:", dbError);
-        throw new Error("Usuário criado, mas falha ao criar perfil: " + dbError.message);
-      }
 
       showModal(
-        "Confirme seu e-mail",
-        "Enviamos um link de confirmação para seu e-mail.",
-        "success"
-      );
+  "Confirme seu e-mail",
+  "Enviamos um link de confirmação para seu e-mail.",
+  "success"
+);
 
-      setShowSignup(false);
-      setEmpresaNome('');
-      setNomeResponsavel('');
-      setSignupEmail('');
-      setSignupPassword('');
+setShowSignup(false);
+setEmpresaNome('');
+setNomeResponsavel('');
+setSignupEmail('');
+setSignupPassword('');
 
-    } catch (err: any) {
-      console.error("ERRO CATCH SIGNUP:", err);
-      showModal("Erro", err.message || "Erro ao criar conta.");
-    } finally {
-      setLoading(false);
-    }
+
+} catch (err: any) {
+  console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
+
+  if (err.code === "over_email_send_rate_limit") {
+    showModal(
+      "Muitas tentativas",
+      "Você solicitou muitos e-mails de confirmação. Aguarde alguns minutos antes de tentar novamente."
+    );
+    return;
+  }
+
+  showModal("Erro", err?.message || "Erro ao criar conta.");
+}
+
   };
 
 

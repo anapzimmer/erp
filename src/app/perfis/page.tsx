@@ -1,34 +1,22 @@
+//app/perfis/page.tsx
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco" // 🔥 Certifique-se que este arquivo existe
-import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square, DollarSign, ArrowUp } from "lucide-react"
+import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square,Search , DollarSign, ArrowUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
-type Perfil = {
-  id: string;
-  codigo: string;
-  nome: string;
-  cores: string;
-  preco: number | null;
-  categoria: string;
-  empresa_id?: string
-}
-
-type MenuItem = {
-  nome: string;
-  rota: string;
-  icone: any;
-  submenu?: { nome: string; rota: string }[]
-}
+type Perfil = {id: string;codigo: string;nome: string;cores: string;preco: number | null;categoria: string;empresa_id?: string}
+type MenuItem = {nome: string;rota: string;icone: any;submenu?: { nome: string; rota: string }[]}
 
 // --- 2. 🔥 CONSTANTES DE MENU (Corrigindo erro de "menuPrincipal" e "menuCadastros") ---
 const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
+  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, 
+    { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
@@ -62,7 +50,7 @@ export default function PerfisPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null); // 🔥 Corrigindo erro do "user"
+  const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
 
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
@@ -90,40 +78,53 @@ export default function PerfisPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // --- Efeitos de Inicialização e Auth ---
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) { setShowUserMenu(false); } };
-    document.addEventListener("mousedown", handleClickOutside);
 
-    const fetchData = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) { router.push("/login"); return; }
+useEffect(() => {
+  const init = async () => {
+    const { data: userData } = await supabase.auth.getUser();
 
-      setUserEmail(authData.user.email || null); // 🔥 Define o email do usuário
+    if (!userData.user) {
+      router.push("/login");
+      return;
+    }
 
-      const { data: perfilVinculo } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", authData.user.id)
-        .single();
+    setUsuarioEmail(userData.user.email ?? null);
 
-      if (perfilVinculo) {
-        setEmpresaIdUsuario(perfilVinculo.empresa_id);
+    const { data, error } = await supabase
+      .from("perfis_usuarios")
+      .select("empresa_id")
+      .eq("id", userData.user.id)
+      .single();
 
-        const { data: empresaData } = await supabase
-          .from("empresas")
-          .select("nome")
-          .eq("id", perfilVinculo.empresa_id)
-          .single();
+  if (error || !data) {
+  console.error("Usuário sem empresa vinculada.");
+  setCheckingAuth(false);
+  return;
+}
 
-        if (empresaData) setNomeEmpresa(empresaData.nome);
-      }
+    setEmpresaIdUsuario(data.empresa_id);
+    await carregarDados(data.empresa_id);
+    setEmpresaIdUsuario(data.empresa_id);
 
-      await carregarDados();
-      setCheckingAuth(false);
-    };
-    fetchData();
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [router]);
+// 🔥 Buscar dados da empresa
+const { data: empresaData, error: empresaError } = await supabase
+  .from("empresas")
+  .select("nome")
+  .eq("id", data.empresa_id)
+  .single();
+
+if (!empresaError && empresaData) {
+  setNomeEmpresa(empresaData.nome);
+}
+
+// Carregar perfis
+await carregarDados(data.empresa_id);
+
+setCheckingAuth(false);
+  };
+
+  init();
+}, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -145,27 +146,21 @@ export default function PerfisPage() {
   };
 
   // --- Funções de Dados ---
-  const carregarDados = useCallback(async () => {
-    setCarregando(true);
-    const { data, error } = await supabase
-      .from("perfis")
-      .select("*")
-      .order("codigo", { ascending: true });
+const carregarDados = async (empresaId: string) => {
+  setCarregando(true);
 
-    if (error) console.error("Erro ao carregar perfis:", error);
-    else {
-      // 🔥 SOLUÇÃO: Usar o código Unicode \uFFFD para identificar o caractere corrompido
-      const dadosLimpos = (data as Perfil[]).map(perfil => ({
-        ...perfil,
-        nome: perfil.nome ? perfil.nome.replace(/\uFFFD/g, "ã") : perfil.nome,
-        cores: perfil.cores ? perfil.cores.replace(/\uFFFD/g, "ã") : perfil.cores,
-        categoria: perfil.categoria ? perfil.categoria.replace(/\uFFFD/g, "ã") : perfil.categoria,
-      }));
-      setPerfis(dadosLimpos);
-    }
+  const { data, error } = await supabase
+    .from("perfis")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .order("codigo", { ascending: true });
 
-    setCarregando(false);
-  }, []);
+  if (!error && data) {
+    setPerfis(data);
+  }
+
+  setCarregando(false);
+};
 
   // --- Funções de Dados ---
   const eliminarDuplicados = () => {
@@ -211,7 +206,10 @@ export default function PerfisPage() {
 
           if (error) throw error;
 
-          await carregarDados();
+          if (empresaIdUsuario) {
+  await carregarDados(empresaIdUsuario);
+}
+
           setModalAviso({ titulo: "Sucesso", mensagem: `${idsParaDeletar.length} itens duplicados removidos.` });
         } catch (e: any) {
           setModalAviso({ titulo: "Erro", mensagem: "Erro ao remover duplicados: " + e.message });
@@ -291,7 +289,9 @@ export default function PerfisPage() {
           }
         } else { erros++; }
       }
-      await carregarDados();
+      if (empresaIdUsuario) {
+  await carregarDados(empresaIdUsuario);
+}
       setModalCarregando(false);
       let mensagemFinal = `✅ Sucesso: ${importados}\n❌ Erros: ${erros}`;
       if (detalhesErros) {
@@ -336,7 +336,9 @@ export default function PerfisPage() {
       setNovoPerfil({ codigo: "", nome: "", cores: "", preco: null, categoria: "" });
       setEditando(null);
       setMostrarModal(false);
-      await carregarDados();
+      if (empresaIdUsuario) {
+  await carregarDados(empresaIdUsuario);
+}
     } catch (e: any) { setModalAviso({ titulo: "Erro", mensagem: "Erro: " + e.message }) } finally { setCarregando(false) }
   }
 
@@ -386,7 +388,61 @@ export default function PerfisPage() {
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // --- Renderização do Menu ---
-  const renderMenuItem = (item: MenuItem) => { const Icon = item.icone; return (<div key={item.nome} className="group mb-1"> <div onClick={() => { router.push(item.rota); setShowMobileMenu(false); }} className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1" style={{ color: darkSecondary }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33`; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }} > <div className="flex items-center gap-3"> <Icon className="w-5 h-5" style={{ color: darkTertiary }} /> <span className="font-medium text-sm">{item.nome}</span> </div> {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />} </div> </div>) }
+const renderMenuItem = (item: MenuItem) => {
+  const Icon = item.icone;
+  const temSubmenu = !!item.submenu;
+
+  return (
+    <div key={item.nome} className="mb-1">
+      <div
+        onClick={() => {
+          if (!temSubmenu) {
+            router.push(item.rota);
+            setShowMobileMenu(false);
+          }
+        }}
+        className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
+        style={{ color: darkSecondary }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = `${darkHover}33`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+          <span className="font-medium text-sm">{item.nome}</span>
+        </div>
+      </div>
+
+      {temSubmenu && (
+        <div className="ml-8 mt-1 space-y-1">
+          {item.submenu!.map((sub) => (
+            <div
+              key={sub.nome}
+              onClick={() => {
+                router.push(sub.rota);
+                setShowMobileMenu(false);
+              }}
+              className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
+              style={{ color: darkSecondary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${darkHover}33`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              {sub.nome}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
@@ -407,32 +463,84 @@ export default function PerfisPage() {
       <div className="flex-1 flex flex-col w-full">
 
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
+       <header
+  className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+  style={{ backgroundColor: lightSecondary }}
+>
+  <div className="flex items-center gap-2 md:gap-4">
+    <button
+      onClick={() => setShowMobileMenu(true)}
+      className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+    >
+      <Menu size={24} className="text-gray-600" />
+    </button>
+
+    {/* Campo de busca padrão */}
+    <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
+      <Search className="text-gray-400" size={18} />
+      <input
+        type="search"
+        placeholder="Buscar..."
+        className="w-full text-sm bg-transparent outline-none"
+      />
+    </div>
+  </div>
+
+  <div className="flex items-center gap-3">
+    <div className="relative" ref={userMenuRef}>
+      <button
+        onClick={() => setShowUserMenu(!showUserMenu)}
+        className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+      >
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+          <Building2 size={16} />
+        </div>
+
+        <span className="text-sm font-medium text-gray-700 hidden md:block">
+          {nomeEmpresa}
+        </span>
+
+        <ChevronDown
+          size={16}
+          className={`text-gray-400 transition-transform ${
+            showUserMenu ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {showUserMenu && (
+        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+          <div className="px-3 py-2 border-b border-gray-100">
+            <p className="text-xs text-gray-400">Logado como</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {usuarioEmail}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
+          <button
+            onClick={() => {
+              setShowUserMenu(false);
+              router.push("/configuracoes");
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+          >
+            <Settings size={18} className="text-gray-400" />
+            Configurações
+          </button>
 
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100 mb-2">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-800 truncate"> {userEmail} </p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> <Settings size={18} className="text-gray-400" />Configurações </button>
-                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"> <LogOut size={18} />Sair </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+          >
+            <LogOut size={18} />
+            Sair
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</header>
+
 
         {/* CONTEÚDO ESPECÍFICO */}
         <main className="p-4 md:p-8 flex-1">

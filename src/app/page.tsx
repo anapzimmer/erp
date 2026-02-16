@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { LayoutDashboard, Users, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, DollarSign, LogOut, ChevronRight, Settings, UsersRound, Bell, Search, ChevronDown, Building2, Menu, X } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import Image from "next/image"
@@ -42,6 +42,7 @@ const menuCadastros: MenuItem[] = [
 
 export default function Dashboard() {
   const router = useRouter()
+  const pathname = usePathname()
   const [totalClientes, setTotalClientes] = useState(0)
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
@@ -138,46 +139,70 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
 
-  const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icone
-    return (
-      <div key={item.nome} className="group mb-1">
-        <div
-          onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{ color: darkSecondary }} 
-          onMouseEnter={(e) => {
-            // Cor de hover com leve transparência para destaque
-            e.currentTarget.style.backgroundColor = `${darkHover}33`;
-            e.currentTarget.style.color = darkSecondary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = darkSecondary;
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
-            <span className="font-medium text-sm">{item.nome}</span>
-          </div>
-          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />}
+ const renderMenuItem = (item: MenuItem) => {
+  const Icon = item.icone
+  const isActive = pathname === item.rota
+
+  return (
+    <div key={item.nome} className="group mb-1">
+      <div
+        onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
+        className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
+        style={{
+          backgroundColor: isActive ? `${darkHover}33` : "transparent",
+          color: darkSecondary
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = `${darkHover}33`
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.backgroundColor = "transparent"
+          }
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+          <span className="font-medium text-sm">{item.nome}</span>
         </div>
         {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${darkSecondary}4D` }}>
-            {item.submenu.map((sub) => (
-              <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }} className="p-2 text-xs rounded-lg cursor-pointer transition-all"
-                style={{ color: darkSecondary }}
-                onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
-                onMouseLeave={(e) => e.currentTarget.style.color = darkSecondary}
+          <ChevronRight
+            className="w-4 h-4"
+            style={{ color: darkSecondary, opacity: 0.7 }}
+          />
+        )}
+      </div>
+
+      {item.submenu && (
+        <div
+          className="ml-7 flex flex-col gap-1 pl-2"
+          style={{ borderLeft: `1px solid ${darkSecondary}` }}
+        >
+          {item.submenu.map((sub) => {
+            const isSubActive = pathname === sub.rota
+
+            return (
+              <div
+                key={sub.nome}
+                onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
+                className="p-2 text-xs rounded-lg cursor-pointer"
+                style={{
+                  color: darkSecondary,
+                  backgroundColor: isSubActive ? `${darkHover}33` : "transparent"
+                }}
               >
                 {sub.nome}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

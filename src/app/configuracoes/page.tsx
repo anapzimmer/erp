@@ -1,3 +1,4 @@
+//app/configuracoes/page.tsx
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -24,7 +25,7 @@ const menuPrincipal: MenuItem[] = [
       { nome: "Espelhos", rota: "/espelhos" },
       { nome: "Vidros", rota: "/calculovidro" },
       { nome: "Vidros PDF", rota: "/calculovidroPDF" },
-    ]
+    ],
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },

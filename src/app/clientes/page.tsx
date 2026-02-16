@@ -1,8 +1,12 @@
+//app/clientes/page.tsx
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { Users, Phone, MapPin, Map, X, Trash2, Edit2, PlusCircle, Search, Building2, ChevronDown, LogOut, Settings, Menu, ChevronRight, UsersRound } from "lucide-react"
+import {
+  Users, Phone, MapPin, Map, X, Trash2, Edit2, PlusCircle, Search, Building2, ChevronDown, LogOut, Settings, Menu, ChevronRight, UsersRound, LayoutDashboard,
+  FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
@@ -13,12 +17,9 @@ type Cliente = { id: string; nome: string; telefone?: string | null; cidade?: st
 type GrupoPreco = { id: number; nome: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
-import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase } from "lucide-react"
-
 const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
+  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" },] }, { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
 const menuCadastros: MenuItem[] = [
@@ -66,6 +67,7 @@ export default function ClientesPage() {
   const [editando, setEditando] = useState<Cliente | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [menuAberto, setMenuAberto] = useState<string | null>(null);
 
   // --- Estados de Filtro ---
   const [buscaNome, setBuscaNome] = useState("")
@@ -95,54 +97,64 @@ export default function ClientesPage() {
     const carregarBranding = async () => {
       if (!empresaId) return;
       const { data: brandingData } = await supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single();
-      if (brandingData) { 
-        setLogoDark(brandingData.logo_dark || "/glasscode2.png"); 
-        setDarkPrimary(brandingData.dark_primary); 
-        setDarkSecondary(brandingData.dark_secondary); 
-        setDarkTertiary(brandingData.dark_tertiary); 
-        setDarkHover(brandingData.dark_hover); 
-        setLightPrimary(brandingData.light_primary); 
-        setLightSecondary(brandingData.light_secondary); 
-        setLightTertiary(brandingData.light_tertiary); 
+      if (brandingData) {
+        setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+        setDarkPrimary(brandingData.dark_primary);
+        setDarkSecondary(brandingData.dark_secondary);
+        setDarkTertiary(brandingData.dark_tertiary);
+        setDarkHover(brandingData.dark_hover);
+        setLightPrimary(brandingData.light_primary);
+        setLightSecondary(brandingData.light_secondary);
+        setLightTertiary(brandingData.light_tertiary);
       }
     }
     carregarBranding();
   }, [empresaId]);
 
   // --- Funções de Dados ---
-  const carregarDados = useCallback(async () => {
-    if (!user) return;
+  const carregarDados = async () => {
+    if (!user || !empresaId) return;
     setCarregando(true);
 
     // 🔥 CORREÇÃO: Query ajustada para uuid e tabela grupos_preco
     const [{ data: dataClientes, error: errorClientes }, { data: dataGrupos, error: errorGrupos }] = await Promise.all([
-      supabase.from("clientes").select("*").order("nome", { ascending: true }),
+      supabase
+        .from("clientes")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .order("nome", { ascending: true }),
       supabase.from("grupos_preco").select("*").order("nome", { ascending: true })
     ])
-    
-    if (errorClientes) console.error("Erro Clientes:", errorClientes); else setClientes((dataClientes as Cliente[]) || [])
+
+    if (errorClientes) {
+      console.error("Erro Clientes:", JSON.stringify(errorClientes, null, 2));
+    }
+    else setClientes((dataClientes as Cliente[]) || [])
     if (errorGrupos) console.error("Erro Grupos:", errorGrupos); else setGrupos((dataGrupos as GrupoPreco[]) || [])
     setCarregando(false);
-  }, [user]);
+  }
+
 
   // --- Efeito carregar dados ---
   useEffect(() => {
-    if (user) carregarDados();
-  }, [user, carregarDados]);
+    if (user && empresaId) {
+      carregarDados();
+    }
+  }, [user, empresaId]);
 
   function handleTelefoneChange(v: string) { setNovoCliente(prev => ({ ...prev, telefone: formatarTelefoneRaw(v) })) }
-  
-  function montarPayload() { 
-    const payload: any = { 
-      nome: padronizarNome(novoCliente.nome), 
-      rota: formatarRota(novoCliente.rota), 
+
+  function montarPayload() {
+    const payload: any = {
+      nome: padronizarNome(novoCliente.nome),
+      rota: formatarRota(novoCliente.rota),
       grupo_preco_id: novoCliente.grupo_preco_id,
       // Se houver coluna empresa_id na tabela clientes, descomente abaixo:
       // empresa_id: empresaId 
-    }; 
-    if (!telefoneConsiderarVazio(novoCliente.telefone)) payload.telefone = novoCliente.telefone!.trim(); 
-    if (novoCliente.cidade?.trim()) payload.cidade = padronizarNome(novoCliente.cidade); 
-    return payload 
+    };
+    if (!telefoneConsiderarVazio(novoCliente.telefone)) payload.telefone = novoCliente.telefone!.trim();
+    if (novoCliente.cidade?.trim()) payload.cidade = padronizarNome(novoCliente.cidade);
+    return payload
   }
 
   const salvarCliente = async () => {
@@ -150,17 +162,25 @@ export default function ClientesPage() {
     const payload = montarPayload()
     setCarregando(true)
     try {
-      if (editando) { 
-        const { error } = await supabase.from("clientes").update(payload).eq("id", editando.id); 
-        if (error) throw error; 
+      if (editando) {
+        const { error } = await supabase
+          .from("clientes")
+          .update(payload)
+          .eq("id", editando.id)
+          .eq("empresa_id", empresaId);
+
+        if (error) throw error;
       }
-      else { 
-        const { error } = await supabase.from("clientes").insert([payload]); 
-        if (error) throw error; 
+      else {
+        const { error } = await supabase
+          .from("clientes")
+          .insert([{ ...payload, empresa_id: empresaId }]);
+
+        if (error) throw error;
       }
-      await carregarDados(); 
-      setNovoCliente({ nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null }); 
-      setEditando(null); 
+      await carregarDados();
+      setNovoCliente({ nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null });
+      setEditando(null);
       setMostrarModal(false);
     } catch (e: any) { setModalAviso({ titulo: "Erro", mensagem: "Erro ao processar: " + e.message }) } finally { setCarregando(false) }
   }
@@ -168,7 +188,11 @@ export default function ClientesPage() {
   const deletarCliente = (id: string) => {
     setModalAviso({
       titulo: "Confirmar Exclusão", mensagem: "Tem certeza que deseja excluir este cliente?", confirmar: async () => {
-        const { error } = await supabase.from("clientes").delete().eq("id", id)
+        const { error } = await supabase
+          .from("clientes")
+          .delete()
+          .eq("id", id)
+          .eq("empresa_id", empresaId);
         if (error) setModalAviso({ titulo: "Erro", mensagem: "Erro ao excluir: " + error.message }); else { setClientes(prev => prev.filter(c => c.id !== id)); setModalAviso(null); }
       }
     })
@@ -192,12 +216,19 @@ export default function ClientesPage() {
   // --- Renderização do Menu ---
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
+    const temSubmenu = !!item.submenu
+
     return (
-      <div key={item.nome} className="group mb-1">
+      <div key={item.nome} className="mb-1">
         <div
-          onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
+          onClick={() => {
+            if (!temSubmenu) {
+              router.push(item.rota)
+              setShowMobileMenu(false)
+            }
+          }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{ color: darkSecondary }} 
+          style={{ color: darkSecondary }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33`; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
         >
@@ -205,8 +236,27 @@ export default function ClientesPage() {
             <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />}
         </div>
+
+        {temSubmenu && (
+          <div className="ml-8 mt-1 space-y-1">
+            {item.submenu!.map((sub) => (
+              <div
+                key={sub.nome}
+                onClick={() => {
+                  router.push(sub.rota)
+                  setShowMobileMenu(false)
+                }}
+                className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
+                style={{ color: darkSecondary }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                {sub.nome}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
@@ -253,7 +303,7 @@ export default function ClientesPage() {
                 <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {showUserMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
                   <div className="px-3 py-2 border-b border-gray-100 mb-2">
