@@ -309,23 +309,44 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Grid de Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat) => {
-              const Icon = stat.icone;
-              return (
-                <div key={stat.titulo} className="p-6 md:p-7 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4 transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1 cursor-pointer" style={{ backgroundColor: lightSecondary }}>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-gray-500 tracking-tight">{stat.titulo}</span>
-                    <div className={`p-3 rounded-2xl`} style={{ backgroundColor: stat.bg }}>
-                      <Icon className={`w-6 h-6`} style={{ color: stat.color }} />
-                    </div>
-                  </div>
-                  <span className="text-4xl md:text-5xl font-extrabold tracking-tighter" style={{ color: lightTertiary }}>{stat.valor}</span>
-                </div>
-              );
-            })}
+{/* Grid de Stats */}
+<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+  {stats.map((stat) => {
+    const Icon = stat.icone;
+    return (
+      <div
+        key={stat.titulo}
+        className="relative overflow-hidden p-6 md:p-7 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 cursor-pointer group"
+        style={{ backgroundColor: lightSecondary }}
+      >
+        {/* Efeito de brilho ao passar o mouse */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+             style={{ background: `linear-gradient(135deg, ${stat.color}05 0%, transparent 100%)` }}
+        />
+        
+        <div className="flex justify-between items-center relative z-10">
+          <span className="text-sm font-semibold text-gray-500 tracking-wide uppercase">
+            {stat.titulo}
+          </span>
+          <div className={`p-3 rounded-2xl`} style={{ backgroundColor: stat.bg }}>
+            <Icon className={`w-6 h-6`} style={{ color: stat.color }} />
           </div>
+        </div>
+        
+        <span
+          className="text-4xl md:text-5xl font-extrabold tracking-tighter relative z-10"
+          style={{ color: lightTertiary }}
+        >
+          {stat.valor}
+        </span>
+        
+        {/* Barra inferior decorativa */}
+        <div className="absolute bottom-0 left-0 h-1 rounded-t-full" 
+             style={{ backgroundColor: stat.color, width: '40%' }} />
+      </div>
+    );
+  })}
+</div>
         </main>
       </div>
     </div>
