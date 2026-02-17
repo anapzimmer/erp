@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, ChevronRight, Trash2, Zap, Percent, Check, GlassWater, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save, Menu, Building2, ChevronDown, LogOut, Settings, Palette, Brush, TableProperties } from "lucide-react"
+import { PlusCircle, ChevronRight, Trash2, Percent, Check, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save, Menu, Building2, ChevronDown, LogOut, Settings, Palette, TableProperties, FileText, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound, ImageIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+// 🔥 IMPORTANTE: Importar o hook de tema
+import { useTheme } from "@/context/ThemeContext"
+import { LayoutDashboard } from "lucide-react"
 
 // --- Tipagens ---
 type TabelaPreco = { id: number; nome: string }
@@ -24,7 +27,7 @@ type MenuItem = {
   submenu?: { nome: string; rota: string }[]
 }
 
-// Menus fixos (devem ser os mesmos em todas as páginas)
+// Menus fixos
 const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
   {
@@ -49,28 +52,20 @@ const menuCadastros: MenuItem[] = [
   { nome: "Kits", rota: "/kits", icone: Boxes },
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
 ]
-import { LayoutDashboard, Users, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound } from "lucide-react"
 
 export default function GestaoPrecosPage() {
   const router = useRouter()
+  // 🔥 Consumir o tema do contexto
+  const { theme } = useTheme();
 
   // --- Estados de Auth e UI ---
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
+  const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // --- Estados de Branding ---
-  const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
-  const [darkPrimary, setDarkPrimary] = useState("#1C415B");
-  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
-  const [darkTertiary, setDarkTertiary] = useState("#39B89F");
-  const [darkHover, setDarkHover] = useState("#39B89F");
-  const [lightPrimary, setLightPrimary] = useState("#F4F7FA");
-  const [lightSecondary, setLightSecondary] = useState("#FFFFFF");
-  const [lightTertiary, setLightTertiary] = useState("#1C415B");
+  const [modalExclusaoTabelaAberto, setModalExclusaoTabelaAberto] = useState<{ aberto: boolean, tabela: TabelaPreco | null }>({ aberto: false, tabela: null });
 
   // --- Estados da Lógica de Negócio ---
   const [tabelas, setTabelas] = useState<TabelaPreco[]>([])
@@ -89,6 +84,23 @@ export default function GestaoPrecosPage() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [tempPreco, setTempPreco] = useState<string>("");
 
+  const excluirTabela = async () => {
+    if (!modalExclusaoTabelaAberto.tabela) return;
+
+    const { error } = await supabase
+      .from("tabelas")
+      .delete()
+      .eq("id", modalExclusaoTabelaAberto.tabela.id);
+
+    if (!error) {
+      carregarTabelas();
+      setTabelaSelecionada(null); // Limpa a seleção se a tabela for excluída
+      setModalExclusaoTabelaAberto({ aberto: false, tabela: null });
+    } else {
+      alert("Erro ao excluir tabela. Verifique se ela não possui itens vinculados.");
+    }
+  };
+
   // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,7 +111,6 @@ export default function GestaoPrecosPage() {
     document.addEventListener("mousedown", handleClickOutside);
 
     const fetchData = async () => {
-      // 1. Auth check
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) {
         router.push("/login");
@@ -107,7 +118,6 @@ export default function GestaoPrecosPage() {
       }
       setUsuarioEmail(authData.user.email || "Usuário");
 
-      // 2. Fetch Empresa ID
       const { data: perfil } = await supabase
         .from("perfis_usuarios")
         .select("empresa_id")
@@ -115,7 +125,6 @@ export default function GestaoPrecosPage() {
         .single();
 
       if (perfil) {
-        // 3. Fetch Branding & Company Name
         const { data: empresaData } = await supabase
           .from("empresas")
           .select("nome")
@@ -123,29 +132,11 @@ export default function GestaoPrecosPage() {
           .single();
 
         if (empresaData) setNomeEmpresa(empresaData.nome);
-
-        const { data: brandingData } = await supabase
-          .from("configuracoes_branding")
-          .select("*")
-          .eq("empresa_id", perfil.empresa_id)
-          .single();
-
-        if (brandingData) {
-          setLogoDark(brandingData.logo_dark || "/glasscode2.png");
-          setDarkPrimary(brandingData.dark_primary);
-          setDarkSecondary(brandingData.dark_secondary);
-          setDarkTertiary(brandingData.dark_tertiary);
-          setDarkHover(brandingData.dark_hover);
-          setLightPrimary(brandingData.light_primary);
-          setLightSecondary(brandingData.light_secondary);
-          setLightTertiary(brandingData.light_tertiary);
-        }
+        // Branding já carregado pelo Contexto
       }
 
-      // Carregar dados da página
       await carregarTabelas();
       await carregarTodosVidros();
-
       setCheckingAuth(false);
     };
     fetchData();
@@ -277,7 +268,7 @@ export default function GestaoPrecosPage() {
     router.push("/login");
   };
 
-  // --- Renderização do Menu ---
+  // --- Renderização do Menu (Padronizado) ---
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
     return (
@@ -285,30 +276,26 @@ export default function GestaoPrecosPage() {
         <div
           onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{ color: darkSecondary }}
+          style={{ color: theme.menuTextColor, backgroundColor: "transparent" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = `${darkHover}33`;
-            e.currentTarget.style.color = darkSecondary;
+            e.currentTarget.style.color = theme.menuIconColor;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = darkSecondary;
+            e.currentTarget.style.color = theme.menuTextColor;
           }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: darkSecondary, opacity: 0.7 }} />}
+          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: theme.menuTextColor, opacity: 0.7 }} />}
         </div>
         {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${darkSecondary}4D` }}>
+          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}4D` }}>
             {item.submenu.map((sub) => (
               <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
                 className="p-2 text-xs rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-                style={{ color: darkSecondary }}
-                onMouseEnter={(e) => e.currentTarget.style.color = darkSecondary}
-                onMouseLeave={(e) => e.currentTarget.style.color = darkSecondary}
+                style={{ color: theme.menuTextColor }}
               >
                 {sub.nome}
               </div>
@@ -322,30 +309,30 @@ export default function GestaoPrecosPage() {
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div>
+        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
+    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
           <X size={24} />
         </button>
         <div className="px-3 py-4 mb-4 flex justify-center">
-          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
+          <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
 
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p>
             {menuPrincipal.map(renderMenuItem)}
           </div>
           <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Cadastros</p>
             {menuCadastros.map(renderMenuItem)}
           </div>
         </nav>
@@ -358,7 +345,7 @@ export default function GestaoPrecosPage() {
       <div className="flex-1 flex flex-col w-full">
 
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
           <div className="flex items-center gap-2 md:gap-4">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
               <Menu size={24} className="text-gray-600" />
@@ -426,7 +413,7 @@ export default function GestaoPrecosPage() {
               <ArrowLeft size={20} className="text-gray-600" />
             </button>
             <div>
-              <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Gestão de Preços</h1>
+              <h1 className="text-2xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Gestão de Preços</h1>
               <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie tabelas e reajustes de preços dos vidros.</p>
             </div>
           </div>
@@ -434,46 +421,73 @@ export default function GestaoPrecosPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
             {/* COLUNA ESQUERDA - GRUPOS */}
-            <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: lightSecondary }}>
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Layers3 size={20} style={{ color: darkTertiary }} /> Grupos de Preço
-              </h2>
-              <div className="flex gap-2 mb-5">
-                <input type="text" value={nomeNovaTabela} onChange={e => setNomeNovaTabela(e.target.value)} placeholder="Novo grupo..." className="flex-1 p-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none" />
-                <button onClick={criarTabela} className="p-2.5 rounded-xl transition hover:opacity-90" style={{ backgroundColor: darkPrimary, color: "#FFF" }}>
-                  <PlusCircle size={20} />
-                </button>
-              </div>
+           <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: theme.contentTextDarkBg }}>
+  <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.contentTextLightBg }}>
+    <Layers3 size={20} style={{ color: theme.menuIconColor }} /> Grupos de Preço
+  </h2>
+  
+  {/* 🔥 INPUT E BOTÃO DE ADICIONAR INTEGRADOS */}
+  <div className="relative mb-5 group/add">
+    <input 
+      type="text" 
+      value={nomeNovaTabela} 
+      onChange={e => setNomeNovaTabela(e.target.value)} 
+      placeholder="Nova tabela..." 
+      // 🔥 Aumentei o padding direito (pr-16) para o texto não ficar embaixo do botão
+      className="w-full p-2.5 pr-16 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
+    />
+    <button 
+      onClick={criarTabela} 
+      // 🔥 REMOVI 'opacity-0' E 'group-hover/add:opacity-100' PARA FICAR VISÍVEL SEMPRE
+      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 flex-shrink-0" 
+      style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
+    >
+      <PlusCircle size={20} />
+    </button>
+  </div>
+              
               <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                 {tabelas.map(t => (
-                  <button
+                  <div
                     key={t.id}
-                    onClick={() => setTabelaSelecionada(t)}
-                    className={`w-full text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'bg-blue-50 text-blue-800 shadow-inner' : 'hover:bg-gray-50'}`}
+                    className={`w-full group text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'bg-blue-50 text-blue-800 shadow-inner' : 'hover:bg-gray-50'}`}
                     style={{ border: `1px solid ${tabelaSelecionada?.id === t.id ? '#BFDBFE' : '#E5E7EB'}` }}
                   >
-                    <span className="truncate">{t.nome}</span>
-                    {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
-                  </button>
+                    <div className="flex-1 cursor-pointer truncate" onClick={() => setTabelaSelecionada(t)}>
+                      <span className="truncate">{t.nome}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
+
+                      <button
+                        // 🔥 Chamando a função correta de exclusão
+                        onClick={() => setModalExclusaoTabelaAberto({ aberto: true, tabela: t })}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* COLUNA DIREITA - ITENS */}
-            <div className="md:col-span-3 p-6 rounded-3xl border border-gray-100 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+            <div className="md:col-span-3 p-6 rounded-3xl border border-gray-100 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
               {tabelaSelecionada ? (
                 <>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Tabela Selecionada</p>
-                      <h2 className="text-3xl font-extrabold" style={{ color: lightTertiary }}>{tabelaSelecionada.nome}</h2>
+                      <h2 className="text-3xl font-extrabold" style={{ color: theme.contentTextLightBg }}>{tabelaSelecionada.nome}</h2>
                     </div>
                     <div className="flex gap-2 items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
                       <div className="relative">
                         <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
                         <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 p-2.5 pl-9 border border-gray-200 rounded-xl text-sm font-bold" />
                       </div>
-                      <button onClick={() => setModalReajusteAberto(true)} disabled={carregando} className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkSecondary }}>
+                      <button onClick={() => setModalReajusteAberto(true)} disabled={carregando} className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}>
                         {carregando ? "Processando..." : "Reajustar %"}
                       </button>
                     </div>
@@ -492,7 +506,7 @@ export default function GestaoPrecosPage() {
                       <DollarSign size={16} className="absolute left-3 top-3.5 text-gray-400" />
                       <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full p-2.5 pl-8 rounded-xl border border-gray-200 text-sm" />
                     </div>
-                    <button onClick={adicionarVidroATabela} className="md:col-span-1 p-2.5 rounded-xl text-sm font-semibold flex items-center justify-center transition hover:opacity-90" style={{ backgroundColor: darkPrimary, color: "#FFF" }}>
+                    <button onClick={adicionarVidroATabela} className="md:col-span-1 p-2.5 rounded-xl text-sm font-semibold flex items-center justify-center transition hover:opacity-90" style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}>
                       <PlusCircle size={20} />
                     </button>
                   </div>
@@ -509,18 +523,15 @@ export default function GestaoPrecosPage() {
                       <tbody className="divide-y divide-gray-100">
                         {itensTabela.map(item => (
                           <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                            <td className="p-4 font-medium" style={{ color: darkPrimary }}>
-                              {/* Título do Vidro em negrito com cor primária */}
+                            <td className="p-4 font-medium" style={{ color: theme.menuBackgroundColor }}>
                               <div className="font-bold">{item.vidros?.nome}</div>
-                              {/* Detalhes em fonte menor e cor suave */}
                               <div className="text-xs text-gray-500 font-normal">{item.vidros?.espessura}mm | {item.vidros?.tipo}</div>
                             </td>
                             <td className="p-4 text-right">
                               {editingItemId === item.id ? (
                                 <input type="number" value={tempPreco} onChange={e => setTempPreco(e.target.value)} className="w-28 p-1.5 border rounded-lg text-right font-mono text-sm" />
                               ) : (
-                                // PREÇO PADRONIZADO: Fonte Monoespaçada, cor primária e tamanho base
-                                <span className="font-mono text-sm font-semibold" style={{ color: darkPrimary }}>
+                                <span className="font-mono text-sm font-semibold" style={{ color: theme.menuBackgroundColor }}>
                                   {item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </span>
                               )}
@@ -532,7 +543,7 @@ export default function GestaoPrecosPage() {
                                     <Save size={18} />
                                   </button>
                                 ) : (
-                                  <button onClick={() => iniciarEdicao(item)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }} title="Editar">
+                                  <button onClick={() => iniciarEdicao(item)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: theme.menuBackgroundColor }} title="Editar">
                                     <Edit2 size={18} />
                                   </button>
                                 )}
@@ -560,7 +571,7 @@ export default function GestaoPrecosPage() {
         </main>
       </div>
 
-      {/* --- MODAIS --- */}
+      {/* --- MODAIS (Usando cores do tema) --- */}
       {modalReajusteAberto && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
@@ -573,7 +584,26 @@ export default function GestaoPrecosPage() {
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setModalReajusteAberto(false)} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
-              <button onClick={aplicarReajuste} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: darkPrimary }}>Confirmar</button>
+              <button onClick={aplicarReajuste} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: theme.menuBackgroundColor }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalExclusaoTabelaAberto.aberto && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-xl font-bold flex items-center gap-3"><AlertTriangle className="text-red-500" size={24} /> Remover Tabela</h3>
+              <button onClick={() => setModalExclusaoTabelaAberto({ aberto: false, tabela: null })} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            </div>
+            <p className="text-gray-600 mb-8 bg-red-50 p-4 rounded-xl border border-red-100 text-sm">
+              Tem certeza que deseja remover a tabela <span className="font-bold">{modalExclusaoTabelaAberto.tabela?.nome}</span>?
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setModalExclusaoTabelaAberto({ aberto: false, tabela: null })} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
+              <button onClick={excluirTabela} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Sim, remover</button>
             </div>
           </div>
         </div>
