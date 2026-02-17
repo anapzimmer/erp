@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, X, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, X, CheckCircle,Building2, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseClient";
 
@@ -14,6 +14,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [signupCompanyName, setSignupCompanyName] = useState(''); // Novo estado
+  const [signupCnpj, setSignupCnpj] = useState(''); // Novo estado
 
   const [modalConfig, setModalConfig] = useState({
     show: false,
@@ -64,50 +66,55 @@ const LoginPage = () => {
   const [showSignup, setShowSignup] = useState(false);
 
 const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  const passwordError = validateSignupPassword(signupPassword);
-  if (passwordError) {
-    showModal("Senha inválida", passwordError);
-    setLoading(false);
-    return;
-  }
-
-  try {
-    // 1. Cadastrar no Supabase Auth
-    // A TRIGGER no banco de dados vai cuidar de criar a empresa e o perfil automaticamente
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-    });
-
-    if (authError) throw authError;
-
-    if (!authData.user) {
-      throw new Error("Não foi possível criar o usuário.");
+    const passwordError = validateSignupPassword(signupPassword);
+    if (passwordError) {
+      showModal("Senha inválida", passwordError);
+      setLoading(false);
+      return;
     }
 
-    // 2. 🔥 A MÁGICA: Não inserimos manualmente na tabela 'empresas' aqui!
-    // A Trigger criada no Supabase faz isso no banco de dados.
+    try {
+      // 1. Cadastrar no Supabase Auth passando os metadados da empresa
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          data: {
+            company_name: signupCompanyName, // <--- Enviando nome da empresa
+            cnpj: signupCnpj,                 // <--- Enviando CNPJ/CPF
+          },
+        },
+      });
 
-    showModal(
-      "Confirme seu e-mail",
-      "Enviamos um link de confirmação para seu e-mail.",
-      "success"
-    );
+      if (authError) throw authError;
 
-    setShowSignup(false);
-    setSignupEmail('');
-    setSignupPassword('');
+      if (!authData.user) {
+        throw new Error("Não foi possível criar o usuário.");
+      }
 
-  } catch (err: any) {
-    console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
-    showModal("Erro", err?.message || "Erro ao criar conta.");
-  } finally {
-    setLoading(false);
-  }
-};
+      showModal(
+        "Confirme seu e-mail",
+        "Enviamos um link de confirmação para seu e-mail.",
+        "success"
+      );
+
+      setShowSignup(false);
+      // Limpar campos
+      setSignupEmail('');
+      setSignupPassword('');
+      setSignupCompanyName('');
+      setSignupCnpj('');
+
+    } catch (err: any) {
+      console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
+      showModal("Erro", err?.message || "Erro ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const handleForgotPassword = async () => {
@@ -298,12 +305,34 @@ const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
               Criar Conta
             </h3>
             <form onSubmit={handleSignup} className="space-y-4">
+            <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-[#39b89f]/50" size={18} />
+                <input
+                  type="text"
+                  placeholder="Nome da Empresa"
+                  value={signupCompanyName}
+                  onChange={(e) => setSignupCompanyName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-[#39b89f]/50" size={18} />
+                <input
+                  type="text"
+                  placeholder="CNPJ ou CPF"
+                  value={signupCnpj}
+                  onChange={(e) => setSignupCnpj(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all" 
+                  required
+                />
+              </div>
               <input
                 type="email"
                 placeholder="Email"
                 value={signupEmail}
                 onChange={(e) => setSignupEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
+                className="w-full px-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
                 required
               />
               <input
@@ -311,7 +340,7 @@ const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
                 placeholder="Senha"
                 value={signupPassword}
                 onChange={(e) => setSignupPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
+                className="w-full px-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
                 required
               />
 
