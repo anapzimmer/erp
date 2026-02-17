@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Palette, UploadCloud, Save, X, LayoutDashboard, ChevronRight, Settings, UsersRound, Search, ChevronDown, Building2, Square, Package, Wrench, Boxes, Briefcase, BarChart3, Image as ImageIcon, FileText, LogOut, Sun, Moon, CheckCircle, Menu } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
-import { useTheme } from "@/context/ThemeContext";
 
-// ... (Tipagens e Menus mantidos iguais) ...
+// --- Tipagens e Menus ---
 type MenuItem = {
   nome: string
   rota: string
@@ -42,9 +41,6 @@ const menuCadastros: MenuItem[] = [
 
 export default function ConfiguracoesBrandingPage() {
   const router = useRouter();
-  const pathname = usePathname(); 
-  const { theme, setTheme } = useTheme();
-
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
@@ -58,26 +54,27 @@ export default function ConfiguracoesBrandingPage() {
   const [logoLight, setLogoLight] = useState<string | null>("/glasscode.png");
   const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
 
-  // 3. 🔥 ESTADOS DE CORES INICIALIZADOS COM O TEMA ATUAL
-  const [screenBackgroundColor, setScreenBackgroundColor] = useState(theme.screenBackgroundColor);
-  const [menuBackgroundColor, setMenuBackgroundColor] = useState(theme.menuBackgroundColor);
-  const [menuTextColor, setMenuTextColor] = useState(theme.menuTextColor);
-  const [menuIconColor, setMenuIconColor] = useState(theme.menuIconColor);
-  const [menuHoverColor, setMenuHoverColor] = useState(theme.menuHoverColor);
-  const [contentTextLightBg, setContentTextLightBg] = useState(theme.contentTextLightBg);
-  const [contentTextDarkBg, setContentTextDarkBg] = useState(theme.contentTextDarkBg);
-  const [buttonDarkBg, setButtonDarkBg] = useState(theme.buttonDarkBg);
-  const [buttonDarkText, setButtonDarkText] = useState(theme.buttonDarkText);
-  const [buttonLightBg, setButtonLightBg] = useState(theme.buttonLightBg);
-  const [buttonLightText, setButtonLightText] = useState(theme.buttonLightText);
-  const [modalIconErrorColor, setModalIconErrorColor] = useState(theme.modalIconErrorColor);
-  const [modalIconWarningColor, setModalIconWarningColor] = useState(theme.modalIconWarningColor);
+  // ESTADOS DE CORES GERAIS
+  const [screenBackgroundColor, setScreenBackgroundColor] = useState("#F4F7FA");
+  const [menuBackgroundColor, setMenuBackgroundColor] = useState("#1C415B");
+  const [menuTextColor, setMenuTextColor] = useState("#FFFFFF");
+  const [menuIconColor, setMenuIconColor] = useState("#39B89F");
+  const [menuHoverColor, setMenuHoverColor] = useState("#2A5C7E");
+  const [contentTextLightBg, setContentTextLightBg] = useState("#1C415B");
+  const [contentTextDarkBg, setContentTextDarkBg] = useState("#FFFFFF");
+  const [buttonDarkBg, setButtonDarkBg] = useState("#1C415B");
+  const [buttonDarkText, setButtonDarkText] = useState("#FFFFFF");
+  const [buttonLightBg, setButtonLightBg] = useState("#FFFFFF");
+  const [buttonLightText, setButtonLightText] = useState("#1C415B");
+  const [modalIconErrorColor, setModalIconErrorColor] = useState("#DC2626");
+  const [modalIconWarningColor, setModalIconWarningColor] = useState("#D97706");
 
-  const [modalBackgroundColor, setModalBackgroundColor] = useState(theme.modalBackgroundColor);
-  const [modalTextColor, setModalTextColor] = useState(theme.modalTextColor);
-  const [modalButtonBackgroundColor, setModalButtonBackgroundColor] = useState(theme.modalButtonBackgroundColor);
-  const [modalButtonTextColor, setModalButtonTextColor] = useState(theme.modalButtonTextColor);
-  const [modalIconSuccessColor, setModalIconSuccessColor] = useState(theme.modalIconSuccessColor);
+  // ESTADOS DO MODAL
+  const [modalBackgroundColor, setModalBackgroundColor] = useState("#FFFFFF");
+  const [modalTextColor, setModalTextColor] = useState("#1C415B");
+  const [modalButtonBackgroundColor, setModalButtonBackgroundColor] = useState("#1C415B");
+  const [modalButtonTextColor, setModalButtonTextColor] = useState("#FFFFFF");
+  const [modalIconSuccessColor, setModalIconSuccessColor] = useState("#059669");
 
   const [loading, setLoading] = useState(false);
 
@@ -97,18 +94,26 @@ export default function ConfiguracoesBrandingPage() {
       }
       setUsuarioEmail(userData.user.email || "Usuário");
 
-      const { data: perfil } = await supabase
+      const { data: perfil, error: perfilError } = await supabase
         .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", userData.user.id)
         .single();
 
-      if (!perfil) {
+      if (perfilError || !perfil) {
+        console.error("Erro ao buscar perfil:", perfilError);
         setCheckingAuth(false);
         return;
       }
 
       setEmpresaId(perfil.empresa_id);
+
+      // Buscar branding atual
+      const { data: brandingData } = await supabase
+        .from("configuracoes_branding")
+        .select("*")
+        .eq("empresa_id", perfil.empresa_id)
+        .single();
 
       // Buscar Nome da Empresa
       const { data: empresaData } = await supabase
@@ -121,15 +126,38 @@ export default function ConfiguracoesBrandingPage() {
         setNomeEmpresa(empresaData.nome);
       }
 
-      // O tema já é carregado pelo ThemeContext, 
-      // mas podemos forçar os estados se necessário para preencher os inputs
+      if (brandingData) {
+        setLogoLight(brandingData.logo_light || "/glasscode2.png");
+        setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+
+        // SETTERS ATUALIZADOS
+        setScreenBackgroundColor(brandingData.screen_background_color || "#F4F7FA");
+        setMenuBackgroundColor(brandingData.menu_background_color || "#1C415B");
+        setMenuTextColor(brandingData.menu_text_color || "#FFFFFF");
+        setMenuIconColor(brandingData.menu_icon_color || "#39B89F");
+        setMenuHoverColor(brandingData.menu_hover_color || "#2A5C7E");
+        setContentTextLightBg(brandingData.content_text_light_bg || "#1C415B");
+        setContentTextDarkBg(brandingData.content_text_dark_bg || "#FFFFFF");
+        setButtonDarkBg(brandingData.button_dark_bg || "#1C415B");
+        setButtonDarkText(brandingData.button_dark_text || "#FFFFFF");
+        setButtonLightBg(brandingData.button_light_bg || "#FFFFFF");
+        setButtonLightText(brandingData.button_light_text || "#1C415B");
+
+        // SETTERS DO MODAL
+        setModalBackgroundColor(brandingData.modal_background_color || "#FFFFFF");
+        setModalTextColor(brandingData.modal_text_color || "#1C415B");
+        setModalButtonBackgroundColor(brandingData.modal_button_background_color || "#1C415B");
+        setModalButtonTextColor(brandingData.modal_button_text_color || "#FFFFFF");
+        setModalIconSuccessColor(brandingData.modal_icon_success_color || "#059669");
+        setModalIconErrorColor(brandingData.modal_icon_error_color || "#DC2626");
+        setModalIconWarningColor(brandingData.modal_icon_warning_color || "#D97706");
+      }
       setCheckingAuth(false);
     };
     fetchData();
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
 
-  // ... (handleFileChange mantido igual) ...
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setLogo: React.Dispatch<React.SetStateAction<string | null>>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -145,63 +173,34 @@ export default function ConfiguracoesBrandingPage() {
     if (!empresaId) return;
     setLoading(true);
     try {
-      // 1. 🔥 Dados para o Banco (com campos extras)
-      const dbData = {
-        empresa_id: empresaId,
-        logo_light: logoLight,
-        logo_dark: logoDark,
-        screen_background_color: screenBackgroundColor,
-        menu_background_color: menuBackgroundColor,
-        menu_text_color: menuTextColor,
-        menu_icon_color: menuIconColor,
-        menu_hover_color: menuHoverColor,
-        content_text_light_bg: contentTextLightBg,
-        content_text_dark_bg: contentTextDarkBg,
-        button_dark_bg: buttonDarkBg,
-        button_dark_text: buttonDarkText,
-        button_light_bg: buttonLightBg,
-        button_light_text: buttonLightText,
-        modal_background_color: modalBackgroundColor,
-        modal_text_color: modalTextColor,
-        modal_button_background_color: modalButtonBackgroundColor,
-        modal_button_text_color: modalButtonTextColor,
-        modal_icon_success_color: modalIconSuccessColor,
-        modal_icon_error_color: modalIconErrorColor,
-        modal_icon_warning_color: modalIconWarningColor,
-        updated_at: new Date().toISOString(),
-      };
-
       const { error } = await supabase
         .from("configuracoes_branding")
-        .upsert(dbData, { onConflict: 'empresa_id' });
+        .upsert({
+          empresa_id: empresaId,
+          logo_light: logoLight,
+          logo_dark: logoDark,
+          screen_background_color: screenBackgroundColor,
+          menu_background_color: menuBackgroundColor,
+          menu_text_color: menuTextColor,
+          menu_icon_color: menuIconColor,
+          menu_hover_color: menuHoverColor,
+          content_text_light_bg: contentTextLightBg,
+          content_text_dark_bg: contentTextDarkBg,
+          button_dark_bg: buttonDarkBg,
+          button_dark_text: buttonDarkText,
+          button_light_bg: buttonLightBg,
+          button_light_text: buttonLightText,
+          modal_background_color: modalBackgroundColor,
+          modal_text_color: modalTextColor,
+          modal_button_background_color: modalButtonBackgroundColor,
+          modal_button_text_color: modalButtonTextColor,
+          modal_icon_success_color: modalIconSuccessColor,
+          modal_icon_error_color: modalIconErrorColor,
+          modal_icon_warning_color: modalIconWarningColor,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'empresa_id' });
 
       if (error) throw error;
-
-      // 2. 🔥 Dados para o Contexto (apenas campos da interface ThemeColors)
-      // Estamos mapeando os campos do BD de volta para o formato do tema
-      setTheme({
-        screenBackgroundColor: screenBackgroundColor,
-        menuBackgroundColor: menuBackgroundColor,
-        menuTextColor: menuTextColor,
-        menuIconColor: menuIconColor,
-        menuHoverColor: menuHoverColor,
-        contentTextLightBg: contentTextLightBg,
-        contentTextDarkBg: contentTextDarkBg,
-        buttonDarkBg: buttonDarkBg,
-        buttonDarkText: buttonDarkText,
-        buttonLightBg: buttonLightBg,
-        buttonLightText: buttonLightText,
-        modalBackgroundColor: modalBackgroundColor,
-        modalTextColor: modalTextColor,
-        modalButtonBackgroundColor: modalButtonBackgroundColor,
-        modalButtonTextColor: modalButtonTextColor,
-        modalIconSuccessColor: modalIconSuccessColor,
-        modalIconErrorColor: modalIconErrorColor,
-        modalIconWarningColor: modalIconWarningColor,
-        logoLightUrl: logoLight, // Usando o estado local da página
-        logoDarkUrl: logoDark,   // Usando o estado local da página
-      });
-
       setShowModal(true);
     } catch (err) {
       console.error("Erro ao salvar:", err);
@@ -211,7 +210,6 @@ export default function ConfiguracoesBrandingPage() {
     }
   };
 
-  // ... (ColorInput, renderMenuItem, handleSignOut, if checkingAuth mantidos iguais) ...
   const ColorInput = ({ label, color, setter }: { label: string; color: string; setter: (c: string) => void }) => {
     const [localColor, setLocalColor] = useState(color);
 
@@ -255,56 +253,37 @@ export default function ConfiguracoesBrandingPage() {
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
-    // 2. 🔥 Lógica de rota ativa
-    const isActive = pathname === item.rota;
-
     return (
       <div key={item.nome} className="group mb-1">
         <div
           onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
-          // 3. 🔥 Efeito hover de translação e classes padronizadas
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{
-            // 4. 🔥 Cor de fundo quando ativo usando o tema do contexto
-            backgroundColor: isActive ? `${theme.menuHoverColor}33` : "transparent",
-            color: theme.menuTextColor
-          }}
-          // 5. 🔥 Efeito de hover usando a cor do tema do contexto
+          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out"
+          style={{ color: menuTextColor, backgroundColor: "transparent" }}
           onMouseEnter={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = theme.menuHoverColor;
+            e.currentTarget.style.backgroundColor = menuHoverColor;
           }}
           onMouseLeave={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.backgroundColor = "transparent";
           }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
+            <Icon className="w-5 h-5" style={{ color: menuIconColor }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          {item.submenu && (
-            <ChevronRight className="w-4 h-4" style={{ color: theme.menuTextColor, opacity: 0.7 }} />
-          )}
+          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: menuTextColor, opacity: 0.7 }} />}
         </div>
         {item.submenu && (
-          // 6. 🔥 Borda do submenu usando o tema
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
-            {item.submenu.map((sub) => {
-              const isSubActive = pathname === sub.rota;
-              return (
-                <div
-                  key={sub.nome}
-                  onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
-                  className="p-2 text-xs rounded-lg cursor-pointer"
-                  style={{
-                    color: theme.menuTextColor,
-                    // 7. 🔥 Fundo do submenu ativo
-                    backgroundColor: isSubActive ? `${theme.menuHoverColor}33` : "transparent"
-                  }}
-                >
-                  {sub.nome}
-                </div>
-              );
-            })}
+          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${menuTextColor}40` }}>
+            {item.submenu.map((sub) => (
+              <div
+                key={sub.nome}
+                onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
+                className="p-2 text-xs rounded-lg cursor-pointer hover:bg-black/10"
+                style={{ color: menuTextColor }}
+              >
+                {sub.nome}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -325,23 +304,23 @@ export default function ConfiguracoesBrandingPage() {
   }
 
   return (
-    // 5. 🔥 USAR AS VARIÁVEIS DE ESTADO NO HTML
     <div className="flex min-h-screen" style={{ backgroundColor: screenBackgroundColor }}>
 
-      {/* 8. 🔥 SIDEBAR: USANDO AS CORES DO TEMA DO CONTEXTO */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} 
-             style={{ backgroundColor: theme.menuBackgroundColor }}>
-        {/* ... botões e logo ... */}
+      {/* SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: menuBackgroundColor }}>
+        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
+          <X size={24} />
+        </button>
         <div className="px-3 py-4 mb-4 flex justify-center">
           <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
         <nav className="flex-1 overflow-y-auto space-y-6">
           <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: menuIconColor }}>Principal</p>
             {menuPrincipal.map(renderMenuItem)}
           </div>
           <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Cadastros</p>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: menuIconColor }}>Cadastros</p>
             {menuCadastros.map(renderMenuItem)}
           </div>
         </nav>
@@ -396,6 +375,7 @@ export default function ConfiguracoesBrandingPage() {
             <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Configure logos e cores do sistema.</p>
           </div>
 
+          {/* 🔥 Borda removida aqui (border-gray-100 adicionada para suavidade) */}
           <div className="p-4 md:p-8 rounded-3xl shadow-sm bg-white space-y-8">
 
             {/* SEÇÃO LOGOS */}
@@ -439,12 +419,14 @@ export default function ConfiguracoesBrandingPage() {
               </h2>
 
               <div className="grid md:grid-cols-2 gap-6">
+                {/* Estrutura */}
                 <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50 space-y-4">
                   <h3 className="font-bold text-gray-700">Estrutura</h3>
                   <ColorInput label="Fundo das telas" color={screenBackgroundColor} setter={setScreenBackgroundColor} />
                   <ColorInput label="Fundo do menu (sidebar)" color={menuBackgroundColor} setter={setMenuBackgroundColor} />
                 </div>
 
+                {/* Menu */}
                 <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50 space-y-4">
                   <h3 className="font-bold text-gray-700">Menu Lateral</h3>
                   <ColorInput label="Texto do menu" color={menuTextColor} setter={setMenuTextColor} />
@@ -452,12 +434,14 @@ export default function ConfiguracoesBrandingPage() {
                   <ColorInput label="Cor ao passar o mouse (hover)" color={menuHoverColor} setter={setMenuHoverColor} />
                 </div>
 
+                {/* Textos */}
                 <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50 space-y-4">
                   <h3 className="font-bold text-gray-700">Textos Principais</h3>
                   <ColorInput label="Texto sobre fundo claro" color={contentTextLightBg} setter={setContentTextLightBg} />
                   <ColorInput label="Texto sobre fundo escuro" color={contentTextDarkBg} setter={setContentTextDarkBg} />
                 </div>
 
+                {/* Botões */}
                 <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50 space-y-4">
                   <h3 className="font-bold text-gray-700">Botões</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -468,6 +452,7 @@ export default function ConfiguracoesBrandingPage() {
                   </div>
                 </div>
 
+                {/* 🔥 CARD NOVO: Modal de Confirmação */}
                 <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50 space-y-4 md:col-span-2">
                   <h3 className="font-bold text-gray-700">Modal de Feedback</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -484,15 +469,7 @@ export default function ConfiguracoesBrandingPage() {
             </section>
 
             <div className="pt-6 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="flex items-center gap-2 font-bold px-8 py-4 rounded-2xl transition-all disabled:opacity-70 w-full sm:w-auto justify-center shadow-lg"
-                style={{
-                  backgroundColor: buttonDarkBg,
-                  color: buttonDarkText // ✅ Adicionado: Cor do texto configurada
-                }}
-              >
+              <button onClick={handleSave} disabled={loading} className="flex items-center gap-2 text-white font-bold px-8 py-4 rounded-2xl transition-all disabled:opacity-70 w-full sm:w-auto justify-center shadow-lg" style={{ backgroundColor: buttonDarkBg }}>
                 <Save size={18} />
                 {loading ? "Salvando..." : "Aplicar Nova Identidade"}
               </button>
@@ -501,18 +478,22 @@ export default function ConfiguracoesBrandingPage() {
         </main>
       </div>
 
-      {/* Modal - USANDO AS CORES DO ESTADO */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          {/* 🔥 ATUALIZADO: Fundo do Modal */}
           <div className="rounded-3xl p-8 shadow-2xl max-w-sm w-full space-y-6 text-center" style={{ backgroundColor: modalBackgroundColor }}>
 
+            {/* Ícone Sucesso */}
             <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: `${modalIconSuccessColor}15` }}>
               <CheckCircle size={32} style={{ color: modalIconSuccessColor }} />
             </div>
 
+            {/* 🔥 ATUALIZADO: Cor do Texto */}
             <h3 className="text-2xl font-black" style={{ color: modalTextColor }}>Tudo pronto!</h3>
             <p className="text-sm font-medium" style={{ color: `${modalTextColor}CC` }}>Sua nova identidade visual foi salva.</p>
 
+            {/* 🔥 ATUALIZADO: Botão do Modal */}
             <button
               onClick={() => setShowModal(false)}
               className="w-full font-bold py-3 rounded-xl hover:bg-opacity-90 transition-all"

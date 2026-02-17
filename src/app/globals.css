@@ -1,111 +1,90 @@
 @import "tailwindcss";
 
 :root {
+  /* Base */
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --animate-fade-in: fadeIn 0.2s ease-out forwards;
-  
-  @keyframes fadeIn {
-    0% { opacity: 0; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1); }
-  }
-}
+  /* ERP Theme */
+  --gc-screen-bg: #f8fafc;
+  --gc-menu-bg: #1C415B;
+  --gc-menu-text: #ffffff;
+  --gc-menu-icon: #39B89F;
+  --gc-menu-hover: #39B89F;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --gc-text-light: #1f2937;
+  --gc-text-dark: #ffffff;
+
+  --gc-button-dark-bg: #1C415B;
+  --gc-button-dark-text: #ffffff;
+  --gc-button-light-bg: #ffffff;
+  --gc-button-light-text: #1f2937;
+
+  --gc-modal-bg: #ffffff;
+  --gc-modal-text: #1f2937;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--gc-screen-bg);
+  color: var(--gc-text-light);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-@media print {
-  .print-safe {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-  
-.print-no-break {
-  page-break-inside: avoid !important;
-  break-inside: avoid !important;
-  display: block !important;
-}
-.printable-area {
-    display: block !important;
-    width: 100% !important;
-    position: static !important;
-  }
-    .print-force-page {
-    page-break-before: always;
-  }
-  .cabeçalho-fixo-que-some {
-    display: flex !important;
-  }
-  .no-print {
-    display: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-
-    * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .print-bg-primary {
-    background-color: var(--theme-primary) !important; 
-    color: white !important;
-  }
-  }
-
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+.gc-screen {
+  background-color: var(--gc-screen-bg);
 }
 
-/* Scrollbar ERP */
+.gc-card {
+  background-color: var(--gc-modal-bg);
+  color: var(--gc-text-light);
+}
+
+.gc-menu {
+  background-color: var(--gc-menu-bg);
+  color: var(--gc-menu-text);
+}
+
+.gc-button-dark {
+  background-color: var(--gc-button-dark-bg);
+  color: var(--gc-button-dark-text);
+}
+
+.gc-button-light {
+  background-color: var(--gc-button-light-bg);
+  color: var(--gc-button-light-text);
+}
+
+.gc-border {
+  border-color: var(--gc-menu-hover);
+}
+
+
 .scrollbar-erp::-webkit-scrollbar {
   width: 6px;
 }
 
 .scrollbar-erp::-webkit-scrollbar-thumb {
-  background-color: #3B82F6;
-  border-radius: 6px;
-}
-
-/* Scrollbar padrão ERP (igual ao cliente) */
-.scrollbar-erp::-webkit-scrollbar { width: 6px; }
-.scrollbar-erp::-webkit-scrollbar-thumb {
-  background-color: #3B82F6;
-  border-radius: 1px;
-}
-
-.scrollbar-erp::-webkit-scrollbar-thumb {
-  background-color: #3B82F6;
-  /* 🔵 AZUL da rolagem do cliente */
+  background-color: var(--gc-menu-hover);
   border-radius: 6px;
 }
 
 .scrollbar-erp::-webkit-scrollbar-track {
   background: transparent;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

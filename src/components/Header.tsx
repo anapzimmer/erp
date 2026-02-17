@@ -1,3 +1,4 @@
+//src/components/Header.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -14,7 +15,7 @@ interface HeaderProps {
 
 export default function Header({ setShowMobileMenu, nomeEmpresa, usuarioEmail, handleSignOut }: HeaderProps) {
   const router = useRouter();
-  const { theme } = useTheme(); // 🔥 Consumindo o tema para cores
+  const { theme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -29,15 +30,18 @@ export default function Header({ setShowMobileMenu, nomeEmpresa, usuarioEmail, h
   }, []);
 
   return (
-    <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white">
+    <header
+      className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+      style={{ backgroundColor: "#FFFFFF" }} // Topbar geralmente branca ou neutra
+    >
       <div className="flex items-center gap-2 md:gap-4">
         <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
           <Menu size={24} className="text-gray-600" />
         </button>
 
-        <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200 focus-within:ring-2 focus-within:ring-[#39B89F]/30">
+        <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200 focus-within:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}>
           <Search className="text-gray-400" size={18} />
-          <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
+          <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none text-gray-800" />
         </div>
       </div>
 
@@ -47,7 +51,7 @@ export default function Header({ setShowMobileMenu, nomeEmpresa, usuarioEmail, h
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
           >
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold" style={{ color: theme.menuBackgroundColor }}>
               <Building2 size={16} />
             </div>
             <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
@@ -68,7 +72,7 @@ export default function Header({ setShowMobileMenu, nomeEmpresa, usuarioEmail, h
                   setShowUserMenu(false);
                   router.push("/configuracoes");
                 }}
-                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-xl"
               >
                 <Settings size={18} className="text-gray-400" />
                 Configurações

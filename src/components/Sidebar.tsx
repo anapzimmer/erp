@@ -1,3 +1,4 @@
+//src/components/Sidebar.tsx
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -50,8 +51,8 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
-    
-    // 🔥 CORREÇÃO: Verificar se o item ou algum submenu está ativo
+
+    // Verificar se o item ou algum submenu está ativo
     const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
 
     return (
@@ -63,13 +64,12 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
           }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
           style={{
-            // 🔥 CORREÇÃO: Usando a cor do ícone com transparência para o fundo ativo
-            backgroundColor: isActive ? `${theme.menuIconColor}33` : "transparent",
+            // Fundo ativo usando cor de hover
+            backgroundColor: isActive ? theme.menuHoverColor : "transparent",
             color: theme.menuTextColor,
           }}
           onMouseEnter={(e) => {
-            // 🔥 CORREÇÃO: Efeito hover usando a cor do ícone
-            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuIconColor}15`;
+            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuTextColor}10`; // leve hover
           }}
           onMouseLeave={(e) => {
             if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
@@ -98,8 +98,9 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
                   className="p-2 text-xs rounded-lg cursor-pointer"
                   style={{
                     color: theme.menuTextColor,
-                    // 🔥 CORREÇÃO: Fundo ativo do submenu
-                    backgroundColor: isSubActive ? `${theme.menuIconColor}33` : "transparent",
+                    // Fundo ativo do submenu
+                    backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
+                    opacity: isSubActive ? 1 : 0.8
                   }}
                 >
                   {sub.nome}
@@ -115,9 +116,9 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
-      style={{ backgroundColor: theme.menuBackgroundColor }}
+      style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
     >
-      <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
+      <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4" style={{ color: theme.menuTextColor }}>
         <X size={24} />
       </button>
 

@@ -188,16 +188,7 @@ export default function ConfiguracoesPage() {
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
               <Menu size={24} className="text-gray-600" />
             </button>
-            <div
-              className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200 focus-within:ring-2 focus-within:ring-offset-1 focus-within:ring-opacity-50"
-              style={{
-                borderColor: `${theme.menuIconColor}20`,
-                '--tw-ring-color': theme.menuIconColor,
-              } as React.CSSProperties}
-            >
-              <Search className="text-gray-400" size={18} />
-              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
-            </div>
+            
           </div>
 
           <div className="flex items-center gap-3">

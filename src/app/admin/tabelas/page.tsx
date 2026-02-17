@@ -1,3 +1,4 @@
+//src/app/admin/tabelas/page.tsx
 "use client"
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
@@ -318,10 +319,9 @@ export default function GestaoPrecosPage() {
     <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
-          <X size={24} />
-        </button>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor }}>        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
+        <X size={24} />
+      </button>
         <div className="px-3 py-4 mb-4 flex justify-center">
           <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
@@ -421,31 +421,31 @@ export default function GestaoPrecosPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
             {/* COLUNA ESQUERDA - GRUPOS */}
-           <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: theme.contentTextDarkBg }}>
-  <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.contentTextLightBg }}>
-    <Layers3 size={20} style={{ color: theme.menuIconColor }} /> Grupos de Preço
-  </h2>
-  
-  {/* 🔥 INPUT E BOTÃO DE ADICIONAR INTEGRADOS */}
-  <div className="relative mb-5 group/add">
-    <input 
-      type="text" 
-      value={nomeNovaTabela} 
-      onChange={e => setNomeNovaTabela(e.target.value)} 
-      placeholder="Nova tabela..." 
-      // 🔥 Aumentei o padding direito (pr-16) para o texto não ficar embaixo do botão
-      className="w-full p-2.5 pr-16 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
-    />
-    <button 
-      onClick={criarTabela} 
-      // 🔥 REMOVI 'opacity-0' E 'group-hover/add:opacity-100' PARA FICAR VISÍVEL SEMPRE
-      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 flex-shrink-0" 
-      style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
-    >
-      <PlusCircle size={20} />
-    </button>
-  </div>
-              
+            <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: theme.contentTextDarkBg }}>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.contentTextLightBg }}>
+                <Layers3 size={20} style={{ color: theme.menuIconColor }} /> Grupos de Preço
+              </h2>
+
+              {/* 🔥 INPUT E BOTÃO DE ADICIONAR INTEGRADOS */}
+              <div className="relative mb-5 group/add">
+                <input
+                  type="text"
+                  value={nomeNovaTabela}
+                  onChange={e => setNomeNovaTabela(e.target.value)}
+                  placeholder="Nova tabela..."
+                  // 🔥 Aumentei o padding direito (pr-16) para o texto não ficar embaixo do botão
+                  className="w-full p-2.5 pr-16 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none"
+                />
+                <button
+                  onClick={criarTabela}
+                  // 🔥 REMOVI 'opacity-0' E 'group-hover/add:opacity-100' PARA FICAR VISÍVEL SEMPRE
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 flex-shrink-0"
+                  style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
+                >
+                  <PlusCircle size={20} />
+                </button>
+              </div>
+
               <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                 {tabelas.map(t => (
                   <div

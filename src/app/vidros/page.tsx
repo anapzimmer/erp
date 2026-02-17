@@ -1,4 +1,3 @@
-//app/vidros/page.tsx
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
@@ -8,6 +7,7 @@ import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
+import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
@@ -38,24 +38,16 @@ const padronizarEspessura = (valor: string) => { if (!valor) return ""; const li
 
 export default function VidrosPage() {
   const router = useRouter()
+  const { theme } = useTheme(); // 🔥 Consumindo o tema
 
   // --- Autenticação (Padronizado) ---
   const { user, empresaId, nomeEmpresa, loading: checkingAuth } = useAuth();
 
-  // --- Estados de UI e Branding ---
+  // --- Estados de UI ---
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-
-  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
-  const [darkPrimary, setDarkPrimary] = useState("#1C415B");
-  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
-  const [darkTertiary, setDarkTertiary] = useState("#39B89F");
-  const [darkHover, setDarkHover] = useState("#39B89F");
-  const [lightPrimary, setLightPrimary] = useState("#F4F7FA");
-  const [lightSecondary, setLightSecondary] = useState("#FFFFFF");
-  const [lightTertiary, setLightTertiary] = useState("#1C415B");
 
   // --- Estados da Lógica de Negócio ---
   const [vidros, setVidros] = useState<Vidro[]>([])
@@ -72,9 +64,8 @@ export default function VidrosPage() {
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
 
-  // --- Efeitos ---
+    // --- Efeitos ---
   useEffect(() => {
-    // Redirecionar se não houver usuário logado
     if (!checkingAuth && !user) {
       router.push("/login");
       return;
@@ -92,9 +83,8 @@ export default function VidrosPage() {
     }
   }, []);
 
-  // --- Carregar Dados e Branding ---
+  // --- Carregar Dados ---
   const carregarDados = useCallback(async () => {
-    // Não tentar carregar se não houver empresaId
     if (!empresaId) return;
 
     setCarregando(true)
@@ -103,30 +93,12 @@ export default function VidrosPage() {
       supabase.from("tabelas").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true })
     ])
 
-    if (errorVidros) {
-      console.error("Erro Vidros:", errorVidros);
-    } else {
-      setVidros(dataVidros || [])
-    }
+    if (errorVidros) console.error("Erro Vidros:", errorVidros);
+    else setVidros(dataVidros || [])
 
-    if (errorGrupos) {
-      console.error("Erro Grupos:", errorGrupos);
-    } else {
-      setGrupos(dataGrupos || [])
-    }
+    if (errorGrupos) console.error("Erro Grupos:", errorGrupos);
+    else setGrupos(dataGrupos || [])
 
-    // Branding
-    const { data: brandingData } = await supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single();
-    if (brandingData) {
-      setLogoDark(brandingData.logo_dark || "/glasscode2.png");
-      setDarkPrimary(brandingData.dark_primary);
-      setDarkSecondary(brandingData.dark_secondary);
-      setDarkTertiary(brandingData.dark_tertiary);
-      setDarkHover(brandingData.dark_hover);
-      setLightPrimary(brandingData.light_primary);
-      setLightSecondary(brandingData.light_secondary);
-      setLightTertiary(brandingData.light_tertiary);
-    }
     setCarregando(false)
   }, [empresaId])
 
@@ -134,7 +106,7 @@ export default function VidrosPage() {
     if (empresaId) carregarDados();
   }, [empresaId, carregarDados]);
 
-  // --- Lógica (Import, Export, Limpar, Salvar) ---
+  // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
     const csvContent = "data:text/csv;charset=utf-8,"
       + "Nome;Espessura;Tipo;Preco\n"
@@ -316,79 +288,82 @@ export default function VidrosPage() {
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // --- Render MenuItem ---
-const renderMenuItem = (item: MenuItem) => {
-  const Icon = item.icone
-  const temSubmenu = !!item.submenu
+  const renderMenuItem = (item: MenuItem) => {
+    const Icon = item.icone
+    const temSubmenu = !!item.submenu
+    const isActive = false; // Implementar lógica de ativação se necessário
 
-  return (
-    <div key={item.nome} className="mb-1">
-      <div
-        onClick={() => {
-          if (!temSubmenu) {
-            router.push(item.rota)
-            setShowMobileMenu(false)
-          }
-        }}
-        className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-        style={{ color: darkSecondary }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33` }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent" }}
-      >
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
-          <span className="font-medium text-sm">{item.nome}</span>
+    return (
+      <div key={item.nome} className="mb-1">
+        <div
+          onClick={() => {
+            if (!temSubmenu) {
+              router.push(item.rota)
+              setShowMobileMenu(false)
+            }
+          }}
+          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
+          style={{ 
+            color: theme.menuTextColor,
+            backgroundColor: isActive ? theme.menuHoverColor : "transparent"
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.menuHoverColor }}
+          onMouseLeave={(e) => { if(!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
+            <span className="font-medium text-sm">{item.nome}</span>
+          </div>
         </div>
+
+        {temSubmenu && (
+          <div className="ml-8 mt-1 space-y-1">
+            {item.submenu!.map((sub) => (
+              <div
+                key={sub.nome}
+                onClick={() => {
+                  router.push(sub.rota)
+                  setShowMobileMenu(false)
+                }}
+                className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
+                style={{ color: theme.menuTextColor, opacity: 0.8 }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.menuHoverColor }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent" }}
+              >
+                {sub.nome}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+    )
+  }
 
-      {temSubmenu && (
-        <div className="ml-8 mt-1 space-y-1">
-          {item.submenu!.map((sub) => (
-            <div
-              key={sub.nome}
-              onClick={() => {
-                router.push(sub.rota)
-                setShowMobileMenu(false)
-              }}
-              className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
-              style={{ color: darkSecondary }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${darkHover}33` }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent" }}
-            >
-              {sub.nome}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div></div>;
 
   return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
+    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
+        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
+          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
+          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
         </nav>
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: lightSecondary }}>
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
           <div className="flex items-center gap-2 md:gap-4">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative" ref={userMenuRef}>
               <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
-                {/* Título do Botão */}
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
                 <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
@@ -397,7 +372,6 @@ const renderMenuItem = (item: MenuItem) => {
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
                   <div className="px-3 py-2 border-b border-gray-100 mb-2">
                     <p className="text-xs text-gray-400">Logado como</p>
-                    {/* Apenas Email aqui */}
                     <p className="text-sm font-semibold text-gray-800 truncate"> {user?.email} </p>
                   </div>
                   <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> <Settings size={18} className="text-gray-400" />Configurações </button>
@@ -412,9 +386,9 @@ const renderMenuItem = (item: MenuItem) => {
         <main className="p-4 md:p-8 flex-1">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}> <Square size={28} /> </div>
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}> <Square size={28} /> </div>
               <div>
-                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Dashboard de Vidros</h1>
+                <h1 className="text-2xl md:text-42 font-black" style={{ color: theme.menuBackgroundColor }}>Dashboard de Vidros</h1>
                 <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de vidros e preços.</p>
               </div>
             </div>
@@ -435,9 +409,9 @@ const renderMenuItem = (item: MenuItem) => {
               { titulo: "Grupos Especiais", valor: contarPrecoEspecial(), icone: Tag }
             ].map(card => (
               <div key={card.titulo} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                <card.icone className="w-7 h-7 mb-2" style={{ color: darkTertiary }} />
+                <card.icone className="w-7 h-7 mb-2" style={{ color: theme.menuIconColor }} />
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
-                <p className="text-2xl font-bold" style={{ color: darkPrimary }}>{card.valor}</p>
+                <p className="text-2xl font-bold" style={{ color: theme.menuBackgroundColor }}>{card.valor}</p>
               </div>
             ))}
           </div>
@@ -445,20 +419,20 @@ const renderMenuItem = (item: MenuItem) => {
           {/* FILTROS E BOTAO NOVO */}
           <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
             <div className="flex flex-wrap gap-3">
-              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
-              <input type="text" placeholder="Espessura..." value={filtroEspessura} onChange={e => setFiltroEspessura(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
-              <input type="text" placeholder="Tipo..." value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+              <input type="text" placeholder="Espessura..." value={filtroEspessura} onChange={e => setFiltroEspessura(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+              <input type="text" placeholder="Tipo..." value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
             </div>
             <div className="flex gap-2">
               <button onClick={limparDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} />Limpar Duplicados</button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: darkTertiary, color: darkPrimary }}> <PlusCircle size={20} /> Novo Vidro </button>
+              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.menuTextColor }}> <PlusCircle size={20} /> Novo Vidro </button>
             </div>
           </div>
 
           {/* TABELA */}
           <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
-              <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
+              <thead style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
                 <tr>
                   <th className="p-4 font-semibold">Nome</th>
                   <th className="p-4 font-semibold">Espessura</th>
@@ -473,10 +447,10 @@ const renderMenuItem = (item: MenuItem) => {
                     <td className="p-4 font-medium text-gray-900">{v.nome}</td>
                     <td className="p-4">{v.espessura}</td>
                     <td className="p-4">{v.tipo}</td>
-                    <td className="p-4 font-semibold" style={{ color: darkPrimary }}>{formatarPreco(v.preco)}</td>
+                    <td className="p-4 font-semibold" style={{ color: theme.menuBackgroundColor }}>{formatarPreco(v.preco)}</td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => abrirModalParaEdicao(v)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }} title="Editar"> <Edit2 size={18} /> </button>
+                        <button onClick={() => abrirModalParaEdicao(v)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: theme.menuBackgroundColor }} title="Editar"> <Edit2 size={18} /> </button>
                         <button onClick={() => deletarVidro(v.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50" title="Deletar"> <Trash2 size={18} /> </button>
                       </div>
                     </td>
@@ -493,25 +467,25 @@ const renderMenuItem = (item: MenuItem) => {
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 animate-fade-in px-4">
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold" style={{ color: darkPrimary }}>{editando ? "Editar Vidro" : "Cadastrar Vidro"}</h2>
+              <h2 className="text-2xl font-extrabold" style={{ color: theme.menuBackgroundColor }}>{editando ? "Editar Vidro" : "Cadastrar Vidro"}</h2>
               <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="col-span-2">
                 <label className="text-sm font-semibold text-gray-600 mb-1 block">Nome do Vidro *</label>
-                <input type="text" placeholder="Ex: Vidro Temperado" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+                <input type="text" placeholder="Ex: Vidro Temperado" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-600 mb-1 block">Espessura *</label>
-                <input type="text" placeholder="Ex: 8mm" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+                <input type="text" placeholder="Ex: 8mm" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-600 mb-1 block">Tipo *</label>
-                <input type="text" placeholder="Ex: Liso" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+                <input type="text" placeholder="Ex: Liso" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div className="col-span-2">
                 <label className="text-sm font-semibold text-gray-600 mb-1 block">Preço Base (R$)</label>
-                <input type="number" step="0.01" placeholder="0,00" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+                <input type="number" step="0.01" placeholder="0,00" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
               </div>
             </div>
 
@@ -538,7 +512,7 @@ const renderMenuItem = (item: MenuItem) => {
                         setPrecosGruposModal(novos)
                       }}
                       className="p-2 rounded border border-gray-200 text-xs flex-1 focus:outline-none focus:ring-1"
-                      style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
+                      style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
                       placeholder="Selecione a tabela"
                     />
                     <datalist id="listaGrupos">
@@ -549,7 +523,7 @@ const renderMenuItem = (item: MenuItem) => {
                       novos[index].preco = Number(e.target.value)
                       setPrecosGruposModal(novos)
                     }}
-                      className="p-2 rounded border border-gray-200 text-xs w-24 focus:outline-none focus:ring-1" style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+                      className="p-2 rounded border border-gray-200 text-xs w-24 focus:outline-none focus:ring-1" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
                     <button onClick={() => setPrecosGruposModal(precosGruposModal.filter((_, i) => i !== index))} className="text-red-400 hover:text-red-600 p-1"> <Trash2 size={16} /> </button>
                   </div>
                 ))}
@@ -558,7 +532,7 @@ const renderMenuItem = (item: MenuItem) => {
 
             <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
               <button onClick={() => setMostrarModal(false)} className="px-6 py-3 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">Cancelar</button>
-              <button onClick={salvarVidro} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: darkPrimary }}>
+              <button onClick={salvarVidro} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: theme.menuBackgroundColor }}>
                 {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
               </button>
             </div>
@@ -571,7 +545,7 @@ const renderMenuItem = (item: MenuItem) => {
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 animate-fade-in px-4">
           {carregando && !modalAviso && (
             <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
-              <Loader2 className="w-10 h-10 animate-spin" style={{ color: darkTertiary }} />
+              <Loader2 className="w-10 h-10 animate-spin" style={{ color: theme.menuIconColor }} />
               <p className="text-gray-600 font-medium">Processando dados...</p>
             </div>
           )}
@@ -593,7 +567,7 @@ const renderMenuItem = (item: MenuItem) => {
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="fixed bottom-6 right-6 p-4 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110"
-          style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+          style={{ backgroundColor: theme.menuIconColor, color: theme.menuTextColor }}
           title="Voltar ao topo"
         >
           <ChevronDown size={24} className="rotate-180" />
