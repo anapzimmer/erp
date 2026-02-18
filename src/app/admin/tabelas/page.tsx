@@ -216,21 +216,35 @@ export default function GestaoPrecosPage() {
       carregarTabelas(empresaIdAtual); // 🔥 PASSE O ID AQUI
     }
   }
-
-  const adicionarVidroATabela = async () => {
-    if (!tabelaSelecionada || !novoVidroId || !novoPrecoVidro) return
-    const { error } = await supabase.from("vidro_precos_grupos").insert({
-      grupo_preco_id: tabelaSelecionada.id,
-      vidro_id: parseInt(novoVidroId),
-      preco: parseFloat(novoPrecoVidro)
-    })
-    if (!error) {
-      setNovoVidroId("")
-      setNovoPrecoVidro("")
-      setTermoPesquisa("")
-      carregarItensTabela(tabelaSelecionada.id)
-    } else alert("Erro ao adicionar vidro.")
+const adicionarVidroATabela = async () => {
+  // Verificação de segurança reforçada
+  if (!tabelaSelecionada || !novoVidroId || !novoPrecoVidro || !empresaIdAtual) {
+    alert("Dados inválidos. Tente selecionar a tabela novamente.");
+    return;
   }
+
+  setCarregando(true);
+  
+  const { error } = await supabase.from("vidro_precos_grupos").insert({
+    grupo_preco_id: tabelaSelecionada.id,
+    vidro_id: parseInt(novoVidroId),
+    preco: parseFloat(novoPrecoVidro),
+    empresa_id: empresaIdAtual // Deve ser o mesmo da tabela selecionada
+  });
+
+  if (!error) {
+    setNovoVidroId("");
+    setNovoPrecoVidro("");
+    setTermoPesquisa("");
+    carregarItensTabela(tabelaSelecionada.id);
+  } else {
+    console.error("Erro Supabase:", error);
+    // 🔥 O erro Foreign Key costuma aparecer aqui
+    alert(`Erro ao adicionar vidro: ${error.message}`);
+  }
+  
+  setCarregando(false);
+};
 
   const iniciarEdicao = (item: ItemTabela) => {
     setEditingItemId(item.id);
