@@ -49,11 +49,12 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
   const pathname = usePathname();
   const { theme } = useTheme();
 
+  // --- Renderização do Menu (Padronizado igual ao Sidebar.tsx) ---
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
 
-    // Verificar se o item ou algum submenu está ativo
-    const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
+    // 🔥 Lógica de item ativo
+    const isActive = window.location.pathname === item.rota || item.submenu?.some(sub => window.location.pathname === sub.rota);
 
     return (
       <div key={item.nome} className="group mb-1">
@@ -64,18 +65,22 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
           }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
           style={{
-            // Fundo ativo usando cor de hover
+            // 🔥 Define fundo se ativo
             backgroundColor: isActive ? theme.menuHoverColor : "transparent",
+            // 🔥 Define a cor do texto de forma fixa (não muda no hover)
             color: theme.menuTextColor,
           }}
           onMouseEnter={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuTextColor}10`; // leve hover
+            // 🔥 Apenas muda o fundo no hover, nunca a cor do texto
+            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuTextColor}10`;
           }}
           onMouseLeave={(e) => {
+            // 🔥 Restaura fundo se não ativo
             if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
           }}
         >
           <div className="flex items-center gap-3">
+            {/* Ícone usa a cor definida no tema */}
             <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
@@ -87,7 +92,7 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
         {item.submenu && (
           <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
             {item.submenu.map((sub) => {
-              const isSubActive = pathname === sub.rota;
+              const isSubActive = window.location.pathname === sub.rota;
               return (
                 <div
                   key={sub.nome}
@@ -97,8 +102,8 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
                   }}
                   className="p-2 text-xs rounded-lg cursor-pointer"
                   style={{
+                    // 🔥 Cor do texto do submenu fixa
                     color: theme.menuTextColor,
-                    // Fundo ativo do submenu
                     backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
                     opacity: isSubActive ? 1 : 0.8
                   }}

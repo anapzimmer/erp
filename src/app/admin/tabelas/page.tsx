@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { PlusCircle, ChevronRight, Trash2, Percent, Check, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save, Menu, Building2, ChevronDown, LogOut, Settings, Palette, TableProperties, FileText, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound, ImageIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
@@ -56,8 +56,10 @@ const menuCadastros: MenuItem[] = [
 
 export default function GestaoPrecosPage() {
   const router = useRouter()
+  const pathname = usePathname();
   // 🔥 Consumir o tema do contexto
   const { theme } = useTheme();
+  const [empresaIdAtual, setEmpresaIdAtual] = useState<string>("");
 
   // --- Estados de Auth e UI ---
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -94,11 +96,11 @@ export default function GestaoPrecosPage() {
       .eq("id", modalExclusaoTabelaAberto.tabela.id);
 
     if (!error) {
-      carregarTabelas();
-      setTabelaSelecionada(null); // Limpa a seleção se a tabela for excluída
+      carregarTabelas(empresaIdAtual); // 🔥 PASSE O ID AQUI
+      setTabelaSelecionada(null);
       setModalExclusaoTabelaAberto({ aberto: false, tabela: null });
     } else {
-      alert("Erro ao excluir tabela. Verifique se ela não possui itens vinculados.");
+      alert("Erro ao excluir tabela.");
     }
   };
 
@@ -126,6 +128,9 @@ export default function GestaoPrecosPage() {
         .single();
 
       if (perfil) {
+        // 🔥 SALVE O ID AQUI
+        setEmpresaIdAtual(perfil.empresa_id);
+
         const { data: empresaData } = await supabase
           .from("empresas")
           .select("nome")
@@ -133,27 +138,36 @@ export default function GestaoPrecosPage() {
           .single();
 
         if (empresaData) setNomeEmpresa(empresaData.nome);
-        // Branding já carregado pelo Contexto
-      }
 
-      await carregarTabelas();
-      await carregarTodosVidros();
+        // 🔥 PASSE O ID PARA AS FUNÇÕES DE CARREGAMENTO
+        await carregarTabelas(perfil.empresa_id);
+        await carregarTodosVidros(perfil.empresa_id);
+      }
       setCheckingAuth(false);
     };
+
     fetchData();
 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
 
   // --- Funções de Carregamento de Dados ---
-  const carregarTabelas = useCallback(async () => {
-    const { data } = await supabase.from("tabelas").select("*").order("nome", { ascending: true })
-    setTabelas(data || [])
-  }, [])
+  const carregarTabelas = useCallback(async (empresaId: string) => {
+    const { data } = await supabase
+      .from("tabelas")
+      .select("*")
+      .eq("empresa_id", empresaId) // 🔥 Agora empresaId é conhecido
+      .order("nome", { ascending: true });
+    setTabelas(data || []);
+  }, []);
 
-  const carregarTodosVidros = useCallback(async () => {
-    const { data, error } = await supabase.from("vidros").select("id, nome, espessura, tipo, preco")
-    if (error) console.error("Erro ao carregar vidros:", error)
+  const carregarTodosVidros = useCallback(async (empresaId: string) => {
+    const { data, error } = await supabase
+      .from("vidros")
+      .select("id, nome, espessura, tipo, preco")
+      .eq("empresa_id", empresaId); // 🔥 Filtro de empresa
+
+    if (error) console.error("Erro ao carregar vidros:", error);
     else {
       const vidrosFormatados = data?.map(v => ({
         id: v.id,
@@ -164,7 +178,7 @@ export default function GestaoPrecosPage() {
       })) || [];
       setVidros(vidrosFormatados);
     }
-  }, [])
+  }, []);
 
   const carregarItensTabela = useCallback(async (tabelaId: number) => {
     setCarregando(true)
@@ -188,11 +202,18 @@ export default function GestaoPrecosPage() {
 
   // --- Ações ---
   const criarTabela = async () => {
-    if (!nomeNovaTabela.trim()) return
-    const { error } = await supabase.from("tabelas").insert({ nome: nomeNovaTabela })
+    if (!nomeNovaTabela.trim() || !empresaIdAtual) return // 🔥 Validação
+
+    const { error } = await supabase
+      .from("tabelas")
+      .insert({
+        nome: nomeNovaTabela,
+        empresa_id: empresaIdAtual // 🔥 IMPORTANTE
+      });
+
     if (!error) {
-      setNomeNovaTabela("")
-      carregarTabelas()
+      setNomeNovaTabela("");
+      carregarTabelas(empresaIdAtual); // 🔥 PASSE O ID AQUI
     }
   }
 
@@ -271,41 +292,66 @@ export default function GestaoPrecosPage() {
 
   // --- Renderização do Menu (Padronizado) ---
   const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icone
+    const Icon = item.icone;
+
+    // Lógica de item ativo baseada no pathname atual
+    const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
+
     return (
       <div key={item.nome} className="group mb-1">
         <div
-          onClick={() => { router.push(item.rota); setShowMobileMenu(false); }}
+          onClick={() => {
+            router.push(item.rota);
+            setShowMobileMenu(false);
+          }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{ color: theme.menuTextColor, backgroundColor: "transparent" }}
+          style={{
+            backgroundColor: isActive ? theme.menuHoverColor : "transparent",
+            color: theme.menuTextColor,
+          }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = theme.menuIconColor;
+            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuTextColor}10`;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = theme.menuTextColor;
+            if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
           }}
         >
           <div className="flex items-center gap-3">
             <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
-          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: theme.menuTextColor, opacity: 0.7 }} />}
+          {item.submenu && (
+            <ChevronRight className="w-4 h-4" style={{ color: theme.menuTextColor, opacity: 0.7 }} />
+          )}
         </div>
+
         {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}4D` }}>
-            {item.submenu.map((sub) => (
-              <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
-                className="p-2 text-xs rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-                style={{ color: theme.menuTextColor }}
-              >
-                {sub.nome}
-              </div>
-            ))}
+          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
+            {item.submenu.map((sub) => {
+              const isSubActive = pathname === sub.rota;
+              return (
+                <div
+                  key={sub.nome}
+                  onClick={() => {
+                    router.push(sub.rota);
+                    setShowMobileMenu(false);
+                  }}
+                  className="p-2 text-xs rounded-lg cursor-pointer"
+                  style={{
+                    color: theme.menuTextColor,
+                    backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
+                    opacity: isSubActive ? 1 : 0.8
+                  }}
+                >
+                  {sub.nome}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   if (checkingAuth) {
     return (
@@ -319,14 +365,18 @@ export default function GestaoPrecosPage() {
     <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor }}>        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50">
-        <X size={24} />
-      </button>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+      >
+        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4" style={{ color: theme.menuTextColor }}>
+          <X size={24} />
+        </button>
         <div className="px-3 py-4 mb-4 flex justify-center">
           <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
 
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
+        <nav className="flex-1 overflow-y-auto space-y-6">
           <div>
             <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p>
             {menuPrincipal.map(renderMenuItem)}
