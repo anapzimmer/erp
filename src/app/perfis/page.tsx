@@ -4,19 +4,21 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco" // 🔥 Certifique-se que este arquivo existe
-import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square,Search , DollarSign, ArrowUp } from "lucide-react"
+import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
-type Perfil = {id: string;codigo: string;nome: string;cores: string;preco: number | null;categoria: string;empresa_id?: string}
-type MenuItem = {nome: string;rota: string;icone: any;submenu?: { nome: string; rota: string }[]}
+type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
+type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
 // --- 2. 🔥 CONSTANTES DE MENU (Corrigindo erro de "menuPrincipal" e "menuCadastros") ---
 const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, 
-    { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
+  {
+    nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" },
+    { nome: "Vidros PDF", rota: "/calculovidroPDF" },]
+  },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
@@ -79,52 +81,51 @@ export default function PerfisPage() {
 
   // --- Efeitos de Inicialização e Auth ---
 
-useEffect(() => {
-  const init = async () => {
-    const { data: userData } = await supabase.auth.getUser();
+  useEffect(() => {
+    const init = async () => {
+      const { data: userData } = await supabase.auth.getUser();
 
-    if (!userData.user) {
-      router.push("/login");
-      return;
-    }
+      if (!userData.user) {
+        router.push("/login");
+        return;
+      }
 
-    setUsuarioEmail(userData.user.email ?? null);
+      setUsuarioEmail(userData.user.email ?? null);
 
-    const { data, error } = await supabase
-      .from("perfis_usuarios")
-      .select("empresa_id")
-      .eq("id", userData.user.id)
-      .single();
+      const { data, error } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", userData.user.id)
+        .single();
 
-  if (error || !data) {
-  console.error("Usuário sem empresa vinculada.");
-  setCheckingAuth(false);
-  return;
-}
+      if (error || !data) {
+        console.error("Usuário sem empresa vinculada.");
+        setCheckingAuth(false);
+        return;
+      }
 
-    setEmpresaIdUsuario(data.empresa_id);
-    await carregarDados(data.empresa_id);
-    setEmpresaIdUsuario(data.empresa_id);
+      setEmpresaIdUsuario(data.empresa_id);
+      await carregarDados(data.empresa_id);
 
-// 🔥 Buscar dados da empresa
-const { data: empresaData, error: empresaError } = await supabase
-  .from("empresas")
-  .select("nome")
-  .eq("id", data.empresa_id)
-  .single();
+      // 🔥 Buscar dados da empresa
+      const { data: empresaData, error: empresaError } = await supabase
+        .from("empresas")
+        .select("nome")
+        .eq("id", data.empresa_id)
+        .single();
 
-if (!empresaError && empresaData) {
-  setNomeEmpresa(empresaData.nome);
-}
+      if (!empresaError && empresaData) {
+        setNomeEmpresa(empresaData.nome);
+      }
 
-// Carregar perfis
-await carregarDados(data.empresa_id);
+      // Carregar perfis
+      await carregarDados(data.empresa_id);
 
-setCheckingAuth(false);
-  };
+      setCheckingAuth(false);
+    };
 
-  init();
-}, []);
+    init();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -146,21 +147,21 @@ setCheckingAuth(false);
   };
 
   // --- Funções de Dados ---
-const carregarDados = async (empresaId: string) => {
-  setCarregando(true);
+  const carregarDados = async (empresaId: string) => {
+    setCarregando(true);
 
-  const { data, error } = await supabase
-    .from("perfis")
-    .select("*")
-    .eq("empresa_id", empresaId)
-    .order("codigo", { ascending: true });
+    const { data, error } = await supabase
+      .from("perfis")
+      .select("*")
+      .eq("empresa_id", empresaId)
+      .order("codigo", { ascending: true });
 
-  if (!error && data) {
-    setPerfis(data);
-  }
+    if (!error && data) {
+      setPerfis(data);
+    }
 
-  setCarregando(false);
-};
+    setCarregando(false);
+  };
 
   // --- Funções de Dados ---
   const eliminarDuplicados = () => {
@@ -207,8 +208,8 @@ const carregarDados = async (empresaId: string) => {
           if (error) throw error;
 
           if (empresaIdUsuario) {
-  await carregarDados(empresaIdUsuario);
-}
+            await carregarDados(empresaIdUsuario);
+          }
 
           setModalAviso({ titulo: "Sucesso", mensagem: `${idsParaDeletar.length} itens duplicados removidos.` });
         } catch (e: any) {
@@ -290,8 +291,8 @@ const carregarDados = async (empresaId: string) => {
         } else { erros++; }
       }
       if (empresaIdUsuario) {
-  await carregarDados(empresaIdUsuario);
-}
+        await carregarDados(empresaIdUsuario);
+      }
       setModalCarregando(false);
       let mensagemFinal = `✅ Sucesso: ${importados}\n❌ Erros: ${erros}`;
       if (detalhesErros) {
@@ -337,8 +338,8 @@ const carregarDados = async (empresaId: string) => {
       setEditando(null);
       setMostrarModal(false);
       if (empresaIdUsuario) {
-  await carregarDados(empresaIdUsuario);
-}
+        await carregarDados(empresaIdUsuario);
+      }
     } catch (e: any) { setModalAviso({ titulo: "Erro", mensagem: "Erro: " + e.message }) } finally { setCarregando(false) }
   }
 
@@ -388,60 +389,60 @@ const carregarDados = async (empresaId: string) => {
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // --- Renderização do Menu ---
-const renderMenuItem = (item: MenuItem) => {
-  const Icon = item.icone;
-  const temSubmenu = !!item.submenu;
+  const renderMenuItem = (item: MenuItem) => {
+    const Icon = item.icone;
+    const temSubmenu = !!item.submenu;
 
-  return (
-    <div key={item.nome} className="mb-1">
-      <div
-        onClick={() => {
-          if (!temSubmenu) {
-            router.push(item.rota);
-            setShowMobileMenu(false);
-          }
-        }}
-        className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
-        style={{ color: darkSecondary }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = `${darkHover}33`;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
-          <span className="font-medium text-sm">{item.nome}</span>
+    return (
+      <div key={item.nome} className="mb-1">
+        <div
+          onClick={() => {
+            if (!temSubmenu) {
+              router.push(item.rota);
+              setShowMobileMenu(false);
+            }
+          }}
+          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
+          style={{ color: darkSecondary }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${darkHover}33`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+            <span className="font-medium text-sm">{item.nome}</span>
+          </div>
         </div>
+
+        {temSubmenu && (
+          <div className="ml-8 mt-1 space-y-1">
+            {item.submenu!.map((sub) => (
+              <div
+                key={sub.nome}
+                onClick={() => {
+                  router.push(sub.rota);
+                  setShowMobileMenu(false);
+                }}
+                className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
+                style={{ color: darkSecondary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${darkHover}33`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                {sub.nome}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {temSubmenu && (
-        <div className="ml-8 mt-1 space-y-1">
-          {item.submenu!.map((sub) => (
-            <div
-              key={sub.nome}
-              onClick={() => {
-                router.push(sub.rota);
-                setShowMobileMenu(false);
-              }}
-              className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
-              style={{ color: darkSecondary }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = `${darkHover}33`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
-            >
-              {sub.nome}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+    );
+  };
 
 
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
@@ -463,83 +464,82 @@ const renderMenuItem = (item: MenuItem) => {
       <div className="flex-1 flex flex-col w-full">
 
         {/* TOPBAR */}
-       <header
-  className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
-  style={{ backgroundColor: lightSecondary }}
->
-  <div className="flex items-center gap-2 md:gap-4">
-    <button
-      onClick={() => setShowMobileMenu(true)}
-      className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-    >
-      <Menu size={24} className="text-gray-600" />
-    </button>
+        <header
+          className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+          style={{ backgroundColor: lightSecondary }}
+        >
+          <div className="flex items-center gap-2 md:gap-4">
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            >
+              <Menu size={24} className="text-gray-600" />
+            </button>
 
-    {/* Campo de busca padrão */}
-    <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
-      <Search className="text-gray-400" size={18} />
-      <input
-        type="search"
-        placeholder="Buscar..."
-        className="w-full text-sm bg-transparent outline-none"
-      />
-    </div>
-  </div>
-
-  <div className="flex items-center gap-3">
-    <div className="relative" ref={userMenuRef}>
-      <button
-        onClick={() => setShowUserMenu(!showUserMenu)}
-        className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-      >
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-          <Building2 size={16} />
-        </div>
-
-        <span className="text-sm font-medium text-gray-700 hidden md:block">
-          {nomeEmpresa}
-        </span>
-
-        <ChevronDown
-          size={16}
-          className={`text-gray-400 transition-transform ${
-            showUserMenu ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {showUserMenu && (
-        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-          <div className="px-3 py-2 border-b border-gray-100">
-            <p className="text-xs text-gray-400">Logado como</p>
-            <p className="text-sm font-semibold text-gray-900 truncate">
-              {usuarioEmail}
-            </p>
+            {/* Campo de busca padrão */}
+            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
+              <Search className="text-gray-400" size={18} />
+              <input
+                type="search"
+                placeholder="Buscar..."
+                className="w-full text-sm bg-transparent outline-none"
+              />
+            </div>
           </div>
 
-          <button
-            onClick={() => {
-              setShowUserMenu(false);
-              router.push("/configuracoes");
-            }}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
-          >
-            <Settings size={18} className="text-gray-400" />
-            Configurações
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                  <Building2 size={16} />
+                </div>
 
-          <button
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
-          >
-            <LogOut size={18} />
-            Sair
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</header>
+                <span className="text-sm font-medium text-gray-700 hidden md:block">
+                  {nomeEmpresa}
+                </span>
+
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-400">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {usuarioEmail}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      router.push("/configuracoes");
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+                  >
+                    <Settings size={18} className="text-gray-400" />
+                    Configurações
+                  </button>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+                  >
+                    <LogOut size={18} />
+                    Sair
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
 
         {/* CONTEÚDO ESPECÍFICO */}
@@ -586,7 +586,15 @@ const renderMenuItem = (item: MenuItem) => {
           {/* FILTROS E BOTOES DE ACAO INFERIORES */}
           <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
             <div className="flex flex-wrap gap-3">
-              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              <input
+                type="text"
+                placeholder="Nome..."
+                // ... outros atributos
+                className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:border-2"
+                style={{ borderColor: 'transparent', focusBorderColor: darkTertiary } as any} // Ou apenas:
+                onFocus={(e) => e.currentTarget.style.borderColor = darkTertiary}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+              />
               <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
               <input type="text" placeholder="Categoria..." value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
             </div>
@@ -595,8 +603,12 @@ const renderMenuItem = (item: MenuItem) => {
             <div className="flex items-center gap-2">
               <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} /> Limpar Duplicados
               </button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
-                <PlusCircle size={20} /> Novo Perfil
+              <button
+                onClick={abrirModalParaNovo}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition shadow-sm"
+                style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+              >
+                <PlusCircle size={18} /> Novo Perfil
               </button>
             </div>
           </div>
@@ -606,19 +618,19 @@ const renderMenuItem = (item: MenuItem) => {
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
-                  <th className="p-4 font-semibold">Código</th>
-                  <th className="p-4 font-semibold">Nome</th>
-                  <th className="p-4 font-semibold">Cores</th>
-                  <th className="p-4 font-semibold">Preço</th>
-                  <th className="p-4 font-semibold">Categoria</th>
-                  <th className="p-4 font-semibold text-center">Ações</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Código</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Nome</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Cores</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Preço</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Categoria</th>
+                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
                 {perfisFiltrados.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 font-medium text-gray-900">{p.codigo}</td>
-                    <td className="p-4">{p.nome}</td>
+                    <td className="p-4"><span className="font-bold text-sm" style={{ color: lightTertiary }} > {p.nome}</span></td>
                     <td className="p-4">{p.cores}</td>
                     <td className="p-4 font-semibold" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
                     <td className="p-4">{p.categoria}</td>
