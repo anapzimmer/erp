@@ -127,7 +127,7 @@ export default function ConfiguracoesBrandingPage() {
       }
 
       if (brandingData) {
-        setLogoLight(brandingData.logo_light || "/glasscode2.png");
+        setLogoLight(brandingData.logo_light || "/glasscode.png");
         setLogoDark(brandingData.logo_dark || "/glasscode2.png");
 
         // SETTERS ATUALIZADOS

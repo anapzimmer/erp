@@ -5,13 +5,14 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
-  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench,
+  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
   Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy,
   ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X,
   Building2, LogOut, Settings, Menu, Square, Search, DollarSign, ArrowUp
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { FerragensPDF } from "@/app/relatorios/ferragens/FerragensPDF"
 
 // --- TIPAGENS ---
 type Ferragem = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
@@ -211,36 +212,52 @@ export default function FerragensPage() {
 
     reader.onload = async (e) => {
       try {
+        // windows-1252 para ler acentos do Excel corretamente
         const text = new TextDecoder("windows-1252").decode(e.target?.result as ArrayBuffer);
         const rows = text.split(/\r?\n/);
         const dados = rows.slice(1).filter(row => row.trim() !== "");
 
         for (const row of dados) {
-          const columns = row.split(/[;]/).map(c => c.replace(/^["']|["']$/g, "").trim());
-          const codigo = columns[0];
-          let nomeOriginal = columns[1];
-          let corExtraida = columns[2]; // Tenta pegar da coluna de cor se existir
-          const precoRaw = columns[3];
+          // Divide rigorosamente pelo ponto e vírgula
+          const columns = row.split(';').map(c => c.replace(/^["']|["']$/g, "").trim());
+
+          // MAPEAMENTO REAL DO SEU ARQUIVO (Produto;Descrição;Categoria;Cor;Preço)
+          const codigo = columns[0];      // Coluna 1: Produto
+          let nomeOriginal = columns[1];  // Coluna 2: Descrição
+          const categoriaArq = columns[2]; // Coluna 3: Categoria (Onde estava o erro!)
+          let corOriginal = columns[3];   // Coluna 4: Cor
+          const precoRaw = columns[4];    // Coluna 5: Preço
 
           if (codigo && nomeOriginal) {
-            // LÓGICA DE SEPARAÇÃO: Se o nome tem "-", separa a cor
-            if (nomeOriginal.includes("-")) {
+            // LÓGICA DE COR: Se a coluna Cor estiver vazia, tenta extrair do nome (após o hífen)
+            if (!corOriginal && nomeOriginal.includes("-")) {
               const partes = nomeOriginal.split("-");
-              // A última parte vira a cor, o resto volta a ser o nome
-              corExtraida = partes[partes.length - 1].trim();
+              corOriginal = partes[partes.length - 1].trim();
               nomeOriginal = partes.slice(0, -1).join("-").trim();
             }
 
-            const precoLimpo = precoRaw
-              ? parseFloat(precoRaw.replace(/[^\d,.-]/g, "").replace(",", "."))
-              : null;
+            // LÓGICA DE PREÇO INTELIGENTE:
+            // Trata formatos como "5,25", "1.250,50" ou "5.25"
+            let precoLimpo = null;
+            if (precoRaw) {
+              // Remove tudo que não é número, vírgula ou ponto
+              const apenasNumeros = precoRaw.replace(/[^\d,.]/g, "");
+
+              // Se tiver os dois (ponto e vírgula), remove o ponto (milhar) e troca a vírgula por ponto
+              // Se tiver só vírgula, troca por ponto.
+              const formatado = apenasNumeros.includes(',')
+                ? apenasNumeros.replace(/\./g, "").replace(",", ".")
+                : apenasNumeros;
+
+              precoLimpo = parseFloat(formatado);
+            }
 
             await supabase.from("ferragens").upsert([{
               codigo: codigo.toUpperCase(),
               nome: padronizarTexto(nomeOriginal),
-              cores: padronizarTexto(corExtraida) || "Padrão",
+              cores: corOriginal ? padronizarTexto(corOriginal) : "Padrão",
               preco: isNaN(precoLimpo as number) ? null : precoLimpo,
-              categoria: "Importado",
+              categoria: padronizarTexto(categoriaArq) || "Ferragens",
               empresa_id: empresaIdUsuario
             }], {
               onConflict: 'codigo,nome,cores'
@@ -249,7 +266,7 @@ export default function FerragensPage() {
         }
 
         await carregarDados(empresaIdUsuario);
-        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída: Cores separadas e nomes limpos!" });
+        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída: Preços e Categorias organizados!" });
       } catch (err: any) {
         setModalAviso({ titulo: "Erro", mensagem: "Falha ao processar arquivo." });
       } finally {
@@ -315,9 +332,61 @@ export default function FerragensPage() {
 
   if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
+
+  const estiloImpressao = `
+  @media print {
+    /* 1. Esconde TUDO que você marcou com X */
+    aside, 
+    header, 
+    .no-print, 
+    button, 
+    input, 
+    .filtros-sessao, 
+    .cards-indicadores, 
+    th:last-child, 
+    td:last-child {
+      display: none !important;
+    }
+
+    /* 2. Configuração da página e margens */
+    body {
+      background-color: white !important;
+      padding-top: 40px !important;
+      position: relative;
+    }
+    
+    main {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* 5. Ajustes da Tabela */
+    .overflow-x-auto {
+      overflow: visible !important;
+    }
+    
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin-top: 20px;
+    }
+
+    th {
+      background-color: #1C415B !important;
+      color: white !important;
+      -webkit-print-color-adjust: exact;
+      padding: 10px !important;
+    }
+
+    td {
+      padding: 8px !important;
+      border-bottom: 1px solid #eee !important;
+    }
+  }
+`;
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
-
+      <style>{estiloImpressao}</style>
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
@@ -330,13 +399,9 @@ export default function FerragensPage() {
 
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white">
+        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white no-print">
           <div className="flex items-center gap-2 md:gap-4">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
-            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
-              <Search className="text-gray-400" size={18} />
-              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
-            </div>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-4 border-l border-gray-200">
@@ -348,6 +413,7 @@ export default function FerragensPage() {
         </header>
 
         <main className="p-4 md:p-8 flex-1">
+          
           {/* HEADER SEÇÃO */}
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
@@ -358,6 +424,14 @@ export default function FerragensPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              {/* BOTÃO IMPRIMIR (Print de Tela) */}
+              <button
+                onClick={() => window.print()}
+                className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm no-print"
+                title="Imprimir Tabela"
+              >
+                <Printer className="w-5 h-5 text-gray-600" />
+              </button>
               <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
                 <Download className="w-5 h-5 text-gray-600" />
               </button>
@@ -379,7 +453,7 @@ export default function FerragensPage() {
           </div>
 
           {/* INDICADORES */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
             {[
               { titulo: "Total", valor: ferragens.length, icone: Layers },
               { titulo: "Com Preço", valor: ferragens.filter(f => f.preco).length, icone: DollarSign },
@@ -395,14 +469,39 @@ export default function FerragensPage() {
           </div>
 
           {/* FILTROS E AÇÃO */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-            <div className="flex flex-wrap gap-3">
-              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none" onFocus={e => e.currentTarget.style.borderColor = darkTertiary} onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'} />
-              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none" />
+          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap filtros-sessao">
+            <div className="flex flex-wrap gap-3 flex-1">
+              {/* BUSCA GLOBAL: Nome, Código ou Categoria */}
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome, código ou categoria..."
+                  value={filtroNome}
+                  onChange={e => setFiltroNome(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
+                />
+              </div>
+
+              {/* FILTRO DE COR SEPARADO */}
+              <input
+                type="text"
+                placeholder="Filtrar por cor..."
+                value={filtroCor}
+                onChange={e => setFiltroCor(e.target.value)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all w-full md:w-48"
+                style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} /> Limpar Duplicados </button>
-              <button onClick={() => { setEditando(null); setNovaFerragem({ codigo: "", nome: "", cores: "", preco: null, categoria: "" }); setMostrarModal(true); }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}> <PlusCircle size={18} /> Nova Ferragem </button>
+
+            <div className="flex items-center gap-2 no-print">
+              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
+                <Trash2 size={18} /> Limpar Duplicados
+              </button>
+              <button onClick={() => { setEditando(null); setNovaFerragem({ codigo: "", nome: "", cores: "", preco: null, categoria: "" }); setMostrarModal(true); }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+                <PlusCircle size={18} /> Nova Ferragem
+              </button>
             </div>
           </div>
 
@@ -411,40 +510,54 @@ export default function FerragensPage() {
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Código</th>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Nome</th>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Cor</th>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Categoria</th>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70">Preço</th>
-                  <th className="p-4 text-xs font-black uppercase tracking-widest opacity-70 text-center">Ações</th>
+                  <th className="p-4 text-xs uppercase tracking-widest">Código</th>
+                  <th className="p-4 text-xs uppercase tracking-widest">Nome</th>
+                  <th className="p-4 text-xs uppercase tracking-widest ">Cor</th>
+                  <th className="p-4 text-xs uppercase tracking-widest ">Categoria</th>
+                  <th className="p-4 text-xs uppercase tracking-widest ">Preço</th>
+                  <th className="p-4 text-xs uppercase tracking-widest text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {ferragens.filter(f => f.nome.toLowerCase().includes(filtroNome.toLowerCase())).map(f => (
-                  <tr key={f.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-medium text-gray-900">{f.codigo}</td>
-                    <td className="p-4">
-                      <span className="font-bold text-sm" style={{ color: lightTertiary }}>{f.nome}</span>
-                    </td>
-                    <td className="p-4">
-                      {/* Padronização visual da cor com a cor do sistema (darkTertiary) */}
-                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                        style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                        {f.cores || "Padrão"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500 font-medium">{f.categoria || "Geral"}</td>
-                    <td className="p-4 font-semibold" style={{ color: darkPrimary }}>
-                      {f.preco ? formatarPreco(f.preco) : "-"}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => { setEditando(f); setNovaFerragem(f); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                        <button onClick={() => deletarFerragem(f.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {ferragens
+                  .filter(f => {
+                    const termo = filtroNome.toLowerCase();
+                    // Busca no Nome, no Código ou na Categoria
+                    const matchesBusca =
+                      f.nome.toLowerCase().includes(termo) ||
+                      f.codigo.toLowerCase().includes(termo) ||
+                      f.categoria.toLowerCase().includes(termo);
+
+                    // Filtro de Cor (separado)
+                    const matchesCor = f.cores.toLowerCase().includes(filtroCor.toLowerCase());
+
+                    return matchesBusca && matchesCor;
+                  })
+                  .map(f => (
+                    <tr key={f.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-4 text-gray-500 font-medium">{f.codigo}</td>
+                      <td className="p-4">
+                        <span className="p-4 text-gray-500 font-medium" style={{ color: lightTertiary }}>{f.nome}</span>
+                      </td>
+                      <td className="p-4">
+                        {/* Padronização visual da cor com a cor do sistema (darkTertiary) */}
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
+                          style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
+                          {f.cores || "Padrão"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-500 font-medium">{f.categoria || "Geral"}</td>
+                      <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>
+                        {f.preco ? formatarPreco(f.preco) : "-"}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => { setEditando(f); setNovaFerragem(f); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                          <button onClick={() => deletarFerragem(f.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -464,7 +577,7 @@ export default function FerragensPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
               <div className="col-span-2">
                 <label className="text-sm font-semibold text-gray-600 mb-1 block">Código *</label>
                 <input
