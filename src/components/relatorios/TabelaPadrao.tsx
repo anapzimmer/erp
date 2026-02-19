@@ -1,3 +1,4 @@
+// src/components/relatorios/TabelaPadrao.tsx
 import { View, Text, StyleSheet } from "@react-pdf/renderer"
 
 interface Coluna {

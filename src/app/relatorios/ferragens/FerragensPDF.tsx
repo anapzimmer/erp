@@ -1,47 +1,28 @@
-import { PDFDownloadLink } from "@react-pdf/renderer"
+"use client"
 import { RelatorioBase } from "@/components/relatorios/RelatorioBase"
 import { TabelaPadrao } from "@/components/relatorios/TabelaPadrao"
-import { Ferragem, Branding } from "@/types/relatorios"
+import type { Ferragem } from "@/types/ferragem"
 
 interface FerragensPDFProps {
-  ferragens: Ferragem[]
-  branding: Branding
+  dados: Ferragem[];
+  empresa: string;
 }
 
-export function FerragensPDF({ ferragens, branding }: FerragensPDFProps) {
-
+export function FerragensPDF({ dados, empresa }: FerragensPDFProps) {
   const colunas = [
-    { titulo: "Código" },
-    { titulo: "Nome" },
-    { titulo: "Cor" },
-    { titulo: "Categoria" },
-    { titulo: "Preço" }
+    { titulo: "Codigo", largura: 20 },
+    { titulo: "Nome", largura: 40 },
+    { titulo: "Cores", largura: 20 },
+    { titulo: "Preco", largura: 20 }
   ]
 
-  const dados = ferragens.map(f => ({
-    código: f.codigo,
-    nome: f.nome,
-    cor: f.cor,
-    categoria: f.categoria,
-    preço: f.preco
-  }))
-
   return (
-    <PDFDownloadLink
-      document={
-        <RelatorioBase
-          titulo="Relatório de Ferragens"
-          empresa={branding.nome_empresa}
-          logo={branding.logo_url}
-        >
-          <TabelaPadrao colunas={colunas} dados={dados} />
-        </RelatorioBase>
-      }
-      fileName="relatorio-ferragens.pdf"
+    <RelatorioBase 
+      titulo="Catálogo de Ferragens" 
+      empresa={empresa}
+      logo="/glasscode2.png" 
     >
-      {({ loading }) =>
-        loading ? "Gerando PDF..." : "Exportar PDF"
-      }
-    </PDFDownloadLink>
+      <TabelaPadrao colunas={colunas} dados={dados} />
+    </RelatorioBase>
   )
 }

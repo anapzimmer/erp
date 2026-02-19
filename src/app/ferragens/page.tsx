@@ -1,21 +1,19 @@
 //app/ferragens/page.tsx
 "use client"
-
-import { useEffect, useState, useCallback, useRef } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
   LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
-  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy,
-  ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X,
-  Building2, LogOut, Settings, Menu, Square, Search, DollarSign, ArrowUp
+  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2, 
+  PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, 
+  DollarSign, ArrowUp
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { FerragensPDF } from "@/app/relatorios/ferragens/FerragensPDF"
+import type { Ferragem } from "@/types/ferragem"
 
 // --- TIPAGENS ---
-type Ferragem = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
 // --- CONSTANTES DE MENU ---
@@ -38,10 +36,15 @@ const menuCadastros: MenuItem[] = [
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
 ]
 
+function Square({ size, className }: { size: number, className?: string }) {
+  return <div style={{ width: size, height: size }} className={`border-2 border-current rounded-sm ${className}`} />
+}
+
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
   return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
 };
+
 
 export default function FerragensPage() {
   const router = useRouter()
@@ -67,7 +70,14 @@ export default function FerragensPage() {
 
   // --- ESTADOS LÓGICA ---
   const [ferragens, setFerragens] = useState<Ferragem[]>([])
-  const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({ codigo: "", nome: "", cores: "", preco: null, categoria: "" })
+const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
+  codigo: "",
+  nome: "",
+  cores: "",
+  preco: null,
+  categoria: "",
+  empresa_id: "" // Adicione isto para satisfazer o TypeScript
+});
   const [editando, setEditando] = useState<Ferragem | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -75,7 +85,8 @@ export default function FerragensPage() {
   const [modalCarregando, setModalCarregando] = useState(false);
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
-  const [filtroCategoria, setFiltroCategoria] = useState("")
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
 
   // --- EFEITOS ---
   useEffect(() => {
@@ -333,61 +344,29 @@ export default function FerragensPage() {
   if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
 
-  const estiloImpressao = `
-  @media print {
-    /* 1. Esconde TUDO que você marcou com X */
-    aside, 
-    header, 
-    .no-print, 
-    button, 
-    input, 
-    .filtros-sessao, 
-    .cards-indicadores, 
-    th:last-child, 
-    td:last-child {
-      display: none !important;
-    }
-
-    /* 2. Configuração da página e margens */
-    body {
-      background-color: white !important;
-      padding-top: 40px !important;
-      position: relative;
-    }
-    
-    main {
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    /* 5. Ajustes da Tabela */
-    .overflow-x-auto {
-      overflow: visible !important;
-    }
-    
-    table {
-      width: 100% !important;
-      border-collapse: collapse !important;
-      margin-top: 20px;
-    }
-
-    th {
-      background-color: #1C415B !important;
-      color: white !important;
-      -webkit-print-color-adjust: exact;
-      padding: 10px !important;
-    }
-
-    td {
-      padding: 8px !important;
-      border-bottom: 1px solid #eee !important;
-    }
+  const branding = {
+    nome_empresa: nomeEmpresa,
+    logo_url: "/glasscode2.png"
   }
-`;
+
+  const gerarPDF = async () => {
+  const { pdf } = await import('@react-pdf/renderer');
+  const { FerragensPDF } = await import('../relatorios/ferragens/FerragensPDF');
+  
+  const blob = await pdf(
+    <FerragensPDF dados={ferragens} empresa={nomeEmpresa} />
+  ).toBlob();
+  
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `ferragens-${nomeEmpresa}.pdf`;
+  link.click();
+};
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
-      <style>{estiloImpressao}</style>
-      {/* SIDEBAR */}
+     {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
         <div className="px-3 py-4 mb-4 flex justify-center"> <Image src="/glasscode2.png" alt="Logo" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
@@ -413,7 +392,7 @@ export default function FerragensPage() {
         </header>
 
         <main className="p-4 md:p-8 flex-1">
-          
+
           {/* HEADER SEÇÃO */}
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
@@ -425,13 +404,13 @@ export default function FerragensPage() {
             </div>
             <div className="flex gap-2">
               {/* BOTÃO IMPRIMIR (Print de Tela) */}
-              <button
-                onClick={() => window.print()}
-                className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm no-print"
-                title="Imprimir Tabela"
-              >
-                <Printer className="w-5 h-5 text-gray-600" />
-              </button>
+          <button
+  onClick={() => gerarPDF()} // Vamos criar essa função agora
+  className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center"
+  title="Imprimir Catálogo"
+>
+  <Printer size={20} style={{ color: darkPrimary }} />
+</button>
               <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
                 <Download className="w-5 h-5 text-gray-600" />
               </button>
@@ -499,7 +478,12 @@ export default function FerragensPage() {
               <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
                 <Trash2 size={18} /> Limpar Duplicados
               </button>
-              <button onClick={() => { setEditando(null); setNovaFerragem({ codigo: "", nome: "", cores: "", preco: null, categoria: "" }); setMostrarModal(true); }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+              <button onClick={() => {
+                setEditando(null); setNovaFerragem({
+                  codigo: "", nome: "", cores: "", preco: null, categoria: "",
+                  empresa_id: empresaIdUsuario || ""
+                }); setMostrarModal(true);
+              }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
                 <PlusCircle size={18} /> Nova Ferragem
               </button>
             </div>

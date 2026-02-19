@@ -1,3 +1,4 @@
+// src/types/relatorios.ts
 export interface Ferragem {
   id: string
   codigo: string
