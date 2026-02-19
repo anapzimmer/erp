@@ -54,7 +54,7 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
     const Icon = item.icone;
 
     // 🔥 Lógica de item ativo
-    const isActive = window.location.pathname === item.rota || item.submenu?.some(sub => window.location.pathname === sub.rota);
+const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
 
     return (
       <div key={item.nome} className="group mb-1">

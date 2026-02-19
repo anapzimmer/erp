@@ -5,10 +5,9 @@ import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
   LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
-  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2, 
-  PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, 
-  DollarSign, ArrowUp
-} from "lucide-react"
+  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
+  PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
+  DollarSign, ArrowUp, Square} from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import type { Ferragem } from "@/types/ferragem"
@@ -36,10 +35,6 @@ const menuCadastros: MenuItem[] = [
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
 ]
 
-function Square({ size, className }: { size: number, className?: string }) {
-  return <div style={{ width: size, height: size }} className={`border-2 border-current rounded-sm ${className}`} />
-}
-
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
   return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
@@ -58,7 +53,7 @@ export default function FerragensPage() {
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showScrollTop, setShowScrollTop] = useState(false);
-
+  const [gerandoPDF, setGerandoPDF] = useState(false);
 
   const darkPrimary = "#1C415B";
   const darkSecondary = "#FFFFFF";
@@ -70,14 +65,14 @@ export default function FerragensPage() {
 
   // --- ESTADOS LÓGICA ---
   const [ferragens, setFerragens] = useState<Ferragem[]>([])
-const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
-  codigo: "",
-  nome: "",
-  cores: "",
-  preco: null,
-  categoria: "",
-  empresa_id: "" // Adicione isto para satisfazer o TypeScript
-});
+  const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
+    codigo: "",
+    nome: "",
+    cores: "",
+    preco: null,
+    categoria: "",
+    empresa_id: "" // Adicione isto para satisfazer o TypeScript
+  });
   const [editando, setEditando] = useState<Ferragem | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -146,15 +141,12 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
       let error;
 
       if (editando) {
-        // Se estamos editando um ID específico, usamos o update normal
         const { error: err } = await supabase
           .from("ferragens")
           .update(dadosParaSalvar)
           .eq("id", editando.id);
         error = err;
       } else {
-        // Se é um novo cadastro, usamos o UPSERT com base na sua constraint de unicidade
-        // Isso fará com que, se o código+nome+cor já existirem, ele apenas atualize o preço/categoria
         const { error: err } = await supabase
           .from("ferragens")
           .upsert([dadosParaSalvar], {
@@ -190,10 +182,7 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
             .from("ferragens")
             .delete()
             .eq("id", id);
-
           if (error) throw error;
-
-          // Atualiza o estado local para remover a linha da tabela instantaneamente
           setFerragens(prev => prev.filter(f => f.id !== id));
         } catch (e: any) {
           setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir: " + e.message });
@@ -223,7 +212,6 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
 
     reader.onload = async (e) => {
       try {
-        // windows-1252 para ler acentos do Excel corretamente
         const text = new TextDecoder("windows-1252").decode(e.target?.result as ArrayBuffer);
         const rows = text.split(/\r?\n/);
         const dados = rows.slice(1).filter(row => row.trim() !== "");
@@ -231,8 +219,6 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
         for (const row of dados) {
           // Divide rigorosamente pelo ponto e vírgula
           const columns = row.split(';').map(c => c.replace(/^["']|["']$/g, "").trim());
-
-          // MAPEAMENTO REAL DO SEU ARQUIVO (Produto;Descrição;Categoria;Cor;Preço)
           const codigo = columns[0];      // Coluna 1: Produto
           let nomeOriginal = columns[1];  // Coluna 2: Descrição
           const categoriaArq = columns[2]; // Coluna 3: Categoria (Onde estava o erro!)
@@ -346,27 +332,46 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
 
   const branding = {
     nome_empresa: nomeEmpresa,
-    logo_url: "/glasscode2.png"
+    logo_url: "/glasscode.png"
   }
 
-  const gerarPDF = async () => {
-  const { pdf } = await import('@react-pdf/renderer');
-  const { FerragensPDF } = await import('../relatorios/ferragens/FerragensPDF');
-  
-  const blob = await pdf(
-    <FerragensPDF dados={ferragens} empresa={nomeEmpresa} />
-  ).toBlob();
-  
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `ferragens-${nomeEmpresa}.pdf`;
-  link.click();
+const gerarPDF = async () => {
+  try {
+    setGerandoPDF(true);
+
+    const { pdf } = await import('@react-pdf/renderer');
+    const { FerragensPDF } = await import('../relatorios/ferragens/FerragensPDF');
+
+    // LIMPEZA PARA O PDF FICAR BONITO:
+    const dadosLimpos = ferragens.map(f => ({
+      ...f,
+      codigo: String(f.codigo).replace(/["\n\r]/g, '').trim(),
+      nome: String(f.nome).replace(/["\n\r]/g, ' ').trim(),
+      cores: String(f.cores || 'Padrão').replace(/["\n\r]/g, '').trim(),
+      categoria: String(f.categoria || 'Geral').replace(/["\n\r]/g, '').trim()
+    }));
+
+    const blob = await pdf(
+      <FerragensPDF dados={dadosLimpos} empresa={nomeEmpresa} />
+    ).toBlob();
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ferragens-${nomeEmpresa}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Erro ao gerar PDF:", error);
+    setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF." });
+  } finally {
+    setGerandoPDF(false);
+  }
 };
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
-     {/* SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
         <div className="px-3 py-4 mb-4 flex justify-center"> <Image src="/glasscode2.png" alt="Logo" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
@@ -404,13 +409,13 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
             </div>
             <div className="flex gap-2">
               {/* BOTÃO IMPRIMIR (Print de Tela) */}
-          <button
-  onClick={() => gerarPDF()} // Vamos criar essa função agora
-  className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center"
-  title="Imprimir Catálogo"
->
-  <Printer size={20} style={{ color: darkPrimary }} />
-</button>
+              <button
+                onClick={() => gerarPDF()} // Vamos criar essa função agora
+                className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center"
+                title="Imprimir Catálogo"
+              >
+                <Printer size={20} style={{ color: darkPrimary }} />
+              </button>
               <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
                 <Download className="w-5 h-5 text-gray-600" />
               </button>
@@ -636,6 +641,22 @@ const [novaFerragem, setNovaFerragem] = useState<Omit<Ferragem, "id">>({
                 {carregando ? "Salvando..." : (editando ? "Atualizar" : "Salvar")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE LOADING PARA O PDF */}
+      {gerandoPDF && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 shadow-2xl">
+            {/* Círculo de loading animado com a cor do seu sistema */}
+            <div className="w-12 h-12 border-4 animate-spin rounded-full"
+              style={{ borderColor: darkTertiary, borderTopColor: 'transparent' }}>
+            </div>
+            <p className="font-bold text-gray-700" style={{ color: darkPrimary }}>
+              Gerando seu Catálogo...
+            </p>
+            <span className="text-xs text-gray-400">Isso pode levar alguns segundos</span>
           </div>
         </div>
       )}
