@@ -1,12 +1,21 @@
-//app/relatorios/ferragens/FerragensPDF.tsx
+//app/relatorios/perfis/PerfisPDF.tsx
 "use client"
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
-import type { Ferragem } from "@/types/ferragem";
 
-interface FerragensPDFProps {
-  dados: Ferragem[];
+// AQUI ESTÁ O AJUSTE: Definimos o que é um Perfil diretamente aqui
+interface Perfil {
+  id?: string;
+  codigo: string;
+  nome: string;
+  cores: string;
+  preco: number | null;
+  categoria: string;
+}
+
+interface PerfisPDFProps {
+  dados: Perfil[];
   empresa: string;
 }
 
@@ -16,15 +25,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     fontFamily: 'Helvetica',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 30,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#39B89F', // Cor Tema (darkTertiary)
-  },
+header: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center', // Alinhado ao centro para a logo e o título
+  marginBottom: 20,
+  paddingBottom: 10,
+  borderBottomWidth: 2,
+  borderBottomColor: '#39B89F', // A linha verde da imagem
+},
   headerLeft: {
     flexDirection: 'column',
   },
@@ -73,15 +82,13 @@ const styles = StyleSheet.create({
   tableCol: {
     padding: 6,
     fontSize: 9,
-    color: '#1C415B', // Padronizado para a cor tema (darkPrimary) em vez de cinza
+    color: '#1C415B', 
   },
-  // LARGURAS
   colCodigo: { width: '15%' },
   colNome: { width: '40%' },
   colCor: { width: '15%' },
   colCategoria: { width: '15%' },
   colPreco: { width: '15%', textAlign: 'right' },
-  
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -96,19 +103,17 @@ const styles = StyleSheet.create({
   }
 });
 
-export function FerragensPDF({ dados, empresa }: FerragensPDFProps) {
+export function PerfisPDF({ dados, empresa }: PerfisPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.tituloRelatorio}>Catálogo de Ferragens</Text>
+            <Text style={styles.tituloRelatorio}>Catálogo de Perfis de Alumínio</Text>
             <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
           </View>
-
           <View style={styles.headerRight}>
             <Image src="/glasscode.png" style={styles.logo} />
           </View>
@@ -117,7 +122,7 @@ export function FerragensPDF({ dados, empresa }: FerragensPDFProps) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.tableColHeader, styles.colCodigo]}>Código</Text>
-            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Produto</Text>
+            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Perfil</Text>
             <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
             <Text style={[styles.tableColHeader, styles.colCategoria]}>Categoria</Text>
             <Text style={[styles.tableColHeader, styles.colPreco]}>Preço Unit.</Text>
@@ -125,7 +130,6 @@ export function FerragensPDF({ dados, empresa }: FerragensPDFProps) {
 
           {dados.map((item, index) => (
             <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }]}>
-              {/* Removido fontWeight bold de todas as colunas abaixo */}
               <Text style={[styles.tableCol, styles.colCodigo]}>{item.codigo}</Text>
               <Text style={[styles.tableCol, styles.colNome]}>{item.nome}</Text>
               <Text style={[styles.tableCol, styles.colCor]}>{item.cores || 'Padrão'}</Text>
