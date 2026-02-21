@@ -553,98 +553,109 @@ const gerarPDF = async () => {
         </main>
       </div>
 
-      {/* MODAL DE CADASTRO/EDIÇÃO */}
+{/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO MINIMALISTA DISCRETO) */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-40 animate-fade-in px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold" style={{ color: darkPrimary }}>
-                {editando ? "Editar Ferragem" : "Cadastrar Ferragem"}
-              </h2>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 animate-fade-in px-4">
+          <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
+            
+            {/* Cabeçalho alinhado ao tema */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>
+                  {editando ? "Editar Ferragem" : "Nova Ferragem"}
+                </h2>
+                <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
+              </div>
+              <button 
+                onClick={() => setMostrarModal(false)} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Código *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: F001"
-                  value={novaFerragem.codigo}
-                  onChange={e => setNovaFerragem({ ...novaFerragem, codigo: e.target.value.toUpperCase() })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+            <div className="space-y-4">
+              {/* Grid 1: Identificação */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-1">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Código</label>
+                  <input
+                    type="text"
+                    value={novaFerragem.codigo}
+                    onChange={e => setNovaFerragem({ ...novaFerragem, codigo: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Nome do Produto</label>
+                  <input
+                    type="text"
+                    value={novaFerragem.nome}
+                    onChange={e => setNovaFerragem({ ...novaFerragem, nome: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Nome *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Dobradiça 1101"
-                  value={novaFerragem.nome}
-                  onChange={e => setNovaFerragem({ ...novaFerragem, nome: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+
+              {/* Grid 2: Especificações */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Cores</label>
+                  <input
+                    type="text"
+                    value={novaFerragem.cores}
+                    onChange={e => setNovaFerragem({ ...novaFerragem, cores: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Categoria</label>
+                  <input
+                    type="text"
+                    value={novaFerragem.categoria}
+                    onChange={e => setNovaFerragem({ ...novaFerragem, categoria: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
+
+              {/* Preço de Venda */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Cores</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Branco, Preto"
-                  value={novaFerragem.cores}
-                  onChange={e => setNovaFerragem({ ...novaFerragem, cores: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Categoria</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Box, Porta"
-                  value={novaFerragem.categoria}
-                  onChange={e => setNovaFerragem({ ...novaFerragem, categoria: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Preço Base (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={novaFerragem.preco ?? ""}
-                  onChange={e => setNovaFerragem({ ...novaFerragem, preco: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novaFerragem.preco ?? ""}
+                    onChange={e => setNovaFerragem({ ...novaFerragem, preco: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            {/* Ações Inferiores com o Tema Glass Code */}
+            <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-50">
               <button
                 onClick={() => setMostrarModal(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
+                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-all"
               >
-                Cancelar
+                Descartar
               </button>
               <button
                 onClick={salvarFerragem}
                 disabled={carregando}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: darkTertiary, color: darkPrimary }}
               >
-                {carregando ? "Salvando..." : (editando ? "Atualizar" : "Salvar")}
+                {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Ferragem")}
               </button>
             </div>
           </div>
         </div>
       )}
-
+      
       {/* MODAL DE LOADING PARA O PDF */}
       {gerandoPDF && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">

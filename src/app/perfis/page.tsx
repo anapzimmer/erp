@@ -21,7 +21,7 @@ const menuPrincipal: MenuItem[] = [
   { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
   {
     nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" },
-    { nome: "Vidros PDF", rota: "/calculovidroPDF" },]  
+    { nome: "Vidros PDF", rota: "/calculovidroPDF" },]
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
@@ -329,40 +329,40 @@ export default function PerfisPage() {
     reader.readAsArrayBuffer(file);
   }
 
-const gerarPDF = async () => {
-  setGerandoPDF(true);
-  try {
-    // Filtra os dados exatamente como estão na sua tabela agora
-    const perfisParaExportar = perfis.filter(p => {
-      const termo = filtroNome.toLowerCase();
-      const matchesBusca =
-        p.nome.toLowerCase().includes(termo) ||
-        p.codigo.toLowerCase().includes(termo) ||
-        p.categoria.toLowerCase().includes(termo);
-      const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
-      return matchesBusca && matchesCor;
-    });
+  const gerarPDF = async () => {
+    setGerandoPDF(true);
+    try {
+      // Filtra os dados exatamente como estão na sua tabela agora
+      const perfisParaExportar = perfis.filter(p => {
+        const termo = filtroNome.toLowerCase();
+        const matchesBusca =
+          p.nome.toLowerCase().includes(termo) ||
+          p.codigo.toLowerCase().includes(termo) ||
+          p.categoria.toLowerCase().includes(termo);
+        const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
+        return matchesBusca && matchesCor;
+      });
 
-    // Gera o documento usando o componente visual que criamos
-    const doc = <PerfisPDF dados={perfisParaExportar} empresa={nomeEmpresa} />;
-    const blob = await pdf(doc).toBlob();
-    
-    // Cria o link de download
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `catalogo_perfis_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`;
-    link.click();
-    
-    // Limpa a memória
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF profissional." });
-  } finally {
-    setGerandoPDF(false);
-  }
-};
+      // Gera o documento usando o componente visual que criamos
+      const doc = <PerfisPDF dados={perfisParaExportar} empresa={nomeEmpresa} />;
+      const blob = await pdf(doc).toBlob();
+
+      // Cria o link de download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `catalogo_perfis_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`;
+      link.click();
+
+      // Limpa a memória
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF profissional." });
+    } finally {
+      setGerandoPDF(false);
+    }
+  };
 
   // --- Funções Lógicas ---
   const salvarPerfil = async () => {
@@ -653,10 +653,10 @@ const gerarPDF = async () => {
             <div className="flex flex-wrap gap-3">
               <input
                 type="text"
-                placeholder="Nome..."
-                // ... outros atributos
+                placeholder="Nome, código ou categoria..."
+                value={filtroNome} // Faltava isso
+                onChange={(e) => setFiltroNome(e.target.value)} // E isso
                 className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:border-2"
-                style={{ borderColor: 'transparent', focusBorderColor: darkTertiary } as any} // Ou apenas:
                 onFocus={(e) => e.currentTarget.style.borderColor = darkTertiary}
                 onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
               />
@@ -695,16 +695,15 @@ const gerarPDF = async () => {
                 {perfis
                   .filter(p => {
                     const termo = filtroNome.toLowerCase();
-                    // Busca no Nome, no Código ou na Categoria
                     const matchesBusca =
-                      p.nome.toLowerCase().includes(termo) ||
-                      p.codigo.toLowerCase().includes(termo) ||
-                      p.categoria.toLowerCase().includes(termo);
+                      (p.nome || "").toLowerCase().includes(termo) ||
+                      (p.codigo || "").toLowerCase().includes(termo) ||
+                      (p.categoria || "").toLowerCase().includes(termo);
 
-                    // Filtro de Cor (separado)
-                    const matchesCor = p.cores.toLowerCase().includes(filtroCor.toLowerCase());
+                    const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
+                    const matchesCategoria = (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase());
 
-                    return matchesBusca && matchesCor;
+                    return matchesBusca && matchesCor && matchesCategoria;
                   })
                   .map(p => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
@@ -748,93 +747,102 @@ const gerarPDF = async () => {
         </div>
       )}
 
-      {/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO FERRAGENS) */}
+      {/* MODAL DE CADASTRO/EDIÇÃO (MINIMALISTA) */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-40 animate-fade-in px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold" style={{ color: darkPrimary }}>
-                {editando ? "Editar Perfil" : "Cadastrar Perfil"}
-              </h2>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 animate-fade-in px-4">
+          <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
+
+            {/* Cabeçalho usando darkPrimary */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>
+                  {editando ? "Editar Perfil" : "Novo Perfil"}
+                </h2>
+                {/* Linha de detalhe com darkTertiary */}
+                <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
+              </div>
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {/* Grid de 4 colunas igual Ferragens */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Código *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: P001"
-                  value={novoPerfil.codigo}
-                  onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-1">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Código</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.codigo}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                    style={{ focusBorderColor: darkTertiary } as any} // Foco sutil no tema
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Descrição do Alumínio</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.nome}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Nome *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Trilho Superior"
-                  value={novoPerfil.nome}
-                  onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Cor</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.cores}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Categoria</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.categoria}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Cores</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Branco"
-                  value={novoPerfil.cores}
-                  onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Categoria</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Box"
-                  value={novoPerfil.categoria}
-                  onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Preço Base (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={novoPerfil.preco ?? ""}
-                  onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": darkTertiary } as React.CSSProperties}
-                />
+
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={novoPerfil.preco ?? ""}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            {/* Ações com o Tema */}
+            <div className="flex justify-end items-center gap-3 mt-8">
               <button
                 onClick={() => setMostrarModal(false)}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition"
+                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-all"
               >
-                Cancelar
+                Descartar
               </button>
               <button
                 onClick={salvarPerfil}
                 disabled={carregando}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition flex items-center gap-2"
-                style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95"
+                style={{ backgroundColor: darkTertiary, color: darkPrimary }} // Aplicando seu tema aqui
               >
-                {carregando ? "Salvando..." : (editando ? "Atualizar" : "Salvar")}
+                {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Perfil")}
               </button>
             </div>
           </div>
@@ -859,11 +867,11 @@ const gerarPDF = async () => {
       {/* MODAL DE AVISO/CONFIRMAÇÃO (PADRÃO FERRAGENS) */}
       {modalAviso && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 px-4">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-sm border border-gray-100">
+          <div className="bg-white rounded-[32px] p-8 shadow-2xl w-full max-w-sm border border-gray-100 flex flex-col items-center text-center scale-up-center">
             <h3 className="text-lg font-bold mb-2 text-center" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
             <p className="text-gray-600 text-sm mb-6 text-center whitespace-pre-line">{modalAviso.mensagem}</p>
             <div className="flex justify-center gap-3">
-              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition">
+              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl  text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition">
                 {modalAviso.confirmar ? "Cancelar" : "Entendido"}
               </button>
               {modalAviso.confirmar && (
@@ -872,15 +880,6 @@ const gerarPDF = async () => {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE LOADING CSV */}
-      {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 shadow-2xl animate-bounce">
-            <p className="font-bold" style={{ color: darkPrimary }}>Processando CSV de Perfis...</p>
           </div>
         </div>
       )}
