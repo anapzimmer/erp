@@ -1,10 +1,13 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, UsersRound, FileText, ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, ChevronRight, X } from "lucide-react";
-import Image from "next/image";
+import {
+  LayoutDashboard, UsersRound, FileText, ImageIcon, BarChart3,
+  Square, Package, Wrench, Boxes, Briefcase, ChevronRight, X, Building2
+} from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
+// --- CONSTANTES FORA DO COMPONENTE (Resolve erro ts(2304)) ---
 type MenuItem = {
   nome: string;
   rota: string;
@@ -62,9 +65,8 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
             }
           }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1"
-          style={{ 
+          style={{
             color: theme.menuTextColor,
-            // 🔥 Aplica a cor de hover ou ativo dinamicamente
             backgroundColor: isActive ? theme.menuHoverColor : "transparent",
           }}
           onMouseEnter={(e) => {
@@ -75,14 +77,14 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
           }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} /> 
+            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
           {item.submenu && (
             <ChevronRight className={`w-4 h-4 opacity-70 transition-transform duration-300 ${isActive ? 'rotate-90' : ''}`} />
           )}
         </div>
-        
+
         {item.submenu && (
           <div className="ml-7 flex flex-col gap-1 pl-2 mt-1" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
             {item.submenu.map((sub) => {
@@ -112,40 +114,44 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
   };
 
   return (
-    <aside 
+    <aside
       className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 
-        ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} 
+        ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}
       style={{ backgroundColor: theme.menuBackgroundColor }}
     >
-      <button 
-        onClick={() => setShowMobileMenu(false)} 
+      <button
+        onClick={() => setShowMobileMenu(false)}
         className="md:hidden absolute top-4 right-4"
         style={{ color: theme.menuTextColor }}
       >
         <X size={24} />
       </button>
 
-      <div className="px-3 py-6 mb-6 flex justify-center">
-        <Image 
-          src={theme.logoDarkUrl || "/glasscode2.png"} 
-          alt="Logo ERP" 
-          width={200} 
-          height={56} 
-          className="h-12 md:h-14 object-contain" 
-        />
+      <div className="p-6 mb-4 flex justify-center">
+        {/* 🔥 Usando theme.logoDarkUrl que é o nome que está no seu Context */}
+        {theme.logoDarkUrl ? (
+          <img
+            src={theme.logoDarkUrl}
+            alt="Logo"
+            className="max-h-16 object-contain"
+            loading="eager" // 🔥 Adicione isso para resolver o aviso do console
+          />
+        ) : (
+          <Building2 style={{ color: theme.menuIconColor }} />
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto space-y-6">
         <div>
-          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60" 
-             style={{ color: theme.menuIconColor }}>
+          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60"
+            style={{ color: theme.menuIconColor }}>
             Principal
           </p>
           {menuPrincipal.map(renderMenuItem)}
         </div>
         <div>
-          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60" 
-             style={{ color: theme.menuIconColor }}>
+          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60"
+            style={{ color: theme.menuIconColor }}>
             Cadastros
           </p>
           {menuCadastros.map(renderMenuItem)}

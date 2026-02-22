@@ -9,6 +9,7 @@ import Image from "next/image"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
 import { LayoutDashboard } from "lucide-react"
+import Sidebar from "@/components/Sidebar";
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
@@ -440,38 +441,26 @@ export default function GestaoPrecosPage() {
     );
   }
 
-  return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+   return (
+    <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
-      {/* SIDEBAR */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-      >
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4" style={{ color: theme.menuTextColor }}>
-          <X size={24} />
-        </button>
-        <div className="px-3 py-4 mb-4 flex justify-center">
-          <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
-        </div>
+      {/* 🔥 SIDEBAR CONECTADA: Substituímos todo o bloco <aside> antigo por este componente */}
+      <Sidebar 
+        showMobileMenu={showMobileMenu} 
+        setShowMobileMenu={setShowMobileMenu} 
+        nomeEmpresa={nomeEmpresa} 
+      />
 
-        <nav className="flex-1 overflow-y-auto space-y-6">
-          <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p>
-            {menuPrincipal.map(renderMenuItem)}
-          </div>
-          <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Cadastros</p>
-            {menuCadastros.map(renderMenuItem)}
-          </div>
-        </nav>
-      </aside>
-
-      {/* Overlay */}
-      {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
+      {/* Overlay Mobile */}
+      {showMobileMenu && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          onClick={() => setShowMobileMenu(false)}
+        ></div>
+      )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
 
         {/* TOPBAR */}
         <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
@@ -498,34 +487,18 @@ export default function GestaoPrecosPage() {
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Menu Dropdown */}
+              {/* Menu Dropdown - Identidade Visual e Sair */}
               {showUserMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
                   <div className="px-3 py-2 border-b border-gray-100">
                     <p className="text-xs text-gray-400">Logado como</p>
                     <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
                   </div>
-
-                  <button
-                    onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
-                  >
-                    <Settings size={18} className="text-gray-400" />
-                    Configurações
-                  </button>
-
-                  <button
-                    onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
-                  >
+                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
                     <Palette size={18} className="text-gray-400" />
                     Identidade Visual
                   </button>
-
-                  <button
-                    onClick={handleSignOut}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
-                  >
+                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl">
                     <LogOut size={18} />
                     Sair
                   </button>
@@ -579,8 +552,14 @@ export default function GestaoPrecosPage() {
                 {tabelas.map(t => (
                   <div
                     key={t.id}
-                    className={`w-full group text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'bg-blue-50 text-blue-800 shadow-inner' : 'hover:bg-gray-50'}`}
-                    style={{ border: `1px solid ${tabelaSelecionada?.id === t.id ? '#BFDBFE' : '#E5E7EB'}` }}
+                    className={`w-full group text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-gray-50'
+                      }`}
+                    style={{
+                      // Se selecionado, usa a cor do tema com transparência, senão transparente
+                      backgroundColor: tabelaSelecionada?.id === t.id ? `${theme.menuBackgroundColor}15` : 'transparent',
+                      color: tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : 'inherit',
+                      border: `1px solid ${tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : '#E5E7EB'}`
+                    }}
                   >
                     <div className="flex-1 cursor-pointer truncate" onClick={() => setTabelaSelecionada(t)}>
                       <span className="truncate">{t.nome}</span>
@@ -648,7 +627,14 @@ export default function GestaoPrecosPage() {
                       // Troquei menuBackgroundColor por menuIconColor (Turquesa)
                       style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
                     >
-                      {carregando ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <PlusCircle size={20} />}
+                      {carregando ? (
+                        <div
+                          className="w-5 h-5 border-2 rounded-full animate-spin"
+                          style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#FFF' }}
+                        />
+                      ) : (
+                        <PlusCircle size={20} />
+                      )}
                     </button>
                   </div>
 

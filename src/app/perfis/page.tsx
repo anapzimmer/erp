@@ -1,9 +1,8 @@
 //app/perfis/page.tsx
 "use client"
-
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { formatarPreco } from "@/utils/formatarPreco" // 🔥 Certifique-se que este arquivo existe
+import { formatarPreco } from "@/utils/formatarPreco"
 import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -35,9 +34,7 @@ const menuCadastros: MenuItem[] = [
   { nome: "Kits", rota: "/kits", icone: Boxes },
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
 ]
-
 // --- Utils ---
-// Função para padronizar o texto (Primeira letra de cada palavra em Maiúscula)
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
   return texto
@@ -60,7 +57,9 @@ export default function PerfisPage() {
   const [gerandoPDF, setGerandoPDF] = useState(false);
 
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-  const [logoDark, setLogoDark] = useState<string | null>("/glasscode2.png");
+
+  // --- Estados de Cores e Logo (Conectados ao Supabase) ---
+  const [logoDark, setLogoDark] = useState<string | null>(null);
   const [darkPrimary, setDarkPrimary] = useState("#1C415B");
   const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
   const [darkTertiary, setDarkTertiary] = useState("#39B89F");
@@ -78,7 +77,6 @@ export default function PerfisPage() {
   const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
 
-  // --- Estados de Filtro ---
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState("")
@@ -86,7 +84,7 @@ export default function PerfisPage() {
 
   // --- Efeitos de Inicialização e Auth ---
 
-  useEffect(() => {
+ useEffect(() => {
     const init = async () => {
       const { data: userData } = await supabase.auth.getUser();
 
@@ -109,62 +107,55 @@ export default function PerfisPage() {
         return;
       }
 
-      setEmpresaIdUsuario(data.empresa_id);
-      await carregarDados(data.empresa_id);
+      const empresaId = data.empresa_id;
+      setEmpresaIdUsuario(empresaId);
 
-      // 🔥 Buscar dados da empresa
+      // 🔥 BUSCA DINÂMICA DE CORES E LOGO DA EMPRESA
       const { data: empresaData, error: empresaError } = await supabase
         .from("empresas")
-        .select("nome")
-        .eq("id", data.empresa_id)
+        .select("*")
+        .eq("id", empresaId)
         .single();
 
       if (!empresaError && empresaData) {
         setNomeEmpresa(empresaData.nome);
+        if (empresaData.logo_url) setLogoDark(empresaData.logo_url);
+        if (empresaData.cor_primaria) setDarkPrimary(empresaData.cor_primaria);
+        if (empresaData.cor_secundaria) setDarkSecondary(empresaData.cor_secundaria);
+        if (empresaData.cor_terciaria) {
+            setDarkTertiary(empresaData.cor_terciaria);
+            setDarkHover(empresaData.cor_terciaria);
+        }
+        if (empresaData.cor_fundo) setLightPrimary(empresaData.cor_fundo);
       }
 
-      // Carregar perfis
-      await carregarDados(data.empresa_id);
-
+      await carregarDados(empresaId);
       setCheckingAuth(false);
     };
 
     init();
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     const handleScroll = () => {
-      // Mostra o botão se rolar mais de 300px
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
+      if (window.scrollY > 300) setShowScrollTop(true);
+      else setShowScrollTop(false);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- Função de Scroll ---
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const scrollToTop = () => { window.scrollTo({ top: 0, behavior: "smooth" }); };
 
-  // --- Funções de Dados ---
   const carregarDados = async (empresaId: string) => {
     setCarregando(true);
-
     const { data, error } = await supabase
       .from("perfis")
       .select("*")
       .eq("empresa_id", empresaId)
       .order("codigo", { ascending: true });
 
-    if (!error && data) {
-      setPerfis(data);
-    }
-
+    if (!error && data) setPerfis(data);
     setCarregando(false);
   };
 
@@ -522,7 +513,7 @@ export default function PerfisPage() {
       <div className="flex-1 flex flex-col w-full">
 
         {/* TOPBAR */}
-        <header
+<header
           className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
           style={{ backgroundColor: lightSecondary }}
         >
@@ -591,7 +582,7 @@ export default function PerfisPage() {
 
 
         {/* CONTEÚDO ESPECÍFICO */}
-        <main className="p-4 md:p-8 flex-1">
+      <main className="p-4 md:p-8 flex-1">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}>
@@ -603,61 +594,58 @@ export default function PerfisPage() {
               </div>
             </div>
 
-    {/* BOTÕES DE AÇÕES SUPERIORES */}
-<div className="flex items-center gap-2 no-print">
-  {/* Botão Imprimir PDF */}
-  <button
-    onClick={gerarPDF}
-    title="Gerar Catálogo PDF"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Printer
-      size={20}
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-  </button>
+            {/* BOTÕES DE AÇÕES SUPERIORES */}
+            <div className="flex items-center gap-2 no-print">
+              <button
+                onClick={gerarPDF}
+                title="Gerar Catálogo PDF"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Printer
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </button>
 
-  {/* Botão Exportar CSV */}
-  <button
-    onClick={exportarCSV}
-    title="Exportar CSV"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Download
-      size={20}
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-  </button>
+              <button
+                onClick={exportarCSV}
+                title="Exportar CSV"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Download
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </button>
 
-  {/* Botão Importar CSV */}
-  <label
-    htmlFor="importarCSV"
-    title="Importar CSV"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-none"
-  >
-    <Upload
-      size={20}
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-    <input
-      type="file"
-      id="importarCSV"
-      accept=".csv"
-      className="hidden"
-      onChange={importarCSV}
-    />
-  </label>
-</div>
+              <label
+                htmlFor="importarCSV"
+                title="Importar CSV"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-none"
+              >
+                <Upload
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+                <input
+                  type="file"
+                  id="importarCSV"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={importarCSV}
+                />
+              </label>
+            </div>
           </div>
 
           {/* CARDS INDICADORES */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
               { titulo: "Total", valor: totalPerfis, icone: Layers },
               { titulo: "Com Preço", valor: comPreco, icone: DollarSign },
@@ -673,13 +661,13 @@ export default function PerfisPage() {
           </div>
 
           {/* FILTROS E BOTOES DE ACAO INFERIORES */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+       <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
             <div className="flex flex-wrap gap-3">
               <input
                 type="text"
                 placeholder="Nome, código ou categoria..."
-                value={filtroNome} // Faltava isso
-                onChange={(e) => setFiltroNome(e.target.value)} // E isso
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
                 className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:border-2"
                 onFocus={(e) => e.currentTarget.style.borderColor = darkTertiary}
                 onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
@@ -688,7 +676,6 @@ export default function PerfisPage() {
               <input type="text" placeholder="Categoria..." value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
             </div>
 
-            {/* BOTÕES DE AÇÃO PRINCIPAIS */}
             <div className="flex items-center gap-2">
               <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} /> Limpar Duplicados
               </button>
@@ -703,7 +690,7 @@ export default function PerfisPage() {
           </div>
 
           {/* TABELA ATUALIZADA (PADRÃO FERRAGENS) */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+       <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
@@ -723,20 +710,17 @@ export default function PerfisPage() {
                       (p.nome || "").toLowerCase().includes(termo) ||
                       (p.codigo || "").toLowerCase().includes(termo) ||
                       (p.categoria || "").toLowerCase().includes(termo);
-
                     const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
                     const matchesCategoria = (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase());
-
                     return matchesBusca && matchesCor && matchesCategoria;
                   })
                   .map(p => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4 text-gray-500 font-medium">{p.codigo}</td>
                       <td className="p-4">
-                        <span className="p-4 text-gray-500 font-medium" style={{ color: lightTertiary }}>{p.nome}</span>
+                        <span className="text-gray-500 font-medium" style={{ color: lightTertiary }}>{p.nome}</span>
                       </td>
                       <td className="p-4">
-                        {/* Padronização visual da cor com a cor do sistema (darkTertiary) */}
                         <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
                           style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
                           {p.cores || "Padrão"}

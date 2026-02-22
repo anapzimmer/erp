@@ -1,13 +1,13 @@
 //ThemeContext.tsx
 "use client";
 
-import { 
-  createContext, 
-  useContext, 
-  useState, 
-  useEffect, 
-  ReactNode, 
-  useCallback 
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -28,6 +28,10 @@ export interface ThemeColors {
   modalTextColor: string;
   modalButtonBackgroundColor: string;
   modalButtonTextColor: string;
+  modalIconSuccessColor: string; // Adicionado
+  modalIconErrorColor: string;   // Adicionado
+  modalIconWarningColor: string; // Adicionado
+  logoUrl?: string | null;
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
 }
@@ -48,6 +52,9 @@ const defaultTheme: ThemeColors = {
   modalTextColor: "#1C415B",
   modalButtonBackgroundColor: "#1C415B",
   modalButtonTextColor: "#FFFFFF",
+  modalIconSuccessColor: "#059669",
+  modalIconErrorColor: "#DC2626",
+  modalIconWarningColor: "#D97706",
   logoLightUrl: "/glasscode.png",
   logoDarkUrl: "/glasscode2.png",
 };
@@ -67,28 +74,31 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const fetchTheme = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // 1. Obter sessão atual de forma mais performática
+
       const { data: { session } } = await supabase.auth.getSession();
+
       if (!session) {
+        setTheme(defaultTheme); // Se não há sessão, volta ao padrão
+        return;
+      }
+
+      // BUSCA O PERFIL COM EMPRESA_ID ESPECÍFICO DO USUÁRIO LOGADO
+      const { data: perfil, error: perfilError } = await supabase
+        .from("perfis_usuarios") // Certifique-se que o nome é este no banco
+        .select("*") // Usar * evita o erro 400 se 'nome_completo' não existir
+        .eq("id", session.user.id)
+        .single();
+
+      if (perfilError || !perfil?.empresa_id) {
+        console.error("Vínculo de empresa não encontrado:", perfilError);
         setTheme(defaultTheme);
         return;
       }
 
-      // 2. Query otimizada: busca perfil e branding em paralelo ou via join
-      // Aqui assumimos que perfis_usuarios tem empresa_id
-      const { data: perfil, error: perfilError } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", session.user.id)
-        .single();
-
-      if (perfilError || !perfil?.empresa_id) throw new Error("Perfil não encontrado");
-
       const { data: branding, error: brandingError } = await supabase
         .from("configuracoes_branding")
         .select("*")
-        .eq("empresa_id", perfil.empresa_id)
+        .eq("empresa_id", perfil.empresa_id) // 👈 O segredo está aqui
         .single();
 
       if (brandingError && brandingError.code !== 'PGRST116') throw brandingError;
@@ -110,6 +120,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           modalTextColor: branding.modal_text_color || defaultTheme.modalTextColor,
           modalButtonBackgroundColor: branding.modal_button_background_color || defaultTheme.modalButtonBackgroundColor,
           modalButtonTextColor: branding.modal_button_text_color || defaultTheme.modalButtonTextColor,
+          modalIconSuccessColor: branding.modal_icon_success_color || defaultTheme.modalIconSuccessColor,
+          modalIconErrorColor: branding.modal_icon_error_color || defaultTheme.modalIconErrorColor,
+          modalIconWarningColor: branding.modal_icon_warning_color || defaultTheme.modalIconWarningColor,
+          logoUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
           logoLightUrl: branding.logo_light || defaultTheme.logoLightUrl,
           logoDarkUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
         });
@@ -140,6 +154,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       "--gc-btn-dark-text": theme.buttonDarkText,
       "--gc-modal-bg": theme.modalBackgroundColor,
       "--gc-modal-text": theme.modalTextColor,
+      "--gc-modal-btn-bg": theme.modalButtonBackgroundColor,
+      "--gc-modal-btn-text": theme.modalButtonTextColor,
+      "--gc-success": theme.modalIconSuccessColor,
+      "--gc-error": theme.modalIconErrorColor,
+      "--gc-warning": theme.modalIconWarningColor,
     };
 
     Object.entries(styles).forEach(([key, value]) => {
