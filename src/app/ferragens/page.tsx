@@ -455,8 +455,8 @@ export default function FerragensPage() {
               </div>
             </div>
 
-            {/* AÇÕES PADRONIZADAS */}
-           <div className="flex gap-2">
+{/* AÇÕES PADRONIZADAS */}
+<div className="flex gap-2">
   {/* Botão Imprimir PDF */}
   <button
     onClick={() => gerarPDF()}
@@ -465,8 +465,9 @@ export default function FerragensPage() {
   >
     <Printer 
       size={20} 
-      style={{ color: darkPrimary }} 
-      className="group-hover:scale-110 group-hover:text-orange-500 transition-all" 
+      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
+      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
     />
   </button>
 
@@ -478,7 +479,9 @@ export default function FerragensPage() {
   >
     <Download 
       size={20} 
-      className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" 
+      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
+      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
     />
   </button>
 
@@ -490,7 +493,9 @@ export default function FerragensPage() {
   >
     <Upload 
       size={20} 
-      className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" 
+      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
+      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
     />
     <input
       type="file"

@@ -3,11 +3,14 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle, X, Building2, ChevronDown, LogOut, Settings, Menu, ChevronRight, Loader2 } from "lucide-react"
+import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle, X, Printer, Building2, ChevronDown, LogOut, Settings, Menu, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
+import { VidrosPDF } from "app/relatorios/vidros/VidrosPDF"
 import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
+import { PDFDownloadLink } from "@react-pdf/renderer";
+
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
@@ -392,15 +395,45 @@ export default function VidrosPage() {
                 <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de vidros e preços.</p>
               </div>
             </div>
-            {/* BOTÕES DE IMPORT/EXPORT */}
-            <div className="flex gap-2">
+            {/* BOTÕES DE AÇÕES SUPERIORES */}
+            <div className="flex items-center gap-2 no-print">
+
+              {/* Botão Imprimir PDF */}
+              {typeof window !== "undefined" && (
+                <PDFDownloadLink
+                  document={<VidrosPDF dados={vidrosFiltrados} empresa={nomeEmpresa || "Sua Empresa"} />}
+                  fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
+                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                  title="Gerar PDF"
+                >
+                  {({ loading }) => (
+                    loading ? (
+                      <Loader2 size={20} className="animate-spin text-gray-400" />
+                    ) : (
+                      <Printer
+                        size={20}
+                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                        style={{ color: 'inherit' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} // text-gray-500
+                      />
+                    )
+                  )}
+                </PDFDownloadLink>
+              )}
+
               {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
                 title="Exportar CSV"
                 className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
               >
-                <Download className="w-5 h-5 text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
+                <Download
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
               </button>
 
               {/* Botão Importar CSV */}
@@ -409,16 +442,20 @@ export default function VidrosPage() {
                 title="Importar CSV"
                 className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
               >
-                <Upload className="w-5 h-5 text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
+                <Upload
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+                <input
+                  type="file"
+                  id="importarCSV"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={importarCSV}
+                />
               </label>
-
-              <input
-                type="file"
-                id="importarCSV"
-                accept=".csv"
-                className="hidden"
-                onChange={importarCSV}
-              />
             </div>
           </div>
 

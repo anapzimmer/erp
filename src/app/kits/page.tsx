@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
-  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
+  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,Loader2,
   Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
   PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
   DollarSign, ArrowUp, Square
@@ -531,50 +531,61 @@ export default function KitsPage() {
               </div>
             </div>
 
-            {/* AÇÕES (BOTÕES PADRONIZADOS) */}
-            <div className="flex items-center gap-2 no-print">
+{/* AÇÕES (BOTÕES PADRONIZADOS) */}
+<div className="flex items-center gap-2 no-print">
 
-              {/* Botão PDF */}
-              {isClient && (
-                <PDFDownloadLink
-                  document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
-                  fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
-                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-                  title="Imprimir PDF"
-                >
-                  <Printer
-                    size={20}
-                    style={{ color: darkPrimary }}
-                    className="group-hover:scale-110 transition-all"
-                  />
-                </PDFDownloadLink>
-              )}
+  {/* Botão PDF */}
+  {isClient && (
+    <PDFDownloadLink
+      document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
+      fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
+      className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+      title="Imprimir PDF"
+    >
+      {({ loading }) => (
+        loading ? (
+          <Loader2 size={20} className="animate-spin text-gray-400" />
+        ) : (
+          <Printer
+            size={20}
+            className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+            onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+          />
+        )
+      )}
+    </PDFDownloadLink>
+  )}
 
-              {/* Botão Exportar CSV */}
-              <button
-                onClick={handleExportarCSV}
-                title="Exportar Planilha"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-              >
-                <Download
-                  size={20}
-                  className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all"
-                />
-              </button>
+  {/* Botão Exportar CSV */}
+  <button
+    onClick={handleExportarCSV}
+    title="Exportar Planilha"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+  >
+    <Download
+      size={20}
+      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+    />
+  </button>
 
-              {/* Botão Importar CSV */}
-              <label
-                title="Importar Planilha"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
-              >
-                <Upload
-                  size={20}
-                  className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all"
-                />
-                <input type="file" accept=".csv" className="hidden" onChange={handleImportarCSV} />
-              </label>
+  {/* Botão Importar CSV */}
+  <label
+    title="Importar Planilha"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+  >
+    <Upload
+      size={20}
+      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+    />
+    <input type="file" accept=".csv" className="hidden" onChange={handleImportarCSV} />
+  </label>
 
-            </div>
+</div>
           </div>
 
           {/* INDICADORES */}
