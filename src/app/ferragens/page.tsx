@@ -398,43 +398,64 @@ const gerarPDF = async () => {
 
         <main className="p-4 md:p-8 flex-1">
 
-          {/* HEADER SEÇÃO */}
-          <div className="flex items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}> <Wrench size={28} /> </div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Dashboard de Ferragens</h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de ferragens e preços.</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {/* BOTÃO IMPRIMIR (Print de Tela) */}
-              <button
-                onClick={() => gerarPDF()} // Vamos criar essa função agora
-                className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center"
-                title="Imprimir Catálogo"
-              >
-                <Printer size={20} style={{ color: darkPrimary }} />
-              </button>
-              <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
-                <Download className="w-5 h-5 text-gray-600" />
-              </button>
+       {/* HEADER SEÇÃO - FERRAGENS */}
+<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+  <div className="flex items-center gap-4">
+    <div 
+      className="p-4 rounded-2xl shadow-inner" 
+      style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}
+    > 
+      <Wrench size={32} /> 
+    </div>
+    <div>
+      <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
+        Dashboard de Ferragens
+      </h1>
+      <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">
+        Gerencie seu catálogo de ferragens e preços.
+      </p>
+    </div>
+  </div>
 
-              {/* O label funciona como o botão visual */}
-              <label htmlFor="importarCSV" className="p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:bg-gray-50">
-                <Upload className="w-5 h-5 text-gray-600" />
-              </label>
+  {/* AÇÕES PADRONIZADAS */}
+  <div className="flex items-center gap-3 no-print">
+    
+    {/* Botão Imprimir PDF */}
+    <button
+      onClick={() => gerarPDF()}
+      title="Imprimir Catálogo"
+      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center no-print"
+    >
+      <Printer size={20} style={{ color: darkPrimary }} className="group-hover:scale-110 transition-transform" />
+    </button>
 
-              {/* O input fica escondido e dispara o evento onChange */}
-              <input
-                type="file"
-                id="importarCSV"
-                accept=".csv"
-                className="hidden"
-                onChange={importarCSV}
-              />
-            </div>
-          </div>
+    {/* Botão Exportar CSV */}
+    <button 
+      onClick={exportarCSV} 
+      title="Exportar Planilha"
+      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+    >
+      <Download size={20} className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
+    </button>
+
+    {/* Botão Importar CSV */}
+    <label 
+      htmlFor="importarCSV"
+      title="Importar Planilha"
+      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+    >
+      <Upload size={20} className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
+      <input 
+        type="file" 
+        id="importarCSV" 
+        accept=".csv" 
+        className="hidden" 
+        onChange={importarCSV} 
+      />
+    </label>
+
+  </div>
+</div>
 
           {/* INDICADORES */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">

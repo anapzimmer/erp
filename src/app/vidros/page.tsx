@@ -444,10 +444,10 @@ export default function VidrosPage() {
               <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
                 {vidrosFiltrados.map(v => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-medium text-gray-900">{v.nome}</td>
-                    <td className="p-4">{v.espessura}</td>
-                    <td className="p-4">{v.tipo}</td>
-                    <td className="p-4 font-semibold" style={{ color: theme.menuBackgroundColor }}>{formatarPreco(v.preco)}</td>
+                    <td className="p-4 text-gray-500 font-medium">{v.nome}</td>
+                    <td className="p-4 text-gray-500 font-medium">{v.espessura}</td>
+                    <td className="p-4 text-gray-500 font-medium">{v.tipo}</td>
+                    <td className="p-4 text-gray-500 font-medium" style={{ color: theme.menuBackgroundColor }}>{formatarPreco(v.preco)}</td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => abrirModalParaEdicao(v)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: theme.menuBackgroundColor }} title="Editar"> <Edit2 size={18} /> </button>
