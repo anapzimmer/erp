@@ -1,17 +1,25 @@
-//src/context/ThemeContext.tsx
+//ThemeContext.tsx
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from "react";
+
+import { 
+  createContext, 
+  useContext, 
+  useState, 
+  useEffect, 
+  ReactNode, 
+  useCallback 
+} from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-// 1. Estrutura do tema
+// Tipagem rigorosa para evitar erros de propriedade inexistente
 export interface ThemeColors {
   screenBackgroundColor: string;
   menuBackgroundColor: string;
   menuTextColor: string;
   menuIconColor: string;
   menuHoverColor: string;
-  contentTextLightBg: string; // Cor do texto sobre fundo claro
-  contentTextDarkBg: string;  // Cor do texto sobre fundo escuro
+  contentTextLightBg: string;
+  contentTextDarkBg: string;
   buttonDarkBg: string;
   buttonDarkText: string;
   buttonLightBg: string;
@@ -24,7 +32,6 @@ export interface ThemeColors {
   logoDarkUrl: string | null;
 }
 
-// 2. Valores padrão (Fallback)
 const defaultTheme: ThemeColors = {
   screenBackgroundColor: "#F4F7FA",
   menuBackgroundColor: "#1C415B",
@@ -45,87 +52,110 @@ const defaultTheme: ThemeColors = {
   logoDarkUrl: "/glasscode2.png",
 };
 
-const ThemeContext = createContext<{
+interface ThemeContextType {
   theme: ThemeColors;
-  setTheme: Dispatch<SetStateAction<ThemeColors>>;
-  refreshTheme: () => void
-}>({
-  theme: defaultTheme,
-  setTheme: () => { },
-  refreshTheme: () => { },
-});
+  refreshTheme: () => Promise<void>;
+  isLoading: boolean;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<ThemeColors>(defaultTheme);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTheme = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const fetchTheme = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // 1. Obter sessão atual de forma mais performática
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setTheme(defaultTheme);
+        return;
+      }
 
-    const { data: perfil } = await supabase
-      .from("perfis_usuarios")
-      .select("empresa_id")
-      .eq("id", user.id)
-      .single();
+      // 2. Query otimizada: busca perfil e branding em paralelo ou via join
+      // Aqui assumimos que perfis_usuarios tem empresa_id
+      const { data: perfil, error: perfilError } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", session.user.id)
+        .single();
 
-    if (!perfil) return;
+      if (perfilError || !perfil?.empresa_id) throw new Error("Perfil não encontrado");
 
-    const { data: brandingData } = await supabase
-      .from("configuracoes_branding")
-      .select("*")
-      .eq("empresa_id", perfil.empresa_id)
-      .single();
+      const { data: branding, error: brandingError } = await supabase
+        .from("configuracoes_branding")
+        .select("*")
+        .eq("empresa_id", perfil.empresa_id)
+        .single();
 
-    if (brandingData) {
-      // 3. Mapeamento dos dados do banco para o tema
-      setTheme({
-        screenBackgroundColor: brandingData.screen_background_color || defaultTheme.screenBackgroundColor,
-        menuBackgroundColor: brandingData.menu_background_color || defaultTheme.menuBackgroundColor,
-        menuTextColor: brandingData.menu_text_color || defaultTheme.menuTextColor,
-        menuIconColor: brandingData.menu_icon_color || defaultTheme.menuIconColor,
-        menuHoverColor: brandingData.menu_hover_color || defaultTheme.menuHoverColor,
-        contentTextLightBg: brandingData.content_text_light_bg || defaultTheme.contentTextLightBg,
-        contentTextDarkBg: brandingData.content_text_dark_bg || defaultTheme.contentTextDarkBg,
-        buttonDarkBg: brandingData.button_dark_bg || defaultTheme.buttonDarkBg,
-        buttonDarkText: brandingData.button_dark_text || defaultTheme.buttonDarkText,
-        buttonLightBg: brandingData.button_light_bg || defaultTheme.buttonLightBg,
-        buttonLightText: brandingData.button_light_text || defaultTheme.buttonLightText,
-        modalBackgroundColor: brandingData.modal_background_color || defaultTheme.modalBackgroundColor,
-        modalTextColor: brandingData.modal_text_color || defaultTheme.modalTextColor,
-        modalButtonBackgroundColor: brandingData.modal_button_background_color || defaultTheme.modalButtonBackgroundColor,
-        modalButtonTextColor: brandingData.modal_button_text_color || defaultTheme.modalButtonTextColor,
-        logoLightUrl: brandingData.logo_light || defaultTheme.logoLightUrl,
-        logoDarkUrl: brandingData.logo_dark || defaultTheme.logoDarkUrl,
-      });
+      if (brandingError && brandingError.code !== 'PGRST116') throw brandingError;
+
+      if (branding) {
+        setTheme({
+          screenBackgroundColor: branding.screen_background_color || defaultTheme.screenBackgroundColor,
+          menuBackgroundColor: branding.menu_background_color || defaultTheme.menuBackgroundColor,
+          menuTextColor: branding.menu_text_color || defaultTheme.menuTextColor,
+          menuIconColor: branding.menu_icon_color || defaultTheme.menuIconColor,
+          menuHoverColor: branding.menu_hover_color || defaultTheme.menuHoverColor,
+          contentTextLightBg: branding.content_text_light_bg || defaultTheme.contentTextLightBg,
+          contentTextDarkBg: branding.content_text_dark_bg || defaultTheme.contentTextDarkBg,
+          buttonDarkBg: branding.button_dark_bg || defaultTheme.buttonDarkBg,
+          buttonDarkText: branding.button_dark_text || defaultTheme.buttonDarkText,
+          buttonLightBg: branding.button_light_bg || defaultTheme.buttonLightBg,
+          buttonLightText: branding.button_light_text || defaultTheme.buttonLightText,
+          modalBackgroundColor: branding.modal_background_color || defaultTheme.modalBackgroundColor,
+          modalTextColor: branding.modal_text_color || defaultTheme.modalTextColor,
+          modalButtonBackgroundColor: branding.modal_button_background_color || defaultTheme.modalButtonBackgroundColor,
+          modalButtonTextColor: branding.modal_button_text_color || defaultTheme.modalButtonTextColor,
+          logoLightUrl: branding.logo_light || defaultTheme.logoLightUrl,
+          logoDarkUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao carregar branding:", error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
- useEffect(() => {
-  const root = document.documentElement;
+  useEffect(() => {
+    fetchTheme();
+  }, [fetchTheme]);
 
-  root.style.setProperty("--gc-screen-bg", theme.screenBackgroundColor);
-  root.style.setProperty("--gc-menu-bg", theme.menuBackgroundColor);
-  root.style.setProperty("--gc-menu-text", theme.menuTextColor);
-  root.style.setProperty("--gc-menu-icon", theme.menuIconColor);
-  root.style.setProperty("--gc-menu-hover", theme.menuHoverColor);
+  // Sincronização de CSS Variables
+  useEffect(() => {
+    const root = document.documentElement;
+    const styles: Record<string, string> = {
+      "--gc-screen-bg": theme.screenBackgroundColor,
+      "--gc-menu-bg": theme.menuBackgroundColor,
+      "--gc-menu-text": theme.menuTextColor,
+      "--gc-menu-icon": theme.menuIconColor,
+      "--gc-menu-hover": theme.menuHoverColor,
+      "--gc-text-light": theme.contentTextLightBg,
+      "--gc-text-dark": theme.contentTextDarkBg,
+      "--gc-btn-dark-bg": theme.buttonDarkBg,
+      "--gc-btn-dark-text": theme.buttonDarkText,
+      "--gc-modal-bg": theme.modalBackgroundColor,
+      "--gc-modal-text": theme.modalTextColor,
+    };
 
-  root.style.setProperty("--gc-text-light", theme.contentTextLightBg);
-  root.style.setProperty("--gc-text-dark", theme.contentTextDarkBg);
-
-  root.style.setProperty("--gc-button-dark-bg", theme.buttonDarkBg);
-  root.style.setProperty("--gc-button-dark-text", theme.buttonDarkText);
-  root.style.setProperty("--gc-button-light-bg", theme.buttonLightBg);
-  root.style.setProperty("--gc-button-light-text", theme.buttonLightText);
-
-  root.style.setProperty("--gc-modal-bg", theme.modalBackgroundColor);
-  root.style.setProperty("--gc-modal-text", theme.modalTextColor);
-}, [theme]);
+    Object.entries(styles).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, refreshTheme: fetchTheme }}>
+    <ThemeContext.Provider value={{ theme, refreshTheme: fetchTheme, isLoading }}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error("useTheme deve ser usado dentro de um ThemeProvider");
+  return context;
+};
