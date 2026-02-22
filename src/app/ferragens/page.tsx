@@ -7,7 +7,8 @@ import {
   LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
   Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
   PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
-  DollarSign, ArrowUp, Square} from "lucide-react"
+  DollarSign, ArrowUp, Square
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import type { Ferragem } from "@/types/ferragem"
@@ -335,39 +336,39 @@ export default function FerragensPage() {
     logo_url: "/glasscode.png"
   }
 
-const gerarPDF = async () => {
-  try {
-    setGerandoPDF(true);
+  const gerarPDF = async () => {
+    try {
+      setGerandoPDF(true);
 
-    const { pdf } = await import('@react-pdf/renderer');
-    const { FerragensPDF } = await import('../relatorios/ferragens/FerragensPDF');
+      const { pdf } = await import('@react-pdf/renderer');
+      const { FerragensPDF } = await import('../relatorios/ferragens/FerragensPDF');
 
-    // LIMPEZA PARA O PDF FICAR BONITO:
-    const dadosLimpos = ferragens.map(f => ({
-      ...f,
-      codigo: String(f.codigo).replace(/["\n\r]/g, '').trim(),
-      nome: String(f.nome).replace(/["\n\r]/g, ' ').trim(),
-      cores: String(f.cores || 'Padrão').replace(/["\n\r]/g, '').trim(),
-      categoria: String(f.categoria || 'Geral').replace(/["\n\r]/g, '').trim()
-    }));
+      // LIMPEZA PARA O PDF FICAR BONITO:
+      const dadosLimpos = ferragens.map(f => ({
+        ...f,
+        codigo: String(f.codigo).replace(/["\n\r]/g, '').trim(),
+        nome: String(f.nome).replace(/["\n\r]/g, ' ').trim(),
+        cores: String(f.cores || 'Padrão').replace(/["\n\r]/g, '').trim(),
+        categoria: String(f.categoria || 'Geral').replace(/["\n\r]/g, '').trim()
+      }));
 
-    const blob = await pdf(
-      <FerragensPDF dados={dadosLimpos} empresa={nomeEmpresa} />
-    ).toBlob();
+      const blob = await pdf(
+        <FerragensPDF dados={dadosLimpos} empresa={nomeEmpresa} />
+      ).toBlob();
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ferragens-${nomeEmpresa}.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF." });
-  } finally {
-    setGerandoPDF(false);
-  }
-};
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ferragens-${nomeEmpresa}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF." });
+    } finally {
+      setGerandoPDF(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
@@ -385,77 +386,122 @@ const gerarPDF = async () => {
         {/* TOPBAR */}
         <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white no-print">
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
+            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
+              <Menu size={24} className="text-gray-600" />
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-3 relative" ref={userMenuRef}>
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-4 border-l border-gray-200">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"><Building2 size={16} /></div>
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                <Building2 size={16} />
+              </div>
               <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
               <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
             </button>
+
+            {/* MENU DROPDOWN PADRONIZADO */}
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
+                <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Logado como</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/configuracoes");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <Wrench size={18} className="text-gray-400" />
+                  Configurações
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    router.push("/login");
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  <X size={18} className="text-red-500" />
+                  Sair
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
         <main className="p-4 md:p-8 flex-1">
 
-       {/* HEADER SEÇÃO - FERRAGENS */}
-<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-  <div className="flex items-center gap-4">
-    <div 
-      className="p-4 rounded-2xl shadow-inner" 
-      style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}
-    > 
-      <Wrench size={32} /> 
-    </div>
-    <div>
-      <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
-        Dashboard de Ferragens
-      </h1>
-      <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">
-        Gerencie seu catálogo de ferragens e preços.
-      </p>
-    </div>
-  </div>
+          {/* HEADER SEÇÃO - FERRAGENS */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+            <div className="flex items-center gap-4">
+              <div
+                className="p-4 rounded-2xl shadow-inner"
+                style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}
+              >
+                <Wrench size={32} />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
+                  Dashboard de Ferragens
+                </h1>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">
+                  Gerencie seu catálogo de ferragens e preços.
+                </p>
+              </div>
+            </div>
 
-  {/* AÇÕES PADRONIZADAS */}
-  <div className="flex items-center gap-3 no-print">
-    
-    {/* Botão Imprimir PDF */}
-    <button
-      onClick={() => gerarPDF()}
-      title="Imprimir Catálogo"
-      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center no-print"
-    >
-      <Printer size={20} style={{ color: darkPrimary }} className="group-hover:scale-110 transition-transform" />
-    </button>
+            {/* AÇÕES PADRONIZADAS */}
+           <div className="flex gap-2">
+  {/* Botão Imprimir PDF */}
+  <button
+    onClick={() => gerarPDF()}
+    title="Imprimir Catálogo"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center no-print"
+  >
+    <Printer 
+      size={20} 
+      style={{ color: darkPrimary }} 
+      className="group-hover:scale-110 group-hover:text-orange-500 transition-all" 
+    />
+  </button>
 
-    {/* Botão Exportar CSV */}
-    <button 
-      onClick={exportarCSV} 
-      title="Exportar Planilha"
-      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-    >
-      <Download size={20} className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
-    </button>
+  {/* Botão Exportar CSV */}
+  <button
+    onClick={exportarCSV}
+    title="Exportar Planilha"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+  >
+    <Download 
+      size={20} 
+      className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" 
+    />
+  </button>
 
-    {/* Botão Importar CSV */}
-    <label 
-      htmlFor="importarCSV"
-      title="Importar Planilha"
-      className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
-    >
-      <Upload size={20} className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
-      <input 
-        type="file" 
-        id="importarCSV" 
-        accept=".csv" 
-        className="hidden" 
-        onChange={importarCSV} 
-      />
-    </label>
-
-  </div>
+  {/* Botão Importar CSV */}
+  <label
+    htmlFor="importarCSV"
+    title="Importar Planilha"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+  >
+    <Upload 
+      size={20} 
+      className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" 
+    />
+    <input
+      type="file"
+      id="importarCSV"
+      accept=".csv"
+      className="hidden"
+      onChange={importarCSV}
+    />
+  </label>
 </div>
+          </div>
 
           {/* INDICADORES */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
@@ -574,11 +620,11 @@ const gerarPDF = async () => {
         </main>
       </div>
 
-{/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO MINIMALISTA DISCRETO) */}
+      {/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO MINIMALISTA DISCRETO) */}
       {mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 animate-fade-in px-4">
           <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
-            
+
             {/* Cabeçalho alinhado ao tema */}
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -587,8 +633,8 @@ const gerarPDF = async () => {
                 </h2>
                 <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
               </div>
-              <button 
-                onClick={() => setMostrarModal(false)} 
+              <button
+                onClick={() => setMostrarModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X size={20} />
@@ -676,7 +722,7 @@ const gerarPDF = async () => {
           </div>
         </div>
       )}
-      
+
       {/* MODAL DE LOADING PARA O PDF */}
       {gerandoPDF && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">

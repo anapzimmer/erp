@@ -94,6 +94,11 @@ export default function KitsPage() {
   const [filtroCor, setFiltroCor] = useState("")
   const [isClient, setIsClient] = useState(false);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   useEffect(() => { setIsClient(true); }, []);
 
   useEffect(() => {
@@ -107,7 +112,7 @@ export default function KitsPage() {
         setEmpresaIdUsuario(data.empresa_id);
         const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
         if (emp) setNomeEmpresa(emp.nome);
-        await carregarDados();
+        await carregarDados(data.empresa_id);
       }
       setCheckingAuth(false);
     };
@@ -122,10 +127,24 @@ export default function KitsPage() {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  const carregarDados = async () => {
+  const carregarDados = async (idEmpresaForcado?: string) => {
+    // Prioriza o ID passado ou o do estado
+    const idFiltrar = idEmpresaForcado || empresaIdUsuario;
+
+    if (!idFiltrar) return;
+
     setCarregando(true);
-    const { data } = await supabase.from("kits").select("*").order("nome", { ascending: true });
-    if (data) setKits(data);
+    const { data, error } = await supabase
+      .from("kits")
+      .select("*")
+      .eq("empresa_id", idFiltrar) // <-- FILTRO ESSENCIAL
+      .order("nome", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao carregar:", error.message);
+    } else {
+      setKits(data || []);
+    }
     setCarregando(false);
   };
 
@@ -143,7 +162,8 @@ export default function KitsPage() {
       categoria: padronizarTexto(novoKit.categoria) || "Kits",
       cores: padronizarTexto(novoKit.cores),
       preco_por_cor: novoKit.preco_por_cor,
-      preco: novoKit.preco
+      preco: novoKit.preco,
+      empresa_id: empresaIdUsuario // GARANTE O DONO DO DADO
     };
 
     try {
@@ -281,7 +301,8 @@ export default function KitsPage() {
             categoria: padronizarTexto(categoriaPlanilha),
             cores: padronizarTexto(corExtraida),
             preco: precoFinal,
-            preco_por_cor: ""
+            preco_por_cor: "",
+            empresa_id: empresaIdUsuario // VINCULA À EMPRESA LOGADA
           };
         });
 
@@ -290,7 +311,7 @@ export default function KitsPage() {
           // onConflict diz: "Se o nome e a cor forem iguais, só atualiza a linha"
           const { error } = await supabase
             .from("kits")
-            .upsert(novosKits, { onConflict: 'nome,cores' });
+            .upsert(novosKits, { onConflict: 'nome,cores,empresa_id' });
 
           if (error) throw error;
           await carregarDados();
@@ -421,16 +442,72 @@ export default function KitsPage() {
 
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white no-print">
+        <header
+          className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
+          style={{ backgroundColor: lightSecondary }}
+        >
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-4 border-l border-gray-200">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"><Building2 size={16} /></div>
-              <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            >
+              <Menu size={24} className="text-gray-600" />
             </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                  <Building2 size={16} />
+                </div>
+
+                <span className="text-sm font-medium text-gray-700 hidden md:block">
+                  {nomeEmpresa}
+                </span>
+
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs text-gray-400 font-medium">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {usuarioEmail}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      router.push("/configuracoes");
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                  >
+                    {/* Certifique-se de ter importado Settings do lucide-react */}
+                    <Wrench size={18} className="text-gray-400" />
+                    Configurações
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    {/* Certifique-se de ter importado LogOut do lucide-react */}
+                    <X size={18} className="text-red-500" />
+                    Sair
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -455,23 +532,21 @@ export default function KitsPage() {
             </div>
 
             {/* AÇÕES (BOTÕES PADRONIZADOS) */}
-            <div className="flex items-center gap-3 no-print">
+            <div className="flex items-center gap-2 no-print">
 
               {/* Botão PDF */}
               {isClient && (
                 <PDFDownloadLink
                   document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
                   fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
-                  className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
                   title="Imprimir PDF"
                 >
-                  {({ loading }) =>
-                    loading ? (
-                      <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 animate-spin rounded-full" />
-                    ) : (
-                      <Printer size={20} style={{ color: darkPrimary }} className="group-hover:scale-110 transition-transform" />
-                    )
-                  }
+                  <Printer
+                    size={20}
+                    style={{ color: darkPrimary }}
+                    className="group-hover:scale-110 transition-all"
+                  />
                 </PDFDownloadLink>
               )}
 
@@ -479,17 +554,23 @@ export default function KitsPage() {
               <button
                 onClick={handleExportarCSV}
                 title="Exportar Planilha"
-                className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
               >
-                <Download size={20} className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
+                <Download
+                  size={20}
+                  className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all"
+                />
               </button>
 
               {/* Botão Importar CSV */}
               <label
                 title="Importar Planilha"
-                className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
               >
-                <Upload size={20} className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
+                <Upload
+                  size={20}
+                  className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all"
+                />
                 <input type="file" accept=".csv" className="hidden" onChange={handleImportarCSV} />
               </label>
 

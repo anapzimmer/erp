@@ -604,32 +604,42 @@ export default function PerfisPage() {
             </div>
 
             {/* BOTÕES DE AÇÕES SUPERIORES */}
-            <div className="flex items-center gap-3 no-print">
+            <div className="flex items-center gap-2 no-print">
               {/* Botão Imprimir PDF */}
               <button
                 onClick={gerarPDF}
                 title="Gerar Catálogo PDF"
-                className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
               >
-                <Printer size={20} style={{ color: darkPrimary }} className="group-hover:scale-110 transition-transform" />
+                <Printer
+                  size={20}
+                  style={{ color: darkPrimary }}
+                  className="group-hover:scale-110 group-hover:text-orange-500 transition-all"
+                />
               </button>
 
               {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
                 title="Exportar CSV"
-                className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
               >
-                <Download size={20} className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
+                <Download
+                  size={20}
+                  className="text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all"
+                />
               </button>
 
               {/* Botão Importar CSV */}
               <label
                 htmlFor="importarCSV"
                 title="Importar CSV"
-                className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 shadow-none hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
               >
-                <Upload size={20} className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
+                <Upload
+                  size={20}
+                  className="text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all"
+                />
                 <input
                   type="file"
                   id="importarCSV"

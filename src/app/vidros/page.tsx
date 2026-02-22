@@ -64,7 +64,7 @@ export default function VidrosPage() {
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
 
-    // --- Efeitos ---
+  // --- Efeitos ---
   useEffect(() => {
     if (!checkingAuth && !user) {
       router.push("/login");
@@ -303,12 +303,12 @@ export default function VidrosPage() {
             }
           }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{ 
+          style={{
             color: theme.menuTextColor,
             backgroundColor: isActive ? theme.menuHoverColor : "transparent"
           }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.menuHoverColor }}
-          onMouseLeave={(e) => { if(!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
+          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
         >
           <div className="flex items-center gap-3">
             <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
@@ -394,9 +394,31 @@ export default function VidrosPage() {
             </div>
             {/* BOTÕES DE IMPORT/EXPORT */}
             <div className="flex gap-2">
-              <button onClick={exportarCSV} className="p-2.5 rounded-xl bg-white border border-gray-100 hover:bg-gray-50" title="Exportar CSV"> <Download className="w-5 h-5 text-gray-600" /> </button>
-              <label htmlFor="importarCSV" className="p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:bg-gray-50" title="Importar CSV"> <Upload className="w-5 h-5 text-gray-600" /> </label>
-              <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
+              {/* Botão Exportar CSV */}
+              <button
+                onClick={exportarCSV}
+                title="Exportar CSV"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Download className="w-5 h-5 text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
+              </button>
+
+              {/* Botão Importar CSV */}
+              <label
+                htmlFor="importarCSV"
+                title="Importar CSV"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Upload className="w-5 h-5 text-gray-600 group-hover:text-emerald-600 group-hover:scale-110 transition-all" />
+              </label>
+
+              <input
+                type="file"
+                id="importarCSV"
+                accept=".csv"
+                className="hidden"
+                onChange={importarCSV}
+              />
             </div>
           </div>
 
