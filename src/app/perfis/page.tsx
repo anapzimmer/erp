@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { pdf } from '@react-pdf/renderer';
 import { PerfisPDF } from '@/app/relatorios/perfis/PerfisPDF';
+import Header from "@/components/Header";
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
@@ -76,67 +77,83 @@ export default function PerfisPage() {
   const [mostrarModal, setMostrarModal] = useState(false)
   const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
+  const [dadosEmpresa, setDadosEmpresa] = useState<any>(null);
 
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState("")
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // --- Efeitos de Inicialização e Auth ---
-
- useEffect(() => {
-    const init = async () => {
+// --- Efeitos de Inicialização e Auth ---
+  useEffect(() => {
+const init = async () => {
+      // 🔥 LIMPEZA: Evita que a logo da empresa anterior apareça enquanto a nova carrega
+      setLogoDark(null);
+      setLogoLight(null);
+      setNomeEmpresa("");
+      
       const { data: userData } = await supabase.auth.getUser();
 
-      if (!userData.user) {
-        router.push("/login");
-        return;
+      if (!userData.user) {
+        router.push("/login");
+        return;
+      }
+
+      setUsuarioEmail(userData.user.email ?? null);
+
+      const { data: relData, error: relError } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (relError || !relData) {
+        setCheckingAuth(false);
+        return;
+      }
+
+      const empresaId = relData.empresa_id;
+      setEmpresaIdUsuario(empresaId);
+
+      // 🔥 BUSCA CONECTADA À TABELA configuracoes_branding
+      // Buscamos o nome da empresa e as configurações visuais em paralelo
+      const [resEmpresa, resBranding] = await Promise.all([
+        supabase.from("empresas").select("nome").eq("id", empresaId).single(),
+        supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single()
+      ]);
+
+      if (!resEmpresa.error && resEmpresa.data) {
+        setNomeEmpresa(resEmpresa.data.nome);
+      }
+
+     if (!resBranding.error && resBranding.data) {
+        const b = resBranding.data;
+        
+        // 🔥 ARRUADO AQUI: Salve as duas logos separadamente
+        // Use b.logo_dark para o que for aparecer na tela (se o fundo for escuro)
+        setLogoDark(b.logo_dark); 
+        
+        // Use b.logo_light para o PDF (que tem fundo branco)
+        setLogoLight(b.logo_light); 
+
+        // Mapeamento exato das colunas
+        setDarkPrimary(b.menu_background_color || "#1C415B");
+        setDarkSecondary(b.menu_text_color || "#FFFFFF");
+        setDarkTertiary(b.menu_icon_color || "#39B89F");
+        setDarkHover(b.menu_hover_color || "#39B89F");
+        setLightPrimary(b.screen_background_color || "#F4F7FA");
+        setLightSecondary(b.modal_background_color || "#FFFFFF");
+        setLightTertiary(b.content_text_light_bg || "#1C415B");
       }
 
-      setUsuarioEmail(userData.user.email ?? null);
+      await carregarDados(empresaId);
+      setCheckingAuth(false);
+    };
 
-      const { data, error } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", userData.user.id)
-        .single();
+    init();
+  }, []);
 
-      if (error || !data) {
-        console.error("Usuário sem empresa vinculada.");
-        setCheckingAuth(false);
-        return;
-      }
-
-      const empresaId = data.empresa_id;
-      setEmpresaIdUsuario(empresaId);
-
-      // 🔥 BUSCA DINÂMICA DE CORES E LOGO DA EMPRESA
-      const { data: empresaData, error: empresaError } = await supabase
-        .from("empresas")
-        .select("*")
-        .eq("id", empresaId)
-        .single();
-
-      if (!empresaError && empresaData) {
-        setNomeEmpresa(empresaData.nome);
-        if (empresaData.logo_url) setLogoDark(empresaData.logo_url);
-        if (empresaData.cor_primaria) setDarkPrimary(empresaData.cor_primaria);
-        if (empresaData.cor_secundaria) setDarkSecondary(empresaData.cor_secundaria);
-        if (empresaData.cor_terciaria) {
-            setDarkTertiary(empresaData.cor_terciaria);
-            setDarkHover(empresaData.cor_terciaria);
-        }
-        if (empresaData.cor_fundo) setLightPrimary(empresaData.cor_fundo);
-      }
-
-      await carregarDados(empresaId);
-      setCheckingAuth(false);
-    };
-
-    init();
-  }, []);
-
- useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 300) setShowScrollTop(true);
       else setShowScrollTop(false);
@@ -319,41 +336,55 @@ export default function PerfisPage() {
     };
     reader.readAsArrayBuffer(file);
   }
+  
+  const [logoLight, setLogoLight] = useState<string | null>(null);
 
-  const gerarPDF = async () => {
-    setGerandoPDF(true);
-    try {
-      // Filtra os dados exatamente como estão na sua tabela agora
-      const perfisParaExportar = perfis.filter(p => {
-        const termo = filtroNome.toLowerCase();
-        const matchesBusca =
-          p.nome.toLowerCase().includes(termo) ||
-          p.codigo.toLowerCase().includes(termo) ||
-          p.categoria.toLowerCase().includes(termo);
-        const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
-        return matchesBusca && matchesCor;
-      });
+ // Dentro da sua função gerarPDF em page.tsx
+const gerarPDF = async () => {
+  if (gerandoPDF) return; // Evita cliques duplos
+  setGerandoPDF(true);
 
-      // Gera o documento usando o componente visual que criamos
-      const doc = <PerfisPDF dados={perfisParaExportar} empresa={nomeEmpresa} />;
-      const blob = await pdf(doc).toBlob();
-
-      // Cria o link de download
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `catalogo_perfis_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`;
-      link.click();
-
-      // Limpa a memória
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      setModalAviso({ titulo: "Erro", mensagem: "Não foi possível gerar o PDF profissional." });
-    } finally {
+  try {
+    // Verifique se perfisFiltrados existe e tem dados
+    if (perfisFiltrados.length === 0) {
+      setModalAviso({ titulo: "Aviso", mensagem: "Não há dados para gerar o PDF." });
       setGerandoPDF(false);
+      return;
     }
-  };
+
+ const doc = (
+  <PerfisPDF 
+    dados={perfisFiltrados} 
+    empresa={nomeEmpresa} 
+    logoUrl={logoLight} 
+    coresEmpresa={{
+      primary: darkPrimary, 
+      secondary: darkSecondary,
+      tertiary: darkTertiary,
+      // 🔥 Adicione esta linha abaixo para resolver o erro de tipagem
+      textDefault: '#1C415B' 
+    }}
+  />
+);
+
+    // Converte para Blob e faz o download
+    const blob = await pdf(doc).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `catalogo_${nomeEmpresa.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Erro detalhado ao gerar PDF:", error);
+    setModalAviso({ titulo: "Erro", mensagem: "Falha ao gerar o arquivo PDF." });
+  } finally {
+    setGerandoPDF(false);
+  }
+};
 
   // --- Funções Lógicas ---
   const salvarPerfil = async () => {
@@ -496,93 +527,40 @@ export default function PerfisPage() {
 
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
-  return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: lightPrimary }}>
+return (
+    <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
 
-      {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
+      {/* SIDEBAR - Conectada ao menu_background_color (darkPrimary) */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
+        <div className="px-3 py-4 mb-4 flex justify-center"> 
+          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> 
+        </div>
+        <nav className="flex-1 overflow-y-auto space-y-6 pr-2 scrollbar-hide">
+          <div> 
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> 
+            {menuPrincipal.map(renderMenuItem)} 
+          </div>
+          <div> 
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> 
+            {menuCadastros.map(renderMenuItem)} 
+          </div>
         </nav>
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col min-w-0">
 
-        {/* TOPBAR */}
-<header
-          className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm"
-          style={{ backgroundColor: lightSecondary }}
-        >
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => setShowMobileMenu(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-            >
-              <Menu size={24} className="text-gray-600" />
-            </button>
-          </div>
+        {/* TOPBAR - Conectada ao modal_background_color (lightSecondary) */}
+   <Header 
+    setShowMobileMenu={setShowMobileMenu}
+    nomeEmpresa={nomeEmpresa}
+    usuarioEmail={usuarioEmail || ""} 
+    handleSignOut={handleSignOut}
+    />
 
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-
-                <span className="text-sm font-medium text-gray-700 hidden md:block">
-                  {nomeEmpresa}
-                </span>
-
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""
-                    }`}
-                />
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {usuarioEmail}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      router.push("/configuracoes");
-                    }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
-                  >
-                    <Settings size={18} className="text-gray-400" />
-                    Configurações
-                  </button>
-
-                  <button
-                    onClick={handleSignOut}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
-                  >
-                    <LogOut size={18} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-
-        {/* CONTEÚDO ESPECÍFICO */}
-      <main className="p-4 md:p-8 flex-1">
+        {/* CORPO DA PÁGINA */}
+        <main className="p-4 md:p-8 flex-1">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}>
@@ -594,58 +572,22 @@ export default function PerfisPage() {
               </div>
             </div>
 
-            {/* BOTÕES DE AÇÕES SUPERIORES */}
             <div className="flex items-center gap-2 no-print">
-              <button
-                onClick={gerarPDF}
-                title="Gerar Catálogo PDF"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-              >
-                <Printer
-                  size={20}
-                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                />
+              <button onClick={gerarPDF} className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
+                <Printer size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
               </button>
-
-              <button
-                onClick={exportarCSV}
-                title="Exportar CSV"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-              >
-                <Download
-                  size={20}
-                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                />
+              <button onClick={exportarCSV} className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
+                <Download size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
               </button>
-
-              <label
-                htmlFor="importarCSV"
-                title="Importar CSV"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-none"
-              >
-                <Upload
-                  size={20}
-                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                />
-                <input
-                  type="file"
-                  id="importarCSV"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={importarCSV}
-                />
+              <label htmlFor="importarCSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer">
+                <Upload size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
+                <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
               </label>
             </div>
           </div>
 
-          {/* CARDS INDICADORES */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {/* INDICADORES */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
               { titulo: "Total", valor: totalPerfis, icone: Layers },
               { titulo: "Com Preço", valor: comPreco, icone: DollarSign },
@@ -660,24 +602,23 @@ export default function PerfisPage() {
             ))}
           </div>
 
-          {/* FILTROS E BOTOES DE ACAO INFERIORES */}
-       <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+          {/* FILTROS E AÇÕES */}
+          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
             <div className="flex flex-wrap gap-3">
               <input
                 type="text"
                 placeholder="Nome, código ou categoria..."
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
-                className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:border-2"
-                onFocus={(e) => e.currentTarget.style.borderColor = darkTertiary}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:ring-2"
+                style={{"--tw-ring-color": darkTertiary} as any}
               />
-              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
-              <input type="text" placeholder="Categoria..." value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: darkTertiary, "--tw-ring-color": darkTertiary } as React.CSSProperties} />
+              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2" style={{"--tw-ring-color": darkTertiary} as any} />
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} /> Limpar Duplicados
+              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 transition"> 
+                <Trash2 size={18} /> Limpar Duplicados
               </button>
               <button
                 onClick={abrirModalParaNovo}
@@ -689,8 +630,8 @@ export default function PerfisPage() {
             </div>
           </div>
 
-          {/* TABELA ATUALIZADA (PADRÃO FERRAGENS) */}
-       <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          {/* TABELA */}
+          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
@@ -703,153 +644,60 @@ export default function PerfisPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {perfis
-                  .filter(p => {
-                    const termo = filtroNome.toLowerCase();
-                    const matchesBusca =
-                      (p.nome || "").toLowerCase().includes(termo) ||
-                      (p.codigo || "").toLowerCase().includes(termo) ||
-                      (p.categoria || "").toLowerCase().includes(termo);
-                    const matchesCor = (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
-                    const matchesCategoria = (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase());
-                    return matchesBusca && matchesCor && matchesCategoria;
-                  })
-                  .map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4 text-gray-500 font-medium">{p.codigo}</td>
-                      <td className="p-4">
-                        <span className="text-gray-500 font-medium" style={{ color: lightTertiary }}>{p.nome}</span>
-                      </td>
-                      <td className="p-4">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                          style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                          {p.cores || "Padrão"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-gray-500 font-medium">{p.categoria || "Geral"}</td>
-                      <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>
-                        {p.preco ? formatarPreco(p.preco) : "-"}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => abrirModalParaEdicao(p)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                          <button onClick={() => deletarPerfil(p.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                {perfisFiltrados.map(p => (
+                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-gray-500 font-medium">{p.codigo}</td>
+                    <td className="p-4 text-gray-500 font-medium"><span className="text-gray-500 font-medium" style={{ color: lightTertiary }}>{p.nome}</span></td>
+                    <td className="p-4">
+                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
+                        style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
+                        {p.cores || "Padrão"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-500 font-medium">{p.categoria || "Geral"}</td>
+                    <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
+                    <td className="p-4 text-center">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => abrirModalParaEdicao(p)} className="p-2 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                        <button onClick={() => deletarPerfil(p.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </main>
       </div>
 
-      {/* MODAL DE CARREGANDO (IMPORTAÇÃO) */}
-      {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 rounded-full animate-spin" style={{ borderColor: darkTertiary, borderTopColor: 'transparent' }}></div>
-            <p className="text-gray-700 font-semibold">Processando...</p>
-            <p className="text-gray-400 text-sm">Não feche esta janela.</p>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE CADASTRO/EDIÇÃO (MINIMALISTA) */}
+      {/* MODAIS (Usando a cor do modal da tabela branding) */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 animate-fade-in px-4">
-          <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
-
-            {/* Cabeçalho usando darkPrimary */}
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 px-4">
+          <div className="rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100" style={{ backgroundColor: lightSecondary }}>
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>
-                  {editando ? "Editar Perfil" : "Novo Perfil"}
-                </h2>
-                {/* Linha de detalhe com darkTertiary */}
+                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>{editando ? "Editar Perfil" : "Novo Perfil"}</h2>
                 <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
               </div>
-              <button
-                onClick={() => setMostrarModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="md:col-span-1">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Código</label>
-                  <input
-                    type="text"
-                    value={novoPerfil.codigo}
-                    onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
-                    style={{ focusBorderColor: darkTertiary } as any} // Foco sutil no tema
-                  />
+              <div className="grid grid-cols-4 gap-3">
+                <div className="col-span-1">
+                   <label className="text-[11px] font-bold text-gray-400 uppercase mb-1 block">Código</label>
+                   <input type="text" value={novoPerfil.codigo} onChange={e => setNovoPerfil({...novoPerfil, codigo: e.target.value.toUpperCase()})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm outline-none border focus:border-blue-400" />
                 </div>
-                <div className="md:col-span-3">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Descrição do Alumínio</label>
-                  <input
-                    type="text"
-                    value={novoPerfil.nome}
-                    onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
-                  />
+                <div className="col-span-3">
+                   <label className="text-[11px] font-bold text-gray-400 uppercase mb-1 block">Descrição</label>
+                   <input type="text" value={novoPerfil.nome} onChange={e => setNovoPerfil({...novoPerfil, nome: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm outline-none border focus:border-blue-400" />
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Cor</label>
-                  <input
-                    type="text"
-                    value={novoPerfil.cores}
-                    onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Categoria</label>
-                  <input
-                    type="text"
-                    value={novoPerfil.categoria}
-                    onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
-                  />
-                </div>
+                 <input type="text" placeholder="Cor" value={novoPerfil.cores} onChange={e => setNovoPerfil({...novoPerfil, cores: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border outline-none" />
+                 <input type="text" placeholder="Categoria" value={novoPerfil.categoria} onChange={e => setNovoPerfil({...novoPerfil, categoria: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border outline-none" />
               </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={novoPerfil.preco ?? ""}
-                    onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Ações com o Tema */}
-            <div className="flex justify-end items-center gap-3 mt-8">
-              <button
-                onClick={() => setMostrarModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-all"
-              >
-                Descartar
-              </button>
-              <button
-                onClick={salvarPerfil}
-                disabled={carregando}
-                className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95"
-                style={{ backgroundColor: darkTertiary, color: darkPrimary }} // Aplicando seu tema aqui
-              >
+              <input type="number" placeholder="Preço" value={novoPerfil.preco ?? ""} onChange={e => setNovoPerfil({...novoPerfil, preco: e.target.value ? Number(e.target.value) : null})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm font-bold border outline-none" />
+              <button onClick={salvarPerfil} className="w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
                 {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Perfil")}
               </button>
             </div>
@@ -857,33 +705,18 @@ export default function PerfisPage() {
         </div>
       )}
 
-      {/* MODAL DE LOADING PARA O PDF (PADRÃO FERRAGENS) */}
-      {gerandoPDF && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 shadow-2xl">
-            <div className="w-12 h-12 border-4 animate-spin rounded-full"
-              style={{ borderColor: darkTertiary, borderTopColor: 'transparent' }}>
-            </div>
-            <p className="font-bold text-gray-700" style={{ color: darkPrimary }}>
-              Gerando seu Catálogo de Perfis...
-            </p>
-            <span className="text-xs text-gray-400">Isso pode levar alguns segundos</span>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE AVISO/CONFIRMAÇÃO (PADRÃO FERRAGENS) */}
+      {/* AVISOS */}
       {modalAviso && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 px-4">
-          <div className="bg-white rounded-[32px] p-8 shadow-2xl w-full max-w-sm border border-gray-100 flex flex-col items-center text-center scale-up-center">
-            <h3 className="text-lg font-bold mb-2 text-center" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
-            <p className="text-gray-600 text-sm mb-6 text-center whitespace-pre-line">{modalAviso.mensagem}</p>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[60] px-4">
+          <div className="bg-white rounded-[32px] p-8 shadow-2xl w-full max-w-sm text-center border border-gray-100">
+            <h3 className="text-lg font-bold mb-2" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
+            <p className="text-gray-600 text-sm mb-6 whitespace-pre-line">{modalAviso.mensagem}</p>
             <div className="flex justify-center gap-3">
-              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl  text-sm font-semibold bg-gray-100 hover:bg-gray-200 transition">
+              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100">
                 {modalAviso.confirmar ? "Cancelar" : "Entendido"}
               </button>
               {modalAviso.confirmar && (
-                <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">
+                <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600">
                   Confirmar
                 </button>
               )}
@@ -892,14 +725,8 @@ export default function PerfisPage() {
         </div>
       )}
 
-      {/* BOTAO SCROLL TOP */}
       {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 z-50"
-          style={{ backgroundColor: darkTertiary, color: darkPrimary }}
-          title="Voltar ao topo"
-        >
+        <button onClick={scrollToTop} className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all hover:scale-110 z-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
           <ArrowUp size={24} />
         </button>
       )}

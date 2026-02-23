@@ -1,10 +1,8 @@
-//app/relatorios/perfis/PerfisPDF.tsx
 "use client"
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
 
-// AQUI ESTÁ O AJUSTE: Definimos o que é um Perfil diretamente aqui
 interface Perfil {
   id?: string;
   codigo: string;
@@ -17,133 +15,165 @@ interface Perfil {
 interface PerfisPDFProps {
   dados: Perfil[];
   empresa: string;
+  logoUrl: string | null;
+  // Mapeado conforme sua tabela public.configuracoes_branding
+  coresEmpresa: {
+    primary: string;   // será o button_dark_bg
+    secondary: string; // será o button_dark_text
+    tertiary: string;  // será o menu_hover_color ou similar para a linha
+    textDefault: string; // será o content_text_light_bg
+  };
 }
 
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica',
-  },
-header: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center', // Alinhado ao centro para a logo e o título
-  marginBottom: 20,
-  paddingBottom: 10,
-  borderBottomWidth: 2,
-  borderBottomColor: '#39B89F', // A linha verde da imagem
-},
-  headerLeft: {
-    flexDirection: 'column',
-  },
-  tituloRelatorio: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1C415B', // Cor Tema (darkPrimary)
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  subtitulo: {
-    fontSize: 9,
-    color: '#666',
-    marginTop: 2,
-  },
-  headerRight: {
-    width: 140, 
-    alignItems: 'flex-end',
-  },
-  logo: {
-    width: 150,
-    objectFit: 'contain',
-  },
-  table: {
-    width: '100%',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#1C415B', // Cor Tema (darkPrimary)
-    borderRadius: 2,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    alignItems: 'center',
-    minHeight: 30,
-  },
-  tableColHeader: {
-    padding: 8,
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  tableCol: {
-    padding: 6,
-    fontSize: 9,
-    color: '#1C415B', 
-  },
-  colCodigo: { width: '15%' },
-  colNome: { width: '40%' },
-  colCor: { width: '15%' },
-  colCategoria: { width: '15%' },
-  colPreco: { width: '15%', textAlign: 'right' },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999',
-    borderTopWidth: 0.5,
-    borderTopColor: '#DDD',
-    paddingTop: 10,
-  }
-});
+export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFProps) {
+  const dataGeracao = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(new Date());
 
-export function PerfisPDF({ dados, empresa }: PerfisPDFProps) {
-  const dataGeracao = new Date().toLocaleDateString('pt-BR');
+  // Definimos a cor do texto: Prioridade para o banco, senão o azul desejado
+  const textColor = coresEmpresa.textDefault || '#1C415B';
+
+  const styles = StyleSheet.create({
+    page: {
+      paddingTop: 40,
+      paddingHorizontal: 40,
+      paddingBottom: 70,
+      backgroundColor: '#FFFFFF',
+      fontFamily: 'Helvetica',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 20,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: coresEmpresa.tertiary || '#39B89F',
+    },
+    headerLeft: {
+      flexDirection: 'column',
+      flex: 1,
+    },
+    tituloRelatorio: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: coresEmpresa.primary || '#1C415B',
+      textTransform: 'uppercase',
+    },
+    subtitulo: {
+      fontSize: 10,
+      color: textColor, // Aplicando a cor aqui também
+      marginTop: 2,
+      fontWeight: 'bold',
+    },
+    dataEmissao: {
+      fontSize: 9,
+      color: '#666',
+      marginTop: 6, 
+    },
+   logo: {
+      width: 140, // Aumente um pouco a largura se as logos forem muito horizontais
+      height: 45, // Reduza um pouco a altura para não empurrar a tabela
+      objectFit: 'contain',
+      objectPosition: 'right',
+    },
+    
+    table: {
+      width: '100%',
+      marginTop: 10,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: coresEmpresa.primary || '#1C415B',
+      borderRadius: 4,
+      minHeight: 30,
+      alignItems: 'center',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#EEEEEE',
+      alignItems: 'center',
+      paddingVertical: 6,
+    },
+    tableColHeader: {
+      paddingHorizontal: 6,
+      color: coresEmpresa.secondary || '#FFFFFF',
+      fontSize: 9,
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      lineHeight: 1.5, 
+    },
+    // 🔥 Estilo base da coluna (sem a cor aqui para forçar no componente)
+    tableCol: {
+      paddingHorizontal: 6,
+      fontSize: 8,
+    },
+    colCodigo: { width: '15%' },
+    colNome: { width: '40%' },
+    colCor: { width: '15%' },
+    colCategoria: { width: '15%' },
+    colPreco: { width: '15%', textAlign: 'right' },
+    footer: {
+      position: 'absolute',
+      bottom: 30,
+      left: 40,
+      right: 40,
+      textAlign: 'center',
+      fontSize: 8,
+      color: '#999',
+      borderTopWidth: 0.5,
+      borderTopColor: '#DDD',
+      paddingTop: 10,
+    }
+  });
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.tituloRelatorio}>Catálogo de Perfis de Alumínio</Text>
-            <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
+            <Text style={styles.tituloRelatorio}>CATÁLOGO DE PERFIS</Text>
+            <Text style={styles.subtitulo}>{empresa}</Text>
+            <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
           </View>
-          <View style={styles.headerRight}>
-            <Image src="/glasscode.png" style={styles.logo} />
+          <View style={{ width: 120, alignItems: 'flex-end' }}>
+            <Image src={logoUrl || "/glasscode.png"} style={styles.logo} />
           </View>
         </View>
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.tableColHeader, styles.colCodigo]}>Código</Text>
-            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Perfil</Text>
+            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição</Text>
             <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
             <Text style={[styles.tableColHeader, styles.colCategoria]}>Categoria</Text>
             <Text style={[styles.tableColHeader, styles.colPreco]}>Preço Unit.</Text>
           </View>
 
           {dados.map((item, index) => (
-            <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }]}>
-              <Text style={[styles.tableCol, styles.colCodigo]}>{item.codigo}</Text>
-              <Text style={[styles.tableCol, styles.colNome]}>{item.nome}</Text>
-              <Text style={[styles.tableCol, styles.colCor]}>{item.cores || 'Padrão'}</Text>
-              <Text style={[styles.tableCol, styles.colCategoria]}>{item.categoria || 'Geral'}</Text>
-              <Text style={[styles.tableCol, styles.colPreco]}>
+            <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9F9F9' }]}>
+              {/* Forçamos a cor diretamente no estilo inline de cada texto */}
+              <Text style={[styles.tableCol, styles.colCodigo, { color: textColor }]}>{item.codigo}</Text>
+              <Text style={[styles.tableCol, styles.colNome, { color: textColor }]}>{item.nome}</Text>
+              <Text style={[styles.tableCol, styles.colCor, { color: textColor }]}>{item.cores || '-'}</Text>
+              <Text style={[styles.tableCol, styles.colCategoria, { color: textColor }]}>{item.categoria || '-'}</Text>
+              <Text style={[styles.tableCol, styles.colPreco, { fontWeight: 'bold', color: textColor }]}>
                 {item.preco ? formatarPreco(item.preco) : 'Consulte'}
               </Text>
             </View>
           ))}
         </View>
 
-        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
-          `Sistema Glass Code - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`
-        )} fixed />
+        <Text 
+          style={styles.footer} 
+          render={({ pageNumber, totalPages }) => (
+            `Glass Code ERP - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`
+          )} 
+          fixed 
+        />
       </Page>
     </Document>
   );
