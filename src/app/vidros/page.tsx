@@ -67,6 +67,7 @@ export default function VidrosPage() {
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
 
+
   // --- Efeitos ---
   useEffect(() => {
     if (!checkingAuth && !user) {
@@ -319,7 +320,7 @@ export default function VidrosPage() {
           </div>
         </div>
 
-        {temSubmenu && (
+      {temSubmenu && (
           <div className="ml-8 mt-1 space-y-1">
             {item.submenu!.map((sub) => (
               <div
@@ -341,6 +342,40 @@ export default function VidrosPage() {
       </div>
     )
   }
+  const [branding, setBranding] = useState<any>(null);
+
+const carregarBranding = useCallback(async () => {
+  // 1. Só executa se tivermos o ID da empresa logada
+  if (!empresaId) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes_branding')
+      .select('*')
+      .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
+      .single();
+
+    if (error) {
+      console.error("Erro ao buscar branding:", error.message);
+      return;
+    }
+
+    if (data) {
+      setBranding(data);
+    }
+  } catch (err) {
+    console.error("Erro inesperado:", err);
+  }
+}, [empresaId]); // O useCallback monitora o empresaId
+
+
+
+// 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
+const logoLight = branding?.logo_light || null;
+  const darkPrimary = branding?.button_dark_bg || '#1C415B';
+  const darkSecondary = branding?.button_dark_text || '#FFFFFF';
+  const darkTertiary = branding?.menu_hover_color || '#39B89F';
+  const textDefault = branding?.content_text_light_bg || '#1C415B';
 
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div></div>;
 
@@ -399,29 +434,39 @@ export default function VidrosPage() {
             <div className="flex items-center gap-2 no-print">
 
               {/* Botão Imprimir PDF */}
-              {typeof window !== "undefined" && (
-                <PDFDownloadLink
-                  document={<VidrosPDF dados={vidrosFiltrados} empresa={nomeEmpresa || "Sua Empresa"} />}
-                  fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
-                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-                  title="Gerar PDF"
-                >
-                  {({ loading }) => (
-                    loading ? (
-                      <Loader2 size={20} className="animate-spin text-gray-400" />
-                    ) : (
-                      <Printer
-                        size={20}
-                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                        style={{ color: 'inherit' }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} // text-gray-500
-                      />
-                    )
-                  )}
-                </PDFDownloadLink>
+     {typeof window !== "undefined" && (
+            <PDFDownloadLink
+              document={
+               <VidrosPDF 
+  dados={vidrosFiltrados} 
+  empresa={nomeEmpresa || "Sua Empresa"} 
+  logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
+  coresEmpresa={{
+    primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
+    secondary: theme.menuTextColor,
+    tertiary: theme.menuIconColor,
+    textDefault: '#1C415B'
+  }}
+/>
+              }
+              fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
+              className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+            >
+              {({ loading }) => (
+                loading ? (
+                  <Loader2 size={20} className="animate-spin text-gray-400" />
+                ) : (
+                  <Printer
+                    size={20}
+                    className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                    style={{ color: 'inherit' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                  />
+                )
               )}
-
+            </PDFDownloadLink>
+          )}
               {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
@@ -484,7 +529,7 @@ export default function VidrosPage() {
             </div>
             <div className="flex gap-2">
               <button onClick={limparDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} />Limpar Duplicados</button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.menuTextColor }}> <PlusCircle size={20} /> Novo Vidro </button>
+              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.buttonDarkText }}> <PlusCircle size={20} /> Novo Vidro </button>
             </div>
           </div>
 

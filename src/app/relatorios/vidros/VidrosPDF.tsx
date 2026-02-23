@@ -38,7 +38,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     page: {
       paddingTop: 40,
       paddingHorizontal: 40,
-      paddingBottom: 70,
+      paddingBottom: 80, // 👈 Aumente de 70 para 80 para dar espaço ao rodapé
       backgroundColor: '#FFFFFF',
       fontFamily: 'Helvetica',
     },
@@ -70,7 +70,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     dataEmissao: {
       fontSize: 9,
       color: '#666',
-      marginTop: 6, 
+      marginTop: 6,
     },
     logo: {
       width: 140,
@@ -102,7 +102,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
       fontSize: 9,
       fontWeight: 'bold',
       textTransform: 'uppercase',
-      lineHeight: 1.5, 
+      lineHeight: 1.5,
     },
     tableCol: {
       paddingHorizontal: 6,
@@ -113,25 +113,25 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     colEspessura: { width: '15%', textAlign: 'center' },
     colTipo: { width: '25%' },
     colPreco: { width: '15%', textAlign: 'right' },
-    
-    footer: {
-      position: 'absolute',
-      bottom: 30,
-      left: 40,
-      right: 40,
-      textAlign: 'center',
-      fontSize: 8,
-      color: '#999',
-      borderTopWidth: 0.5,
-      borderTopColor: '#DDD',
-      paddingTop: 10,
-    }
+
+   footer: {
+  position: 'absolute',
+  bottom: 20, // 👈 Diminua um pouco para afastar da tabela
+  left: 40,
+  right: 40,
+  textAlign: 'center',
+  fontSize: 8,
+  color: '#999',
+  borderTopWidth: 0.5,
+  borderTopColor: '#DDD',
+  paddingTop: 10,
+}
   });
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
+
         {/* CABEÇALHO PADRONIZADO */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -155,10 +155,10 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
           </View>
 
           {dados.map((item, index) => (
-            <View 
-              key={item.id || index} 
+            <View
+              key={item.id || index}
               style={[
-                styles.tableRow, 
+                styles.tableRow,
                 { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9F9F9' }
               ]}
             >
@@ -173,12 +173,12 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
         </View>
 
         {/* RODAPÉ PADRONIZADO */}
-        <Text 
-          style={styles.footer} 
+        <Text
+          style={styles.footer}
           render={({ pageNumber, totalPages }) => (
             `Glass Code ERP - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`
-          )} 
-          fixed 
+          )}
+          fixed
         />
       </Page>
     </Document>

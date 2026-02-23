@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
+import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Loader2, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import jsPDF from 'jspdf';
@@ -83,6 +83,7 @@ export default function PerfisPage() {
   const [filtroCor, setFiltroCor] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState("")
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [branding, setBranding] = useState<any>(null);
 
 // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
@@ -670,40 +671,115 @@ return (
         </main>
       </div>
 
-      {/* MODAIS (Usando a cor do modal da tabela branding) */}
-      {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 px-4">
-          <div className="rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100" style={{ backgroundColor: lightSecondary }}>
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>{editando ? "Editar Perfil" : "Novo Perfil"}</h2>
-                <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
-              </div>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-1">
-                   <label className="text-[11px] font-bold text-gray-400 uppercase mb-1 block">Código</label>
-                   <input type="text" value={novoPerfil.codigo} onChange={e => setNovoPerfil({...novoPerfil, codigo: e.target.value.toUpperCase()})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm outline-none border focus:border-blue-400" />
-                </div>
-                <div className="col-span-3">
-                   <label className="text-[11px] font-bold text-gray-400 uppercase mb-1 block">Descrição</label>
-                   <input type="text" value={novoPerfil.nome} onChange={e => setNovoPerfil({...novoPerfil, nome: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm outline-none border focus:border-blue-400" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                 <input type="text" placeholder="Cor" value={novoPerfil.cores} onChange={e => setNovoPerfil({...novoPerfil, cores: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border outline-none" />
-                 <input type="text" placeholder="Categoria" value={novoPerfil.categoria} onChange={e => setNovoPerfil({...novoPerfil, categoria: e.target.value})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm border outline-none" />
-              </div>
-              <input type="number" placeholder="Preço" value={novoPerfil.preco ?? ""} onChange={e => setNovoPerfil({...novoPerfil, preco: e.target.value ? Number(e.target.value) : null})} className="w-full px-3 py-2 bg-gray-50 rounded-xl text-sm font-bold border outline-none" />
-              <button onClick={salvarPerfil} className="w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
-                {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Perfil")}
-              </button>
-            </div>
+     {/* MODAIS (Design Refinado e Delicado) */}
+{mostrarModal && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] z-50 px-4 transition-all">
+    <div 
+      className="rounded-3xl p-8 shadow-2xl w-full max-w-md border border-white/20" 
+      style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
+    >
+      {/* Cabeçalho do Modal */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 
+            className="text-xl font-extrabold tracking-tight" 
+            style={{ color: branding?.modal_text_color || '#1C415B' }}
+          >
+            {editando ? "Editar Perfil" : "Novo Perfil"}
+          </h2>
+          <div 
+            className="h-1 w-8 mt-1.5 rounded-full" 
+            style={{ backgroundColor: branding?.button_dark_bg || '#39B89F' }}
+          ></div>
+        </div>
+        <button 
+          onClick={() => setMostrarModal(false)} 
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+        >
+          <X size={18} className="text-gray-400 group-hover:text-gray-600" />
+        </button>
+      </div>
+
+      {/* Corpo do Modal */}
+      <div className="space-y-5">
+        <div className="grid grid-cols-4 gap-4">
+          <div className="col-span-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Código</label>
+            <input 
+              type="text" 
+              value={novoPerfil.codigo} 
+              onChange={e => setNovoPerfil({...novoPerfil, codigo: e.target.value.toUpperCase()})} 
+              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all" 
+            />
+          </div>
+          <div className="col-span-3">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Descrição</label>
+            <input 
+              type="text" 
+              value={novoPerfil.nome} 
+              onChange={e => setNovoPerfil({...novoPerfil, nome: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all" 
+            />
           </div>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Cor</label>
+            <input 
+              type="text" 
+              placeholder="Ex: Alumínio" 
+              value={novoPerfil.cores} 
+              onChange={e => setNovoPerfil({...novoPerfil, cores: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all" 
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Categoria</label>
+            <input 
+              type="text" 
+              placeholder="Ex: Trilho" 
+              value={novoPerfil.categoria} 
+              onChange={e => setNovoPerfil({...novoPerfil, categoria: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all" 
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Preço Sugerido</label>
+          <input 
+            type="number" 
+            placeholder="0,00" 
+            value={novoPerfil.preco ?? ""} 
+            onChange={e => setNovoPerfil({...novoPerfil, preco: e.target.value ? Number(e.target.value) : null})} 
+            className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm font-bold border border-gray-100 outline-none focus:border-blue-300 transition-all" 
+          />
+        </div>
+
+        {/* Botão de Ação usando modal_button da tabela */}
+        <button 
+          onClick={salvarPerfil} 
+          disabled={carregando}
+          className="w-full mt-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[2px] transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 hover:brightness-110" 
+          style={{ 
+            backgroundColor: branding?.modal_button_background_color || '#1C415B', 
+            color: branding?.modal_button_text_color || '#FFFFFF' 
+          }}
+        >
+          {carregando ? (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Processando...</span>
+            </div>
+          ) : (
+            editando ? "Salvar Alterações" : "Cadastrar Perfil"
+          )}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* AVISOS */}
       {modalAviso && (
