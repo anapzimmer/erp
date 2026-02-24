@@ -3,14 +3,14 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle, X, Printer, Building2, ChevronDown, LogOut, Settings, Menu, Loader2 } from "lucide-react"
+import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle, X, Printer, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
 import { VidrosPDF } from "app/relatorios/vidros/VidrosPDF"
 import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
 import { PDFDownloadLink } from "@react-pdf/renderer";
-
+import Header from "@/components/Header";
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
@@ -60,13 +60,36 @@ export default function VidrosPage() {
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [precosGruposModal, setPrecosGruposModal] = useState<PrecoGrupo[]>([])
-  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
-
+  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void; tipo?: 'sucesso' | 'erro' | 'aviso' } | null>(null)
   // --- Estados de Filtro ---
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
+  const [branding, setBranding] = useState<any>(null);
 
+  const carregarBranding = useCallback(async () => {
+    // 1. Só executa se tivermos o ID da empresa logada
+    if (!empresaId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes_branding')
+        .select('*')
+        .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
+        .single();
+
+      if (error) {
+        console.error("Erro ao buscar branding:", error.message);
+        return;
+      }
+
+      if (data) {
+        setBranding(data);
+      }
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+    }
+  }, [empresaId]); // O useCallback monitora o empresaId
 
   // --- Efeitos ---
   useEffect(() => {
@@ -75,6 +98,7 @@ export default function VidrosPage() {
       return;
     }
   }, [user, checkingAuth, router]);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) { setShowUserMenu(false); } };
@@ -107,8 +131,11 @@ export default function VidrosPage() {
   }, [empresaId])
 
   useEffect(() => {
-    if (empresaId) carregarDados();
-  }, [empresaId, carregarDados]);
+    if (empresaId) {
+      carregarDados();
+      carregarBranding(); // 🔥 Adicione esta linha para ativar o branding!
+    }
+  }, [empresaId, carregarDados, carregarBranding]);
 
   // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
@@ -127,9 +154,23 @@ export default function VidrosPage() {
     document.body.removeChild(link);
   }
 
+  const capitalizarFrase = (texto: string) => {
+    if (!texto) return "";
+    const limpo = texto.trim().toLowerCase();
+    return limpo.charAt(0).toUpperCase() + limpo.slice(1);
+  };
+
   const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !empresaId) return;
+
+    // DEBUG: Verifique se o empresaId está chegando aqui
+    console.log("Iniciando importação para Empresa ID:", empresaId);
+
+    if (!file || !empresaId) {
+      setModalAviso({ titulo: "Erro", mensagem: "Empresa não identificada ou arquivo ausente." });
+      return;
+    }
+
     setCarregando(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -139,39 +180,90 @@ export default function VidrosPage() {
         setCarregando(false);
         return;
       }
+
       const rows = text.split("\n").slice(1);
       let atualizados = 0, inseridos = 0, erros = 0;
+
       for (const row of rows) {
         if (!row.trim()) continue;
         const colunas = row.replace(/['"]+/g, '').split(";");
         if (colunas.length < 4) { erros++; continue; }
+
         const [nome, espessura, tipo, preco] = colunas;
+
         if (nome && espessura && tipo && preco) {
           try {
-            const nomeFormatado = formatarParaBanco(nome);
+            const nomeOriginal = colunas[0];
+            const nomeFormatado = capitalizarFrase(formatarParaBanco(nomeOriginal));
             const espessuraFormatada = padronizarEspessura(espessura);
-            const tipoFormatado = formatarParaBanco(tipo);
+            const tipoFormatado = capitalizarFrase(formatarParaBanco(tipo));
             const precoFormatado = Number(preco.toString().replace(",", "."));
+
             if (isNaN(precoFormatado)) { erros++; continue; }
-            const { data: existente } = await supabase.from("vidros").select("id, preco").eq("nome", nomeFormatado).eq("espessura", espessuraFormatada).eq("tipo", tipoFormatado).eq("empresa_id", empresaId).single();
+
+            // 1. BUSCA EXISTENTE (Ajustado para evitar erro 400/406)
+            const { data: existente, error: errorSearch } = await supabase
+              .from("vidros")
+              .select("id, preco")
+              .eq("nome", nomeFormatado)
+              .eq("espessura", espessuraFormatada)
+              .eq("tipo", tipoFormatado)
+              .eq("empresa_id", empresaId)
+              .maybeSingle(); // Usar maybeSingle é mais seguro que .single()
+
             if (existente) {
               if (existente.preco !== precoFormatado) {
-                const { error: errorUpdate } = await supabase.from("vidros").update({ preco: precoFormatado }).eq("id", existente.id);
-                if (errorUpdate) erros++; else atualizados++;
+                const { error: errorUpdate } = await supabase
+                  .from("vidros")
+                  .update({ preco: precoFormatado })
+                  .eq("id", existente.id);
+
+                if (errorUpdate) {
+                  console.error("Erro no Update:", errorUpdate.message);
+                  erros++;
+                } else {
+                  atualizados++;
+                }
               }
             } else {
-              const { error: errorInsert } = await supabase.from("vidros").insert([{ nome: nomeFormatado, espessura: espessuraFormatada, tipo: tipoFormatado, preco: precoFormatado, empresa_id: empresaId }]);
-              if (errorInsert) erros++; else inseridos++;
+              // 2. INSERE NOVO (Aqui acontece o 403)
+              const { error: errorInsert } = await supabase
+                .from("vidros")
+                .insert([{
+                  nome: nomeFormatado,
+                  espessura: espessuraFormatada,
+                  tipo: tipoFormatado,
+                  preco: precoFormatado,
+                  empresa_id: empresaId
+                }]);
+
+              if (errorInsert) {
+                console.error("Erro no Insert (403?):", errorInsert.message);
+                erros++;
+              } else {
+                inseridos++;
+              }
             }
-          } catch (e) { erros++; }
+          } catch (e) {
+            console.error("Erro inesperado na linha:", e);
+            erros++;
+          }
         } else { erros++; }
       }
+
       await carregarDados();
       setCarregando(false);
-      setModalAviso({ titulo: "Importação Concluída", mensagem: `Resumo:\n- Atualizados: ${atualizados}\n- Novos: ${inseridos}\n- Erros: ${erros}\n\nVerifique os dados na tabela.` });
+      setModalAviso({
+        titulo: "Importação Concluída",
+        mensagem: `Resumo:\n- Atualizados: ${atualizados}\n- Novos: ${inseridos}\n- Erros: ${erros}`,
+        tipo: "sucesso"
+      });
       event.target.value = "";
     };
-    reader.onerror = () => { setCarregando(false); setModalAviso({ titulo: "Erro", mensagem: "Falha ao ler o arquivo." }); };
+    reader.onerror = () => {
+      setCarregando(false);
+      setModalAviso({ titulo: "Erro", mensagem: "Falha ao ler o arquivo." });
+    };
     reader.readAsText(file);
   }
 
@@ -320,7 +412,7 @@ export default function VidrosPage() {
           </div>
         </div>
 
-      {temSubmenu && (
+        {temSubmenu && (
           <div className="ml-8 mt-1 space-y-1">
             {item.submenu!.map((sub) => (
               <div
@@ -342,36 +434,9 @@ export default function VidrosPage() {
       </div>
     )
   }
-  const [branding, setBranding] = useState<any>(null);
 
-const carregarBranding = useCallback(async () => {
-  // 1. Só executa se tivermos o ID da empresa logada
-  if (!empresaId) return;
-
-  try {
-    const { data, error } = await supabase
-      .from('configuracoes_branding')
-      .select('*')
-      .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
-      .single();
-
-    if (error) {
-      console.error("Erro ao buscar branding:", error.message);
-      return;
-    }
-
-    if (data) {
-      setBranding(data);
-    }
-  } catch (err) {
-    console.error("Erro inesperado:", err);
-  }
-}, [empresaId]); // O useCallback monitora o empresaId
-
-
-
-// 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
-const logoLight = branding?.logo_light || null;
+  // 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
+  const logoLight = branding?.logo_light || null;
   const darkPrimary = branding?.button_dark_bg || '#1C415B';
   const darkSecondary = branding?.button_dark_text || '#FFFFFF';
   const darkTertiary = branding?.menu_hover_color || '#39B89F';
@@ -394,31 +459,13 @@ const logoLight = branding?.logo_light || null;
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
+        <Header
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={user?.email || ""}
+          handleSignOut={handleSignOut}
 
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100 mb-2">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-800 truncate"> {user?.email} </p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> <Settings size={18} className="text-gray-400" />Configurações </button>
-                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"> <LogOut size={18} />Sair </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        />
 
         {/* CONTEÚDO ESPECÍFICO */}
         <main className="p-4 md:p-8 flex-1">
@@ -434,39 +481,39 @@ const logoLight = branding?.logo_light || null;
             <div className="flex items-center gap-2 no-print">
 
               {/* Botão Imprimir PDF */}
-     {typeof window !== "undefined" && (
-            <PDFDownloadLink
-              document={
-               <VidrosPDF 
-  dados={vidrosFiltrados} 
-  empresa={nomeEmpresa || "Sua Empresa"} 
-  logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
-  coresEmpresa={{
-    primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
-    secondary: theme.menuTextColor,
-    tertiary: theme.menuIconColor,
-    textDefault: '#1C415B'
-  }}
-/>
-              }
-              fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
-              className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-            >
-              {({ loading }) => (
-                loading ? (
-                  <Loader2 size={20} className="animate-spin text-gray-400" />
-                ) : (
-                  <Printer
-                    size={20}
-                    className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                    style={{ color: 'inherit' }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                  />
-                )
+              {typeof window !== "undefined" && (
+                <PDFDownloadLink
+                  document={
+                    <VidrosPDF
+                      dados={vidrosFiltrados}
+                      empresa={nomeEmpresa || "Sua Empresa"}
+                      logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
+                      coresEmpresa={{
+                        primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
+                        secondary: theme.menuTextColor,
+                        tertiary: theme.menuIconColor,
+                        textDefault: '#1C415B'
+                      }}
+                    />
+                  }
+                  fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
+                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                >
+                  {({ loading }) => (
+                    loading ? (
+                      <Loader2 size={20} className="animate-spin text-gray-400" />
+                    ) : (
+                      <Printer
+                        size={20}
+                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                        style={{ color: 'inherit' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                      />
+                    )
+                  )}
+                </PDFDownloadLink>
               )}
-            </PDFDownloadLink>
-          )}
               {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
@@ -476,7 +523,7 @@ const logoLight = branding?.logo_light || null;
                 <Download
                   size={20}
                   className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
                 />
               </button>
@@ -490,7 +537,7 @@ const logoLight = branding?.logo_light || null;
                 <Upload
                   size={20}
                   className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
                 />
                 <input
@@ -521,28 +568,60 @@ const logoLight = branding?.logo_light || null;
           </div>
 
           {/* FILTROS E BOTAO NOVO */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-            <div className="flex flex-wrap gap-3">
-              <input type="text" placeholder="Nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
-              <input type="text" placeholder="Espessura..." value={filtroEspessura} onChange={e => setFiltroEspessura(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
-              <input type="text" placeholder="Tipo..." value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={limparDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} />Limpar Duplicados</button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.buttonDarkText }}> <PlusCircle size={20} /> Novo Vidro </button>
-            </div>
-          </div>
+        <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+  <div className="flex flex-wrap gap-3">
+    {["Nome", "Espessura", "Tipo"].map((label) => (
+      <input
+        key={label}
+        type="text"
+        placeholder={`${label}...`}
+        value={label === "Nome" ? filtroNome : label === "Espessura" ? filtroEspessura : filtroTipo}
+        onChange={e => {
+          const v = e.target.value;
+          if (label === "Nome") setFiltroNome(v);
+          else if (label === "Espessura") setFiltroEspessura(v);
+          else setFiltroTipo(v);
+        }}
+        className="p-3 px-5 rounded-2xl border border-gray-100 text-sm bg-white shadow-sm focus:ring-2 focus:outline-none transition-all w-40"
+        style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
+      />
+    ))}
+  </div>
+
+  {/* BOTÃO ADICIONAR NOVO - REINSERIDO AQUI */}
+<button
+  onClick={() => {
+    setEditando(null);
+    setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 });
+    setPrecosGruposModal([]);
+    setMostrarModal(true);
+  }}
+  className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+  style={{ 
+    // Pega a cor de fundo definida pelo usuário no banco
+    backgroundColor: branding?.button_dark_bg || theme.menuBackgroundColor, 
+    // Pega a cor da letra definida pelo usuário no banco
+    color: branding?.button_dark_text_color || '#FFFFFF'
+  }}
+>
+  <Plus 
+    size={20} 
+    style={{ color: branding?.button_dark_text_color || '#FFFFFF' }} 
+  />
+  Novo Vidro
+</button>
+</div>
 
           {/* TABELA */}
           <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
               <thead style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
                 <tr>
-                  <th className="p-4 font-semibold">Nome</th>
-                  <th className="p-4 font-semibold">Espessura</th>
-                  <th className="p-4 font-semibold">Tipo</th>
-                  <th className="p-4 font-semibold">Preço Base</th>
-                  <th className="p-4 font-semibold text-center">Ações</th>
+                  <th className="p-4">Nome</th>
+                  <th className="p-4 ">Espessura</th>
+                  <th className="p-4 ">Tipo</th>
+                  <th className="p-4 ">Preço Base</th>
+                  <th className="p-4  text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
@@ -568,114 +647,188 @@ const logoLight = branding?.logo_light || null;
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 animate-fade-in px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-extrabold" style={{ color: theme.menuBackgroundColor }}>{editando ? "Editar Vidro" : "Cadastrar Vidro"}</h2>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-50 animate-fade-in px-4">
+          <div
+            className="rounded-[2rem] p-10 shadow-2xl w-full max-w-lg border border-white/20 transition-all"
+            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
+          >
+            {/* Cabeçalho */}
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h2 className="text-2xl font-black tracking-tight" style={{ color: branding?.modal_text_color || theme.menuBackgroundColor }}>
+                  {editando ? "Editar Vidro" : "Cadastrar Vidro"}
+                </h2>
+                <div className="h-1 w-8 mt-2 rounded-full" style={{ backgroundColor: branding?.button_dark_bg || theme.menuIconColor }}></div>
+              </div>
+              <button onClick={() => setMostrarModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
+
+            {/* Inputs Principais */}
+            <div className="grid grid-cols-2 gap-5 mb-8">
               <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Nome do Vidro *</label>
-                <input type="text" placeholder="Ex: Vidro Temperado" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Nome do Vidro *</label>
+                <input type="text" placeholder="Ex: Vidro Temperado" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })}
+                  className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm focus:bg-white focus:outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Espessura *</label>
-                <input type="text" placeholder="Ex: 8mm" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Espessura *</label>
+                <input type="text" placeholder="8mm" value={novoVidro.espessura} onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })}
+                  className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm focus:bg-white focus:outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Tipo *</label>
-                <input type="text" placeholder="Ex: Liso" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Tipo *</label>
+                <input type="text" placeholder="Liso" value={novoVidro.tipo} onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })}
+                  className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm focus:bg-white focus:outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div className="col-span-2">
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Preço Base (R$)</label>
-                <input type="number" step="0.01" placeholder="0,00" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Preço Base (R$)</label>
+                <input type="number" step="0.01" placeholder="0,00" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })}
+                  className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm font-bold focus:bg-white focus:outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
             </div>
 
-            {/* SEÇÃO DE PREÇOS POR GRUPO NO MODAL */}
-            <div className="pt-4 border-t border-gray-100 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-gray-800 text-sm">Preços por Tabela/Grupo</h3>
-                <button onClick={() => setPrecosGruposModal([...precosGruposModal, { id: "", vidro_id: editando?.id || "", grupo_preco_id: "", preco: 0, grupo_nome: "" }])} className="text-xs font-semibold flex items-center gap-1 text-blue-600 hover:text-blue-700">
-                  <PlusCircle size={14} /> Adicionar Preço Especial
+            {/* SEÇÃO DE PREÇOS POR GRUPO */}
+            <div className="pt-6 border-t border-gray-100 mb-8">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="font-bold text-gray-700 text-xs uppercase tracking-tight">Tabelas de Preços</h3>
+                <button onClick={() => setPrecosGruposModal([...precosGruposModal, { id: "", vidro_id: editando?.id || "", grupo_preco_id: "", preco: 0, grupo_nome: "" }])}
+                  className="text-[11px] font-black flex items-center gap-1.5 uppercase tracking-wider hover:opacity-70 transition-opacity"
+                  style={{ color: branding?.button_dark_bg || '#2563eb' }}>
+                  <PlusCircle size={14} /> Adicionar Preço
                 </button>
               </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                 {precosGruposModal.map((p, index) => (
-                  <div key={index} className="flex gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100 items-center">
-                    <input
-                      type="text"
-                      list="listaGrupos"
-                      value={p.grupo_nome}
+                  <div key={index} className="flex gap-2 p-2.5 bg-gray-50/80 rounded-2xl border border-gray-100 items-center group transition-all hover:border-gray-200">
+                    <input type="text" list="listaGrupos" value={p.grupo_nome} placeholder="Tabela"
                       onChange={e => {
-                        const novos = [...precosGruposModal]
-                        novos[index].grupo_nome = e.target.value
-                        const grupo = grupos.find(g => g.nome === e.target.value)
-                        if (grupo) novos[index].grupo_preco_id = grupo.id
-                        setPrecosGruposModal(novos)
+                        const novos = [...precosGruposModal];
+                        novos[index].grupo_nome = e.target.value;
+                        const grupo = grupos.find(g => g.nome === e.target.value);
+                        if (grupo) novos[index].grupo_preco_id = grupo.id;
+                        setPrecosGruposModal(novos);
                       }}
-                      className="p-2 rounded border border-gray-200 text-xs flex-1 focus:outline-none focus:ring-1"
-                      style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
-                      placeholder="Selecione a tabela"
-                    />
-                    <datalist id="listaGrupos">
-                      {grupos.map(g => (<option key={g.id} value={g.nome} />))}
-                    </datalist>
-                    <input type="number" step="0.01" placeholder="R$ 0,00" value={p.preco} onChange={e => {
-                      const novos = [...precosGruposModal]
-                      novos[index].preco = Number(e.target.value)
-                      setPrecosGruposModal(novos)
-                    }}
-                      className="p-2 rounded border border-gray-200 text-xs w-24 focus:outline-none focus:ring-1" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
-                    <button onClick={() => setPrecosGruposModal(precosGruposModal.filter((_, i) => i !== index))} className="text-red-400 hover:text-red-600 p-1"> <Trash2 size={16} /> </button>
+                      className="p-2.5 rounded-xl border border-gray-200 text-xs flex-1 focus:bg-white focus:outline-none focus:ring-1"
+                      style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
+
+                    <input type="number" step="0.01" placeholder="R$ 0,00" value={p.preco}
+                      onChange={e => {
+                        const novos = [...precosGruposModal];
+                        novos[index].preco = Number(e.target.value);
+                        setPrecosGruposModal(novos);
+                      }}
+                      className="p-2.5 rounded-xl border border-gray-200 text-xs w-28 font-bold focus:bg-white focus:outline-none focus:ring-1"
+                      style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
+
+                    <button onClick={() => setPrecosGruposModal(precosGruposModal.filter((_, i) => i !== index))} className="text-gray-300 hover:text-red-500 p-1.5 transition-colors">
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
-              <button onClick={() => setMostrarModal(false)} className="px-6 py-3 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700">Cancelar</button>
-              <button onClick={salvarVidro} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style={{ backgroundColor: theme.menuBackgroundColor }}>
-                {carregando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
+            {/* Botões de Ação */}
+            <div className="flex gap-4 justify-end">
+              <button onClick={() => setMostrarModal(false)} className="px-8 py-3.5 rounded-2xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all">
+                Cancelar
+              </button>
+              <button onClick={salvarVidro} disabled={carregando}
+                className="px-10 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/10 transition-all active:scale-95 hover:brightness-110 disabled:opacity-50"
+                style={{ backgroundColor: branding?.modal_button_background_color || theme.menuBackgroundColor }}>
+                {carregando ? "Processando..." : editando ? "Atualizar" : "Salvar Vidro"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL DE AVISO / CARREGAMENTO */}
-      {(modalAviso || carregando) && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 animate-fade-in px-4">
-          {carregando && !modalAviso && (
-            <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
-              <Loader2 className="w-10 h-10 animate-spin" style={{ color: theme.menuIconColor }} />
-              <p className="text-gray-600 font-medium">Processando dados...</p>
+
+      {/* MODAL DE AVISO (Fiel ao Branding do Supabase) */}
+      {modalAviso && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-[60] px-4 animate-fade-in">
+          <div
+            className="rounded-[2rem] p-8 shadow-2xl w-full max-w-sm border border-white/20 flex flex-col items-center text-center"
+            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
+          >
+
+            {/* ÍCONE DINÂMICO BASEADO NO TIPO E BRANDING */}
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+              style={{
+                backgroundColor: `${modalAviso.tipo === 'sucesso' ? (branding?.modal_icon_success_color || '#059669') :
+                  modalAviso.confirmar ? (branding?.modal_icon_error_color || '#DC2626') :
+                    (branding?.modal_icon_warning_color || '#D97706')
+                  }15` // O '15' no final adiciona transparência ao fundo do ícone
+              }}
+            >
+              {modalAviso.tipo === 'sucesso' ? (
+                <Box style={{ color: branding?.modal_icon_success_color || '#059669' }} size={28} />
+              ) : modalAviso.confirmar ? (
+                <Trash2 style={{ color: branding?.modal_icon_error_color || '#DC2626' }} size={28} />
+              ) : (
+                <Tag style={{ color: branding?.modal_icon_warning_color || '#D97706' }} size={28} />
+              )}
             </div>
-          )}
-          {modalAviso && (
-            <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-gray-100">
-              <h2 className="text-xl font-extrabold mb-4 flex items-center gap-3"> <Trash2 className="text-red-500" /> {modalAviso.titulo} </h2>
-              <p className="text-gray-600 mb-8 text-sm whitespace-pre-line">{modalAviso.mensagem}</p>
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setModalAviso(null)} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
-                {modalAviso.confirmar && (<button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Confirmar</button>)}
-              </div>
+
+            <h2 className="text-xl font-black mb-2" style={{ color: branding?.modal_text_color || '#1C415B' }}>
+              {modalAviso.titulo}
+            </h2>
+
+            <p className="text-gray-500 mb-8 text-sm whitespace-pre-line leading-relaxed px-2">
+              {modalAviso.mensagem}
+            </p>
+
+            <div className="flex gap-3 w-full">
+              {modalAviso.confirmar ? (
+                <>
+                  <button
+                    onClick={() => setModalAviso(null)}
+                    className="flex-1 py-3.5 rounded-2xl text-xs font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }}
+                    className="flex-1 py-3.5 rounded-2xl text-xs font-bold text-white shadow-md active:scale-95 transition-all"
+                    style={{ backgroundColor: branding?.modal_icon_error_color || '#DC2626' }}
+                  >
+                    Excluir
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setModalAviso(null)}
+                  className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95"
+                  style={{
+                    backgroundColor: branding?.modal_button_background_color || '#1C415B',
+                    color: branding?.modal_button_text_color || '#FFFFFF'
+                  }}
+                >
+                  Entendido
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* BOTÃO VOLTAR AO TOPO */}
-      {showScrollTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 p-4 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110"
-          style={{ backgroundColor: theme.menuIconColor, color: theme.menuTextColor }}
-          title="Voltar ao topo"
-        >
-          <ChevronDown size={24} className="rotate-180" />
-        </button>
+      {carregando && !modalAviso && !mostrarModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-[100] animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-10 shadow-2xl flex flex-col items-center gap-4">
+            <div className="relative">
+              <Loader2 className="w-12 h-12 animate-spin" style={{ color: theme.menuIconColor }} />
+              <div className="absolute inset-0 rounded-full blur-md opacity-20 animate-pulse" style={{ backgroundColor: theme.menuIconColor }}></div>
+            </div>
+            <p className="text-gray-500 font-bold text-xs uppercase tracking-widest">Processando...</p>
+          </div>
+        </div>
       )}
     </div>
   )

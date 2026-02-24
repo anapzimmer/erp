@@ -78,16 +78,17 @@ const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
 
     try {
       // 1. Cadastrar no Supabase Auth passando os metadados da empresa
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          data: {
-            company_name: signupCompanyName, // <--- Enviando nome da empresa
-            cnpj: signupCnpj,                 // <--- Enviando CNPJ/CPF
-          },
-        },
-      });
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+  email: signupEmail,
+  password: signupPassword,
+ options: {
+  data: {
+    nome: signupEmail.split('@')[0],
+    company_name: signupCompanyName, // <--- Mudar de 'nome_empresa' para 'company_name'
+    cnpj: signupCnpj,
+  },
+},
+});
 
       if (authError) throw authError;
 

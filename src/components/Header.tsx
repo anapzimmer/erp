@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Building2, ChevronDown, Settings, LogOut } from "lucide-react";
 
+
 interface HeaderProps {
   setShowMobileMenu: (show: boolean) => void;
   nomeEmpresa: string;
