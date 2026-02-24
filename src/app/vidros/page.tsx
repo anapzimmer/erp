@@ -568,49 +568,66 @@ export default function VidrosPage() {
           </div>
 
           {/* FILTROS E BOTAO NOVO */}
-        <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-  <div className="flex flex-wrap gap-3">
-    {["Nome", "Espessura", "Tipo"].map((label) => (
-      <input
-        key={label}
-        type="text"
-        placeholder={`${label}...`}
-        value={label === "Nome" ? filtroNome : label === "Espessura" ? filtroEspessura : filtroTipo}
-        onChange={e => {
-          const v = e.target.value;
-          if (label === "Nome") setFiltroNome(v);
-          else if (label === "Espessura") setFiltroEspessura(v);
-          else setFiltroTipo(v);
-        }}
-        className="p-3 px-5 rounded-2xl border border-gray-100 text-sm bg-white shadow-sm focus:ring-2 focus:outline-none transition-all w-40"
-        style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
-      />
-    ))}
-  </div>
+          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+            <div className="flex flex-wrap gap-3">
+              {["Nome", "Espessura", "Tipo"].map((label) => (
+                <input
+                  key={label}
+                  type="text"
+                  placeholder={`${label}...`}
+                  value={label === "Nome" ? filtroNome : label === "Espessura" ? filtroEspessura : filtroTipo}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (label === "Nome") setFiltroNome(v);
+                    else if (label === "Espessura") setFiltroEspessura(v);
+                    else setFiltroTipo(v);
+                  }}
+                  className="p-3 px-5 rounded-2xl border border-gray-100 text-sm bg-white shadow-sm focus:ring-2 focus:outline-none transition-all w-40"
+                  style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
+                />
+              ))}
+            </div>
 
-  {/* BOTÃO ADICIONAR NOVO - REINSERIDO AQUI */}
-<button
-  onClick={() => {
-    setEditando(null);
-    setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 });
-    setPrecosGruposModal([]);
-    setMostrarModal(true);
-  }}
-  className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
-  style={{ 
-    // Pega a cor de fundo definida pelo usuário no banco
-    backgroundColor: branding?.button_dark_bg || theme.menuBackgroundColor, 
-    // Pega a cor da letra definida pelo usuário no banco
-    color: branding?.button_dark_text_color || '#FFFFFF'
-  }}
->
-  <Plus 
-    size={20} 
-    style={{ color: branding?.button_dark_text_color || '#FFFFFF' }} 
-  />
-  Novo Vidro
-</button>
-</div>
+            {/* Botão Limpar Duplicados - Recuperado com sua lógica original */}
+            <div className="flex items-center gap-2">
+            <button 
+    onClick={limparDuplicados} 
+    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 transition-colors duration-200"
+    onMouseEnter={(e) => {
+      e.currentTarget.style.color = '#dc2626'; // Vermelho padrão (text-red-600)
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.color = '#6b7280'; // Volta para o cinza (text-gray-500)
+    }}
+  > 
+    <Trash2 size={18} /> 
+    Limpar Duplicados
+  </button>
+              {/* BOTÃO ADICIONAR NOVO - REINSERIDO AQUI */}
+
+              <button
+                onClick={() => {
+                  setEditando(null);
+                  setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 });
+                  setPrecosGruposModal([]);
+                  setMostrarModal(true);
+                }}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+                style={{
+                  // Pega a cor de fundo definida pelo usuário no banco
+                  backgroundColor: branding?.button_dark_bg || theme.menuBackgroundColor,
+                  // Pega a cor da letra definida pelo usuário no banco
+                  color: branding?.button_dark_text_color || '#FFFFFF'
+                }}
+              >
+                <Plus
+                  size={20}
+                  style={{ color: branding?.button_dark_text_color || '#FFFFFF' }}
+                />
+                Novo Vidro
+              </button>
+            </div>
+          </div>
 
           {/* TABELA */}
           <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
