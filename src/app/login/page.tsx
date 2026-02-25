@@ -65,6 +65,18 @@ const LoginPage = () => {
   };
   const [showSignup, setShowSignup] = useState(false);
 
+  supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    // Limpa qualquer resquício que possa causar o erro de Refresh Token
+    localStorage.clear(); 
+    // Opcional: deletar cookies específicos se necessário
+  }
+  
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('Token renovado com sucesso!');
+  }
+});
+
 const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);

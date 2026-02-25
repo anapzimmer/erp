@@ -13,60 +13,69 @@ export function useAuth() {
 
   useEffect(() => {
     const checkUser = async () => {
-      // 1. Pega o usuário logado (Autenticação do Supabase)
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      try {
+        // 1. Pega o usuário logado
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-      if (!authUser) {
-        router.push('/login');
-        return;
-      }
-
-      setUser(authUser);
-
-      // 2. Busca o nome do usuário na tabela "perfis"
-      const { data: perfilData } = await supabase
-        .from('perfis')
-        .select('nome_completo')
-        .eq('id', user.id)
-        .single();
-      
-      if (perfilData) setPerfilUsuario(perfilData);
-
-      // 3. Busca o vínculo empresa_id
-      const { data: perfilVinculo } = await supabase
-        .from('perfis_usuarios')
-        .select('email, empresa_id') // 🔥 Removido 'nome', adicionado 'email'
-        .eq('id', authUser.id)
-        .maybeSingle();
-
-      if (usuarioError) {
-        console.error("Erro na consulta ao banco:", usuarioError.message);
-      }
-
-      if (usuarioData) {
-        // Como não tem coluna 'nome', vamos usar o e-mail ou a parte antes do @ para o perfil
-        setPerfilUsuario({
-          ...usuarioData,
-          nome: usuarioData.email.split('@')[0] // Isso evita o erro de 'coluna não existe'
-        });
-        setEmpresaId(usuarioData.empresa_id);
-
-        // 3. Busca o nome da empresa
-        if (usuarioData.empresa_id) {
-          const { data: empresaData } = await supabase
-            .from('empresas')
-            .select('nome')
-            .eq('id', usuarioData.empresa_id)
-            .maybeSingle();
-
-          if (empresaData) setNomeEmpresa(empresaData.nome);
+        if (authError || !authUser) {
+          setLoading(false);
+          router.push('/login');
+          return;
         }
-      } else {
-        console.warn("Vínculo não encontrado em perfis_usuarios para o ID:", authUser.id);
-        setNomeEmpresa("Empresa não vinculada");
-      }
 
-      setLoading(false);
+        setUser(authUser);
+
+        // 2. Busca o perfil (CORRIGIDO: usando authUser.id em vez de user.id)
+        const { data: perfilData } = await supabase
+          .from('perfis')
+          .select('nome_completo')
+          .eq('id', authUser.id) // 🔥 Aqui estava o erro 'id of null'
+          .single();
+        
+        if (perfilData) setPerfilUsuario(perfilData);
+
+        // 3. Busca o vínculo da empresa (CORRIGIDO: nomes das variáveis)
+        const { data: vinculoData, error: vinculoError } = await supabase
+          .from('perfis_usuarios')
+          .select('email, empresa_id')
+          .eq('id', authUser.id)
+          .maybeSingle();
+
+        if (vinculoError) {
+          console.error("Erro ao buscar vínculo:", vinculoError.message);
+        }
+
+        if (vinculoData) {
+          setEmpresaId(vinculoData.empresa_id);
+          
+          // Atualiza o perfil com o email se o nome_completo não existir
+          if (!perfilData) {
+            setPerfilUsuario({
+              email: vinculoData.email,
+              nome: vinculoData.email?.split('@')[0]
+            });
+          }
+
+          // 4. Busca o nome da empresa
+          if (vinculoData.empresa_id) {
+            const { data: empresaData } = await supabase
+              .from('empresas')
+              .select('nome')
+              .eq('id', vinculoData.empresa_id)
+              .maybeSingle();
+
+            if (empresaData) setNomeEmpresa(empresaData.nome);
+          }
+        } else {
+          console.warn("Vínculo não encontrado para:", authUser.id);
+          setNomeEmpresa("Empresa não vinculada");
+        }
+
+      } catch (err) {
+        console.error("Erro inesperado no useAuth:", err);
+      } finally {
+        setLoading(false); // Garante que o loading pare sempre
+      }
     };
 
     checkUser();
