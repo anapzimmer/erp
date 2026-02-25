@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
-  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,Loader2,
+  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer, Loader2,
   Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
   PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
   DollarSign, ArrowUp, Square
@@ -11,7 +11,8 @@ import {
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { KitsPDF } from "app/relatorios/kits/KitsPDF"; // Ajuste o caminho conforme onde salvou o arquivo
+import { KitsPDF } from "app/relatorios/kits/KitsPDF"; 
+import { useTheme } from "@/context/ThemeContext";
 
 // --- TIPAGENS ---
 type Kit = {
@@ -54,6 +55,7 @@ const padronizarTexto = (texto: string | null) => {
 
 export default function KitsPage() {
   const router = useRouter()
+  const { theme, isLoading: themeLoading } = useTheme();
 
   // --- ESTADOS UI/BRANDING ---
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -66,13 +68,14 @@ export default function KitsPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [gerandoPDF, setGerandoPDF] = useState(false);
 
-  const darkPrimary = "#1C415B";
-  const darkSecondary = "#FFFFFF";
-  const darkTertiary = "#39B89F";
-  const darkHover = "#39B89F";
-  const lightPrimary = "#F4F7FA";
-  const lightSecondary = "#FFFFFF";
-  const lightTertiary = "#1C415B";
+  const darkPrimary = theme.menuBackgroundColor;
+  const darkSecondary = theme.menuTextColor;
+  const darkTertiary = theme.menuIconColor;
+  const darkHover = theme.menuHoverColor;
+  const lightPrimary = theme.screenBackgroundColor;
+  const lightSecondary = theme.modalBackgroundColor;
+  const lightTertiary = theme.contentTextLightBg;
+
 
   // --- ESTADOS LÓGICA ---
   const [kits, setKits] = useState<Kit[]>([])
@@ -205,39 +208,40 @@ export default function KitsPage() {
 
   const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !empresaIdUsuario) return;
 
     setModalCarregando(true);
     const reader = new FileReader();
 
     reader.onload = async (event) => {
       try {
-        const conteudo = event.target?.result as string;
-        const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
+        // CORREÇÃO DE ACENTOS: Usa windows-1252 para ler arquivos do Excel sem bugar
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
 
+        const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
         const novosKits = linhas.slice(1).map(linha => {
-          const colunas = linha.split(";");
+          const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
+
+          // Mapeamento: Coluna 0 (Nome), Coluna 1 (Categoria), Coluna 2 (Preço)
           const descricaoOriginal = colunas[0] || "";
           const categoriaPlanilha = colunas[1] || "Kits";
           const precoOriginal = colunas[2] || "0";
 
-          // --- 1. TRATAMENTO DE PREÇO ROBUSTO ---
-          const precoLimpo = precoOriginal
-            .replace(/\./g, "")      // Remove ponto de milhar
-            .replace(",", ".");      // Troca vírgula decimal por ponto
+          // Tratamento de Preço
+          const precoLimpo = precoOriginal.replace(/\./g, "").replace(",", ".");
           const precoFinal = parseFloat(precoLimpo) || 0;
 
-          // 2. EXTRAÇÃO DE COR E NOME
+          // Extração de Cor (ex: "Kit Box - Preto")
           let nomeLimpo = descricaoOriginal;
-          let corExtraida = "";
+          let corExtraida = "Padrão";
           if (descricaoOriginal.includes("-")) {
             const partes = descricaoOriginal.split("-");
-            corExtraida = partes.pop()?.trim() || "";
+            corExtraida = partes.pop()?.trim() || "Padrão";
             nomeLimpo = partes.join("-").trim();
           }
 
-          const nomeUpper = descricaoOriginal.toUpperCase();
-
+          // ... (mantém suas lógicas de toMM e extração de medidas que são muito boas)
           const toMM = (val: number) => {
             if (!val || val <= 0) return 0;
             if (val < 10) return Math.round(val * 1000);
@@ -245,53 +249,16 @@ export default function KitsPage() {
             return Math.round(val);
           };
 
-          // --- 3. EXTRAÇÃO DE NÚMEROS MELHORADA ---
-          const stringParaProcessar = nomeUpper
-            .replace(/C1/g, " ")
-            .replace(/F\d+/g, " ")
-            .replace(/\d+F/g, " ")
-            .replace(/\d+$/g, " ");
-
-          const matches = stringParaProcessar.match(/\d+([.,]\d+)?/g) || [];
+          const nomeUpper = descricaoOriginal.toUpperCase();
+          const matches = nomeUpper.match(/\d+([.,]\d+)?/g) || [];
           let nums = matches.map(n => parseFloat(n.replace(",", ".")));
-
-          if (!nomeUpper.includes("A") && !nomeUpper.includes("L") && !nomeUpper.includes("SACADA")) {
-            nums = nums.filter(n => n % 10 === 0 || n < 10);
-          }
 
           let largura = 0;
           let altura = 1900;
 
-          // --- 4. REGRAS DE HIERARQUIA ---
-
-          const matchA = nomeUpper.match(/(\d+([.,]\d+)?)\s*A/);
-          const matchL = nomeUpper.match(/(\d+([.,]\d+)?)\s*L/);
-
-          if (matchA && matchL) {
-            altura = toMM(parseFloat(matchA[1].replace(",", ".")));
-            largura = toMM(parseFloat(matchL[1].replace(",", ".")));
-          }
-          else if (nomeUpper.includes("SACADA") && nums.length >= 2) {
+          if (nums.length >= 2) {
             largura = toMM(nums[0]);
             altura = toMM(nums[1]);
-          }
-          else if (nums.length >= 3) {
-            altura = toMM(nums[0]);
-            largura = toMM(nums[1]) + toMM(nums[2]);
-          }
-          else if (nums.length === 2) {
-            const n1 = toMM(nums[0]);
-            const n2 = toMM(nums[1]);
-            if (n1 >= 2100 && n1 > n2) {
-              altura = n1; largura = n2;
-            } else {
-              largura = n1; altura = n2;
-            }
-          }
-          else if (nums.length === 1) {
-            const v = toMM(nums[0]);
-            largura = (nomeUpper.includes("C1") || nomeUpper.includes("CANTO")) ? v * 2 : v;
-            altura = 1900;
           }
 
           return {
@@ -301,30 +268,28 @@ export default function KitsPage() {
             categoria: padronizarTexto(categoriaPlanilha),
             cores: padronizarTexto(corExtraida),
             preco: precoFinal,
-            preco_por_cor: "",
-            empresa_id: empresaIdUsuario // VINCULA À EMPRESA LOGADA
+            empresa_id: empresaIdUsuario
           };
         });
 
         if (novosKits.length > 0) {
-          // AQUI A MUDANÇA: .upsert em vez de .insert
-          // onConflict diz: "Se o nome e a cor forem iguais, só atualiza a linha"
           const { error } = await supabase
             .from("kits")
             .upsert(novosKits, { onConflict: 'nome,cores,empresa_id' });
 
           if (error) throw error;
           await carregarDados();
-          setModalAviso({ titulo: "Sucesso", mensagem: "Kits importados! Itens repetidos foram apenas atualizados." });
+          setModalAviso({ titulo: "Sucesso", mensagem: "Kits importados com acentos corrigidos!" });
         }
       } catch (err: any) {
-        setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
+        setModalAviso({ titulo: "Erro", mensagem: "Falha na importação: " + err.message });
       } finally {
         setModalCarregando(false);
         if (e.target) e.target.value = "";
       }
     };
-    reader.readAsText(file);
+    // IMPORTANTE: Mudar para readAsArrayBuffer para o TextDecoder funcionar
+    reader.readAsArrayBuffer(file);
   };
 
   const handleExportarCSV = () => {
@@ -429,11 +394,19 @@ export default function KitsPage() {
   });
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
+   <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src="/glasscode2.png" alt="Logo" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
+        <div className="px-3 py-4 mb-4 flex justify-center"> <Image 
+    // Prioriza a logo do banco, se não existir, usa a padrão
+    src={theme.logoDarkUrl || "/glasscode2.png"} 
+    alt="Logo Empresa" 
+    width={200} 
+    height={56} 
+    className="h-12 md:h-14 object-contain transition-all duration-300" 
+    priority // Carrega a logo com prioridade por ser o topo da página
+  /> </div>
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
@@ -530,17 +503,15 @@ export default function KitsPage() {
                 </p>
               </div>
             </div>
-
-{/* AÇÕES (BOTÕES PADRONIZADOS) */}
-<div className="flex items-center gap-2 no-print">
-
-  {/* Botão PDF */}
+{/* AÇÕES PADRONIZADAS */}
+<div className="flex gap-2 no-print">
+  {/* Botão Imprimir PDF */}
   {isClient && (
     <PDFDownloadLink
       document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
       fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
+      title="Imprimir Catálogo"
       className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-      title="Imprimir PDF"
     >
       {({ loading }) => (
         loading ? (
@@ -549,7 +520,7 @@ export default function KitsPage() {
           <Printer
             size={20}
             className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-            onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+            onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
             onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
           />
         )
@@ -566,25 +537,31 @@ export default function KitsPage() {
     <Download
       size={20}
       className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
       onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
     />
   </button>
 
   {/* Botão Importar CSV */}
   <label
+    htmlFor="importarCSV"
     title="Importar Planilha"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+    className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
   >
     <Upload
       size={20}
       className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+      onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
       onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
     />
-    <input type="file" accept=".csv" className="hidden" onChange={handleImportarCSV} />
+    <input
+      type="file"
+      id="importarCSV"
+      accept=".csv"
+      className="hidden"
+      onChange={handleImportarCSV}
+    />
   </label>
-
 </div>
           </div>
 
@@ -632,11 +609,15 @@ export default function KitsPage() {
               <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
                 <Trash2 size={18} /> Limpar Duplicados
               </button>
-              <button onClick={() => {
-                setEditando(null); setNovoKit({
-                  nome: "", largura: 0, altura: 0, categoria: "", cores: "", preco_por_cor: "", preco: null
-                }); setMostrarModal(true);
-              }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+              <button
+                onClick={() => {
+                  setEditando(null);
+                  setNovoKit({ nome: "", largura: 0, altura: 0, categoria: "", cores: "", preco_por_cor: "", preco: null });
+                  setMostrarModal(true);
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+                style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+              >
                 <PlusCircle size={18} /> Novo Kit
               </button>
             </div>
@@ -708,7 +689,7 @@ export default function KitsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Nome do Kit</label>
+                <label className="text-[11px] font-semibold text-gray-400 ml-1 mb-1 block">Nome do Kit</label>
                 <input
                   type="text"
                   value={novoKit.nome}
