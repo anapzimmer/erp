@@ -85,57 +85,57 @@ export default function PerfisPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [branding, setBranding] = useState<any>(null);
 
-// --- Efeitos de Inicialização e Auth ---
-  useEffect(() => {
-const init = async () => {
+  // --- Efeitos de Inicialização e Auth ---
+  useEffect(() => {
+    const init = async () => {
       // 🔥 LIMPEZA: Evita que a logo da empresa anterior apareça enquanto a nova carrega
       setLogoDark(null);
       setLogoLight(null);
       setNomeEmpresa("");
-      
+
       const { data: userData } = await supabase.auth.getUser();
 
-      if (!userData.user) {
-        router.push("/login");
-        return;
-      }
+      if (!userData.user) {
+        router.push("/login");
+        return;
+      }
 
-      setUsuarioEmail(userData.user.email ?? null);
+      setUsuarioEmail(userData.user.email ?? null);
 
-      const { data: relData, error: relError } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", userData.user.id)
-        .single();
+      const { data: relData, error: relError } = await supabase
+        .from("perfis_usuarios")
+        .select("empresa_id")
+        .eq("id", userData.user.id)
+        .single();
 
-      if (relError || !relData) {
-        setCheckingAuth(false);
-        return;
-      }
+      if (relError || !relData) {
+        setCheckingAuth(false);
+        return;
+      }
 
-      const empresaId = relData.empresa_id;
-      setEmpresaIdUsuario(empresaId);
+      const empresaId = relData.empresa_id;
+      setEmpresaIdUsuario(empresaId);
 
-      // 🔥 BUSCA CONECTADA À TABELA configuracoes_branding
+      // 🔥 BUSCA CONECTADA À TABELA configuracoes_branding
       // Buscamos o nome da empresa e as configurações visuais em paralelo
-      const [resEmpresa, resBranding] = await Promise.all([
+      const [resEmpresa, resBranding] = await Promise.all([
         supabase.from("empresas").select("nome").eq("id", empresaId).single(),
         supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single()
       ]);
 
-      if (!resEmpresa.error && resEmpresa.data) {
-        setNomeEmpresa(resEmpresa.data.nome);
-      }
+      if (!resEmpresa.error && resEmpresa.data) {
+        setNomeEmpresa(resEmpresa.data.nome);
+      }
 
-     if (!resBranding.error && resBranding.data) {
+      if (!resBranding.error && resBranding.data) {
         const b = resBranding.data;
-        
+
         // 🔥 ARRUADO AQUI: Salve as duas logos separadamente
         // Use b.logo_dark para o que for aparecer na tela (se o fundo for escuro)
-        setLogoDark(b.logo_dark); 
-        
+        setLogoDark(b.logo_dark);
+
         // Use b.logo_light para o PDF (que tem fundo branco)
-        setLogoLight(b.logo_light); 
+        setLogoLight(b.logo_light);
 
         // Mapeamento exato das colunas
         setDarkPrimary(b.menu_background_color || "#1C415B");
@@ -147,12 +147,12 @@ const init = async () => {
         setLightTertiary(b.content_text_light_bg || "#1C415B");
       }
 
-      await carregarDados(empresaId);
-      setCheckingAuth(false);
-    };
+      await carregarDados(empresaId);
+      setCheckingAuth(false);
+    };
 
-    init();
-  }, []);
+    init();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -252,78 +252,52 @@ const init = async () => {
     document.body.removeChild(link);
   }
 
-  const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !empresaIdUsuario) return;
+const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file || !empresaIdUsuario) return;
 
-    setModalCarregando(true);
-    const reader = new FileReader();
+  setModalCarregando(true);
+  const reader = new FileReader();
 
-    reader.onload = async (e) => {
+  reader.onload = async (e) => {
+    try {
       const decoder = new TextDecoder("iso-8859-1");
       const text = decoder.decode(e.target?.result as ArrayBuffer);
 
-      const rows = text.split("\n").slice(1);
+      // Divide linhas e ignora o cabeçalho
+      const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0).slice(1);
+      
       let importados = 0;
-      let erros = 0;
-
-      // Dicionário de Tradução de Cores
-      const tradutorCores: { [key: string]: string } = {
-        "PT": "Preto",
-        "BC": "Branco",
-        "CR": "Cromado",
-        "BZ": "Bronze",
-        "NF": "Fosco",
-        "GO": "Gold" // Adicionado baseada na sua imagem
-      };
 
       for (const row of rows) {
-        if (!row.trim()) continue;
-
         const columns = row.split(";").map((c) => c.replace(/['"]+/g, "").trim());
 
-        let codigoRaw = columns[0] || "";
-        let nomeRaw = columns[1] || "";
-        let categoriaRaw = columns[2] || "";
-        let precoRaw = columns[3] || "";
+        // Mapeamento baseado no arquivo que você enviou:
+        // [0] Codigo | [1] Nome | [2] Cores | [3] Preço | [4] Categoria
+        const codigoRaw = columns[0] || "";
+        const nomeRaw = columns[1] || "";
+        const corRaw = columns[2] || "Padrão";
+        const precoRaw = columns[3] || "0";
+        const categoriaRaw = columns[4] || "Geral";
 
-        let codigoFinal = codigoRaw;
-        let nomeFinal = nomeRaw;
-        let corFinal = ""; // Começa vazio por padrão
-        let categoriaFinal = categoriaRaw || "Geral";
-
-        // --- LÓGICA DE EXTRAÇÃO E TRADUÇÃO DA COR ---
-        if (codigoFinal.includes("-")) {
-          const partes = codigoFinal.split("-");
-          const sigla = partes[partes.length - 1].toUpperCase(); // Pega o final (PT, BC...)
-
-          // Verifica se a sigla existe no nosso tradutor
-          if (tradutorCores[sigla]) {
-            corFinal = tradutorCores[sigla]; // Traduz (ex: PT vira Preto)
-            codigoFinal = partes.slice(0, -1).join("-"); // Remove a sigla do código
-          }
-        }
-
-        // Limpeza do Nome (remove o que vier após o hífen na descrição)
-        if (nomeFinal.includes("-")) {
-          nomeFinal = nomeFinal.split("-")[0].trim();
-        }
-
-        if (codigoFinal) {
-          const preco = precoRaw ? Number(precoRaw.replace(",", ".")) : null;
-
+        if (codigoRaw && nomeRaw) {
           const { error } = await supabase.from("perfis").upsert([{
-            codigo: codigoFinal.toUpperCase().trim(),
-            nome: padronizarTexto(nomeFinal),
-            cores: padronizarTexto(corFinal), // Se não traduziu, vai vazio ""
-            preco: preco,
-            categoria: padronizarTexto(categoriaFinal),
+            codigo: codigoRaw.toUpperCase().trim(),
+            nome: padronizarTexto(nomeRaw), // Mantém o nome descritivo (ex: VT64 - CADEIRINHA)
+            cores: padronizarTexto(corRaw),
+            preco: precoRaw ? Number(precoRaw.replace(",", ".")) : null,
+            categoria: padronizarTexto(categoriaRaw),
             empresa_id: empresaIdUsuario
           }], {
-            onConflict: 'codigo,cores,empresa_id'
+            // ESSA LINHA DEVE SER IGUAL À CONSTRAINT QUE VOCÊ CRIOU NO SQL
+            onConflict: 'codigo,nome,cores,empresa_id'
           });
 
-          if (error) { erros++; } else { importados++; }
+          if (!error) {
+            importados++;
+          } else {
+            console.error("Erro no item:", codigoRaw, error.message);
+          }
         }
       }
 
@@ -331,61 +305,64 @@ const init = async () => {
       setModalCarregando(false);
       setModalAviso({
         titulo: "Importação Concluída",
-        mensagem: `✅ ${importados} perfis processados.`
+        mensagem: `✅ ${importados} perfis processados com sucesso.`
       });
-      event.target.value = "";
-    };
-    reader.readAsArrayBuffer(file);
-  }
-  
+    } catch (err) {
+      setModalCarregando(false);
+      setModalAviso({ titulo: "Erro", mensagem: "Falha ao processar CSV." });
+    }
+    event.target.value = "";
+  };
+  reader.readAsArrayBuffer(file);
+};
   const [logoLight, setLogoLight] = useState<string | null>(null);
 
- // Dentro da sua função gerarPDF em page.tsx
-const gerarPDF = async () => {
-  if (gerandoPDF) return; // Evita cliques duplos
-  setGerandoPDF(true);
+  // Dentro da sua função gerarPDF em page.tsx
+  const gerarPDF = async () => {
+    if (gerandoPDF) return; // Evita cliques duplos
+    setGerandoPDF(true);
 
-  try {
-    // Verifique se perfisFiltrados existe e tem dados
-    if (perfisFiltrados.length === 0) {
-      setModalAviso({ titulo: "Aviso", mensagem: "Não há dados para gerar o PDF." });
+    try {
+      // Verifique se perfisFiltrados existe e tem dados
+      if (perfisFiltrados.length === 0) {
+        setModalAviso({ titulo: "Aviso", mensagem: "Não há dados para gerar o PDF." });
+        setGerandoPDF(false);
+        return;
+      }
+
+      const doc = (
+        <PerfisPDF
+          dados={perfisFiltrados}
+          empresa={nomeEmpresa}
+          logoUrl={logoLight}
+          coresEmpresa={{
+            primary: darkPrimary,
+            secondary: darkSecondary,
+            tertiary: darkTertiary,
+            // 🔥 Adicione esta linha abaixo para resolver o erro de tipagem
+            textDefault: '#1C415B'
+          }}
+        />
+      );
+
+      // Converte para Blob e faz o download
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `catalogo_${nomeEmpresa.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error("Erro detalhado ao gerar PDF:", error);
+      setModalAviso({ titulo: "Erro", mensagem: "Falha ao gerar o arquivo PDF." });
+    } finally {
       setGerandoPDF(false);
-      return;
     }
-
- const doc = (
-  <PerfisPDF 
-    dados={perfisFiltrados} 
-    empresa={nomeEmpresa} 
-    logoUrl={logoLight} 
-    coresEmpresa={{
-      primary: darkPrimary, 
-      secondary: darkSecondary,
-      tertiary: darkTertiary,
-      // 🔥 Adicione esta linha abaixo para resolver o erro de tipagem
-      textDefault: '#1C415B' 
-    }}
-  />
-);
-
-    // Converte para Blob e faz o download
-    const blob = await pdf(doc).toBlob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `catalogo_${nomeEmpresa.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-  } catch (error) {
-    console.error("Erro detalhado ao gerar PDF:", error);
-    setModalAviso({ titulo: "Erro", mensagem: "Falha ao gerar o arquivo PDF." });
-  } finally {
-    setGerandoPDF(false);
-  }
-};
+  };
 
   // --- Funções Lógicas ---
   const salvarPerfil = async () => {
@@ -528,23 +505,23 @@ const gerarPDF = async () => {
 
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
 
-return (
+  return (
     <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
 
       {/* SIDEBAR - Conectada ao menu_background_color (darkPrimary) */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> 
-          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> 
+        <div className="px-3 py-4 mb-4 flex justify-center">
+          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
         </div>
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2 scrollbar-hide">
-          <div> 
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> 
-            {menuPrincipal.map(renderMenuItem)} 
+          <div>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
+            {menuPrincipal.map(renderMenuItem)}
           </div>
-          <div> 
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> 
-            {menuCadastros.map(renderMenuItem)} 
+          <div>
+            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p>
+            {menuCadastros.map(renderMenuItem)}
           </div>
         </nav>
       </aside>
@@ -553,12 +530,12 @@ return (
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* TOPBAR - Conectada ao modal_background_color (lightSecondary) */}
-   <Header 
-    setShowMobileMenu={setShowMobileMenu}
-    nomeEmpresa={nomeEmpresa}
-    usuarioEmail={usuarioEmail || ""} 
-    handleSignOut={handleSignOut}
-    />
+        <Header
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={usuarioEmail || ""}
+          handleSignOut={handleSignOut}
+        />
 
         {/* CORPO DA PÁGINA */}
         <main className="p-4 md:p-8 flex-1">
@@ -574,14 +551,19 @@ return (
             </div>
 
             <div className="flex items-center gap-2 no-print">
-              <button onClick={gerarPDF} className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
-                <Printer size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
+              {/* Impressora */}
+              <button onClick={gerarPDF} title="Gerar PDF" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
+                <Printer size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
               </button>
-              <button onClick={exportarCSV} className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
-                <Download size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
+
+              {/* Exportar */}
+              <button onClick={exportarCSV} title="Exportar CSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
+                <Download size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
               </button>
-              <label htmlFor="importarCSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer">
-                <Upload size={20} style={{ color: '#6b7280' }} onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
+
+              {/* Importar */}
+              <label htmlFor="importarCSV" title="Importar CSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer">
+                <Upload size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
                 <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
               </label>
             </div>
@@ -612,22 +594,30 @@ return (
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
                 className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:ring-2"
-                style={{"--tw-ring-color": darkTertiary} as any}
+                style={{ "--tw-ring-color": darkTertiary } as any}
               />
-              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2" style={{"--tw-ring-color": darkTertiary} as any} />
+              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as any} />
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 transition"> 
-                <Trash2 size={18} /> Limpar Duplicados
-              </button>
               <button
-                onClick={abrirModalParaNovo}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition shadow-sm"
-                style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                onClick={eliminarDuplicados}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
               >
-                <PlusCircle size={18} /> Novo Perfil
+                <Trash2 size={18} />
+                Limpar Duplicados
               </button>
+           <button
+  onClick={abrirModalParaNovo}
+  className="group flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+>
+  <PlusCircle 
+    size={20} 
+    className="transition-all duration-300 group-hover:scale-110 animate-pulse" 
+  />
+  Novo Perfil
+</button>
             </div>
           </div>
 
@@ -671,115 +661,115 @@ return (
         </main>
       </div>
 
-     {/* MODAIS (Design Refinado e Delicado) */}
-{mostrarModal && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] z-50 px-4 transition-all">
-    <div 
-      className="rounded-3xl p-8 shadow-2xl w-full max-w-md border border-white/20" 
-      style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
-    >
-      {/* Cabeçalho do Modal */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 
-            className="text-xl font-extrabold tracking-tight" 
-            style={{ color: branding?.modal_text_color || '#1C415B' }}
+      {/* MODAIS (Design Refinado e Delicado) */}
+      {mostrarModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] z-50 px-4 transition-all">
+          <div
+            className="rounded-3xl p-8 shadow-2xl w-full max-w-md border border-white/20"
+            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
           >
-            {editando ? "Editar Perfil" : "Novo Perfil"}
-          </h2>
-          <div 
-            className="h-1 w-8 mt-1.5 rounded-full" 
-            style={{ backgroundColor: branding?.button_dark_bg || '#39B89F' }}
-          ></div>
-        </div>
-        <button 
-          onClick={() => setMostrarModal(false)} 
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
-        >
-          <X size={18} className="text-gray-400 group-hover:text-gray-600" />
-        </button>
-      </div>
-
-      {/* Corpo do Modal */}
-      <div className="space-y-5">
-        <div className="grid grid-cols-4 gap-4">
-          <div className="col-span-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Código</label>
-            <input 
-              type="text" 
-              value={novoPerfil.codigo} 
-              onChange={e => setNovoPerfil({...novoPerfil, codigo: e.target.value.toUpperCase()})} 
-              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all" 
-            />
-          </div>
-          <div className="col-span-3">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Descrição</label>
-            <input 
-              type="text" 
-              value={novoPerfil.nome} 
-              onChange={e => setNovoPerfil({...novoPerfil, nome: e.target.value})} 
-              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all" 
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Cor</label>
-            <input 
-              type="text" 
-              placeholder="Ex: Alumínio" 
-              value={novoPerfil.cores} 
-              onChange={e => setNovoPerfil({...novoPerfil, cores: e.target.value})} 
-              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all" 
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Categoria</label>
-            <input 
-              type="text" 
-              placeholder="Ex: Trilho" 
-              value={novoPerfil.categoria} 
-              onChange={e => setNovoPerfil({...novoPerfil, categoria: e.target.value})} 
-              className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all" 
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Preço Sugerido</label>
-          <input 
-            type="number" 
-            placeholder="0,00" 
-            value={novoPerfil.preco ?? ""} 
-            onChange={e => setNovoPerfil({...novoPerfil, preco: e.target.value ? Number(e.target.value) : null})} 
-            className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm font-bold border border-gray-100 outline-none focus:border-blue-300 transition-all" 
-          />
-        </div>
-
-        {/* Botão de Ação usando modal_button da tabela */}
-        <button 
-          onClick={salvarPerfil} 
-          disabled={carregando}
-          className="w-full mt-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[2px] transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 hover:brightness-110" 
-          style={{ 
-            backgroundColor: branding?.modal_button_background_color || '#1C415B', 
-            color: branding?.modal_button_text_color || '#FFFFFF' 
-          }}
-        >
-          {carregando ? (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" />
-              <span>Processando...</span>
+            {/* Cabeçalho do Modal */}
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2
+                  className="text-xl font-extrabold tracking-tight"
+                  style={{ color: branding?.modal_text_color || '#1C415B' }}
+                >
+                  {editando ? "Editar Perfil" : "Novo Perfil"}
+                </h2>
+                <div
+                  className="h-1 w-8 mt-1.5 rounded-full"
+                  style={{ backgroundColor: branding?.button_dark_bg || '#39B89F' }}
+                ></div>
+              </div>
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+              >
+                <X size={18} className="text-gray-400 group-hover:text-gray-600" />
+              </button>
             </div>
-          ) : (
-            editando ? "Salvar Alterações" : "Cadastrar Perfil"
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+
+            {/* Corpo do Modal */}
+            <div className="space-y-5">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Código</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.codigo}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Descrição</label>
+                  <input
+                    type="text"
+                    value={novoPerfil.nome}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Cor</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Alumínio"
+                    value={novoPerfil.cores}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Categoria</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Trilho"
+                    value={novoPerfil.categoria}
+                    onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Preço Sugerido</label>
+                <input
+                  type="number"
+                  placeholder="0,00"
+                  value={novoPerfil.preco ?? ""}
+                  onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
+                  className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm font-bold border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                />
+              </div>
+
+              {/* Botão de Ação usando modal_button da tabela */}
+              <button
+                onClick={salvarPerfil}
+                disabled={carregando}
+                className="w-full mt-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[2px] transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 hover:brightness-110"
+                style={{
+                  backgroundColor: branding?.modal_button_background_color || darkPrimary, // Usa a cor principal se não houver branding
+                  color: branding?.modal_button_text_color || '#FFFFFF'
+                }}
+              >
+                {carregando ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Processando...</span>
+                  </div>
+                ) : (
+                  editando ? "Salvar Alterações" : "Cadastrar Perfil"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AVISOS */}
       {modalAviso && (
@@ -800,7 +790,23 @@ return (
           </div>
         </div>
       )}
-
+{/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
+{modalCarregando && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
+    <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
+      <div className="relative mb-6">
+        {/* Spinner Principal */}
+        <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
+        {/* Ícone de Arquivo no centro */}
+        <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
+      </div>
+      <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
+      <p className="text-gray-500 text-sm font-medium animate-pulse">
+        Por favor, não feche a página...
+      </p>
+    </div>
+  </div>
+)}
       {showScrollTop && (
         <button onClick={scrollToTop} className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all hover:scale-110 z-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
           <ArrowUp size={24} />

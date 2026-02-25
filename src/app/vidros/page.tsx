@@ -67,14 +67,36 @@ export default function VidrosPage() {
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
 
+  // --- 1. FUNÇÕES (DEFINA PRIMEIRO) ---
+  const carregarBranding = useCallback(async () => {
+    if (!empresaId) return;
+    const { data } = await supabase
+      .from('configuracoes_branding')
+      .select('*')
+      .eq('empresa_id', empresaId)
+      .single();
+    if (data) setBranding(data);
+  }, [empresaId]);
 
-  // --- Efeitos ---
+  const carregarDados = useCallback(async () => {
+    if (!empresaId) return;
+    setCarregando(true);
+    const { data } = await supabase
+      .from("vidros")
+      .select("*")
+      .eq("empresa_id", empresaId)
+      .order("nome", { ascending: true });
+    if (data) setVidros(data);
+    setCarregando(false);
+  }, [empresaId]);
+
+  // --- 2. EFFECT (CHAME DEPOIS) ---
   useEffect(() => {
-    if (!checkingAuth && !user) {
-      router.push("/login");
-      return;
+    if (empresaId) {
+      carregarDados();
+      carregarBranding();
     }
-  }, [user, checkingAuth, router]);
+  }, [empresaId, carregarDados, carregarBranding]); // O erro 2448 e 2454 somem aqui
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) { setShowUserMenu(false); } };
@@ -86,29 +108,6 @@ export default function VidrosPage() {
       window.removeEventListener("scroll", handleScroll);
     }
   }, []);
-
-  // --- Carregar Dados ---
-  const carregarDados = useCallback(async () => {
-    if (!empresaId) return;
-
-    setCarregando(true)
-    const [{ data: dataVidros, error: errorVidros }, { data: dataGrupos, error: errorGrupos }] = await Promise.all([
-      supabase.from("vidros").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
-      supabase.from("tabelas").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true })
-    ])
-
-    if (errorVidros) console.error("Erro Vidros:", errorVidros);
-    else setVidros(dataVidros || [])
-
-    if (errorGrupos) console.error("Erro Grupos:", errorGrupos);
-    else setGrupos(dataGrupos || [])
-
-    setCarregando(false)
-  }, [empresaId])
-
-  useEffect(() => {
-    if (empresaId) carregarDados();
-  }, [empresaId, carregarDados]);
 
   // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
@@ -320,7 +319,7 @@ export default function VidrosPage() {
           </div>
         </div>
 
-      {temSubmenu && (
+        {temSubmenu && (
           <div className="ml-8 mt-1 space-y-1">
             {item.submenu!.map((sub) => (
               <div
@@ -344,34 +343,8 @@ export default function VidrosPage() {
   }
   const [branding, setBranding] = useState<any>(null);
 
-const carregarBranding = useCallback(async () => {
-  // 1. Só executa se tivermos o ID da empresa logada
-  if (!empresaId) return;
-
-  try {
-    const { data, error } = await supabase
-      .from('configuracoes_branding')
-      .select('*')
-      .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
-      .single();
-
-    if (error) {
-      console.error("Erro ao buscar branding:", error.message);
-      return;
-    }
-
-    if (data) {
-      setBranding(data);
-    }
-  } catch (err) {
-    console.error("Erro inesperado:", err);
-  }
-}, [empresaId]); // O useCallback monitora o empresaId
-
-
-
-// 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
-const logoLight = branding?.logo_light || null;
+  // 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
+  const logoLight = branding?.logo_light || null;
   const darkPrimary = branding?.button_dark_bg || '#1C415B';
   const darkSecondary = branding?.button_dark_text || '#FFFFFF';
   const darkTertiary = branding?.menu_hover_color || '#39B89F';
@@ -434,39 +407,39 @@ const logoLight = branding?.logo_light || null;
             <div className="flex items-center gap-2 no-print">
 
               {/* Botão Imprimir PDF */}
-     {typeof window !== "undefined" && (
-            <PDFDownloadLink
-              document={
-               <VidrosPDF 
-  dados={vidrosFiltrados} 
-  empresa={nomeEmpresa || "Sua Empresa"} 
-  logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
-  coresEmpresa={{
-    primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
-    secondary: theme.menuTextColor,
-    tertiary: theme.menuIconColor,
-    textDefault: '#1C415B'
-  }}
-/>
-              }
-              fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
-              className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-            >
-              {({ loading }) => (
-                loading ? (
-                  <Loader2 size={20} className="animate-spin text-gray-400" />
-                ) : (
-                  <Printer
-                    size={20}
-                    className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                    style={{ color: 'inherit' }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                  />
-                )
+              {typeof window !== "undefined" && (
+                <PDFDownloadLink
+                  document={
+                    <VidrosPDF
+                      dados={vidrosFiltrados}
+                      empresa={nomeEmpresa || "Sua Empresa"}
+                      logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
+                      coresEmpresa={{
+                        primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
+                        secondary: theme.menuTextColor,
+                        tertiary: theme.menuIconColor,
+                        textDefault: '#1C415B'
+                      }}
+                    />
+                  }
+                  fileName={`catalogo_vidros_${(nomeEmpresa || "empresa").toLowerCase().replace(/\s+/g, '_')}.pdf`}
+                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                >
+                  {({ loading }) => (
+                    loading ? (
+                      <Loader2 size={20} className="animate-spin text-gray-400" />
+                    ) : (
+                      <Printer
+                        size={20}
+                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                        style={{ color: 'inherit' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                      />
+                    )
+                  )}
+                </PDFDownloadLink>
               )}
-            </PDFDownloadLink>
-          )}
               {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
@@ -476,7 +449,8 @@ const logoLight = branding?.logo_light || null;
                 <Download
                   size={20}
                   className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  style={{ color: 'inherit' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
                 />
               </button>
@@ -490,16 +464,11 @@ const logoLight = branding?.logo_light || null;
                 <Upload
                   size={20}
                   className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  style={{ color: 'inherit' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = darkPrimary}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
                 />
-                <input
-                  type="file"
-                  id="importarCSV"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={importarCSV}
-                />
+                <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
               </label>
             </div>
           </div>
@@ -528,8 +497,24 @@ const logoLight = branding?.logo_light || null;
               <input type="text" placeholder="Tipo..." value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1 focus:outline-none" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
             </div>
             <div className="flex gap-2">
-              <button onClick={limparDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} />Limpar Duplicados</button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.buttonDarkText }}> <PlusCircle size={20} /> Novo Vidro </button>
+              <button
+                onClick={limparDuplicados}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
+              >
+                <Trash2 size={18} />
+                Limpar Duplicados
+              </button>
+              <button
+                onClick={abrirModalParaNovo}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all active:scale-95 animate-in fade-in zoom-in duration-500"
+                style={{
+                  backgroundColor: branding?.button_dark_bg || theme.menuIconColor,
+                  color: branding?.button_dark_text_color || theme.buttonDarkText || '#FFFFFF'
+                }}
+              >
+                <PlusCircle size={20} className="animate-pulse" />
+                Novo Vidro
+              </button>
             </div>
           </div>
 

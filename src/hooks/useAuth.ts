@@ -25,7 +25,7 @@ export function useAuth() {
       // 2. Busca o nome do usuário na tabela "perfis"
       const { data: perfilData } = await supabase
         .from('perfis')
-        .select('nome_completo')
+        .select('nome')
         .eq('id', user.id)
         .single();
       
