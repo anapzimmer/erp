@@ -607,17 +607,9 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
                 <Trash2 size={18} />
                 Limpar Duplicados
               </button>
-           <button
-  onClick={abrirModalParaNovo}
-  className="group flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
-  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
->
-  <PlusCircle 
-    size={20} 
-    className="transition-all duration-300 group-hover:scale-110 animate-pulse" 
-  />
-  Novo Perfil
-</button>
+           <button onClick={abrirModalParaNovo} className="group flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+  style={{ backgroundColor: darkTertiary, color: darkPrimary }}><PlusCircle size={20} className="transition-all duration-300 group-hover:scale-110 animate-pulse" 
+  /> Novo Perfil</button>
             </div>
           </div>
 

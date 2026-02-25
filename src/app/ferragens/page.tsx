@@ -11,7 +11,9 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useTheme } from "@/context/ThemeContext";
 import type { Ferragem } from "@/types/ferragem"
+
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -55,14 +57,16 @@ export default function FerragensPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [gerandoPDF, setGerandoPDF] = useState(false);
+  const { theme } = useTheme(); // Pega o tema do context
 
-  const darkPrimary = "#1C415B";
-  const darkSecondary = "#FFFFFF";
-  const darkTertiary = "#39B89F";
-  const darkHover = "#39B89F";
-  const lightPrimary = "#F4F7FA";
-  const lightSecondary = "#FFFFFF";
-  const lightTertiary = "#1C415B";
+  // Mapeamento correto das propriedades do seu ThemeContext:
+  const darkPrimary = theme.menuBackgroundColor;
+  const darkSecondary = theme.menuTextColor;
+  const darkTertiary = theme.menuIconColor;
+  const darkHover = theme.menuHoverColor;
+  const lightPrimary = theme.screenBackgroundColor;
+  const lightSecondary = theme.modalBackgroundColor;
+  const lightTertiary = theme.contentTextLightBg;
 
   // --- ESTADOS LÓGICA ---
   const [ferragens, setFerragens] = useState<Ferragem[]>([])
@@ -213,43 +217,53 @@ export default function FerragensPage() {
 
     reader.onload = async (e) => {
       try {
-        const text = new TextDecoder("windows-1252").decode(e.target?.result as ArrayBuffer);
+        // 1. Pega o resultado como ArrayBuffer
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+
+        // 2. Tenta decodificar. Se vier UTF-8 com erro, ele tenta ISO-8859-1
+        let text = new TextDecoder("utf-8").decode(arrayBuffer);
+
+        // Se o texto contiver o símbolo de erro do UTF-8 (aquele losango com interrogação)
+        // ou o padrão de erro comum 'Ã£', tentamos o padrão Windows.
+        if (text.includes('') || text.includes('Ã')) {
+          text = new TextDecoder("windows-1252").decode(arrayBuffer);
+        }
+
         const rows = text.split(/\r?\n/);
+
+        // Remove o cabeçalho e linhas vazias
         const dados = rows.slice(1).filter(row => row.trim() !== "");
 
         for (const row of dados) {
-          // Divide rigorosamente pelo ponto e vírgula
+          // Divide pelo ponto e vírgula
           const columns = row.split(';').map(c => c.replace(/^["']|["']$/g, "").trim());
-          const codigo = columns[0];      // Coluna 1: Produto
-          let nomeOriginal = columns[1];  // Coluna 2: Descrição
-          const categoriaArq = columns[2]; // Coluna 3: Categoria (Onde estava o erro!)
-          let corOriginal = columns[3];   // Coluna 4: Cor
-          const precoRaw = columns[4];    // Coluna 5: Preço
+
+          // MAPEAMENTO CORRIGIDO PARA O SEU ARQUIVO:
+          const codigo = columns[0];       // Coluna 1: Codigo
+          let nomeOriginal = columns[1];   // Coluna 2: Nome
+          let corOriginal = columns[2];    // Coluna 3: Cores (Estava errado antes)
+          const precoRaw = columns[3];     // Coluna 4: Preco
+          const categoriaArq = columns[4]; // Coluna 5: Categoria
 
           if (codigo && nomeOriginal) {
-            // LÓGICA DE COR: Se a coluna Cor estiver vazia, tenta extrair do nome (após o hífen)
+            // Se a coluna cor estiver vazia mas o nome tiver um hífen (Ex: "Puxador - Preto")
             if (!corOriginal && nomeOriginal.includes("-")) {
               const partes = nomeOriginal.split("-");
               corOriginal = partes[partes.length - 1].trim();
               nomeOriginal = partes.slice(0, -1).join("-").trim();
             }
 
-            // LÓGICA DE PREÇO INTELIGENTE:
-            // Trata formatos como "5,25", "1.250,50" ou "5.25"
+            // Tratamento de Preço
             let precoLimpo = null;
             if (precoRaw) {
-              // Remove tudo que não é número, vírgula ou ponto
               const apenasNumeros = precoRaw.replace(/[^\d,.]/g, "");
-
-              // Se tiver os dois (ponto e vírgula), remove o ponto (milhar) e troca a vírgula por ponto
-              // Se tiver só vírgula, troca por ponto.
               const formatado = apenasNumeros.includes(',')
                 ? apenasNumeros.replace(/\./g, "").replace(",", ".")
                 : apenasNumeros;
-
               precoLimpo = parseFloat(formatado);
             }
 
+            // Envia para o Banco
             await supabase.from("ferragens").upsert([{
               codigo: codigo.toUpperCase(),
               nome: padronizarTexto(nomeOriginal),
@@ -258,20 +272,23 @@ export default function FerragensPage() {
               categoria: padronizarTexto(categoriaArq) || "Ferragens",
               empresa_id: empresaIdUsuario
             }], {
-              onConflict: 'codigo,nome,cores'
+              onConflict: 'codigo,nome,cores' // Evita duplicar se código e cor forem iguais
             });
           }
         }
 
         await carregarDados(empresaIdUsuario);
-        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída: Preços e Categorias organizados!" });
+        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com acentos corrigidos!" });
       } catch (err: any) {
+        console.error(err);
         setModalAviso({ titulo: "Erro", mensagem: "Falha ao processar arquivo." });
       } finally {
         setModalCarregando(false);
         event.target.value = "";
       }
     };
+
+    // IMPORTANTE: Manter como readAsArrayBuffer para o TextDecoder funcionar
     reader.readAsArrayBuffer(file);
   };
 
@@ -375,7 +392,13 @@ export default function FerragensPage() {
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src="/glasscode2.png" alt="Logo" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
+        <div className="px-3 py-4 mb-4 flex justify-center"> <Image
+          src={theme.logoDarkUrl || "/glasscode2.png"}
+          alt="Logo"
+          width={200}
+          height={56}
+          className="h-12 md:h-14 object-contain"
+        /> </div>
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
@@ -455,57 +478,57 @@ export default function FerragensPage() {
               </div>
             </div>
 
-{/* AÇÕES PADRONIZADAS */}
-<div className="flex gap-2">
-  {/* Botão Imprimir PDF */}
-  <button
-    onClick={() => gerarPDF()}
-    title="Imprimir Catálogo"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center no-print"
-  >
-    <Printer 
-      size={20} 
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-  </button>
+            {/* AÇÕES PADRONIZADAS */}
+            <div className="flex gap-2">
+              {/* Botão Imprimir PDF */}
+              <button
+                onClick={() => gerarPDF()}
+                title="Imprimir Catálogo"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center no-print"
+              >
+                <Printer
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </button>
 
-  {/* Botão Exportar CSV */}
-  <button
-    onClick={exportarCSV}
-    title="Exportar Planilha"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Download 
-      size={20} 
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-  </button>
+              {/* Botão Exportar CSV */}
+              <button
+                onClick={exportarCSV}
+                title="Exportar Planilha"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Download
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </button>
 
-  {/* Botão Importar CSV */}
-  <label
-    htmlFor="importarCSV"
-    title="Importar Planilha"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Upload 
-      size={20} 
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110" 
-      onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-    <input
-      type="file"
-      id="importarCSV"
-      accept=".csv"
-      className="hidden"
-      onChange={importarCSV}
-    />
-  </label>
-</div>
+              {/* Botão Importar CSV */}
+              <label
+                htmlFor="importarCSV"
+                title="Importar Planilha"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Upload
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#4ca4db"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+                <input
+                  type="file"
+                  id="importarCSV"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={importarCSV}
+                />
+              </label>
+            </div>
           </div>
 
           {/* INDICADORES */}
@@ -560,7 +583,7 @@ export default function FerragensPage() {
                   codigo: "", nome: "", cores: "", preco: null, categoria: "",
                   empresa_id: empresaIdUsuario || ""
                 }); setMostrarModal(true);
-              }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+              }} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs tracking-wider shadow-sm transition-all duration-300 hover:scale-105 active:scale-95" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
                 <PlusCircle size={18} /> Nova Ferragem
               </button>
             </div>
