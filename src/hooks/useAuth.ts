@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
-  const [perfilUsuario, setPerfilUsuario] = useState<any>(null); // 🔥 Nome do usuário
+  const [perfilUsuario, setPerfilUsuario] = useState<any>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState<string>('Carregando...');
   const [loading, setLoading] = useState(true);
@@ -13,19 +13,20 @@ export function useAuth() {
 
   useEffect(() => {
     const checkUser = async () => {
-      // 1. Pega o usuário logado
-      const { data: { user } } = await supabase.auth.getUser();
+      // 1. Pega o usuário logado (Autenticação do Supabase)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (!authUser) {
         router.push('/login');
         return;
       }
-      setUser(user);
+
+      setUser(authUser);
 
       // 2. Busca o nome do usuário na tabela "perfis"
       const { data: perfilData } = await supabase
         .from('perfis')
-        .select('nome')
+        .select('nome_completo')
         .eq('id', user.id)
         .single();
       
@@ -34,29 +35,42 @@ export function useAuth() {
       // 3. Busca o vínculo empresa_id
       const { data: perfilVinculo } = await supabase
         .from('perfis_usuarios')
-        .select('empresa_id')
-        .eq('id', user.id)
-        .single();
+        .select('email, empresa_id') // 🔥 Removido 'nome', adicionado 'email'
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-      if (perfilVinculo) {
-        setEmpresaId(perfilVinculo.empresa_id);
-
-        // 4. Busca o nome da empresa
-        const { data: empresaData } = await supabase
-          .from('empresas')
-          .select('nome')
-          .eq('id', perfilVinculo.empresa_id)
-          .single();
-        
-        if (empresaData) setNomeEmpresa(empresaData.nome);
+      if (usuarioError) {
+        console.error("Erro na consulta ao banco:", usuarioError.message);
       }
-      
+
+      if (usuarioData) {
+        // Como não tem coluna 'nome', vamos usar o e-mail ou a parte antes do @ para o perfil
+        setPerfilUsuario({
+          ...usuarioData,
+          nome: usuarioData.email.split('@')[0] // Isso evita o erro de 'coluna não existe'
+        });
+        setEmpresaId(usuarioData.empresa_id);
+
+        // 3. Busca o nome da empresa
+        if (usuarioData.empresa_id) {
+          const { data: empresaData } = await supabase
+            .from('empresas')
+            .select('nome')
+            .eq('id', usuarioData.empresa_id)
+            .maybeSingle();
+
+          if (empresaData) setNomeEmpresa(empresaData.nome);
+        }
+      } else {
+        console.warn("Vínculo não encontrado em perfis_usuarios para o ID:", authUser.id);
+        setNomeEmpresa("Empresa não vinculada");
+      }
+
       setLoading(false);
     };
 
     checkUser();
   }, [router]);
 
-  // 🔥 Retorne o perfilUsuario também
   return { user, perfilUsuario, empresaId, nomeEmpresa, loading };
 }
