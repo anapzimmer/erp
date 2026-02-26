@@ -206,91 +206,155 @@ export default function KitsPage() {
     });
   };
 
-  const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !empresaIdUsuario) return;
+const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file || !empresaIdUsuario) return;
 
-    setModalCarregando(true);
-    const reader = new FileReader();
+  setModalCarregando(true);
+  const reader = new FileReader();
 
-    reader.onload = async (event) => {
-      try {
-        // CORREÇÃO DE ACENTOS: Usa windows-1252 para ler arquivos do Excel sem bugar
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
+  reader.onload = async (event) => {
+    try {
+      const arrayBuffer = event.target?.result as ArrayBuffer;
+      const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
+      const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
 
-        const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
-        const novosKits = linhas.slice(1).map(linha => {
-          const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
+  // --- INÍCIO DA LÓGICA DE EXTRAÇÃO DE MEDIDAS ---
 
-          // Mapeamento: Coluna 0 (Nome), Coluna 1 (Categoria), Coluna 2 (Preço)
-          const descricaoOriginal = colunas[0] || "";
-          const categoriaPlanilha = colunas[1] || "Kits";
-          const precoOriginal = colunas[2] || "0";
+const novosKits = linhas.slice(1).map(linha => {
+  const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
+  const nomeOriginal = colunas[0] || "";
+  const corPlanilha = colunas[1] || "Padrão";
+  const categoriaPlanilha = colunas[2] || "Kits";
+  const precoFinal = parseFloat((colunas[3] || "0").replace(/\./g, "").replace(",", ".")) || 0;
 
-          // Tratamento de Preço
-          const precoLimpo = precoOriginal.replace(/\./g, "").replace(",", ".");
-          const precoFinal = parseFloat(precoLimpo) || 0;
+  const nomeUpper = nomeOriginal.toUpperCase();
+  let largura = 0;
+  let altura = 1900; // Define a altura padrão caso o kit não informe uma
 
-          // Extração de Cor (ex: "Kit Box - Preto")
-          let nomeLimpo = descricaoOriginal;
-          let corExtraida = "Padrão";
-          if (descricaoOriginal.includes("-")) {
-            const partes = descricaoOriginal.split("-");
-            corExtraida = partes.pop()?.trim() || "Padrão";
-            nomeLimpo = partes.join("-").trim();
-          }
-
-          // ... (mantém suas lógicas de toMM e extração de medidas que são muito boas)
-          const toMM = (val: number) => {
-            if (!val || val <= 0) return 0;
-            if (val < 10) return Math.round(val * 1000);
-            if (val < 999) return Math.round(val * 10);
-            return Math.round(val);
-          };
-
-          const nomeUpper = descricaoOriginal.toUpperCase();
-          const matches = nomeUpper.match(/\d+([.,]\d+)?/g) || [];
-          let nums = matches.map(n => parseFloat(n.replace(",", ".")));
-
-          let largura = 0;
-          let altura = 1900;
-
-          if (nums.length >= 2) {
-            largura = toMM(nums[0]);
-            altura = toMM(nums[1]);
-          }
-
-          return {
-            nome: padronizarTexto(nomeLimpo),
-            largura,
-            altura,
-            categoria: padronizarTexto(categoriaPlanilha),
-            cores: padronizarTexto(corExtraida),
-            preco: precoFinal,
-            empresa_id: empresaIdUsuario
-          };
-        });
-
-        if (novosKits.length > 0) {
-          const { error } = await supabase
-            .from("kits")
-            .upsert(novosKits, { onConflict: 'nome,cores,empresa_id' });
-
-          if (error) throw error;
-          await carregarDados();
-          setModalAviso({ titulo: "Sucesso", mensagem: "Kits importados com acentos corrigidos!" });
-        }
-      } catch (err: any) {
-        setModalAviso({ titulo: "Erro", mensagem: "Falha na importação: " + err.message });
-      } finally {
-        setModalCarregando(false);
-        if (e.target) e.target.value = "";
-      }
-    };
-    // IMPORTANTE: Mudar para readAsArrayBuffer para o TextDecoder funcionar
-    reader.readAsArrayBuffer(file);
+  // Função que converte o texto da planilha para Milímetros (mm)
+  const toMM = (textoNum: string | undefined | null) => {
+    const valorLimpo = textoNum || "0";
+    let val = parseFloat(valorLimpo.replace(",", "."));
+    if (!val) return 0;
+    
+    // Se for um número pequeno (ex: 1.50 ou 2.0), entende como METROS e multiplica por 1000
+    if (val < 10) return Math.round(val * 1000); 
+    
+    // Se for um número médio (ex: 120 ou 150), entende como CENTÍMETROS e multiplica por 10
+    if (val <= 500) return Math.round(val * 10); 
+    
+    // Se for número grande (ex: 1900), entende que já está em MILÍMETROS
+    return Math.round(val); 
   };
+
+  // Extrai todos os números encontrados no nome, ignorando "10mm" ou "8mm" (espessura do vidro)
+  const numeros = nomeUpper.replace(/\d+MM/g, "").match(/\d+[.,]?\d*/g) || [];
+
+  /* REGRA 1: QUADRADO CANTO (Ex: "Kit Box Quadrado Canto 300x120x120")
+     - O primeiro número (300) vira ALTURA (3000mm)
+     - Os outros dois (120 e 120) são SOMADOS para virar a LARGURA (2400mm)
+  */
+  if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("CANTO") && numeros.length >= 3) {
+    altura = toMM(numeros[0]);
+    largura = toMM(numeros[1]) + toMM(numeros[2]);
+  }
+
+  /* REGRA 2: QUADRADO F1 (Ex: "Kit Box Quadrado F1 300x150")
+   - O primeiro número (300) vira ALTURA (3000mm)
+   - O segundo número (150) vira LARGURA (1500mm)
+   - AJUSTE: Filtramos para ignorar números de espessura (8 e 10)
+*/
+else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("F1")) {
+  // Filtramos os números para pegar apenas o que NÃO é 8 ou 10 (espessuras)
+  const medidasReais = numeros.filter(n => n !== "8" && n !== "10");
+  
+  if (medidasReais.length >= 2) {
+    altura = toMM(medidasReais[0]);  // Pega o 300 e vira 3000
+    largura = toMM(medidasReais[1]); // Pega o 150 e vira 1500
+  }
+}
+
+  /* REGRA 3: CANTO ou C1 (Ex: "Kit C1 120" ou "Kit Evidence Canto 1,00mt")
+     - Identifica que é um kit de canto pelo nome.
+     - Pega a medida informada e MULTIPLICA POR 2 para dar a largura total.
+     - Mantém a altura padrão de 1900mm.
+  */
+  else if (nomeUpper.includes("C1") || nomeUpper.includes("CANTO")) {
+    const medidaRef = numeros[0];
+    largura = toMM(medidaRef) * 2;
+    altura = 1900;
+  }
+
+  /* REGRA 4: JANELA OU PORTA COM 'A' e 'L' (Ex: "1,20a X 1,50l")
+     - Procura o número que está colado na letra 'A' para definir a Altura.
+     - Procura o número que está colado na letra 'L' para definir a Largura.
+  */
+  else if (nomeUpper.includes('A') && nomeUpper.includes('L')) {
+    const matchA = nomeUpper.match(/(\d+[.,]?\d*)A/);
+    const matchL = nomeUpper.match(/(\d+[.,]?\d*)L/);
+    if (matchA?.[1]) altura = toMM(matchA[1]);
+    if (matchL?.[1]) largura = toMM(matchL[1]);
+  }
+
+  /* REGRA 5: SACADA, LIVING OU SMART (Ex: "Living 2,50 X 2,00mt")
+     - Entende que o primeiro número é LARGURA e o segundo é ALTURA.
+  */
+  else if (nomeUpper.includes("SACADA") || nomeUpper.includes("LIVING") || nomeUpper.includes("SMART")) {
+    if (numeros.length >= 2) {
+      largura = toMM(numeros[0]);
+      altura = toMM(numeros[1]);
+    }
+  }
+
+  /* REGRA 6: FRONTAL, 3F OU F1 (Ex: "Kit F1 120" ou "Frontal 2,50mt")
+     - Se encontrar apenas um número, define ele como LARGURA.
+     - Mantém a altura padrão de 1900mm.
+  */
+  else if (nomeUpper.includes("FRONTAL") || nomeUpper.includes("3F") || nomeUpper.includes("F1")) {
+    if (numeros.length >= 1) {
+      largura = toMM(numeros[0]);
+      altura = 1900;
+    }
+  }
+
+  /* REGRA 7: REGRA GERAL (Caso não caia em nenhuma das anteriores)
+     - Se houver dois números no nome (ex: "Kit Especial 1500x2100"),
+       o primeiro vira Largura e o segundo vira Altura.
+  */
+  else if (numeros.length >= 2) {
+    largura = toMM(numeros[0]);
+    altura = toMM(numeros[1]);
+  }
+
+  return {
+    nome: nomeOriginal.trim(),
+    largura,
+    altura,
+    categoria: categoriaPlanilha,
+    cores: corPlanilha,
+    preco: precoFinal,
+    empresa_id: empresaIdUsuario
+  };
+});
+
+      if (novosKits.length > 0) {
+        await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
+        const { error } = await supabase.from("kits").insert(novosKits);
+        
+        if (error) throw error;
+        await carregarDados();
+        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com as novas regras!" });
+      }
+    } catch (err: any) {
+      setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
+    } finally {
+      setModalCarregando(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
 
   const handleExportarCSV = () => {
     try {
