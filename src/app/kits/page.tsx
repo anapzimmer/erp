@@ -219,77 +219,56 @@ const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
       const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
       const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
 
-  // --- INÍCIO DA LÓGICA DE EXTRAÇÃO DE MEDIDAS ---
-
 const novosKits = linhas.slice(1).map(linha => {
   const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
-  const nomeOriginal = colunas[0] || "";
-  const corPlanilha = colunas[1] || "Padrão";
-  const categoriaPlanilha = colunas[2] || "Kits";
-  const precoFinal = parseFloat((colunas[3] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+  const descricaoCompleta = colunas[0] || ""; 
+  const categoriaPlanilha = colunas[1] || "Kits";
+  const precoFinal = parseFloat((colunas[2] || "0").replace(/\./g, "").replace(",", ".")) || 0;
 
-  const nomeUpper = nomeOriginal.toUpperCase();
+  // 1. SEPARAÇÃO DE NOME E COR
+  let nomeLimpo = descricaoCompleta;
+  let corExtraida = "Padrão";
+  if (descricaoCompleta.includes(" - ")) {
+    const partes = descricaoCompleta.split(" - ");
+    nomeLimpo = partes[0].trim();
+    corExtraida = partes[1].trim();
+  }
+
+  const nomeFormatado = padronizarTexto(nomeLimpo);
+  const corFormatada = padronizarTexto(corExtraida);
+  const nomeUpper = nomeLimpo.toUpperCase();
+
+  // 2. PREPARAÇÃO DAS MEDIDAS
   let largura = 0;
-  let altura = 1900; // Define a altura padrão caso o kit não informe uma
+  let altura = 1900; // Altura padrão
 
-  // Função que converte o texto da planilha para Milímetros (mm)
-  const toMM = (textoNum: string | undefined | null) => {
-    const valorLimpo = textoNum || "0";
-    let val = parseFloat(valorLimpo.replace(",", "."));
-    if (!val) return 0;
-    
-    // Se for um número pequeno (ex: 1.50 ou 2.0), entende como METROS e multiplica por 1000
-    if (val < 10) return Math.round(val * 1000); 
-    
-    // Se for um número médio (ex: 120 ou 150), entende como CENTÍMETROS e multiplica por 10
-    if (val <= 500) return Math.round(val * 10); 
-    
-    // Se for número grande (ex: 1900), entende que já está em MILÍMETROS
-    return Math.round(val); 
-  };
+const toMM = (textoNum: string | undefined | null) => {
+  if (!textoNum) return 0;
 
-  // Extrai todos os números encontrados no nome, ignorando "10mm" ou "8mm" (espessura do vidro)
-  const numeros = nomeUpper.replace(/\d+MM/g, "").match(/\d+[.,]?\d*/g) || [];
+  const limpo = textoNum.replace(/[^\d.,]/g, "").replace(",", ".");
+  const val = parseFloat(limpo);
+  if (isNaN(val)) return 0;
 
-  /* REGRA 1: QUADRADO CANTO (Ex: "Kit Box Quadrado Canto 300x120x120")
-     - O primeiro número (300) vira ALTURA (3000mm)
-     - Os outros dois (120 e 120) são SOMADOS para virar a LARGURA (2400mm)
-  */
-  if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("CANTO") && numeros.length >= 3) {
-    altura = toMM(numeros[0]);
-    largura = toMM(numeros[1]) + toMM(numeros[2]);
+  if (val < 10) return Math.round(val * 1000); 
+  if (val <= 500) return Math.round(val * 10);
+  return Math.round(val);
+};
+
+  // Pegamos todos os números da string (incluindo decimais com vírgula ou ponto)
+  // Ex: "3,05X2,50" -> ["3,05", "2,50"]
+ const numeros = (nomeUpper.match(/\d+[.,]?\d*/g) || [])
+  .filter(n => !/^0?1$/.test(n)); // remove o "1" isolado do C1
+  // --- LOGICA DE REGRAS BASEADA NO NOME ---
+
+  // REGRA: SACADA (Ex: Kit Sacada Sem Rolamento 3,05x2,50)
+  if (nomeUpper.includes("SACADA")) {
+    if (numeros.length >= 2) {
+      largura = toMM(numeros[0]);
+      altura = toMM(numeros[1]);
+    }
   }
-
-  /* REGRA 2: QUADRADO F1 (Ex: "Kit Box Quadrado F1 300x150")
-   - O primeiro número (300) vira ALTURA (3000mm)
-   - O segundo número (150) vira LARGURA (1500mm)
-   - AJUSTE: Filtramos para ignorar números de espessura (8 e 10)
-*/
-else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("F1")) {
-  // Filtramos os números para pegar apenas o que NÃO é 8 ou 10 (espessuras)
-  const medidasReais = numeros.filter(n => n !== "8" && n !== "10");
   
-  if (medidasReais.length >= 2) {
-    altura = toMM(medidasReais[0]);  // Pega o 300 e vira 3000
-    largura = toMM(medidasReais[1]); // Pega o 150 e vira 1500
-  }
-}
-
-  /* REGRA 3: CANTO ou C1 (Ex: "Kit C1 120" ou "Kit Evidence Canto 1,00mt")
-     - Identifica que é um kit de canto pelo nome.
-     - Pega a medida informada e MULTIPLICA POR 2 para dar a largura total.
-     - Mantém a altura padrão de 1900mm.
-  */
-  else if (nomeUpper.includes("C1") || nomeUpper.includes("CANTO")) {
-    const medidaRef = numeros[0];
-    largura = toMM(medidaRef) * 2;
-    altura = 1900;
-  }
-
-  /* REGRA 4: JANELA OU PORTA COM 'A' e 'L' (Ex: "1,20a X 1,50l")
-     - Procura o número que está colado na letra 'A' para definir a Altura.
-     - Procura o número que está colado na letra 'L' para definir a Largura.
-  */
+  // REGRA: PORTA OU JANELA COM LETRAS (Ex: 2,40A X 3,00L)
   else if (nomeUpper.includes('A') && nomeUpper.includes('L')) {
     const matchA = nomeUpper.match(/(\d+[.,]?\d*)A/);
     const matchL = nomeUpper.match(/(\d+[.,]?\d*)L/);
@@ -297,54 +276,86 @@ else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("F1")) {
     if (matchL?.[1]) largura = toMM(matchL[1]);
   }
 
-  /* REGRA 5: SACADA, LIVING OU SMART (Ex: "Living 2,50 X 2,00mt")
-     - Entende que o primeiro número é LARGURA e o segundo é ALTURA.
-  */
-  else if (nomeUpper.includes("SACADA") || nomeUpper.includes("LIVING") || nomeUpper.includes("SMART")) {
-    if (numeros.length >= 2) {
-      largura = toMM(numeros[0]);
-      altura = toMM(numeros[1]);
+  // REGRA: QUADRADO CANTO (Ex: 300x120x120)
+  else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("CANTO")) {
+    if (numeros.length >= 3) {
+      altura = toMM(numeros[0]);
+      largura = toMM(numeros[1]) + toMM(numeros[2]);
     }
   }
 
-  /* REGRA 6: FRONTAL, 3F OU F1 (Ex: "Kit F1 120" ou "Frontal 2,50mt")
-     - Se encontrar apenas um número, define ele como LARGURA.
-     - Mantém a altura padrão de 1900mm.
-  */
-  else if (nomeUpper.includes("FRONTAL") || nomeUpper.includes("3F") || nomeUpper.includes("F1")) {
+  // REGRA: QUADRADO F1 (Ex: 300x150 -> Inverte)
+ else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("F1")) {
+  if (numeros.length >= 2) {
+    largura = toMM(numeros[1]); 
+    altura = toMM(numeros[0]);
+  }
+}
+
+
+  // REGRA: KIT C1 (Multiplica por 2)
+  else if (nomeUpper.includes("C1")) {
     if (numeros.length >= 1) {
-      largura = toMM(numeros[0]);
+      largura = toMM(numeros[0]) * 2;
       altura = 1900;
     }
   }
 
-  /* REGRA 7: REGRA GERAL (Caso não caia em nenhuma das anteriores)
-     - Se houver dois números no nome (ex: "Kit Especial 1500x2100"),
-       o primeiro vira Largura e o segundo vira Altura.
-  */
+  // REGRA: EVIDENCE FRONTAL
+else if (nomeUpper.includes("EVIDENCE") && nomeUpper.includes("FRONTAL")) {
+  if (numeros.length >= 1) {
+    largura = toMM(numeros[0]);
+    altura = 1900;
+  }
+}
+
+// REGRA: EVIDENCE CANTO (multiplica por 2)
+else if (nomeUpper.includes("EVIDENCE") && nomeUpper.includes("CANTO")) {
+  if (numeros.length >= 1) {
+    largura = toMM(numeros[0]) * 2;
+    altura = 1900;
+  }
+}
+
+// REGRA: F1 SIMPLES
+else if (nomeUpper.includes("F1")) {
+  if (numeros.length >= 1) {
+    largura = toMM(numeros[0]);
+    altura = 1900;
+  }
+}
+
+  // FALLBACK (Se houver dois números e nenhuma palavra chave acima)
   else if (numeros.length >= 2) {
     largura = toMM(numeros[0]);
     altura = toMM(numeros[1]);
   }
 
   return {
-    nome: nomeOriginal.trim(),
+    nome: nomeFormatado,
     largura,
     altura,
-    categoria: categoriaPlanilha,
-    cores: corPlanilha,
+    categoria: padronizarTexto(categoriaPlanilha),
+    cores: corFormatada,
     preco: precoFinal,
     empresa_id: empresaIdUsuario
   };
 });
 
-      if (novosKits.length > 0) {
+      const kitsUnicosParaSalvar = novosKits.reduce((acc: any[], atual) => {
+        const chave = `${atual.nome.toUpperCase()}-${atual.cores.toUpperCase()}`;
+        const jaExiste = acc.find(item => `${item.nome.toUpperCase()}-${item.cores.toUpperCase()}` === chave);
+        if (!jaExiste) acc.push(atual);
+        return acc;
+      }, []);
+
+      if (kitsUnicosParaSalvar.length > 0) {
         await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
-        const { error } = await supabase.from("kits").insert(novosKits);
+        const { error } = await supabase.from("kits").insert(kitsUnicosParaSalvar);
         
         if (error) throw error;
         await carregarDados();
-        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com as novas regras!" });
+        setModalAviso({ titulo: "Sucesso", mensagem: "Importação corrigida com sucesso!" });
       }
     } catch (err: any) {
       setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
