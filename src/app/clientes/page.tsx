@@ -12,8 +12,17 @@ import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar" // 🔥 IMPORTAÇÃO DO COMPONENTE SIDEBAR CORRETO
 
 // --- Tipagens ---
-type Cliente = { id: string; nome: string; telefone?: string | null; cidade?: string | null; rota: string; grupo_preco_id?: number | null; empresa_id?: string }
-type GrupoPreco = { id: number; nome: string }
+type Cliente = { 
+  id: string; 
+  nome: string; 
+  telefone?: string | null; 
+  cidade?: string | null; 
+  rota: string; 
+  grupo_preco_id?: string | null; 
+  empresa_id?: string 
+}
+
+type GrupoPreco = { id: string; nome: string }
 
 // --- UTILS ---
 const padronizarNome = (texto: string) => { if (!texto) return ""; return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, letra => letra.toUpperCase()) }
@@ -38,7 +47,13 @@ export default function ClientesPage() {
   // --- Estados da Lógica de Negócio ---
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [grupos, setGrupos] = useState<GrupoPreco[]>([])
-  const [novoCliente, setNovoCliente] = useState<Omit<Cliente, "id">>({ nome: "", telefone: "", cidade: "", rota: "", grupo_preco_id: null })
+const [novoCliente, setNovoCliente] = useState<Omit<Cliente, "id">>({ 
+  nome: "", 
+  telefone: "", 
+  cidade: "", 
+  rota: "", 
+  grupo_preco_id: null // Mantenha null aqui
+})
   const [editando, setEditando] = useState<Cliente | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -67,27 +82,36 @@ export default function ClientesPage() {
   }, []);
 
   // --- Funções de Dados ---
-  const carregarDados = useCallback(async () => {
-    if (!user || !empresaId) return;
-    setCarregando(true);
+const carregarDados = useCallback(async () => {
+  if (!user || !empresaId) return;
+  setCarregando(true);
 
-    const [{ data: dataClientes, error: errorClientes }, { data: dataGrupos, error: errorGrupos }] = await Promise.all([
-      supabase
-        .from("clientes")
-        .select("*")
-        .eq("empresa_id", empresaId)
-        .order("nome", { ascending: true }),
-      supabase.from("grupos_preco").select("*").order("nome", { ascending: true })
-    ])
+  const [
+    { data: dataClientes, error: errorClientes }, 
+    { data: dataGrupos, error: errorGrupos }
+  ] = await Promise.all([
+    supabase
+      .from("clientes")
+      .select("*")
+      .eq("empresa_id", empresaId)
+      .order("nome", { ascending: true }),
+    
+    // ALTERADO: de 'grupos_preco' para 'tabelas'
+    supabase
+      .from("tabelas") 
+      .select("id, nome")
+      .eq("empresa_id", empresaId) // Filtra apenas as tabelas da sua empresa
+      .order("nome", { ascending: true })
+  ])
 
-    if (errorClientes) console.error("Erro Clientes:", errorClientes);
-    else setClientes((dataClientes as Cliente[]) || [])
-    
-    if (errorGrupos) console.error("Erro Grupos:", errorGrupos);
-    else setGrupos((dataGrupos as GrupoPreco[]) || [])
-    
-    setCarregando(false);
-  }, [user, empresaId]);
+  if (errorClientes) console.error("Erro Clientes:", errorClientes);
+  else setClientes((dataClientes as Cliente[]) || [])
+  
+  if (errorGrupos) console.error("Erro Tabelas:", errorGrupos);
+  else setGrupos((dataGrupos as GrupoPreco[]) || [])
+  
+  setCarregando(false);
+}, [user, empresaId]);
 
 
   // --- Efeito carregar dados ---
@@ -340,13 +364,21 @@ export default function ClientesPage() {
                 <input type="text" placeholder="Ex: Rota A" value={novoCliente.rota} onChange={e => setNovoCliente({ ...novoCliente, rota: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:outline-none" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties} />
               </div>
 
-              <div>
-                <label className="text-sm font-semibold text-gray-600 mb-1 block">Grupo de Preço</label>
-                <select value={novoCliente.grupo_preco_id || ""} onChange={e => setNovoCliente({ ...novoCliente, grupo_preco_id: e.target.value ? Number(e.target.value) : null })} className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:outline-none bg-white" style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}>
-                  <option value="">Grupo Padrão</option>
-                  {grupos.map(g => (<option key={g.id} value={g.id}>{g.nome}</option>))}
-                </select>
-              </div>
+           <div>
+  <label className="text-sm font-semibold text-gray-600 mb-1 block">Grupo de Preço</label>
+  <select 
+    value={novoCliente.grupo_preco_id || ""} 
+    // REMOVIDO O Number() ABAIXO:
+    onChange={e => setNovoCliente({ ...novoCliente, grupo_preco_id: e.target.value || null })} 
+    className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:outline-none bg-white" 
+    style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
+  >
+    <option value="">Grupo Padrão</option>
+    {grupos.map(g => (
+      <option key={g.id} value={g.id}>{g.nome}</option>
+    ))}
+  </select>
+</div>
             </div>
 
             <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">

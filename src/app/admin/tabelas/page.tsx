@@ -99,24 +99,38 @@ export default function GestaoPrecosPage() {
   };
 
   const salvarEdicaoPreco = async (id: string) => {
-    if (!novoPrecoEdicao || isNaN(parseFloat(novoPrecoEdicao))) return;
+  if (!novoPrecoEdicao || isNaN(parseFloat(novoPrecoEdicao))) return;
 
-    const { error } = await supabase
-      .from("vidro_precos_grupos")
-      .update({ preco: parseFloat(novoPrecoEdicao) })
-      .eq("id", id);
+  setCarregando(true); // Feedback visual
+  const precoNumerico = parseFloat(novoPrecoEdicao);
 
-    if (!error) {
-      if (tabelaSelecionada?.id) {
-        await carregarItensTabela(tabelaSelecionada.id);
-      }
-      // 🔥 ISSO DESCONGELA A LINHA:
-      setEditandoItemId(null);
-      setModalSucessoAberto({ aberto: true, mensagem: "Preço atualizado!" });
-    } else {
-      setModalAvisoAberto({ aberto: true, mensagem: "Erro ao atualizar preço." });
+  const { error } = await supabase
+    .from("vidro_precos_grupos")
+    .update({ preco: precoNumerico })
+    .eq("id", id);
+
+  if (!error) {
+    // 1. Atualiza o estado local IMEDIATAMENTE para refletir na tela
+    setItensTabela(prev => 
+      prev.map(item => item.id === id ? { ...item, preco: precoNumerico } : item)
+    );
+
+    // 2. Limpa o estado de edição
+    setEditandoItemId(null);
+    setNovoPrecoEdicao("");
+    
+    // 3. Opcional: Recarrega do banco para garantir sincronia total
+    if (tabelaSelecionada?.id) {
+      await carregarItensTabela(tabelaSelecionada.id);
     }
-  };
+
+    setModalSucessoAberto({ aberto: true, mensagem: "Preço atualizado!" });
+  } else {
+    console.error("Erro ao salvar preço:", error);
+    setModalAvisoAberto({ aberto: true, mensagem: "Erro ao atualizar preço no banco." });
+  }
+  setCarregando(false);
+};
 
   const excluirTabela = async () => {
     if (!modalExclusaoTabelaAberto.tabela || !empresaIdAtual) {
@@ -256,7 +270,8 @@ export default function GestaoPrecosPage() {
   // --- Ações ---
   const criarTabela = async () => {
     // Log para você ver no console (F12) o que está vindo vazio
-    console.log("Dados para criação:", { nome: nomeNovaTabela, empresa: empresaIdAtual });
+    // Verifique se o log mostra o UUID correto da empresa antes do erro
+console.log("Enviando empresa_id:", empresaIdAtual);
 
     if (!nomeNovaTabela.trim()) {
       setModalAvisoAberto({ aberto: true, mensagem: "Dê um nome para a sua tabela de preços." });
@@ -287,35 +302,42 @@ export default function GestaoPrecosPage() {
     setCarregando(false);
   };
 
-  const adicionarVidroATabela = async () => {
-    // Validação sem alert do Windows
-    if (!tabelaSelecionada?.id || !novoVidroId || !novoPrecoVidro) {
-      setModalAvisoAberto({
-        aberto: true,
-        mensagem: "Selecione um vidro e informe o preço para continuar."
+const adicionarVidroATabela = async () => {
+  if (!tabelaSelecionada?.id || !novoVidroId || !novoPrecoVidro) {
+    setModalAvisoAberto({ aberto: true, mensagem: "Preencha todos os campos." });
+    return;
+  }
+
+  setCarregando(true);
+
+const { error } = await supabase
+  .from("vidro_precos_grupos")
+  .upsert({
+    grupo_preco_id: tabelaSelecionada.id,
+    vidro_id: novoVidroId,
+    preco: parseFloat(novoPrecoVidro),
+    empresa_id: empresaIdAtual
+  }, { onConflict: 'grupo_preco_id, vidro_id' }); // Especifique as colunas do conflito
+
+  if (error) {
+    // Tratando o erro 409 especificamente
+    if (error.code === '23505') { 
+      setModalAvisoAberto({ 
+        aberto: true, 
+        mensagem: "Este vidro já está cadastrado nesta tabela. Edite o preço na lista abaixo se desejar alterar." 
       });
-      return;
-    }
-
-    setCarregando(true);
-
-    const { error } = await supabase.from("vidro_precos_grupos").insert({
-      grupo_preco_id: tabelaSelecionada.id,
-      vidro_id: novoVidroId,
-      preco: parseFloat(novoPrecoVidro),
-      empresa_id: empresaIdAtual
-    });
-
-    if (!error) {
-      setNovoVidroId("");
-      setNovoPrecoVidro("");
-      carregarItensTabela(tabelaSelecionada.id);
-      setModalSucessoAberto({ aberto: true, mensagem: "Vidro adicionado à tabela." });
     } else {
       setModalAvisoAberto({ aberto: true, mensagem: "Erro ao salvar: " + error.message });
     }
-    setCarregando(false);
-  };
+  } else {
+    // Sucesso...
+    setNovoVidroId("");
+    setNovoPrecoVidro("");
+    carregarItensTabela(tabelaSelecionada.id);
+    setModalSucessoAberto({ aberto: true, mensagem: "Vidro adicionado!" });
+  }
+  setCarregando(false);
+};
 
   const salvarEdicao = async (itemId: string) => { // de number para string
     const { error } = await supabase
