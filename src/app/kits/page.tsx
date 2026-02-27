@@ -517,7 +517,19 @@ export default function KitsPage() {
               {/* Botão Imprimir PDF */}
               {isClient && (
                 <PDFDownloadLink
-                  document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
+                  document={
+                    <KitsPDF
+                      dados={kitsFiltrados}
+                      empresa={nomeEmpresa || "Sua Empresa"}
+                      logoUrl={theme.logoLightUrl} // Passando a logo do tema
+                      coresEmpresa={{
+                        primary: theme.menuBackgroundColor,
+                        secondary: theme.menuTextColor,
+                        tertiary: theme.menuIconColor,
+                        textDefault: '#1C415B' // Cor padrão definida no seu exemplo da VidrosPage
+                      }}
+                    />
+                  }
                   fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
                   title="Imprimir Catálogo"
                   className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"

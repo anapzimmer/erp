@@ -1,10 +1,8 @@
-
 "use client"
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
 
-// Tipagem baseada na estrutura de Kits
 interface Kit {
   id: number;
   nome: string;
@@ -15,11 +13,20 @@ interface Kit {
   preco: number | null;
 }
 
+// --- ATUALIZAÇÃO DA TIPAGEM ---
 interface KitsPDFProps {
   dados: Kit[];
   empresa: string;
+  logoUrl?: string | null; // Adicionado para consistência
+  coresEmpresa: {
+    primary: string;    // Vai receber theme.menuBackgroundColor
+    secondary: string;  // Vai receber theme.menuTextColor
+    tertiary: string;   // Vai receber theme.menuIconColor
+    textDefault: string; // Cor padrão de texto
+  };
 }
 
+// --- ESTILOS ---
 const styles = StyleSheet.create({
   page: {
     padding: 40,
@@ -33,7 +40,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: '#39B89F', // A linha verde característica
+    // borderBottomColor: ???, // Vamos definir abaixo usando a prop
   },
   headerLeft: {
     flexDirection: 'column',
@@ -41,7 +48,7 @@ const styles = StyleSheet.create({
   tituloRelatorio: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1C415B', // DarkPrimary
+    // color: ???, // Vamos definir abaixo
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -51,11 +58,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   headerRight: {
-    width: 140, 
+    width: 140,
     alignItems: 'flex-end',
   },
   logo: {
     width: 150,
+    height: 50,
     objectFit: 'contain',
   },
   table: {
@@ -63,7 +71,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1C415B', // DarkPrimary
+    // backgroundColor: ???, // Vamos definir abaixo
     borderRadius: 2,
   },
   tableRow: {
@@ -83,9 +91,8 @@ const styles = StyleSheet.create({
   tableCol: {
     padding: 6,
     fontSize: 9,
-    color: '#1C415B', 
+    // color: ???, // Vamos definir abaixo
   },
-  // Ajuste de larguras das colunas para Kits
   colNome: { width: '35%' },
   colMedidas: { width: '20%' },
   colCor: { width: '15%' },
@@ -105,24 +112,28 @@ const styles = StyleSheet.create({
   }
 });
 
-export function KitsPDF({ dados, empresa }: KitsPDFProps) {
+export function KitsPDF({ dados, empresa, coresEmpresa, logoUrl }: KitsPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
+
+  // Define as cores dinâmicas baseadas na prop
+  const primaryColor = coresEmpresa.primary;
+  const accentColor = coresEmpresa.tertiary;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: accentColor }]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.tituloRelatorio}>Catálogo de Kits</Text>
+            <Text style={[styles.tituloRelatorio, { color: primaryColor }]}>Catálogo de Kits</Text>
             <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
           </View>
           <View style={styles.headerRight}>
-            <Image src="/glasscode.png" style={styles.logo} />
+            {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
         </View>
 
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={[styles.tableHeader, { backgroundColor: primaryColor }]}>
             <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Kit</Text>
             <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas (LxA)</Text>
             <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
@@ -132,13 +143,13 @@ export function KitsPDF({ dados, empresa }: KitsPDFProps) {
 
           {dados.map((item, index) => (
             <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }]}>
-              <Text style={[styles.tableCol, styles.colNome]}>{item.nome}</Text>
-              <Text style={[styles.tableCol, styles.colMedidas]}>
+              <Text style={[styles.tableCol, styles.colNome, { color: coresEmpresa.textDefault }]}>{item.nome}</Text>
+              <Text style={[styles.tableCol, styles.colMedidas, { color: coresEmpresa.textDefault }]}>
                 {item.largura} x {item.altura} mm
               </Text>
-              <Text style={[styles.tableCol, styles.colCor]}>{item.cores || 'Padrão'}</Text>
-              <Text style={[styles.tableCol, styles.colCategoria]}>{item.categoria || 'Kits'}</Text>
-              <Text style={[styles.tableCol, styles.colPreco]}>
+              <Text style={[styles.tableCol, styles.colCor, { color: coresEmpresa.textDefault }]}>{item.cores || 'Padrão'}</Text>
+              <Text style={[styles.tableCol, styles.colCategoria, { color: coresEmpresa.textDefault }]}>{item.categoria || 'Kits'}</Text>
+              <Text style={[styles.tableCol, styles.colPreco, { color: primaryColor }]}>
                 {item.preco ? formatarPreco(item.preco) : 'Consulte'}
               </Text>
             </View>

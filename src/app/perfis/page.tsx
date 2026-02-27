@@ -782,23 +782,23 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
           </div>
         </div>
       )}
-{/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
-{modalCarregando && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
-    <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
-      <div className="relative mb-6">
-        {/* Spinner Principal */}
-        <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
-        {/* Ícone de Arquivo no centro */}
-        <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
-      </div>
-      <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
-      <p className="text-gray-500 text-sm font-medium animate-pulse">
-        Por favor, não feche a página...
-      </p>
-    </div>
-  </div>
-)}
+      {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
+      {modalCarregando && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
+          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
+            <div className="relative mb-6">
+              {/* Spinner Principal */}
+              <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
+              {/* Ícone de Arquivo no centro */}
+              <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
+            </div>
+            <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
+            <p className="text-gray-500 text-sm font-medium animate-pulse">
+              Por favor, não feche a página...
+            </p>
+          </div>
+        </div>
+      )}
       {showScrollTop && (
         <button onClick={scrollToTop} className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all hover:scale-110 z-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
           <ArrowUp size={24} />
