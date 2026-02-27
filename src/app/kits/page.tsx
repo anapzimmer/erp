@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { KitsPDF } from "app/relatorios/kits/KitsPDF"; 
+import { KitsPDF } from "app/relatorios/kits/KitsPDF";
 import { useTheme } from "@/context/ThemeContext";
 
 // --- TIPAGENS ---
@@ -206,166 +206,100 @@ export default function KitsPage() {
     });
   };
 
-const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file || !empresaIdUsuario) return;
+  const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !empresaIdUsuario) return;
 
-  setModalCarregando(true);
-  const reader = new FileReader();
+    setModalCarregando(true);
+    const reader = new FileReader();
 
-  reader.onload = async (event) => {
-    try {
-      const arrayBuffer = event.target?.result as ArrayBuffer;
-      const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
-      const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
+    reader.onload = async (event) => {
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
+        const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
 
-const novosKits = linhas.slice(1).map(linha => {
-  const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
-  const descricaoCompleta = colunas[0] || ""; 
-  const categoriaPlanilha = colunas[1] || "Kits";
-  const precoFinal = parseFloat((colunas[2] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+        // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
+        const cabecalho = linhas[0].toLowerCase();
+        // O formato novo estruturado tem 6 colunas, o antigo tem 5.
+        const colunasCabecalho = cabecalho.split(";");
+        const formatoNovo = colunasCabecalho.length >= 6;
 
-  // 1. SEPARAÇÃO DE NOME E COR
-  let nomeLimpo = descricaoCompleta;
-  let corExtraida = "Padrão";
-  if (descricaoCompleta.includes(" - ")) {
-    const partes = descricaoCompleta.split(" - ");
-    nomeLimpo = partes[0].trim();
-    corExtraida = partes[1].trim();
-  }
+        const novosKits = linhas.slice(1).map(linha => {
+          const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
 
-  const nomeFormatado = padronizarTexto(nomeLimpo);
-  const corFormatada = padronizarTexto(corExtraida);
-  const nomeUpper = nomeLimpo.toUpperCase();
+          let nomeFinal = "";
+          let largura = 0;
+          let altura = 0;
+          let corFinal = "";
+          let categoriaFinal = "";
+          let precoFinal = 0;
 
-  // 2. PREPARAÇÃO DAS MEDIDAS
-  let largura = 0;
-  let altura = 1900; // Altura padrão
+          if (formatoNovo) {
+            // --- FORMATO NOVO (6 Colunas): Nome;Largura;Altura;Cor;Categoria;Preço ---
+            nomeFinal = colunas[0];
+            largura = parseFloat(colunas[1]) || 0;
+            altura = parseFloat(colunas[2]) || 0;
+            corFinal = colunas[3];
+            categoriaFinal = colunas[4];
+            precoFinal = parseFloat((colunas[5] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+          } else {
+            // --- FORMATO ANTIGO (5 Colunas): Descrição;Largura;Altura;Categoria;Preço ---
+            const descricaoCompleta = colunas[0] || "";
 
-const toMM = (textoNum: string | undefined | null) => {
-  if (!textoNum) return 0;
+            // Separa nome e cor pelo hífen
+            if (descricaoCompleta.includes(" - ")) {
+              const partes = descricaoCompleta.split(" - ");
+              nomeFinal = partes[0].trim();
+              corFinal = partes[1].trim();
+            } else {
+              nomeFinal = descricaoCompleta;
+              corFinal = "Padrão";
+            }
 
-  const limpo = textoNum.replace(/[^\d.,]/g, "").replace(",", ".");
-  const val = parseFloat(limpo);
-  if (isNaN(val)) return 0;
+            largura = parseFloat(colunas[1]) || 0;
+            altura = parseFloat(colunas[2]) || 0;
+            categoriaFinal = colunas[3] || "Kits";
+            // Preço na coluna 4 para o formato antigo
+            precoFinal = parseFloat((colunas[4] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+          }
 
-  if (val < 10) return Math.round(val * 1000); 
-  if (val <= 500) return Math.round(val * 10);
-  return Math.round(val);
-};
+          return {
+            nome: padronizarTexto(nomeFinal),
+            largura,
+            altura,
+            categoria: padronizarTexto(categoriaFinal),
+            cores: padronizarTexto(corFinal),
+            preco: precoFinal,
+            empresa_id: empresaIdUsuario
+          };
+        });
 
-  // Pegamos todos os números da string (incluindo decimais com vírgula ou ponto)
-  // Ex: "3,05X2,50" -> ["3,05", "2,50"]
- const numeros = (nomeUpper.match(/\d+[.,]?\d*/g) || [])
-  .filter(n => !/^0?1$/.test(n)); // remove o "1" isolado do C1
-  // --- LOGICA DE REGRAS BASEADA NO NOME ---
+        // --- LOGICA DE DUPLICADOS E SALVAMENTO ---
+        const kitsUnicosParaSalvar = novosKits.reduce((acc: any[], atual) => {
+          const chave = `${atual.nome.toUpperCase()}-${atual.cores.toUpperCase()}`;
+          const jaExiste = acc.find(item => `${item.nome.toUpperCase()}-${item.cores.toUpperCase()}` === chave);
+          if (!jaExiste) acc.push(atual);
+          return acc;
+        }, []);
 
-  // REGRA: SACADA (Ex: Kit Sacada Sem Rolamento 3,05x2,50)
-  if (nomeUpper.includes("SACADA")) {
-    if (numeros.length >= 2) {
-      largura = toMM(numeros[0]);
-      altura = toMM(numeros[1]);
-    }
-  }
-  
-  // REGRA: PORTA OU JANELA COM LETRAS (Ex: 2,40A X 3,00L)
-  else if (nomeUpper.includes('A') && nomeUpper.includes('L')) {
-    const matchA = nomeUpper.match(/(\d+[.,]?\d*)A/);
-    const matchL = nomeUpper.match(/(\d+[.,]?\d*)L/);
-    if (matchA?.[1]) altura = toMM(matchA[1]);
-    if (matchL?.[1]) largura = toMM(matchL[1]);
-  }
+        if (kitsUnicosParaSalvar.length > 0) {
+          await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
+          const { error } = await supabase.from("kits").insert(kitsUnicosParaSalvar);
 
-  // REGRA: QUADRADO CANTO (Ex: 300x120x120)
-  else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("CANTO")) {
-    if (numeros.length >= 3) {
-      altura = toMM(numeros[0]);
-      largura = toMM(numeros[1]) + toMM(numeros[2]);
-    }
-  }
-
-  // REGRA: QUADRADO F1 (Ex: 300x150 -> Inverte)
- else if (nomeUpper.includes("QUADRADO") && nomeUpper.includes("F1")) {
-  if (numeros.length >= 2) {
-    largura = toMM(numeros[1]); 
-    altura = toMM(numeros[0]);
-  }
-}
-
-
-  // REGRA: KIT C1 (Multiplica por 2)
-  else if (nomeUpper.includes("C1")) {
-    if (numeros.length >= 1) {
-      largura = toMM(numeros[0]) * 2;
-      altura = 1900;
-    }
-  }
-
-  // REGRA: EVIDENCE FRONTAL
-else if (nomeUpper.includes("EVIDENCE") && nomeUpper.includes("FRONTAL")) {
-  if (numeros.length >= 1) {
-    largura = toMM(numeros[0]);
-    altura = 1900;
-  }
-}
-
-// REGRA: EVIDENCE CANTO (multiplica por 2)
-else if (nomeUpper.includes("EVIDENCE") && nomeUpper.includes("CANTO")) {
-  if (numeros.length >= 1) {
-    largura = toMM(numeros[0]) * 2;
-    altura = 1900;
-  }
-}
-
-// REGRA: F1 SIMPLES
-else if (nomeUpper.includes("F1")) {
-  if (numeros.length >= 1) {
-    largura = toMM(numeros[0]);
-    altura = 1900;
-  }
-}
-
-  // FALLBACK (Se houver dois números e nenhuma palavra chave acima)
-  else if (numeros.length >= 2) {
-    largura = toMM(numeros[0]);
-    altura = toMM(numeros[1]);
-  }
-
-  return {
-    nome: nomeFormatado,
-    largura,
-    altura,
-    categoria: padronizarTexto(categoriaPlanilha),
-    cores: corFormatada,
-    preco: precoFinal,
-    empresa_id: empresaIdUsuario
-  };
-});
-
-      const kitsUnicosParaSalvar = novosKits.reduce((acc: any[], atual) => {
-        const chave = `${atual.nome.toUpperCase()}-${atual.cores.toUpperCase()}`;
-        const jaExiste = acc.find(item => `${item.nome.toUpperCase()}-${item.cores.toUpperCase()}` === chave);
-        if (!jaExiste) acc.push(atual);
-        return acc;
-      }, []);
-
-      if (kitsUnicosParaSalvar.length > 0) {
-        await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
-        const { error } = await supabase.from("kits").insert(kitsUnicosParaSalvar);
-        
-        if (error) throw error;
-        await carregarDados();
-        setModalAviso({ titulo: "Sucesso", mensagem: "Importação corrigida com sucesso!" });
+          if (error) throw error;
+          await carregarDados();
+          setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com sucesso!" });
+        }
+      } catch (err: any) {
+        setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
+      } finally {
+        setModalCarregando(false);
+        if (e.target) e.target.value = "";
       }
-    } catch (err: any) {
-      setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
-    } finally {
-      setModalCarregando(false);
-      if (e.target) e.target.value = "";
-    }
+    };
+    reader.readAsArrayBuffer(file);
   };
-  reader.readAsArrayBuffer(file);
-};
 
   const handleExportarCSV = () => {
     try {
@@ -469,19 +403,19 @@ else if (nomeUpper.includes("F1")) {
   });
 
   return (
-   <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
         <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image 
-    // Prioriza a logo do banco, se não existir, usa a padrão
-    src={theme.logoDarkUrl || "/glasscode2.png"} 
-    alt="Logo Empresa" 
-    width={200} 
-    height={56} 
-    className="h-12 md:h-14 object-contain transition-all duration-300" 
-    priority // Carrega a logo com prioridade por ser o topo da página
-  /> </div>
+        <div className="px-3 py-4 mb-4 flex justify-center"> <Image
+          // Prioriza a logo do banco, se não existir, usa a padrão
+          src={theme.logoDarkUrl || "/glasscode2.png"}
+          alt="Logo Empresa"
+          width={200}
+          height={56}
+          className="h-12 md:h-14 object-contain transition-all duration-300"
+          priority // Carrega a logo com prioridade por ser o topo da página
+        /> </div>
         <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
           <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
@@ -578,66 +512,66 @@ else if (nomeUpper.includes("F1")) {
                 </p>
               </div>
             </div>
-{/* AÇÕES PADRONIZADAS */}
-<div className="flex gap-2 no-print">
-  {/* Botão Imprimir PDF */}
-  {isClient && (
-    <PDFDownloadLink
-      document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
-      fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
-      title="Imprimir Catálogo"
-      className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-    >
-      {({ loading }) => (
-        loading ? (
-          <Loader2 size={20} className="animate-spin text-gray-400" />
-        ) : (
-          <Printer
-            size={20}
-            className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-            onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-          />
-        )
-      )}
-    </PDFDownloadLink>
-  )}
+            {/* AÇÕES PADRONIZADAS */}
+            <div className="flex gap-2 no-print">
+              {/* Botão Imprimir PDF */}
+              {isClient && (
+                <PDFDownloadLink
+                  document={<KitsPDF dados={kitsFiltrados} empresa={nomeEmpresa} />}
+                  fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
+                  title="Imprimir Catálogo"
+                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                >
+                  {({ loading }) => (
+                    loading ? (
+                      <Loader2 size={20} className="animate-spin text-gray-400" />
+                    ) : (
+                      <Printer
+                        size={20}
+                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                        onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                      />
+                    )
+                  )}
+                </PDFDownloadLink>
+              )}
 
-  {/* Botão Exportar CSV */}
-  <button
-    onClick={handleExportarCSV}
-    title="Exportar Planilha"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Download
-      size={20}
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-  </button>
+              {/* Botão Exportar CSV */}
+              <button
+                onClick={handleExportarCSV}
+                title="Exportar Planilha"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Download
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </button>
 
-  {/* Botão Importar CSV */}
-  <label
-    htmlFor="importarCSV"
-    title="Importar Planilha"
-    className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
-  >
-    <Upload
-      size={20}
-      className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-      onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-      onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-    />
-    <input
-      type="file"
-      id="importarCSV"
-      accept=".csv"
-      className="hidden"
-      onChange={handleImportarCSV}
-    />
-  </label>
-</div>
+              {/* Botão Importar CSV */}
+              <label
+                htmlFor="importarCSV"
+                title="Importar Planilha"
+                className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <Upload
+                  size={20}
+                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
+                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+                <input
+                  type="file"
+                  id="importarCSV"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleImportarCSV}
+                />
+              </label>
+            </div>
           </div>
 
           {/* INDICADORES */}
@@ -704,7 +638,8 @@ else if (nomeUpper.includes("F1")) {
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
                   <th className="p-4 text-xs uppercase tracking-widest">Nome do Kit</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Medidas (LxA)</th>
+                  <th className="p-4 text-xs uppercase tracking-widest">Largura (mm)</th>
+                  <th className="p-4 text-xs uppercase tracking-widest">Altura (mm)</th>
                   <th className="p-4 text-xs uppercase tracking-widest">Cor</th>
                   <th className="p-4 text-xs uppercase tracking-widest">Categoria</th>
                   <th className="p-4 text-xs uppercase tracking-widest">Preço Base</th>
@@ -712,34 +647,29 @@ else if (nomeUpper.includes("F1")) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {kits
-                  .filter(k => {
-                    const matchesBusca = k.nome.toLowerCase().includes(filtroNome.toLowerCase()) || (k.categoria || "").toLowerCase().includes(filtroNome.toLowerCase());
-                    const matchesCor = (k.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
-                    return matchesBusca && matchesCor;
-                  })
-                  .map(k => (
-                    <tr key={k.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4 text-gray-500 font-medium" style={{ color: lightTertiary }}>{k.nome}</td>
-                      <td className="p-4 text-gray-500 font-medium">{k.largura} x {k.altura} mm</td>
-                      <td className="p-4">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                          style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                          {k.cores || "Padrão"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-gray-500 font-medium">{k.categoria || "Geral"}</td>
-                      <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>
-                        {k.preco ? formatarPreco(k.preco) : "-"}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => { setEditando(k); setNovoKit(k); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                          <button onClick={() => deletarKit(k.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                {kitsFiltrados.map(k => (
+                  <tr key={k.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-gray-500 font-medium" style={{ color: lightTertiary }}>{k.nome}</td>
+                    <td className="p-4 text-gray-500 font-medium">{k.largura}</td>
+                    <td className="p-4 text-gray-500 font-medium">{k.altura}</td>
+                    <td className="p-4">
+                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
+                        style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
+                        {k.cores || "Padrão"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-500 font-medium">{k.categoria || "Geral"}</td>
+                    <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>
+                      {k.preco ? formatarPreco(k.preco) : "-"}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => { setEditando(k); setNovoKit(k); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                        <button onClick={() => deletarKit(k.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -836,6 +766,23 @@ else if (nomeUpper.includes("F1")) {
                 {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Kit")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
+      {modalCarregando && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
+          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
+            <div className="relative mb-6">
+              {/* Spinner Principal */}
+              <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
+              {/* Ícone de Arquivo no centro */}
+              <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
+            </div>
+            <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
+            <p className="text-gray-500 text-sm font-medium animate-pulse">
+              Por favor, não feche a página...
+            </p>
           </div>
         </div>
       )}
