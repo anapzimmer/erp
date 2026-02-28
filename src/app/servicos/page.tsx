@@ -346,7 +346,7 @@ if (branding) {
                 });
                 setMostrarModal(true);
               }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95"
               style={{ backgroundColor: theme.tertiary, color: theme.primary }}
             >
               <PlusCircle size={18} /> Novo Serviço

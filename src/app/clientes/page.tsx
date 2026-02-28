@@ -284,7 +284,7 @@ const carregarDados = useCallback(async () => {
               </select>
               <button onClick={() => { setBuscaNome(""); setFiltroRota(""); setFiltroCidade("") }} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"> Limpar </button>
             </div>
-            <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.menuBackgroundColor }}>
+            <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95" style={{ backgroundColor: theme.menuIconColor, color: theme.menuBackgroundColor }}>
               <PlusCircle size={20} /> Novo Cliente
             </button>
           </div>

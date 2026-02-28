@@ -582,7 +582,7 @@ const logoLight = branding?.logo_light || null;
             </div>
             <div className="flex gap-2">
               <button onClick={limparDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition"> <Trash2 size={18} />Limpar Duplicados</button>
-              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm hover:opacity-90 transition" style={{ backgroundColor: theme.menuIconColor, color: theme.buttonDarkText }}> <PlusCircle size={20} /> Novo Vidro </button>
+              <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95" style={{ backgroundColor: theme.menuIconColor, color: theme.buttonDarkText }}> <PlusCircle size={20} /> Novo Vidro </button>
             </div>
           </div>
 
