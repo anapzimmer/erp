@@ -1,9 +1,10 @@
-//app/layout.tsx
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-// 1. 🔥 Certifique-se de que a importação está correta
 import { ThemeProvider } from "@/context/ThemeContext";
+// 🔥 Importe o novo componente
+import ThemeLoader from "@/components/ThemeLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          {children}
+          {/* 🔥 Agora o Loader está em um componente client separado */}
+          <ThemeLoader>
+            {children}
+          </ThemeLoader>
         </ThemeProvider>
       </body>
     </html>
