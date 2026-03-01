@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Sidebar from "@/components/Sidebar";
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -21,26 +22,6 @@ interface Servico {
   empresa_id: string;
 }
 
-// --- CONSTANTES DE MENU ---
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos", rota: "/orcamentos", icone: FileText,
-    submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" }]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
-
 export default function ServicosPage() {
   const router = useRouter()
 
@@ -51,6 +32,7 @@ export default function ServicosPage() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
 
   // ESTADOS DE BRANDING (Iniciam com padrão e mudam depois)
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
@@ -231,26 +213,13 @@ if (branding) {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
       {/* SIDEBAR (USANDO TEMA) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.primary }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-
-        {/* LOGO DINÂMICA */}
-        <div className="px-3 py-4 mb-4 flex justify-center">
-          <Image
-            src={logoUrl} // Usando o estado dinâmico
-            alt="Logo da Empresa"
-            width={200}
-            height={56}
-            className="h-12 md:h-14 object-contain"
-            loading="eager" // Adicione isto
-          />
-        </div>
-
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.tertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.tertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
-        </nav>
-      </aside>
+   <Sidebar
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        expandido={sidebarExpandido} 
+        setExpandido={setSidebarExpandido}
+      />
 
       <div className="flex-1 flex flex-col w-full min-w-0">
         {/* HEADER */}

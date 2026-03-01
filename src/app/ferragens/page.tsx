@@ -13,36 +13,15 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useTheme } from "@/context/ThemeContext";
 import type { Ferragem } from "@/types/ferragem"
-
+import Sidebar from "@/components/Sidebar";
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
-
-// --- CONSTANTES DE MENU ---
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos", rota: "/orcamentos", icone: FileText,
-    submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" }]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
 
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
   return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
 };
-
 
 export default function FerragensPage() {
   const router = useRouter()
@@ -67,6 +46,7 @@ export default function FerragensPage() {
   const lightPrimary = theme.screenBackgroundColor;
   const lightSecondary = theme.modalBackgroundColor;
   const lightTertiary = theme.contentTextLightBg;
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
 
   // --- ESTADOS LÓGICA ---
   const [ferragens, setFerragens] = useState<Ferragem[]>([])
@@ -389,21 +369,14 @@ export default function FerragensPage() {
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
-      {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image
-          src={theme.logoDarkUrl || "/glasscode2.png"}
-          alt="Logo"
-          width={200}
-          height={56}
-          className="h-12 md:h-14 object-contain"
-        /> </div>
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
-        </nav>
-      </aside>
+    <Sidebar
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        expandido={sidebarExpandido} 
+        setExpandido={setSidebarExpandido}
+      />
+      {/* ----------------------------------------------------------- */}
 
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}

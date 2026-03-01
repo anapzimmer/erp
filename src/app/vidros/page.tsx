@@ -11,6 +11,7 @@ import { VidrosPDF } from "app/relatorios/vidros/VidrosPDF"
 import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
@@ -19,21 +20,6 @@ type Grupo = { id: string; nome: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
 import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound } from "lucide-react"
-
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  { nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" },] },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
 
 // --- Utils ---
 const formatarParaBanco = (texto: string) => { if (!texto) return ""; return texto.trim().charAt(0).toUpperCase() + texto.trim().slice(1) }
@@ -65,6 +51,8 @@ export default function VidrosPage() {
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroEspessura, setFiltroEspessura] = useState("")
   const [filtroTipo, setFiltroTipo] = useState("")
+  const [sidebarExpandido, setSidebarExpandido] = useState(true); // Adicione esta linha
+// ...
 
 
   // --- Efeitos ---
@@ -445,15 +433,16 @@ const logoLight = branding?.logo_light || null;
 
   return (
     <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image src={theme.logoDarkUrl || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" /> </div>
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.menuIconColor }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
-        </nav>
-      </aside>
+    {/* --- SIDEBAR CORRIGIDA --- */}
+<Sidebar
+  showMobileMenu={showMobileMenu}
+  setShowMobileMenu={setShowMobileMenu}
+  nomeEmpresa={nomeEmpresa} // Certifique-se de que essa variável existe
+  // Passe estas props se quiser o botão de recolher nesta página:
+  expandido={sidebarExpandido} 
+  setExpandido={setSidebarExpandido}
+/>
+{/* ------------------------- */}
 
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">

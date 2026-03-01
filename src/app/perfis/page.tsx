@@ -11,30 +11,13 @@ import autoTable from 'jspdf-autotable';
 import { pdf } from '@react-pdf/renderer';
 import { PerfisPDF } from '@/app/relatorios/perfis/PerfisPDF';
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
-// --- 2. 🔥 CONSTANTES DE MENU (Corrigindo erro de "menuPrincipal" e "menuCadastros") ---
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos", rota: "/orcamentos", icone: FileText, submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" },
-    { nome: "Vidros PDF", rota: "/calculovidroPDF" },]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
 
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
 // --- Utils ---
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
@@ -56,7 +39,7 @@ export default function PerfisPage() {
   const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
   const [gerandoPDF, setGerandoPDF] = useState(false);
-
+const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
 
   // --- Estados de Cores e Logo (Conectados ao Supabase) ---
@@ -508,23 +491,14 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
   return (
     <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
 
-      {/* SIDEBAR - Conectada ao menu_background_color (darkPrimary) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center">
-          <Image src={logoDark || "/glasscode2.png"} alt="Logo ERP" width={200} height={56} className="h-12 md:h-14 object-contain" />
-        </div>
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2 scrollbar-hide">
-          <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p>
-            {menuPrincipal.map(renderMenuItem)}
-          </div>
-          <div>
-            <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p>
-            {menuCadastros.map(renderMenuItem)}
-          </div>
-        </nav>
-      </aside>
+      <Sidebar
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        expandido={sidebarExpandido} 
+        setExpandido={setSidebarExpandido}
+      />
+      {/* ----------------------------------------------------------- */}
 
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col min-w-0">

@@ -2,17 +2,13 @@
 import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import {
-  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer, Loader2,
-  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
-  PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
-  DollarSign, ArrowUp, Square
-} from "lucide-react"
+import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { KitsPDF } from "app/relatorios/kits/KitsPDF";
 import { useTheme } from "@/context/ThemeContext";
+import Sidebar from "@/components/Sidebar";
 
 // --- TIPAGENS ---
 type Kit = {
@@ -27,26 +23,6 @@ type Kit = {
 }
 
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
-
-// --- CONSTANTES DE MENU ---
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos", rota: "/orcamentos", icone: FileText,
-    submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" }]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
 
 const padronizarTexto = (texto: string | null) => {
   if (!texto) return "";
@@ -67,6 +43,7 @@ export default function KitsPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
 
   const darkPrimary = theme.menuBackgroundColor;
   const darkSecondary = theme.menuTextColor;
@@ -405,22 +382,13 @@ export default function KitsPage() {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: darkPrimary }}>
-        <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-        <div className="px-3 py-4 mb-4 flex justify-center"> <Image
-          // Prioriza a logo do banco, se não existir, usa a padrão
-          src={theme.logoDarkUrl || "/glasscode2.png"}
-          alt="Logo Empresa"
-          width={200}
-          height={56}
-          className="h-12 md:h-14 object-contain transition-all duration-300"
-          priority // Carrega a logo com prioridade por ser o topo da página
-        /> </div>
-        <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-          <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: darkTertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
-        </nav>
-      </aside>
+     <Sidebar
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        expandido={sidebarExpandido} 
+        setExpandido={setSidebarExpandido}
+      />
 
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}

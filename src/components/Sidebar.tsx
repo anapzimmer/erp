@@ -1,13 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, UsersRound, FileText, ImageIcon, BarChart3,
-  Square, Package, Wrench, Boxes, Briefcase, ChevronRight, X, Building2
+  Square, Package, Wrench, Boxes, Briefcase, ChevronRight, X, Building2,
+  ChevronLeft, ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
-// --- CONSTANTES FORA DO COMPONENTE (Resolve erro ts(2304)) ---
 type MenuItem = {
   nome: string;
   rota: string;
@@ -38,55 +39,83 @@ const menuCadastros: MenuItem[] = [
   { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
   { nome: "Kits", rota: "/kits", icone: Boxes },
   { nome: "Serviços", rota: "/servicos", icone: Briefcase },
+  { nome: "Acabamentos", rota: "/acabamentos", icone: Package },
 ];
 
 interface SidebarProps {
   showMobileMenu: boolean;
   setShowMobileMenu: (show: boolean) => void;
   nomeEmpresa: string;
+  expandido?: boolean;
+  setExpandido?: (expandido: boolean) => void;
 }
 
-export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa }: SidebarProps) {
+export default function Sidebar({
+  showMobileMenu,
+  setShowMobileMenu,
+  nomeEmpresa,
+  expandido = true,
+  setExpandido
+}: SidebarProps) {
+
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
 
+  const [hoveredSubmenu, setHoveredSubmenu] = useState<string | null>(null);
+
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
     const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
+    const isSubmenuOpen = hoveredSubmenu === item.nome || (isActive && expandido);
 
     return (
-      <div key={item.nome} className="group mb-1 px-2">
+      <div 
+        key={item.nome} 
+        className="group mb-1 px-2 relative"
+        onMouseEnter={() => setHoveredSubmenu(item.nome)}
+        onMouseLeave={() => setHoveredSubmenu(null)}
+      >
         <div
           onClick={() => {
             if (!item.submenu) {
               router.push(item.rota);
               setShowMobileMenu(false);
+            } else {
+              router.push(item.rota);
+              setShowMobileMenu(false);
             }
           }}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1"
+          className={`flex items-center ${expandido ? "justify-between" : "justify-center"} p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1`}
           style={{
             color: theme.menuTextColor,
+            // 1. CORREÇÃO: Fundo do item pai
             backgroundColor: isActive ? theme.menuHoverColor : "transparent",
           }}
-          onMouseEnter={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = theme.menuHoverColor;
-          }}
-          onMouseLeave={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
-          }}
         >
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
-            <span className="font-medium text-sm">{item.nome}</span>
+          <div className={`flex items-center ${expandido ? "gap-3" : "gap-0"}`}>
+            <Icon className="w-5 h-5 flex-shrink-0" style={{ color: theme.menuIconColor }} />
+            {expandido && <span className="font-medium text-sm truncate">{item.nome}</span>}
           </div>
-          {item.submenu && (
-            <ChevronRight className={`w-4 h-4 opacity-70 transition-transform duration-300 ${isActive ? 'rotate-90' : ''}`} />
+
+          {item.submenu && expandido && (
+            <ChevronRightIcon 
+              className={`w-4 h-4 opacity-70 transition-transform duration-300 ${isSubmenuOpen ? 'rotate-90' : ''}`} 
+            />
           )}
         </div>
 
-        {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2 mt-1" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
+        {/* --- CORREÇÃO: ANIMAÇÃO E COR DO SUBMENU --- */}
+        {item.submenu && expandido && (
+          <div 
+            className={`
+              ml-7 flex flex-col gap-1 pl-2 
+              overflow-hidden transition-all duration-300 ease-in-out
+              ${isSubmenuOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}
+            `}
+            // 2. CORREÇÃO: Linha divisória da cor do tema
+            style={{ borderLeft: `1px solid ${theme.menuIconColor}40` }}
+          >
             {item.submenu.map((sub) => {
               const isSubActive = pathname === sub.rota;
               return (
@@ -95,12 +124,14 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
                   onClick={() => {
                     router.push(sub.rota);
                     setShowMobileMenu(false);
+                    setHoveredSubmenu(null);
                   }}
                   className="p-2 text-xs rounded-lg cursor-pointer transition-colors duration-200"
                   style={{
+                    // 3. CORREÇÃO: Cor do texto e fundo do submenu
                     color: theme.menuTextColor,
                     backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
-                    opacity: isSubActive ? 1 : 0.7
+                    opacity: isSubActive ? 1 : 0.8 // Aumentei a opacidade para melhorar a visibilidade
                   }}
                 >
                   {sub.nome}
@@ -109,14 +140,16 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
             })}
           </div>
         )}
+        {/* ---------------------------------------------- */}
       </div>
     );
   };
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 
-        ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`fixed inset-y-0 left-0 z-50 min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:translate-x-0 flex-shrink-0
+        ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}
+        ${expandido ? 'w-64' : 'w-20'}`}
       style={{ backgroundColor: theme.menuBackgroundColor }}
     >
       <button
@@ -127,33 +160,45 @@ export default function Sidebar({ showMobileMenu, setShowMobileMenu, nomeEmpresa
         <X size={24} />
       </button>
 
-      <div className="p-6 mb-4 flex justify-center">
-        {/* 🔥 Usando theme.logoDarkUrl que é o nome que está no seu Context */}
+      {setExpandido && (
+        <button
+          onClick={() => setExpandido(!expandido)}
+          className="absolute -right-3 top-10 bg-white border border-gray-200 p-1 rounded-full shadow-md z-50 text-gray-500 hover:text-gray-800 transition-colors hidden md:block"
+        >
+          {expandido ? <ChevronLeft size={16} /> : <ChevronRightIcon size={16} />}
+        </button>
+      )}
+
+      <div className={`mb-8 flex items-center justify-center h-18`}>
         {theme.logoDarkUrl ? (
           <img
             src={theme.logoDarkUrl}
             alt="Logo"
-            className="max-h-16 object-contain"
-            loading="eager" // 🔥 Adicione isso para resolver o aviso do console
+            className={`object-contain transition-all duration-300 ${expandido ? "max-h-14" : "max-h-14"}`}
+            loading="eager"
           />
         ) : (
-          <Building2 style={{ color: theme.menuIconColor }} />
+          <Building2 size={32} style={{ color: theme.menuIconColor }} />
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto space-y-6">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden space-y-6">
         <div>
-          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60"
-            style={{ color: theme.menuIconColor }}>
-            Principal
-          </p>
+          {expandido && (
+            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3"
+              style={{ color: theme.menuIconColor }}>
+              Principal
+            </p>
+          )}
           {menuPrincipal.map(renderMenuItem)}
         </div>
         <div>
-          <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-60"
-            style={{ color: theme.menuIconColor }}>
-            Cadastros
-          </p>
+          {expandido && (
+            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3 "
+              style={{ color: theme.menuIconColor }}>
+              Cadastros
+            </p>
+          )}
           {menuCadastros.map(renderMenuItem)}
         </div>
       </nav>
