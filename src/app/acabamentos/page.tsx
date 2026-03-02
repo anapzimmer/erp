@@ -22,6 +22,7 @@ interface Acabamento {
     tipo_visual: string; // Isso aceita a string composta (ex: 'lapidado-organico')
     sobra_largura: number;
     sobra_altura: number;
+    porcentagem_aumento?: number;
     // --- ADICIONADO PARA TIPAR CORRETAMENTE ---
     bordasSelecionadas?: string[];
     formatoSelecionado?: string;
@@ -185,75 +186,77 @@ export default function AcabamentosPage() {
     };
 
     const salvarAcabamento = async () => {
-        // 1. Validação básica
-        if (!novoAcabamento.nome || !novoAcabamento.formatoSelecionado || !novoAcabamento.bordasSelecionadas?.length) {
-            alert("Preencha o nome, selecione pelo menos uma borda e um formato.");
-            return;
-        }
-
         setCarregando(true);
-
         try {
-            if (editando) {
-                // Lógica de Edição (mantida)
-                const { error } = await supabase
-                    .from("acabamentos")
-                    .update({
-                        nome: novoAcabamento.nome,
-                        tipo_calculo: novoAcabamento.tipo_calculo,
-                        preco: novoAcabamento.preco,
-                        sobra_largura: novoAcabamento.sobra_largura,
-                        sobra_altura: novoAcabamento.sobra_altura,
-                        tipo_visual: novoAcabamento.tipo_visual
-                    })
-                    .eq("id", editando.id);
+            const ehEdicao = editando && novoAcabamento.id > 0;
 
+            // ... (lógica de formatação do nome) ...
+            const bordas = novoAcabamento.bordasSelecionadas || [];
+            const bordaPrincipal = bordas.length > 0 ? bordas[0] : 'lapidado';
+            const bordaFormatada = bordaPrincipal === 'bisote' ? 'Bisotê' : 'Lapidado';
+            const nomeLimpo = novoAcabamento.nome.split(' (')[0];
+            const nomeFinal = `${nomeLimpo} (${bordaFormatada})`;
+
+            // --- CORREÇÃO: Mapeamento de Porcentagem ---
+            const dadosParaBanco = {
+                empresa_id: empresaIdUsuario,
+                nome: nomeFinal,
+                tipo_calculo: novoAcabamento.tipo_calculo,
+
+                // Se for porcentagem, preço é 0, senão é o valor digitado
+                preco:
+                    novoAcabamento.tipo_calculo === "porcentagem"
+                        ? 0
+                        : Number(novoAcabamento.preco) || 0,
+
+                // Se for porcentagem, o valor digitado vai para porcentagem_aumento
+                porcentagem_aumento:
+                    novoAcabamento.tipo_calculo === "porcentagem"
+                        ? Number(novoAcabamento.preco) || 0
+                        : 0,
+
+                sobra_largura: Number(novoAcabamento.sobra_largura) || 0,
+                sobra_altura: Number(novoAcabamento.sobra_altura) || 0,
+
+                tipo_visual: `${bordaPrincipal}-${novoAcabamento.formatoSelecionado || "padrao"}`,
+            };
+
+            if (ehEdicao) {
+                const { error } = await supabase
+                    .from('acabamentos')
+                    .update(dadosParaBanco)
+                    .eq('id', novoAcabamento.id);
                 if (error) throw error;
             } else {
-                // Lógica de Criação (mantida)
-                const promessas = novoAcabamento.bordasSelecionadas.map(borda => {
-                    return supabase
-                        .from("acabamentos")
-                        .insert({
-                            empresa_id: empresaIdUsuario, // Certifique-se que essa variável existe no escopo
-                            nome: `${novoAcabamento.nome} (${borda === 'bisote' ? 'Bisotê' : 'Lapidado'})`,
-                            tipo_calculo: novoAcabamento.tipo_calculo,
-                            preco: novoAcabamento.preco,
-                            sobra_largura: novoAcabamento.sobra_largura,
-                            sobra_altura: novoAcabamento.sobra_altura,
-                            tipo_visual: `${borda}-${novoAcabamento.formatoSelecionado}`
-                        });
-                });
+                // Lógica de inserção para nova borda (se houver múltiplas)
+                const promessas = bordas.map(borda => {
+                    const tipoVisualIndividual = `${borda}-${novoAcabamento.formatoSelecionado || 'padrao'}`
+                    const bordaIndFormatada = borda === 'bisote' ? 'Bisotê' : 'Lapidado'
 
+                    return supabase.from('acabamentos').insert({
+                        ...dadosParaBanco,
+                        nome: `${nomeLimpo} (${bordaIndFormatada})`,
+                        tipo_visual: tipoVisualIndividual
+                    })
+                })
+                const resultados = await Promise.all(promessas)
+
+                resultados.forEach(r => {
+                    if (r.error) {
+                        console.error("Erro no insert:", r.error)
+                        throw r.error
+                    }
+                })
                 await Promise.all(promessas);
             }
 
-            if (empresaIdUsuario) {
-                await carregarDados(empresaIdUsuario);
-            } else {
-                console.error("ID da empresa não encontrado.");
-                // Opcional: alert("Erro: ID da empresa não encontrado.");
-            }
             setMostrarModal(false);
-
-            // 3. Limpar o formulário
-            setNovoAcabamento({
-                id: 0,
-                nome: "",
-                tipo_calculo: "metro_linear",
-                preco: 0,
-                tipo_visual: "lapidado",
-                empresa_id: "",
-                sobra_largura: 0,
-                sobra_altura: 0,
-                bordasSelecionadas: [],
-                formatoSelecionado: ""
-            });
             setEditando(null);
+            await carregarDados(empresaIdUsuario!);
 
         } catch (error) {
             console.error("Erro ao salvar:", error);
-            alert("Erro ao salvar acabamentos.");
+            alert("Não foi possível salvar as alterações.");
         } finally {
             setCarregando(false);
         }
@@ -311,52 +314,52 @@ export default function AcabamentosPage() {
                     <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.tertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
                 </nav>
             </aside>
-            
+
 
             <div className="flex-1 flex flex-col w-full min-w-0">
-                  <header
-                        className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
-                        style={{ backgroundColor: theme.secondary }}
-                      >
-                        <div className="flex items-center gap-2 md:gap-4">
-                          <button
+                <header
+                    className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
+                    style={{ backgroundColor: theme.secondary }}
+                >
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <button
                             onClick={() => setShowMobileMenu(true)}
                             className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-                          >
+                        >
                             <Menu size={24} className="text-gray-600" />
-                          </button>
-                        </div>
-              
-                        <div className="flex items-center gap-3">
-                          <div className="relative" ref={userMenuRef}>
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative" ref={userMenuRef}>
                             <button
-                              onClick={() => setShowUserMenu(!showUserMenu)}
-                              className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
+                                onClick={() => setShowUserMenu(!showUserMenu)}
+                                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
                             >
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                                <Building2 size={16} />
-                              </div>
-                              <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
-                            </button>
-              
-                            {showUserMenu && (
-                              <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
-                                <div className="px-3 py-2 border-b border-gray-100">
-                                  <p className="text-xs text-gray-400 font-medium">Logado como</p>
-                                  <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
+                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                                    <Building2 size={16} />
                                 </div>
-                                <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                                  <Wrench size={18} className="text-gray-400" /> Configurações
-                                </button>
-                                <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-                                  <X size={18} className="text-red-500" /> Sair
-                                </button>
-                              </div>
+                                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {showUserMenu && (
+                                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
+                                    <div className="px-3 py-2 border-b border-gray-100">
+                                        <p className="text-xs text-gray-400 font-medium">Logado como</p>
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
+                                    </div>
+                                    <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+                                        <Wrench size={18} className="text-gray-400" /> Configurações
+                                    </button>
+                                    <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                                        <X size={18} className="text-red-500" /> Sair
+                                    </button>
+                                </div>
                             )}
-                          </div>
                         </div>
-                      </header>
+                    </div>
+                </header>
 
                 <main className="p-4 md:p-8 flex-1">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
@@ -422,12 +425,9 @@ export default function AcabamentosPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {acabamentos.filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase())).map(s => {
-                                    // --- A LÓGICA DEVE SER ESTA ---                
-
-                                    // 1. Tenta achar o formato exato (ex: 'lapidado-quadrado')
                                     let opcaoVisual = opcoesVisual.find(o => o.value === s.tipo_visual);
 
-                                    // 2. Se não achar, tenta achar apenas a borda (ex: 'lapidado')
+                                    // 2. Se não achar, tenta achar apenas a borda (ex: 'semi_oval')
                                     if (!opcaoVisual) {
                                         opcaoVisual = opcoesVisual.find(o => o.value === s.tipo_visual.split('-')[0]);
                                     }
@@ -446,7 +446,7 @@ export default function AcabamentosPage() {
                                             <td className="p-4"><span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border" style={{ color: theme.tertiary, borderColor: `${theme.tertiary}44`, backgroundColor: `${theme.tertiary}11` }}>{s.tipo_calculo}</span></td>
                                             <td className="p-4 text-gray-500 font-medium" style={{ color: theme.primary }}>
                                                 {s.tipo_calculo === 'porcentagem'
-                                                    ? `${s.preco}%`
+                                                    ? `${s.porcentagem_aumento ?? 0}%`
                                                     : s.tipo_calculo === 'm2'
                                                         ? `${formatarPreco(s.preco)} / m²` // <--- Adicionado
                                                         : formatarPreco(s.preco)}
@@ -461,12 +461,15 @@ export default function AcabamentosPage() {
                                                         onClick={() => {
                                                             setEditando(s);
                                                             setNovoAcabamento({
-                                                                ...s, // Espalha as propriedades de s
-                                                                // CORREÇÃO AQUI: Garante que bordasSelecionadas seja um array
-                                                                bordasSelecionadas: s.bordasSelecionadas ?? [],
-                                                                // Garante que formatoSelecionado tenha um valor padrão se for undefined
-                                                                formatoSelecionado: s.formatoSelecionado ?? ""
+                                                                ...s,
+                                                                preco: s.tipo_calculo === 'porcentagem'
+                                                                    ? (s.porcentagem_aumento ?? 0)
+                                                                    : (s.preco ?? 0),
+
+                                                                bordasSelecionadas: s.bordasSelecionadas ?? [s.tipo_visual?.split('-')[0] || 'lapidado'],
+                                                                formatoSelecionado: s.tipo_visual?.split('-')[1] || ""
                                                             });
+
                                                             setMostrarModal(true);
                                                         }}
                                                         className="p-2.5 rounded-xl hover:bg-gray-100"
