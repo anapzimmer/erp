@@ -50,7 +50,7 @@ const defaultTheme: ThemeColors = {
   buttonLightText: "#1C415B",
   modalBackgroundColor: "#FFFFFF",
   modalTextColor: "#1C415B",
-  modalButtonBackgroundColor: "#071824",
+  modalButtonBackgroundColor: "#1C415B",
   modalButtonTextColor: "#FFFFFF",
   modalIconSuccessColor: "#059669",
   modalIconErrorColor: "#DC2626",

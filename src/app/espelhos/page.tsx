@@ -201,8 +201,17 @@ export default function CalculoEspelhosPage() {
     const vSel = vidrosDB.find(v => v.id === vidroId);
     const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
 
+    // --- LÓGICA DE LIMPEZA ---
+    let nomeAcabamento = aSel?.nome || '';
+
+    // Remove termos repetitivos como "(Lapidado)" ou "(Bisotê)" do nome do acabamento
+    nomeAcabamento = nomeAcabamento
+      .replace(/\(Lapidado\)/g, '')
+      .replace(/\(Bisotê\)/g, '')
+      .trim();
+
     const descricaoFinal = aSel
-      ? `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo} - ${aSel?.nome}`
+      ? `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo} - ${nomeAcabamento}`
       : `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo}`;
 
     setListaItens([...listaItens, {
@@ -750,9 +759,136 @@ export default function CalculoEspelhosPage() {
           </div>
         </main>
       </div>
-      
-      
+{/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
+{showModalPDF && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+    <div
+      style={{
+        backgroundColor: theme.modalBackgroundColor,
+        color: theme.modalTextColor,
+        // --- ALTERAÇÃO: Cor da borda externa para gray-100 ---
+        borderColor: '#F3F4F6', 
+      }}
+      className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border overflow-hidden flex flex-col md:flex-row items-center"
+    >
+      {/* LADO ESQUERDO: CONTEXTO/ALERTA */}
+      <div
+        className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center"
+        style={{ backgroundColor: `${theme.menuIconColor}08` }}
+      >
+        <div
+          className="p-4 rounded-full mb-6"
+          style={{
+            backgroundColor: `${theme.menuIconColor}15`,
+            color: theme.menuIconColor
+          }}
+        >
+          <ClipboardList size={32} />
+        </div>
+        <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
+        <p
+          className="text-sm opacity-70"
+          style={{ color: theme.modalTextColor }}
+        >
+          Preencha os dados ao lado para personalizar seu PDF antes de baixar.
+        </p>
+      </div>
+
+      {/* LADO DIREITO: DADOS E AÇÃO */}
+      <div className="p-8 md:w-3/5 flex flex-col">
+        <div className="flex justify-end mb-8">
+          <button
+            onClick={() => setShowModalPDF(false)}
+            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            style={{ color: theme.modalTextColor }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-6 mb-10  flex-grow">
+          <div>
+            <label
+              className="text-[10px] font-bold uppercase tracking-widest block mb-1.5"
+              style={{ color: theme.modalTextColor, opacity: 0.5 }}
+            >
+              Cliente
+            </label>
+            <input
+              type="text"
+              value={nomeCliente}
+              onChange={(e) => setNomeCliente(e.target.value)}
+              className="w-full bg-transparent border-b py-2.5 outline-none transition-all text-sm"
+              style={{
+                // --- ALTERAÇÃO: Cor da borda do input para gray-100 ---
+                borderColor: '#F3F4F6',
+                color: theme.modalTextColor,
+              }}
+              placeholder="Nome do cliente..."
+            />
           </div>
-    
+          <div>
+            <label
+              className="text-[10px] font-bold uppercase tracking-widest block mb-1.5"
+              style={{ color: theme.modalTextColor, opacity: 0.5 }}
+            >
+              Obra / Referência
+            </label>
+            <input
+              type="text"
+              value={nomeObra}
+              onChange={(e) => setNomeObra(e.target.value)}
+              className="w-full bg-transparent border-b py-2.5 outline-none transition-all text-sm"
+              style={{
+                // --- ALTERAÇÃO: Cor da borda do input para gray-100 ---
+                borderColor: '#F3F4F6',
+                color: theme.modalTextColor,
+              }}
+              placeholder="Ex: Apartamento 402..."
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <PDFDownloadLink
+            document={
+              <EspelhosPDF
+                itens={listaItens}
+                nomeEmpresa={nomeEmpresa}
+                // Passa a logo configurada para fundo claro
+                logoUrl={theme.logoLightUrl || '/glasscode.png'}
+                // Passa a cor de destaque do tema (azul do seu sistema)
+                themeColor={theme.contentTextLightBg}
+                nomeCliente={nomeCliente}
+                nomeObra={nomeObra}
+              />
+            }
+            fileName={`orcamento-${nomeCliente?.replace(/[^a-z0-9]/gi, '_') || 'cliente'}.pdf`}
+          >
+            {({ loading }) => (
+              <button
+                disabled={loading}
+                onClick={() => {
+                  setTimeout(() => setShowModalPDF(false), 500);
+                }}
+                className="px-5 py-2.5 rounded-xl font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm border"
+                style={{
+                  backgroundColor: '#F3F4F6',
+                  color: theme.menuBackgroundColor,
+                  borderColor: '#E5E7EB',
+                }}
+              >
+                <Printer size={16} />
+                {loading ? "Gerando..." : "Gerar PDF"}
+              </button>
+            )}
+          </PDFDownloadLink>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+    </div>
+
   )
 }
