@@ -1,164 +1,137 @@
-"use client"
+// src/app/relatorios/espelhos/EspelhosPDF.tsx
+"use client";
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
-import { formatarPreco } from "@/utils/formatarPreco";
+import { Page, Text, View, Document, StyleSheet, Image as PDFImage, Font } from '@react-pdf/renderer';
 
-interface Kit {
+// Nota: Para um visual ainda mais delicado, você poderia registrar uma fonte customizada (ex: Roboto Light)
+// Font.register({ family: 'Roboto', src: '...' });
+
+interface ItemPedido {
   id: number;
-  nome: string;
-  largura: number;
-  altura: number;
-  categoria: string | null;
-  cores: string | null;
-  preco: number | null;
+  descricao: string;
+  medidas: string;
+  quantidade: number;
+  total: number;
 }
 
-// --- ATUALIZAÇÃO DA TIPAGEM ---
-interface KitsPDFProps {
-  dados: Kit[];
-  empresa: string;
-  logoUrl?: string | null; // Adicionado para consistência
-  coresEmpresa: {
-    primary: string;    // Vai receber theme.menuBackgroundColor
-    secondary: string;  // Vai receber theme.menuTextColor
-    tertiary: string;   // Vai receber theme.menuIconColor
-    textDefault: string; // Cor padrão de texto
-  };
+interface EspelhosPDFProps {
+  itens: any[];
+  nomeEmpresa: string;
+  logoUrl?: string;
+  themeColor: string;
+  nomeCliente?: string; // ADICIONE ESTA LINHA
+  nomeObra?: string;    // ADICIONE ESTA LINHA
 }
 
-// --- ESTILOS ---
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    // borderBottomColor: ???, // Vamos definir abaixo usando a prop
-  },
-  headerLeft: {
-    flexDirection: 'column',
-  },
-  tituloRelatorio: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    // color: ???, // Vamos definir abaixo
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  subtitulo: {
-    fontSize: 9,
-    color: '#666',
-    marginTop: 2,
-  },
-  headerRight: {
-    width: 140,
-    alignItems: 'flex-end',
-  },
-  logo: {
-    width: 150,
-    height: 50,
-    objectFit: 'contain',
-  },
-  table: {
-    width: '100%',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    // backgroundColor: ???, // Vamos definir abaixo
-    borderRadius: 2,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    alignItems: 'center',
-    minHeight: 30,
-  },
-  tableColHeader: {
-    padding: 8,
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  tableCol: {
-    padding: 6,
-    fontSize: 9,
-    // color: ???, // Vamos definir abaixo
-  },
-  colNome: { width: '35%' },
-  colMedidas: { width: '20%' },
-  colCor: { width: '15%' },
-  colCategoria: { width: '15%' },
-  colPreco: { width: '15%', textAlign: 'right' },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999',
-    borderTopWidth: 0.5,
-    borderTopColor: '#DDD',
-    paddingTop: 10,
-  }
+const createStyles = (themeColor: string) => StyleSheet.create({
+  page: { padding: 40, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
+  
+  // Cabeçalho Delicado
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 },
+  headerLeft: { flexDirection: 'column' },
+  empresaNome: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+  tituloRelatorio: { fontSize: 24, fontWeight: 'light', color: themeColor, marginTop: 10 },
+  headerRight: { width: 100, height: 50, alignItems: 'flex-end' },
+  logo: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' },
+  
+  // Seção de Clientes Refinada
+  infoSection: { marginBottom: 30, padding: 15, backgroundColor: '#fbfbfb', borderRadius: 4, borderLeftWidth: 2, borderLeftColor: themeColor },
+  infoRow: { flexDirection: 'row', marginBottom: 5 },
+  infoLabel: { fontSize: 9, color: '#777', width: 50 },
+  infoValue: { fontSize: 9, color: '#333', fontWeight: 'bold' },
+
+  // Tabela Minimalista
+  table: { width: '100%' },
+  tableHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e0e0e0', paddingBottom: 8 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingVertical: 12 },
+  
+  colDesc: { width: '50%', fontSize: 9, color: '#333' },
+  colMedidas: { width: '20%', fontSize: 9, color: '#555' },
+  colQtd: { width: '10%', fontSize: 9, color: '#555', textAlign: 'center' },
+  colTotal: { width: '20%', fontSize: 9, color: '#333', textAlign: 'right', fontWeight: 'bold' },
+  
+  headerColText: { fontSize: 8, fontWeight: 'bold', color: '#999', textTransform: 'uppercase', letterSpacing: 1 },
+
+  // Rodapé Leve
+  footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 7, color: '#bbb' },
 });
 
-export function KitsPDF({ dados, empresa, coresEmpresa, logoUrl }: KitsPDFProps) {
-  const dataGeracao = new Date().toLocaleDateString('pt-BR');
-
-  // Define as cores dinâmicas baseadas na prop
-  const primaryColor = coresEmpresa.primary;
-  const accentColor = coresEmpresa.tertiary;
+export function EspelhosPDF({ 
+  itens, 
+  nomeEmpresa, 
+  logoUrl, 
+  themeColor, 
+  nomeCliente, 
+  nomeObra 
+}: EspelhosPDFProps) {
+  const styles = createStyles(themeColor);
+  const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={[styles.header, { borderBottomColor: accentColor }]}>
+        {/* Cabeçalho */}
+        <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={[styles.tituloRelatorio, { color: primaryColor }]}>Catálogo de Kits</Text>
-            <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
+            <Text style={styles.empresaNome}>{nomeEmpresa}</Text>
+            <Text style={styles.tituloRelatorio}>Orçamento</Text>
+            <Text style={{ fontSize: 9, color: '#999', marginTop: 5 }}>Emitido em: {new Date().toLocaleDateString('pt-BR')}</Text>
           </View>
           <View style={styles.headerRight}>
-            {logoUrl && <Image src={logoUrl} style={styles.logo} />}
+            {logoUrl && <PDFImage src={logoUrl} style={styles.logo} />}
           </View>
         </View>
 
+        {/* Informações do Cliente/Obra */}
+        {(nomeCliente || nomeObra) && (
+          <View style={styles.infoSection}>
+            {nomeCliente && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Cliente:</Text>
+                <Text style={styles.infoValue}>{nomeCliente}</Text>
+              </View>
+            )}
+            {nomeObra && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Obra:</Text>
+                <Text style={styles.infoValue}>{nomeObra}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Tabela */}
         <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: primaryColor }]}>
-            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Kit</Text>
-            <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas (LxA)</Text>
-            <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
-            <Text style={[styles.tableColHeader, styles.colCategoria]}>Categoria</Text>
-            <Text style={[styles.tableColHeader, styles.colPreco]}>Preço</Text>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.colDesc, styles.headerColText]}>Descrição</Text>
+            <Text style={[styles.colMedidas, styles.headerColText]}>Medidas</Text>
+            <Text style={[styles.colQtd, styles.headerColText]}>Qtd</Text>
+            <Text style={[styles.colTotal, styles.headerColText]}>Total</Text>
           </View>
 
-          {dados.map((item, index) => (
-            <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }]}>
-              <Text style={[styles.tableCol, styles.colNome, { color: coresEmpresa.textDefault }]}>{item.nome}</Text>
-              <Text style={[styles.tableCol, styles.colMedidas, { color: coresEmpresa.textDefault }]}>
-                {item.largura} x {item.altura} mm
-              </Text>
-              <Text style={[styles.tableCol, styles.colCor, { color: coresEmpresa.textDefault }]}>{item.cores || 'Padrão'}</Text>
-              <Text style={[styles.tableCol, styles.colCategoria, { color: coresEmpresa.textDefault }]}>{item.categoria || 'Kits'}</Text>
-              <Text style={[styles.tableCol, styles.colPreco, { color: primaryColor }]}>
-                {item.preco ? formatarPreco(item.preco) : 'Consulte'}
+          {itens.map((item, index) => (
+            <View key={item.id || index} style={styles.tableRow}>
+              <Text style={styles.colDesc}>{item.descricao}</Text>
+              <Text style={styles.colMedidas}>{item.medidas}</Text>
+              <Text style={styles.colQtd}>{item.quantidade}</Text>
+              <Text style={[styles.colTotal, { color: '#333' }]}>
+                {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </Text>
             </View>
           ))}
         </View>
 
-        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
-          `Sistema Glass Code - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`
-        )} fixed />
+        {/* Total Geral */}
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 25 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fbfbfb', padding: 10, borderRadius: 4 }}>
+            <Text style={{ fontSize: 10, color: '#777', marginRight: 15 }}>Total Geral</Text>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColor }}>
+              {totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (`Página ${pageNumber} de ${totalPages}`)} fixed />
       </Page>
     </Document>
   );

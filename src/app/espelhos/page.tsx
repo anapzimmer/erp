@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import Sidebar from "@/components/Sidebar"
-import { Plus, Calculator, Trash2, ReceiptText, Menu, Building2, ChevronDown,Printer, Wrench, X, Pencil, ClipboardList } from "lucide-react"
+import { Plus, Calculator, Trash2, ReceiptText, Menu, Building2, ChevronDown, Printer, Wrench, X, Pencil, ClipboardList } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
@@ -112,10 +112,11 @@ export default function CalculoEspelhosPage() {
   const [acabamentosDB, setAcabamentosDB] = useState<any[]>([]);
   const [acabamentoId, setAcabamentoId] = useState("");
   const [listaItens, setListaItens] = useState<any[]>([]);
+  const [showModalPDF, setShowModalPDF] = useState(false);
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [nomeObra, setNomeObra] = useState("");
   const [divisoesLargura, setDivisoesLargura] = useState(1);
   const [divisoesAltura, setDivisoesAltura] = useState(1);
-
-
 
   // --- CARREGAR DADOS ---
   useEffect(() => {
@@ -126,10 +127,10 @@ export default function CalculoEspelhosPage() {
         setVidroId(vData[0].id);
       }
       const { data: aData } = await supabase.from("acabamentos").select("*").order("nome");
-  if (aData && aData.length > 0) {
-  setAcabamentosDB(aData);
-  setAcabamentoId(""); // começa como Nenhum
-}
+      if (aData && aData.length > 0) {
+        setAcabamentosDB(aData);
+        setAcabamentoId(""); // começa como Nenhum
+      }
     };
     carregarDados();
   }, []);
@@ -209,7 +210,14 @@ export default function CalculoEspelhosPage() {
       descricao: descricaoFinal,
       medidas: `${largura}x${altura}`,
       quantidade: quantidade,
-      total: calculoAtual.total
+      total: calculoAtual.total,
+
+      // 🔥 ESSENCIAL PARA O PDF
+      tipoVisual: aSel?.tipo_visual || 'padrao',
+      larguraReal: Number(largura),
+      alturaReal: Number(altura),
+      divisoesLargura: divisoesLargura,
+      divisoesAltura: divisoesAltura,
     }]);
 
     // Limpa apenas as medidas, mantém o vidro e acabamento selecionados
@@ -338,7 +346,7 @@ export default function CalculoEspelhosPage() {
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* Sidebar Container */}
       <div
-      className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 flex-shrink-0 sticky top-0 h-screen`}
+        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 flex-shrink-0 sticky top-0 h-screen`}
         style={{ backgroundColor: theme.menuBackgroundColor }} // Garante que a cor do fundo da sidebar acompanhe
       >
         <Sidebar
@@ -378,32 +386,16 @@ export default function CalculoEspelhosPage() {
 
           <div className="flex items-center gap-3">
             {/* --- BOTÃO IMPRIMIR PDF --- */}
-{listaItens.length > 0 && (
-  <PDFDownloadLink
-    document={
-      <EspelhosPDF 
-        itens={listaItens} 
-        nomeEmpresa={nomeEmpresa}
-        // --- ADICIONADO: Puxando o logo do objeto user ---
-        logoUrl={user?.logoUrl || '/logo-padrao.png'} 
-        themeColor={theme.contentTextLightBg}
-      />
-    }
-    fileName={`orcamento-espelhos-${new Date().getTime()}.pdf`}
-  >
-    {({ loading }) => (
-      <button
-        className="flex items-center gap-2 p-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-gray-100"
-        style={{ color: theme.contentTextLightBg || '#6b7280' }}
-        title="Imprimir Orçamento"
-        disabled={loading}
-      >
-        <Printer size={20} />
-        {loading && <span className="text-xs">...</span>}
-      </button>
-    )}
-  </PDFDownloadLink>
-)}
+            {listaItens.length > 0 && (
+              <button
+                onClick={() => setShowModalPDF(true)}
+                className="flex items-center gap-2 p-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-gray-100"
+                style={{ color: theme.contentTextLightBg }}
+                title="Gerar PDF"
+              >
+                <Printer size={20} />
+              </button>
+            )}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -434,7 +426,7 @@ export default function CalculoEspelhosPage() {
           </div>
         </header>
 
-       <main className="p-4 md:p-8 flex-1 overflow-y-auto">
+        <main className="p-4 md:p-8 flex-1 overflow-y-auto">
           {/* O header antigo foi removido daqui */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
             {/* Coluna Esquerda: Configurações */}
@@ -661,103 +653,106 @@ export default function CalculoEspelhosPage() {
                   </button>
                 </div>
 
-<div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-  {listaItens.length > 0 ? (
-    <>
-      <div className="divide-y divide-gray-100">
-        {listaItens.map((item, index) => (
-          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
-            
-            {/* Lado Esquerdo: Descrição e Detalhes */}
-            <div className="flex-1 min-w-0 pr-4">
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
-                
-                {/* Descrição */}
-                <h4 
-                  className="text-sm font-semibold truncate leading-tight"
-                  style={{ color: theme.contentTextLightBg }}
-                >
-                  {item.descricao}
-                </h4>
-                
-                {/* Medidas */}
-                <span className="flex-shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                  {item.medidas}
-                </span>
-              </div>
-              
-              {/* Quantidade */}
-              <p className="text-xs text-gray-500 mt-1.5">
-                Quantidade: <span className="font-medium text-gray-700">{item.quantidade}</span>
-              </p>
-            </div>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  {listaItens.length > 0 ? (
+                    <>
+                      <div className="divide-y divide-gray-100">
+                        {listaItens.map((item, index) => (
+                          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
 
-            {/* Lado Direito: Preço e Ações */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Preço Unitário */}
-              <span 
-                className="text-sm font-bold whitespace-nowrap mr-2"
-                style={{ color: theme.contentTextLightBg }}
-              >
-                {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </span>
-              
-              {/* --- BOTÃO DE EDITAR (Cor do Tema) --- */}
-              <button
-                onClick={() => {
-                  setLargura(item.medidas.split('x')[0]);
-                  setAltura(item.medidas.split('x')[1]);
-                  setQuantidade(item.quantidade);
-                  setListaItens(listaItens.filter(i => i.id !== item.id));
-                }}
-                title="Editar item"
-                style={{ '--hover-color': theme.menuIconColor } as any}
-                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
-              >
-                <Pencil size={16} />
-              </button>
-              
-              {/* --- BOTÃO DE REMOVER (Vermelho Erro) --- */}
-              <button
-                onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
-                title="Remover item"
-                style={{ '--hover-color': theme.modalIconErrorColor } as any}
-                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                            {/* Lado Esquerdo: Descrição e Detalhes */}
+                            <div className="flex-1 min-w-0 pr-4">
+                              <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
 
-      {/* --- RODAPÉ COM A SOMA TOTAL --- */}
-      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">Total do Orçamento</span>
-        
-        {/* Soma Total */}
-        <span 
-          className="text-lg font-bold"
-          style={{ color: theme.contentTextLightBg }}
-        >
-          {listaItens.reduce((sum, item) => sum + item.total, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      </div>
-    </>
-  ) : (
-    // Estado Vazio
-    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-      <ClipboardList size={28} className="mb-3" />
-      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento.</p>
-      <p className="text-xs mt-1">Comece adicionando as dimensões e o tipo de espelho.</p>
-    </div>
-  )}
-</div>
+                                {/* Descrição */}
+                                <h4
+                                  className="text-sm font-semibold truncate leading-tight"
+                                  style={{ color: theme.contentTextLightBg }}
+                                >
+                                  {item.descricao}
+                                </h4>
+
+                                {/* Medidas */}
+                                <span className="flex-shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                  {item.medidas}
+                                </span>
+                              </div>
+
+                              {/* Quantidade */}
+                              <p className="text-xs text-gray-500 mt-1.5">
+                                Quantidade: <span className="font-medium text-gray-700">{item.quantidade}</span>
+                              </p>
+                            </div>
+
+                            {/* Lado Direito: Preço e Ações */}
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              {/* Preço Unitário */}
+                              <span
+                                className="text-sm font-bold whitespace-nowrap mr-2"
+                                style={{ color: theme.contentTextLightBg }}
+                              >
+                                {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              </span>
+
+                              {/* --- BOTÃO DE EDITAR (Cor do Tema) --- */}
+                              <button
+                                onClick={() => {
+                                  setLargura(item.medidas.split('x')[0]);
+                                  setAltura(item.medidas.split('x')[1]);
+                                  setQuantidade(item.quantidade);
+                                  setListaItens(listaItens.filter(i => i.id !== item.id));
+                                }}
+                                title="Editar item"
+                                style={{ '--hover-color': theme.menuIconColor } as any}
+                                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
+                              >
+                                <Pencil size={16} />
+                              </button>
+
+                              {/* --- BOTÃO DE REMOVER (Vermelho Erro) --- */}
+                              <button
+                                onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
+                                title="Remover item"
+                                style={{ '--hover-color': theme.modalIconErrorColor } as any}
+                                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* --- RODAPÉ COM A SOMA TOTAL --- */}
+                      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-500">Total do Orçamento</span>
+
+                        {/* Soma Total */}
+                        <span
+                          className="text-lg font-bold"
+                          style={{ color: theme.contentTextLightBg }}
+                        >
+                          {listaItens.reduce((sum, item) => sum + item.total, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    // Estado Vazio
+                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                      <ClipboardList size={28} className="mb-3" />
+                      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento.</p>
+                      <p className="text-xs mt-1">Comece adicionando as dimensões e o tipo de espelho.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </main>
       </div>
-    </div>
+      
+      
+          </div>
+    
   )
 }
