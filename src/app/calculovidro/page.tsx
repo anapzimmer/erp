@@ -43,6 +43,10 @@ export default function PaginaBase() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [itemParaExcluir, setItemParaExcluir] = useState<number | null>(null);
   const [idAtualizado, setIdAtualizado] = useState<number | null>(null);
+  const [mostrarModalLimpar, setMostrarModalLimpar] = useState(false);
+  const larguraRef = useRef<HTMLInputElement>(null);
+  const alturaRef = useRef<HTMLInputElement>(null);
+  const qtdRef = useRef<HTMLInputElement>(null);
 
   const router = { push: (url: string) => console.log(url) }
   const handleLogout = () => console.log("logout")
@@ -123,32 +127,45 @@ export default function PaginaBase() {
 
     const novoItem = {
       // AQUI A MÁGICA: Se estiver editando, mantém o ID antigo. Se não, gera um novo.
-      id: editandoId ? editandoId : Date.now(),
+      id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
       medidaCalc: `${lCalc}x${aCalc} mm`,
       qtd: quantidade,
-      servico: servicoSelecionado?.nome || "Nenhum",
+      servico: servicoSelecionado?.nome || "",
       total: total * quantidade
     };
 
     if (editandoId) {
-      // Substitui o item
-      setItens(itens.map(item => item.id === editandoId ? novoItem : item));
-
-      // Efeito visual de destaque
-      setIdAtualizado(editandoId);
-      setTimeout(() => setIdAtualizado(null), 2000); // Remove o destaque após 2 segundos
-
+      setItens(itens.map(i => i.id === editandoId ? novoItem : i));
       setEditandoId(null);
     } else {
       setItens([...itens, novoItem]);
     }
 
-    // Limpa os campos
-    setLargura(""); setAltura(""); setQuantidade(1);
-    setServicoSelecionado(null);
+    setLargura("");
+    setAltura("");
+    setQuantidade(1); // Voltamos para 1 para facilitar o próximo
+
+    larguraRef.current?.focus();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      // Lógica de "pulo" de campo
+      if (document.activeElement === larguraRef.current) {
+        alturaRef.current?.focus();
+      } else if (document.activeElement === alturaRef.current) {
+        qtdRef.current?.focus();
+      } else {
+        // Se estiver no último campo (Qtd), ele adiciona
+        adicionarItem();
+        // O foco volta para a largura automaticamente (conforme configuramos no adicionarItem)
+        setTimeout(() => larguraRef.current?.focus(), 50);
+      }
+    }
+  };
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -161,12 +178,27 @@ export default function PaginaBase() {
       <div className="flex-1 flex flex-col w-full min-w-0">
 
         {/* HEADER - PADRÃO ORIGINAL RESTAURADO */}
-        <header className="border-b border-gray-100 py-4 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white">
-          <div className="flex items-center gap-3">
+        <header className="border-b border-gray-100 py-4 px-6 flex items-center justify-between sticky top-0 z-30 bg-white/80 backdrop-blur-md">
+          <div className="flex items-center gap-4">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
               <Menu size={22} />
             </button>
-            <h1 className="text-lg font-bold text-gray-700">Novo Orçamento</h1>
+
+            <div className="flex flex-col">
+              <h1 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
+              <span className="text-xs text-gray-300 font-medium"># {Date.now().toString().slice(-6)}</span>
+            </div>
+
+            {/* BOTÃO SALVAR DISCRETO */}
+            {itens.length > 0 && (
+              <button
+                onClick={() => console.log("Salvando...")}
+                className="ml-4 flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a]/5 text-[#1e3a5a] rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#1e3a5a] hover:text-white transition-all active:scale-95"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Salvar Alterações
+              </button>
+            )}
           </div>
 
           <div className="relative" ref={userMenuRef}>
@@ -240,17 +272,48 @@ export default function PaginaBase() {
                   <Calculator size={20} /> Dimensões
                 </h3>
                 <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Largura</label>
-                    <input type="text" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={largura} onChange={(e) => setLargura(e.target.value)} placeholder="mm" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Largura</label>
+                    <input
+                      ref={larguraRef}
+                      type="text"
+                      placeholder="0"
+                      value={largura}
+                      onChange={(e) => setLargura(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+               focus:border-[var(--menu-icon-color)] focus:ring-2 focus:ring-[var(--menu-icon-color)]/10"
+                      style={{ '--menu-icon-color': theme.menuIconColor } as any}
+                    />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Altura</label>
-                    <input type="text" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={altura} onChange={(e) => setAltura(e.target.value)} placeholder="mm" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Altura</label>
+                    <input
+                      ref={alturaRef}
+                      type="text"
+                      placeholder="0"
+                      value={altura}
+                      onChange={(e) => setAltura(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+               focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-color)]/10"
+                      style={{ '--focus-color': theme.menuIconColor } as any}
+                    />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Qtd</label>
-                    <input type="number" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+                  {/* CAMPO QUANTIDADE */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Qtd</label>
+                    <input
+                      ref={qtdRef}
+                      type="number"
+                      min="1"
+                      value={quantidade}
+                      onChange={(e) => setQuantidade(Number(e.target.value))}
+                      onKeyDown={handleKeyDown}
+                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+               focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-color)]/10"
+                      style={{ '--focus-color': theme.menuIconColor } as any}
+                    />
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -329,87 +392,118 @@ export default function PaginaBase() {
             </div>
 
             <div className="lg:col-span-8 space-y-6">
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
                 <div className="p-5 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ClipboardList size={18} className="text-[#1e3a5a]" />
                     <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Pedido</h3>
                   </div>
+                  {itens.length > 0 && (
+                    <button
+                      onClick={() => setMostrarModalLimpar(true)} // Agora abre o modal em vez do confirm do navegador
+                      className="text-[10px] font-bold text-gray-300 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                    >
+                      Limpar Tudo
+                    </button>
+                  )}
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                      <tr>
-                        <th className="px-6 py-4">Descrição</th>
-                        <th className="px-6 py-4 text-center">Medidas</th>
-                        <th className="px-6 py-4 text-center">Qtd</th>
-                        <th className="px-6 py-4 text-right">Subtotal</th>
-                        <th className="px-6 py-4 text-center">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm divide-y divide-gray-50">
-                      {itens.map((item) => (
-                        <tr
-                          key={item.id}
-                          className={`transition-all duration-700 ${idAtualizado === item.id
-                            ? 'bg-blue-50 border-l-4 border-l-[#1e3a5a]' // Cor de destaque ao atualizar
-                            : 'hover:bg-gray-50/40 border-l-4 border-l-transparent'
-                            }`}
-                        >
-                          <td className="px-6 py-4">
-                            {/* Descrição sem negrito conforme pedido */}
-                            <p className="text-gray-600 font-normal">{item.descricao}</p>
-                            {/* Badge de serviço só aparece se não for "Nenhum" ou vazio */}
-                            {item.servico && item.servico !== "Nenhum" && item.servico !== "Lapidado" && (
-                              <div className="mt-1">
-                                <span className="text-[10px] text-[#1e3a5a] font-bold bg-[#1e3a5a]/5 px-1.5 py-0.5 rounded">
-                                  {item.servico}
-                                </span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="text-gray-500 font-medium">{item.medidaCalc}</span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="text-gray-600">{item.qtd}</span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            {/* Valor com o azul do tema */}
-                            <span className="font-semibold text-[#1e3a5a]">{formatarMoeda(item.total)}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-center gap-1">
-                              {/* Botão Editar (Nova Ação) */}
-                              <button
-                                onClick={() => handleEditarItem(item)}
-                                className="p-2 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
-                                title="Editar item"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              {/* Botão Excluir com confirmação */}
-                              <button
-                                onClick={() => setItemParaExcluir(item.id)} // <--- Agora abre o modal
-                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Excluir item"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
+                <div className="overflow-x-auto flex-1">
+                  {itens.length > 0 ? (
+                    <table className="w-full text-left">
+                      <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4">Descrição</th>
+                          <th className="px-6 py-4 text-center">Medidas</th>
+                          <th className="px-6 py-4 text-center">Qtd</th>
+                          <th className="px-6 py-4 text-right">Subtotal</th>
+                          <th className="px-6 py-4 text-center">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="text-sm divide-y divide-gray-50">
+                        {itens.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="font-semibold text-gray-700">{item.descricao}</div>
+                              <div className="text-[10px] text-gray-400 uppercase">{item.servico}</div>
+                            </td>
+                            <td className="px-6 py-4 text-center font-medium text-gray-600">
+                              {item.medidaCalc}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className="bg-gray-100 px-2 py-1 rounded-md text-xs font-bold text-gray-500">
+                                {item.qtd}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold text-[#1e3a5a]">
+                              {formatarMoeda(item.total)}
+                            </td>
+                            {/* Dentro do seu itens.map na tabela */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleEditarItem(item)}
+                                  className="p-2 rounded-lg transition-colors hover:bg-gray-50"
+                                  style={{ color: theme.menuIconColor }} // Aplica a cor do tema (verde)
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+
+                                <button
+                                  onClick={() => setItemParaExcluir(item.id)}
+                                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="py-20 flex flex-col items-center justify-center text-gray-400 space-y-3">
+                      <div className="p-4 bg-gray-50 rounded-full">
+                        <Calculator size={40} className="opacity-20" />
+                      </div>
+                      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="p-6 bg-[#f8fafc] flex justify-between items-center border-t border-gray-100">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total do Pedido</span>
-                  <span className="text-2xl font-black text-[#1e3a5a]">
-                    {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
-                  </span>
+                {/* Rodapé Ultra Discreto */}
+                <div className="p-5 bg-white border-t border-gray-50 flex items-center justify-between px-8">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                        Itens:
+                      </span>
+                      <span className="text-sm font-bold text-gray-500">
+                        {itens.length.toString().padStart(2, '0')}
+                      </span>
+                    </div>
+
+                    {/* Divisor sutil */}
+                    <div className="h-4 w-[1px] bg-gray-100" />
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                        Subtotal:
+                      </span>
+                      <span className="text-sm font-medium text-gray-400">
+                        {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-[#1e3a5a]/40 uppercase tracking-[0.3em]">
+                      Total Geral
+                    </span>
+                    <span className="text-xl font-light text-[#1e3a5a] tracking-tight">
+                      {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -445,6 +539,41 @@ export default function PaginaBase() {
                   className="flex-1 px-6 py-4 text-sm font-bold text-red-500 hover:bg-red-50 border-l border-gray-50 transition-colors"
                 >
                   EXCLUIR
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Adicione este Modal no final do componente (perto do outro modal) */}
+        {mostrarModalLimpar && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ClipboardList size={28} className="text-orange-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar orçamento?</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Isso irá remover **todos os {itens.length} itens** da sua lista atual. Essa ação não pode ser desfeita.
+                </p>
+              </div>
+
+              <div className="flex border-t border-gray-50">
+                <button
+                  onClick={() => setMostrarModalLimpar(false)}
+                  className="flex-1 px-6 py-4 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-colors"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={() => {
+                    setItens([]);
+                    setMostrarModalLimpar(false);
+                  }}
+                  className="flex-1 px-6 py-4 text-sm font-bold text-red-500 hover:bg-red-50 border-l border-gray-50 transition-colors"
+                >
+                  LIMPAR TUDO
                 </button>
               </div>
             </div>
