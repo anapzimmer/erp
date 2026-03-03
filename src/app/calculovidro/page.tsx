@@ -28,6 +28,7 @@ export default function PaginaBase() {
   const [listaClientes, setListaClientes] = useState<any[]>([])
   const [listaVidros, setListaVidros] = useState<any[]>([])
   const [listaServicos, setListaServicos] = useState<any[]>([])
+  const [precosEspeciais, setPrecosEspeciais] = useState<any[]>([]);
 
   // Estados do Orçamento
   const [clienteId, setClienteId] = useState("")
@@ -47,6 +48,11 @@ export default function PaginaBase() {
   const larguraRef = useRef<HTMLInputElement>(null);
   const alturaRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
+
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const router = { push: (url: string) => console.log(url) }
   const handleLogout = () => console.log("logout")
@@ -70,35 +76,31 @@ export default function PaginaBase() {
 
   useEffect(() => {
     async function carregarDados() {
-      // Só dispara se o hook de auth já terminou de carregar e temos uma empresa
       if (checkingAuth || !empresaId) return;
 
       try {
-        console.log("Carregando dados para a empresa:", empresaId);
-
-        const [resC, resV, resS] = await Promise.all([
+        const [resC, resV, resS, resP] = await Promise.all([
           supabase.from('clientes').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
-          supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome')
+          supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
+          // Busca a tabela de vínculos de preços especiais
+          supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId)
         ]);
 
         if (resC.data) setListaClientes(resC.data);
-
         if (resV.data) {
           setListaVidros(resV.data);
-          // Seleciona o primeiro vidro automaticamente se a lista não estiver vazia
           if (resV.data.length > 0) setVidroSelecionado(resV.data[0]);
         }
-
         if (resS.data) setListaServicos(resS.data);
+        if (resP.data) setPrecosEspeciais(resP.data); // Salva os preços especiais aqui
 
       } catch (err) {
-        console.error("Erro ao buscar dados do Supabase:", err);
+        console.error("Erro ao carregar dados:", err);
       }
     }
-
     carregarDados();
-  }, [empresaId, checkingAuth]); // Depende do ID da empresa e do status do loading
+  }, [empresaId, checkingAuth]);
 
   // 3. Adicione esta trava de segurança antes do return principal
   if (checkingAuth) {
@@ -108,47 +110,94 @@ export default function PaginaBase() {
       </div>
     );
   }
+const adicionarItem = () => {
+  const l = parseFloat(largura);
+  const a = parseFloat(altura);
+  
+  // Validação básica
+  if (!l || !a || !vidroSelecionado) return alert("Preencha as dimensões!");
 
-  const adicionarItem = () => {
-    const l = parseFloat(largura);
-    const a = parseFloat(altura);
-    if (!l || !a || !vidroSelecionado) return alert("Preencha as dimensões!");
+  // 1. Identificação do Cliente e Tabela de Preço
+  const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
+  const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
 
-    const lCalc = arredondar5cm(l);
-    const aCalc = arredondar5cm(a);
-    const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+  // 2. Busca do Preço (Especial ou Padrão)
+  const precoEspecial = precosEspeciais.find(p => 
+    String(p.vidro_id) === String(vidroSelecionado.id) && 
+    String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
+  );
 
-    let total = areaCobrada * Number(vidroSelecionado.preco);
-    if (servicoSelecionado) {
-      if (servicoSelecionado.unidade === 'm²') total += areaM2 * Number(servicoSelecionado.preco);
-      else total += Number(servicoSelecionado.preco);
+  const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidroSelecionado.preco);
+
+  // 3. Cálculos de Medida e Área do Vidro
+  const lCalc = arredondar5cm(l);
+  const aCalc = arredondar5cm(a);
+  const areaM2 = (lCalc / 1000) * (aCalc / 1000);
+  const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+
+  // Valor base do vidro (sem serviços ainda)
+  const valorTotalVidro = areaCobrada * precoVidroM2;
+
+  // 4. Cálculo do Serviço (Acabamento)
+  let valorServicoTotal = 0;
+  let detalheServico = "";
+
+  if (servicoSelecionado) {
+    const precoUnitarioServico = Number(servicoSelecionado.preco);
+    const unidade = servicoSelecionado.unidade?.toLowerCase();
+
+    if (unidade === 'm²') {
+      // Mesma área do vidro (ex: Película, Tempera)
+      valorServicoTotal = areaCobrada * precoUnitarioServico;
+      detalheServico = `${servicoSelecionado.nome} (m²)`;
+    } 
+    else if (unidade === 'ml' || unidade === 'm') {
+      // Metro Linear - Perímetro (2x Largura + 2x Altura)
+      const perimetroMeters = (2 * (lCalc + aCalc)) / 1000;
+      valorServicoTotal = perimetroMeters * precoUnitarioServico;
+      detalheServico = `${servicoSelecionado.nome} (ml)`;
+    } 
+    else {
+      // Unitário ou Outros (un)
+      valorServicoTotal = precoUnitarioServico;
+      detalheServico = `${servicoSelecionado.nome} (un)`;
     }
+  }
 
-    const novoItem = {
-      // AQUI A MÁGICA: Se estiver editando, mantém o ID antigo. Se não, gera um novo.
-      id: editandoId || Date.now(),
-      descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
-      medidaCalc: `${lCalc}x${aCalc} mm`,
-      qtd: quantidade,
-      servico: servicoSelecionado?.nome || "",
-      total: total * quantidade
-    };
+  // 5. Soma Final e Montagem do Item
+  // Somamos o vidro + o serviço e depois multiplicamos pela quantidade de peças
+  const totalPorPeca = valorTotalVidro + valorServicoTotal;
 
-    if (editandoId) {
-      setItens(itens.map(i => i.id === editandoId ? novoItem : i));
-      setEditandoId(null);
-    } else {
-      setItens([...itens, novoItem]);
-    }
-
-    setLargura("");
-    setAltura("");
-    setQuantidade(1); // Voltamos para 1 para facilitar o próximo
-
-    larguraRef.current?.focus();
+  const novoItem = {
+    id: editandoId || Date.now(),
+    descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
+    medidaCalc: `${lCalc}x${aCalc} mm`,
+    qtd: quantidade,
+    servico: detalheServico,
+    total: totalPorPeca * quantidade
   };
 
+  // 6. Atualização do Estado
+  if (editandoId) {
+    setItens(itens.map(i => i.id === editandoId ? novoItem : i));
+    setEditandoId(null);
+  } else {
+    setItens([...itens, novoItem]);
+  }
+
+  // Debug para conferência
+  console.log("Item Adicionado:", {
+    vidro: precoVidroM2,
+    servico: valorServicoTotal,
+    totalPeca: totalPorPeca
+  });
+
+  // Reseta campos e volta o foco
+  setLargura("");
+  setAltura("");
+  setQuantidade(1);
+  setTimeout(() => larguraRef.current?.focus(), 50);
+};
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -331,6 +380,25 @@ export default function PaginaBase() {
                       </option>
                     ))}
                   </select>
+                     {isMounted && vidroSelecionado && clienteId && (() => {
+  // 1. Localizamos o grupo do cliente
+  const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
+  const grupoId = clienteAtual?.tabela_id || clienteAtual?.grupo_preco_id;
+
+  // 2. Procuramos o preço especial
+  const especial = precosEspeciais.find(p => 
+    String(p.vidro_id) === String(vidroSelecionado.id) && 
+    String(p.grupo_preco_id) === String(grupoId)
+  );
+
+  return (
+    <p className={`text-[10px] font-bold mt-1 uppercase tracking-tighter ${especial ? 'text-gray-600' : 'text-gray-400'}`}>
+      {especial 
+        ? `⭐ Preço Diferenciado: ${formatarMoeda(Number(especial.preco))} /m²` 
+        : `Preço padrão: ${formatarMoeda(Number(vidroSelecionado.preco))} /m²`}
+    </p>
+  );
+})()}
                 </div>
               </div>
 
@@ -408,68 +476,78 @@ export default function PaginaBase() {
                   )}
                 </div>
 
-                <div className="overflow-x-auto flex-1">
-                  {itens.length > 0 ? (
-                    <table className="w-full text-left">
-                      <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                        <tr>
-                          <th className="px-6 py-4">Descrição</th>
-                          <th className="px-6 py-4 text-center">Medidas</th>
-                          <th className="px-6 py-4 text-center">Qtd</th>
-                          <th className="px-6 py-4 text-right">Subtotal</th>
-                          <th className="px-6 py-4 text-center">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm divide-y divide-gray-50">
-                        {itens.map((item) => (
-                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="font-semibold text-gray-700">{item.descricao}</div>
-                              <div className="text-[10px] text-gray-400 uppercase">{item.servico}</div>
-                            </td>
-                            <td className="px-6 py-4 text-center font-medium text-gray-600">
-                              {item.medidaCalc}
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="bg-gray-100 px-2 py-1 rounded-md text-xs font-bold text-gray-500">
-                                {item.qtd}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right font-bold text-[#1e3a5a]">
-                              {formatarMoeda(item.total)}
-                            </td>
-                            {/* Dentro do seu itens.map na tabela */}
-                            <td className="px-6 py-4">
-                              <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => handleEditarItem(item)}
-                                  className="p-2 rounded-lg transition-colors hover:bg-gray-50"
-                                  style={{ color: theme.menuIconColor }} // Aplica a cor do tema (verde)
-                                >
-                                  <Edit2 size={16} />
-                                </button>
-
-                                <button
-                                  onClick={() => setItemParaExcluir(item.id)}
-                                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="py-20 flex flex-col items-center justify-center text-gray-400 space-y-3">
-                      <div className="p-4 bg-gray-50 rounded-full">
-                        <Calculator size={40} className="opacity-20" />
-                      </div>
-                      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento</p>
-                    </div>
-                  )}
+               <div className="overflow-x-auto flex-1">
+  {itens.length > 0 ? (
+    <table className="w-full text-left">
+      <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+        <tr>
+          <th className="px-6 py-4">Descrição / Acabamento</th>
+          <th className="px-6 py-4 text-center">Medidas</th>
+          <th className="px-6 py-4 text-center">Qtd</th>
+          <th className="px-6 py-4 text-right">Unitário</th>
+          <th className="px-6 py-4 text-right">Subtotal</th>
+          <th className="px-6 py-4 text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody className="text-sm divide-y divide-gray-50">
+        {itens.map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+            <td className="px-6 py-4">
+              <div className="font-semibold text-gray-700">{item.descricao}</div>
+              {item.servico && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Sparkles size={10} className="text-amber-500" />
+                  <span className="text-[10px] text-gray-400 uppercase font-medium">
+                    {item.servico}
+                  </span>
                 </div>
+              )}
+            </td>
+            <td className="px-6 py-4 text-center">
+              <div className="font-medium text-gray-600">{item.medidaCalc}</div>
+              <div className="text-[9px] text-gray-300">Arredondado 5cm</div>
+            </td>
+            <td className="px-6 py-4 text-center">
+              <span className="bg-gray-100 px-2.5 py-1 rounded-lg text-xs font-bold text-gray-500">
+                {item.qtd}
+              </span>
+            </td>
+            <td className="px-6 py-4 text-right font-medium text-gray-500">
+              {/* Mostra o valor de 1 peça (Vidro + Serviço) */}
+              {formatarMoeda(item.total / item.qtd)}
+            </td>
+            <td className="px-6 py-4 text-right font-bold text-[#1e3a5a]">
+              {formatarMoeda(item.total)}
+            </td>
+            <td className="px-6 py-4">
+              <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleEditarItem(item)}
+                  className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button
+                  onClick={() => setItemParaExcluir(item.id)}
+                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <div className="py-20 flex flex-col items-center justify-center text-gray-400 space-y-3">
+      <div className="p-4 bg-gray-50 rounded-full">
+        <Calculator size={40} className="opacity-20" />
+      </div>
+      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento</p>
+    </div>
+  )}
+</div>
 
                 {/* Rodapé Ultra Discreto */}
                 <div className="p-5 bg-white border-t border-gray-50 flex items-center justify-between px-8">
