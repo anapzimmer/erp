@@ -545,7 +545,7 @@ export default function CalculoEspelhosPage() {
                   </div>
                 </div>
               </div>
-
+              
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold mb-4" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
                 <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
