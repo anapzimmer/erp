@@ -1,10 +1,14 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/lib/supabaseClient"
 import Sidebar from "@/components/Sidebar"
-import { Menu, Building2, ChevronDown, Wrench, X, Trash2, Edit2, CheckCircle, Plus, Ruler, Sparkles, ClipboardList,Calculator } from "lucide-react"
+import {
+  Menu, Building2, ChevronDown, Wrench, X, Trash2, Plus,
+  Calculator, Sparkles, ClipboardList, Edit2 // <--- Adicione este cara aqui
+} from "lucide-react"
 
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -12,62 +16,151 @@ const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 
 export default function PaginaBase() {
   const { theme } = useTheme()
-  const { nomeEmpresa, user } = useAuth()
+  const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
 
-  // Estados do Layout
+  // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [sidebarExpandido, setSidebarExpandido] = useState(true)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
+  // Estados de Dados do Supabase
+  const [listaClientes, setListaClientes] = useState<any[]>([])
+  const [listaVidros, setListaVidros] = useState<any[]>([])
+  const [listaServicos, setListaServicos] = useState<any[]>([])
+
   // Estados do Orçamento
-  const [cliente, setCliente] = useState("")
+  const [clienteId, setClienteId] = useState("")
   const [obra, setObra] = useState("")
   const [largura, setLargura] = useState("")
   const [altura, setAltura] = useState("")
   const [quantidade, setQuantidade] = useState(1)
-  const [vidroSelecionado, setVidroSelecionado] = useState("Espelho 04mm - Lapidado")
-  const [servico, setServico] = useState("Nenhum")
+  const [vidroSelecionado, setVidroSelecionado] = useState<any>(null)
+  const [servicoSelecionado, setServicoSelecionado] = useState<any>(null)
   const [itens, setItens] = useState<any[]>([])
+
+  // Edição de Modal
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [itemParaExcluir, setItemParaExcluir] = useState<number | null>(null);
+  const [idAtualizado, setIdAtualizado] = useState<number | null>(null);
 
   const router = { push: (url: string) => console.log(url) }
   const handleLogout = () => console.log("logout")
 
+  const handleEditarItem = (item: any) => {
+    setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
+
+    const [l, a] = item.medidaCalc.split('x');
+    setLargura(l.replace(/\D/g, '')); // Pega só os números
+    setAltura(a.replace(/\D/g, ''));
+    setQuantidade(item.qtd);
+
+    const vidro = listaVidros.find(v => item.descricao.includes(v.nome));
+    if (vidro) setVidroSelecionado(vidro);
+
+    const servico = listaServicos.find(s => s.nome === item.servico);
+    setServicoSelecionado(servico || null);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    async function carregarDados() {
+      // Só dispara se o hook de auth já terminou de carregar e temos uma empresa
+      if (checkingAuth || !empresaId) return;
+
+      try {
+        console.log("Carregando dados para a empresa:", empresaId);
+
+        const [resC, resV, resS] = await Promise.all([
+          supabase.from('clientes').select('*').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome')
+        ]);
+
+        if (resC.data) setListaClientes(resC.data);
+
+        if (resV.data) {
+          setListaVidros(resV.data);
+          // Seleciona o primeiro vidro automaticamente se a lista não estiver vazia
+          if (resV.data.length > 0) setVidroSelecionado(resV.data[0]);
+        }
+
+        if (resS.data) setListaServicos(resS.data);
+
+      } catch (err) {
+        console.error("Erro ao buscar dados do Supabase:", err);
+      }
+    }
+
+    carregarDados();
+  }, [empresaId, checkingAuth]); // Depende do ID da empresa e do status do loading
+
+  // 3. Adicione esta trava de segurança antes do return principal
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#1e3a5a]"></div>
+      </div>
+    );
+  }
+
   const adicionarItem = () => {
     const l = parseFloat(largura);
     const a = parseFloat(altura);
-    if (!l || !a) return alert("Preencha as dimensões!");
+    if (!l || !a || !vidroSelecionado) return alert("Preencha as dimensões!");
 
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
     const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const totalItem = (areaM2 < 0.25 ? 0.25 : areaM2) * 199 * quantidade; 
+    const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+
+    let total = areaCobrada * Number(vidroSelecionado.preco);
+    if (servicoSelecionado) {
+      if (servicoSelecionado.unidade === 'm²') total += areaM2 * Number(servicoSelecionado.preco);
+      else total += Number(servicoSelecionado.preco);
+    }
 
     const novoItem = {
-      id: Date.now(),
-      descricao: vidroSelecionado,
-      medida: `${l}x${a} mm`,
+      // AQUI A MÁGICA: Se estiver editando, mantém o ID antigo. Se não, gera um novo.
+      id: editandoId ? editandoId : Date.now(),
+      descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
       medidaCalc: `${lCalc}x${aCalc} mm`,
       qtd: quantidade,
-      servico: servico,
-      total: totalItem
+      servico: servicoSelecionado?.nome || "Nenhum",
+      total: total * quantidade
     };
 
-    setItens([...itens, novoItem]);
-    setLargura(""); setAltura("");
+    if (editandoId) {
+      // Substitui o item
+      setItens(itens.map(item => item.id === editandoId ? novoItem : item));
+
+      // Efeito visual de destaque
+      setIdAtualizado(editandoId);
+      setTimeout(() => setIdAtualizado(null), 2000); // Remove o destaque após 2 segundos
+
+      setEditandoId(null);
+    } else {
+      setItens([...itens, novoItem]);
+    }
+
+    // Limpa os campos
+    setLargura(""); setAltura(""); setQuantidade(1);
+    setServicoSelecionado(null);
   };
+
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      
-      {/* SIDEBAR */}
+
+      {/* SIDEBAR - PADRÃO ORIGINAL */}
       <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 flex-shrink-0 sticky top-0 h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
         <Sidebar showMobileMenu={showMobileMenu} setShowMobileMenu={setShowMobileMenu} nomeEmpresa={nomeEmpresa} expandido={sidebarExpandido} setExpandido={setSidebarExpandido} />
       </div>
 
       <div className="flex-1 flex flex-col w-full min-w-0">
-        
-        {/* HEADER - LOGIN RESTAURADO */}
+
+        {/* HEADER - PADRÃO ORIGINAL RESTAURADO */}
         <header className="border-b border-gray-100 py-4 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white">
           <div className="flex items-center gap-3">
             <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
@@ -76,7 +169,6 @@ export default function PaginaBase() {
             <h1 className="text-lg font-bold text-gray-700">Novo Orçamento</h1>
           </div>
 
-          {/* MENU USUÁRIO (O que tinha sumido) */}
           <div className="relative" ref={userMenuRef}>
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-75 transition-all">
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -87,7 +179,7 @@ export default function PaginaBase() {
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
+              <div className="absolute right-0 mt-3 w-56 bg-white rounded-1xl shadow-xl border border-gray-100 p-2 z-50">
                 <div className="px-3 py-2 border-b border-gray-100">
                   <p className="text-xs text-gray-400 font-medium">Logado como</p>
                   <p className="text-sm font-semibold text-gray-900 truncate">{user?.email}</p>
@@ -108,7 +200,10 @@ export default function PaginaBase() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 px-3 border-r border-gray-100">
               <span className="text-xs font-bold text-gray-400 uppercase">Cliente:</span>
-              <input type="text" placeholder="Nome do cliente" className="flex-1 p-2 outline-none text-sm" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+              <select className="flex-1 p-2 outline-none text-sm bg-transparent" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                <option value="">Selecione o cliente</option>
+                {listaClientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
             </div>
             <div className="flex items-center gap-2 px-3">
               <span className="text-xs font-bold text-gray-400 uppercase">Obra:</span>
@@ -116,70 +211,138 @@ export default function PaginaBase() {
             </div>
           </div>
 
-{/*Coluna da esquerda: Dimensões e Serviços*/}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 space-y-6">
-              {/* CARD DIMENSÕES */}
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-50 pb-3">
-                
-                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.menuBackgroundColor }}>
+
+              {/* CARD DIMENSÕES (MANTIDO) */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 relative overflow-hidden">
+
+                {/* AVISO DE EDIÇÃO SOFISTICADO */}
+                {editandoId && (
+                  <div className="absolute top-0 left-0 w-full bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <Edit2 size={14} className="text-amber-600" />
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Modo Edição Ativo</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditandoId(null);
+                        setLargura(""); setAltura("");
+                      }}
+                      className="text-amber-700 hover:text-amber-900"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${editandoId ? 'mt-6' : ''}`} style={{ color: theme.menuBackgroundColor }}>
                   <Calculator size={20} /> Dimensões
                 </h3>
-                </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Largura (mm)</label>
-                    <input type="text" placeholder="mm" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none" value={largura} onChange={(e) => setLargura(e.target.value)} />
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Largura</label>
+                    <input type="text" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={largura} onChange={(e) => setLargura(e.target.value)} placeholder="mm" />
                   </div>
-                  <div className="col-span-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Altura (mm)</label>
-                    <input type="text" placeholder="mm" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none" value={altura} onChange={(e) => setAltura(e.target.value)} />
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Altura</label>
+                    <input type="text" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={altura} onChange={(e) => setAltura(e.target.value)} placeholder="mm" />
                   </div>
-               <div className="col-span-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Quantidade</label>
-                  <input type="number" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
-                </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Qtd</label>
+                    <input type="number" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Selecione o Vidro/Espelho</label>
-                  <select className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none" value={vidroSelecionado} onChange={(e) => setVidroSelecionado(e.target.value)}>
-                    <option>Espelho 04mm - Lapidado (R$ 199,00/m²)</option>
-                    <option>Vidro Incolor 08mm - Temperado</option>
-                    <option>Vidro Incolor 06mm - Comum</option>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Material</label>
+                  <select
+                    className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                    value={vidroSelecionado?.id}
+                    onChange={(e) => setVidroSelecionado(listaVidros.find(v => v.id === e.target.value))}
+                  >
+                    <option value="">Selecione o material...</option>
+                    {listaVidros.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {/* Aqui montamos a exibição: Nome/Cor + Espessura + Tipo */}
+                        {v.nome} {v.cor ? `- ${v.cor}` : ''} {v.espessura ? `(${v.espessura})` : ''} {v.tipo ? `| ${v.tipo}` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              {/* CARD ACABAMENTOS */}
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-50 pb-3">
-                  <Sparkles size={18} className="text-blue-500" />
-                  <h3 className="font-bold text-gray-700 text-sm">Serviços</h3>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-500" />
+                  <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest">Acabamentos</h3>
                 </div>
-                <select className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none" value={servico} onChange={(e) => setServico(e.target.value)}>
-                  <option value="Nenhum">Nenhum / Apenas Lapidado</option>
-                  <option value="Bisote">Bisotê</option>
-                </select>
-                <button onClick={adicionarItem} className="w-full py-4 bg-[#1e3a5a] text-white rounded-2xl font-bold hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2">
-                  <Plus size={20} /> Adicionar
-                </button>
+
+                {/* CAIXA COM ROLAGEM: Altura fixa para mostrar aprox. 2 itens */}
+                <div className="space-y-2 max-h-[115px] overflow-y-auto pr-2 custom-scrollbar">
+                  {/* Opção Padrão Estilizada */}
+                  <div
+                    onClick={() => setServicoSelecionado(null)}
+                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-amber-50/50 border-amber-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}
+                  >
+                    <span className={`text-sm font-medium ${!servicoSelecionado ? 'text-amber-700' : 'text-gray-500'}`}>
+                      Nenhum
+                    </span>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${!servicoSelecionado ? 'border-amber-500' : 'border-gray-300'}`}>
+                      {!servicoSelecionado && <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />}
+                    </div>
+                  </div>
+
+                  {/* Lista de outros serviços */}
+                  {listaServicos.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => setServicoSelecionado(s)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${servicoSelecionado?.id === s.id ? 'bg-amber-50/50 border-amber-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}
+                    >
+                      <span className={`text-sm font-medium ${servicoSelecionado?.id === s.id ? 'text-amber-700' : 'text-gray-500'}`}>
+                        {s.nome}
+                      </span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${servicoSelecionado?.id === s.id ? 'border-amber-500' : 'border-gray-300'}`}>
+                        {servicoSelecionado?.id === s.id && <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-center w-full pt-4">
+                  <button
+                    onClick={() => {
+                      if (editandoId) {
+                        // Remove o antigo e adiciona o novo com os dados atualizados
+                        setItens(prev => prev.filter(i => i.id !== editandoId));
+                        setEditandoId(null);
+                      }
+                      adicionarItem();
+                    }}
+                    className="w-1/2 py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
+                  >
+                    {editandoId ? <Sparkles size={18} /> : <Plus size={18} />}
+                    <span>{editandoId ? "Atualizar Item" : "Adicionar Item"}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="lg:col-span-8 space-y-6">
-              {/* TABELA E RESUMO */}
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-50 flex items-center gap-2">
-                  <ClipboardList size={18} className="text-gray-400" />
-                  <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Pedido</h3>
+                <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList size={18} className="text-[#1e3a5a]" />
+                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Pedido</h3>
+                  </div>
                 </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-[#1e3a5a] text-white text-[10px] uppercase font-bold">
+                    <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
                       <tr>
                         <th className="px-6 py-4">Descrição</th>
-                        <th className="px-6 py-4 text-center">Medida (Calc)</th>
+                        <th className="px-6 py-4 text-center">Medidas</th>
                         <th className="px-6 py-4 text-center">Qtd</th>
                         <th className="px-6 py-4 text-right">Subtotal</th>
                         <th className="px-6 py-4 text-center">Ações</th>
@@ -187,27 +350,106 @@ export default function PaginaBase() {
                     </thead>
                     <tbody className="text-sm divide-y divide-gray-50">
                       {itens.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-6 py-4 font-bold text-gray-700">{item.descricao}</td>
-                          <td className="px-6 py-4 text-center text-gray-500">{item.medidaCalc}</td>
-                          <td className="px-6 py-4 text-center font-bold text-gray-700">{item.qtd}</td>
-                          <td className="px-6 py-4 text-right font-black text-gray-900">{formatarMoeda(item.total)}</td>
+                        <tr
+                          key={item.id}
+                          className={`transition-all duration-700 ${idAtualizado === item.id
+                            ? 'bg-blue-50 border-l-4 border-l-[#1e3a5a]' // Cor de destaque ao atualizar
+                            : 'hover:bg-gray-50/40 border-l-4 border-l-transparent'
+                            }`}
+                        >
+                          <td className="px-6 py-4">
+                            {/* Descrição sem negrito conforme pedido */}
+                            <p className="text-gray-600 font-normal">{item.descricao}</p>
+                            {/* Badge de serviço só aparece se não for "Nenhum" ou vazio */}
+                            {item.servico && item.servico !== "Nenhum" && item.servico !== "Lapidado" && (
+                              <div className="mt-1">
+                                <span className="text-[10px] text-[#1e3a5a] font-bold bg-[#1e3a5a]/5 px-1.5 py-0.5 rounded">
+                                  {item.servico}
+                                </span>
+                              </div>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-center">
-                            <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-red-400"><Trash2 size={16} /></button>
+                            <span className="text-gray-500 font-medium">{item.medidaCalc}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="text-gray-600">{item.qtd}</span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {/* Valor com o azul do tema */}
+                            <span className="font-semibold text-[#1e3a5a]">{formatarMoeda(item.total)}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-center gap-1">
+                              {/* Botão Editar (Nova Ação) */}
+                              <button
+                                onClick={() => handleEditarItem(item)}
+                                className="p-2 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                                title="Editar item"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              {/* Botão Excluir com confirmação */}
+                              <button
+                                onClick={() => setItemParaExcluir(item.id)} // <--- Agora abre o modal
+                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Excluir item"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
-                  <span className="text-sm font-bold text-gray-500 uppercase">Total:</span>
-                  <span className="text-2xl font-black text-[#1e3a5a]">{formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}</span>
+
+                <div className="p-6 bg-[#f8fafc] flex justify-between items-center border-t border-gray-100">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total do Pedido</span>
+                  <span className="text-2xl font-black text-[#1e3a5a]">
+                    {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </main>
+
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+        {itemParaExcluir && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={28} className="text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Remover Item?</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Tem certeza que deseja remover este item do pedido? Esta ação não pode ser desfeita.
+                </p>
+              </div>
+
+              <div className="flex border-t border-gray-50">
+                <button
+                  onClick={() => setItemParaExcluir(null)}
+                  className="flex-1 px-6 py-4 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-colors"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={() => {
+                    setItens(itens.filter(i => i.id !== itemParaExcluir));
+                    setItemParaExcluir(null);
+                  }}
+                  className="flex-1 px-6 py-4 text-sm font-bold text-red-500 hover:bg-red-50 border-l border-gray-50 transition-colors"
+                >
+                  EXCLUIR
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
