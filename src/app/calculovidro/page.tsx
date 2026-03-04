@@ -237,7 +237,7 @@ export default function PaginaBase() {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
       tipo: vidroSelecionado.tipo,
-      medidaReal: `${l} (L) x ${a} (A) mm`,
+      medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
       servico: detalheServico,
@@ -281,36 +281,40 @@ export default function PaginaBase() {
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
+      const dataData = evt.target?.result;
+
+      // Usamos readAsArrayBuffer para evitar o "risco no meio" (deprecated)
+      const wb = XLSX.read(dataData, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // sheet_to_json tenta detectar o cabeçalho automaticamente
       const data: any[] = XLSX.utils.sheet_to_json(ws);
 
       const pendentesParaAssociar: any[] = [];
       const novosItensProcessados: any[] = [];
 
       data.forEach((linha) => {
-        // Inteligência de Colunas
+        // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
         const nomeExcel = extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]);
-        const l = parseFloat(extrairValor(linha, ["largura", "larg", "l", "lar"]) || 0);
+
+        // Captura de medidas - seu arquivo usa "Largura" e "Altura"
+        const l = parseFloat(extrairValor(linha, ["largura", "larg", "l"]) || 0);
         const a = parseFloat(extrairValor(linha, ["altura", "alt", "a"]) || 0);
-        const qtd = parseInt(extrairValor(linha, ["quantidade", "qntde", "qnt", "qtd", "q"]) || 1);
 
-        if (!nomeExcel || !l || !a) return; // Pula linhas vazias
+        // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
+        const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
+        const qtd = (rawQtd !== null && !isNaN(parseInt(rawQtd))) ? parseInt(rawQtd) : 1;
 
-        // Busca exata no banco
+        if (!nomeExcel || !l || !a) return;
+
         const vidroNoBanco = listaVidros.find(v =>
           v.nome.toLowerCase().trim() === nomeExcel.toString().toLowerCase().trim()
         );
 
-        const dadosBase = { nomeExcel, l, a, qtd };
-
         if (vidroNoBanco) {
-          // Se achou, já calcula e adiciona
           novosItensProcessados.push(gerarObjetoItem(vidroNoBanco, l, a, qtd));
         } else {
-          // Se não achou, vai para a "fila de espera" do modal
-          pendentesParaAssociar.push(dadosBase);
+          pendentesParaAssociar.push({ nomeExcel, l, a, qtd });
         }
       });
 
@@ -323,53 +327,67 @@ export default function PaginaBase() {
         setMostrarModalAssociacao(true);
       }
 
+      // Reset do input para permitir importar o mesmo arquivo de novo
       if (e.target) e.target.value = "";
     };
 
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file); // Correção do "risco no meio"
   };
 
-  // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
-  const gerarObjetoItem = (vidro: any, l: number, a: number, qtd: number) => {
-    const lCalc = arredondar5cm(l);
-    const aCalc = arredondar5cm(a);
-    const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
-
-    const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
-    const grupoId = clienteAtual?.tabela_id || clienteAtual?.grupo_preco_id;
-
-    const especial = precosEspeciais.find(p =>
-      String(p.vidro_id) === String(vidro.id) && String(p.grupo_preco_id) === String(grupoId)
-    );
-    const precoM2 = especial ? Number(especial.preco) : Number(vidro.preco);
-
-    const novoId = window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now() + Math.random();
-
-    return {
-      id: novoId, // ID temporário
-      descricao: `${vidro.nome} ${vidro.espessura || ''}`,
-      tipo: vidro.tipo,
-      medidaReal: `${l} (L) x ${a} (A) mm`,
-      medidaCalc: `${lCalc} x ${aCalc} mm`,
-      qtd: qtd,
-      total: (areaCobrada * precoM2) * qtd
-    };
-  };
 
   const extrairValor = (linha: any, variações: string[]) => {
-    const chaveEncontrada = Object.keys(linha).find(chave =>
-      variações.some(v => chave.toLowerCase().trim() === v.toLowerCase())
-    );
+    // Pega todas as chaves da linha (ex: "Vidro", "Qtde.")
+    const chaves = Object.keys(linha);
+
+    const chaveEncontrada = chaves.find(chave => {
+      // Remove espaços e pontos para comparar (ex: "Qtde." vira "qtde")
+      const chaveLimpa = chave.toLowerCase().replace(/[.\s]/g, '').trim();
+      return variações.some(v => v.toLowerCase().replace(/[.\s]/g, '').trim() === chaveLimpa);
+    });
+
     return chaveEncontrada ? linha[chaveEncontrada] : null;
   };
 
-  const calcularPesoItem = (item: ItemOrcamento) => { // Adicionado : ItemOrcamento
-    const espessura = parseInt(item.descricao.replace(/\D/g, '')) || 0;
-    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v)); // Adicionado : string no v
-    const areaM2 = (l / 1000) * (a / 1000);
-    return 2.5 * espessura * areaM2 * item.qtd;
+  // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
+const gerarObjetoItem = (vidro: any, l: number, a: number, qtd: number) => {
+  // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
+  const lCalc = arredondar5cm(l); 
+  const aCalc = arredondar5cm(a);
+  
+  // Medida Real (Física) -> Ex: 408
+  const lReal = l;
+  const aReal = a;
+
+  const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
+  const precoM2 = Number(vidro.preco);
+
+  return {
+    id: Math.random(),
+    descricao: `${vidro.nome} ${vidro.espessura}`,
+    // Guardamos as duas separadas para não haver confusão
+    medidaReal: `${lReal} x ${aReal}`, 
+    medidaCalc: `${lCalc} x ${aCalc}`,
+    qtd: Number(qtd),
+    total: areaCobradaM2 * precoM2 * Number(qtd)
   };
+};
+
+const calcularPesoItem = (item: any) => {
+  // Extrai a espessura da descrição (ex: "4+4" = 8)
+  const numeros = item.descricao.match(/\d+/g);
+  const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
+
+  // Pega a medida física (408x500)
+  const partes = item.medidaReal.split('x').map((v: string) => parseInt(v));
+  const largReal = partes[0];
+  const altReal = partes[1];
+
+  // Cálculo: Área Real * 2.5 * Espessura * Qtd
+  const areaRealM2 = (largReal / 1000) * (altReal / 1000);
+  const pesoFinal = areaRealM2 * 2.5 * espessura * item.qtd;
+
+  return pesoFinal;
+};
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -590,12 +608,22 @@ export default function PaginaBase() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
-                <div className="flex items-center gap-2">
-                  <Sparkles style={{ color: !servicoSelecionado ? theme.menuIconColor : '#6b7280' }} size={18} className="text-amber-500" />
-                  <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest">Acabamentos</h3>
-                </div>
-
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+  {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
+  <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
+    <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
+      {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
+      <Wrench size={18} strokeWidth={2.5} /> 
+    </div>
+    <div className="flex flex-col">
+      <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
+        Personalização
+      </span>
+      <h3 className="text-sm font-bold text-[#1e3a5a]">
+        Acabamentos e Serviços
+      </h3>
+    </div>
+  </div>
                 <div className="space-y-2 max-h-[115px] overflow-y-auto pr-2 custom-scrollbar">
                   {/* Opção Padrão (Nenhum) */}
                   <div
@@ -850,49 +878,52 @@ export default function PaginaBase() {
                   )}
                 </div>
 
-                {/* Rodapé Ultra Discreto Técnico */}
-                <div className="p-5 bg-white border-t border-gray-50 flex items-center justify-between px-8">
-                  <div className="flex items-center gap-6">
-                    {/* Contagem de Itens */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Itens:</span>
-                      <span className="text-sm font-bold text-gray-500">
-                        {itens.length.toString().padStart(2, '0')}
-                      </span>
-                    </div>
+               {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
+<div className="p-6 bg-white border-t border-gray-100 flex items-center justify-between px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+  <div className="flex items-center gap-8">
+    
+    {/* 1. Qtd Total: 93 peças conforme o PDF */}
+    <div className="flex flex-col">
+      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Total de Peças</span>
+      <span className="text-lg font-black text-gray-600">
+        {itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
+      </span>
+    </div>
 
-                    <div className="h-4 w-[1px] bg-gray-100" />
+    <div className="h-8 w-[1px] bg-gray-100" />
 
-                    {/* Metragem Quadrada Total */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Área Total:</span>
-                      <span className="text-sm font-medium text-gray-400">
-                        {itens.reduce((acc: number, item: ItemOrcamento) => { // Adicionado tipos aqui
-                          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
-                          return acc + ((l / 1000) * (a / 1000) * item.qtd);
-                        }, 0).toFixed(2)} m²
-                      </span>
-                    </div>
+    {/* 2. Metragem de Cobrança: Usa medidaCalc (Arredondamento de 5cm) */}
+    <div className="flex flex-col">
+      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
+      <span className="text-lg font-medium text-gray-500">
+        {itens.reduce((acc: number, item: any) => {
+          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+          return acc + ((l / 1000) * (a / 1000) * item.qtd);
+        }, 0).toFixed(3)} m²
+      </span>
+    </div>
 
-                    <div className="h-4 w-[1px] bg-gray-100" />
+    {/* 3. Peso da Carga: Usa Medida REAL (Física) para bater 2.983,898 kg */}
+    <div className="bg-[#1e3a5a]/5 px-5 py-2 rounded-2xl border border-[#1e3a5a]/10 flex flex-col">
+      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Peso Logístico</span>
+      <div className="flex items-baseline gap-1">
+        <span className="text-xl font-black text-[#1e3a5a]">
+          {itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)
+            .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+        </span>
+        <span className="text-xs font-bold text-[#1e3a5a]">kg</span>
+      </div>
+    </div>
+  </div>
 
-                    {/* Peso Total (NBR 7199) */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest text-amber-500/50">Peso Est.:</span>
-                      <span className="text-sm font-medium text-gray-400">
-                        {itens.reduce((acc: number, item: ItemOrcamento) => acc + calcularPesoItem(item), 0).toFixed(1)} kg
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Total Geral mantém o destaque financeiro */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-[#1e3a5a]/40 uppercase tracking-[0.3em]">Total Geral</span>
-                    <span className="text-xl font-light text-[#1e3a5a] tracking-tight">
-                      {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
-                    </span>
-                  </div>
-                </div>
+  {/* 4. Valor Total do Pedido: R$ 35.176,59 */}
+  <div className="text-right">
+    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Pedido</p>
+    <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
+      {formatarMoeda(itens.reduce((acc: number, i: any) => acc + i.total, 0))}
+    </p>
+  </div>
+</div>
               </div>
             </div>
           </div>
@@ -1052,7 +1083,7 @@ export default function PaginaBase() {
                     <option value="">Selecione o material do banco...</option>
                     {listaVidros.map(v => (
                       <option key={v.id} value={v.id}>
-                        {v.nome} {v.espessura ? `- ${v.espessura}mm` : ''}
+                        {v.nome} {v.espessura ? ` ${v.espessura} - ${v.tipo}` : ''}
                       </option>
                     ))}
                   </select>
