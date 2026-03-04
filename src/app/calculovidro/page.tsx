@@ -11,6 +11,9 @@ import {
 } from "lucide-react"
 import * as XLSX from 'xlsx';
 
+interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
+interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; }
+
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
@@ -99,9 +102,6 @@ export default function PaginaBase() {
           String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
         );
         const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
-
-        // 2. Extrair medidas do item atual (usando a medida de cálculo salva no item)
-        // Exemplo de item.medidaCalc: "1000x1500 mm"
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
         // 3. Refazer o cálculo de área
@@ -237,8 +237,8 @@ export default function PaginaBase() {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
       tipo: vidroSelecionado.tipo,
-      medidaReal: `${l}x${a} mm`,
-      medidaCalc: `${lCalc}x${aCalc} mm`,
+      medidaReal: `${l} (L) x ${a} (A) mm`,
+      medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
       servico: detalheServico,
       valorServicoUn: valorServicoTotal,
@@ -350,8 +350,8 @@ export default function PaginaBase() {
       id: novoId, // ID temporário
       descricao: `${vidro.nome} ${vidro.espessura || ''}`,
       tipo: vidro.tipo,
-      medidaReal: `${l}x${a} mm`,
-      medidaCalc: `${lCalc}x${aCalc} mm`,
+      medidaReal: `${l} (L) x ${a} (A) mm`,
+      medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: qtd,
       total: (areaCobrada * precoM2) * qtd
     };
@@ -362,6 +362,13 @@ export default function PaginaBase() {
       variações.some(v => chave.toLowerCase().trim() === v.toLowerCase())
     );
     return chaveEncontrada ? linha[chaveEncontrada] : null;
+  };
+
+  const calcularPesoItem = (item: ItemOrcamento) => { // Adicionado : ItemOrcamento
+    const espessura = parseInt(item.descricao.replace(/\D/g, '')) || 0;
+    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v)); // Adicionado : string no v
+    const areaM2 = (l / 1000) * (a / 1000);
+    return 2.5 * espessura * areaM2 * item.qtd;
   };
 
   return (
@@ -843,35 +850,44 @@ export default function PaginaBase() {
                   )}
                 </div>
 
-                {/* Rodapé Ultra Discreto */}
+                {/* Rodapé Ultra Discreto Técnico */}
                 <div className="p-5 bg-white border-t border-gray-50 flex items-center justify-between px-8">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
+                    {/* Contagem de Itens */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                        Itens:
-                      </span>
+                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Itens:</span>
                       <span className="text-sm font-bold text-gray-500">
                         {itens.length.toString().padStart(2, '0')}
                       </span>
                     </div>
 
-                    {/* Divisor sutil */}
                     <div className="h-4 w-[1px] bg-gray-100" />
 
+                    {/* Metragem Quadrada Total */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                        Subtotal:
-                      </span>
+                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Área Total:</span>
                       <span className="text-sm font-medium text-gray-400">
-                        {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
+                        {itens.reduce((acc: number, item: ItemOrcamento) => { // Adicionado tipos aqui
+                          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+                          return acc + ((l / 1000) * (a / 1000) * item.qtd);
+                        }, 0).toFixed(2)} m²
+                      </span>
+                    </div>
+
+                    <div className="h-4 w-[1px] bg-gray-100" />
+
+                    {/* Peso Total (NBR 7199) */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest text-amber-500/50">Peso Est.:</span>
+                      <span className="text-sm font-medium text-gray-400">
+                        {itens.reduce((acc: number, item: ItemOrcamento) => acc + calcularPesoItem(item), 0).toFixed(1)} kg
                       </span>
                     </div>
                   </div>
 
+                  {/* Total Geral mantém o destaque financeiro */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-[#1e3a5a]/40 uppercase tracking-[0.3em]">
-                      Total Geral
-                    </span>
+                    <span className="text-[10px] font-black text-[#1e3a5a]/40 uppercase tracking-[0.3em]">Total Geral</span>
                     <span className="text-xl font-light text-[#1e3a5a] tracking-tight">
                       {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
                     </span>
