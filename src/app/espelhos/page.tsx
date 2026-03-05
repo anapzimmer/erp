@@ -381,6 +381,7 @@ export default function CalculoEspelhosPage() {
             >
               <Menu size={24} className="text-gray-600" />
             </button>
+            
 
             {/* Ícone e Título da Página */}
             <div className="flex items-center gap-2 text-gray-800">
@@ -405,6 +406,7 @@ export default function CalculoEspelhosPage() {
                 <Printer size={20} />
               </button>
             )}
+            
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -863,7 +865,7 @@ export default function CalculoEspelhosPage() {
                       nomeObra={nomeObra}
                     />
                   }
-                  fileName={`orcamento-${nomeCliente?.replace(/[^a-z0-9]/gi, '_') || 'cliente'}.pdf`}
+                  fileName={`Orçamento ${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'} - N° ${Date.now().toString().slice(-6)}.pdf`}
                 >
                   {({ loading }) => (
                     <button

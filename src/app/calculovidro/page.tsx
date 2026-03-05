@@ -5,14 +5,13 @@ import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import Sidebar from "@/components/Sidebar"
-import {
-  Building2, ChevronDown, Wrench, X, Trash2, Plus,
-  Calculator, Sparkles, ClipboardList, Edit2 // <--- Adicione este cara aqui
-} from "lucide-react"
+import { Building2, ChevronDown, Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
 import * as XLSX from 'xlsx';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 
 interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
-interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; }
+interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
 
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -58,6 +57,8 @@ export default function PaginaBase() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [itensNaoEncontrados, setItensNaoEncontrados] = useState<any[]>([]);
   const [mostrarModalAssociacao, setMostrarModalAssociacao] = useState(false);
+  const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
+const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function PaginaBase() {
   const trocarMaterialSelecionados = (novoVidroId: string) => {
     if (!novoVidroId) return;
 
-    const novoVidro = listaVidros.find(v => String(v.id) === String(novoVidroId));
+    const novoVidro = listaVidros.find((v: Vidro) => String(v.id) === String(novoVidroId));
     if (!novoVidro) return;
 
     // Pegamos o grupo do cliente para garantir o preço especial na troca
@@ -231,16 +232,19 @@ export default function PaginaBase() {
         detalheServico = `${servicoSelecionado.nome} (${quantidadeServico}un)`;
       }
     }
-
     const totalPorPeca = valorTotalVidro + valorServicoTotal;
+
     const novoItem = {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
-      tipo: vidroSelecionado.tipo,
+      tipo: vidroSelecionado.tipo || "", // Garante que o tipo vá para o PDF
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
-      servico: detalheServico,
+      acabamento: "", // Se você tiver um estado de acabamento, coloque aqui
+      servicos: detalheServico, // Passa o detalhe do serviço (Furos, CNC, etc)
+
+      servico: detalheServico, // Mantém por compatibilidade com sua tabela na tela
       valorServicoUn: valorServicoTotal,
       total: totalPorPeca * quantidade
     };
@@ -349,44 +353,84 @@ export default function PaginaBase() {
   };
 
   // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
-const gerarObjetoItem = (vidro: any, l: number, a: number, qtd: number) => {
-  // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
-  const lCalc = arredondar5cm(l); 
-  const aCalc = arredondar5cm(a);
-  
-  // Medida Real (Física) -> Ex: 408
-  const lReal = l;
-  const aReal = a;
+  const gerarObjetoItem = (vidro: any, l: number, a: number, qtd: number) => {
+    // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
+    const lCalc = arredondar5cm(l);
+    const aCalc = arredondar5cm(a);
 
-  const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
-  const precoM2 = Number(vidro.preco);
+    // Medida Real (Física) -> Ex: 408
+    const lReal = l;
+    const aReal = a;
 
-  return {
-    id: Math.random(),
-    descricao: `${vidro.nome} ${vidro.espessura}`,
-    // Guardamos as duas separadas para não haver confusão
-    medidaReal: `${lReal} x ${aReal}`, 
-    medidaCalc: `${lCalc} x ${aCalc}`,
-    qtd: Number(qtd),
-    total: areaCobradaM2 * precoM2 * Number(qtd)
+    const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
+    const precoM2 = Number(vidro.preco);
+
+    return {
+      id: Math.random(),
+      descricao: `${vidro.nome} ${vidro.espessura}`,
+      // Guardamos as duas separadas para não haver confusão
+      medidaReal: `${lReal} x ${aReal}`,
+      medidaCalc: `${lCalc} x ${aCalc}`,
+      qtd: Number(qtd),
+      total: areaCobradaM2 * precoM2 * Number(qtd)
+    };
   };
-};
 
-const calcularPesoItem = (item: any) => {
-  // Extrai a espessura da descrição (ex: "4+4" = 8)
-  const numeros = item.descricao.match(/\d+/g);
-  const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
+  const calcularPesoItem = (item: any) => {
+    // Extrai a espessura da descrição (ex: "4+4" = 8)
+    const numeros = item.descricao.match(/\d+/g);
+    const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
 
-  // Pega a medida física (408x500)
-  const partes = item.medidaReal.split('x').map((v: string) => parseInt(v));
-  const largReal = partes[0];
-  const altReal = partes[1];
+    // Pega a medida física (408x500)
+    const partes = item.medidaReal.split('x').map((v: string) => parseInt(v));
+    const largReal = partes[0];
+    const altReal = partes[1];
 
-  // Cálculo: Área Real * 2.5 * Espessura * Qtd
-  const areaRealM2 = (largReal / 1000) * (altReal / 1000);
-  const pesoFinal = areaRealM2 * 2.5 * espessura * item.qtd;
+    // Cálculo: Área Real * 2.5 * Espessura * Qtd
+    const areaRealM2 = (largReal / 1000) * (altReal / 1000);
+    const pesoFinal = areaRealM2 * 2.5 * espessura * item.qtd;
 
-  return pesoFinal;
+    return pesoFinal;
+  };
+
+const handleSalvarOrcamento = async () => {
+  if (itens.length === 0) return;
+
+  const dataAtual = new Date();
+  const anoMes = `${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  const numeroFormatado = `GC-${anoMes}-${random}`;
+
+  const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
+  const mTotal = itens.reduce((acc, item) => {
+    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+    return acc + ((l / 1000) * (a / 1000) * item.qtd);
+  }, 0);
+
+  const dadosParaSalvar = {
+    numero_formatado: numeroFormatado,
+    cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
+    obra_referencia: obra || "Geral",
+    itens: itens,
+    valor_total: vTotal,
+    metragem_total: mTotal,
+    peso_total: itens.reduce((acc, item) => acc + calcularPesoItem(item), 0),
+    theme_color: theme.menuIconColor || '#1C415B'
+  };
+
+  try {
+    const { error } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
+    if (error) throw error;
+
+    // AQUI A MÁGICA:
+    setUltimoNumeroGerado(numeroFormatado);
+    setMostrarModalSucesso(true);
+    
+    // Opcional: Limpar itens após salvar
+    // setItens([]); 
+  } catch (error: any) {
+    alert("Erro: " + error.message);
+  }
 };
 
   return (
@@ -445,16 +489,68 @@ const calcularPesoItem = (item: any) => {
                 )}
 
                 {/* Botão Salvar (Sempre visível se houver itens) */}
-                <button
-                  onClick={() => console.log("Salvando...")}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#2a527d] transition-all active:scale-95 shadow-md"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Salvar Alterações
-                </button>
+               <button
+  onClick={handleSalvarOrcamento}
+  className="flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#2a527d] transition-all active:scale-95 shadow-md"
+>
+  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+  Salvar Orçamento
+</button>
               </div>
             )}
+            {/* --- BOTÃO PDF CORRIGIDO --- */}
+            <PDFDownloadLink
+              document={
+                <CalculoVidroPDF
+                  // GARANTA QUE O MAP REPASSE OS CAMPOS NOVOS:
+                  itens={itens.map((item: any) => ({
+                    ...item,
+                    // Caso seu objeto original use nomes diferentes, ajuste aqui:
+                    tipo: item.tipo || "",
+                    acabamento: item.acabamento || "",
+                    servicos: item.servicos || ""
+                  }))}
+                  nomeEmpresa={nomeEmpresa}
+                  logoUrl={"logoLightUrl" in theme ? theme.logoLightUrl || undefined : undefined}
+                  themeColor={theme.contentTextLightBg}
+                  nomeCliente={listaClientes.find((c: any) => String(c.id) === String(clienteId))?.nome || "Não selecionado"}
+                  nomeObra={obra}
+
+                  // Cálculo do Peso Total seguindo a lógica do seu rodapé
+                  pesoTotal={itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)}
+
+                  // Cálculo da Metragem Total (M² de Cobrança) - Alinhado com o rodapé
+                  metragemTotal={itens.reduce((acc: number, item: any) => {
+                    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+                    return acc + ((l / 1000) * (a / 1000) * item.qtd);
+                  }, 0)}
+
+                  // Adicionado: Valor Total do Pedido (importante para o PDF bater com a tela)
+                  valorTotal={itens.reduce((acc: number, i: any) => acc + i.total, 0)}
+
+                  // Adicionado: Total de Peças
+                  totalPecas={itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0)}
+                />
+              }
+              fileName={`Orçamento ${listaClientes.find((c: any) => String(c.id) === String(clienteId))?.nome || 'Geral'
+                } - N° ${Date.now().toString().slice(-6)}.pdf`}
+            >
+              {({ loading }) => (
+                <button
+                  className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
+                  title="Gerar PDF"
+                  disabled={loading || itens.length === 0} // Desabilita se estiver carregando ou sem itens
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  ) : (
+                    <Printer size={20} />
+                  )}
+                </button>
+              )}
+            </PDFDownloadLink>
           </div>
+
 
           <div className="relative" ref={userMenuRef}>
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-75 transition-all">
@@ -523,9 +619,19 @@ const calcularPesoItem = (item: any) => {
                   </div>
                 )}
 
-                <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${editandoId ? 'mt-6' : ''}`} style={{ color: theme.menuBackgroundColor }}>
-                  <Calculator size={20} /> Dimensões
-                </h3>
+                <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
+                  <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
+                    <Calculator size={20} strokeWidth={2.5} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
+                      Especificações
+                    </span>
+                    <h3 className="text-sm font-bold text-[#1e3a5a]">
+                      Dimensões
+                    </h3>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Largura</label>
@@ -576,7 +682,7 @@ const calcularPesoItem = (item: any) => {
                   <select
                     className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
                     value={vidroSelecionado?.id}
-                    onChange={(e) => setVidroSelecionado(listaVidros.find(v => v.id === e.target.value))}
+                    onChange={(e) => setVidroSelecionado(listaVidros.find((v: Vidro) => v.id === e.target.value))}
                   >
                     <option value="">Selecione o material...</option>
                     {listaVidros.map(v => (
@@ -608,22 +714,22 @@ const calcularPesoItem = (item: any) => {
                 </div>
               </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
-  {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
-  <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
-    <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
-      {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
-      <Wrench size={18} strokeWidth={2.5} /> 
-    </div>
-    <div className="flex flex-col">
-      <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
-        Personalização
-      </span>
-      <h3 className="text-sm font-bold text-[#1e3a5a]">
-        Acabamentos e Serviços
-      </h3>
-    </div>
-  </div>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+                {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
+                <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
+                  <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
+                    {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
+                    <Wrench size={20} strokeWidth={2.5} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
+                      Personalização
+                    </span>
+                    <h3 className="text-sm font-bold text-[#1e3a5a]">
+                      Acabamentos e Serviços
+                    </h3>
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-[115px] overflow-y-auto pr-2 custom-scrollbar">
                   {/* Opção Padrão (Nenhum) */}
                   <div
@@ -733,7 +839,7 @@ const calcularPesoItem = (item: any) => {
                 <div className="p-5 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ClipboardList size={18} className="text-[#1e3a5a]" />
-                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Pedido</h3>
+                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
                   </div>
                   <div className="flex items-center gap-4">
                     {/* Input de arquivo escondido */}
@@ -877,54 +983,54 @@ const calcularPesoItem = (item: any) => {
                     </div>
                   )}
                 </div>
+                {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
+                <div className="p-6 bg-white border-t border-gray-100 flex items-center justify-between px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                  <div className="flex items-center gap-8">
 
-               {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
-<div className="p-6 bg-white border-t border-gray-100 flex items-center justify-between px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-  <div className="flex items-center gap-8">
-    
-    {/* 1. Qtd Total: 93 peças conforme o PDF */}
-    <div className="flex flex-col">
-      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Total de Peças</span>
-      <span className="text-lg font-black text-gray-600">
-        {itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
-      </span>
-    </div>
+                    {/* 1. Qtd Total EM EVIDÊNCIA (Destaque colorido) */}
+                    <div className="bg-[#1e3a5a]/5 px-5 py-2 rounded-2xl border border-[#1e3a5a]/10 flex flex-col">
+                      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Total de Peças</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-black text-[#1e3a5a]">
+                          {itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
+                        </span>
+                        <span className="text-xs font-bold text-[#1e3a5a]">un</span>
+                      </div>
+                    </div>
 
-    <div className="h-8 w-[1px] bg-gray-100" />
+                    <div className="h-8 w-[1px] bg-gray-100" />
 
-    {/* 2. Metragem de Cobrança: Usa medidaCalc (Arredondamento de 5cm) */}
-    <div className="flex flex-col">
-      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
-      <span className="text-lg font-medium text-gray-500">
-        {itens.reduce((acc: number, item: any) => {
-          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
-          return acc + ((l / 1000) * (a / 1000) * item.qtd);
-        }, 0).toFixed(3)} m²
-      </span>
-    </div>
+                    {/* 2. Metragem de Cobrança: Sem destaque colorido */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
+                      <span className="text-lg font-medium text-gray-500">
+                        {itens.reduce((acc: number, item: any) => {
+                          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+                          return acc + ((l / 1000) * (a / 1000) * item.qtd);
+                        }, 0).toFixed(3)} m²
+                      </span>
+                    </div>
 
-    {/* 3. Peso da Carga: Usa Medida REAL (Física) para bater 2.983,898 kg */}
-    <div className="bg-[#1e3a5a]/5 px-5 py-2 rounded-2xl border border-[#1e3a5a]/10 flex flex-col">
-      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Peso Logístico</span>
-      <div className="flex items-baseline gap-1">
-        <span className="text-xl font-black text-[#1e3a5a]">
-          {itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)
-            .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-        </span>
-        <span className="text-xs font-bold text-[#1e3a5a]">kg</span>
-      </div>
-    </div>
-  </div>
+                    <div className="h-8 w-[1px] bg-gray-100" />
 
-  {/* 4. Valor Total do Pedido: R$ 35.176,59 */}
-  <div className="text-right">
-    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Pedido</p>
-    <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
-      {formatarMoeda(itens.reduce((acc: number, i: any) => acc + i.total, 0))}
-    </p>
-  </div>
-</div>
-              </div>
+                    {/* 3. Peso da Carga: Sem destaque colorido */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Peso Logístico</span>
+                      <span className="text-lg font-medium text-gray-500">
+                        {itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)
+                          .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4. Valor Total do Pedido */}
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Orçamento</p>
+                    <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
+                      {formatarMoeda(itens.reduce((acc: number, i: any) => acc + i.total, 0))}
+                    </p>
+                  </div>
+                </div>              </div>
             </div>
           </div>
         </main>
@@ -1105,6 +1211,52 @@ const calcularPesoItem = (item: any) => {
             </div>
           </div>
         )}
+
+        {/* MODAL DISCRETO E AUTOMÁTICO - POSIÇÃO SUPERIOR */}
+{mostrarModalSucesso && (
+  <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
+    <div 
+      className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+      style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
+    >
+      
+      {/* Ícone com a cor do tema */}
+      <div 
+        className="p-2 rounded-xl flex-shrink-0"
+        style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}
+      >
+        <Sparkles size={20} />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-bold text-gray-800 tracking-tight">Salvo com sucesso!</h3>
+          <button 
+            onClick={() => setMostrarModalSucesso(false)}
+            className="text-gray-300 hover:text-gray-500 transition-colors ml-2"
+          >
+            <X size={14} />
+          </button>
+        </div>
+        
+        <p className="text-[11px] text-gray-500 mt-0.5 font-mono">
+          Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
+        </p>
+
+        <button 
+          onClick={() => {
+            setMostrarModalSucesso(false);
+            // Redirecionamento futuro
+          }}
+          className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
+        >
+          <ClipboardList size={12} />
+          Ver Histórico
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   )
