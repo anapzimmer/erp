@@ -350,15 +350,16 @@ const handleSalvarOrcamento = async () => {
       return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
     }, 0);
 
+// No seu handleSalvarOrcamento:
 const dadosParaSalvar = {
   numero_formatado: numeroFinal,
   cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
   obra_referencia: obra || "Geral",
-  itens: JSON.stringify(itens), // <-- Tente converter explicitamente para string JSON
-  valor_total: Number(vTotal),
+  itens: itens, // Supabase entende array como JSONB automaticamente
+  valor_total: Number(vTotal), // Garante que é número
   empresa_id: empresaId,
-  metragem_total: Number(mTotal),
-  peso_total: Number(pesoTotal) || 0, // <-- Forçando número
+  metragem_total: Number(mTotal) || 0, // Garante que é número
+  peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
   theme_color: theme.menuIconColor || '#1e3a5a'
 };
 

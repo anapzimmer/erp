@@ -99,14 +99,19 @@ export default function RelatorioOrçamento() {
                         .single();
                     if (empresaData) setNomeEmpresa(empresaData.nome);
                 }
-
                 const { data: orcData, error } = await supabase
                     .from('orcamentos')
-                    .select(`
-    *,
-    itens:orcamento_itens (*)
-  `)
+                   .select(`*`)
                     .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error("Detalhes do erro Supabase:", error); // Isso vai revelar o problema real
+                    throw error;
+                }
+
+                if (orcData) {
+                    setOrcamentos(orcData);
+                }
 
             } catch (error) {
                 console.error("Erro ao carregar histórico:", error);
