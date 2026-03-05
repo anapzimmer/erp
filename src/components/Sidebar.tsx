@@ -29,7 +29,14 @@ const menuPrincipal: MenuItem[] = [
     ],
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
+  { 
+    nome: "Relatórios", 
+    rota: "/relatorios", 
+    icone: BarChart3,
+    submenu: [
+      { nome: "Orçamentos", rota: "/admin/relatorio.orcamento" }
+    ]
+  },
 ];
 
 const menuCadastros: MenuItem[] = [

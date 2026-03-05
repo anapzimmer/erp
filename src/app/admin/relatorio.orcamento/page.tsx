@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
-import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter } from "lucide-react"
+import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
@@ -33,6 +33,25 @@ export default function RelatorioOrçamento() {
     const [showToast, setShowToast] = useState(false);
     const [showPDFModal, setShowPDFModal] = useState(false);
     const [orcamentoParaVisualizar, setOrcamentoParaVisualizar] = useState<any>(null);
+
+    //Histórico de Totais
+    const hoje = new Date();
+    const inicioSemana = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+    const totais = orcamentos.reduce((acc, orc) => {
+        const dataOrc = new Date(orc.created_at);
+        const valor = Number(orc.valor_total) || 0;
+
+        // Diário (hoje)
+        if (dataOrc.toDateString() === new Date().toDateString()) acc.diario += valor;
+        // Semanal
+        if (dataOrc >= inicioSemana) acc.semanal += valor;
+        // Mensal
+        if (dataOrc >= inicioMes) acc.mensal += valor;
+
+        return acc;
+    }, { diario: 0, semanal: 0, mensal: 0 });
 
 
     // Funções de Seleção
@@ -101,7 +120,7 @@ export default function RelatorioOrçamento() {
                 }
                 const { data: orcData, error } = await supabase
                     .from('orcamentos')
-                   .select(`*`)
+                    .select(`*`)
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -128,16 +147,23 @@ export default function RelatorioOrçamento() {
         router.push("/login");
     };
 
+    // 1. Adicione estes novos estados
+    const [dataInicio, setDataInicio] = useState("");
+    const [dataFim, setDataFim] = useState("");
+
+    // 2. Atualize o seu filtro
     const orcamentosFiltrados = orcamentos.filter(orc => {
         const termo = filtro.toLowerCase();
+        const dataOrc = new Date(orc.created_at).setHours(0, 0, 0, 0);
+
+        const dentroDoPeriodo = (!dataInicio || dataOrc >= new Date(dataInicio).getTime()) &&
+            (!dataFim || dataOrc <= new Date(dataFim).getTime());
 
         return (
-            // Filtra por Nome do Cliente
-            orc.cliente_nome?.toLowerCase().includes(termo) ||
-            // Filtra por Nome da Obra (Adicionado)
-            orc.obra_referencia?.toLowerCase().includes(termo) ||
-            // Filtra por Código do Orçamento
-            orc.numero_formatado?.toLowerCase().includes(termo)
+            dentroDoPeriodo &&
+            (orc.cliente_nome?.toLowerCase().includes(termo) ||
+                orc.obra_referencia?.toLowerCase().includes(termo) ||
+                orc.numero_formatado?.toLowerCase().includes(termo))
         );
     });
 
@@ -189,7 +215,7 @@ export default function RelatorioOrçamento() {
                                         <ClipboardList size={24} />
                                     </div>
                                     <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>
-                                        Histórico de Registros
+                                        Histórico de Orçamentos
                                     </h1>
                                 </div>
                                 <p className="text-gray-400 text-sm ml-11">
@@ -213,6 +239,43 @@ export default function RelatorioOrçamento() {
                                     <Filter size={20} />
                                 </button>
                             </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            {[
+                                {
+                                    label: "Orçado Hoje",
+                                    valor: totais.diario,
+                                    icon: CalendarDays,
+                                    color: "#6091b0" // Laranja
+                                },
+                                {
+                                    label: "Orçado Semanal",
+                                    valor: totais.semanal,
+                                    icon: CalendarRange,
+                                    color: "#dc5d46" // Seu tema (ex: verde ou azul)
+                                },
+                                {
+                                    label: "Orçado Mensal",
+                                    valor: totais.mensal,
+                                    icon: CalendarClock,
+                                    color: "#011427" // Verde (sugere sucesso/fechamento)
+                                },
+                            ].map((item, idx) => (
+                                <div key={idx} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
+                                    <div
+                                        className="p-4 rounded-2xl"
+                                        style={{ backgroundColor: `${item.color}15` }}
+                                    >
+                                        <item.icon size={24} style={{ color: item.color }} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] uppercase font-black text-gray-400 tracking-[0.1em]">{item.label}</span>
+                                        <span className="text-xl font-black text-slate-800">
+                                            {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         {/* TABELA ESTILO CARD */}
@@ -307,24 +370,9 @@ export default function RelatorioOrçamento() {
 
                                                     <td className="px-8 py-6">
                                                         <div className="flex justify-center items-center gap-3">
-                                                            {/* VISUALIZAR - USA O VERDE menuIconColor (#39B89F) NO HOVER */}
-
                                                             <button
                                                                 onClick={() => {
-                                                                   const itensArray = Array.isArray(orc.itens) 
-    ? orc.itens 
-    : (orc.itens?.itens || []); // Ajuste se o seu JSON for { itens: [...] }
-
-const pesoCalculado = itensArray.reduce((acc: number, item: any) => {
-    return acc + (Number(item.peso) || 0);
-}, 0);
-
-                                                                    // 2. Define o objeto com o peso calculado na hora
-                                                                    setOrcamentoParaVisualizar({
-                                                                        ...orc,
-                                                                        peso_total: pesoCalculado
-                                                                    });
-
+                                                                    setOrcamentoParaVisualizar(orc);
                                                                     setShowPDFModal(true);
                                                                 }}
 
