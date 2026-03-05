@@ -341,23 +341,26 @@ const handleSalvarOrcamento = async () => {
     }
 
     // 2. Cálculos Totais
-    
+    const pesoTotal = itens.reduce((acc, item) => {
+       return acc + (calcularPesoItem(item) || 0);
+    }, 0);
     const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
     const mTotal = itens.reduce((acc, item) => {
       const partes = item.medidaCalc.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')));
       return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
     }, 0);
 
-    const dadosParaSalvar = {
-      numero_formatado: numeroFinal,
-      cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
-      obra_referencia: obra || "Geral",
-      itens: itens, // O array de objetos vai como JSON
-      valor_total: vTotal,
-      empresa_id: empresaId,
-      metragem_total: mTotal,
-      theme_color: theme.menuIconColor || '#1e3a5a'
-    };
+const dadosParaSalvar = {
+  numero_formatado: numeroFinal,
+  cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
+  obra_referencia: obra || "Geral",
+  itens: JSON.stringify(itens), // <-- Tente converter explicitamente para string JSON
+  valor_total: Number(vTotal),
+  empresa_id: empresaId,
+  metragem_total: Number(mTotal),
+  peso_total: Number(pesoTotal) || 0, // <-- Forçando número
+  theme_color: theme.menuIconColor || '#1e3a5a'
+};
 
     let error;
     if (editId) {
