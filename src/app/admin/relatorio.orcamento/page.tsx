@@ -311,12 +311,13 @@ export default function RelatorioOrçamento() {
 
                                                             <button
                                                                 onClick={() => {
-                                                                    console.log("Itens do orçamento:", orc.itens);
-                                                                    // 1. Calcula o peso somando o peso de todos os itens do orçamento
-                                                                    const pesoCalculado = orc.itens?.reduce((acc: number, item: any) => {
-                                                                        console.log("Peso individual do item:", item.peso);
-                                                                        return acc + (Number(item.peso) || 0);
-                                                                    }, 0) || 0;
+                                                                   const itensArray = Array.isArray(orc.itens) 
+    ? orc.itens 
+    : (orc.itens?.itens || []); // Ajuste se o seu JSON for { itens: [...] }
+
+const pesoCalculado = itensArray.reduce((acc: number, item: any) => {
+    return acc + (Number(item.peso) || 0);
+}, 0);
 
                                                                     // 2. Define o objeto com o peso calculado na hora
                                                                     setOrcamentoParaVisualizar({
