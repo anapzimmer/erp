@@ -1,22 +1,17 @@
+//app/admin/relatorio.orcamento/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
-import {
-    FileText,
-    Search,
-    Calendar,
-    Clock,
-    Trash2,
-    ClipboardList,
-    Filter
-} from "lucide-react"
+import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
+import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 
-export default function HistoricoVendas() {
+export default function RelatorioOrçamento() {
     const router = useRouter()
     const { theme } = useTheme()
 
@@ -31,10 +26,14 @@ export default function HistoricoVendas() {
     const [filtro, setFiltro] = useState("")
     const [loadingDados, setLoadingDados] = useState(true)
 
-        // Estados para Seleção e Modal
+    // Estados para Seleção e Modal
     const [selecionados, setSelecionados] = useState<string[]>([]);
     const [modalAberto, setModalAberto] = useState(false);
     const [itemParaExcluir, setItemParaExcluir] = useState<any>(null);
+    const [showToast, setShowToast] = useState(false);
+    const [showPDFModal, setShowPDFModal] = useState(false);
+    const [orcamentoParaVisualizar, setOrcamentoParaVisualizar] = useState<any>(null);
+
 
     // Funções de Seleção
     const toggleSelecionarTodos = () => {
@@ -61,13 +60,15 @@ export default function HistoricoVendas() {
 
             if (error) throw error;
 
-            // Atualiza a lista localmente sem precisar de novo fetch
             setOrcamentos(prev => prev.filter(o => !idsParaDeletar.includes(o.id)));
             setSelecionados([]);
             setModalAberto(false);
             setItemParaExcluir(null);
 
-            alert("Excluído com sucesso!");
+            // AVISO DISCRETO:
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000); // Some após 3 segundos
+
         } catch (error) {
             console.error("Erro ao deletar:", error);
             alert("Erro ao excluir registro.");
@@ -101,10 +102,11 @@ export default function HistoricoVendas() {
 
                 const { data: orcData, error } = await supabase
                     .from('orcamentos')
-                    .select('*')
+                    .select(`
+    *,
+    itens:orcamento_itens (*)
+  `)
                     .order('created_at', { ascending: false });
-
-                if (!error) setOrcamentos(orcData || []);
 
             } catch (error) {
                 console.error("Erro ao carregar histórico:", error);
@@ -185,7 +187,7 @@ export default function HistoricoVendas() {
                                         Histórico de Registros
                                     </h1>
                                 </div>
-                                <p className="text-gray-400 font-medium text-sm ml-11">
+                                <p className="text-gray-400 text-sm ml-11">
                                     Gerenciamento de orçamentos e prazos de validade.
                                 </p>
                             </div>
@@ -299,16 +301,80 @@ export default function HistoricoVendas() {
                                                     </td>
 
                                                     <td className="px-8 py-6">
-                                                        <div className="flex justify-center items-center gap-2">
-                                                            <button className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-md rounded-2xl transition-all active:scale-95">
-                                                                <FileText size={18} />
+                                                        <div className="flex justify-center items-center gap-3">
+                                                            {/* VISUALIZAR - USA O VERDE menuIconColor (#39B89F) NO HOVER */}
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    console.log("Itens do orçamento:", orc.itens);
+                                                                    // 1. Calcula o peso somando o peso de todos os itens do orçamento
+                                                                    const pesoCalculado = orc.itens?.reduce((acc: number, item: any) => {
+                                                                        console.log("Peso individual do item:", item.peso);
+                                                                        return acc + (Number(item.peso) || 0);
+                                                                    }, 0) || 0;
+
+                                                                    // 2. Define o objeto com o peso calculado na hora
+                                                                    setOrcamentoParaVisualizar({
+                                                                        ...orc,
+                                                                        peso_total: pesoCalculado
+                                                                    });
+
+                                                                    setShowPDFModal(true);
+                                                                }}
+
+                                                                className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/view"
+                                                                style={{
+                                                                    '--hover-bg': `${theme.menuIconColor}10`, // 10% de opacidade do seu verde
+                                                                    '--hover-text': theme.menuIconColor,
+                                                                    '--hover-border': `${theme.menuIconColor}30`
+                                                                } as any}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                                                                    e.currentTarget.style.color = 'var(--hover-text)';
+                                                                    e.currentTarget.style.borderColor = 'var(--hover-border)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'white';
+                                                                    e.currentTarget.style.color = '#9ca3af'; // gray-400
+                                                                    e.currentTarget.style.borderColor = '#f3f4f6'; // gray-100
+                                                                }}
+                                                                title="Visualização Rápida"
+                                                            >
+                                                                <Search size={18} />
                                                             </button>
-                                                           <button 
-    onClick={() => { setItemParaExcluir(orc); setModalAberto(true); }}
-    className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-red-500 ..."
->
-    <Trash2 size={18} />
-</button>
+
+                                                            {/* EDITAR - USA O AZUL menuHoverColor (#2A5C7E) NO HOVER */}
+                                                            <button
+                                                                onClick={() => router.push(`/calculovidro?edit=${orc.id}`)}
+                                                                className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
+                                                                style={{
+                                                                    '--hover-bg': `${theme.menuHoverColor}10`, // 10% de opacidade do seu azul
+                                                                    '--hover-text': theme.menuHoverColor,
+                                                                    '--hover-border': `${theme.menuHoverColor}30`
+                                                                } as any}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                                                                    e.currentTarget.style.color = 'var(--hover-text)';
+                                                                    e.currentTarget.style.borderColor = 'var(--hover-border)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'white';
+                                                                    e.currentTarget.style.color = '#9ca3af';
+                                                                    e.currentTarget.style.borderColor = '#f3f4f6';
+                                                                }}
+                                                                title="Editar Orçamento"
+                                                            >
+                                                                <PencilLine size={18} />
+                                                            </button>
+
+                                                            {/* EXCLUIR - VERMELHO PADRÃO DE ALERTA NO HOVER */}
+                                                            <button
+                                                                onClick={() => { setItemParaExcluir(orc); setModalAberto(true); }}
+                                                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all active:scale-95 rounded-2xl"
+                                                                title="Excluir Registro"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -358,6 +424,61 @@ export default function HistoricoVendas() {
                     </div>
                 </div>
             )}
+            {/* TOAST DISCRETO - PADRÃO ERP */}
+            {showToast && (
+                <div className="fixed bottom-8 right-8 z-[110] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div
+                        className="flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border border-white/10"
+                        style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                    >
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
+                            style={{ backgroundColor: `${theme.menuIconColor}20`, color: theme.menuIconColor }}
+                        >
+                            <Trash2 size={20} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[13px] tracking-tight uppercase">Sucesso</span>
+                            <span className="text-[11px] opacity-70 font-medium">Excluído com sucesso!</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showPDFModal && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
+                                Visualização: {orcamentoParaVisualizar?.numero_formatado}
+                            </h3>
+                            <button
+                                onClick={() => setShowPDFModal(false)}
+                                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 w-full h-full bg-gray-200">
+                            <PDFViewer width="100%" height="100%" className="border-none">
+                                <CalculoVidroPDF
+                                    itens={orcamentoParaVisualizar?.itens || []}
+                                    nomeEmpresa={nomeEmpresa}
+                                    themeColor={theme.contentTextLightBg}
+                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome}
+                                    nomeObra={orcamentoParaVisualizar?.obra_referencia}
+                                    pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
+                                    logoUrl={theme.logoLightUrl || undefined}
+                                    metragemTotal={orcamentoParaVisualizar?.metragem_total || 0}
+                                    valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                    totalPecas={orcamentoParaVisualizar?.total_pecas || 0}
+                                />
+                            </PDFViewer>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     )
 }

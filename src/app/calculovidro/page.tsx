@@ -1,7 +1,9 @@
+//app/calculovidro/page.tsx
 "use client"
 
 import { useState, useRef, useEffect } from "react"
 import { useTheme } from "@/context/ThemeContext"
+import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import Sidebar from "@/components/Sidebar"
@@ -9,6 +11,7 @@ import { Building2, ChevronDown, Wrench, X, Printer, Trash2, Plus, Calculator, S
 import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
+import { useSearchParams } from "next/navigation"
 
 interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
@@ -17,15 +20,19 @@ interface Vidro { id: number | string; nome: string; espessura?: string | number
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 
-export default function PaginaBase() {
-  const { theme } = useTheme()
+export default function RelatorioOrçamento() {
+  const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
+  const router = useRouter();
+  const searchParams = useSearchParams(); // Adicione esta linha
+  const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
 
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [sidebarExpandido, setSidebarExpandido] = useState(true)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const [isMounted, setIsMounted] = useState(false);
 
   // Estados de Dados do Supabase
   const [listaClientes, setListaClientes] = useState<any[]>([])
@@ -42,6 +49,7 @@ export default function PaginaBase() {
   const [vidroSelecionado, setVidroSelecionado] = useState<any>(null)
   const [servicoSelecionado, setServicoSelecionado] = useState<any>(null)
   const [itens, setItens] = useState<any[]>([])
+  const [quantidadeServico, setQuantidadeServico] = useState(1);
 
   // Edição de Modal
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -49,8 +57,7 @@ export default function PaginaBase() {
   const [mostrarModalLimpar, setMostrarModalLimpar] = useState(false);
   const larguraRef = useRef<HTMLInputElement>(null);
   const alturaRef = useRef<HTMLInputElement>(null);
-  const qtdRef = useRef<HTMLInputElement>(null);
-  const [quantidadeServico, setQuantidadeServico] = useState(1);
+  const qtdRef = useRef<HTMLInputElement>(null);  
   const [mostrarModalAviso, setMostrarModalAviso] = useState(false);
 
   //excel
@@ -58,14 +65,9 @@ export default function PaginaBase() {
   const [itensNaoEncontrados, setItensNaoEncontrados] = useState<any[]>([]);
   const [mostrarModalAssociacao, setMostrarModalAssociacao] = useState(false);
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
-const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
+  const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Estados para seleção em massa
+ // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<number[]>([]);
 
   // Função para marcar/desmarcar todos
@@ -84,68 +86,41 @@ const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
     );
   };
 
-  // Função para troca em massa com recálculo total
-  const trocarMaterialSelecionados = (novoVidroId: string) => {
-    if (!novoVidroId) return;
 
-    const novoVidro = listaVidros.find((v: Vidro) => String(v.id) === String(novoVidroId));
-    if (!novoVidro) return;
+const buscarOrcamentoParaEdicao = async (id: string) => {
+  try {
+    console.log("Buscando orçamento ID:", id); // Log para debug
+    const { data: orcamento, error } = await supabase
+      .from('orcamentos')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    // Pegamos o grupo do cliente para garantir o preço especial na troca
-    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
-    const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
+    if (error) throw error;
 
-    setItens(prev => prev.map(item => {
-      if (selecionados.includes(item.id)) {
-        // 1. Identificar o preço (Especial ou Padrão) para o NOVO vidro
-        const precoEspecial = precosEspeciais.find(p =>
-          String(p.vidro_id) === String(novoVidro.id) &&
-          String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
-        );
-        const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
-        const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
+    if (orcamento) {
+      // 1. Vincula o cliente (compara por nome ou ID conforme sua lógica)
+      const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
+      if (clienteEncontrado) setClienteId(clienteEncontrado.id);
+      
+      // 2. Preenche os campos básicos
+      setObra(orcamento.obra_referencia || "");
+      setUltimoNumeroGerado(orcamento.numero_formatado || "");
 
-        // 3. Refazer o cálculo de área
-        const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-        const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
-
-        // 4. Calcular novos valores
-        const novoValorVidroTotal = areaCobrada * precoVidroM2;
-        const totalAntigoPorPeca = item.total / item.qtd;
-        const novoTotalUnitario = novoValorVidroTotal + (item.valorServicoUn || 0);
-
-        return {
-          ...item,
-          descricao: `${novoVidro.nome} ${novoVidro.espessura || ''}`,
-          vidro_id: novoVidro.id,
-          total: novoTotalUnitario * item.qtd
-        };
+      // 3. O PONTO CHAVE: Atualiza a lista de itens da tabela
+      if (orcamento.itens && Array.isArray(orcamento.itens)) {
+        console.log("Itens carregados:", orcamento.itens);
+        setItens(orcamento.itens);
       }
-      return item;
-    }));
-
-    setSelecionados([]); // Limpa seleção após a troca
-  };
-
-  const router = { push: (url: string) => console.log(url) }
-  const handleLogout = () => console.log("logout")
-
-  const handleEditarItem = (item: any) => {
-    setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
-
-    const [l, a] = item.medidaCalc.split('x');
-    setLargura(l.replace(/\D/g, '')); // Pega só os números
-    setAltura(a.replace(/\D/g, ''));
-    setQuantidade(item.qtd);
-
-    const vidro = listaVidros.find(v => item.descricao.includes(v.nome));
-    if (vidro) setVidroSelecionado(vidro);
-
-    const servico = listaServicos.find(s => s.nome === item.servico);
-    setServicoSelecionado(servico || null);
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    }
+  } catch (err) {
+    console.error("Erro ao carregar orçamento para edição:", err);
+  }
+};
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function carregarDados() {
@@ -175,7 +150,12 @@ const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
     carregarDados();
   }, [empresaId, checkingAuth]);
 
-  // 3. Adicione esta trava de segurança antes do return principal
+  useEffect(() => {
+  if (editId && isMounted && listaClientes.length > 0) {
+    buscarOrcamentoParaEdicao(editId);
+  }
+}, [editId, isMounted, listaClientes]);
+
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -183,14 +163,15 @@ const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
       </div>
     );
   }
-  const adicionarItem = () => {
-    const l = parseFloat(largura);
-    const a = parseFloat(altura);
 
-    if (!l || !a || !vidroSelecionado) {
-      setMostrarModalAviso(true);
-      return;
-    }
+const adicionarItem = () => {
+  const l = parseFloat(largura);
+  const a = parseFloat(altura);
+
+  if (!l || !a || !vidroSelecionado) {
+    setMostrarModalAviso(true);
+    return;
+  }
 
     const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
     const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
@@ -262,6 +243,141 @@ const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
     setQuantidadeServico(1); // Reseta o CNC
     setTimeout(() => larguraRef.current?.focus(), 50);
   };
+
+
+
+
+
+
+
+
+
+  // Função para troca em massa com recálculo total
+  const trocarMaterialSelecionados = (novoVidroId: string) => {
+    if (!novoVidroId) return;
+
+    const novoVidro = listaVidros.find((v: Vidro) => String(v.id) === String(novoVidroId));
+    if (!novoVidro) return;
+
+    // Pegamos o grupo do cliente para garantir o preço especial na troca
+    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
+    const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
+
+    setItens(prev => prev.map(item => {
+      if (selecionados.includes(item.id)) {
+        // 1. Identificar o preço (Especial ou Padrão) para o NOVO vidro
+        const precoEspecial = precosEspeciais.find(p =>
+          String(p.vidro_id) === String(novoVidro.id) &&
+          String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
+        );
+        const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
+        const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
+
+        // 3. Refazer o cálculo de área
+        const areaM2 = (lCalc / 1000) * (aCalc / 1000);
+        const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+
+        // 4. Calcular novos valores
+        const novoValorVidroTotal = areaCobrada * precoVidroM2;
+        const totalAntigoPorPeca = item.total / item.qtd;
+        const novoTotalUnitario = novoValorVidroTotal + (item.valorServicoUn || 0);
+
+        return {
+          ...item,
+          descricao: `${novoVidro.nome} ${novoVidro.espessura || ''}`,
+          vidro_id: novoVidro.id,
+          total: novoTotalUnitario * item.qtd
+        };
+      }
+      return item;
+    }));
+
+    setSelecionados([]); // Limpa seleção após a troca
+  };
+
+
+  const handleLogout = () => console.log("logout")
+
+  const handleEditarItem = (item: any) => {
+    setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
+
+    const [l, a] = item.medidaCalc.split('x');
+    setLargura(l.replace(/\D/g, '')); // Pega só os números
+    setAltura(a.replace(/\D/g, ''));
+    setQuantidade(item.qtd);
+
+    const vidro = listaVidros.find(v => item.descricao.includes(v.nome));
+    if (vidro) setVidroSelecionado(vidro);
+
+    const servico = listaServicos.find(s => s.nome === item.servico);
+    setServicoSelecionado(servico || null);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+const handleSalvarOrcamento = async () => {
+  if (itens.length === 0) {
+    alert("Adicione pelo menos um item.");
+    return;
+  }
+
+  try {
+    let numeroFinal = "";
+
+    // 1. Gerar ou recuperar número
+    if (editId) {
+      const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
+      numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
+    } else {
+      const dataAtual = new Date();
+      const prefixoData = `OR${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
+      const { data: ultimos } = await supabase.from('orcamentos').select('numero_formatado').like('numero_formatado', `${prefixoData}%`).order('numero_formatado', { ascending: false }).limit(1);
+      
+      let seq = 1;
+      if (ultimos && ultimos.length > 0) {
+        seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
+      }
+      numeroFinal = `${prefixoData}${seq.toString().padStart(2, '0')}`;
+    }
+
+    // 2. Cálculos Totais
+    
+    const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
+    const mTotal = itens.reduce((acc, item) => {
+      const partes = item.medidaCalc.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')));
+      return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
+    }, 0);
+
+    const dadosParaSalvar = {
+      numero_formatado: numeroFinal,
+      cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
+      obra_referencia: obra || "Geral",
+      itens: itens, // O array de objetos vai como JSON
+      valor_total: vTotal,
+      empresa_id: empresaId,
+      metragem_total: mTotal,
+      theme_color: theme.menuIconColor || '#1e3a5a'
+    };
+
+    let error;
+    if (editId) {
+      const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
+      error = err;
+    }
+
+    if (error) throw error;
+
+    setUltimoNumeroGerado(numeroFinal);
+    setMostrarModalSucesso(true);
+
+  } catch (error: any) {
+    console.error("Erro completo:", error);
+    alert("Erro ao salvar no banco: " + error.message);
+  }
+};
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -393,47 +509,7 @@ const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
     return pesoFinal;
   };
 
-const handleSalvarOrcamento = async () => {
-  if (itens.length === 0) return;
-
-  const dataAtual = new Date();
-  const anoMes = `${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  const numeroFormatado = `GC-${anoMes}-${random}`;
-
-  const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
-  const mTotal = itens.reduce((acc, item) => {
-    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
-    return acc + ((l / 1000) * (a / 1000) * item.qtd);
-  }, 0);
-
-  const dadosParaSalvar = {
-    numero_formatado: numeroFormatado,
-    cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
-    obra_referencia: obra || "Geral",
-    itens: itens,
-    valor_total: vTotal,
-    metragem_total: mTotal,
-    peso_total: itens.reduce((acc, item) => acc + calcularPesoItem(item), 0),
-    theme_color: theme.menuIconColor || '#1C415B'
-  };
-
-  try {
-    const { error } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
-    if (error) throw error;
-
-    // AQUI A MÁGICA:
-    setUltimoNumeroGerado(numeroFormatado);
-    setMostrarModalSucesso(true);
-    
-    // Opcional: Limpar itens após salvar
-    // setItens([]); 
-  } catch (error: any) {
-    alert("Erro: " + error.message);
-  }
-};
-
-  return (
+   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR - PADRÃO ORIGINAL */}
@@ -448,7 +524,10 @@ const handleSalvarOrcamento = async () => {
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
               <h1 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
-              <span className="text-xs text-gray-300 font-medium"># {Date.now().toString().slice(-6)}</span>
+              <span className="text-xs text-gray-300 font-medium">
+                {/* Se já salvou, mostra o número oficial. Se não, mostra "Novo" */}
+                # {ultimoNumeroGerado || "NOVO"}
+              </span>
             </div>
 
             {/* ÁREA DE AÇÕES DISCRETAS */}
@@ -489,13 +568,13 @@ const handleSalvarOrcamento = async () => {
                 )}
 
                 {/* Botão Salvar (Sempre visível se houver itens) */}
-               <button
-  onClick={handleSalvarOrcamento}
-  className="flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#2a527d] transition-all active:scale-95 shadow-md"
->
-  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-  Salvar Orçamento
-</button>
+                <button
+                  onClick={handleSalvarOrcamento}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#2a527d] transition-all active:scale-95 shadow-md"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Salvar Orçamento
+                </button>
               </div>
             )}
             {/* --- BOTÃO PDF CORRIGIDO --- */}
@@ -1213,50 +1292,51 @@ const handleSalvarOrcamento = async () => {
         )}
 
         {/* MODAL DISCRETO E AUTOMÁTICO - POSIÇÃO SUPERIOR */}
-{mostrarModalSucesso && (
-  <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
-    <div 
-      className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
-      style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
-    >
-      
-      {/* Ícone com a cor do tema */}
-      <div 
-        className="p-2 rounded-xl flex-shrink-0"
-        style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}
-      >
-        <Sparkles size={20} />
-      </div>
+        {mostrarModalSucesso && (
+          <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
+            <div
+              className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+              style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
+            >
 
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold text-gray-800 tracking-tight">Salvo com sucesso!</h3>
-          <button 
-            onClick={() => setMostrarModalSucesso(false)}
-            className="text-gray-300 hover:text-gray-500 transition-colors ml-2"
-          >
-            <X size={14} />
-          </button>
-        </div>
-        
-        <p className="text-[11px] text-gray-500 mt-0.5 font-mono">
-          Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
-        </p>
+              {/* Ícone com a cor do tema */}
+              <div
+                className="p-2 rounded-xl flex-shrink-0"
+                style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}
+              >
+                <Sparkles size={20} />
+              </div>
 
-        <button 
-          onClick={() => {
-            setMostrarModalSucesso(false);
-            // Redirecionamento futuro
-          }}
-          className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
-        >
-          <ClipboardList size={12} />
-          Ver Histórico
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-gray-800 tracking-tight">Salvo com sucesso!</h3>
+                  <button
+                    onClick={() => setMostrarModalSucesso(false)}
+                    className="text-gray-300 hover:text-gray-500 transition-colors ml-2"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-gray-500 mt-0.5 font-mono">
+                  Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
+                </p>
+
+                <button
+                  onClick={() => {
+                    setMostrarModalSucesso(false);
+                    // Caminho corrigido:
+                    router.push('/admin/relatorio.orcamento');
+                  }}
+                  className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
+                >
+                  <ClipboardList size={12} />
+                  Ver Histórico
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
