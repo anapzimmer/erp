@@ -40,13 +40,13 @@ const menuPrincipal: MenuItem[] = [
 ];
 
 const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-  { nome: "Acabamentos", rota: "/acabamentos", icone: Package },
+  { nome: "Clientes", rota: "/cadastros/clientes", icone: UsersRound },
+  { nome: "Vidros", rota: "/cadastros/vidros", icone: Square },
+  { nome: "Perfis", rota: "/cadastros/perfis", icone: Package },
+  { nome: "Ferragens", rota: "/cadastros/ferragens", icone: Wrench },
+  { nome: "Kits", rota: "/cadastros/kits", icone: Boxes },
+  { nome: "Serviços", rota: "/cadastros/servicos", icone: Briefcase },
+  { nome: "Acabamentos", rota: "/cadastros/acabamentos", icone: Package },
 ];
 
 interface SidebarProps {
