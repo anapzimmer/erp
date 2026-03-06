@@ -23,10 +23,11 @@ const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
+  const carregadoRef = useRef(false);  
   const router = useRouter();
   const searchParams = useSearchParams(); // Adicione esta linha
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
-
+  
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -57,7 +58,7 @@ export default function RelatorioOrçamento() {
   const [mostrarModalLimpar, setMostrarModalLimpar] = useState(false);
   const larguraRef = useRef<HTMLInputElement>(null);
   const alturaRef = useRef<HTMLInputElement>(null);
-  const qtdRef = useRef<HTMLInputElement>(null);  
+  const qtdRef = useRef<HTMLInputElement>(null);
   const [mostrarModalAviso, setMostrarModalAviso] = useState(false);
 
   //excel
@@ -67,7 +68,7 @@ export default function RelatorioOrçamento() {
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
- // Estados para seleção em massa
+  // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<number[]>([]);
 
   // Função para marcar/desmarcar todos
@@ -86,41 +87,49 @@ export default function RelatorioOrçamento() {
     );
   };
 
+  const buscarOrcamentoParaEdicao = async (id: string) => {
+    try {
+      console.log("Buscando orçamento ID:", id);
+      const { data: orcamento, error } = await supabase
+        .from('orcamentos')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-const buscarOrcamentoParaEdicao = async (id: string) => {
-  try {
-    console.log("Buscando orçamento ID:", id); // Log para debug
-    const { data: orcamento, error } = await supabase
-      .from('orcamentos')
-      .select('*')
-      .eq('id', id)
-      .single();
+      if (error) throw error;
 
-    if (error) throw error;
+      if (orcamento) {
+        // 1. Vincula o cliente
+        const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
+        if (clienteEncontrado) setClienteId(clienteEncontrado.id);
 
-    if (orcamento) {
-      // 1. Vincula o cliente (compara por nome ou ID conforme sua lógica)
-      const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
-      if (clienteEncontrado) setClienteId(clienteEncontrado.id);
-      
-      // 2. Preenche os campos básicos
-      setObra(orcamento.obra_referencia || "");
-      setUltimoNumeroGerado(orcamento.numero_formatado || "");
+        // 2. Preenche os campos básicos
+        setObra(orcamento.obra_referencia || "");
+        setUltimoNumeroGerado(orcamento.numero_formatado || "");
 
-      // 3. O PONTO CHAVE: Atualiza a lista de itens da tabela
-      if (orcamento.itens && Array.isArray(orcamento.itens)) {
-        console.log("Itens carregados:", orcamento.itens);
-        setItens(orcamento.itens);
+        // 3. Carrega os itens
+        if (orcamento.itens && Array.isArray(orcamento.itens)) {
+          setItens(orcamento.itens);
+        }
+
+        // REMOVIDO: O router.push('/admin/relatorio.orcamento'); 
+        // Não queremos sair da página, queremos editar nela.
       }
+    } catch (err) {
+      console.error("Erro ao carregar orçamento para edição:", err);
     }
-  } catch (err) {
-    console.error("Erro ao carregar orçamento para edição:", err);
-  }
-};
-  
+  };
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+  if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
+    buscarOrcamentoParaEdicao(editId);
+    carregadoRef.current = true; // Marca como carregado
+  }
+}, [editId, isMounted, listaClientes]);
 
   useEffect(() => {
     async function carregarDados() {
@@ -150,7 +159,7 @@ const buscarOrcamentoParaEdicao = async (id: string) => {
     carregarDados();
   }, [empresaId, checkingAuth]);
 
-  useEffect(() => {
+useEffect(() => {
   if (editId && isMounted && listaClientes.length > 0) {
     buscarOrcamentoParaEdicao(editId);
   }
@@ -164,14 +173,14 @@ const buscarOrcamentoParaEdicao = async (id: string) => {
     );
   }
 
-const adicionarItem = () => {
-  const l = parseFloat(largura);
-  const a = parseFloat(altura);
+  const adicionarItem = () => {
+    const l = parseFloat(largura);
+    const a = parseFloat(altura);
 
-  if (!l || !a || !vidroSelecionado) {
-    setMostrarModalAviso(true);
-    return;
-  }
+    if (!l || !a || !vidroSelecionado) {
+      setMostrarModalAviso(true);
+      return;
+    }
 
     const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
     const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
@@ -244,14 +253,6 @@ const adicionarItem = () => {
     setTimeout(() => larguraRef.current?.focus(), 50);
   };
 
-
-
-
-
-
-
-
-
   // Função para troca em massa com recálculo total
   const trocarMaterialSelecionados = (novoVidroId: string) => {
     if (!novoVidroId) return;
@@ -314,74 +315,74 @@ const adicionarItem = () => {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
-const handleSalvarOrcamento = async () => {
-  if (itens.length === 0) {
-    alert("Adicione pelo menos um item.");
-    return;
-  }
 
-  try {
-    let numeroFinal = "";
+  const handleSalvarOrcamento = async () => {
+    if (itens.length === 0) {
+      alert("Adicione pelo menos um item.");
+      return;
+    }
 
-    // 1. Gerar ou recuperar número
-    if (editId) {
-      const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
-      numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
-    } else {
-      const dataAtual = new Date();
-      const prefixoData = `OR${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
-      const { data: ultimos } = await supabase.from('orcamentos').select('numero_formatado').like('numero_formatado', `${prefixoData}%`).order('numero_formatado', { ascending: false }).limit(1);
-      
-      let seq = 1;
-      if (ultimos && ultimos.length > 0) {
-        seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
+    try {
+      let numeroFinal = "";
+
+      // 1. Gerar ou recuperar número
+      if (editId) {
+        const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
+        numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
+      } else {
+        const dataAtual = new Date();
+        const prefixoData = `OR${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
+        const { data: ultimos } = await supabase.from('orcamentos').select('numero_formatado').like('numero_formatado', `${prefixoData}%`).order('numero_formatado', { ascending: false }).limit(1);
+
+        let seq = 1;
+        if (ultimos && ultimos.length > 0) {
+          seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
+        }
+        numeroFinal = `${prefixoData}${seq.toString().padStart(2, '0')}`;
       }
-      numeroFinal = `${prefixoData}${seq.toString().padStart(2, '0')}`;
+
+      // 2. Cálculos Totais
+      const pesoTotal = itens.reduce((acc, item) => {
+        return acc + (calcularPesoItem(item) || 0);
+      }, 0);
+      const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
+      const mTotal = itens.reduce((acc, item) => {
+        const partes = item.medidaCalc.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')));
+        return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
+      }, 0);
+
+      // No seu handleSalvarOrcamento:
+      const dadosParaSalvar = {
+        numero_formatado: numeroFinal,
+        cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
+        obra_referencia: obra || "Geral",
+        itens: itens, // Supabase entende array como JSONB automaticamente
+        valor_total: Number(vTotal), // Garante que é número
+        empresa_id: empresaId,
+        metragem_total: Number(mTotal) || 0, // Garante que é número
+        peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
+        theme_color: theme.menuIconColor || '#1e3a5a'
+      };
+
+      let error;
+      if (editId) {
+        const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId);
+        error = err;
+      } else {
+        const { error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
+        error = err;
+      }
+
+      if (error) throw error;
+
+      setUltimoNumeroGerado(numeroFinal);
+      setMostrarModalSucesso(true);
+
+    } catch (error: any) {
+      console.error("Erro completo:", error);
+      alert("Erro ao salvar no banco: " + error.message);
     }
-
-    // 2. Cálculos Totais
-    const pesoTotal = itens.reduce((acc, item) => {
-       return acc + (calcularPesoItem(item) || 0);
-    }, 0);
-    const vTotal = itens.reduce((acc, i) => acc + i.total, 0);
-    const mTotal = itens.reduce((acc, item) => {
-      const partes = item.medidaCalc.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')));
-      return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
-    }, 0);
-
-// No seu handleSalvarOrcamento:
-const dadosParaSalvar = {
-  numero_formatado: numeroFinal,
-  cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
-  obra_referencia: obra || "Geral",
-  itens: itens, // Supabase entende array como JSONB automaticamente
-  valor_total: Number(vTotal), // Garante que é número
-  empresa_id: empresaId,
-  metragem_total: Number(mTotal) || 0, // Garante que é número
-  peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
-  theme_color: theme.menuIconColor || '#1e3a5a'
-};
-
-    let error;
-    if (editId) {
-      const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId);
-      error = err;
-    } else {
-      const { error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
-      error = err;
-    }
-
-    if (error) throw error;
-
-    setUltimoNumeroGerado(numeroFinal);
-    setMostrarModalSucesso(true);
-
-  } catch (error: any) {
-    console.error("Erro completo:", error);
-    alert("Erro ao salvar no banco: " + error.message);
-  }
-};
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -513,7 +514,8 @@ const dadosParaSalvar = {
     return pesoFinal;
   };
 
-   return (
+  
+  return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR - PADRÃO ORIGINAL */}
@@ -537,26 +539,27 @@ const dadosParaSalvar = {
             {/* ÁREA DE AÇÕES DISCRETAS */}
             {itens.length > 0 && (
               <div className="ml-6 flex items-center gap-3 animate-fade-in">
-                {/* Seletor de Troca em Massa (Só aparece se houver selecionados) */}
+                {/* Seletor de Troca em Massa */}
                 {selecionados.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm animate-fade-in">
-                    <span className="text-[10px] text-gray-400 uppercase tracking-tighter">
-                      {selecionados.length} Selecionado(s):
+                  <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-full shadow-sm">
+
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                      {selecionados.length} itens
                     </span>
 
-                    <div className="flex items-center gap-1 border-l pl-2 border-gray-200">
-                      {/* Ícone com a cor padrão do sistema */}
-                      <Edit2 size={12} style={{ color: theme.menuIconColor }} />
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+                      <Edit2 size={13} style={{ color: theme.menuIconColor }} />
 
                       <select
                         onChange={(e) => trocarMaterialSelecionados(e.target.value)}
-                        className="bg-transparent border-none text-[10px] uppercase outline-none focus:ring-0 cursor-pointer"
-                        style={{ color: theme.menuIconColor }} // Cor do texto igual ao ícone
+                        // Removido o bg-transparent para dar um leve destaque ao select se necessário, 
+                        // mas mantido o visual limpo com font-medium
+                        className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-slate-700 hover:text-slate-900 transition-colors"
                       >
-                        <option value="" className="text-gray-400">Trocar para...</option>
+                        <option value="" className="text-gray-400">Trocar material...</option>
                         {listaVidros.map(v => (
-                          <option key={v.id} value={v.id} className="text-gray-700">
-                            {v.nome} {v.espessura ? `- ${v.espessura}` : ''} {v.tipo ? `(${v.tipo})` : ''}
+                          <option key={v.id} value={v.id} className="text-slate-700">
+                            {v.nome} {v.espessura ? `| ${v.espessura}mm` : ''}
                           </option>
                         ))}
                       </select>
@@ -564,23 +567,25 @@ const dadosParaSalvar = {
 
                     <button
                       onClick={() => setSelecionados([])}
-                      className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                      className="ml-1 p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-all"
                     >
                       <X size={14} />
                     </button>
                   </div>
                 )}
 
-                {/* Botão Salvar (Sempre visível se houver itens) */}
+                {/* Botão Salvar (Mantido como você gosta) */}
                 <button
                   onClick={handleSalvarOrcamento}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-tighter hover:bg-[#2a527d] transition-all active:scale-95 shadow-md"
+                  className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Salvar Orçamento
                 </button>
               </div>
             )}
+
+
             {/* --- BOTÃO PDF CORRIGIDO --- */}
             <PDFDownloadLink
               document={

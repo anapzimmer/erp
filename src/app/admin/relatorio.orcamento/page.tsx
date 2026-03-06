@@ -399,7 +399,10 @@ export default function RelatorioOrçamento() {
 
                                                             {/* EDITAR - USA O AZUL menuHoverColor (#2A5C7E) NO HOVER */}
                                                             <button
-                                                                onClick={() => router.push(`/calculovidro?edit=${orc.id}`)}
+                                                                onClick={() => {
+                                                                    console.log("Editando ID:", orc.id);
+                                                                    router.push(`/calculovidro?edit=${orc.id}`);
+                                                                }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
                                                                 style={{
                                                                     '--hover-bg': `${theme.menuHoverColor}10`, // 10% de opacidade do seu azul
