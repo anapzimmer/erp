@@ -23,9 +23,9 @@ const menuPrincipal: MenuItem[] = [
     rota: "/orcamentos",
     icone: FileText,
     submenu: [
-      { nome: "Espelhos", rota: "/espelhos" },
-      { nome: "Vidros", rota: "/calculovidro" },
-      { nome: "Vidros PDF", rota: "/calculovidroPDF" },
+      { nome: "Espelhos", rota: "/calculo/espelhos" },
+      { nome: "Vidros", rota: "/calculo/calculovidro" },
+      { nome: "Vidros PDF", rota: "/calculo/vidros-pdf" },
     ],
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
