@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 // 🔥 Importe o novo componente
 import ThemeLoader from "@/components/ThemeLoader";
+import SecurityProvider from "@/components/SecurityProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,9 @@ export default function RootLayout({
         <ThemeProvider>
           {/* 🔥 Agora o Loader está em um componente client separado */}
           <ThemeLoader>
+            <SecurityProvider>
             {children}
+            </SecurityProvider>
           </ThemeLoader>
         </ThemeProvider>
       </body>

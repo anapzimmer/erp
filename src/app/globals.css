@@ -32,6 +32,12 @@ body {
   font-family: 'Inter', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .gc-screen {
@@ -116,6 +122,28 @@ body {
     opacity: 1; 
     transform: scale(1) translateY(0); 
   }
+}
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none; /* Opcional: impede qualquer interação com a imagem */
+}
+
+/* 4. Classe auxiliar caso precise liberar a cópia em algum lugar específico */
+.allow-select {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+input, 
+textarea, 
+[contenteditable="true"] {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  cursor: text;
 }
 
 .animate-fade-in {

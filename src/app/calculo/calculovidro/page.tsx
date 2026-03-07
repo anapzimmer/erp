@@ -23,11 +23,11 @@ const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
-  const carregadoRef = useRef(false);  
+  const carregadoRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams(); // Adicione esta linha
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
-  
+
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -125,11 +125,11 @@ export default function RelatorioOrçamento() {
   }, []);
 
   useEffect(() => {
-  if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
-    buscarOrcamentoParaEdicao(editId);
-    carregadoRef.current = true; // Marca como carregado
-  }
-}, [editId, isMounted, listaClientes]);
+    if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
+      buscarOrcamentoParaEdicao(editId);
+      carregadoRef.current = true; // Marca como carregado
+    }
+  }, [editId, isMounted, listaClientes]);
 
   useEffect(() => {
     async function carregarDados() {
@@ -159,11 +159,11 @@ export default function RelatorioOrçamento() {
     carregarDados();
   }, [empresaId, checkingAuth]);
 
-useEffect(() => {
-  if (editId && isMounted && listaClientes.length > 0) {
-    buscarOrcamentoParaEdicao(editId);
-  }
-}, [editId, isMounted, listaClientes]);
+  useEffect(() => {
+    if (editId && isMounted && listaClientes.length > 0) {
+      buscarOrcamentoParaEdicao(editId);
+    }
+  }, [editId, isMounted, listaClientes]);
 
   if (checkingAuth) {
     return (
@@ -514,7 +514,7 @@ useEffect(() => {
     return pesoFinal;
   };
 
-  
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
@@ -728,7 +728,10 @@ useEffect(() => {
                       type="text"
                       placeholder="0"
                       value={largura}
-                      onChange={(e) => setLargura(e.target.value)}
+                      onChange={(e) => {
+                        const valorNumerico = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        setLargura(valorNumerico);
+                      }}
                       onKeyDown={handleKeyDown}
                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
                focus:border-[var(--menu-icon-color)] focus:ring-2 focus:ring-[var(--menu-icon-color)]/10"
@@ -742,7 +745,10 @@ useEffect(() => {
                       type="text"
                       placeholder="0"
                       value={altura}
-                      onChange={(e) => setAltura(e.target.value)}
+                      onChange={(e) => {
+                        const valorNumerico = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        setAltura(valorNumerico);
+                      }}
                       onKeyDown={handleKeyDown}
                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
                focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-color)]/10"
