@@ -29,32 +29,6 @@ type MenuItem = {
   submenu?: { nome: string; rota: string }[]
 }
 
-// Menus fixos
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos",
-    rota: "/orcamentos",
-    icone: FileText,
-    submenu: [
-      { nome: "Espelhos", rota: "/espelhos" },
-      { nome: "Vidros", rota: "/calculovidro" },
-      { nome: "Vidros PDF", rota: "/calculovidroPDF" },
-    ]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
-
 export default function GestaoPrecosPage() {
   const router = useRouter()
   const pathname = usePathname();

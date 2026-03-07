@@ -64,9 +64,16 @@ export default function Dashboard() {
     fetchData();
   }, [router]);
 
-  const handleSignOut = async () => {
+const handleSignOut = async () => {
+    // 1. Limpa o Supabase Auth
     await supabase.auth.signOut();
-    router.push("/login");
+    
+    // 2. Limpa qualquer cache local persistente (opcional, mas recomendado)
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 3. Força um hard refresh para o login, eliminando o estado da memória
+    window.location.href = "/login";
   };
 
   // Tela de Loading Refinada

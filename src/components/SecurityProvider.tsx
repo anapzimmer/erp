@@ -2,40 +2,56 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SecurityProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
   useEffect(() => {
-    // 1. Bloquear F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S, Ctrl+C e Ctrl+P
+    // --- LÓGICA DE SEGURANÇA (Bloqueios) ---
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && e.key === "I") ||
-        (e.ctrlKey && e.shiftKey && e.key === "J") ||
-        (e.ctrlKey && e.key === "u") ||
-        (e.ctrlKey && e.key === "s") ||
-        (e.ctrlKey && e.key === "p") ||
-        (e.ctrlKey && e.key === "c") // Bloqueia cópia por teclado
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key.toUpperCase())) ||
+        (e.ctrlKey && ["U", "S", "P", "C"].includes(e.key.toLowerCase()))
       ) {
         e.preventDefault();
       }
     };
 
-    // 2. Bloquear clique direito (Menu de contexto)
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
+    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("contextmenu", handleContextMenu);
 
+    // --- LÓGICA DE AUTO-LOGOUT (1 hora) ---
+    let timeout: NodeJS.Timeout;
+
+    const logout = async () => {
+      await supabase.auth.signOut();
+      router.push("/login");
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(logout, 3600000); // 1 hora
+    };
+
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+
+    resetTimer();
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("contextmenu", handleContextMenu);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+      clearTimeout(timeout);
     };
-  }, []);
+  }, [router, supabase]);
 
   return (
-    // 3. Bloquear seleção de texto via CSS Global
     <div className="select-none h-full w-full">
       {children}
     </div>

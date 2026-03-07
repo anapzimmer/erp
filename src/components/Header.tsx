@@ -35,6 +35,7 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  
   return (
     <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
       <div className="flex items-center gap-2 md:gap-4">
@@ -67,9 +68,16 @@ export default function Header({
               <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> 
                 <Settings size={18} className="text-gray-400" />Configurações 
               </button>
-              <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"> 
-                <LogOut size={18} />Sair 
-              </button>
+             <button 
+  type="button" // Essencial: evita submissão de formulários caso o header esteja dentro de um
+  onClick={async () => {
+    setShowUserMenu(false);
+    await handleSignOut(); // Garante que aguardamos a função concluir
+  }} 
+  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+> 
+  <LogOut size={18} />Sair 
+</button>
             </div>
           )}
         </div>

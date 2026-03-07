@@ -196,6 +196,8 @@ export default function CalculoEspelhosPage() {
     };
   }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura]);
 
+  
+
   const adicionarAoPedido = () => {
     if (calculoAtual.total === 0) return;
     const vSel = vidrosDB.find(v => v.id === vidroId);

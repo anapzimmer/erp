@@ -70,6 +70,7 @@ export default function RelatorioOrçamento() {
 
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<number[]>([]);
+   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // Função para marcar/desmarcar todos
   const toggleTodos = () => {

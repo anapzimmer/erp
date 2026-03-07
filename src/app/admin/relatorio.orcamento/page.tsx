@@ -53,21 +53,6 @@ export default function RelatorioOrçamento() {
         return acc;
     }, { diario: 0, semanal: 0, mensal: 0 });
 
-
-    // Funções de Seleção
-    const toggleSelecionarTodos = () => {
-        if (selecionados.length === orcamentosFiltrados.length) {
-            setSelecionados([]);
-        } else {
-            setSelecionados(orcamentosFiltrados.map(o => o.id));
-        }
-    };
-
-    const toggleItem = (id: string) => {
-        setSelecionados(prev =>
-            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-        );
-    };
     const handleDelete = async () => {
         const idsParaDeletar = itemParaExcluir ? [itemParaExcluir.id] : selecionados;
 
