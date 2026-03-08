@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import Sidebar from "@/components/Sidebar"
-import { Plus, Calculator, Trash2, ReceiptText, Menu, Building2, ChevronDown, Printer, Wrench, X, Pencil, ClipboardList } from "lucide-react"
+import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
@@ -18,6 +18,22 @@ type ShapeStyle = {
   borderRadius?: string;
   clipPath?: string;
 };
+
+function gerarNumeroOrcamento() {
+  const hoje = new Date()
+
+  const ano = hoje.getFullYear().toString().slice(-2)
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0")
+  const dia = String(hoje.getDate()).padStart(2, "0")
+
+  const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  const random =
+    letras[Math.floor(Math.random() * letras.length)] +
+    letras[Math.floor(Math.random() * letras.length)] +
+    letras[Math.floor(Math.random() * letras.length)]
+
+  return `OR${ano}${mes}${dia}${random}`
+}
 
 function getShapeStyle(
   tipoVisual: string,
@@ -104,6 +120,7 @@ export default function CalculoEspelhosPage() {
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
   // No topo, junto com os outros estados
   const larguraInputRef = useRef<HTMLInputElement>(null);
+  const [showModalSucesso, setShowModalSucesso] = useState(false);
 
   // --- ESTADOS ---
   const [largura, setLargura] = useState("");
@@ -119,6 +136,8 @@ export default function CalculoEspelhosPage() {
   const [nomeObra, setNomeObra] = useState("");
   const [divisoesLargura, setDivisoesLargura] = useState(1);
   const [divisoesAltura, setDivisoesAltura] = useState(1);
+  const [showModalSalvar, setShowModalSalvar] = useState(false)
+  const [showModalAviso, setShowModalAviso] = useState(false);
 
   // --- CARREGAR DADOS ---
   useEffect(() => {
@@ -137,17 +156,17 @@ export default function CalculoEspelhosPage() {
     carregarDados();
   }, []);
 
- const handleLogout = async () => {
-  try {
-    // 1. Faz o logout no Supabase
-    await supabase.auth.signOut();
-    
-    // 2. Redireciona o usuário para a página de login (ou home)
-    router.push("/login"); 
-  } catch (error) {
-    console.error("Erro ao fazer logout:", error);
-  }
-};
+  const handleLogout = async () => {
+    try {
+      // 1. Faz o logout no Supabase
+      await supabase.auth.signOut();
+
+      // 2. Redireciona o usuário para a página de login (ou home)
+      router.push("/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
 
   // --- CÁLCULO DEPURADO ---
   const calculoAtual = useMemo(() => {
@@ -210,7 +229,9 @@ export default function CalculoEspelhosPage() {
     };
   }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura]);
 
-    const adicionarAoPedido = () => {
+  const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
+
+  const adicionarAoPedido = () => {
     if (calculoAtual.total === 0) return;
     const vSel = vidrosDB.find(v => v.id === vidroId);
     const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
@@ -364,6 +385,53 @@ export default function CalculoEspelhosPage() {
     );
   }, [largura, altura, acabamentoId, acabamentosDB, divisoesLargura, divisoesAltura]);
 
+  const handleSalvarOrcamento = async () => {
+    // Validação
+    if (!nomeCliente || listaItens.length === 0) {
+      setShowModalAviso(true); // Abre o modal de aviso
+      return; // Interrompe a execução
+    }
+    // 1. Validação (mantive a lógica de validação)
+    if (!nomeCliente || listaItens.length === 0) {
+      // Dica: Aqui você poderia trocar por um modal de erro ou toast notification
+      alert("Preencha o cliente e adicione itens.");
+      return;
+    }
+
+    try {
+      const numero = gerarNumeroOrcamento();
+      const totalGeral = listaItens.reduce((sum, item) => sum + item.total, 0);
+      const metragemTotal = listaItens.reduce((sum, item) => sum + (item.m2 || 0), 0);
+
+      const { data, error } = await supabase
+        .from("orcamentos")
+        .insert({
+          numero_formatado: numero,
+          cliente_nome: nomeCliente,
+          obra_referencia: nomeObra,
+          itens: listaItens,
+          valor_total: totalGeral,
+          metragem_total: metragemTotal,
+          theme_color: theme.contentTextLightBg,
+          empresa_id: user?.empresa_id
+        })
+        .select("numero_formatado")
+        .single();
+
+      if (error) throw error;
+
+      // 2. SUCESSO: Limpa os estados e fecha o modal de salvar
+      setUltimoNumeroGerado(data.numero_formatado);
+      setListaItens([]);
+      setShowModalSalvar(false); // Fecha o modal de preenchimento
+      setShowModalPDF(false);    // Fecha caso estivesse aberto
+      setShowModalSucesso(true);
+
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar orçamento.");
+    }
+  };
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -382,24 +450,45 @@ export default function CalculoEspelhosPage() {
       </div>
 
 
-{/* Conteúdo Principal */}
-    <div className="flex-1 flex flex-col w-full min-w-0">
-      
-      {/* AQUI ESTÁ A MÁGICA: Chamando o seu componente padronizado */}
-      <Header
-        nomeEmpresa={nomeEmpresa}
-        usuarioEmail={user?.email || ""}
-        handleSignOut={handleLogout}
-      >
-        {/* Tudo o que estiver aqui dentro será renderizado no 'children' do Header */}
-        <div className="flex items-center gap-2 text-gray-800">
-          <Calculator size={22} style={{ color: theme.menuIconColor }} />
-          <h1 className="text-lg md:text-xl font-bold truncate">Cálculo de Espelho</h1>
-        </div>
-      </Header>
+      {/* Conteúdo Principal */}
+      <div className="flex-1 flex flex-col w-full min-w-0">
+
+        {/* AQUI ESTÁ A MÁGICA: Chamando o seu componente padronizado */}
+        <Header
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={user?.email || ""}
+          handleSignOut={handleLogout}
+          setShowMobileMenu={() => { }}
+        >
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Espelho</h1>
+              <span className="text-xs text-gray-800 "># {ultimoNumeroGerado || "NOVO"}</span>
+            </div>
+
+            {/* ÁREA DE AÇÕES DISCRETAS */}
+            <div className="ml-6 flex items-center gap-3 animate-fade-in">
+              <button
+                onClick={() => setShowModalSalvar(true)}
+                className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Salvar Orçamento
+              </button>
+
+              {/* Ícone discreto para PDF */}
+              <button
+                onClick={() => setShowModalPDF(true)}
+                className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
+              >
+                <Printer size={20} />
+              </button>
+            </div>
+          </div>
+        </Header>
 
 
-       <main className="p-4 md:p-8 flex-1 overflow-y-auto">
+        <main className="p-4 md:p-8 flex-1 overflow-y-auto">
           {/* O header antigo foi removido daqui */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
             {/* Coluna Esquerda: Configurações */}
@@ -723,6 +812,7 @@ export default function CalculoEspelhosPage() {
           </div>
         </main>
       </div>
+
       {/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
       {showModalPDF && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
@@ -730,120 +820,62 @@ export default function CalculoEspelhosPage() {
             style={{
               backgroundColor: theme.modalBackgroundColor,
               color: theme.modalTextColor,
-              // --- ALTERAÇÃO: Cor da borda externa para gray-100 ---
               borderColor: '#F3F4F6',
             }}
-            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border overflow-hidden flex flex-col md:flex-row items-center"
+            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border overflow-hidden flex flex-col md:flex-row"
           >
-            {/* LADO ESQUERDO: CONTEXTO/ALERTA */}
-            <div
-              className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center"
-              style={{ backgroundColor: `${theme.menuIconColor}08` }}
-            >
-              <div
-                className="p-4 rounded-full mb-6"
-                style={{
-                  backgroundColor: `${theme.menuIconColor}15`,
-                  color: theme.menuIconColor
-                }}
-              >
+            {/* LADO ESQUERDO */}
+            <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `${theme.menuIconColor}08` }}>
+              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
                 <ClipboardList size={32} />
               </div>
               <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
-              <p
-                className="text-sm opacity-70"
-                style={{ color: theme.modalTextColor }}
-              >
-                Preencha os dados ao lado para personalizar seu PDF antes de baixar.
-              </p>
+              <p className="text-sm opacity-70">Preencha os dados ao lado para personalizar seu PDF antes de baixar.</p>
             </div>
 
-            {/* LADO DIREITO: DADOS E AÇÃO */}
+            {/* LADO DIREITO */}
             <div className="p-8 md:w-3/5 flex flex-col">
-              <div className="flex justify-end mb-8">
-                <button
-                  onClick={() => setShowModalPDF(false)}
-                  className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                  style={{ color: theme.modalTextColor }}
-                >
+              <div className="flex justify-end mb-4">
+                <button onClick={() => setShowModalPDF(false)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-6 mb-10  flex-grow">
+              <div className="space-y-6 mb-8 flex-grow">
                 <div>
-                  <label
-                    className="text-[10px] font-bold uppercase tracking-widest block mb-1.5"
-                    style={{ color: theme.modalTextColor, opacity: 0.5 }}
-                  >
-                    Cliente
-                  </label>
-                  <input
-                    type="text"
-                    value={nomeCliente}
-                    onChange={(e) => setNomeCliente(e.target.value)}
-                    className="w-full bg-transparent border-b py-2.5 outline-none transition-all text-sm"
-                    style={{
-                      // --- ALTERAÇÃO: Cor da borda do input para gray-100 ---
-                      borderColor: '#F3F4F6',
-                      color: theme.modalTextColor,
-                    }}
-                    placeholder="Nome do cliente..."
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Cliente</label>
+                  <input type="text" value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} className="w-full bg-transparent border-b py-2.5 outline-none text-sm" placeholder="Nome do cliente..." />
                 </div>
                 <div>
-                  <label
-                    className="text-[10px] font-bold uppercase tracking-widest block mb-1.5"
-                    style={{ color: theme.modalTextColor, opacity: 0.5 }}
-                  >
-                    Obra / Referência
-                  </label>
-                  <input
-                    type="text"
-                    value={nomeObra}
-                    onChange={(e) => setNomeObra(e.target.value)}
-                    className="w-full bg-transparent border-b py-2.5 outline-none transition-all text-sm"
-                    style={{
-                      // --- ALTERAÇÃO: Cor da borda do input para gray-100 ---
-                      borderColor: '#F3F4F6',
-                      color: theme.modalTextColor,
-                    }}
-                    placeholder="Ex: Apartamento 402..."
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / Referência</label>
+                  <input type="text" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} className="w-full bg-transparent border-b py-2.5 outline-none text-sm" placeholder="Ex: Apartamento 402..." />
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex flex-col gap-3 mt-auto">
+
+                {/* BAIXAR PDF */}
                 <PDFDownloadLink
                   document={
                     <EspelhosPDF
                       itens={listaItens}
                       nomeEmpresa={nomeEmpresa}
-                      // Passa a logo configurada para fundo claro
                       logoUrl={theme.logoLightUrl || '/glasscode.png'}
-                      // Passa a cor de destaque do tema (azul do seu sistema)
                       themeColor={theme.contentTextLightBg}
                       nomeCliente={nomeCliente}
                       nomeObra={nomeObra}
                     />
                   }
-                  fileName={`Orçamento ${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'} - N° ${Date.now().toString().slice(-6)}.pdf`}
+                  fileName={`Orçamento_${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'}.pdf`}
+                  className="w-full"
                 >
                   {({ loading }) => (
                     <button
                       disabled={loading}
-                      onClick={() => {
-                        setTimeout(() => setShowModalPDF(false), 500);
-                      }}
-                      className="px-5 py-2.5 rounded-xl font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm border"
-                      style={{
-                        backgroundColor: '#F3F4F6',
-                        color: theme.menuBackgroundColor,
-                        borderColor: '#E5E7EB',
-                      }}
+                      className="w-full px-5 py-3 rounded-xl font-semibold bg-[#1e3a5a] text-white hover:bg-[#2a527d] transition-all text-sm flex items-center justify-center gap-2"
                     >
                       <Printer size={16} />
-                      {loading ? "Gerando..." : "Gerar PDF"}
+                      {loading ? "Gerando PDF..." : "Baixar Orçamento"}
                     </button>
                   )}
                 </PDFDownloadLink>
@@ -852,7 +884,162 @@ export default function CalculoEspelhosPage() {
           </div>
         </div>
       )}
-    </div>
+      {/* MODAL DE SALVAR ORÇAMENTO */}
+      {showModalSalvar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div
+            style={{
+              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
+              color: theme.modalTextColor || '#1F2937',
+            }}
+            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100 overflow-hidden flex flex-col md:flex-row"
+          >
+            {/* LADO ESQUERDO (Acentuado) */}
+            <div
+              className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center"
+              style={{ backgroundColor: `${theme.menuIconColor}08` }}
+            >
+              <div
+                className="p-4 rounded-full mb-6"
+                style={{
+                  backgroundColor: `${theme.menuIconColor}15`,
+                  color: theme.menuIconColor,
+                }}
+              >
+                <Save size={32} />
+              </div>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Salvar Orçamento</h3>
+              <p className="text-sm opacity-70">Preencha os dados ao lado para salvar o orçamento no sistema.</p>
+            </div>
 
+            {/* LADO DIREITO (Formulário) */}
+            <div className="p-8 md:w-3/5 flex flex-col">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowModalSalvar(false)}
+                  className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-6 mb-8 flex-grow">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Cliente</label>
+                  <input
+                    type="text"
+                    value={nomeCliente}
+                    onChange={(e) => setNomeCliente(e.target.value)}
+                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    placeholder="Nome do cliente..."
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / Referência</label>
+                  <input
+                    type="text"
+                    value={nomeObra}
+                    onChange={(e) => setNomeObra(e.target.value)}
+                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    placeholder="Ex: Apartamento 402..."
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleSalvarOrcamento}
+                className="w-full px-4 py-3 rounded-xl font-semibold text-white transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
+                style={{ backgroundColor: theme.menuBackgroundColor }}
+              >
+                <Save size={16} />
+                Salvar Orçamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE SUCESSO */}
+      {showModalSucesso && (
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
+          <div
+            className="backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+            style={{
+              backgroundColor: `${theme.modalBackgroundColor || '#FFFFFF'}F0`, // Adiciona leve transparência
+              borderRight: `4px solid ${theme.menuIconColor}`,
+              color: theme.modalTextColor
+            }}
+          >
+            {/* Ícone com a cor do tema */}
+            <div
+              className="p-2 rounded-xl flex-shrink-0"
+              style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}
+            >
+              <Sparkles size={20} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold tracking-tight opacity-90">Salvo com sucesso!</h3>
+                <button
+                  onClick={() => setShowModalSucesso(false)}
+                  className="opacity-30 hover:opacity-100 transition-colors ml-2"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <p className="text-[11px] mt-0.5 font-mono opacity-60">
+                Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
+              </p>
+
+              <button
+                onClick={() => {
+                  setShowModalSucesso(false);
+                  router.push('/admin/relatorio.orcamento');
+                }}
+                className="text-[10px] font-bold opacity-50 hover:opacity-100 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
+              >
+                <ClipboardList size={12} />
+                Ver Histórico
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showModalAviso && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div
+            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-gray-100"
+            style={{
+              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
+              color: theme.modalTextColor || '#1F2937'
+            }}
+          >
+            {/* Ícone com Animação de Pulso */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6 relative">
+              <div className="absolute inset-0 rounded-full bg-amber-200 animate-ping opacity-20"></div>
+              <AlertTriangle size={32} className="text-amber-500 animate-bounce" />
+            </div>
+
+            <h3 className="text-xl font-bold mb-2">Quase lá!</h3>
+            <p className="text-sm opacity-60 mb-8">
+              Para prosseguir, certifique-se de que o <strong>nome do cliente</strong> foi preenchido e que existem <strong>itens adicionados</strong> ao orçamento.
+            </p>
+
+            <button
+              onClick={() => setShowModalAviso(false)}
+              className="px-8 py-2 rounded-xl text-sm transition-all border-1 hover:bg-opacity-10 active:bg-opacity-100"
+              style={{
+                borderColor: theme.menuIconColor,
+                color: theme.menuIconColor,
+                backgroundColor: 'transparent'
+              }}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

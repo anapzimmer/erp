@@ -126,14 +126,7 @@ export default function RelatorioOrçamento() {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
-      buscarOrcamentoParaEdicao(editId);
-      carregadoRef.current = true; // Marca como carregado
-    }
-  }, [editId, isMounted, listaClientes]);
-
-  useEffect(() => {
+ useEffect(() => {
     async function carregarDados() {
       if (checkingAuth || !empresaId) return;
 
@@ -160,12 +153,13 @@ export default function RelatorioOrçamento() {
     }
     carregarDados();
   }, [empresaId, checkingAuth]);
-
-  useEffect(() => {
-    if (editId && isMounted && listaClientes.length > 0) {
-      buscarOrcamentoParaEdicao(editId);
-    }
-  }, [editId, isMounted, listaClientes]);
+  
+useEffect(() => {
+  if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
+    buscarOrcamentoParaEdicao(editId);
+    carregadoRef.current = true;
+  }
+}, [editId, isMounted, listaClientes]);
 
   if (checkingAuth) {
     return (
@@ -330,8 +324,13 @@ export default function RelatorioOrçamento() {
         numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
       } else {
         const dataAtual = new Date();
-        const prefixoData = `OR${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
-        const { data: ultimos } = await supabase.from('orcamentos').select('numero_formatado').like('numero_formatado', `${prefixoData}%`).order('numero_formatado', { ascending: false }).limit(1);
+        const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
+        const { data: ultimos } = await supabase
+          .from('orcamentos')
+          .select('numero_formatado')
+          .like('numero_formatado', `${prefixoData}%`)
+          .order('numero_formatado', { ascending: false })
+          .limit(1);
 
         let seq = 1;
         if (ultimos && ultimos.length > 0) {
@@ -514,14 +513,14 @@ export default function RelatorioOrçamento() {
   };
 
   const handleLogout = async () => {
-  try {
-    await supabase.auth.signOut();
-    router.push("/login"); // Força o redirecionamento
-    router.refresh();      // Garante que o estado do Next.js seja limpo
-  } catch (error) {
-    console.error("Erro ao sair:", error);
-  }
-};
+    try {
+      await supabase.auth.signOut();
+      router.push("/login"); // Força o redirecionamento
+      router.refresh();      // Garante que o estado do Next.js seja limpo
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+    }
+  };
 
 
   return (
@@ -534,20 +533,20 @@ export default function RelatorioOrçamento() {
 
       <div className="flex-1 flex flex-col w-full min-w-0">
 
-<Header 
-  nomeEmpresa={nomeEmpresa} 
-  usuarioEmail={user?.email || ""} 
-  handleSignOut={handleLogout}
-  setShowMobileMenu={() => {}}
->
-  {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
-  <div className="flex items-center gap-6">
-    <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-       <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
-       <span className="text-xs text-gray-800 font-bold"># {ultimoNumeroGerado || "NOVO"}</span>
-    </div>
+        <Header
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={user?.email || ""}
+          handleSignOut={handleLogout}
+          setShowMobileMenu={() => { }}
+        >
+          {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
+              <span className="text-xs text-gray-800 font-bold"># {ultimoNumeroGerado || "NOVO"}</span>
+            </div>
 
-  {/* ÁREA DE AÇÕES DISCRETAS */}
+            {/* ÁREA DE AÇÕES DISCRETAS */}
             {itens.length > 0 && (
               <div className="ml-6 flex items-center gap-3 animate-fade-in">
                 {/* Seletor de Troca em Massa */}
@@ -649,7 +648,7 @@ export default function RelatorioOrçamento() {
               )}
             </PDFDownloadLink>
           </div>
-      </Header>
+        </Header>
 
         <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
           {/* IDENTIFICAÇÃO: CLIENTE E OBRA */}

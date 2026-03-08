@@ -25,8 +25,7 @@ const menuPrincipal: MenuItem[] = [
     submenu: [
       { nome: "Espelhos", rota: "/calculo/espelhos" },
       { nome: "Vidros", rota: "/calculo/calculovidro" },
-      { nome: "Vidros PDF", rota: "/calculo/vidros-pdf" },
-    ],
+       ],
   },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   { 
