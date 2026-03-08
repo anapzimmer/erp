@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
-import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2, PlusCircle, X, Printer, Plus, Loader2 } from "lucide-react"
+import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2,Square, PlusCircle, X, Printer, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
@@ -20,7 +20,6 @@ type PrecoGrupo = { id: string; vidro_id: string; grupo_preco_id: string; preco:
 type Grupo = { id: string; nome: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
-import { LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound } from "lucide-react"
 
 // --- Utils ---
 const formatarParaBanco = (texto: string) => { if (!texto) return ""; return texto.trim().charAt(0).toUpperCase() + texto.trim().slice(1) }
