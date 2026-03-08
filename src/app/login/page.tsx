@@ -268,14 +268,19 @@ const LoginPage = () => {
             {/* Email */}
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1C415B]/30 group-focus-within:text-[#39B89F] transition-colors" size={18} />
-              <input
-                type="email"
-                placeholder="E-mail profissional"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
-                required
-              />
+             <input
+  type="email"
+  placeholder="E-mail profissional"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      handleLogin(e as any)
+    }
+  }}
+  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
+  required
+/>
             </div>
 
             {/* Senha */}
@@ -286,6 +291,11 @@ const LoginPage = () => {
                 placeholder="Sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleLogin(e as any)
+                  }
+                }}
                 className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
                 required
               />
