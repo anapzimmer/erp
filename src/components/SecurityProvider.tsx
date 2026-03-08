@@ -22,8 +22,10 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
 
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("contextmenu", handleContextMenu);
+    if (process.env.NODE_ENV !== 'development') {
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("contextmenu", handleContextMenu);
+    }
 
     // --- LÓGICA DE AUTO-LOGOUT (1 hora) ---
     let timeout: NodeJS.Timeout;
