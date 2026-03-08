@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import Sidebar from "@/components/Sidebar"
+import Header from "@/components/Header"
 import { Building2, ChevronDown, Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
 import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
@@ -296,9 +297,6 @@ export default function RelatorioOrçamento() {
     setSelecionados([]); // Limpa seleção após a troca
   };
 
-
-  const handleLogout = () => console.log("logout")
-
   const handleEditarItem = (item: any) => {
     setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
 
@@ -514,6 +512,16 @@ export default function RelatorioOrçamento() {
     return pesoFinal;
   };
 
+  const handleLogout = async () => {
+  try {
+    await supabase.auth.signOut();
+    router.push("/login"); // Força o redirecionamento
+    router.refresh();      // Garante que o estado do Next.js seja limpo
+  } catch (error) {
+    console.error("Erro ao sair:", error);
+  }
+};
+
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -525,18 +533,20 @@ export default function RelatorioOrçamento() {
 
       <div className="flex-1 flex flex-col w-full min-w-0">
 
-        {/* HEADER - PADRÃO ORIGINAL RESTAURADO */}
-        <header className="border-b border-gray-100 py-4 px-6 flex items-center justify-between sticky top-0 z-30 bg-white/80 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <h1 className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
-              <span className="text-xs text-gray-300 font-medium">
-                {/* Se já salvou, mostra o número oficial. Se não, mostra "Novo" */}
-                # {ultimoNumeroGerado || "NOVO"}
-              </span>
-            </div>
+<Header 
+  nomeEmpresa={nomeEmpresa} 
+  usuarioEmail={user?.email || ""} 
+  handleSignOut={handleLogout}
+  setShowMobileMenu={() => {}}
+>
+  {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
+  <div className="flex items-center gap-6">
+    <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+       <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
+       <span className="text-xs text-gray-800 font-bold"># {ultimoNumeroGerado || "NOVO"}</span>
+    </div>
 
-            {/* ÁREA DE AÇÕES DISCRETAS */}
+  {/* ÁREA DE AÇÕES DISCRETAS */}
             {itens.length > 0 && (
               <div className="ml-6 flex items-center gap-3 animate-fade-in">
                 {/* Seletor de Troca em Massa */}
@@ -638,33 +648,7 @@ export default function RelatorioOrçamento() {
               )}
             </PDFDownloadLink>
           </div>
-
-
-          <div className="relative" ref={userMenuRef}>
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-75 transition-all">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <Building2 size={16} className="text-gray-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 mt-3 w-56 bg-white rounded-1xl shadow-xl border border-gray-100 p-2 z-50">
-                <div className="px-3 py-2 border-b border-gray-100">
-                  <p className="text-xs text-gray-400 font-medium">Logado como</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate">{user?.email}</p>
-                </div>
-                <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                  <Wrench size={16} /> Configurações
-                </button>
-                <button onClick={handleLogout} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl">
-                  <X size={16} /> Sair
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+      </Header>
 
         <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
           {/* IDENTIFICAÇÃO: CLIENTE E OBRA */}

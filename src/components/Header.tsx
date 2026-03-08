@@ -7,7 +7,7 @@ import { Menu, Building2, ChevronDown, Settings, LogOut } from "lucide-react";
 
 
 interface HeaderProps {
-  setShowMobileMenu: (show: boolean) => void;
+  setShowMobileMenu?: (show: boolean) => void;
   nomeEmpresa: string;
   usuarioEmail: string;
   handleSignOut: () => void;
@@ -41,7 +41,7 @@ export default function Header({
   return (
     <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
       <div className="flex items-center gap-2 md:gap-4">
-        <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
+        <button onClick={() => setShowMobileMenu?.(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
           <Menu size={24} className="text-gray-600" />
         </button>
 
@@ -50,7 +50,7 @@ export default function Header({
           <img src={logoUrl} alt="Logo" className="h-8 md:h-10 w-auto object-contain ml-2" />
         )}
 
-          {children}
+        {children}
       </div>
 
       <div className="flex items-center gap-3">
@@ -73,14 +73,15 @@ export default function Header({
                 <Settings size={18} className="text-gray-400" />Configurações
               </button>
               <button
-                type="button" // Essencial: evita submissão de formulários caso o header esteja dentro de um
-                onClick={async () => {
-                  setShowUserMenu(false);
-                  await handleSignOut(); // Garante que aguardamos a função concluir
+                type="button" // OBRIGATÓRIO: impede que o botão tente submeter um <form> ao redor
+                onClick={async (e) => {
+                  e.stopPropagation(); // Evita que o evento de clique "vaze" para outros elementos
+                  setShowUserMenu(false); // Fecha o menu
+                  await handleSignOut();  // Executa a função de logout
                 }}
                 className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
               >
-                <LogOut size={18} />Sair
+                <LogOut size={18} /> Sair
               </button>
             </div>
           )}
