@@ -12,6 +12,7 @@ import { pdf } from '@react-pdf/renderer';
 import { PerfisPDF } from '@/app/relatorios/perfis/PerfisPDF';
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }

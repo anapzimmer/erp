@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Settings, Layers, RefreshCw } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import ThemeLoader from "@/components/ThemeLoader"
 
 export default function ConfiguracaoTipologia() {
   const router = useRouter();

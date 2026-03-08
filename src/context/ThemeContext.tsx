@@ -139,6 +139,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     fetchTheme();
   }, [fetchTheme]);
 
+  
   // Sincronização de CSS Variables
   useEffect(() => {
     const root = document.documentElement;

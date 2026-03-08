@@ -10,6 +10,7 @@ import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
+import ThemeLoader from "@/components/ThemeLoader"
 
 export default function RelatorioOrçamento() {
     const router = useRouter()

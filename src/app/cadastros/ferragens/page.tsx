@@ -14,6 +14,7 @@ import Image from "next/image"
 import { useTheme } from "@/context/ThemeContext";
 import type { Ferragem } from "@/types/ferragem"
 import Sidebar from "@/components/Sidebar";
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }

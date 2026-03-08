@@ -12,6 +12,7 @@ import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto 
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }

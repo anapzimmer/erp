@@ -8,6 +8,9 @@ import { Plus, Calculator, Trash2, ReceiptText, Menu, Building2, ChevronDown, Pr
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
+import Header from "@/components/Header"
+import { useRouter } from "next/navigation";
+import ThemeLoader from "@/components/ThemeLoader"
 
 type ShapeStyle = {
   width: number;
@@ -92,13 +95,12 @@ function getShapeStyle(
 }
 
 export default function CalculoEspelhosPage() {
+  const router = useRouter();
   const { theme } = useTheme();
   const { nomeEmpresa, user } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false); // Adicionado state do menu
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const router = { push: (url: string) => console.log(url) }; // Simulação do router
-  const handleLogout = () => console.log("logout"); // Simulação do logout
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
   // No topo, junto com os outros estados
   const larguraInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +136,18 @@ export default function CalculoEspelhosPage() {
     };
     carregarDados();
   }, []);
+
+ const handleLogout = async () => {
+  try {
+    // 1. Faz o logout no Supabase
+    await supabase.auth.signOut();
+    
+    // 2. Redireciona o usuário para a página de login (ou home)
+    router.push("/login"); 
+  } catch (error) {
+    console.error("Erro ao fazer logout:", error);
+  }
+};
 
   // --- CÁLCULO DEPURADO ---
   const calculoAtual = useMemo(() => {
@@ -196,9 +210,7 @@ export default function CalculoEspelhosPage() {
     };
   }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura]);
 
-  
-
-  const adicionarAoPedido = () => {
+    const adicionarAoPedido = () => {
     if (calculoAtual.total === 0) return;
     const vSel = vidrosDB.find(v => v.id === vidroId);
     const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
@@ -369,77 +381,25 @@ export default function CalculoEspelhosPage() {
         />
       </div>
 
-      {/* --- SEU LAYOUT ORIGINAL --- */}
-      <div className="flex-1 flex flex-col w-full min-w-0">
-        <header
-          className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
-          style={{ backgroundColor: theme.menuTextColor || '#ffffff' }}
-        >
-          {/* --- LADO ESQUERDO ALTERADO --- */}
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => setShowMobileMenu(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-            >
-              <Menu size={24} className="text-gray-600" />
-            </button>
-            
 
-            {/* Ícone e Título da Página */}
-            <div className="flex items-center gap-2 text-gray-800">
-              {/* CORREÇÃO: Usando a cor do tema para o ícone */}
-              <Calculator size={22} style={{ color: theme.menuIconColor }} />
-              <h1 className="text-lg md:text-xl font-bold truncate">
-                Cálculo de Espelho
-              </h1>
-            </div>
-            {/* --------------------------------- */}
-          </div>
+{/* Conteúdo Principal */}
+    <div className="flex-1 flex flex-col w-full min-w-0">
+      
+      {/* AQUI ESTÁ A MÁGICA: Chamando o seu componente padronizado */}
+      <Header
+        nomeEmpresa={nomeEmpresa}
+        usuarioEmail={user?.email || ""}
+        handleSignOut={handleLogout}
+      >
+        {/* Tudo o que estiver aqui dentro será renderizado no 'children' do Header */}
+        <div className="flex items-center gap-2 text-gray-800">
+          <Calculator size={22} style={{ color: theme.menuIconColor }} />
+          <h1 className="text-lg md:text-xl font-bold truncate">Cálculo de Espelho</h1>
+        </div>
+      </Header>
 
-          <div className="flex items-center gap-3">
-            {/* --- BOTÃO IMPRIMIR PDF --- */}
-            {listaItens.length > 0 && (
-              <button
-                onClick={() => setShowModalPDF(true)}
-                className="flex items-center gap-2 p-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-gray-100"
-                style={{ color: theme.contentTextLightBg }}
-                title="Gerar PDF"
-              >
-                <Printer size={20} />
-              </button>
-            )}
-            
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
-              </button>
 
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400 font-medium">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{user?.email || "usuario@email.com"}</p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                    <Wrench size={18} className="text-gray-400" /> Configurações
-                  </button>
-                  <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-                    <X size={18} className="text-red-500" /> Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="p-4 md:p-8 flex-1 overflow-y-auto">
+       <main className="p-4 md:p-8 flex-1 overflow-y-auto">
           {/* O header antigo foi removido daqui */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
             {/* Coluna Esquerda: Configurações */}

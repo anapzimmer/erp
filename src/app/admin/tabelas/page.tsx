@@ -10,6 +10,7 @@ import Image from "next/image"
 import { useTheme } from "@/context/ThemeContext"
 import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string

@@ -81,5 +81,17 @@ export function useAuth() {
     checkUser();
   }, [router]);
 
-  return { user, perfilUsuario, empresaId, nomeEmpresa, loading };
+  
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+    }
+  };
+
+  // Exponha o signOut no retorno do hook:
+  return { user, perfilUsuario, empresaId, nomeEmpresa, loading, signOut };
 }

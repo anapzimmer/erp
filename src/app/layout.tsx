@@ -22,11 +22,7 @@ export const metadata: Metadata = {
   description: "Sistema de Gestão",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body

@@ -10,6 +10,7 @@ import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar" // 🔥 IMPORTAÇÃO DO COMPONENTE SIDEBAR CORRETO
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- Tipagens ---
 type Cliente = { 

@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
+import ThemeLoader from "@/components/ThemeLoader"
 
 interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }

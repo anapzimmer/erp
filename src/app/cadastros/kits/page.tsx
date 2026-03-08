@@ -9,6 +9,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { KitsPDF } from "app/relatorios/kits/KitsPDF";
 import { useTheme } from "@/context/ThemeContext";
 import Sidebar from "@/components/Sidebar";
+import ThemeLoader from "@/components/ThemeLoader"
 
 // --- TIPAGENS ---
 type Kit = {
