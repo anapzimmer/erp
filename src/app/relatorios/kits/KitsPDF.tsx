@@ -1,137 +1,94 @@
-// src/app/relatorios/espelhos/EspelhosPDF.tsx
 "use client";
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image as PDFImage, Font } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { formatarPreco } from "@/utils/formatarPreco";
 
-// Nota: Para um visual ainda mais delicado, você poderia registrar uma fonte customizada (ex: Roboto Light)
-// Font.register({ family: 'Roboto', src: '...' });
-
-interface ItemPedido {
+interface Kit {
   id: number;
-  descricao: string;
-  medidas: string;
-  quantidade: number;
-  total: number;
+  nome: string;
+  largura: number;
+  altura: number;
+  categoria: string | null;
+  cores: string | null;
+  preco: number | null;
 }
 
-interface EspelhosPDFProps {
-  itens: any[];
-  nomeEmpresa: string;
-  logoUrl?: string;
-  themeColor: string;
-  nomeCliente?: string; // ADICIONE ESTA LINHA
-  nomeObra?: string;    // ADICIONE ESTA LINHA
+interface KitsPDFProps {
+  dados: Kit[];
+  empresa: string;
+  logoUrl: string | null;
+  coresEmpresa: {
+    primary: string;
+    secondary: string;
+    tertiary: string;
+    textDefault: string;
+  };
 }
 
-const createStyles = (themeColor: string) => StyleSheet.create({
-  page: { padding: 40, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
-  
-  // Cabeçalho Delicado
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 },
-  headerLeft: { flexDirection: 'column' },
-  empresaNome: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  tituloRelatorio: { fontSize: 24, fontWeight: 'light', color: themeColor, marginTop: 10 },
-  headerRight: { width: 100, height: 50, alignItems: 'flex-end' },
-  logo: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' },
-  
-  // Seção de Clientes Refinada
-  infoSection: { marginBottom: 30, padding: 15, backgroundColor: '#fbfbfb', borderRadius: 4, borderLeftWidth: 2, borderLeftColor: themeColor },
-  infoRow: { flexDirection: 'row', marginBottom: 5 },
-  infoLabel: { fontSize: 9, color: '#777', width: 50 },
-  infoValue: { fontSize: 9, color: '#333', fontWeight: 'bold' },
+export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps) {
+  const dataGeracao = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  }).format(new Date());
 
-  // Tabela Minimalista
-  table: { width: '100%' },
-  tableHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e0e0e0', paddingBottom: 8 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingVertical: 12 },
-  
-  colDesc: { width: '50%', fontSize: 9, color: '#333' },
-  colMedidas: { width: '20%', fontSize: 9, color: '#555' },
-  colQtd: { width: '10%', fontSize: 9, color: '#555', textAlign: 'center' },
-  colTotal: { width: '20%', fontSize: 9, color: '#333', textAlign: 'right', fontWeight: 'bold' },
-  
-  headerColText: { fontSize: 8, fontWeight: 'bold', color: '#999', textTransform: 'uppercase', letterSpacing: 1 },
+  const textColor = coresEmpresa.textDefault || '#1C415B';
 
-  // Rodapé Leve
-  footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 7, color: '#bbb' },
-});
-
-export function EspelhosPDF({ 
-  itens, 
-  nomeEmpresa, 
-  logoUrl, 
-  themeColor, 
-  nomeCliente, 
-  nomeObra 
-}: EspelhosPDFProps) {
-  const styles = createStyles(themeColor);
-  const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
+  const styles = StyleSheet.create({
+    page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 70, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: coresEmpresa.tertiary || '#39B89F' },
+    headerLeft: { flexDirection: 'column', flex: 1 },
+    tituloRelatorio: { fontSize: 18, fontWeight: 'bold', color: coresEmpresa.primary || '#1C415B', textTransform: 'uppercase' },
+    subtitulo: { fontSize: 10, color: textColor, marginTop: 2, fontWeight: 'bold' },
+    dataEmissao: { fontSize: 9, color: '#666', marginTop: 6 },
+    logo: { width: 140, height: 45, objectFit: 'contain', objectPosition: 'right' },
+    table: { width: '100%', marginTop: 10 },
+    tableHeader: { flexDirection: 'row', backgroundColor: coresEmpresa.primary || '#1C415B', borderRadius: 4, minHeight: 30, alignItems: 'center' },
+    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', alignItems: 'center', paddingVertical: 6 },
+    tableColHeader: { paddingHorizontal: 6, color: coresEmpresa.secondary || '#FFFFFF', fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase' },
+    tableCol: { paddingHorizontal: 6, fontSize: 8 },
+    colNome: { width: '30%' },
+    colMedidas: { width: '20%' },
+    colCor: { width: '20%' },
+    colCategoria: { width: '15%' },
+    colPreco: { width: '15%', textAlign: 'right' },
+    footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: '#999', borderTopWidth: 0.5, borderTopColor: '#DDD', paddingTop: 10 }
+  });
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Cabeçalho */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.empresaNome}>{nomeEmpresa}</Text>
-            <Text style={styles.tituloRelatorio}>Orçamento</Text>
-            <Text style={{ fontSize: 9, color: '#999', marginTop: 5 }}>Emitido em: {new Date().toLocaleDateString('pt-BR')}</Text>
+            <Text style={styles.tituloRelatorio}>CATÁLOGO DE KITS</Text>
+            <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
           </View>
-          <View style={styles.headerRight}>
-            {logoUrl && <PDFImage src={logoUrl} style={styles.logo} />}
+          <View style={{ width: 120, alignItems: 'flex-end' }}>
+            {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
         </View>
 
-        {/* Informações do Cliente/Obra */}
-        {(nomeCliente || nomeObra) && (
-          <View style={styles.infoSection}>
-            {nomeCliente && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Cliente:</Text>
-                <Text style={styles.infoValue}>{nomeCliente}</Text>
-              </View>
-            )}
-            {nomeObra && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Obra:</Text>
-                <Text style={styles.infoValue}>{nomeObra}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Tabela */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.colDesc, styles.headerColText]}>Descrição</Text>
-            <Text style={[styles.colMedidas, styles.headerColText]}>Medidas</Text>
-            <Text style={[styles.colQtd, styles.headerColText]}>Qtd</Text>
-            <Text style={[styles.colTotal, styles.headerColText]}>Total</Text>
+            <Text style={[styles.tableColHeader, styles.colNome]}>Nome</Text>
+            <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas (mm)</Text>
+            <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
+            <Text style={[styles.tableColHeader, styles.colCategoria]}>Cat.</Text>
+            <Text style={[styles.tableColHeader, styles.colPreco]}>Preço</Text>
           </View>
 
-          {itens.map((item, index) => (
-            <View key={item.id || index} style={styles.tableRow}>
-              <Text style={styles.colDesc}>{item.descricao}</Text>
-              <Text style={styles.colMedidas}>{item.medidas}</Text>
-              <Text style={styles.colQtd}>{item.quantidade}</Text>
-              <Text style={[styles.colTotal, { color: '#333' }]}>
-                {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          {dados.map((item, index) => (
+            <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9F9F9' }]}>
+              <Text style={[styles.tableCol, styles.colNome, { color: textColor }]}>{item.nome}</Text>
+              <Text style={[styles.tableCol, styles.colMedidas, { color: textColor }]}>{`${item.largura} x ${item.altura}`}</Text>
+              <Text style={[styles.tableCol, styles.colCor, { color: textColor }]}>{item.cores || '-'}</Text>
+              <Text style={[styles.tableCol, styles.colCategoria, { color: textColor }]}>{item.categoria || '-'}</Text>
+              <Text style={[styles.tableCol, styles.colPreco, { fontWeight: 'bold', color: textColor }]}>
+                {item.preco ? formatarPreco(item.preco) : 'Consulte'}
               </Text>
             </View>
           ))}
         </View>
 
-        {/* Total Geral */}
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 25 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fbfbfb', padding: 10, borderRadius: 4 }}>
-            <Text style={{ fontSize: 10, color: '#777', marginRight: 15 }}>Total Geral</Text>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColor }}>
-              {totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (`Página ${pageNumber} de ${totalPages}`)} fixed />
+        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (`Glass Code ERP - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`)} fixed />
       </Page>
     </Document>
   );

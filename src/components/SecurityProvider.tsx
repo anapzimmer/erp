@@ -49,7 +49,7 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
       events.forEach((event) => window.removeEventListener(event, resetTimer));
       clearTimeout(timeout);
     };
-  }, [router, supabase]);
+  }, [router]);
 
   return (
     <div className="select-none h-full w-full">

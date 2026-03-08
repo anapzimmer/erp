@@ -6,8 +6,8 @@ import { Palette, UploadCloud, Save, X, LayoutDashboard, ChevronRight, Settings,
 import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/context/ThemeContext";
 import Image from "next/image";
-import ModalFeedback from "@/components/ModalFeedback";
 import Sidebar from "@/components/Sidebar";
+import Toast from "@/components/Toast"
 
 // --- Tipagens e Menus ---
 type MenuItem = {
@@ -17,30 +17,26 @@ type MenuItem = {
   submenu?: { nome: string; rota: string }[]
 }
 
-const menuPrincipal: MenuItem[] = [
-  { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-  {
-    nome: "Orçamentos",
-    rota: "/orcamentos",
-    icone: FileText,
-    submenu: [
-      { nome: "Espelhos", rota: "/espelhos" },
-      { nome: "Vidros", rota: "/calculovidro" },
-      { nome: "Vidros PDF", rota: "/calculovidroPDF" },
-    ]
-  },
-  { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-  { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-  { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-  { nome: "Vidros", rota: "/vidros", icone: Square },
-  { nome: "Perfis", rota: "/perfis", icone: Package },
-  { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-  { nome: "Kits", rota: "/kits", icone: Boxes },
-  { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-]
+const ModalSucesso = ({ isOpen, onClose, titulo, mensagem }: { isOpen: boolean; onClose: () => void; titulo: string; mensagem: string }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+        <div className="flex justify-center mb-4 text-[#059669]">
+          <CheckCircle size={48} />
+        </div>
+        <h3 className="text-xl font-bold text-center text-gray-800 mb-2">{titulo}</h3>
+        <p className="text-gray-500 text-center mb-6">{mensagem}</p>
+        <button
+          onClick={onClose}
+          className="w-full py-3 bg-[#1C415B] text-white rounded-xl font-bold hover:bg-[#1C415B]/90 transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function ConfiguracoesBrandingPage() {
   const router = useRouter();
@@ -81,6 +77,7 @@ export default function ConfiguracoesBrandingPage() {
   const [modalIconSuccessColor, setModalIconSuccessColor] = useState("#059669");
 
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -173,47 +170,58 @@ export default function ConfiguracoesBrandingPage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!empresaId) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("configuracoes_branding")
-        .upsert({
-          empresa_id: empresaId,
-          logo_light: logoLight,
-          logo_dark: logoDark,
-          screen_background_color: screenBackgroundColor,
-          menu_background_color: menuBackgroundColor,
-          menu_text_color: menuTextColor,
-          menu_icon_color: menuIconColor,
-          menu_hover_color: menuHoverColor,
-          content_text_light_bg: contentTextLightBg,
-          content_text_dark_bg: contentTextDarkBg,
-          button_dark_bg: buttonDarkBg,
-          button_dark_text: buttonDarkText,
-          button_light_bg: buttonLightBg,
-          button_light_text: buttonLightText,
-          modal_background_color: modalBackgroundColor,
-          modal_text_color: modalTextColor,
-          modal_button_background_color: modalButtonBackgroundColor,
-          modal_button_text_color: modalButtonTextColor,
-          modal_icon_success_color: modalIconSuccessColor,
-          modal_icon_error_color: modalIconErrorColor,
-          modal_icon_warning_color: modalIconWarningColor,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'empresa_id' });
+const handleSave = async () => {
+  if (!empresaId) return
 
-      if (error) throw error;
-      await refreshTheme(); // Primeiro atualiza o sistema
-      setShowModal(true);   // Depois mostra o sucesso com o visual novo
-    } catch (err) {
-      console.error("Erro ao salvar:", err);
-      alert("Erro ao salvar as configurações.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true)
+
+  try {
+
+    const { error } = await supabase
+      .from("configuracoes_branding")
+      .upsert({
+        empresa_id: empresaId,
+        logo_light: logoLight,
+        logo_dark: logoDark,
+        screen_background_color: screenBackgroundColor,
+        menu_background_color: menuBackgroundColor,
+        menu_text_color: menuTextColor,
+        menu_icon_color: menuIconColor,
+        menu_hover_color: menuHoverColor,
+        content_text_light_bg: contentTextLightBg,
+        content_text_dark_bg: contentTextDarkBg,
+        button_dark_bg: buttonDarkBg,
+        button_dark_text: buttonDarkText,
+        button_light_bg: buttonLightBg,
+        button_light_text: buttonLightText,
+        modal_background_color: modalBackgroundColor,
+        modal_text_color: modalTextColor,
+        modal_button_background_color: modalButtonBackgroundColor,
+        modal_button_text_color: modalButtonTextColor,
+        modal_icon_success_color: modalIconSuccessColor,
+        modal_icon_error_color: modalIconErrorColor,
+        modal_icon_warning_color: modalIconWarningColor,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "empresa_id" })
+
+    if (error) throw error
+
+    setShowToast(true)
+
+    setTimeout(async () => {
+      await refreshTheme()
+    }, 1000)
+
+  } catch (err) {
+
+    console.error(err)
+
+  } finally {
+
+    setLoading(false)
+
+  }
+}
 
   const ColorInput = ({ label, color, setter }: { label: string; color: string; setter: (c: string) => void }) => {
     const [localColor, setLocalColor] = useState(color);
@@ -256,47 +264,6 @@ export default function ConfiguracoesBrandingPage() {
     );
   };
 
-  const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icone;
-    return (
-      <div key={item.nome} className="group mb-1">
-        <div
-          onClick={() => { if (!item.submenu) { router.push(item.rota); setShowMobileMenu(false); } }}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out"
-          style={{ color: menuTextColor }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = menuHoverColor;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: menuIconColor }} />
-            <span className="font-medium text-sm">{item.nome}</span>
-          </div>
-          {item.submenu && <ChevronRight className="w-4 h-4" style={{ color: menuTextColor, opacity: 0.7 }} />}
-        </div>
-
-        {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${menuTextColor}40` }}>
-            {item.submenu.map((sub) => (
-              <div
-                key={sub.nome}
-                onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
-                className="p-2 text-xs rounded-lg cursor-pointer transition-colors"
-                style={{ color: menuTextColor }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${menuHoverColor}80`} // Hover suave no submenu
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              >
-                {sub.nome}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -499,12 +466,10 @@ export default function ConfiguracoesBrandingPage() {
         </main>
       </div>
 
-      <ModalFeedback
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        tipo="sucesso"
-        titulo="Tudo pronto!"
-        mensagem="Sua nova identidade visual foi aplicada e salva com sucesso."
+      <Toast
+        show={showToast}
+        message="Identidade visual atualizada com sucesso"
+        onClose={() => setShowToast(false)}
       />
     </div>
   );

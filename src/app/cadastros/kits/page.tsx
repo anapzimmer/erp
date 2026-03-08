@@ -382,11 +382,11 @@ export default function KitsPage() {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
-     <Sidebar
+      <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
         nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
-        expandido={sidebarExpandido} 
+        expandido={sidebarExpandido}
         setExpandido={setSidebarExpandido}
       />
 
@@ -486,17 +486,17 @@ export default function KitsPage() {
               {isClient && (
                 <PDFDownloadLink
                   document={
-                    <KitsPDF
-                      dados={kitsFiltrados}
-                      empresa={nomeEmpresa || "Sua Empresa"}
-                      logoUrl={theme.logoLightUrl} // Passando a logo do tema
-                      coresEmpresa={{
-                        primary: theme.menuBackgroundColor,
-                        secondary: theme.menuTextColor,
-                        tertiary: theme.menuIconColor,
-                        textDefault: '#1C415B' // Cor padrão definida no seu exemplo da VidrosPage
-                      }}
-                    />
+                <KitsPDF
+  dados={kits} // Passa o estado 'kits' diretamente
+  empresa={nomeEmpresa}
+  logoUrl={theme.logoLightUrl ?? null}
+  coresEmpresa={{
+    primary: theme.menuBackgroundColor,
+    secondary: theme.menuTextColor,
+    tertiary: theme.menuIconColor,
+    textDefault: '#1C415B'
+  }}
+/>
                   }
                   fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
                   title="Imprimir Catálogo"

@@ -12,14 +12,16 @@ interface HeaderProps {
   usuarioEmail: string;
   handleSignOut: () => void;
   logoUrl?: string | null;
+  children?: React.ReactNode
 }
 
-export default function Header({ 
-  setShowMobileMenu, 
-  nomeEmpresa, 
-  usuarioEmail, 
-  handleSignOut, 
-  logoUrl 
+export default function Header({
+  setShowMobileMenu,
+  nomeEmpresa,
+  usuarioEmail,
+  handleSignOut,
+  logoUrl,
+  children
 }: HeaderProps) {
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -35,25 +37,27 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  
+
   return (
     <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
       <div className="flex items-center gap-2 md:gap-4">
-        <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> 
-          <Menu size={24} className="text-gray-600" /> 
+        <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
+          <Menu size={24} className="text-gray-600" />
         </button>
 
         {/* --- INSERÇÃO DA LOGO DINÂMICA NO ESTILO ORIGINAL --- */}
         {logoUrl && (
           <img src={logoUrl} alt="Logo" className="h-8 md:h-10 w-auto object-contain ml-2" />
         )}
+
+          {children}
       </div>
 
       <div className="flex items-center gap-3">
         <div className="relative" ref={userMenuRef}>
           <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600"> 
-              <Building2 size={16} /> 
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
+              <Building2 size={16} />
             </div>
             <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
             <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
@@ -65,19 +69,19 @@ export default function Header({
                 <p className="text-xs text-gray-400">Logado como</p>
                 <p className="text-sm font-semibold text-gray-800 truncate"> {usuarioEmail} </p>
               </div>
-              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> 
-                <Settings size={18} className="text-gray-400" />Configurações 
+              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
+                <Settings size={18} className="text-gray-400" />Configurações
               </button>
-             <button 
-  type="button" // Essencial: evita submissão de formulários caso o header esteja dentro de um
-  onClick={async () => {
-    setShowUserMenu(false);
-    await handleSignOut(); // Garante que aguardamos a função concluir
-  }} 
-  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
-> 
-  <LogOut size={18} />Sair 
-</button>
+              <button
+                type="button" // Essencial: evita submissão de formulários caso o header esteja dentro de um
+                onClick={async () => {
+                  setShowUserMenu(false);
+                  await handleSignOut(); // Garante que aguardamos a função concluir
+                }}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+              >
+                <LogOut size={18} />Sair
+              </button>
             </div>
           )}
         </div>

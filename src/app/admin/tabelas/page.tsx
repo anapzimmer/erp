@@ -8,7 +8,7 @@ import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
-import { LayoutDashboard } from "lucide-react"
+import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
 
 // --- Tipagens ---
@@ -440,69 +440,27 @@ const { error } = await supabase
    return (
     <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
-      {/* 🔥 SIDEBAR CONECTADA: Substituímos todo o bloco <aside> antigo por este componente */}
-      <Sidebar 
-        showMobileMenu={showMobileMenu} 
-        setShowMobileMenu={setShowMobileMenu} 
-        nomeEmpresa={nomeEmpresa} 
-      />
+  <Sidebar 
+    showMobileMenu={showMobileMenu}
+    setShowMobileMenu={setShowMobileMenu}
+    nomeEmpresa={nomeEmpresa}
+  />
 
-      {/* Overlay Mobile */}
-      {showMobileMenu && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setShowMobileMenu(false)}
-        ></div>
-      )}
+  {showMobileMenu && (
+    <div
+      className="fixed inset-0 bg-black/50 z-40 md:hidden"
+      onClick={() => setShowMobileMenu(false)}
+    />
+  )}
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
+  <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
 
-        {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-              <Menu size={24} className="text-gray-600" />
-            </button>
-            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200">
-              <Search className="text-gray-400" size={18} />
-              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Menu Dropdown - Identidade Visual e Sair */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                    <Palette size={18} className="text-gray-400" />
-                    Identidade Visual
-                  </button>
-                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl">
-                    <LogOut size={18} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+    <Header
+      setShowMobileMenu={setShowMobileMenu}
+      nomeEmpresa={nomeEmpresa}
+      usuarioEmail={usuarioEmail}
+      handleSignOut={handleSignOut}
+    />
 
         {/* CONTEÚDO ESPECÍFICO */}
         <main className="p-4 md:p-8 flex-1">

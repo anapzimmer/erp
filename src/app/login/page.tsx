@@ -179,94 +179,166 @@ const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     return "";
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4">
-      <div className="relative w-full max-w-md">
-        <div className="mb-6 text-center">
-          <img
-            src="/glasscode.png"
-            alt="Glass Code Logo"
-            className="h-28 w-auto mx-auto object-contain"
-          />
+return (
+  <div className="relative min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4 overflow-hidden font-inter">
+    
+    {/* --- CAMADA 1: VIDROS FLUTUANTES --- */}
+ <div className="absolute inset-0 z-10 pointer-events-none opacity-60">
+  {/* Vidro 1: Lento e grande */}
+  <div 
+    className="glass-element w-64 h-96 rounded-3xl" 
+    style={{ 
+      top: '10%', left: '5%', 
+      '--speed': '5s', '--lap-time': '10s' 
+    } as React.CSSProperties} 
+  />
+  
+  {/* Vidro 2: Rápido e médio */}
+  <div 
+    className="glass-element w-80 h-48 rounded-[3rem]" 
+    style={{ 
+      bottom: '15%', right: '10%', 
+      '--speed': '8s', '--lap-time': '5s' 
+    } as React.CSSProperties} 
+  />
+
+  {/* Vidro 3: Pequeno e flutuante */}
+  <div 
+    className="glass-element w-32 h-32 rounded-2xl" 
+    style={{ 
+      top: '40%', right: '5%', 
+      '--speed': '8s', '--lap-time': '7s' 
+    } as React.CSSProperties} 
+  />
+</div>
+    
+
+    {/* --- CAMADA 2: AS 5 MÁQUINAS CNC --- */}
+    <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 1000 1000">
+      {/* Laser 1: Horizontal Topo */}
+      <path d="M-100,200 H1100" className="cnc-laser stroke-[#39B89F]" strokeWidth="1" fill="none" />
+      <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.5s infinite' }}>
+        <animateMotion dur="8s" repeatCount="indefinite" path="M-100,200 H1100" />
+      </circle>
+
+      {/* Laser 2: Círculo Esquerda */}
+      <path d="M200,500 A100,100 0 1,1 200,501" className="cnc-laser stroke-[#1C415B]" strokeWidth="1.5" fill="none" />
+      <circle fill="#39B89F" className="spark" style={{ animation: 'sparkLight 0.3s infinite' }}>
+        <animateMotion dur="10s" repeatCount="indefinite" path="M200,500 A100,100 0 1,1 200,501" />
+      </circle>
+
+      {/* Laser 3: Diagonal */}
+      <path d="M800,-100 L1100,200" className="cnc-laser stroke-[#39B89F]" strokeWidth="1" fill="none" />
+      <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.2s infinite' }}>
+        <animateMotion dur="6s" repeatCount="indefinite" path="M800,-100 L1100,200" />
+      </circle>
+
+      {/* Laser 4: Scanner Vertical */}
+      <path d="M700,-100 V1100" className="cnc-laser stroke-[#1C415B]/20" strokeWidth="3" fill="none" />
+      <circle fill="#39B89F" className="spark" style={{ animation: 'sparkLight 1s infinite' }}>
+        <animateMotion dur="12s" repeatCount="indefinite" path="M700,-100 V1100" />
+      </circle>
+
+      {/* Laser 5: ZigZag Fundo */}
+      <path d="M-100,800 L300,750 L600,850 L1100,800" className="cnc-laser stroke-[#39B89F]/40" strokeWidth="1" fill="none" />
+      <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.4s infinite' }}>
+        <animateMotion dur="14s" repeatCount="indefinite" path="M-100,800 L300,750 L600,850 L1100,800" />
+      </circle>
+    </svg>
+
+    {/* --- CAMADA 3: CARD DE LOGIN CENTRALIZADO --- */}
+    <div className="relative z-50 w-full max-w-md animate-scale-up">
+      <div className="mb-8 text-center">
+        <img
+          src="/glasscode.png"
+          alt="Logo"
+          className="h-20 w-auto mx-auto object-contain drop-shadow-md"
+        />
+      </div>
+
+      <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-black text-[#1C415B] tracking-tight">Bem-vindo</h2>
+          <p className="text-[#1C415B]/60 text-sm mt-2 font-medium">Acesse o painel de precisão.</p>
         </div>
 
-        <div className="w-full bg-white rounded-[2rem] shadow-2xl p-8 md:p-10 border border-[#1C415B]/10">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-black text-[#1C415B]">Bem-vindo</h2>
-            <p className="text-[#1C415B]/70 text-sm mt-2">
-              Insira suas credenciais para acessar o sistema.
-            </p>
+        <form onSubmit={handleLogin} className="space-y-6">
+          {/* Email */}
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1C415B]/30 group-focus-within:text-[#39B89F] transition-colors" size={18} />
+            <input
+              type="email"
+              placeholder="E-mail profissional"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
+              required
+            />
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1C415B]/50" size={18} />
-              <input
-                type="email"
-                placeholder="seuemail@empresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] outline-none transition-all"
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1C415B]/50" size={18} />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] outline-none transition-all"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1C415B]/50 hover:text-[#39b89f]"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
+          {/* Senha */}
+          <div className="relative group">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1C415B]/30 group-focus-within:text-[#39B89F] transition-colors" size={18} />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Sua senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
+              required
+            />
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest transition-all active:scale-95 disabled:opacity-70"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1C415B]/20 hover:text-[#39B89F]"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <LogIn size={18} />
-                  Entrar
-                </>
-              )}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
+          </div>
 
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => setShowSignup(true)}
-                className="text-sm text-[#1C415B] hover:text-[#39b89f] font-medium"
-              >
-                Criar Conta
-              </button>
-            </div>
+          {/* Botão Entrar */}
+         <button
+  type="submit"
+  disabled={loading}
+  className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg 
+    ${loading 
+      ? 'bg-[#1C415B] text-white btn-processing cursor-wait' 
+      : 'bg-[#1C415B] hover:bg-[#39B89F] text-white shadow-[#1C415B]/20 hover:shadow-[#39B89F]/20'
+    }`}
+>
+  {loading ? (
+    <span className="relative z-10 flex items-center gap-2">
+      <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+      PROCESSANDO...
+    </span>
+  ) : (
+    <>
+      <span className="relative z-10">ENTRAR</span>
+      <LogIn size={16} className="relative z-10" />
+    </>
+  )}
+</button>
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-sm text-[#1C415B]/50 hover:text-[#39b89f] transition-colors duration-200"
-              >
-                Esqueci minha senha
-              </button>
-            </div>
-          </form>
-        </div>
+          {/* Links de Rodapé */}
+          <div className="flex flex-col gap-4 mt-8 text-center">
+            <button
+              type="button"
+              onClick={() => setShowSignup(true)}
+              className="text-sm font-bold text-[#1C415B] hover:text-[#39B89F] transition-colors"
+            >
+              Não tem conta? <span className="text-[#39B89F]">Criar Acesso</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-xs font-semibold text-gray-400 hover:text-[#1C415B] transition-colors"
+            >
+              Esqueci minha senha
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
 
       {/* --- MODAL --- */}
       {modalConfig.show && (
