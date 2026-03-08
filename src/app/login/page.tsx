@@ -1,6 +1,6 @@
 "use client";
 
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, X, CheckCircle, Building2, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseClient";
@@ -65,17 +65,20 @@ const LoginPage = () => {
   };
   const [showSignup, setShowSignup] = useState(false);
 
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      // Limpa qualquer resquício que possa causar o erro de Refresh Token
-      localStorage.clear();
-      // Opcional: deletar cookies específicos se necessário
-    }
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        localStorage.clear();
+      }
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token renovado com sucesso!');
+      }
+    });
 
-    if (event === 'TOKEN_REFRESHED') {
-      console.log('Token renovado com sucesso!');
-    }
-  });
+    return () => {
+      subscription.unsubscribe(); // Limpa a memória ao desmontar
+    };
+  }, []); // Array vazio garante que só rode uma vez
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -130,31 +133,30 @@ const LoginPage = () => {
   };
 
 
-  const handleForgotPassword = async () => {
+ const handleForgotPassword = async () => {
     if (!email) {
       showModal("Informe seu e-mail", "Digite seu e-mail para redefinir sua senha.");
       return;
     }
 
     setLoading(true);
-
     try {
+      // Usa window com segurança para SSR
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${baseUrl}/update-password`,
       });
 
-      if (error) {
-        showModal("Erro", error.message);
-        return;
-      }
+      if (error) throw error;
 
       showModal(
         "E-mail enviado",
         "Enviamos um link para redefinir sua senha. Verifique sua caixa de entrada.",
         "success"
       );
-    } catch (err) {
-      showModal("Erro", "Não foi possível enviar o e-mail.");
+    } catch (err: any) {
+      showModal("Erro", err.message || "Não foi possível enviar o e-mail.");
     } finally {
       setLoading(false);
     }
@@ -340,53 +342,53 @@ const LoginPage = () => {
         </div>
       </div>
 
-{modalConfig.show && (
-  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-    {/* Overlay com Blur mais suave */}
-    <div
-      className="absolute inset-0 bg-[#1C415B]/20 backdrop-blur-sm"
-      onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-    />
-    
-    {/* Modal Card */}
-    <div className="relative bg-white rounded-[2.5rem] p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] w-full max-w-sm border border-gray-100 flex flex-col items-center animate-scale-up">
-      
-      {/* SVG Centralizado com tamanho reduzido para maior elegância */}
-      <div className="flex flex-col items-center">
-  {/* O Ícone Moderno */}
-  <svg 
-    className="error-icon-svg mb-6" 
-    width="72" 
-    height="72" 
-    viewBox="0 0 48 48"
-  >
-    {/* Fundo do erro */}
-    <path fill="#f55376" d="M44,24c0,11-9,20-20,20S4,35,4,24S13,4,24,4S44,13,44,24z"/>
-    
-    {/* X estilizado */}
-    <g className="rotate-slow" style={{ transformOrigin: 'center' }}>
-      <path fill="#fac8d5" d="M12,17.6l5.7-5.7L36,30.4L30.4,36L12,17.6z"/>
-      <path fill="#fac8d5" d="M30.4,12l5.7,5.7L17.6,36L12,30.4L30.4,12z"/>
-      <rect width="8" height="8" x="20" y="20" fill="#fff" transform="rotate(-45.001 24 24)"/>
-    </g>
-  </svg>
-  
-  <div className="text-center">
-    <h3 className="text-xl font-black text-[#1C415B] tracking-tight">{modalConfig.title}</h3>
-    <p className="text-sm text-[#1C415B]/60 mt-2">{modalConfig.message}</p>
-  </div>
-</div>
-     
-      {/* Botão com estilo mais sutil */}
-      <button
-        onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-        className="mt-8 w-full bg-gray-50 hover:bg-gray-100 text-[#1C415B] py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 border border-gray-200"
-      >
-        Entendido
-      </button>
-    </div>
-  </div>
-)}
+      {modalConfig.show && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          {/* Overlay com Blur mais suave */}
+          <div
+            className="absolute inset-0 bg-[#1C415B]/20 backdrop-blur-sm"
+            onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+          />
+
+          {/* Modal Card */}
+          <div className="relative bg-white rounded-[2.5rem] p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] w-full max-w-sm border border-gray-100 flex flex-col items-center animate-scale-up">
+
+            {/* SVG Centralizado com tamanho reduzido para maior elegância */}
+            <div className="flex flex-col items-center">
+              {/* O Ícone Moderno */}
+              <svg
+                className="error-icon-svg mb-6"
+                width="72"
+                height="72"
+                viewBox="0 0 48 48"
+              >
+                {/* Fundo do erro */}
+                <path fill="#f55376" d="M44,24c0,11-9,20-20,20S4,35,4,24S13,4,24,4S44,13,44,24z" />
+
+                {/* X estilizado */}
+                <g className="rotate-slow" style={{ transformOrigin: 'center' }}>
+                  <path fill="#fac8d5" d="M12,17.6l5.7-5.7L36,30.4L30.4,36L12,17.6z" />
+                  <path fill="#fac8d5" d="M30.4,12l5.7,5.7L17.6,36L12,30.4L30.4,12z" />
+                  <rect width="8" height="8" x="20" y="20" fill="#fff" transform="rotate(-45.001 24 24)" />
+                </g>
+              </svg>
+
+              <div className="text-center">
+                <h3 className="text-xl font-black text-[#1C415B] tracking-tight">{modalConfig.title}</h3>
+                <p className="text-sm text-[#1C415B]/60 mt-2">{modalConfig.message}</p>
+              </div>
+            </div>
+
+            {/* Botão com estilo mais sutil */}
+            <button
+              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+              className="mt-8 w-full bg-gray-50 hover:bg-gray-100 text-[#1C415B] py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 border border-gray-200"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL SIGNUP --- */}
       {showSignup && (
@@ -474,7 +476,7 @@ const LoginPage = () => {
         </div>
       )}
 
-          </div>
+    </div>
   );
 };
 
