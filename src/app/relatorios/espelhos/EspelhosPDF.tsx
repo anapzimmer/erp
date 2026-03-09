@@ -10,17 +10,18 @@ interface ItemPedido {
   medidas: string;
   quantidade: number;
   total: number;
-  tipoVisual: string; 
+  tipoVisual: string;
   designUrl?: string;
 }
 
 interface EspelhosPDFProps {
-  itens: ItemPedido[];
-  nomeEmpresa: string;
-  logoUrl?: string;
-  themeColor: string; // Cor do tema (deve vir do configuracoes_branding)
-  nomeCliente?: string;
-  nomeObra?: string;
+  itens: any[]
+  nomeEmpresa: string
+  themeColor: string
+  nomeCliente?: string
+  nomeObra?: string
+  logoUrl?: string
+  valorTotal?: number
 }
 
 // --- ESTILOS DO PDF (Cores fixas apenas para fundo/texto neutro) ---
@@ -39,8 +40,11 @@ const styles = StyleSheet.create({
   tituloRelatorio: { fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
   subtitulo: { fontSize: 9, color: '#666', marginTop: 2 },
   headerRight: { width: 140, alignItems: 'flex-end' },
-  logo: { width: 120, objectFit: 'contain' },
-  
+  logo: {
+    width: 100,
+    height: 40
+  },
+
   // Box do Cliente
   customerBox: {
     flexDirection: 'row',
@@ -57,11 +61,11 @@ const styles = StyleSheet.create({
 
   // Tabela
   table: { width: '100%' },
-  tableHeader: { flexDirection: 'row', borderRadius: 2 },
+  tableHeader: { flexDirection: 'row' },
   tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', alignItems: 'center', minHeight: 35 },
   tableColHeader: { padding: 8, color: '#FFFFFF', fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase' },
   tableCol: { padding: 6, fontSize: 8 },
-  
+
   // --- MUDANÇA: Novas larguras das colunas ---
   colDesc: { width: '50%' }, // Aumentado
   colMedidas: { width: '25%' }, // Aumentado
@@ -79,71 +83,71 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        
-        {/* Cabeçalho */}
-        <View style={[styles.header, { borderBottomColor: themeColor }]}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Espelhos</Text>
-            <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            {/* Usando a logoUrl passada do tema claro */}
-            {logoUrl && <Image src={logoUrl} style={styles.logo} />}
-          </View>
+
+    <Page size="A4" style={styles.page}>
+
+      {/* Cabeçalho */}
+      <View style={[styles.header, { marginRight: 10 }, { borderBottomColor: themeColor }]}>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Espelhos</Text>
+          <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          {/* Usando a logoUrl passada do tema claro */}
+          {logoUrl && <Image src={logoUrl} style={styles.logo} />}
+        </View>
+      </View>
+
+      {/* Informações do Cliente */}
+      <View style={[styles.customerBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
+        <View style={styles.customerInfo}>
+          <Text style={styles.label}>Cliente</Text>
+          <Text style={styles.value}>{nomeCliente || ""}</Text>
+        </View>
+        <View style={styles.customerInfo}>
+          <Text style={styles.label}>Obra / Referência</Text>
+          <Text style={styles.value}>{nomeObra || ""}</Text>
+        </View>
+      </View>
+
+      {/* Tabela */}
+      <View style={styles.table}>
+        <View style={[styles.tableHeader, { marginRight: 10 }, { backgroundColor: themeColor }]}>
+          {/* --- MUDANÇA: Coluna Img removida --- */}
+          <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição</Text>
+          <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas</Text>
+          <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
+          <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
         </View>
 
-        {/* Informações do Cliente */}
-        <View style={[styles.customerBox, { borderLeftColor: themeColor }]}>
-          <View style={styles.customerInfo}>
-            <Text style={styles.label}>Cliente</Text>
-            <Text style={styles.value}>{nomeCliente || ""}</Text>
-          </View>
-          <View style={styles.customerInfo}>
-            <Text style={styles.label}>Obra / Referência</Text>
-            <Text style={styles.value}>{nomeObra || ""}</Text>
-          </View>
-        </View>
-
-        {/* Tabela */}
-        <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
+        {itens.map((item, index) => (
+          <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#FCFCFC' }]}>
             {/* --- MUDANÇA: Coluna Img removida --- */}
-            <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição</Text>
-            <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas</Text>
-            <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
-            <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
-          </View>
+            <Text style={[styles.tableCol, styles.colDesc, { color: themeColor }]}>{item.descricao}</Text>
 
-         {itens.map((item, index) => (
-            <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#FCFCFC' }]}>
-              {/* --- MUDANÇA: Coluna Img removida --- */}
-              <Text style={[styles.tableCol, styles.colDesc, { color: themeColor}]}>{item.descricao}</Text>
-              
-              {/* --- ALTERAÇÃO AQUI: Adicionado color: '#333' ou a cor que deseja --- */}
-              <Text style={[styles.tableCol, styles.colMedidas, { color: "#1C415B", }]}>{item.medidas}</Text>
-              
-              <Text style={[styles.tableCol, styles.colQtd]}>{item.quantidade.toString()}</Text>
-              <Text style={[styles.tableCol, styles.colTotal, { color: themeColor, fontWeight: 'bold' }]}>
-                {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </Text>
-            </View>
-          ))}
-        </View>
-        
-        {/* Totalizador com themeColor */}
-        <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, paddingRight: 10}}>
-            <Text style={{fontSize: 10, color: '#666', marginRight: 10}}>Valor Total:</Text>
-            <Text style={{fontSize: 12, fontWeight: 'bold', color: themeColor}}>
-                {totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {/* --- ALTERAÇÃO AQUI: Adicionado color: '#333' ou a cor que deseja --- */}
+            <Text style={[styles.tableCol, styles.colMedidas, { color: "#1C415B", }]}>{item.medidas}</Text>
+
+            <Text style={[styles.tableCol, styles.colQtd]}>{item.quantidade.toString()}</Text>
+            <Text style={[styles.tableCol, styles.colTotal, { color: themeColor, fontWeight: 'bold' }]}>
+              {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </Text>
-        </View>
+          </View>
+        ))}
+      </View>
 
-        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
-          `Sistema Glass Code - Licenciado para ${nomeEmpresa} - Página ${pageNumber} de ${totalPages}`
-        )} fixed />
-      </Page>
-    </Document>
+      {/* Totalizador com themeColor */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, paddingRight: 10 }}>
+        <Text style={{ fontSize: 10, color: '#666', marginRight: 10 }}>Valor Total:</Text>
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: themeColor }}>
+          {totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </Text>
+      </View>
+
+      <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
+        `Sistema Glass Code - Licenciado para ${nomeEmpresa} - Página ${pageNumber} de ${totalPages}`
+      )} fixed />
+    </Page>
+
   );
 }

@@ -1,3 +1,4 @@
+//app/relatorios/calculovidros/CalculoVidroPDF.tsx
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
@@ -18,9 +19,9 @@ interface ItemVidro {
 interface CalculoVidroPDFProps {
     itens: ItemVidro[];
     nomeEmpresa: string;
-    logoUrl?: string;
+    logoUrl?: string | null;
+    nomeCliente?: string | null;
     themeColor: string; // Cor principal (ex: o azul do header)
-    nomeCliente?: string;
     nomeObra?: string;
     pesoTotal: number;
     metragemTotal: number;
@@ -35,20 +36,22 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         marginBottom: 20,
         paddingBottom: 10,
-        borderBottomWidth: 1,
+        borderBottomWidth: 2,
     },
     headerLeft: { flexDirection: 'column' },
     tituloRelatorio: { fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
     subtitulo: { fontSize: 8, color: '#666', marginTop: 2 },
-    logo: { width: 100, objectFit: 'contain' },
+    logo: {
+        width: 100,
+        height: 30
+    },
 
     infoSection: {
         flexDirection: 'row',
         marginBottom: 20,
-        gap: 10
     },
     infoBox: {
         flex: 1,
@@ -62,10 +65,10 @@ const styles = StyleSheet.create({
 
     // Tabela
     table: { width: '100%', marginTop: 5 },
-    tableHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 25, borderRadius: 2 },
+    tableHeader: { flexDirection: 'row' },
     tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#EEE', alignItems: 'center', minHeight: 32 },
     tableColHeader: { padding: 5, color: '#FFFFFF', fontSize: 7, fontWeight: 'bold', textTransform: 'uppercase' },
-    
+
     // Textos da Tabela com a cor solicitada
     tableCol: { padding: 5, fontSize: 9, color: CONTENT_COLOR },
 
@@ -127,11 +130,11 @@ export function CalculoVidroPDF({
 
                 {/* Info do Cliente */}
                 <View style={styles.infoSection}>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+                    <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
                         <Text style={styles.label}>Cliente / Razão Social</Text>
                         <Text style={styles.value}>{nomeCliente || "Não informado"}</Text>
                     </View>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+                    <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
                         <Text style={styles.label}>Obra / Referência</Text>
                         <Text style={styles.value}>{nomeObra || "Geral"}</Text>
                     </View>
@@ -148,7 +151,7 @@ export function CalculoVidroPDF({
 
                     {itens.map((item, index) => (
                         <View key={item.id} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#FAFAFA' }]}>
-                            
+
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>
                                 <Text style={{ fontWeight: 'bold' }}>
@@ -165,7 +168,9 @@ export function CalculoVidroPDF({
 
                             {/* Medidas, Qtd e Preço */}
                             <Text style={[styles.tableCol, styles.colMedReal]}>{item.medidaReal}</Text>
-                            <Text style={[styles.tableCol, styles.colQtd]}>{item.qtd.toString().padStart(2, '0')}</Text>
+                            <Text style={[styles.tableCol, styles.colQtd]}>
+                                {Number(item.qtd || 0).toString().padStart(2, '0')}
+                            </Text>
                             <Text style={[styles.tableCol, styles.colTotal, { fontWeight: 'bold' }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>

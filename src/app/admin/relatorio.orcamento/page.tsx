@@ -8,9 +8,10 @@ import { supabase } from "@/lib/supabaseClient"
 import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
+import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import ThemeLoader from "@/components/ThemeLoader"
+import { PDFViewer, Document as PDFDoc, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 
 export default function RelatorioOrçamento() {
     const router = useRouter()
@@ -169,7 +170,47 @@ export default function RelatorioOrçamento() {
         );
     }
 
+    const renderizarPDF = () => {
+        if (!orcamentoParaVisualizar) return null;
 
+        // Lógica para detectar se é Espelho (OR) ou Vidro (ORC)
+        // Usamos o campo numero_formatado ou o tipo se ele existir
+        const numero = orcamentoParaVisualizar.numero_formatado || "";
+        const ehEspelho = numero.startsWith("OR-");
+
+        return (
+            <PDFViewer style={{ width: '100%', height: '100%' }}>
+                <PDFDoc>
+                    {orcamentoParaVisualizar?.tipo === "espelho" ? (
+                        <EspelhosPDF
+                            itens={orcamentoParaVisualizar.itens || []}
+                            nomeEmpresa={nomeEmpresa}
+                            themeColor={theme.contentTextLightBg}
+                            nomeCliente={orcamentoParaVisualizar.cliente_nome}
+                            nomeObra={orcamentoParaVisualizar.obra_referencia}
+                            valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
+                            logoUrl={theme.logoLightUrl || undefined}
+                        />
+                    ) : (
+                        <CalculoVidroPDF
+                            itens={orcamentoParaVisualizar.itens || []}
+                            nomeEmpresa={nomeEmpresa}
+                            themeColor={theme.contentTextLightBg}
+                            nomeCliente={orcamentoParaVisualizar.cliente_nome}
+                            nomeObra={orcamentoParaVisualizar.obra_referencia}
+                            pesoTotal={Number(orcamentoParaVisualizar.peso_total) || 0}
+                            logoUrl={theme.logoLightUrl || undefined}
+                            metragemTotal={orcamentoParaVisualizar.metragem_total || 0}
+                            valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
+                            totalPecas={orcamentoParaVisualizar.total_pecas || 0}
+                        />
+                    )}
+                </PDFDoc>
+            </PDFViewer>
+        );
+    };
+
+    const itens = orcamentoParaVisualizar?.itens || [];
 
     return (
         <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -492,7 +533,7 @@ export default function RelatorioOrçamento() {
                     <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
                         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
-                                Visualização: {orcamentoParaVisualizar?.numero_formatado}
+                                Visualização: {orcamentoParaVisualizar?.tipo === "espelho" ? "OR-" : "ORC-"}{orcamentoParaVisualizar?.numero_formatado?.replace(/^(OR|ORC)-/, '')}
                             </h3>
                             <button
                                 onClick={() => setShowPDFModal(false)}
@@ -503,25 +544,38 @@ export default function RelatorioOrçamento() {
                         </div>
 
                         <div className="flex-1 w-full h-full bg-gray-200">
-                            <PDFViewer width="100%" height="100%" className="border-none">
-                                <CalculoVidroPDF
-                                    itens={orcamentoParaVisualizar?.itens || []}
-                                    nomeEmpresa={nomeEmpresa}
-                                    themeColor={theme.contentTextLightBg}
-                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome}
-                                    nomeObra={orcamentoParaVisualizar?.obra_referencia}
-                                    pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
-                                    logoUrl={theme.logoLightUrl || undefined}
-                                    metragemTotal={orcamentoParaVisualizar?.metragem_total || 0}
-                                    valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
-                                    totalPecas={orcamentoParaVisualizar?.total_pecas || 0}
-                                />
-                            </PDFViewer>
+                            <div className="flex-1 w-full h-full bg-gray-200">
+                                <PDFViewer style={{ width: "100%", height: "100%" }}>
+                                    {orcamentoParaVisualizar?.tipo === "espelho" ? (
+                                        <EspelhosPDF
+                                            itens={itens}
+                                            nomeEmpresa={nomeEmpresa}
+                                            themeColor={theme.contentTextLightBg}
+                                            nomeCliente={orcamentoParaVisualizar?.cliente_nome}
+                                            nomeObra={orcamentoParaVisualizar?.obra_referencia}
+                                            valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                            logoUrl={theme.logoLightUrl || undefined}
+                                        />
+                                    ) : (
+                                        <CalculoVidroPDF
+                                            itens={itens}
+                                            nomeEmpresa={nomeEmpresa}
+                                            themeColor={theme.contentTextLightBg}
+                                            nomeCliente={orcamentoParaVisualizar?.cliente_nome}
+                                            nomeObra={orcamentoParaVisualizar?.obra_referencia}
+                                            pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
+                                            metragemTotal={orcamentoParaVisualizar?.metragem_total || 0}
+                                            totalPecas={orcamentoParaVisualizar?.total_pecas || 0}
+                                            valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                            logoUrl={theme.logoLightUrl || undefined}
+                                        />
+                                    )}
+                                </PDFViewer>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-
         </div>
     )
 }
