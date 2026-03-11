@@ -26,11 +26,15 @@ export function useAuth() {
         setUser(authUser);
 
         // 2. Busca o perfil (CORRIGIDO: usando authUser.id em vez de user.id)
-        const { data: perfilData } = await supabase
+        const { data: perfilData, error: perfilError } = await supabase
           .from('perfis')
           .select('nome_completo')
           .eq('id', authUser.id) // 🔥 Aqui estava o erro 'id of null'
-          .single();
+          .maybeSingle();
+
+        if (perfilError) {
+          console.error("Erro ao buscar perfil:", perfilError.message);
+        }
         
         if (perfilData) setPerfilUsuario(perfilData);
 

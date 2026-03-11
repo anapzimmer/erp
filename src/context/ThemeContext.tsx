@@ -87,7 +87,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         .from("perfis_usuarios") // Certifique-se que o nome é este no banco
         .select("*") // Usar * evita o erro 400 se 'nome_completo' não existir
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
 
       if (perfilError || !perfil?.empresa_id) {
         console.error("Vínculo de empresa não encontrado:", perfilError);

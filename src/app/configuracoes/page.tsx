@@ -39,7 +39,7 @@ export default function ConfiguracoesPage() {
         .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", authData.user.id)
-        .single();
+        .maybeSingle();
 
       if (perfil) {
         const { data: empresaData } = await supabase

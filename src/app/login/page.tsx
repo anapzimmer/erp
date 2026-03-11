@@ -256,13 +256,15 @@ const LoginPage = () => {
       {/* --- CAMADA 3: CARD DE LOGIN CENTRALIZADO --- */}
       <div className="relative z-50 w-full max-w-md animate-scale-up">
         <div className="mb-8 text-center">
-        <Image
-  src="/glasscode.png"
-  alt="Logo"
-  width={160}
-  height={80}
-  className="h-20 w-auto mx-auto object-contain drop-shadow-md"
-/>
+          <Image
+            src="/glasscode.png"
+            alt="Logo"
+            width={160}
+            height={80}
+            loading="eager"
+            style={{ width: "auto" }}
+            className="h-20 mx-auto object-contain drop-shadow-md"
+          />
         </div>
 
         <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">

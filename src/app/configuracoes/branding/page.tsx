@@ -99,7 +99,7 @@ export default function ConfiguracoesBrandingPage() {
         .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (perfilError || !perfil) {
         console.error("Erro ao buscar perfil:", perfilError);

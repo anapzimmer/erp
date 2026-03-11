@@ -90,7 +90,7 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
         .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (relError || !relData) {
         setCheckingAuth(false);

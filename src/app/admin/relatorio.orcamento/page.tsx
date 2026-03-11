@@ -95,7 +95,7 @@ export default function RelatorioOrçamento() {
                     .from("perfis_usuarios")
                     .select("empresa_id")
                     .eq("id", authData.user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (perfil?.empresa_id) {
                     const { data: empresaData } = await supabase

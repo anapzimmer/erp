@@ -199,7 +199,14 @@ export default function Sidebar({
 
      <div className="mb-8 flex flex-col items-center justify-center h-18 relative group">
         {theme.logoDarkUrl ? (
-          <Image src={theme.logoDarkUrl} alt={nomeEmpresa || "Logo"} width={120} height={56} className="object-contain max-h-14" />
+          <Image
+            src={theme.logoDarkUrl}
+            alt={nomeEmpresa || "Logo"}
+            width={120}
+            height={56}
+            style={{ width: "auto", height: "auto" }}
+            className="object-contain max-h-14"
+          />
         ) : (
           <Building2 size={32} style={{ color: theme.menuIconColor }} />
         )}

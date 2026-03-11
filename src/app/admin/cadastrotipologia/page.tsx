@@ -38,7 +38,7 @@ export default function ConfiguracaoTipologia() {
       }
       setUsuarioEmail(user.email || "");
 
-      const { data: perfil } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", user.id).single();
+      const { data: perfil } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", user.id).maybeSingle();
       if (perfil?.empresa_id) {
         const { data: empresa } = await supabase.from("empresas").select("nome").eq("id", perfil.empresa_id).single();
         if (empresa) setNomeEmpresa(empresa.nome);

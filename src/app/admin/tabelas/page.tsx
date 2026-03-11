@@ -156,7 +156,7 @@ export default function GestaoPrecosPage() {
         .from("perfis_usuarios")
         .select("empresa_id")
         .eq("id", authData.user.id)
-        .single();
+        .maybeSingle();
 
       if (perfil) {
         // 🔥 SALVE O ID AQUI

@@ -76,7 +76,7 @@ export default function FerragensPage() {
       if (!userData.user) { router.push("/login"); return; }
       setUsuarioEmail(userData.user.email ?? null);
 
-      const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).single();
+      const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).maybeSingle();
       if (data) {
         setEmpresaIdUsuario(data.empresa_id);
         const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();

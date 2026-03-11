@@ -76,7 +76,7 @@ export default function ServicosPage() {
           .from("perfis_usuarios")
           .select("empresa_id")
           .eq("id", userData.user.id)
-          .single();
+          .maybeSingle();
 
         if (perfilError || !perfil?.empresa_id) {
           console.error("Erro ao buscar empresa do usuário:", perfilError);
