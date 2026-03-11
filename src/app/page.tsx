@@ -11,6 +11,7 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const { user, nomeEmpresa, loading, signOut } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [expandido, setExpandido] = useState(true);
 
   // 1. Tela de Carregamento Única e Elegante
   if (loading) {
@@ -37,11 +38,13 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen transition-colors duration-500" style={{ backgroundColor: theme.screenBackgroundColor }}>
       
-      <Sidebar 
-        showMobileMenu={showMobileMenu} 
-        setShowMobileMenu={setShowMobileMenu} 
-        nomeEmpresa={nomeEmpresa} 
-      />
+    <Sidebar 
+  showMobileMenu={showMobileMenu} 
+  setShowMobileMenu={setShowMobileMenu} 
+  nomeEmpresa={nomeEmpresa} 
+  expandido={expandido}     // Adicione esta linha
+  setExpandido={setExpandido} // Adicione esta linha
+/>
 
       {/* Overlay para Mobile */}
       {showMobileMenu && (

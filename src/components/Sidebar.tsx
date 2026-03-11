@@ -65,14 +65,17 @@ interface SidebarProps {
   showMobileMenu: boolean;
   setShowMobileMenu: (show: boolean) => void;
   nomeEmpresa: string;
+  // Adicione estas duas linhas abaixo:
+  expandido: boolean;
+  setExpandido: (expandido: boolean) => void;
 }
 
 export default function Sidebar({
   showMobileMenu,
   setShowMobileMenu,
   nomeEmpresa,
-  expandido,
-  setExpandido
+  expandido, // Agora o TS reconhecerá
+  setExpandido  // Agora o TS reconhecerá
 }: SidebarProps) {
 
   const router = useRouter();
@@ -172,14 +175,9 @@ export default function Sidebar({
 
       <div className="mb-8 flex flex-col items-center justify-center h-18">
         {theme.logoDarkUrl ? (
-          <Image src={theme.logoDarkUrl} alt="Logo" width={120} height={56} className="object-contain max-h-14" />
+          <Image src={theme.logoDarkUrl} alt={nomeEmpresa || "Logo"} width={120} height={56} className="object-contain max-h-14" />
         ) : (
           <Building2 size={32} style={{ color: theme.menuIconColor }} />
-        )}
-        {expandido && (
-          <p className="text-xs font-semibold mt-2 truncate" style={{ color: theme.menuTextColor }}>
-            {nomeEmpresa}
-          </p>
         )}
       </div>
 
