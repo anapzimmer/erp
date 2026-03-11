@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, X, CheckCircle, Building2, FileText } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn,Building2, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseClient";
+import Image from "next/image";
 
 
 const LoginPage = () => {
@@ -57,8 +58,9 @@ const LoginPage = () => {
       router.push("/");
       router.refresh(); // Garante atualização da sessão
 
-    } catch (err) {
-      showModal("Erro", "Erro ao conectar com o servidor.");
+   } catch (err: unknown) {
+  const message = err instanceof Error ? err.message : "Erro ao conectar com o servidor.";
+  showModal("Erro", message);
     } finally {
       setLoading(false);
     }
@@ -66,7 +68,7 @@ const LoginPage = () => {
   const [showSignup, setShowSignup] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+   const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         localStorage.clear();
       }
@@ -124,14 +126,13 @@ const LoginPage = () => {
       setSignupCompanyName('');
       setSignupCnpj('');
 
-    } catch (err: any) {
-      console.error("ERRO COMPLETO:", JSON.stringify(err, null, 2));
-      showModal("Erro", err?.message || "Erro ao criar conta.");
-    } finally {
+    } catch (err: unknown) {
+  const message = err instanceof Error ? err.message : "Erro ao criar conta.";
+  showModal("Erro", message);
+} finally {
       setLoading(false);
     }
   };
-
 
  const handleForgotPassword = async () => {
     if (!email) {
@@ -155,9 +156,13 @@ const LoginPage = () => {
         "Enviamos um link para redefinir sua senha. Verifique sua caixa de entrada.",
         "success"
       );
-    } catch (err: any) {
-      showModal("Erro", err.message || "Não foi possível enviar o e-mail.");
-    } finally {
+   } catch (err: unknown) {
+  const message = err instanceof Error
+    ? err.message
+    : "Não foi possível enviar o e-mail.";
+
+  showModal("Erro", message);
+} finally {
       setLoading(false);
     }
   };
@@ -251,11 +256,13 @@ const LoginPage = () => {
       {/* --- CAMADA 3: CARD DE LOGIN CENTRALIZADO --- */}
       <div className="relative z-50 w-full max-w-md animate-scale-up">
         <div className="mb-8 text-center">
-          <img
-            src="/glasscode.png"
-            alt="Logo"
-            className="h-20 w-auto mx-auto object-contain drop-shadow-md"
-          />
+        <Image
+  src="/glasscode.png"
+  alt="Logo"
+  width={160}
+  height={80}
+  className="h-20 w-auto mx-auto object-contain drop-shadow-md"
+/>
         </div>
 
         <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">
@@ -343,7 +350,7 @@ const LoginPage = () => {
       </div>
 
       {modalConfig.show && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-10000 flex items-center justify-center p-4">
           {/* Overlay com Blur mais suave */}
           <div
             className="absolute inset-0 bg-[#1C415B]/20 backdrop-blur-sm"
@@ -392,7 +399,7 @@ const LoginPage = () => {
 
       {/* --- MODAL SIGNUP --- */}
       {showSignup && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-[#1C415B]/30 backdrop-blur-sm"
             onClick={() => setShowSignup(false)}

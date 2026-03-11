@@ -39,54 +39,43 @@ export default function Header({
 
 
   return (
-    <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
-      <div className="flex items-center gap-2 md:gap-4">
-        <button onClick={() => setShowMobileMenu?.(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-          <Menu size={24} className="text-gray-600" />
-        </button>
+   // Substitua o className da <header> por este:
+<header className="border-b border-slate-200 bg-white/80 backdrop-blur-md py-4 px-6 flex items-center justify-between sticky top-0 z-30">
+  <div className="flex items-center gap-4">
+    <button onClick={() => setShowMobileMenu?.(true)} className="md:hidden p-2 rounded-lg hover:bg-slate-100">
+      <Menu size={20} className="text-slate-600" />
+    </button>
+    {logoUrl && <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />}
+    {children}
+  </div>
 
-        {/* --- INSERÇÃO DA LOGO DINÂMICA NO ESTILO ORIGINAL --- */}
-        {logoUrl && (
-          <img src={logoUrl} alt="Logo" className="h-8 md:h-10 w-auto object-contain ml-2" />
-        )}
-
-        {children}
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="relative" ref={userMenuRef}>
-          <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
-              <Building2 size={16} />
-            </div>
-            <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
-            <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showUserMenu && (
-            <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-              <div className="px-3 py-2 border-b border-gray-100 mb-2">
-                <p className="text-xs text-gray-400">Logado como</p>
-                <p className="text-sm font-semibold text-gray-800 truncate"> {usuarioEmail} </p>
-              </div>
-              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                <Settings size={18} className="text-gray-400" />Configurações
-              </button>
-              <button
-                type="button" // OBRIGATÓRIO: impede que o botão tente submeter um <form> ao redor
-                onClick={async (e) => {
-                  e.stopPropagation(); // Evita que o evento de clique "vaze" para outros elementos
-                  setShowUserMenu(false); // Fecha o menu
-                  await handleSignOut();  // Executa a função de logout
-                }}
-                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"
-              >
-                <LogOut size={18} /> Sair
-              </button>
-            </div>
-          )}
+  <div className="flex items-center">
+    <div className="relative" ref={userMenuRef}>
+      <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 pl-4 border-l border-slate-200">
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+          <Building2 size={16} />
         </div>
-      </div>
-    </header>
+        <ChevronDown size={14} className={`text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Menu suspenso mais elegante */}
+      {showUserMenu && (
+        <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-lg border border-slate-100 p-2 z-50">
+          <div className="px-3 py-2 mb-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Logado como</p>
+            <p className="text-sm font-medium text-slate-800 truncate">{usuarioEmail}</p>
+          </div>
+          <hr className="border-slate-100 my-1" />
+          <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg">
+            <Settings size={16} /> Configurações
+          </button>
+          <button onClick={async (e) => { e.stopPropagation(); setShowUserMenu(false); await handleSignOut(); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
+            <LogOut size={16} /> Sair
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</header>
   );
 }

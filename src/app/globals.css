@@ -7,11 +7,14 @@
   --foreground: #171717;
 
   /* ERP Theme */
-  --gc-screen-bg: #F4F7FA;
-  --gc-menu-bg: #1C415B;
-  --gc-menu-text: #ffffff;
-  --gc-menu-icon: #39B89F;
+  --gc-screen-bg: #F9FAFB;
+  --gc-menu-bg: #374151;
+  --gc-menu-text: #10B981;
+  --gc-menu-icon: #E5E7EB;
   --gc-menu-hover: #39B89F;
+  --gc-menu-active-bg: #D1FAE5; /* Verde bem claro para item ativo */
+  --gc-menu-active-text: #065F46; /* Verde escuro para texto ativo */
+  
 
   --gc-text-light: #1f2937;
   --gc-text-dark: #ffffff;

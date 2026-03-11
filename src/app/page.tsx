@@ -33,6 +33,7 @@ export default function Dashboard() {
     { titulo: "Faturamento", valor: "R$ 15.2k", icone: DollarSign, color: "#F59E0B", bg: "#F59E0B15" },
   ];
 
+  
   return (
     <div className="flex min-h-screen transition-colors duration-500" style={{ backgroundColor: theme.screenBackgroundColor }}>
       
@@ -73,7 +74,7 @@ export default function Dashboard() {
               return (
                 <div
                   key={stat.titulo}
-                  className="group relative overflow-hidden p-7 rounded-[2rem] border border-gray-100/50 shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer"
+                  className="group relative overflow-hidden p-7 rounded-4xl border border-gray-100/50 shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer"
                   style={{ backgroundColor: theme.modalBackgroundColor }}
                 >
                   {/* Efeito de Brilho (Glow) ao passar o mouse */}
