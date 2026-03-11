@@ -91,33 +91,57 @@ export default function Sidebar({
 
     return (
       <div
-        key={item.nome}
-        className="group mb-1 px-2 relative"
-        onMouseEnter={() => setHoveredSubmenu(item.nome)}
-        onMouseLeave={() => setHoveredSubmenu(null)}
-      >
-        <div
-          onClick={() => {
-            router.push(item.rota);
-            setShowMobileMenu(false);
-          }}
-          className={`flex items-center ${expandido ? "justify-between" : "justify-center"} p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1`}
-          style={{
-            color: theme.menuTextColor,
-            backgroundColor: isActive ? theme.menuHoverColor : "transparent",
-          }}
-        >
-          <div className={`flex items-center ${expandido ? "gap-3" : ""}`}>
-            <Icon className="w-5 h-5 shrink-0" style={{ color: theme.menuIconColor }} />
-            {expandido && <span className="font-medium text-sm truncate">{item.nome}</span>}
-          </div>
+  key={item.nome}
+  className="group mb-1 px-2 relative"
+  onMouseEnter={() => setHoveredSubmenu(item.nome)}
+  onMouseLeave={() => setHoveredSubmenu(null)}
+>
+      <div
+    onClick={() => {
+      router.push(item.rota);
+      setShowMobileMenu(false);
+    }}
+    className={`flex items-center ${
+      expandido ? "justify-between" : "justify-center"
+    } p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1`}
+    style={{
+      color: theme.menuTextColor,
+      backgroundColor: isActive ? theme.menuHoverColor : "transparent",
+    }}
+  >
+    <div className={`flex items-center ${expandido ? "gap-3" : ""}`}>
+      <Icon
+        className="w-5 h-5 shrink-0"
+        style={{ color: theme.menuIconColor }}
+      />
+      {expandido && (
+        <span className="font-medium text-sm truncate">{item.nome}</span>
+      )}
+    </div>
 
           {item.submenu && expandido && (
-            <ChevronRightIcon
-              className={`w-4 h-4 opacity-70 transition-transform duration-300 ${isSubmenuOpen ? "rotate-90" : ""}`}
-            />
-          )}
-        </div>
+      <ChevronRightIcon
+        className={`w-4 h-4 opacity-70 transition-transform duration-300 ${
+          isSubmenuOpen ? "rotate-90" : ""
+        }`}
+      />
+    )}
+  </div>
+
+
+   {!expandido && (
+  <div
+    className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shadow-lg z-50"
+    style={{
+      backgroundColor: theme.menuHoverColor,
+      color: theme.menuTextColor,
+      border: `1px solid ${theme.menuIconColor}30`,
+    }}
+  >
+    {item.nome}
+  </div>
+)}
+
 
         {item.submenu && expandido && (
           <div
@@ -173,11 +197,22 @@ export default function Sidebar({
         {expandido ? <ChevronLeft size={16} /> : <ChevronRightIcon size={16} />}
       </button>
 
-      <div className="mb-8 flex flex-col items-center justify-center h-18">
+     <div className="mb-8 flex flex-col items-center justify-center h-18 relative group">
         {theme.logoDarkUrl ? (
           <Image src={theme.logoDarkUrl} alt={nomeEmpresa || "Logo"} width={120} height={56} className="object-contain max-h-14" />
         ) : (
           <Building2 size={32} style={{ color: theme.menuIconColor }} />
+        )}
+        {!expandido && (
+          <div
+className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shadow-lg"            style={{
+              color: theme.menuTextColor,
+              backgroundColor: theme.menuHoverColor,
+              border: `1px solid ${theme.menuIconColor}30`
+            }}
+          >
+            {nomeEmpresa}
+          </div>
         )}
       </div>
 

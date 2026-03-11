@@ -38,13 +38,14 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen transition-colors duration-500" style={{ backgroundColor: theme.screenBackgroundColor }}>
       
-    <Sidebar 
-  showMobileMenu={showMobileMenu} 
-  setShowMobileMenu={setShowMobileMenu} 
-  nomeEmpresa={nomeEmpresa} 
-  expandido={expandido}     // Adicione esta linha
-  setExpandido={setExpandido} // Adicione esta linha
-/>
+<Sidebar 
+        showMobileMenu={showMobileMenu} 
+        setShowMobileMenu={setShowMobileMenu} 
+        nomeEmpresa={nomeEmpresa}
+        // 2. Você DEVE passar estas duas props:
+        expandido={expandido}
+        setExpandido={setExpandido} 
+      />
 
       {/* Overlay para Mobile */}
       {showMobileMenu && (
