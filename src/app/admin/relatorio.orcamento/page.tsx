@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
 import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
@@ -15,6 +15,7 @@ import { PDFViewer, Document as PDFDoc, Page, View, Text, StyleSheet } from '@re
 
 export default function RelatorioOrçamento() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { theme } = useTheme()
 
     // Estados de Layout
@@ -137,6 +138,33 @@ export default function RelatorioOrçamento() {
     // 1. Adicione estes novos estados
     const [dataInicio, setDataInicio] = useState("");
     const [dataFim, setDataFim] = useState("");
+
+    useEffect(() => {
+        const periodo = searchParams.get("periodo");
+        const filtroInicial = searchParams.get("filtro") || "";
+
+        if (filtroInicial) {
+            setFiltro(filtroInicial);
+        }
+
+        if (periodo === "30d") {
+            const fim = new Date();
+            const inicio = new Date();
+            inicio.setDate(fim.getDate() - 29);
+
+            setDataInicio(inicio.toISOString().slice(0, 10));
+            setDataFim(fim.toISOString().slice(0, 10));
+        }
+
+        if (periodo === "7d") {
+            const fim = new Date();
+            const inicio = new Date();
+            inicio.setDate(fim.getDate() - 6);
+
+            setDataInicio(inicio.toISOString().slice(0, 10));
+            setDataFim(fim.toISOString().slice(0, 10));
+        }
+    }, [searchParams]);
 
     // 2. Atualize o seu filtro
     const orcamentosFiltrados = orcamentos.filter(orc => {

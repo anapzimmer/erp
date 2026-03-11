@@ -139,6 +139,25 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     fetchTheme();
   }, [fetchTheme]);
 
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        fetchTheme();
+      }
+
+      if (event === "SIGNED_OUT") {
+        setTheme(defaultTheme);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchTheme]);
+
   
   // Sincronização de CSS Variables
   useEffect(() => {

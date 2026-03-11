@@ -9,4 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn("Supabase keys missing - skipping initialization for build");
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const isBrowser = typeof window !== 'undefined';
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: isBrowser ? window.sessionStorage : undefined,
+  },
+});

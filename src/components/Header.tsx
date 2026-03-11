@@ -62,6 +62,10 @@ export default function Header({
       <div className="flex items-center">
         <div className="relative" ref={userMenuRef}>
           <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 pl-4 border-l border-slate-200">
+            <div className="hidden sm:flex flex-col items-end">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-slate-400 leading-none">Empresa</p>
+              <p className="text-xs font-semibold text-slate-700 max-w-[170px] truncate">{nomeEmpresa}</p>
+            </div>
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
               <Building2 size={16} />
             </div>
