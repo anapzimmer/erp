@@ -7,6 +7,8 @@ type AvisoModalData = {
   mensagem: string;
   confirmar?: () => void;
   tipo?: "sucesso" | "erro" | "aviso";
+  labelConfirmar?: string;
+  labelCancelar?: string;
 };
 
 type CadastrosAvisoModalProps = {
@@ -34,7 +36,10 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
   const primaryButtonBg = colors?.primaryButtonBg || "#1C415B";
   const primaryButtonText = colors?.primaryButtonText || "#FFFFFF";
 
-  const iconColor = aviso.tipo === "sucesso" ? success : aviso.confirmar ? error : warning;
+  const iconColor = aviso.tipo === "sucesso" ? success
+    : aviso.tipo === "aviso" ? warning
+    : aviso.confirmar ? error
+    : warning;
   const Icon = aviso.tipo === "sucesso" ? CheckCircle2 : aviso.confirmar ? Trash2 : AlertTriangle;
 
   return (
@@ -65,7 +70,7 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
                 onClick={onClose}
                 className="flex-1 py-3 rounded-2xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
               >
-                Cancelar
+                {aviso.labelCancelar ?? "Cancelar"}
               </button>
               <button
                 onClick={() => {
@@ -75,7 +80,7 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
                 className="flex-1 py-3 rounded-2xl text-xs font-bold text-white shadow-md active:scale-95 transition-all"
                 style={{ backgroundColor: error }}
               >
-                Confirmar
+                {aviso.labelConfirmar ?? "Confirmar"}
               </button>
             </>
           ) : (

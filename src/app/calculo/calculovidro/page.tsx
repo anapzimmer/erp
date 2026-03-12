@@ -14,6 +14,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
@@ -21,6 +22,13 @@ interface Vidro { id: number | string; nome: string; espessura?: string | number
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
+const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
+const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07;
+
+const aplicarAcrescimoPorMedida = (precoBaseM2: number, larguraMm: number, alturaMm: number) => {
+  const excedeuLimite = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
+  return excedeuLimite ? precoBaseM2 * (1 + PERCENTUAL_ACRESCIMO_MEDIDA) : precoBaseM2;
+};
 
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
@@ -36,6 +44,7 @@ export default function RelatorioOrçamento() {
   const [sidebarExpandido, setSidebarExpandido] = useState(true)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [isMounted, setIsMounted] = useState(false);
+  const draftRestauradoRef = useRef(false);
 
   // Estados de Dados do Supabase
   const [listaClientes, setListaClientes] = useState<any[]>([])
@@ -69,6 +78,8 @@ export default function RelatorioOrçamento() {
   const [mostrarModalAssociacao, setMostrarModalAssociacao] = useState(false);
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
+
+  const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<number[]>([]);
@@ -161,6 +172,107 @@ useEffect(() => {
   }
 }, [editId, isMounted, listaClientes]);
 
+  useEffect(() => {
+    if (!isMounted || !empresaId || draftRestauradoRef.current) return;
+
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) {
+        draftRestauradoRef.current = true;
+        return;
+      }
+
+      const draft = JSON.parse(raw);
+      setClienteId(draft.clienteId || "");
+      setObra(draft.obra || "");
+      setLargura(draft.largura || "");
+      setAltura(draft.altura || "");
+      setQuantidade(Number(draft.quantidade) > 0 ? Number(draft.quantidade) : 1);
+      setQuantidadeServico(Number(draft.quantidadeServico) > 0 ? Number(draft.quantidadeServico) : 1);
+
+      if (Array.isArray(draft.itens)) {
+        setItens(draft.itens);
+      }
+
+      if (draft.vidroIdSelecionado && listaVidros.length > 0) {
+        const vidro = listaVidros.find((v: Vidro) => String(v.id) === String(draft.vidroIdSelecionado));
+        if (vidro) setVidroSelecionado(vidro);
+      }
+
+      if (draft.servicoIdSelecionado && listaServicos.length > 0) {
+        const servico = listaServicos.find((s: any) => String(s.id) === String(draft.servicoIdSelecionado));
+        if (servico) setServicoSelecionado(servico);
+      }
+    } catch (error) {
+      console.error("Erro ao restaurar rascunho de vidros:", error);
+    } finally {
+      draftRestauradoRef.current = true;
+    }
+  }, [isMounted, empresaId, draftKey, listaVidros, listaServicos]);
+
+  useEffect(() => {
+    if (!isMounted || !empresaId) return;
+
+    const temDadosNaoSalvos =
+      itens.length > 0 ||
+      !!clienteId ||
+      !!obra ||
+      !!largura ||
+      !!altura;
+
+    if (!temDadosNaoSalvos) {
+      sessionStorage.removeItem(draftKey);
+      return;
+    }
+
+    const payload = {
+      clienteId,
+      obra,
+      largura,
+      altura,
+      quantidade,
+      quantidadeServico,
+      vidroIdSelecionado: vidroSelecionado?.id || null,
+      servicoIdSelecionado: servicoSelecionado?.id || null,
+      itens,
+      updatedAt: Date.now(),
+    };
+
+    sessionStorage.setItem(draftKey, JSON.stringify(payload));
+  }, [
+    isMounted,
+    empresaId,
+    draftKey,
+    clienteId,
+    obra,
+    largura,
+    altura,
+    quantidade,
+    quantidadeServico,
+    vidroSelecionado,
+    servicoSelecionado,
+    itens,
+  ]);
+
+  useEffect(() => {
+    const temDadosNaoSalvos =
+      itens.length > 0 ||
+      !!clienteId ||
+      !!obra ||
+      !!largura ||
+      !!altura;
+
+    if (!temDadosNaoSalvos) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [itens.length, clienteId, obra, largura, altura]);
+
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -186,7 +298,8 @@ useEffect(() => {
       String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
     );
 
-    const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidroSelecionado.preco);
+    const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidroSelecionado.preco);
+    const precoVidroM2 = aplicarAcrescimoPorMedida(precoBaseM2, l, a);
 
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
@@ -267,7 +380,9 @@ useEffect(() => {
           String(p.vidro_id) === String(novoVidro.id) &&
           String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
         );
-        const precoVidroM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
+        const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
+        const [lReal, aReal] = item.medidaReal.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')) || 0);
+        const precoVidroM2 = aplicarAcrescimoPorMedida(precoBaseM2, lReal, aReal);
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
         // 3. Refazer o cálculo de área
@@ -374,11 +489,13 @@ useEffect(() => {
       if (error) throw error;
 
       if (editId) {
+        sessionStorage.removeItem(draftKey);
         router.push('/admin/relatorio.orcamento');
         return;
       }
 
       setUltimoNumeroGerado(numeroFinal);
+      sessionStorage.removeItem(draftKey);
       setMostrarModalSucesso(true);
 
     } catch (error: any) {
@@ -487,7 +604,8 @@ useEffect(() => {
     const aReal = a;
 
     const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const precoM2 = Number(vidro.preco);
+    const precoBaseM2 = Number(vidro.preco);
+    const precoM2 = aplicarAcrescimoPorMedida(precoBaseM2, lReal, aReal);
 
     return {
       id: Math.random(),

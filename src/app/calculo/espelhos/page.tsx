@@ -11,6 +11,7 @@ import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
 import Header from "@/components/Header"
 import { useRouter, useSearchParams } from "next/navigation";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 type ShapeStyle = {
   width: number;
@@ -124,6 +125,7 @@ export default function CalculoEspelhosPage() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const carregadoRef = useRef(false);
+  const draftRestauradoRef = useRef(false);
   // No topo, junto com os outros estados
   const larguraInputRef = useRef<HTMLInputElement>(null);
   const [showModalSucesso, setShowModalSucesso] = useState(false);
@@ -144,6 +146,7 @@ export default function CalculoEspelhosPage() {
   const [divisoesAltura, setDivisoesAltura] = useState(1);
   const [showModalSalvar, setShowModalSalvar] = useState(false)
   const [showModalAviso, setShowModalAviso] = useState(false);
+  const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
   // --- CARREGAR DADOS ---
   useEffect(() => {
@@ -191,6 +194,104 @@ export default function CalculoEspelhosPage() {
     buscarOrcamentoParaEdicao(editId);
     carregadoRef.current = true;
   }, [editId, vidrosDB.length]);
+
+  useEffect(() => {
+    if (!empresaId || draftRestauradoRef.current) return;
+
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) {
+        draftRestauradoRef.current = true;
+        return;
+      }
+
+      const draft = JSON.parse(raw);
+      setNomeCliente(draft.nomeCliente || "");
+      setNomeObra(draft.nomeObra || "");
+      setLargura(draft.largura || "");
+      setAltura(draft.altura || "");
+      setQuantidade(Number(draft.quantidade) > 0 ? Number(draft.quantidade) : 1);
+      setDivisoesLargura(Number(draft.divisoesLargura) > 0 ? Number(draft.divisoesLargura) : 1);
+      setDivisoesAltura(Number(draft.divisoesAltura) > 0 ? Number(draft.divisoesAltura) : 1);
+
+      if (Array.isArray(draft.listaItens)) {
+        setListaItens(draft.listaItens);
+      }
+
+      if (draft.vidroId) setVidroId(String(draft.vidroId));
+      if (draft.acabamentoId !== undefined && draft.acabamentoId !== null) {
+        setAcabamentoId(String(draft.acabamentoId));
+      }
+    } catch (error) {
+      console.error("Erro ao restaurar rascunho de espelhos:", error);
+    } finally {
+      draftRestauradoRef.current = true;
+    }
+  }, [empresaId, draftKey]);
+
+  useEffect(() => {
+    if (!empresaId) return;
+
+    const temDadosNaoSalvos =
+      listaItens.length > 0 ||
+      !!nomeCliente ||
+      !!nomeObra ||
+      !!largura ||
+      !!altura;
+
+    if (!temDadosNaoSalvos) {
+      sessionStorage.removeItem(draftKey);
+      return;
+    }
+
+    const payload = {
+      nomeCliente,
+      nomeObra,
+      largura,
+      altura,
+      quantidade,
+      divisoesLargura,
+      divisoesAltura,
+      vidroId,
+      acabamentoId,
+      listaItens,
+      updatedAt: Date.now(),
+    };
+
+    sessionStorage.setItem(draftKey, JSON.stringify(payload));
+  }, [
+    empresaId,
+    draftKey,
+    nomeCliente,
+    nomeObra,
+    largura,
+    altura,
+    quantidade,
+    divisoesLargura,
+    divisoesAltura,
+    vidroId,
+    acabamentoId,
+    listaItens,
+  ]);
+
+  useEffect(() => {
+    const temDadosNaoSalvos =
+      listaItens.length > 0 ||
+      !!nomeCliente ||
+      !!nomeObra ||
+      !!largura ||
+      !!altura;
+
+    if (!temDadosNaoSalvos) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [listaItens.length, nomeCliente, nomeObra, largura, altura]);
 
   const handleLogout = async () => {
     try {
@@ -435,12 +536,34 @@ export default function CalculoEspelhosPage() {
     }
 
     try {
+      // Garante empresa_id mesmo quando o hook ainda não terminou de carregar.
+      let empresaIdFinal = empresaId;
+      if (!empresaIdFinal) {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData?.user;
+
+        if (authUser) {
+          const { data: perfilData } = await supabase
+            .from("perfis_usuarios")
+            .select("empresa_id")
+            .eq("id", authUser.id)
+            .maybeSingle();
+
+          empresaIdFinal = perfilData?.empresa_id || null;
+        }
+      }
+
+      if (!empresaIdFinal) {
+        throw new Error("Empresa não identificada para salvar orçamento.");
+      }
+
       let numero = "";
       if (editId) {
         const { data: atual } = await supabase
           .from("orcamentos")
           .select("numero_formatado")
           .eq("id", editId)
+          .eq("empresa_id", empresaIdFinal)
           .single();
         numero = atual?.numero_formatado || "OR-EDIT";
       } else {
@@ -458,7 +581,7 @@ export default function CalculoEspelhosPage() {
         valor_total: Number(totalGeral) || 0,
         metragem_total: Number(metragemTotal) || 0,
         theme_color: theme.contentTextLightBg,
-        empresa_id: empresaId
+        empresa_id: empresaIdFinal
       };
 
       let data: any = null;
@@ -469,6 +592,7 @@ export default function CalculoEspelhosPage() {
           .from("orcamentos")
           .update(payload)
           .eq("id", editId)
+          .eq("empresa_id", empresaIdFinal)
           .select("numero_formatado")
           .single();
         data = dataUpdate;
@@ -476,7 +600,7 @@ export default function CalculoEspelhosPage() {
       } else {
         const { data: dataInsert, error: errorInsert } = await supabase
           .from("orcamentos")
-          .insert(payload)
+          .insert([payload])
           .select("numero_formatado")
           .single();
         data = dataInsert;
@@ -486,6 +610,7 @@ export default function CalculoEspelhosPage() {
       if (error) throw error;
 
       if (editId) {
+        sessionStorage.removeItem(draftKey);
         router.push('/admin/relatorio.orcamento');
         return;
       }
@@ -493,13 +618,14 @@ export default function CalculoEspelhosPage() {
       // 2. SUCESSO: Limpa os estados e fecha o modal de salvar
       setUltimoNumeroGerado(data.numero_formatado);
       setListaItens([]);
+      sessionStorage.removeItem(draftKey);
       setShowModalSalvar(false); // Fecha o modal de preenchimento
       setShowModalPDF(false);    // Fecha caso estivesse aberto
       setShowModalSucesso(true);
 
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao salvar orçamento.");
+    } catch (error: any) {
+      console.error("Erro ao salvar orçamento de espelhos:", error);
+      alert("Erro ao salvar orçamento: " + (error?.message || "falha inesperada"));
     }
   };
 
