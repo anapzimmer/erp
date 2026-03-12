@@ -45,6 +45,15 @@ type DashboardResumo = {
   serie30Dias: { dia: string; total: number }[];
 };
 
+type OrcamentoValorRow = {
+  valor_total: number | string | null;
+};
+
+type OrcamentoHistoricoRow = {
+  created_at: string | null;
+  valor_total: number | string | null;
+};
+
 const resumoInicial: DashboardResumo = {
   clientes: 0,
   orcamentos: 0,
@@ -190,7 +199,7 @@ export default function Dashboard() {
           .gte("created_at", inicio30Dias.toISOString())
           .order("created_at", { ascending: true });
 
-        const faturamentoMensal = (faturamentoMesRes.data || []).reduce((acc, item: any) => {
+        const faturamentoMensal = ((faturamentoMesRes.data || []) as OrcamentoValorRow[]).reduce((acc, item) => {
           return acc + (Number(item.valor_total) || 0);
         }, 0);
 
@@ -201,7 +210,8 @@ export default function Dashboard() {
           return { dia: chave, total: 0 };
         });
 
-        (historico30DiasRes.data || []).forEach((orc: any) => {
+        ((historico30DiasRes.data || []) as OrcamentoHistoricoRow[]).forEach((orc) => {
+          if (!orc.created_at) return;
           const chave = new Date(orc.created_at).toISOString().slice(0, 10);
           const item = serieBase.find((x) => x.dia === chave);
           if (item) {
@@ -247,32 +257,32 @@ export default function Dashboard() {
       valor: String(resumo.clientes),
       variacao: carregandoResumo ? "Atualizando..." : "Base de clientes",
       icone: UsersRound,
-      color: theme.menuIconColor,
-      bg: `${theme.menuIconColor}18`,
+      color: theme.menuBackgroundColor,
+      bg: `${theme.menuBackgroundColor}14`,
     },
     {
       titulo: "Orçamentos",
       valor: String(resumo.orcamentos),
       variacao: carregandoResumo ? "Atualizando..." : "Registros totais",
       icone: FileText,
-      color: "#0EA5E9",
-      bg: "#0EA5E918",
+      color: "#0F766E",
+      bg: "#0F766E18",
     },
     {
       titulo: "Modelos",
       valor: String(resumo.projetos),
       variacao: "Modelos de projeto",
       icone: Briefcase,
-      color: "#22C55E",
-      bg: "#22C55E18",
+      color: "#3F3F46",
+      bg: "#3F3F4615",
     },
     {
       titulo: "Faturamento",
       valor: formatarMoeda(resumo.faturamentoMensal),
       variacao: "Acumulado do mês",
       icone: DollarSign,
-      color: "#F59E0B",
-      bg: "#F59E0B18",
+      color: "#B45309",
+      bg: "#B4530918",
     },
   ];
 
@@ -307,10 +317,14 @@ export default function Dashboard() {
 
       {/* Overlay para Mobile */}
       {showMobileMenu && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>
+        <div
+          className="fixed inset-0 backdrop-blur-sm z-40 md:hidden"
+          style={{ backgroundColor: `${theme.menuBackgroundColor}52` }}
+          onClick={() => setShowMobileMenu(false)}
+        ></div>
       )}
 
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col w-full min-w-0">
         <Header 
             setShowMobileMenu={setShowMobileMenu}
             nomeEmpresa={nomeEmpresa}
@@ -318,35 +332,35 @@ export default function Dashboard() {
             handleSignOut={signOut}
         />
         
-        <main className="p-4 md:p-8 xl:p-10 flex-1">
-          <div className="dashboard-reveal relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 xl:p-10 border shadow-[0_24px_70px_-40px_rgba(0,0,0,0.45)]"
+        <main className="p-4 md:p-8 xl:p-10 flex-1 min-w-0">
+          <div className="dashboard-reveal relative overflow-hidden rounded-4xl md:rounded-[2.5rem] p-6 md:p-8 xl:p-10 border shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)]"
             style={{
-              background: `linear-gradient(130deg, ${theme.menuBackgroundColor} 0%, ${theme.menuHoverColor} 55%, ${theme.menuBackgroundColor} 100%)`,
-              borderColor: `${theme.menuIconColor}33`,
+              background: `linear-gradient(120deg, #ffffff 0%, #f8fafc 62%, ${theme.menuBackgroundColor}08 100%)`,
+              borderColor: `${theme.menuBackgroundColor}1A`,
               animationDelay: "50ms",
             }}
           >
             <div
-              className="absolute -top-24 -right-24 h-56 w-56 rounded-full blur-3xl"
-              style={{ backgroundColor: `${theme.menuIconColor}55` }}
+              className="absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl"
+              style={{ backgroundColor: `${theme.menuBackgroundColor}12` }}
             />
             <div
-              className="absolute -bottom-28 -left-16 h-56 w-56 rounded-full blur-3xl"
-              style={{ backgroundColor: "rgba(255,255,255,0.20)" }}
+              className="absolute -bottom-24 -left-14 h-48 w-48 rounded-full blur-3xl"
+              style={{ backgroundColor: `${theme.menuHoverColor}14` }}
             />
 
             <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p className="text-xs md:text-sm uppercase tracking-[0.2em] font-semibold text-white/75 mb-3">
+                <p className="text-xs md:text-sm uppercase tracking-[0.2em] font-semibold mb-3" style={{ color: `${theme.contentTextLightBg}AA` }}>
                   {saudacao}, {nomeUsuario}
                 </p>
-                <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
-                  Controle inteligente
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight" style={{ color: theme.contentTextLightBg }}>
+                  Painel principal
                   <br className="hidden md:block" />
                   da operação
                 </h1>
-                <p className="text-sm md:text-base text-white/80 mt-4 max-w-xl">
-                  Painel da <span className="font-bold text-white">{nomeEmpresa}</span> com visão rápida de desempenho, produção e próximos passos.
+                <p className="text-sm md:text-base mt-4 max-w-xl" style={{ color: `${theme.contentTextLightBg}CC` }}>
+                  Visão objetiva da <span className="font-bold" style={{ color: theme.contentTextLightBg }}>{nomeEmpresa}</span> com indicadores do dia, movimentações e atalhos úteis.
                 </p>
               </div>
 
@@ -357,14 +371,18 @@ export default function Dashboard() {
                     <Link
                       key={action.label}
                       href={action.href}
-                      className="dashboard-reveal dashboard-float group rounded-2xl px-4 py-3 border bg-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/20"
-                      style={{ borderColor: "rgba(255,255,255,0.25)", animationDelay: `${120 + index * 80}ms` }}
+                      className="dashboard-reveal dashboard-float group rounded-2xl px-4 py-3 border bg-white transition-all duration-300 hover:-translate-y-0.5"
+                      style={{
+                        borderColor: `${theme.menuBackgroundColor}22`,
+                        boxShadow: "0 8px 18px -14px rgba(15, 23, 42, 0.45)",
+                        animationDelay: `${120 + index * 80}ms`,
+                      }}
                     >
-                      <div className="flex items-center justify-between text-white/95">
-                        <ActionIcon size={16} />
-                        <ArrowUpRight size={14} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                      <div className="flex items-center justify-between" style={{ color: `${theme.contentTextLightBg}CC` }}>
+                        <ActionIcon size={16} style={{ color: theme.menuBackgroundColor }} />
+                        <ArrowUpRight size={14} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" style={{ color: `${theme.contentTextLightBg}AA` }} />
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-white">{action.label}</p>
+                      <p className="mt-2 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>{action.label}</p>
                     </Link>
                   );
                 })}
@@ -372,16 +390,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-4 mt-8">
             {stats.map((stat, index) => {
               const Icon = stat.icone;
               return (
                 <div
                   key={stat.titulo}
-                  className="dashboard-reveal group relative overflow-hidden p-6 rounded-3xl border shadow-sm transition-all duration-300 hover:-translate-y-1"
+                  className="dashboard-reveal group relative overflow-hidden p-4 xl:p-5 rounded-3xl border shadow-sm transition-all duration-300 hover:-translate-y-1"
                   style={{
-                    backgroundColor: theme.modalBackgroundColor,
-                    borderColor: `${theme.menuIconColor}22`,
+                    backgroundColor: "#FFFFFF",
+                    borderColor: `${theme.contentTextLightBg}14`,
                     animationDelay: `${220 + index * 90}ms`,
                   }}
                 >
@@ -390,25 +408,25 @@ export default function Dashboard() {
                     style={{ background: `linear-gradient(135deg, ${stat.color}10 0%, transparent 100%)` }}
                   />
 
-                  <div className="flex justify-between items-start mb-5 relative z-10">
+                  <div className="flex justify-between items-start mb-4 relative z-10 gap-3">
                     <div className="flex flex-col gap-1">
                       <span className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-65" style={{ color: theme.modalTextColor }}>
                         {stat.titulo}
                       </span>
                       {carregandoResumo ? (
-                        <div className="h-9 w-28 rounded-xl animate-pulse mt-1" style={{ backgroundColor: `${theme.menuIconColor}20` }} />
+                        <div className="h-8 w-24 rounded-xl animate-pulse mt-1" style={{ backgroundColor: `${theme.menuIconColor}20` }} />
                       ) : (
-                        <span className="text-3xl md:text-4xl font-black tracking-tight" style={{ color: theme.modalTextColor }}>
+                        <span className="text-2xl md:text-[1.85rem] font-black tracking-tight leading-tight" style={{ color: theme.modalTextColor }}>
                           {stat.valor}
                         </span>
                       )}
-                      <span className="text-xs font-semibold" style={{ color: stat.color }}>
+                      <span className="text-[11px] font-semibold" style={{ color: stat.color }}>
                         {stat.variacao}
                       </span>
                     </div>
                     
-                    <div className="p-3 rounded-2xl transition-transform duration-300 group-hover:scale-105" style={{ backgroundColor: stat.bg }}>
-                      <Icon size={28} style={{ color: stat.color }} />
+                    <div className="p-2.5 rounded-2xl transition-transform duration-300 group-hover:scale-105" style={{ backgroundColor: stat.bg }}>
+                      <Icon size={22} style={{ color: stat.color }} />
                     </div>
                   </div>
 

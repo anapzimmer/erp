@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
@@ -20,7 +20,7 @@ const CORES_COMUNS = [
   "natural", "dourado", "cinza", "grafite", "champagne", "cromado",
 ]
 
-const limparNomeTecnico = (nome?: string) => {
+const limparNomeTecnico = (nome?: string | null) => {
   const base = String(nome || "").toLowerCase().trim()
   const semParenteses = base.replace(/\(([^)]*)\)/g, "")
   const partes = semParenteses.split("-").map(p => p.trim()).filter(Boolean)
@@ -28,7 +28,7 @@ const limparNomeTecnico = (nome?: string) => {
   return (filtradas.join("-") || semParenteses).replace(/\s+/g, " ").trim()
 }
 
-const deduplicarItensTecnicos = <T extends { codigo?: string; nome?: string }>(lista: T[]) => {
+const deduplicarItensTecnicos = <T extends { codigo?: string | null; nome?: string | null }>(lista: T[]) => {
   const mapa = new Map<string, T>()
   for (const item of lista) {
     const chaveCodigo = String(item.codigo || "").toLowerCase().trim()
@@ -93,6 +93,46 @@ type FormData = {
   kits: ProjetoKit[]
   ferragens: ProjetoFerragem[]
   perfis: ProjetoPerfil[]
+}
+
+type KitDBItem = {
+  id: string
+  nome: string
+  largura: number | string | null
+  altura: number | string | null
+  categoria?: string | null
+}
+
+type FerragemDBItem = {
+  id: string
+  nome: string
+  codigo?: string | null
+  categoria?: string | null
+}
+
+type PerfilDBItem = {
+  id: string
+  nome: string
+  codigo?: string | null
+  categoria?: string | null
+}
+
+type ProjetoDetalheResponse = {
+  nome?: string | null
+  categoria?: string | null
+  desenho?: string | null
+  projetos_folhas?: ProjetoFolha[]
+  projetos_kits?: Array<ProjetoKit & { kits?: { nome?: string | null } | null }>
+  projetos_ferragens?: Array<ProjetoFerragem & { ferragens?: { nome?: string | null } | null }>
+  projetos_perfis?: Array<
+    ProjetoPerfil & {
+      perfis?: { nome?: string | null } | null
+      quantidade?: number | null
+      qtd_largura?: number | null
+      qtd_altura?: number | null
+      qtd_outros?: number | null
+    }
+  >
 }
 
 // ─── CATÁLOGO DE DESENHOS ────────────────────────────────────────────────────
@@ -211,9 +251,9 @@ export default function ProjetosPage() {
 
   // ── Dados ──
   const [projetos, setProjetos] = useState<Projeto[]>([])
-  const [kitsDB, setKitsDB] = useState<any[]>([])
-  const [ferragensDB, setFerragensDB] = useState<any[]>([])
-  const [perfisDB, setPerfisDB] = useState<any[]>([])
+  const [kitsDB, setKitsDB] = useState<KitDBItem[]>([])
+  const [ferragensDB, setFerragensDB] = useState<FerragemDBItem[]>([])
+  const [perfisDB, setPerfisDB] = useState<PerfilDBItem[]>([])
   const [carregando, setCarregando] = useState(true)
 
   // ── Modal formulário ──
@@ -235,12 +275,9 @@ export default function ProjetosPage() {
     tipo?: "sucesso" | "erro" | "aviso"
   } | null>(null)
 
-  // ─── EFEITOS ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (empresaId) carregarTudo()
-  }, [empresaId])
+  const carregarTudo = useCallback(async () => {
+    if (!empresaId) return
 
-  const carregarTudo = async () => {
     setCarregando(true)
     const [resProjetos, resKits, resFerragens, resPerfis] = await Promise.all([
       supabase.from("projetos").select("*").eq("empresa_id", empresaId).order("criado_em", { ascending: false }),
@@ -249,11 +286,16 @@ export default function ProjetosPage() {
       supabase.from("perfis").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
     ])
     if (resProjetos.data) setProjetos(resProjetos.data)
-    if (resKits.data) setKitsDB(resKits.data)
-    if (resFerragens.data) setFerragensDB(deduplicarItensTecnicos(resFerragens.data))
-    if (resPerfis.data) setPerfisDB(deduplicarItensTecnicos(resPerfis.data))
+    if (resKits.data) setKitsDB(resKits.data as KitDBItem[])
+    if (resFerragens.data) setFerragensDB(deduplicarItensTecnicos(resFerragens.data as FerragemDBItem[]))
+    if (resPerfis.data) setPerfisDB(deduplicarItensTecnicos(resPerfis.data as PerfilDBItem[]))
     setCarregando(false)
-  }
+  }, [empresaId])
+
+  // ─── EFEITOS ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (empresaId) carregarTudo()
+  }, [empresaId, carregarTudo])
 
   // ─── ABRIR EDIÇÃO ─────────────────────────────────────────────────────────
   const abrirEdicao = async (projeto: Projeto) => {
@@ -264,17 +306,18 @@ export default function ProjetosPage() {
       .single()
 
     if (!data) return
+    const detalhe = data as ProjetoDetalheResponse
 
     setForm({
-      nome: data.nome || "",
-      categoria: data.categoria || "",
-      desenho: data.desenho || "",
-      folhas: (data.projetos_folhas || []).sort((a: any, b: any) => a.numero_folha - b.numero_folha),
-      kits: (data.projetos_kits || []).map((k: any) => ({ ...k, nome: k.kits?.nome })),
-      ferragens: (data.projetos_ferragens || []).map((f: any) => ({ ...f, nome: f.ferragens?.nome })),
-      perfis: (data.projetos_perfis || []).map((p: any) => ({
+      nome: detalhe.nome || "",
+      categoria: detalhe.categoria || "",
+      desenho: detalhe.desenho || "",
+      folhas: (detalhe.projetos_folhas || []).sort((a, b) => a.numero_folha - b.numero_folha),
+      kits: (detalhe.projetos_kits || []).map((k) => ({ ...k, nome: k.kits?.nome || undefined })),
+      ferragens: (detalhe.projetos_ferragens || []).map((f) => ({ ...f, nome: f.ferragens?.nome || undefined })),
+      perfis: (detalhe.projetos_perfis || []).map((p) => ({
         ...p,
-        nome: p.perfis?.nome,
+        nome: p.perfis?.nome || undefined,
         qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
         qtd_altura: Number(p.qtd_altura ?? 0),
         qtd_outros: Number(p.qtd_outros ?? 0),
@@ -383,8 +426,9 @@ export default function ProjetosPage() {
       })
       fecharModal()
       carregarTudo()
-    } catch (err: any) {
-      setModalAviso({ titulo: "Erro ao salvar", mensagem: err?.message || "Erro inesperado.", tipo: "erro" })
+    } catch (err: unknown) {
+      const mensagem = err instanceof Error ? err.message : "Erro inesperado."
+      setModalAviso({ titulo: "Erro ao salvar", mensagem, tipo: "erro" })
     } finally {
       setSalvando(false)
     }
@@ -423,7 +467,7 @@ export default function ProjetosPage() {
       }],
     }))
   }
-  const atualizarFolha = (i: number, campo: keyof ProjetoFolha, val: any) => {
+  const atualizarFolha = <K extends keyof ProjetoFolha>(i: number, campo: K, val: ProjetoFolha[K]) => {
     setForm(prev => {
       const arr = [...prev.folhas]
       arr[i] = { ...arr[i], [campo]: val }
@@ -454,7 +498,7 @@ export default function ProjetosPage() {
       }],
     }))
   }
-  const atualizarKit = (i: number, campo: keyof ProjetoKit, val: any) => {
+  const atualizarKit = <K extends keyof ProjetoKit>(i: number, campo: K, val: ProjetoKit[K]) => {
     setForm(prev => {
       const arr = [...prev.kits]
       if (campo === "kit_id") {
@@ -479,7 +523,7 @@ export default function ProjetosPage() {
   // ─── HELPERS FERRAGENS ───────────────────────────────────────────────────
   const getFerragensDisponiveis = (ferragemAtualId?: string) => {
     const selecionadas = form.ferragens.map(item => String(item.ferragem_id))
-    return ferragensDB.filter((item: any) => {
+    return ferragensDB.filter((item) => {
       const id = String(item.id)
       return id === String(ferragemAtualId || "") || !selecionadas.includes(id)
     })
@@ -501,12 +545,12 @@ export default function ProjetosPage() {
       }],
     }))
   }
-  const atualizarFerragem = (i: number, campo: keyof ProjetoFerragem, val: any) => {
+  const atualizarFerragem = <K extends keyof ProjetoFerragem>(i: number, campo: K, val: ProjetoFerragem[K]) => {
     setForm(prev => {
       const arr = [...prev.ferragens]
       if (campo === "ferragem_id") {
-        const found = ferragensDB.find((x: any) => String(x.id) === String(val))
-        arr[i] = { ...arr[i], ferragem_id: val, nome: found?.nome || "" }
+        const found = ferragensDB.find((x) => String(x.id) === String(val))
+        arr[i] = { ...arr[i], ferragem_id: String(val), nome: found?.nome || "" }
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
@@ -520,7 +564,7 @@ export default function ProjetosPage() {
   // ─── HELPERS PERFIS ──────────────────────────────────────────────────────
   const getPerfisDisponiveis = (perfilAtualId?: string) => {
     const selecionados = form.perfis.map(item => String(item.perfil_id))
-    return perfisDB.filter((item: any) => {
+    return perfisDB.filter((item) => {
       const id = String(item.id)
       return id === String(perfilAtualId || "") || !selecionados.includes(id)
     })
@@ -542,12 +586,12 @@ export default function ProjetosPage() {
       }],
     }))
   }
-  const atualizarPerfil = (i: number, campo: keyof ProjetoPerfil, val: any) => {
+  const atualizarPerfil = <K extends keyof ProjetoPerfil>(i: number, campo: K, val: ProjetoPerfil[K]) => {
     setForm(prev => {
       const arr = [...prev.perfis]
       if (campo === "perfil_id") {
-        const found = perfisDB.find((x: any) => String(x.id) === String(val))
-        arr[i] = { ...arr[i], perfil_id: val, nome: found?.nome || "" }
+        const found = perfisDB.find((x) => String(x.id) === String(val))
+        arr[i] = { ...arr[i], perfil_id: String(val), nome: found?.nome || "" }
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
@@ -652,7 +696,7 @@ export default function ProjetosPage() {
                 <FolderOpen size={36} className="text-gray-300" />
               </div>
               <p className="font-bold text-gray-400">Nenhum projeto cadastrado</p>
-              <p className="text-gray-300 text-sm mt-1">Clique em "Novo Projeto" para começar</p>
+              <p className="text-gray-300 text-sm mt-1">Clique em &quot;Novo Projeto&quot; para começar</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -714,8 +758,8 @@ export default function ProjetosPage() {
       {/* ═══════════════════════ MODAL FORMULÁRIO ═══════════════════════════ */}
       {showModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
-          style={{ background: `linear-gradient(145deg, ${theme.menuBackgroundColor}55, #00000066)` }}
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 backdrop-blur-sm"
+          style={{ background: `linear-gradient(145deg, ${theme.menuBackgroundColor}55, ${theme.contentTextLightBg}55)` }}
         >
           <div
             className="w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col overflow-hidden border"
@@ -920,7 +964,7 @@ export default function ProjetosPage() {
                     </div>
                     <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
                       <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Observação</p>
-                      <p className="text-xs text-emerald-800 font-medium">Salve instruções como "folha central móvel", "usar medida até bandeira" ou "conferir lado A e lado B".</p>
+                      <p className="text-xs text-emerald-800 font-medium">Salve instruções como &quot;folha central móvel&quot;, &quot;usar medida até bandeira&quot; ou &quot;conferir lado A e lado B&quot;.</p>
                     </div>
                   </div>
 
@@ -1152,7 +1196,7 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getFerragensDisponiveis(String(f.ferragem_id)).map((fer: any) => (
+                            {getFerragensDisponiveis(String(f.ferragem_id)).map((fer) => (
                               <option key={fer.id} value={fer.id}>
                                 {fer.codigo ? `${fer.codigo} - ${fer.nome}` : fer.nome}
                               </option>
@@ -1252,7 +1296,7 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getPerfisDisponiveis(String(p.perfil_id)).map((per: any) => (
+                            {getPerfisDisponiveis(String(p.perfil_id)).map((per) => (
                               <option key={per.id} value={per.id}>
                                 {per.codigo ? `${per.codigo} - ${per.nome}` : per.nome}
                               </option>

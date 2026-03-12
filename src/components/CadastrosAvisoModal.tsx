@@ -43,7 +43,7 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
   const Icon = aviso.tipo === "sucesso" ? CheckCircle2 : aviso.confirmar ? Trash2 : AlertTriangle;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/45 backdrop-blur-sm z-[70] px-4 animate-fade-in">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/45 backdrop-blur-sm z-70 px-4 animate-fade-in">
       <div
         className="rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-white/20 flex flex-col items-center text-center"
         style={{ backgroundColor: bg }}

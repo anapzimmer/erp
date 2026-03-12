@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -79,11 +79,39 @@ export default function Sidebar({
   setExpandido  // Agora o TS reconhecerá
 }: SidebarProps) {
 
+  const SIDEBAR_EXPANDED_STORAGE_KEY = "sidebar:expandido";
+
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
 
   const [hoveredSubmenu, setHoveredSubmenu] = useState<string | null>(null);
+  const skipFirstPersist = useRef(true);
+
+  useEffect(() => {
+    try {
+      const savedState = window.localStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY);
+
+      if (savedState === "true" || savedState === "false") {
+        setExpandido(savedState === "true");
+      }
+    } catch {
+      // Ignora falhas de acesso ao storage para não quebrar render.
+    }
+  }, [setExpandido]);
+
+  useEffect(() => {
+    if (skipFirstPersist.current) {
+      skipFirstPersist.current = false;
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, String(expandido));
+    } catch {
+      // Ignora falhas de acesso ao storage para não quebrar render.
+    }
+  }, [expandido]);
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
