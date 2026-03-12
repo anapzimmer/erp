@@ -216,7 +216,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="w-10 h-10 border-4 rounded-full animate-spin" 
-             style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}>
+             style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}>
         </div>
       </div>
     );

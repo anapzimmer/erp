@@ -47,6 +47,7 @@ export default function ConfiguracoesBrandingPage() {
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -293,6 +294,8 @@ const handleSave = async () => {
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
         nomeEmpresa={nomeEmpresa}
+        expandido={sidebarExpandido}
+        setExpandido={setSidebarExpandido}
       />
 
       {/* Conteúdo Principal */}

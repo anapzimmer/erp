@@ -10,6 +10,7 @@ import { KitsPDF } from "app/relatorios/kits/KitsPDF";
 import { useTheme } from "@/context/ThemeContext";
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- TIPAGENS ---
 type Kit = {
@@ -371,7 +372,7 @@ export default function KitsPage() {
     );
   };
 
-  if (checkingAuth || !isClient) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth || !isClient) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 
   const kitsFiltrados = kits.filter(k => {
     const matchesBusca = k.nome.toLowerCase().includes(filtroNome.toLowerCase()) ||
@@ -381,12 +382,12 @@ export default function KitsPage() {
   });
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
       <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
-        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        nomeEmpresa={nomeEmpresa}
         expandido={sidebarExpandido}
         setExpandido={setSidebarExpandido}
       />
@@ -769,14 +770,16 @@ export default function KitsPage() {
       )}
 
       {/* AVISOS E LOADING */}
-      {modalAviso && <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4"><div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center">
-        <h3 className="font-bold text-lg mb-2" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
-        <p className="text-gray-600 text-sm mb-6">{modalAviso.mensagem}</p>
-        <div className="flex justify-center gap-3">
-          <button onClick={() => setModalAviso(null)} className="px-4 py-2 bg-gray-100 rounded-xl font-semibold">Fechar</button>
-          {modalAviso.confirmar && <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold">Confirmar</button>}
-        </div>
-      </div></div>}
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: lightSecondary,
+          text: darkPrimary,
+          primaryButtonBg: darkPrimary,
+          primaryButtonText: darkSecondary,
+        }}
+      />
       {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg z-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}><ArrowUp size={24} /></button>}
     </div>
   )

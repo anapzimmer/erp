@@ -99,7 +99,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         .from("configuracoes_branding")
         .select("*")
         .eq("empresa_id", perfil.empresa_id) // 👈 O segredo está aqui
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (brandingError && brandingError.code !== 'PGRST116') throw brandingError;
 
@@ -127,9 +128,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           logoLightUrl: branding.logo_light || defaultTheme.logoLightUrl,
           logoDarkUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
         });
+      } else {
+        // Evita manter tema/logo de uma empresa anterior em memória.
+        setTheme(defaultTheme);
       }
     } catch (error) {
       console.error("Erro ao carregar branding:", error);
+      setTheme(defaultTheme);
     } finally {
       setIsLoading(false);
     }

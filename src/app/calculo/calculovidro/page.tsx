@@ -373,6 +373,11 @@ useEffect(() => {
 
       if (error) throw error;
 
+      if (editId) {
+        router.push('/admin/relatorio.orcamento');
+        return;
+      }
+
       setUltimoNumeroGerado(numeroFinal);
       setMostrarModalSucesso(true);
 

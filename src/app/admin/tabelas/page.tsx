@@ -43,6 +43,7 @@ export default function GestaoPrecosPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [modalExclusaoTabelaAberto, setModalExclusaoTabelaAberto] = useState<{ aberto: boolean, tabela: TabelaPreco | null }>({ aberto: false, tabela: null });
 
@@ -433,7 +434,7 @@ const { error } = await supabase
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div>
+        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div>
       </div>
     );
   }
@@ -445,6 +446,8 @@ const { error } = await supabase
     showMobileMenu={showMobileMenu}
     setShowMobileMenu={setShowMobileMenu}
     nomeEmpresa={nomeEmpresa}
+    expandido={sidebarExpandido}
+    setExpandido={setSidebarExpandido}
   />
 
   {showMobileMenu && (

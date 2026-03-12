@@ -8,6 +8,12 @@ import type { Ferragem } from "@/types/ferragem";
 interface FerragensPDFProps {
   dados: Ferragem[];
   empresa: string;
+  logoUrl?: string;
+  coresEmpresa?: {
+    primary?: string;
+    tertiary?: string;
+    textOnDark?: string;
+  };
 }
 
 const styles = StyleSheet.create({
@@ -96,41 +102,44 @@ const styles = StyleSheet.create({
   }
 });
 
-export function FerragensPDF({ dados, empresa }: FerragensPDFProps) {
+export function FerragensPDF({ dados, empresa, logoUrl, coresEmpresa }: FerragensPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
+  const primaryColor = coresEmpresa?.primary || '#1C415B';
+  const tertiaryColor = coresEmpresa?.tertiary || '#39B89F';
+  const textOnDarkColor = coresEmpresa?.textOnDark || '#FFFFFF';
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: tertiaryColor }]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.tituloRelatorio}>Catálogo de Ferragens</Text>
+            <Text style={[styles.tituloRelatorio, { color: primaryColor }]}>Catálogo de Ferragens</Text>
             <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
           </View>
 
           <View style={styles.headerRight}>
-            <Image src="/glasscode.png" style={styles.logo} />
+            <Image src={logoUrl || "/glasscode.png"} style={styles.logo} />
           </View>
         </View>
 
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableColHeader, styles.colCodigo]}>Código</Text>
-            <Text style={[styles.tableColHeader, styles.colNome]}>Descrição do Produto</Text>
-            <Text style={[styles.tableColHeader, styles.colCor]}>Cor</Text>
-            <Text style={[styles.tableColHeader, styles.colCategoria]}>Categoria</Text>
-            <Text style={[styles.tableColHeader, styles.colPreco]}>Preço Unit.</Text>
+          <View style={[styles.tableHeader, { backgroundColor: primaryColor }]}>
+            <Text style={[styles.tableColHeader, styles.colCodigo, { color: textOnDarkColor }]}>Código</Text>
+            <Text style={[styles.tableColHeader, styles.colNome, { color: textOnDarkColor }]}>Descrição do Produto</Text>
+            <Text style={[styles.tableColHeader, styles.colCor, { color: textOnDarkColor }]}>Cor</Text>
+            <Text style={[styles.tableColHeader, styles.colCategoria, { color: textOnDarkColor }]}>Categoria</Text>
+            <Text style={[styles.tableColHeader, styles.colPreco, { color: textOnDarkColor }]}>Preço Unit.</Text>
           </View>
 
           {dados.map((item, index) => (
             <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }]}>
               {/* Removido fontWeight bold de todas as colunas abaixo */}
-              <Text style={[styles.tableCol, styles.colCodigo]}>{item.codigo}</Text>
-              <Text style={[styles.tableCol, styles.colNome]}>{item.nome}</Text>
-              <Text style={[styles.tableCol, styles.colCor]}>{item.cores || 'Padrão'}</Text>
-              <Text style={[styles.tableCol, styles.colCategoria]}>{item.categoria || 'Geral'}</Text>
-              <Text style={[styles.tableCol, styles.colPreco]}>
+              <Text style={[styles.tableCol, styles.colCodigo, { color: primaryColor }]}>{item.codigo}</Text>
+              <Text style={[styles.tableCol, styles.colNome, { color: primaryColor }]}>{item.nome}</Text>
+              <Text style={[styles.tableCol, styles.colCor, { color: primaryColor }]}>{item.cores || 'Padrão'}</Text>
+              <Text style={[styles.tableCol, styles.colCategoria, { color: primaryColor }]}>{item.categoria || 'Geral'}</Text>
+              <Text style={[styles.tableCol, styles.colPreco, { color: primaryColor }]}>
                 {item.preco ? formatarPreco(item.preco) : 'Consulte'}
               </Text>
             </View>

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -58,6 +59,7 @@ export default function ServicosPage() {
   const [carregando, setCarregando] = useState(false);
   const [mostrarModal, setMostrarModal] = useState(false)
   const [filtroNome, setFiltroNome] = useState("")
+  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
 
   // --- EFEITOS (ESTRUTURA CORRIGIDA E SIMILAR A CLIENTES) ---
   useEffect(() => {
@@ -151,7 +153,16 @@ if (branding) {
 
   // --- FUNÇÕES DE NEGÓCIO ---
   const salvarServico = async () => {
-    if (!novoServico.nome.trim() || !empresaIdUsuario) return;
+    if (!novoServico.nome.trim()) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Informe o nome do serviço." });
+      return;
+    }
+
+    if (!empresaIdUsuario) {
+      setModalAviso({ titulo: "Erro", mensagem: "Empresa não identificada para salvar." });
+      return;
+    }
+
     setCarregando(true);
 
     const dadosParaSalvar = {
@@ -159,25 +170,41 @@ if (branding) {
       empresa_id: empresaIdUsuario
     };
 
-    if (editando) {
-      await supabase.from("servicos").update(dadosParaSalvar).eq("id", editando.id);
-    } else {
-      await supabase.from("servicos").insert([dadosParaSalvar]);
-    }
+    try {
+      if (editando) {
+        const { error } = await supabase.from("servicos").update(dadosParaSalvar).eq("id", editando.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("servicos").insert([dadosParaSalvar]);
+        if (error) throw error;
+      }
 
-    await carregarDados(empresaIdUsuario);
-    setMostrarModal(false);
-    setEditando(null);
-    setCarregando(false);
+      await carregarDados(empresaIdUsuario);
+      setMostrarModal(false);
+      setEditando(null);
+    } catch (error: any) {
+      setModalAviso({ titulo: "Erro", mensagem: error?.message || "Falha ao salvar serviço." });
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const deletarServico = async (id: number) => {
-    if (!confirm("Excluir este serviço?")) return;
-    await supabase.from("servicos").delete().eq("id", id);
-    setServicos(prev => prev.filter(s => s.id !== id));
+    setModalAviso({
+      titulo: "Confirmar Exclusão",
+      mensagem: "Tem certeza que deseja excluir este serviço?",
+      confirmar: async () => {
+        const { error } = await supabase.from("servicos").delete().eq("id", id);
+        if (error) {
+          setModalAviso({ titulo: "Erro", mensagem: error.message });
+          return;
+        }
+        setServicos(prev => prev.filter(s => s.id !== id));
+      }
+    });
   };
 
-  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
@@ -212,12 +239,12 @@ if (branding) {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
+    <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
       {/* SIDEBAR (USANDO TEMA) */}
    <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
-        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+       nomeEmpresa={nomeEmpresa}
         expandido={sidebarExpandido} 
         setExpandido={setSidebarExpandido}
       />
@@ -402,6 +429,17 @@ if (branding) {
           </div>
         </div>
       )}
+
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: "#FFFFFF",
+          text: theme.primary,
+          primaryButtonBg: theme.primary,
+          primaryButtonText: theme.secondary,
+        }}
+      />
     </div>
   )
 }

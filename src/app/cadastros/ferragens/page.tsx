@@ -15,6 +15,7 @@ import { useTheme } from "@/context/ThemeContext";
 import type { Ferragem } from "@/types/ferragem"
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -37,6 +38,7 @@ export default function FerragensPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [logoEmpresaPdf, setLogoEmpresaPdf] = useState<string | null>(null);
   const { theme } = useTheme(); // Pega o tema do context
 
   // Mapeamento correto das propriedades do seu ThemeContext:
@@ -81,6 +83,16 @@ export default function FerragensPage() {
         setEmpresaIdUsuario(data.empresa_id);
         const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
         if (emp) setNomeEmpresa(emp.nome);
+
+        const { data: brandingData } = await supabase
+          .from("configuracoes_branding")
+          .select("logo_light")
+          .eq("empresa_id", data.empresa_id)
+          .limit(1)
+          .maybeSingle();
+
+        setLogoEmpresaPdf(brandingData?.logo_light || null);
+
         await carregarDados(data.empresa_id);
       }
       setCheckingAuth(false);
@@ -326,13 +338,7 @@ export default function FerragensPage() {
     );
   };
 
-  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
-
-
-  const branding = {
-    nome_empresa: nomeEmpresa,
-    logo_url: "/glasscode.png"
-  }
+  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 
   const gerarPDF = async () => {
     try {
@@ -351,7 +357,16 @@ export default function FerragensPage() {
       }));
 
       const blob = await pdf(
-        <FerragensPDF dados={dadosLimpos} empresa={nomeEmpresa} />
+        <FerragensPDF
+          dados={dadosLimpos}
+          empresa={nomeEmpresa}
+          logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+          coresEmpresa={{
+            primary: darkPrimary,
+            tertiary: darkTertiary,
+            textOnDark: darkSecondary,
+          }}
+        />
       ).toBlob();
 
       const url = URL.createObjectURL(blob);
@@ -369,11 +384,11 @@ export default function FerragensPage() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
+    <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
     <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
-        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        nomeEmpresa={nomeEmpresa}
         expandido={sidebarExpandido} 
         setExpandido={setSidebarExpandido}
       />
@@ -731,7 +746,7 @@ export default function FerragensPage() {
           <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 shadow-2xl">
             {/* Círculo de loading animado com a cor do seu sistema */}
             <div className="w-12 h-12 border-4 animate-spin rounded-full"
-              style={{ borderColor: darkTertiary, borderTopColor: 'transparent' }}>
+              style={{ borderTopColor: 'transparent', borderRightColor: darkTertiary, borderBottomColor: darkTertiary, borderLeftColor: darkTertiary }}>
             </div>
             <p className="font-bold text-gray-700" style={{ color: darkPrimary }}>
               Gerando seu Catálogo...
@@ -743,14 +758,16 @@ export default function FerragensPage() {
 
       {/* AVISOS E LOADING */}
       {modalCarregando && <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"><div className="bg-white p-8 rounded-3xl animate-bounce">Processando CSV...</div></div>}
-      {modalAviso && <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4"><div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center">
-        <h3 className="font-bold text-lg mb-2" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
-        <p className="text-gray-600 text-sm mb-6">{modalAviso.mensagem}</p>
-        <div className="flex justify-center gap-3">
-          <button onClick={() => setModalAviso(null)} className="px-4 py-2 bg-gray-100 rounded-xl font-semibold">Fechar</button>
-          {modalAviso.confirmar && <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold">Confirmar</button>}
-        </div>
-      </div></div>}
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: lightSecondary,
+          text: darkPrimary,
+          primaryButtonBg: darkPrimary,
+          primaryButtonText: darkSecondary,
+        }}
+      />
       {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg z-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}><ArrowUp size={24} /></button>}
     </div>
   )

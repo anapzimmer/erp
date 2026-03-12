@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- TIPAGENS ---
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -34,20 +35,20 @@ const menuPrincipal: MenuItem[] = [
     { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
     {
         nome: "Orçamentos", rota: "/orcamentos", icone: FileText,
-        submenu: [{ nome: "Espelhos", rota: "/espelhos" }, { nome: "Vidros", rota: "/calculovidro" }, { nome: "Vidros PDF", rota: "/calculovidroPDF" }]
+        submenu: [{ nome: "Espelhos", rota: "/calculo/espelhos" }, { nome: "Vidros", rota: "/calculo/calculovidro" }]
     },
     { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
     { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
 ]
 
 const menuCadastros: MenuItem[] = [
-    { nome: "Clientes", rota: "/clientes", icone: UsersRound },
-    { nome: "Vidros", rota: "/vidros", icone: Square },
-    { nome: "Perfis", rota: "/perfis", icone: Package },
-    { nome: "Ferragens", rota: "/ferragens", icone: Wrench },
-    { nome: "Kits", rota: "/kits", icone: Boxes },
-    { nome: "Serviços", rota: "/servicos", icone: Briefcase },
-    { nome: "Acabamentos", rota: "/acabamentos", icone: Palette },
+    { nome: "Clientes", rota: "/cadastros/clientes", icone: UsersRound },
+    { nome: "Vidros", rota: "/cadastros/vidros", icone: Square },
+    { nome: "Perfis", rota: "/cadastros/perfis", icone: Package },
+    { nome: "Ferragens", rota: "/cadastros/ferragens", icone: Wrench },
+    { nome: "Kits", rota: "/cadastros/kits", icone: Boxes },
+    { nome: "Serviços", rota: "/cadastros/servicos", icone: Briefcase },
+    { nome: "Acabamentos", rota: "/cadastros/acabamentos", icone: Palette },
 ]
 
 // --- ESTRUTURA VISUAL PARA O CADASTRO ---
@@ -111,6 +112,7 @@ export default function AcabamentosPage() {
     const [carregando, setCarregando] = useState(false);
     const [mostrarModal, setMostrarModal] = useState(false)
     const [filtroNome, setFiltroNome] = useState("")
+    const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
 
     // --- EFEITOS ---
     useEffect(() => {
@@ -257,7 +259,7 @@ export default function AcabamentosPage() {
 
         } catch (error) {
             console.error("Erro ao salvar:", error);
-            alert("Não foi possível salvar as alterações.");
+            setModalAviso({ titulo: "Erro", mensagem: "Não foi possível salvar as alterações." });
         } finally {
             setCarregando(false);
         }
@@ -269,7 +271,7 @@ export default function AcabamentosPage() {
         setAcabamentos(prev => prev.filter(s => s.id !== id));
     };
 
-    if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}></div></div>;
+    if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
     const renderMenuItem = (item: MenuItem) => {
         const Icon = item.icone;
@@ -304,7 +306,7 @@ export default function AcabamentosPage() {
     };
 
     return (
-        <div className="flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
+        <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
             <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.primary }}>
                 <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
                 <div className="px-3 py-4 mb-4 flex justify-center">
@@ -723,6 +725,17 @@ export default function AcabamentosPage() {
                     </div>
                 </div>
             )}
+
+            <CadastrosAvisoModal
+                aviso={modalAviso}
+                onClose={() => setModalAviso(null)}
+                colors={{
+                    bg: "#FFFFFF",
+                    text: theme.primary,
+                    primaryButtonBg: theme.primary,
+                    primaryButtonText: theme.secondary,
+                }}
+            />
         </div>
     )
 }

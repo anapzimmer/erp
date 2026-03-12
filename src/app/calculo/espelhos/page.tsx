@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
 import Header from "@/components/Header"
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ThemeLoader from "@/components/ThemeLoader"
 
 type ShapeStyle = {
@@ -19,20 +19,23 @@ type ShapeStyle = {
   clipPath?: string;
 };
 
-function gerarNumeroOrcamento() {
-  const hoje = new Date()
+async function gerarNumeroOrcamento() {
+  const hoje = new Date();
+  const prefixoData = `OR${hoje.getFullYear().toString().slice(-2)}${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
-  const ano = hoje.getFullYear().toString().slice(-2)
-  const mes = String(hoje.getMonth() + 1).padStart(2, "0")
-  const dia = String(hoje.getDate()).padStart(2, "0")
+  const { data: ultimos } = await supabase
+    .from("orcamentos")
+    .select("numero_formatado")
+    .like("numero_formatado", `${prefixoData}%`)
+    .order("numero_formatado", { ascending: false })
+    .limit(1);
 
-  const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  const random =
-    letras[Math.floor(Math.random() * letras.length)] +
-    letras[Math.floor(Math.random() * letras.length)] +
-    letras[Math.floor(Math.random() * letras.length)]
+  let seq = 1;
+  if (ultimos && ultimos.length > 0) {
+    seq = parseInt(String(ultimos[0].numero_formatado).slice(-3), 10) + 1;
+  }
 
-  return `OR${ano}${mes}${dia}${random}`
+  return `${prefixoData}${String(seq).padStart(3, "0")}`;
 }
 
 function getShapeStyle(
@@ -112,12 +115,15 @@ function getShapeStyle(
 
 export default function CalculoEspelhosPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
   const { theme } = useTheme();
-  const { nomeEmpresa, user } = useAuth();
+  const { nomeEmpresa, user, empresaId } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false); // Adicionado state do menu
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
+  const carregadoRef = useRef(false);
   // No topo, junto com os outros estados
   const larguraInputRef = useRef<HTMLInputElement>(null);
   const [showModalSucesso, setShowModalSucesso] = useState(false);
@@ -155,6 +161,36 @@ export default function CalculoEspelhosPage() {
     };
     carregarDados();
   }, []);
+
+  const buscarOrcamentoParaEdicao = async (id: string) => {
+    try {
+      const { data: orcamento, error } = await supabase
+        .from("orcamentos")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      if (!orcamento) return;
+
+      setNomeCliente(orcamento.cliente_nome || "");
+      setNomeObra(orcamento.obra_referencia || "");
+      setUltimoNumeroGerado(orcamento.numero_formatado || "");
+
+      if (Array.isArray(orcamento.itens)) {
+        setListaItens(orcamento.itens);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar orçamento de espelho para edição:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!editId || carregadoRef.current || vidrosDB.length === 0) return;
+
+    buscarOrcamentoParaEdicao(editId);
+    carregadoRef.current = true;
+  }, [editId, vidrosDB.length]);
 
   const handleLogout = async () => {
     try {
@@ -399,26 +435,60 @@ export default function CalculoEspelhosPage() {
     }
 
     try {
-      const numero = gerarNumeroOrcamento();
+      let numero = "";
+      if (editId) {
+        const { data: atual } = await supabase
+          .from("orcamentos")
+          .select("numero_formatado")
+          .eq("id", editId)
+          .single();
+        numero = atual?.numero_formatado || "OR-EDIT";
+      } else {
+        numero = await gerarNumeroOrcamento();
+      }
+
       const totalGeral = listaItens.reduce((sum, item) => sum + item.total, 0);
       const metragemTotal = listaItens.reduce((sum, item) => sum + (item.m2 || 0), 0);
 
-      const { data, error } = await supabase
-        .from("orcamentos")
-        .insert({
-          numero_formatado: numero,
-          cliente_nome: nomeCliente,
-          obra_referencia: nomeObra,
-          itens: listaItens,
-          valor_total: totalGeral,
-          metragem_total: metragemTotal,
-          theme_color: theme.contentTextLightBg,
-          empresa_id: user?.empresa_id
-        })
-        .select("numero_formatado")
-        .single();
+      const payload = {
+        numero_formatado: numero,
+        cliente_nome: nomeCliente,
+        obra_referencia: nomeObra,
+        itens: listaItens,
+        valor_total: Number(totalGeral) || 0,
+        metragem_total: Number(metragemTotal) || 0,
+        theme_color: theme.contentTextLightBg,
+        empresa_id: empresaId
+      };
+
+      let data: any = null;
+      let error: any = null;
+
+      if (editId) {
+        const { data: dataUpdate, error: errorUpdate } = await supabase
+          .from("orcamentos")
+          .update(payload)
+          .eq("id", editId)
+          .select("numero_formatado")
+          .single();
+        data = dataUpdate;
+        error = errorUpdate;
+      } else {
+        const { data: dataInsert, error: errorInsert } = await supabase
+          .from("orcamentos")
+          .insert(payload)
+          .select("numero_formatado")
+          .single();
+        data = dataInsert;
+        error = errorInsert;
+      }
 
       if (error) throw error;
+
+      if (editId) {
+        router.push('/admin/relatorio.orcamento');
+        return;
+      }
 
       // 2. SUCESSO: Limpa os estados e fecha o modal de salvar
       setUltimoNumeroGerado(data.numero_formatado);

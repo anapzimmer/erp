@@ -13,6 +13,7 @@ import { PerfisPDF } from '@/app/relatorios/perfis/PerfisPDF';
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
@@ -487,15 +488,15 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
   };
 
 
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: darkPrimary, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 
   return (
-    <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
+    <div className="cadastros-layout flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
 
       <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
-        nomeEmpresa="Nome da Sua Empresa" // Passe o nome da empresa aqui
+        nomeEmpresa={nomeEmpresa}
         expandido={sidebarExpandido} 
         setExpandido={setSidebarExpandido}
       />
@@ -738,25 +739,19 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
         </div>
       )}
 
-      {/* AVISOS */}
-      {modalAviso && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[60] px-4">
-          <div className="bg-white rounded-[32px] p-8 shadow-2xl w-full max-w-sm text-center border border-gray-100">
-            <h3 className="text-lg font-bold mb-2" style={{ color: darkPrimary }}>{modalAviso.titulo}</h3>
-            <p className="text-gray-600 text-sm mb-6 whitespace-pre-line">{modalAviso.mensagem}</p>
-            <div className="flex justify-center gap-3">
-              <button onClick={() => setModalAviso(null)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100">
-                {modalAviso.confirmar ? "Cancelar" : "Entendido"}
-              </button>
-              {modalAviso.confirmar && (
-                <button onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600">
-                  Confirmar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: branding?.modal_background_color || "#FFFFFF",
+          text: branding?.modal_text_color || darkPrimary,
+          primaryButtonBg: branding?.modal_button_background_color || darkPrimary,
+          primaryButtonText: branding?.modal_button_text_color || darkSecondary,
+          success: branding?.modal_icon_success_color || "#059669",
+          error: branding?.modal_icon_error_color || "#DC2626",
+          warning: branding?.modal_icon_warning_color || "#D97706",
+        }}
+      />
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">

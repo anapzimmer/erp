@@ -17,6 +17,7 @@ export default function ConfiguracoesPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function ConfiguracoesPage() {
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div>
+        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div>
       </div>
     );
   }
@@ -79,7 +80,9 @@ export default function ConfiguracoesPage() {
       <Sidebar 
         showMobileMenu={showMobileMenu} 
         setShowMobileMenu={setShowMobileMenu} 
-        nomeEmpresa={nomeEmpresa} 
+        nomeEmpresa={nomeEmpresa}
+        expandido={sidebarExpandido}
+        setExpandido={setSidebarExpandido}
       />
 
       {/* Overlay */}

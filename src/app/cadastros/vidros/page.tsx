@@ -13,6 +13,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- Tipagens ---
 type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
@@ -46,6 +47,7 @@ export default function VidrosPage() {
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [precosGruposModal, setPrecosGruposModal] = useState<PrecoGrupo[]>([])
+  const [totalPrecosEspeciais, setTotalPrecosEspeciais] = useState(0)
   const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void; tipo?: 'sucesso' | 'erro' | 'aviso' } | null>(null)
   // --- Estados de Filtro ---
   const [filtroNome, setFiltroNome] = useState("")
@@ -79,9 +81,14 @@ export default function VidrosPage() {
     if (!empresaId) return;
 
     setCarregando(true)
-    const [{ data: dataVidros, error: errorVidros }, { data: dataGrupos, error: errorGrupos }] = await Promise.all([
+    const [
+      { data: dataVidros, error: errorVidros },
+      { data: dataGrupos, error: errorGrupos },
+      { count: totalEspeciais }
+    ] = await Promise.all([
       supabase.from("vidros").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
-      supabase.from("tabelas").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true })
+      supabase.from("tabelas").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+      supabase.from("vidro_precos_grupos").select("id", { head: true, count: "exact" }).eq("empresa_id", empresaId)
     ])
 
     if (errorVidros) console.error("Erro Vidros:", errorVidros);
@@ -89,6 +96,8 @@ export default function VidrosPage() {
 
     if (errorGrupos) console.error("Erro Grupos:", errorGrupos);
     else setGrupos(dataGrupos || [])
+
+    setTotalPrecosEspeciais(totalEspeciais || 0)
 
     setCarregando(false)
   }, [empresaId])
@@ -340,7 +349,7 @@ export default function VidrosPage() {
 
   const calcularPrecoMedio = () => { if (vidros.length === 0) return "R$ 0,00"; const total = vidros.reduce((acc, v) => acc + v.preco, 0); return formatarPreco(total / vidros.length) }
   const getMaisProcurados = () => vidros.slice(0, 1).map(v => v.nome).join(", ") || "-"
-  const contarPrecoEspecial = () => precosGruposModal.filter(p => !isNaN(p.preco) && p.preco > 0).length
+  const contarPrecoEspecial = () => totalPrecosEspeciais
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // --- Render MenuItem ---
@@ -429,10 +438,10 @@ const logoLight = branding?.logo_light || null;
   const darkTertiary = branding?.menu_hover_color || '#39B89F';
   const textDefault = branding?.content_text_light_bg || '#1C415B';
 
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div></div>;
 
   return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="cadastros-layout flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
     {/* --- SIDEBAR CORRIGIDA --- */}
 <Sidebar
   showMobileMenu={showMobileMenu}
@@ -713,74 +722,19 @@ const logoLight = branding?.logo_light || null;
       )}
 
 
-      {/* MODAL DE AVISO (Fiel ao Branding do Supabase) */}
-      {modalAviso && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-[60] px-4 animate-fade-in">
-          <div
-            className="rounded-[2rem] p-8 shadow-2xl w-full max-w-sm border border-white/20 flex flex-col items-center text-center"
-            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
-          >
-
-            {/* ÍCONE DINÂMICO BASEADO NO TIPO E BRANDING */}
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-              style={{
-                backgroundColor: `${modalAviso.tipo === 'sucesso' ? (branding?.modal_icon_success_color || '#059669') :
-                  modalAviso.confirmar ? (branding?.modal_icon_error_color || '#DC2626') :
-                    (branding?.modal_icon_warning_color || '#D97706')
-                  }15` // O '15' no final adiciona transparência ao fundo do ícone
-              }}
-            >
-              {modalAviso.tipo === 'sucesso' ? (
-                <Box style={{ color: branding?.modal_icon_success_color || '#059669' }} size={28} />
-              ) : modalAviso.confirmar ? (
-                <Trash2 style={{ color: branding?.modal_icon_error_color || '#DC2626' }} size={28} />
-              ) : (
-                <Tag style={{ color: branding?.modal_icon_warning_color || '#D97706' }} size={28} />
-              )}
-            </div>
-
-            <h2 className="text-xl font-black mb-2" style={{ color: branding?.modal_text_color || '#1C415B' }}>
-              {modalAviso.titulo}
-            </h2>
-
-            <p className="text-gray-500 mb-8 text-sm whitespace-pre-line leading-relaxed px-2">
-              {modalAviso.mensagem}
-            </p>
-
-            <div className="flex gap-3 w-full">
-              {modalAviso.confirmar ? (
-                <>
-                  <button
-                    onClick={() => setModalAviso(null)}
-                    className="flex-1 py-3.5 rounded-2xl text-xs font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => { modalAviso.confirmar?.(); setModalAviso(null); }}
-                    className="flex-1 py-3.5 rounded-2xl text-xs font-bold text-white shadow-md active:scale-95 transition-all"
-                    style={{ backgroundColor: branding?.modal_icon_error_color || '#DC2626' }}
-                  >
-                    Excluir
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setModalAviso(null)}
-                  className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95"
-                  style={{
-                    backgroundColor: branding?.modal_button_background_color || '#1C415B',
-                    color: branding?.modal_button_text_color || '#FFFFFF'
-                  }}
-                >
-                  Entendido
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: branding?.modal_background_color || "#FFFFFF",
+          text: branding?.modal_text_color || "#1C415B",
+          primaryButtonBg: branding?.modal_button_background_color || theme.menuBackgroundColor,
+          primaryButtonText: branding?.modal_button_text_color || "#FFFFFF",
+          success: branding?.modal_icon_success_color || "#059669",
+          error: branding?.modal_icon_error_color || "#DC2626",
+          warning: branding?.modal_icon_warning_color || "#D97706",
+        }}
+      />
 
       {carregando && !modalAviso && !mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-[100] animate-fade-in">

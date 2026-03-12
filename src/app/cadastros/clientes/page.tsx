@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar" // 🔥 IMPORTAÇÃO DO COMPONENTE SIDEBAR CORRETO
 import ThemeLoader from "@/components/ThemeLoader"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- Tipagens ---
 type Cliente = { 
@@ -42,6 +43,7 @@ export default function ClientesPage() {
   // --- Estados de UI ---
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false); // 🔥 Estado necessário para o Sidebar
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -191,16 +193,18 @@ const carregarDados = useCallback(async () => {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuBackgroundColor, borderTopColor: 'transparent' }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div></div>;
 
   return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="cadastros-layout flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* 🔥 SIDEBAR COMPONENTE */}
       <Sidebar 
         showMobileMenu={showMobileMenu} 
         setShowMobileMenu={setShowMobileMenu} 
-        nomeEmpresa={nomeEmpresa || "Empresa"} 
+        nomeEmpresa={nomeEmpresa || "Empresa"}
+        expandido={sidebarExpandido}
+        setExpandido={setSidebarExpandido}
       />
 
       {/* CONTEÚDO PRINCIPAL */}
@@ -392,19 +396,19 @@ const carregarDados = useCallback(async () => {
         </div>
       )}
 
-      {/* MODAL DE AVISO */}
-      {modalAviso && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 animate-fade-in px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-gray-100">
-            <h2 className="text-xl font-extrabold mb-4 flex items-center gap-3"> <Trash2 className="text-red-500" /> {modalAviso.titulo} </h2>
-            <p className="text-gray-600 mb-8 text-sm">{modalAviso.mensagem}</p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setModalAviso(null)} className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200">Cancelar</button>
-              {modalAviso.confirmar && (<button onClick={modalAviso.confirmar} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Sim, excluir</button>)}
-            </div>
-          </div>
-        </div>
-      )}
+      <CadastrosAvisoModal
+        aviso={modalAviso}
+        onClose={() => setModalAviso(null)}
+        colors={{
+          bg: theme.modalBackgroundColor,
+          text: theme.modalTextColor,
+          primaryButtonBg: theme.modalButtonBackgroundColor,
+          primaryButtonText: theme.modalButtonTextColor,
+          success: theme.modalIconSuccessColor,
+          error: theme.modalIconErrorColor,
+          warning: theme.modalIconWarningColor,
+        }}
+      />
     </div>
   )
 }

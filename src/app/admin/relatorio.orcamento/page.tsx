@@ -11,7 +11,7 @@ import Header from "@/components/Header"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import ThemeLoader from "@/components/ThemeLoader"
-import { PDFViewer, Document as PDFDoc, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { PDFViewer } from '@react-pdf/renderer';
 
 export default function RelatorioOrçamento() {
     const router = useRouter()
@@ -20,9 +20,12 @@ export default function RelatorioOrçamento() {
 
     // Estados de Layout
     const [showMobileMenu, setShowMobileMenu] = useState(false)
+    const [expandido, setExpandido] = useState(true)
     const [checkingAuth, setCheckingAuth] = useState(true)
     const [usuarioEmail, setUsuarioEmail] = useState("")
     const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...")
+    const [empresaIdAtual, setEmpresaIdAtual] = useState<string | null>(null)
+    const [logoEmpresaPdf, setLogoEmpresaPdf] = useState<string | null>(null)
 
     // Estados de Dados
     const [orcamentos, setOrcamentos] = useState<any[]>([])
@@ -60,9 +63,15 @@ export default function RelatorioOrçamento() {
         const idsParaDeletar = itemParaExcluir ? [itemParaExcluir.id] : selecionados;
 
         try {
+            if (!empresaIdAtual) {
+                alert("Empresa não identificada para exclusão.");
+                return;
+            }
+
             const { error } = await supabase
                 .from('orcamentos')
                 .delete()
+                .eq('empresa_id', empresaIdAtual)
                 .in('id', idsParaDeletar);
 
             if (error) throw error;
@@ -99,16 +108,29 @@ export default function RelatorioOrçamento() {
                     .maybeSingle();
 
                 if (perfil?.empresa_id) {
+                    setEmpresaIdAtual(perfil.empresa_id);
+
                     const { data: empresaData } = await supabase
                         .from("empresas")
                         .select("nome")
                         .eq("id", perfil.empresa_id)
                         .single();
                     if (empresaData) setNomeEmpresa(empresaData.nome);
+
+                    const { data: brandingData } = await supabase
+                        .from("configuracoes_branding")
+                        .select("logo_light")
+                        .eq("empresa_id", perfil.empresa_id)
+                        .limit(1)
+                        .maybeSingle();
+
+                    setLogoEmpresaPdf(brandingData?.logo_light || null);
                 }
+
                 const { data: orcData, error } = await supabase
                     .from('orcamentos')
                     .select(`*`)
+                    .eq('empresa_id', perfil?.empresa_id)
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -193,7 +215,7 @@ export default function RelatorioOrçamento() {
     if (checkingAuth) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: theme.menuIconColor, borderTopColor: 'transparent' }}></div>
+                <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }}></div>
             </div>
         );
     }
@@ -202,14 +224,12 @@ export default function RelatorioOrçamento() {
         if (!orcamentoParaVisualizar) return null;
 
         // Lógica para detectar se é Espelho (OR) ou Vidro (ORC)
-        // Usamos o campo numero_formatado ou o tipo se ele existir
         const numero = orcamentoParaVisualizar.numero_formatado || "";
-        const ehEspelho = numero.startsWith("OR-");
+        const ehEspelho = /^OR(?!C)/i.test(numero);
 
         return (
             <PDFViewer style={{ width: '100%', height: '100%' }}>
-                <PDFDoc>
-                    {orcamentoParaVisualizar?.tipo === "espelho" ? (
+                    {ehEspelho ? (
                         <EspelhosPDF
                             itens={orcamentoParaVisualizar.itens || []}
                             nomeEmpresa={nomeEmpresa}
@@ -217,7 +237,7 @@ export default function RelatorioOrçamento() {
                             nomeCliente={orcamentoParaVisualizar.cliente_nome}
                             nomeObra={orcamentoParaVisualizar.obra_referencia}
                             valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
-                            logoUrl={theme.logoLightUrl || undefined}
+                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                         />
                     ) : (
                         <CalculoVidroPDF
@@ -227,13 +247,12 @@ export default function RelatorioOrçamento() {
                             nomeCliente={orcamentoParaVisualizar.cliente_nome}
                             nomeObra={orcamentoParaVisualizar.obra_referencia}
                             pesoTotal={Number(orcamentoParaVisualizar.peso_total) || 0}
-                            logoUrl={theme.logoLightUrl || undefined}
+                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                             metragemTotal={orcamentoParaVisualizar.metragem_total || 0}
                             valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
                             totalPecas={orcamentoParaVisualizar.total_pecas || 0}
                         />
                     )}
-                </PDFDoc>
             </PDFViewer>
         );
     };
@@ -247,6 +266,8 @@ export default function RelatorioOrçamento() {
                 showMobileMenu={showMobileMenu}
                 setShowMobileMenu={setShowMobileMenu}
                 nomeEmpresa={nomeEmpresa}
+                expandido={expandido}
+                setExpandido={setExpandido}
             />
 
             {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
@@ -455,8 +476,12 @@ export default function RelatorioOrçamento() {
                                                             {/* EDITAR - USA O AZUL menuHoverColor (#2A5C7E) NO HOVER */}
                                                             <button
                                                                 onClick={() => {
-                                                                    console.log("Editando ID:", orc.id);
-                                                                    router.push(`/calculovidro?edit=${orc.id}`);
+                                                                    const numero = String(orc.numero_formatado || "");
+                                                                    const ehEspelho = /^OR(?!C)/i.test(numero);
+                                                                    const rotaEdicao = ehEspelho
+                                                                        ? `/calculo/espelhos?edit=${orc.id}`
+                                                                        : `/calculo/calculovidro?edit=${orc.id}`;
+                                                                    router.push(rotaEdicao);
                                                                 }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
                                                                 style={{
@@ -561,7 +586,7 @@ export default function RelatorioOrçamento() {
                     <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
                         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
-                                Visualização: {orcamentoParaVisualizar?.tipo === "espelho" ? "OR-" : "ORC-"}{orcamentoParaVisualizar?.numero_formatado?.replace(/^(OR|ORC)-/, '')}
+                                Visualização: {(/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? "OR-" : "ORC-"}{orcamentoParaVisualizar?.numero_formatado?.replace(/^(OR|ORC)-/, '')}
                             </h3>
                             <button
                                 onClick={() => setShowPDFModal(false)}
@@ -574,7 +599,7 @@ export default function RelatorioOrçamento() {
                         <div className="flex-1 w-full h-full bg-gray-200">
                             <div className="flex-1 w-full h-full bg-gray-200">
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
-                                    {orcamentoParaVisualizar?.tipo === "espelho" ? (
+                                    {(/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? (
                                         <EspelhosPDF
                                             itens={itens}
                                             nomeEmpresa={nomeEmpresa}

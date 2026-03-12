@@ -83,7 +83,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
 
   return (
-
+    <Document>
     <Page size="A4" style={styles.page}>
 
       {/* Cabeçalho */}
@@ -148,6 +148,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
         `Sistema Glass Code - Licenciado para ${nomeEmpresa} - Página ${pageNumber} de ${totalPages}`
       )} fixed />
     </Page>
+    </Document>
 
   );
 }

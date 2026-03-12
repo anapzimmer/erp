@@ -38,6 +38,11 @@ body {
   transition: background-color 0.5s ease;
 }
 
+.cadastros-layout {
+  font-family: 'Inter', sans-serif;
+  color: var(--gc-text-light);
+}
+
 .gc-screen {
   background-color: var(--gc-screen-bg);
 }

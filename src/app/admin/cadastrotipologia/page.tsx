@@ -14,6 +14,7 @@ export default function ConfiguracaoTipologia() {
 
   // Estados de Layout e Auth
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -110,7 +111,13 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      <Sidebar showMobileMenu={showMobileMenu} setShowMobileMenu={setShowMobileMenu} nomeEmpresa={nomeEmpresa} />
+      <Sidebar
+        showMobileMenu={showMobileMenu}
+        setShowMobileMenu={setShowMobileMenu}
+        nomeEmpresa={nomeEmpresa}
+        expandido={sidebarExpandido}
+        setExpandido={setSidebarExpandido}
+      />
       
       <div className="flex-1 flex flex-col w-full">
         <Header 
