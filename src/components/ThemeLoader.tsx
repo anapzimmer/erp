@@ -4,7 +4,11 @@
 import { useTheme } from "@/context/ThemeContext";
 import { ReactNode } from "react";
 
-export default function ThemeLoader({ children }: { children: ReactNode }) {
+type ThemeLoaderProps = {
+  children?: ReactNode;
+};
+
+export default function ThemeLoader({ children }: ThemeLoaderProps) {
   const { isLoading } = useTheme();
 
   if (isLoading) {
@@ -39,5 +43,5 @@ export default function ThemeLoader({ children }: { children: ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return children ? <>{children}</> : null;
 }
