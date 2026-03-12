@@ -37,18 +37,10 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const isLogin = req.nextUrl.pathname === "/login";
-
-  // Lógica de proteção
-  if (!session && !isLogin) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  if (session && isLogin) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
+  // Em produção, a sessão principal está no storage do cliente via supabase-js.
+  // Não forçamos redirect aqui para evitar loop em ambientes como Vercel.
+  // A proteção de páginas continua no client via useAuth.
+  await supabase.auth.getSession();
 
   return res;
 }
