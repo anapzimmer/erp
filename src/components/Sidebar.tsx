@@ -40,6 +40,7 @@ const menuPrincipal: MenuItem[] = [
       { nome: "Vidros", rota: "/calculo/calculovidro" },
     ],
   },
+  { nome: "Projetos", rota: "/projetos", icone: Building2 },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   {
     nome: "Relatórios",
@@ -101,6 +102,7 @@ export default function Sidebar({
       router.push(item.rota);
       setShowMobileMenu(false);
     }}
+    title={!expandido ? item.nome : undefined}
     className={`flex items-center ${
       expandido ? "justify-between" : "justify-center"
     } p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1`}
@@ -223,7 +225,7 @@ className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden space-y-6">
+      <nav className={`flex-1 overflow-y-auto ${expandido ? "overflow-x-hidden" : "overflow-x-visible"} space-y-6`}>
         <div>
           {expandido && (
             <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: theme.menuIconColor }}>

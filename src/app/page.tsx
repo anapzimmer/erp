@@ -27,12 +27,21 @@ type OrcamentoResumo = {
   created_at: string | null;
 };
 
+type ProjetoResumo = {
+  id: string;
+  nome: string | null;
+  categoria: string | null;
+  desenho: string | null;
+  criado_em: string | null;
+};
+
 type DashboardResumo = {
   clientes: number;
   orcamentos: number;
   projetos: number;
   faturamentoMensal: number;
   recentes: OrcamentoResumo[];
+  modelosRecentes: ProjetoResumo[];
   serie30Dias: { dia: string; total: number }[];
 };
 
@@ -42,6 +51,7 @@ const resumoInicial: DashboardResumo = {
   projetos: 0,
   faturamentoMensal: 0,
   recentes: [],
+  modelosRecentes: [],
   serie30Dias: [],
 };
 
@@ -146,10 +156,10 @@ export default function Dashboard() {
         inicioMes.setDate(1);
         inicioMes.setHours(0, 0, 0, 0);
 
-        const [clientes, orcamentos, projetos, faturamentoMesRes, recentesRes] = await Promise.all([
+        const [clientes, orcamentos, projetos, faturamentoMesRes, recentesRes, modelosRes] = await Promise.all([
           contarRegistros("clientes"),
           contarRegistros("orcamentos"),
-          contarRegistros("tipologias"),
+          contarRegistros("projetos"),
           supabase
             .from("orcamentos")
             .select("valor_total")
@@ -161,6 +171,12 @@ export default function Dashboard() {
             .eq("empresa_id", empresaId)
             .order("created_at", { ascending: false })
             .limit(4),
+          supabase
+            .from("projetos")
+            .select("id, nome, categoria, desenho, criado_em")
+            .eq("empresa_id", empresaId)
+            .order("criado_em", { ascending: false })
+            .limit(5),
         ]);
 
         const inicio30Dias = new Date();
@@ -199,6 +215,7 @@ export default function Dashboard() {
           projetos,
           faturamentoMensal,
           recentes: (recentesRes.data as OrcamentoResumo[]) || [],
+          modelosRecentes: (modelosRes.data as ProjetoResumo[]) || [],
           serie30Dias: serieBase,
         });
       } catch (error) {
@@ -244,7 +261,7 @@ export default function Dashboard() {
     {
       titulo: "Modelos",
       valor: String(resumo.projetos),
-      variacao: "Tipologias disponíveis",
+      variacao: "Modelos de projeto",
       icone: Briefcase,
       color: "#22C55E",
       bg: "#22C55E18",
@@ -510,35 +527,101 @@ export default function Dashboard() {
               </div>
             </section>
 
-            <section
-              className="dashboard-reveal rounded-3xl border p-6"
-              style={{
-                backgroundColor: theme.modalBackgroundColor,
-                borderColor: `${theme.menuIconColor}22`,
-                animationDelay: "620ms",
-              }}
-            >
-              <h2 className="text-xl font-black tracking-tight mb-5" style={{ color: theme.contentTextLightBg }}>
-                Ambiente
-              </h2>
+            <div className="space-y-5">
+              <section
+                className="dashboard-reveal rounded-3xl border p-6"
+                style={{
+                  backgroundColor: theme.modalBackgroundColor,
+                  borderColor: `${theme.menuIconColor}22`,
+                  animationDelay: "620ms",
+                }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>
+                    Modelos de projeto
+                  </h2>
+                  <Link href="/projetos" className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: theme.menuBackgroundColor }}>
+                    Gerenciar
+                  </Link>
+                </div>
 
-              <div className="space-y-3">
-                {updates.map((update) => {
-                  const UpdateIcon = update.icon;
-                  return (
-                    <div key={update.label} className="rounded-2xl border p-3" style={{ borderColor: `${theme.menuIconColor}20` }}>
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] font-bold opacity-60" style={{ color: theme.contentTextLightBg }}>
-                        <UpdateIcon size={14} />
-                        {update.label}
+                <div className="space-y-2">
+                  {(carregandoResumo
+                    ? [
+                        { id: "m1", nome: "", categoria: "", criado_em: null, desenho: null },
+                        { id: "m2", nome: "", categoria: "", criado_em: null, desenho: null },
+                        { id: "m3", nome: "", categoria: "", criado_em: null, desenho: null },
+                      ]
+                    : resumo.modelosRecentes.length > 0
+                    ? resumo.modelosRecentes
+                    : [
+                        { id: "vazio", nome: "Sem modelos cadastrados", categoria: "Crie seu primeiro modelo em Projetos", criado_em: null, desenho: null },
+                      ]
+                  ).map((modelo, index) => (
+                    <Link
+                      key={modelo.id}
+                      href="/projetos"
+                      className="block rounded-2xl border px-4 py-3 transition-all hover:-translate-y-0.5"
+                      style={{
+                        borderColor: `${theme.menuIconColor}20`,
+                        backgroundColor: index === 0 ? `${theme.menuIconColor}12` : "transparent",
+                      }}
+                    >
+                      {carregandoResumo ? (
+                        <>
+                          <div className="h-4 w-32 rounded-md animate-pulse" style={{ backgroundColor: `${theme.menuIconColor}20` }} />
+                          <div className="h-3 w-24 rounded-md animate-pulse mt-2" style={{ backgroundColor: `${theme.menuIconColor}15` }} />
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                            {modelo.nome || "Modelo sem nome"}
+                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs opacity-75" style={{ color: theme.contentTextLightBg }}>
+                              {modelo.categoria || "Sem categoria"}
+                            </p>
+                            <span className="text-[11px] opacity-65" style={{ color: theme.contentTextLightBg }}>
+                              {formatarRelativo(modelo.criado_em)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              <section
+                className="dashboard-reveal rounded-3xl border p-6"
+                style={{
+                  backgroundColor: theme.modalBackgroundColor,
+                  borderColor: `${theme.menuIconColor}22`,
+                  animationDelay: "680ms",
+                }}
+              >
+                <h2 className="text-xl font-black tracking-tight mb-5" style={{ color: theme.contentTextLightBg }}>
+                  Ambiente
+                </h2>
+
+                <div className="space-y-3">
+                  {updates.map((update) => {
+                    const UpdateIcon = update.icon;
+                    return (
+                      <div key={update.label} className="rounded-2xl border p-3" style={{ borderColor: `${theme.menuIconColor}20` }}>
+                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] font-bold opacity-60" style={{ color: theme.contentTextLightBg }}>
+                          <UpdateIcon size={14} />
+                          {update.label}
+                        </div>
+                        <p className="mt-2 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                          {update.value}
+                        </p>
                       </div>
-                      <p className="mt-2 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
-                        {update.value}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
           </div>
         </main>
       </div>
