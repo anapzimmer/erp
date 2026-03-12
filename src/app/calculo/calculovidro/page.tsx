@@ -85,6 +85,10 @@ export default function RelatorioOrçamento() {
   const alturaRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const [mostrarModalAviso, setMostrarModalAviso] = useState(false);
+  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
+  const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
+    "Para adicionar o item, você precisa preencher largura, altura e selecionar o material."
+  );
 
   //excel
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -300,6 +304,8 @@ useEffect(() => {
     const a = parseFloat(altura);
 
     if (!l || !a || !vidroSelecionado) {
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Para adicionar o item, você precisa preencher largura, altura e selecionar o material.");
       setMostrarModalAviso(true);
       return;
     }
@@ -439,7 +445,9 @@ useEffect(() => {
 
   const handleSalvarOrcamento = async () => {
     if (itens.length === 0) {
-      alert("Adicione pelo menos um item.");
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o orçamento.");
+      setMostrarModalAviso(true);
       return;
     }
 
@@ -514,7 +522,9 @@ useEffect(() => {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro completo:", error);
-      alert("Erro ao salvar no banco: " + message);
+      setModalAvisoTitulo("Erro ao salvar");
+      setModalAvisoMensagem("Não foi possível salvar o orçamento. " + message);
+      setMostrarModalAviso(true);
     }
   };
 
@@ -1329,9 +1339,9 @@ useEffect(() => {
                 <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calculator size={28} className="text-amber-500" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Quase lá!</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">{modalAvisoTitulo}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Para adicionar o item, você precisa preencher a **Largura**, **Altura** e selecionar o **Material**.
+                  {modalAvisoMensagem}
                 </p>
               </div>
 
@@ -1340,7 +1350,7 @@ useEffect(() => {
                   onClick={() => setMostrarModalAviso(false)}
                   className="w-full py-4 text-sm font-black text-[#1e3a5a] bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
                 >
-                  Entendi
+                  Fechar
                 </button>
               </div>
             </div>

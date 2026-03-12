@@ -248,11 +248,11 @@ export default function CalculoVidros() {
   };
 
   const handleNovoOrcamento = () => {
-    setModalConfig({ show: true, title: "Novo Orçamento?", message: "Isso apagará tudo, inclusive o que está salvo.", type: 'confirm', action: resetTotal });
+    setModalConfig({ show: true, title: "Iniciar novo orçamento", message: "Esta ação limpará todos os itens do orçamento atual, inclusive os dados salvos.", type: 'confirm', action: resetTotal });
   };
 
   const handleExcluirItem = (id: number) => {
-    setModalConfig({ show: true, title: "Excluir?", message: "Tem certeza?", type: 'delete', action: () => setItens(itens.filter(i => i.id !== id)) });
+    setModalConfig({ show: true, title: "Confirmar exclusão", message: "Deseja remover este item do orçamento?", type: 'delete', action: () => setItens(itens.filter(i => i.id !== id)) });
   };
 
   const handleMedidaChange = (value: string, setter: (val: string) => void) => {
@@ -540,35 +540,48 @@ export default function CalculoVidros() {
         const nomeVidroAntigo = itemOriginal?.vidroInfo.split('-')[0] || "deste tipo";
         const outrosDoMesmoTipo = itens.filter(i => i.raw.vidroId === vidroAntigoId && i.id !== editandoId);
 
-        if (outrosDoMesmoTipo.length > 0 && window.confirm(`Você alterou este item para ${vidroSel.nome}. Deseja aplicar essa mesma troca para os outros ${outrosDoMesmoTipo.length} itens que também são ${nomeVidroAntigo}?`)) {
+        if (outrosDoMesmoTipo.length > 0) {
+          // Mantém o comportamento de salvar o item atual e pergunta se aplica a troca aos demais.
+          setItens(itens.map(i => i.id === editandoId ? novoItem : i));
 
-          const listaAtualizada = itens.map(item => {
-            // Se for o que estou editando OU se for do mesmo tipo do antigo
-            if (item.id === editandoId || item.raw.vidroId === vidroAntigoId) {
-              const r = item.raw;
-              const calc = calcularItemBox({
-                ...r,
-                vidroSel: vidroSel, // Aplica o novo vidro
-                adicionaisSelecionados: item.adicionais,
-                clienteSel, kits, precosEspeciais
-              });
+          setModalConfig({
+            show: true,
+            title: "Aplicar troca nos itens",
+            message: `Você alterou este item para ${vidroSel.nome}. Deseja aplicar essa mesma troca para os outros ${outrosDoMesmoTipo.length} itens que também são ${nomeVidroAntigo}?`,
+            type: "confirm",
+            action: () => {
+              setItens((itensAtuais) =>
+                itensAtuais.map((item) => {
+                  // Se for o item em edição OU se for do mesmo tipo de vidro antigo
+                  if (item.id === editandoId || item.raw.vidroId === vidroAntigoId) {
+                    const r = item.raw;
+                    const calc = calcularItemBox({
+                      ...r,
+                      vidroSel: vidroSel,
+                      adicionaisSelecionados: item.adicionais,
+                      clienteSel,
+                      kits,
+                      precosEspeciais,
+                    });
 
-              return {
-                ...item,
-                vidroInfo: `${vidroSel.nome} ${vidroSel.espessura}mm - ${vidroSel.tipo}`,
-                pecas: calc.pecas,
-                totalVidro: calc.totalVidro,
-                totalKit: calc.totalKit,
-                totalAdicionais: calc.totalAdicionais,
-                total: calc.total,
-                raw: { ...r, vidroId: vidroSel.id }
-              };
+                    return {
+                      ...item,
+                      vidroInfo: `${vidroSel.nome} ${vidroSel.espessura}mm - ${vidroSel.tipo}`,
+                      pecas: calc.pecas,
+                      totalVidro: calc.totalVidro,
+                      totalKit: calc.totalKit,
+                      totalAdicionais: calc.totalAdicionais,
+                      total: calc.total,
+                      raw: { ...r, vidroId: vidroSel.id },
+                    };
+                  }
+                  return item;
+                })
+              );
             }
-            return item;
           });
-          setItens(listaAtualizada);
         } else {
-          // Se recusar ou não houver outros, salva só o atual
+          // Se não houver outros do mesmo tipo, salva só o atual
           setItens(itens.map(i => i.id === editandoId ? novoItem : i));
         }
       } else {
@@ -832,7 +845,22 @@ export default function CalculoVidros() {
               {(modalConfig.type === 'confirm' || modalConfig.type === 'delete') && (
                 <button onClick={() => setModalConfig({ ...modalConfig, show: false })} className="flex-1 py-3 rounded-xl font-semibold text-gray-400 border border-gray-100">Cancelar</button>
               )}
-              <button onClick={() => { if (modalConfig.action) modalConfig.action(); setModalConfig({ ...modalConfig, show: false }); }} className="flex-1 py-3 rounded-xl font-semibold text-white shadow-md" style={{ backgroundColor: modalConfig.type === 'delete' ? theme.danger : theme.primary }}>Confirmar</button>
+              <button
+                onClick={() => {
+                  if (modalConfig.action) modalConfig.action();
+                  setModalConfig({ ...modalConfig, show: false });
+                }}
+                className="flex-1 py-3 rounded-xl font-semibold text-white shadow-md"
+                style={{ backgroundColor: modalConfig.type === 'delete' ? theme.danger : theme.primary }}
+              >
+                {modalConfig.type === 'delete'
+                  ? 'Excluir'
+                  : modalConfig.type === 'alert'
+                    ? 'Fechar'
+                    : modalConfig.title === 'Nome da Obra'
+                      ? 'Continuar'
+                      : 'Confirmar'}
+              </button>
             </div>
           </div>
         </div>

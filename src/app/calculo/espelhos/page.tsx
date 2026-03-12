@@ -146,6 +146,10 @@ export default function CalculoEspelhosPage() {
   const [divisoesAltura, setDivisoesAltura] = useState(1);
   const [showModalSalvar, setShowModalSalvar] = useState(false)
   const [showModalAviso, setShowModalAviso] = useState(false);
+  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
+  const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
+    "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao orçamento."
+  );
   const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
   // --- CARREGAR DADOS ---
@@ -525,14 +529,10 @@ export default function CalculoEspelhosPage() {
   const handleSalvarOrcamento = async () => {
     // Validação
     if (!nomeCliente || listaItens.length === 0) {
-      setShowModalAviso(true); // Abre o modal de aviso
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao orçamento.");
+      setShowModalAviso(true);
       return; // Interrompe a execução
-    }
-    // 1. Validação (mantive a lógica de validação)
-    if (!nomeCliente || listaItens.length === 0) {
-      // Dica: Aqui você poderia trocar por um modal de erro ou toast notification
-      alert("Preencha o cliente e adicione itens.");
-      return;
     }
 
     try {
@@ -625,7 +625,9 @@ export default function CalculoEspelhosPage() {
 
     } catch (error: any) {
       console.error("Erro ao salvar orçamento de espelhos:", error);
-      alert("Erro ao salvar orçamento: " + (error?.message || "falha inesperada"));
+      setModalAvisoTitulo("Erro ao salvar");
+      setModalAvisoMensagem("Não foi possível salvar o orçamento. " + (error?.message || "Falha inesperada."));
+      setShowModalAviso(true);
     }
   };
 
@@ -633,7 +635,7 @@ export default function CalculoEspelhosPage() {
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* Sidebar Container */}
       <div
-        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 flex-shrink-0 sticky top-0 h-screen`}
+        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 h-screen`}
         style={{ backgroundColor: theme.menuBackgroundColor }} // Garante que a cor do fundo da sidebar acompanhe
       >
         <Sidebar
@@ -797,7 +799,7 @@ export default function CalculoEspelhosPage() {
 
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold mb-4" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
-                <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-87.5 overflow-y-auto pr-2">
                   {/* OPÇÃO: SEM ACABAMENTO */}
                   <label className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
                     <span className="text-sm font-medium text-gray-500">Nenhum / Apenas Lapidado</span>
@@ -823,7 +825,7 @@ export default function CalculoEspelhosPage() {
                     return (
                       <label key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
                         {/* --- EXIBIÇÃO DO DESENHO NA LISTA --- */}
-                        <div className={`flex-shrink-0 bg-gray-300 w-10 h-10 ${iconStyle} flex items-center justify-center`}>
+                        <div className={`shrink-0 bg-gray-300 w-10 h-10 ${iconStyle} flex items-center justify-center`}>
                           {item.tipo_visual.includes('jogo') && (
                             <div className="grid grid-cols-3 gap-0.5 p-0.5 h-full w-full">
                               {[...Array(9)].map((_, i) => <div key={i} className="bg-white rounded-sm"></div>)}
@@ -858,7 +860,7 @@ export default function CalculoEspelhosPage() {
             {/* Coluna Direita: Preview e Tabela */}
             <div className="lg:col-span-8 space-y-6">
               {/* Preview Area */}
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-[350px] flex flex-col items-center justify-center relative">
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-87.5 flex flex-col items-center justify-center relative">
                 <div className="flex items-center justify-center relative">
                   {RenderPreview}
                   <span className="absolute -bottom-10 text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 uppercase tracking-tighter">
@@ -931,7 +933,7 @@ export default function CalculoEspelhosPage() {
                                 </h4>
 
                                 {/* Medidas */}
-                                <span className="flex-shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                <span className="shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
                                   {item.medidas}
                                 </span>
                               </div>
@@ -962,7 +964,7 @@ export default function CalculoEspelhosPage() {
                                 }}
                                 title="Editar item"
                                 style={{ '--hover-color': theme.menuIconColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Pencil size={16} />
                               </button>
@@ -972,7 +974,7 @@ export default function CalculoEspelhosPage() {
                                 onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
                                 title="Remover item"
                                 style={{ '--hover-color': theme.modalIconErrorColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-[var(--hover-color)] hover:bg-[var(--hover-color)]/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1011,7 +1013,7 @@ export default function CalculoEspelhosPage() {
 
       {/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
       {showModalPDF && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
             style={{
               backgroundColor: theme.modalBackgroundColor,
@@ -1037,7 +1039,7 @@ export default function CalculoEspelhosPage() {
                 </button>
               </div>
 
-              <div className="space-y-6 mb-8 flex-grow">
+              <div className="space-y-6 mb-8 grow">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Cliente</label>
                   <input type="text" value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} className="w-full bg-transparent border-b py-2.5 outline-none text-sm" placeholder="Nome do cliente..." />
@@ -1082,7 +1084,7 @@ export default function CalculoEspelhosPage() {
       )}
       {/* MODAL DE SALVAR ORÇAMENTO */}
       {showModalSalvar && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
             style={{
               backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
@@ -1119,7 +1121,7 @@ export default function CalculoEspelhosPage() {
                 </button>
               </div>
 
-              <div className="space-y-6 mb-8 flex-grow">
+              <div className="space-y-6 mb-8 grow">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Cliente</label>
                   <input
@@ -1156,7 +1158,7 @@ export default function CalculoEspelhosPage() {
       )}
       {/* MODAL DE SUCESSO */}
       {showModalSucesso && (
-        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
+        <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
           <div
             className="backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
             style={{
@@ -1167,7 +1169,7 @@ export default function CalculoEspelhosPage() {
           >
             {/* Ícone com a cor do tema */}
             <div
-              className="p-2 rounded-xl flex-shrink-0"
+              className="p-2 rounded-xl shrink-0"
               style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}
             >
               <Sparkles size={20} />
@@ -1203,7 +1205,7 @@ export default function CalculoEspelhosPage() {
         </div>
       )}
       {showModalAviso && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div
             className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-gray-100"
             style={{
@@ -1217,14 +1219,14 @@ export default function CalculoEspelhosPage() {
               <AlertTriangle size={32} className="text-amber-500 animate-bounce" />
             </div>
 
-            <h3 className="text-xl font-bold mb-2">Quase lá!</h3>
+            <h3 className="text-xl font-bold mb-2">{modalAvisoTitulo}</h3>
             <p className="text-sm opacity-60 mb-8">
-              Para prosseguir, certifique-se de que o <strong>nome do cliente</strong> foi preenchido e que existem <strong>itens adicionados</strong> ao orçamento.
+              {modalAvisoMensagem}
             </p>
 
             <button
               onClick={() => setShowModalAviso(false)}
-              className="px-8 py-2 rounded-xl text-sm transition-all border-1 hover:bg-opacity-10 active:bg-opacity-100"
+              className="px-8 py-2 rounded-xl text-sm transition-all border hover:bg-opacity-10 active:bg-opacity-100"
               style={{
                 borderColor: theme.menuIconColor,
                 color: theme.menuIconColor,

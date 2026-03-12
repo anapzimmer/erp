@@ -3,12 +3,13 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, Trash2, Percent, Check, Search, AlertTriangle, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties } from "lucide-react"
+import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties } from "lucide-react"
 import { useRouter } from "next/navigation"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
 import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal";
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
@@ -33,7 +34,6 @@ export default function GestaoPrecosPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
-  const [modalExclusaoTabelaAberto, setModalExclusaoTabelaAberto] = useState<{ aberto: boolean, tabela: TabelaPreco | null }>({ aberto: false, tabela: null });
 
   // --- Estados da Lógica de Negócio ---
   const [tabelas, setTabelas] = useState<TabelaPreco[]>([])
@@ -48,9 +48,15 @@ export default function GestaoPrecosPage() {
   const [novoVidroId, setNovoVidroId] = useState("")
   const [novoPrecoVidro, setNovoPrecoVidro] = useState("")
   const [carregando, setCarregando] = useState(false)
-  const [modalReajusteAberto, setModalReajusteAberto] = useState(false)
-  const [modalExclusaoAberto, setModalExclusaoAberto] = useState<{ aberto: boolean, item: ItemTabela | null }>({ aberto: false, item: null })
   const [modalAvisoAberto, setModalAvisoAberto] = useState<{ aberto: boolean, mensagem: string }>({ aberto: false, mensagem: "" });
+  const [modalConfirmacao, setModalConfirmacao] = useState<{
+    titulo: string;
+    mensagem: string;
+    confirmar?: () => void;
+    tipo?: "sucesso" | "erro" | "aviso";
+    labelConfirmar?: string;
+    labelCancelar?: string;
+  } | null>(null);
   const [editandoItemId, setEditandoItemId] = useState<string | null>(null);
   const [novoPrecoEdicao, setNovoPrecoEdicao] = useState<string>("");
 
@@ -86,7 +92,7 @@ export default function GestaoPrecosPage() {
       await carregarItensTabela(tabelaSelecionada.id);
     }
 
-    setModalSucessoAberto({ aberto: true, mensagem: "Preço atualizado!" });
+    setModalSucessoAberto({ aberto: true, mensagem: "Preço atualizado com sucesso." });
   } else {
     console.error("Erro ao salvar preço:", error);
     setModalAvisoAberto({ aberto: true, mensagem: "Erro ao atualizar preço no banco." });
@@ -94,8 +100,8 @@ export default function GestaoPrecosPage() {
   setCarregando(false);
 };
 
-  const excluirTabela = async () => {
-    if (!modalExclusaoTabelaAberto.tabela || !empresaIdAtual) {
+  const excluirTabela = async (tabela: TabelaPreco) => {
+    if (!empresaIdAtual) {
       console.error("Faltando ID da tabela ou da empresa");
       return;
     }
@@ -104,21 +110,21 @@ export default function GestaoPrecosPage() {
     await supabase
       .from("vidro_precos_grupos")
       .delete()
-      .eq("grupo_preco_id", modalExclusaoTabelaAberto.tabela.id);
+      .eq("grupo_preco_id", tabela.id);
 
     // 2. Agora excluímos a tabela de fato
     const { error } = await supabase
       .from("tabelas")
       .delete()
-      .eq("id", modalExclusaoTabelaAberto.tabela.id)
+      .eq("id", tabela.id)
       .eq("empresa_id", empresaIdAtual); // Garante que você é o dono
 
     if (!error) {
-      setTabelas(prev => prev.filter(t => t.id !== modalExclusaoTabelaAberto.tabela?.id));
+      setTabelas(prev => prev.filter(t => t.id !== tabela.id));
       setTabelaSelecionada(null);
-      setModalExclusaoTabelaAberto({ aberto: false, tabela: null });
+      setModalConfirmacao(null);
       // 🔥 NOVO: Abre o seu modal customizado
-      setModalSucessoAberto({ aberto: true, mensagem: "A tabela foi removida com sucesso!" });
+      setModalSucessoAberto({ aberto: true, mensagem: "Tabela removida com sucesso." });
     }
   };
 
@@ -228,12 +234,12 @@ export default function GestaoPrecosPage() {
 console.log("Enviando empresa_id:", empresaIdAtual);
 
     if (!nomeNovaTabela.trim()) {
-      setModalAvisoAberto({ aberto: true, mensagem: "Dê um nome para a sua tabela de preços." });
+      setModalAvisoAberto({ aberto: true, mensagem: "Informe um nome para a tabela de preços." });
       return;
     }
 
     if (!empresaIdAtual) {
-      setModalAvisoAberto({ aberto: true, mensagem: "Erro: Identificação da empresa não encontrada. Tente atualizar a página." });
+      setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível identificar a empresa. Atualize a página e tente novamente." });
       return;
     }
 
@@ -248,7 +254,7 @@ console.log("Enviando empresa_id:", empresaIdAtual);
     if (!error) {
       setNomeNovaTabela("");
       carregarTabelas(empresaIdAtual);
-      setModalSucessoAberto({ aberto: true, mensagem: "Tabela criada com sucesso!" });
+      setModalSucessoAberto({ aberto: true, mensagem: "Tabela criada com sucesso." });
     } else {
       console.error("Erro ao criar:", error);
       setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível criar a tabela no banco de dados." });
@@ -258,7 +264,7 @@ console.log("Enviando empresa_id:", empresaIdAtual);
 
 const adicionarVidroATabela = async () => {
   if (!tabelaSelecionada?.id || !novoVidroId || !novoPrecoVidro) {
-    setModalAvisoAberto({ aberto: true, mensagem: "Preencha todos os campos." });
+    setModalAvisoAberto({ aberto: true, mensagem: "Preencha todos os campos obrigatórios." });
     return;
   }
 
@@ -288,20 +294,20 @@ const { error } = await supabase
     setNovoVidroId("");
     setNovoPrecoVidro("");
     carregarItensTabela(tabelaSelecionada.id);
-    setModalSucessoAberto({ aberto: true, mensagem: "Vidro adicionado!" });
+    setModalSucessoAberto({ aberto: true, mensagem: "Vidro adicionado com sucesso." });
   }
   setCarregando(false);
 };
 
-  const confirmarExclusao = async () => {
-    if (!modalExclusaoAberto.item) return;
+  const confirmarExclusao = async (item: ItemTabela) => {
     const { error } = await supabase
       .from("vidro_precos_grupos")
       .delete()
-      .eq("id", modalExclusaoAberto.item.id);
+      .eq("id", item.id);
     if (!error) {
       carregarItensTabela(tabelaSelecionada!.id);
-      setModalExclusaoAberto({ aberto: false, item: null });
+      setModalConfirmacao(null);
+      setModalSucessoAberto({ aberto: true, mensagem: "Vidro removido com sucesso." });
     }
   };
 
@@ -323,10 +329,14 @@ const { error } = await supabase
       p_tabela_id: tabelaSelecionada.id,
       p_fator: fator
     })
-    if (error) alert("Erro: " + error.message)
-    else carregarItensTabela(tabelaSelecionada.id)
+    if (error) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Erro ao aplicar reajuste: " + error.message })
+    } else {
+      carregarItensTabela(tabelaSelecionada.id)
+      setModalSucessoAberto({ aberto: true, mensagem: "Reajuste aplicado com sucesso." })
+    }
     setCarregando(false)
-    setModalReajusteAberto(false)
+    setModalConfirmacao(null)
   }
 
   const handleSignOut = async () => {
@@ -431,7 +441,13 @@ const { error } = await supabase
 
                       <button
                         // 🔥 Chamando a função correta de exclusão
-                        onClick={() => setModalExclusaoTabelaAberto({ aberto: true, tabela: t })}
+                        onClick={() => setModalConfirmacao({
+                          titulo: "Confirmar exclusão",
+                          mensagem: `Deseja excluir a tabela \"${t.nome}\"? Esta ação não pode ser desfeita.`,
+                          confirmar: () => excluirTabela(t),
+                          labelConfirmar: "Excluir",
+                          labelCancelar: "Cancelar",
+                        })}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={16} />
@@ -456,7 +472,18 @@ const { error } = await supabase
                         <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
                         <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 p-2.5 pl-9 border border-gray-200 rounded-xl text-sm font-bold" />
                       </div>
-                      <button onClick={() => setModalReajusteAberto(true)} disabled={carregando} className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}>
+                      <button
+                        onClick={() => setModalConfirmacao({
+                          titulo: "Confirmar reajuste",
+                          mensagem: `Deseja aplicar reajuste de ${percentualReajuste}% na tabela \"${tabelaSelecionada?.nome}\"?`,
+                          confirmar: aplicarReajuste,
+                          labelConfirmar: "Aplicar",
+                          labelCancelar: "Cancelar",
+                        })}
+                        disabled={carregando}
+                        className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50"
+                        style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
+                      >
                         {carregando ? "Processando..." : "Reajustar %"}
                       </button>
                     </div>
@@ -562,7 +589,13 @@ const { error } = await supabase
                                   <Edit2 size={16} />
                                 </button>
                                 <button
-                                  onClick={() => setModalExclusaoAberto({ aberto: true, item })}
+                                  onClick={() => setModalConfirmacao({
+                                    titulo: "Confirmar exclusão",
+                                    mensagem: `Deseja excluir ${item.vidros?.nome} desta tabela?`,
+                                    confirmar: () => confirmarExclusao(item),
+                                    labelConfirmar: "Excluir",
+                                    labelCancelar: "Cancelar",
+                                  })}
                                   className="p-2 hover:bg-white rounded-lg shadow-sm text-gray-400 hover:text-red-500 transition-all"
                                 >
                                   <Trash2 size={16} />
@@ -587,137 +620,48 @@ const { error } = await supabase
         </main>
       </div>
 
-      {/* --- MODAL DE SUCESSO / AVISO (ESTILO DISCRETO & CENTRALIZADO) --- */}
-      {(modalSucessoAberto.aberto || modalAvisoAberto.aberto) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-100 animate-fade-in">
-          <div
-            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/10 animate-scale-in"
-            style={{
-              backgroundColor: theme.modalBackgroundColor,
-              color: theme.modalTextColor
-            }}
-          >
-            {/* Header */}
-            <div className="flex flex-col items-center text-center gap-4">
+      <CadastrosAvisoModal
+        aviso={modalSucessoAberto.aberto
+          ? {
+            titulo: "Operação concluída",
+            mensagem: modalSucessoAberto.mensagem,
+            tipo: "sucesso",
+          }
+          : modalAvisoAberto.aberto
+            ? {
+              titulo: "Atenção",
+              mensagem: modalAvisoAberto.mensagem,
+              tipo: "aviso",
+            }
+            : null}
+        onClose={() => {
+          setModalSucessoAberto({ aberto: false, mensagem: "" });
+          setModalAvisoAberto({ aberto: false, mensagem: "" });
+        }}
+        colors={{
+          bg: theme.modalBackgroundColor,
+          text: theme.modalTextColor,
+          primaryButtonBg: theme.modalButtonBackgroundColor,
+          primaryButtonText: theme.modalButtonTextColor,
+          success: theme.modalIconSuccessColor,
+          error: theme.modalIconErrorColor,
+          warning: theme.modalIconWarningColor,
+        }}
+      />
 
-              {/* Ícone */}
-              <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${modalSucessoAberto.aberto ? "bg-green-500/10" : "bg-amber-500/10"
-                }`}>
-                {modalSucessoAberto.aberto ? (
-                  <Check size={26} className="text-green-500" />
-                ) : (
-                  <AlertTriangle size={26} className="text-amber-500" />
-                )}
-              </div>
-
-              {/* Título */}
-              <h2 className="text-lg font-semibold tracking-tight">
-                {modalSucessoAberto.aberto ? "Operação concluída" : "Atenção necessária"}
-              </h2>
-
-              {/* Mensagem */}
-              <p className="text-sm text-current/80 leading-relaxed">
-                {modalSucessoAberto.aberto
-                  ? modalSucessoAberto.mensagem
-                  : modalAvisoAberto.mensagem}
-              </p>
-
-              {/* Botão */}
-              <button
-                onClick={() => {
-                  setModalSucessoAberto({ aberto: false, mensagem: "" });
-                  setModalAvisoAberto({ aberto: false, mensagem: "" });
-                }}
-                className="mt-4 px-5 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:scale-95"
-                style={{
-                  backgroundColor: theme.modalButtonBackgroundColor,
-                  color: theme.modalButtonTextColor,
-                }}
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {/* Modal de Confirmação (Exclusão/Reajuste) - Centralizado */}
-      {(modalReajusteAberto || modalExclusaoTabelaAberto.aberto || modalExclusaoAberto.aberto) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div
-            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/10 animate-scale-in"
-            style={{
-              backgroundColor: theme.modalBackgroundColor,
-              color: theme.modalTextColor
-            }}
-          >
-
-            <div className="flex flex-col items-center text-center gap-4">
-
-              {/* Ícone */}
-              <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${modalReajusteAberto ? "bg-amber-500/10" : "bg-red-500/10"
-                }`}>
-                <AlertTriangle
-                  size={26}
-                  className={modalReajusteAberto ? "text-amber-500" : "text-red-500"}
-                />
-              </div>
-
-              {/* Título */}
-              <h2 className="text-lg font-semibold tracking-tight">
-                Confirmar ação
-              </h2>
-
-              {/* Texto */}
-              <p className="text-sm text-current/80 leading-relaxed">
-                {modalReajusteAberto &&
-                  `Aplicar reajuste de ${percentualReajuste}% em ${tabelaSelecionada?.nome}?`}
-                {modalExclusaoTabelaAberto.aberto &&
-                  `Deseja remover a tabela ${modalExclusaoTabelaAberto.tabela?.nome}?`}
-                {modalExclusaoAberto.aberto &&
-                  `Remover ${modalExclusaoAberto.item?.vidros?.nome} da lista?`}
-              </p>
-
-              {/* Botões */}
-              <div className="flex gap-3 w-full mt-2">
-
-                <button
-                  onClick={() => {
-                    setModalReajusteAberto(false);
-                    setModalExclusaoTabelaAberto({ aberto: false, tabela: null });
-                    setModalExclusaoAberto({ aberto: false, item: null });
-                  }}
-                  className="px-5 py-2 rounded-lg text-sm font-medium bg-black/5 hover:bg-black/10 transition-all"
-                >
-                  Cancelar
-                </button>
-
-
-                <button
-                  onClick={() => {
-                    if (modalReajusteAberto) aplicarReajuste();
-                    if (modalExclusaoTabelaAberto.aberto) excluirTabela();
-                    if (modalExclusaoAberto.aberto) confirmarExclusao();
-                  }}
-                  className="px-5 py-2 rounded-lg text-sm font-medium text-white transition-all hover:brightness-95 active:scale-95"
-                  style={{
-                    backgroundColor:
-                      (modalExclusaoTabelaAberto.aberto ||
-                        modalExclusaoAberto.aberto)
-                        ? "#ef4444"
-                        : theme.modalButtonBackgroundColor,
-                  }}
-                >
-                  Confirmar
-                </button>
-
-
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CadastrosAvisoModal
+        aviso={modalConfirmacao}
+        onClose={() => setModalConfirmacao(null)}
+        colors={{
+          bg: theme.modalBackgroundColor,
+          text: theme.modalTextColor,
+          primaryButtonBg: theme.modalButtonBackgroundColor,
+          primaryButtonText: theme.modalButtonTextColor,
+          success: theme.modalIconSuccessColor,
+          error: theme.modalIconErrorColor,
+          warning: theme.modalIconWarningColor,
+        }}
+      />
 
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
@@ -449,16 +449,20 @@ export default function ProjetosPage() {
   const [form, setForm] = useState<FormData>(FORM_VAZIO)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
 
   // ── Picker de desenho ──
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
+  const [variacaoCustomSelecionadaId, setVariacaoCustomSelecionadaId] = useState<string | null>(null)
+  const [buscaVariacaoCustom, setBuscaVariacaoCustom] = useState("")
   const [novaVariacaoNome, setNovaVariacaoNome] = useState("")
   const [novaVariacaoOpcoes, setNovaVariacaoOpcoes] = useState<VariacaoCustomDraftOpcao[]>([
     { id: "a", label: "Opção A", arquivo: "" },
     { id: "b", label: "Opção B", arquivo: "" },
   ])
+  const draftRestauradoRef = useRef<string | null>(null)
 
   // ── Modal de aviso ──
   const [modalAviso, setModalAviso] = useState<{
@@ -486,6 +490,7 @@ export default function ProjetosPage() {
   }, [empresaId])
 
   const storageVariacoesKey = `projetos:variacoes-custom:${empresaId || "global"}`
+  const draftProjetoKey = `projetos:draft:${empresaId || "sem_empresa"}:${editandoId || "novo"}`
 
   // ─── EFEITOS ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -528,6 +533,93 @@ export default function ProjetosPage() {
       // Ignora falha de persistencia para nao quebrar o modal.
     }
   }, [variacoesCustom, storageVariacoesKey])
+
+  useEffect(() => {
+    if (!showModal || !empresaId) return
+    if (draftRestauradoRef.current === draftProjetoKey) return
+
+    try {
+      const raw = sessionStorage.getItem(draftProjetoKey)
+      if (!raw) {
+        draftRestauradoRef.current = draftProjetoKey
+        return
+      }
+
+      const draft = JSON.parse(raw) as {
+        form?: FormData
+        editandoId?: string | null
+        abaAtiva?: "geral" | "folhas" | "kits" | "ferragens" | "perfis"
+        categoriaPicker?: string
+        showPicker?: boolean
+        variacaoCustomSelecionadaId?: string | null
+        novaVariacaoNome?: string
+        novaVariacaoOpcoes?: VariacaoCustomDraftOpcao[]
+      }
+
+      if (draft.form) setForm(draft.form)
+      if (draft.editandoId !== undefined) setEditandoId(draft.editandoId)
+      if (draft.abaAtiva) setAbaAtiva(draft.abaAtiva)
+      if (draft.categoriaPicker) setCategoriaPicker(draft.categoriaPicker)
+      if (typeof draft.showPicker === "boolean") setShowPicker(draft.showPicker)
+      if (draft.variacaoCustomSelecionadaId !== undefined) setVariacaoCustomSelecionadaId(draft.variacaoCustomSelecionadaId)
+      if (typeof draft.novaVariacaoNome === "string") setNovaVariacaoNome(draft.novaVariacaoNome)
+      if (Array.isArray(draft.novaVariacaoOpcoes) && draft.novaVariacaoOpcoes.length > 0) {
+        setNovaVariacaoOpcoes(draft.novaVariacaoOpcoes)
+      }
+    } catch (error) {
+      console.error("Erro ao restaurar rascunho de projeto:", error)
+    } finally {
+      draftRestauradoRef.current = draftProjetoKey
+    }
+  }, [showModal, empresaId, draftProjetoKey])
+
+  useEffect(() => {
+    if (!showModal || !empresaId) return
+
+    const temDadosNoForm =
+      !!form.nome.trim() ||
+      !!form.categoria.trim() ||
+      !!form.desenho ||
+      form.folhas.length > 0 ||
+      form.kits.length > 0 ||
+      form.ferragens.length > 0 ||
+      form.perfis.length > 0
+
+    const temDadosVariacao =
+      !!novaVariacaoNome.trim() ||
+      novaVariacaoOpcoes.some((opcao) => !!opcao.label.trim() || !!opcao.arquivo)
+
+    if (!temDadosNoForm && !temDadosVariacao && !editandoId) {
+      sessionStorage.removeItem(draftProjetoKey)
+      return
+    }
+
+    const payload = {
+      form,
+      editandoId,
+      abaAtiva,
+      categoriaPicker,
+      showPicker,
+      variacaoCustomSelecionadaId,
+      novaVariacaoNome,
+      novaVariacaoOpcoes,
+      updatedAt: Date.now(),
+    }
+
+    sessionStorage.setItem(draftProjetoKey, JSON.stringify(payload))
+  }, [
+    showModal,
+    empresaId,
+    draftProjetoKey,
+    form,
+    editandoId,
+    abaAtiva,
+    categoriaPicker,
+    showPicker,
+    variacaoCustomSelecionadaId,
+    novaVariacaoNome,
+    novaVariacaoOpcoes,
+  ])
 
   // ─── ABRIR EDIÇÃO ─────────────────────────────────────────────────────────
   const abrirEdicao = async (projeto: Projeto) => {
@@ -656,7 +748,9 @@ export default function ProjetosPage() {
         mensagem: `Projeto "${form.nome}" ${editandoId ? "atualizado" : "cadastrado"} com sucesso.`,
         tipo: "sucesso",
       })
-      fecharModal()
+      sessionStorage.removeItem(draftProjetoKey)
+      draftRestauradoRef.current = null
+      fecharModalSemConfirmacao()
       carregarTudo()
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : "Erro inesperado."
@@ -677,12 +771,23 @@ export default function ProjetosPage() {
     })
   }
 
-  const fecharModal = () => {
+  const fecharModalSemConfirmacao = () => {
     setShowModal(false)
+    setShowCloseDraftModal(false)
     setForm(FORM_VAZIO)
     setEditandoId(null)
     setAbaAtiva("geral")
     setShowPicker(false)
+    setVariacaoCustomSelecionadaId(null)
+  }
+
+  const fecharModal = () => {
+    if (temDadosNaoSalvosNoModal) {
+      setShowCloseDraftModal(true)
+      return
+    }
+
+    fecharModalSemConfirmacao()
   }
 
   // ─── HELPERS FOLHAS ──────────────────────────────────────────────────────
@@ -882,6 +987,39 @@ export default function ProjetosPage() {
       })),
     }))
   const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
+  const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
+    item.label.toLowerCase().includes(buscaVariacaoCustom.toLowerCase().trim())
+  )
+
+  const iniciarNovaVariacaoManual = () => {
+    setVariacaoCustomSelecionadaId(null)
+    setBuscaVariacaoCustom("")
+    setNovaVariacaoNome("")
+    setNovaVariacaoOpcoes([
+      { id: "a", label: "Opção A", arquivo: form.desenho || "" },
+      { id: "b", label: "Opção B", arquivo: "" },
+    ])
+  }
+
+  const selecionarVariacaoManual = (id: string) => {
+    if (id === "__nova__") {
+      iniciarNovaVariacaoManual()
+      return
+    }
+
+    const variacao = variacoesCustom.find((item) => item.id === id)
+    if (!variacao) return
+
+    setVariacaoCustomSelecionadaId(variacao.id)
+    setNovaVariacaoNome(variacao.label)
+    setNovaVariacaoOpcoes(
+      variacao.opcoes.map((opcao, idx) => ({
+        id: `${variacao.id}-${idx}`,
+        label: opcao.label,
+        arquivo: opcao.arquivo,
+      }))
+    )
+  }
 
   const atualizarOpcaoNovaVariacao = (id: string, campo: "label" | "arquivo", valor: string) => {
     setNovaVariacaoOpcoes((prev) => prev.map((opcao) => (opcao.id === id ? { ...opcao, [campo]: valor } : opcao)))
@@ -960,24 +1098,42 @@ export default function ProjetosPage() {
       return
     }
 
+    const novaVariacaoId = variacaoCustomSelecionadaId || `${Date.now()}`
     const novaVariacao: VariacaoCustom = {
-      id: `${Date.now()}`,
+      id: novaVariacaoId,
       label: nome,
       opcoes: opcoesSaneadas,
     }
 
-    setVariacoesCustom((prev) => [...prev, novaVariacao])
-    setNovaVariacaoNome("")
-    setNovaVariacaoOpcoes([
-      { id: "a", label: "Opção A", arquivo: form.desenho },
-      { id: "b", label: "Opção B", arquivo: "" },
-    ])
-    setModalAviso({ titulo: "Sucesso", mensagem: "Variação personalizada cadastrada e salva para próximos projetos.", tipo: "sucesso" })
+    setVariacoesCustom((prev) => {
+      if (variacaoCustomSelecionadaId) {
+        return prev.map((item) => (item.id === variacaoCustomSelecionadaId ? novaVariacao : item))
+      }
+      return [...prev, novaVariacao]
+    })
+
+    setVariacaoCustomSelecionadaId(novaVariacaoId)
+    setModalAviso({
+      titulo: "Sucesso",
+      mensagem: variacaoCustomSelecionadaId
+        ? "Variação personalizada atualizada."
+        : "Variação personalizada cadastrada e salva para próximos projetos.",
+      tipo: "sucesso",
+    })
   }
 
   const removerVariacaoManual = (id: string) => {
     setVariacoesCustom((prev) => prev.filter((item) => item.id !== id))
+    if (variacaoCustomSelecionadaId === id) {
+      iniciarNovaVariacaoManual()
+    }
   }
+
+  useEffect(() => {
+    if (!variacaoCustomSelecionadaId) return
+    const existe = variacoesCustom.some((item) => item.id === variacaoCustomSelecionadaId)
+    if (!existe) setVariacaoCustomSelecionadaId(null)
+  }, [variacoesCustom, variacaoCustomSelecionadaId])
 
   useEffect(() => {
     setNovaVariacaoOpcoes((prev) => {
@@ -995,6 +1151,31 @@ export default function ProjetosPage() {
       })
     })
   }, [form.desenho])
+
+  const temDadosNaoSalvosNoModal =
+    showModal && (
+      !!form.nome.trim() ||
+      !!form.categoria.trim() ||
+      !!form.desenho ||
+      form.folhas.length > 0 ||
+      form.kits.length > 0 ||
+      form.ferragens.length > 0 ||
+      form.perfis.length > 0 ||
+      !!novaVariacaoNome.trim() ||
+      novaVariacaoOpcoes.some((opcao) => !!opcao.label.trim() || !!opcao.arquivo)
+    )
+
+  useEffect(() => {
+    if (!temDadosNaoSalvosNoModal) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ""
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [temDadosNaoSalvosNoModal])
 
   if (checkingAuth) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -1350,12 +1531,52 @@ export default function ProjetosPage() {
 
                   {form.desenho && (
                     <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                        Cadastrar variação manual
-                      </p>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Variações personalizadas
+                        </p>
+                        <button
+                          type="button"
+                          onClick={iniciarNovaVariacaoManual}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-black text-white"
+                          style={{ backgroundColor: theme.menuBackgroundColor }}
+                        >
+                          <Plus size={12} /> Nova variação
+                        </button>
+                      </div>
                       <p className="text-xs text-gray-500 mb-3">
-                        Se não existir variação automática, cadastre aqui uma vez e ela aparecerá nos próximos cadastros.
+                        Selecione uma variação e amarre os desenhos de cada opção. Use + para criar uma nova na hora.
                       </p>
+
+                      <div className="mb-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                          Buscar variação
+                        </label>
+                        <input
+                          type="text"
+                          value={buscaVariacaoCustom}
+                          onChange={(e) => setBuscaVariacaoCustom(e.target.value)}
+                          placeholder="Digite para filtrar variações salvas"
+                          className="w-full mb-2 p-2.5 rounded-xl bg-white border border-gray-200 text-xs font-bold outline-none"
+                        />
+
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                          Variação em edição
+                        </label>
+                        <select
+                          value={variacaoCustomSelecionadaId || "__nova__"}
+                          onChange={(e) => selecionarVariacaoManual(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-xs font-bold outline-none"
+                        >
+                          <option value="__nova__">Nova variação</option>
+                          {variacoesCustomFiltradas.map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </select>
+                        {buscaVariacaoCustom.trim() && variacoesCustomFiltradas.length === 0 && (
+                          <p className="mt-1 text-[11px] text-gray-400">Nenhuma variação encontrada para esse filtro.</p>
+                        )}
+                      </div>
 
                       <div className="space-y-3 mb-3">
                         <div>
@@ -1442,35 +1663,17 @@ export default function ProjetosPage() {
                         className="px-4 py-2 rounded-xl text-xs font-black text-white shadow-sm hover:opacity-90 transition-all"
                         style={{ backgroundColor: theme.menuBackgroundColor }}
                       >
-                        Salvar variação
+                        {variacaoCustomSelecionadaId ? "Atualizar variação" : "Salvar variação"}
                       </button>
 
-                      {variacoesCustom.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-gray-200">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                            Variações personalizadas salvas
-                          </p>
-                          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                            {variacoesCustom.map((grupo) => (
-                              <div key={grupo.id} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-gray-100 px-3 py-2">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-black text-gray-600 truncate">{grupo.label}</p>
-                                  <p className="text-[11px] text-gray-400 truncate">
-                                    {grupo.opcoes.map((op) => `${op.label}: ${desenhosPorArquivo.get(op.arquivo)?.label || op.arquivo}`).join(" | ")}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removerVariacaoManual(grupo.id)}
-                                  className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all"
-                                  title="Remover variação"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                      {variacaoCustomSelecionadaId && (
+                        <button
+                          type="button"
+                          onClick={() => removerVariacaoManual(variacaoCustomSelecionadaId)}
+                          className="ml-2 px-4 py-2 rounded-xl text-xs font-black bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all"
+                        >
+                          Excluir variação
+                        </button>
                       )}
                     </div>
                   )}
@@ -1943,6 +2146,34 @@ export default function ProjetosPage() {
                   : <Save size={15} />
                 }
                 {editandoId ? "Atualizar" : "Salvar Projeto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCloseDraftModal && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-100">
+            <h3 className="text-lg font-black text-slate-800 mb-2">Alterações não salvas</h3>
+            <p className="text-sm text-gray-500 leading-relaxed mb-6">
+              Há alterações não salvas. Fechar agora manterá um rascunho para você continuar depois. Deseja fechar?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCloseDraftModal(false)}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
+              >
+                Continuar editando
+              </button>
+              <button
+                type="button"
+                onClick={fecharModalSemConfirmacao}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-black text-white hover:opacity-90 transition-all"
+                style={{ backgroundColor: theme.menuBackgroundColor }}
+              >
+                Fechar e manter rascunho
               </button>
             </div>
           </div>

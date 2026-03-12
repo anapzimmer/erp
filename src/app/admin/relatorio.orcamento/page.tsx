@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
+import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { PDFViewer } from '@react-pdf/renderer';
@@ -59,8 +60,15 @@ export default function RelatorioOrçamento() {
 
     // Estados para Seleção e Modal
     const [selecionados, setSelecionados] = useState<string[]>([]);
-    const [modalAberto, setModalAberto] = useState(false);
     const [itemParaExcluir, setItemParaExcluir] = useState<Orcamento | null>(null);
+    const [modalConfirmacao, setModalConfirmacao] = useState<{
+        titulo: string;
+        mensagem: string;
+        confirmar?: () => void;
+        tipo?: "sucesso" | "erro" | "aviso";
+        labelConfirmar?: string;
+        labelCancelar?: string;
+    } | null>(null);
     const [showToast, setShowToast] = useState(false);
     const [showPDFModal, setShowPDFModal] = useState(false);
     const [orcamentoParaVisualizar, setOrcamentoParaVisualizar] = useState<Orcamento | null>(null);
@@ -92,7 +100,11 @@ export default function RelatorioOrçamento() {
 
         try {
             if (!empresaIdAtual) {
-                alert("Empresa não identificada para exclusão.");
+                setModalConfirmacao({
+                    titulo: "Atenção",
+                    mensagem: "Empresa não identificada para exclusão.",
+                    tipo: "aviso",
+                });
                 return;
             }
 
@@ -106,7 +118,7 @@ export default function RelatorioOrçamento() {
 
             setOrcamentos(prev => prev.filter(o => !idsParaDeletar.includes(o.id)));
             setSelecionados([]);
-            setModalAberto(false);
+            setModalConfirmacao(null);
             setItemParaExcluir(null);
 
             // AVISO DISCRETO:
@@ -115,7 +127,11 @@ export default function RelatorioOrçamento() {
 
         } catch (error) {
             console.error("Erro ao deletar:", error);
-            alert("Erro ao excluir registro.");
+            setModalConfirmacao({
+                titulo: "Erro ao excluir",
+                mensagem: "Não foi possível excluir o(s) registro(s). Tente novamente.",
+                tipo: "erro",
+            });
         }
     };
 
@@ -352,7 +368,16 @@ export default function RelatorioOrçamento() {
                             {selecionados.length > 0 && (
                                 <div className="px-6 pt-6">
                                     <button
-                                        onClick={() => setModalAberto(true)}
+                                        onClick={() => {
+                                            setItemParaExcluir(null);
+                                            setModalConfirmacao({
+                                                titulo: "Confirmar exclusão",
+                                                mensagem: `Você está prestes a excluir ${selecionados.length} registros selecionados.\nEsta ação não pode ser desfeita.`,
+                                                confirmar: handleDelete,
+                                                labelConfirmar: "Excluir",
+                                                labelCancelar: "Cancelar",
+                                            });
+                                        }}
                                         className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-bold hover:bg-red-100 transition-all animate-in fade-in slide-in-from-top-2"
                                     >
                                         <Trash2 size={18} />
@@ -503,7 +528,16 @@ export default function RelatorioOrçamento() {
 
                                                             {/* EXCLUIR - VERMELHO PADRÃO DE ALERTA NO HOVER */}
                                                             <button
-                                                                onClick={() => { setItemParaExcluir(orc); setModalAberto(true); }}
+                                                                onClick={() => {
+                                                                    setItemParaExcluir(orc);
+                                                                    setModalConfirmacao({
+                                                                        titulo: "Confirmar exclusão",
+                                                                        mensagem: `Você está prestes a excluir o orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
+                                                                        confirmar: handleDelete,
+                                                                        labelConfirmar: "Excluir",
+                                                                        labelCancelar: "Cancelar",
+                                                                    });
+                                                                }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all active:scale-95 rounded-2xl"
                                                                 title="Excluir Registro"
                                                             >
@@ -527,37 +561,22 @@ export default function RelatorioOrçamento() {
                     </div>
                 </main>
             </div>
-            {/* MODAL DE CONFIRMAÇÃO */}
-            {modalAberto && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-6 mx-auto">
-                            <Trash2 size={32} />
-                        </div>
-                        <h3 className="text-xl font-black text-center text-slate-800 mb-2">Tem certeza?</h3>
-                        <p className="text-gray-500 text-center text-sm mb-8">
-                            {itemParaExcluir
-                                ? `Você está prestes a excluir o orçamento ${itemParaExcluir.numero_formatado}.`
-                                : `Você está prestes a excluir ${selecionados.length} registros selecionados.`}
-                            <br />Esta ação não pode ser desfeita.
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => { setModalAberto(false); setItemParaExcluir(null); }}
-                                className="flex-1 py-3 px-4 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-all"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="flex-1 py-3 px-4 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-200"
-                            >
-                                Confirmar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CadastrosAvisoModal
+                aviso={modalConfirmacao}
+                onClose={() => {
+                    setModalConfirmacao(null);
+                    setItemParaExcluir(null);
+                }}
+                colors={{
+                    bg: theme.modalBackgroundColor,
+                    text: theme.modalTextColor,
+                    primaryButtonBg: theme.modalButtonBackgroundColor,
+                    primaryButtonText: theme.modalButtonTextColor,
+                    success: theme.modalIconSuccessColor,
+                    error: theme.modalIconErrorColor,
+                    warning: theme.modalIconWarningColor,
+                }}
+            />
             {/* TOAST DISCRETO - PADRÃO ERP */}
             {showToast && (
                 <div className="fixed bottom-8 right-8 z-110 animate-in fade-in slide-in-from-bottom-4 duration-300">
