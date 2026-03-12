@@ -1,16 +1,14 @@
 //src/app/admin/tabelas/page.tsx
 "use client"
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, ChevronRight, Trash2, Percent, Check, Search, AlertTriangle, X, ArrowLeft, Layers3, DollarSign, Edit2, Save, Menu, Building2, ChevronDown, LogOut, Settings, Palette, TableProperties, FileText, BarChart3, Square, Package, Wrench, Boxes, Briefcase, UsersRound, ImageIcon } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
-import Image from "next/image"
+import { PlusCircle, Trash2, Percent, Check, Search, AlertTriangle, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties } from "lucide-react"
+import { useRouter } from "next/navigation"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
 import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
-import ThemeLoader from "@/components/ThemeLoader"
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
@@ -23,16 +21,8 @@ type ItemTabela = {
   vidros?: { nome: string; espessura: string; tipo: string; }
 }
 
-type MenuItem = {
-  nome: string
-  rota: string
-  icone: any
-  submenu?: { nome: string; rota: string }[]
-}
-
 export default function GestaoPrecosPage() {
   const router = useRouter()
-  const pathname = usePathname();
   // 🔥 Consumir o tema do contexto
   const { theme } = useTheme();
   const [empresaIdAtual, setEmpresaIdAtual] = useState<string>("");
@@ -41,10 +31,8 @@ export default function GestaoPrecosPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const [modalExclusaoTabelaAberto, setModalExclusaoTabelaAberto] = useState<{ aberto: boolean, tabela: TabelaPreco | null }>({ aberto: false, tabela: null });
 
   // --- Estados da Lógica de Negócio ---
@@ -63,12 +51,10 @@ export default function GestaoPrecosPage() {
   const [modalReajusteAberto, setModalReajusteAberto] = useState(false)
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState<{ aberto: boolean, item: ItemTabela | null }>({ aberto: false, item: null })
   const [modalAvisoAberto, setModalAvisoAberto] = useState<{ aberto: boolean, mensagem: string }>({ aberto: false, mensagem: "" });
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [tempPreco, setTempPreco] = useState<string>("");
   const [editandoItemId, setEditandoItemId] = useState<string | null>(null);
   const [novoPrecoEdicao, setNovoPrecoEdicao] = useState<string>("");
 
-  const iniciarEdicao = (item: any) => {
+  const iniciarEdicao = (item: ItemTabela) => {
     if (!tabelaSelecionada) return; // Segurança extra
     setEditandoItemId(item.id);
     setNovoPrecoEdicao(item.preco.toString());
@@ -138,13 +124,6 @@ export default function GestaoPrecosPage() {
 
   // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-
     const fetchData = async () => {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) {
@@ -179,8 +158,7 @@ export default function GestaoPrecosPage() {
     };
 
     fetchData();
-
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   // --- Funções de Carregamento de Dados ---
@@ -315,18 +293,6 @@ const { error } = await supabase
   setCarregando(false);
 };
 
-  const salvarEdicao = async (itemId: string) => { // de number para string
-    const { error } = await supabase
-      .from("vidro_precos_grupos")
-      .update({ preco: parseFloat(tempPreco) })
-      .eq("id", itemId);
-
-    if (!error) {
-      setEditingItemId(null);
-      carregarItensTabela(tabelaSelecionada!.id);
-    } else alert("Erro ao atualizar preço.");
-  };
-
   const confirmarExclusao = async () => {
     if (!modalExclusaoAberto.item) return;
     const { error } = await supabase
@@ -366,69 +332,6 @@ const { error } = await supabase
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");
-  };
-
-  // --- Renderização do Menu (Padronizado) ---
-  const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icone;
-
-    // Lógica de item ativo baseada no pathname atual
-    const isActive = pathname === item.rota || item.submenu?.some(sub => pathname === sub.rota);
-
-    return (
-      <div key={item.nome} className="group mb-1">
-        <div
-          onClick={() => {
-            router.push(item.rota);
-            setShowMobileMenu(false);
-          }}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300 ease-in-out hover:translate-x-1"
-          style={{
-            backgroundColor: isActive ? theme.menuHoverColor : "transparent",
-            color: theme.menuTextColor,
-          }}
-          onMouseEnter={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = `${theme.menuTextColor}10`;
-          }}
-          onMouseLeave={(e) => {
-            if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
-            <span className="font-medium text-sm">{item.nome}</span>
-          </div>
-          {item.submenu && (
-            <ChevronRight className="w-4 h-4" style={{ color: theme.menuTextColor, opacity: 0.7 }} />
-          )}
-        </div>
-
-        {item.submenu && (
-          <div className="ml-7 flex flex-col gap-1 pl-2" style={{ borderLeft: `1px solid ${theme.menuTextColor}40` }}>
-            {item.submenu.map((sub) => {
-              const isSubActive = pathname === sub.rota;
-              return (
-                <div
-                  key={sub.nome}
-                  onClick={() => {
-                    router.push(sub.rota);
-                    setShowMobileMenu(false);
-                  }}
-                  className="p-2 text-xs rounded-lg cursor-pointer"
-                  style={{
-                    color: theme.menuTextColor,
-                    backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
-                    opacity: isSubActive ? 1 : 0.8
-                  }}
-                >
-                  {sub.nome}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
   };
 
   if (checkingAuth) {
@@ -499,7 +402,7 @@ const { error } = await supabase
                 <button
                   onClick={criarTabela}
                   // 🔥 REMOVI 'opacity-0' E 'group-hover/add:opacity-100' PARA FICAR VISÍVEL SEMPRE
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 flex-shrink-0"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 shrink-0"
                   style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
                 >
                   <PlusCircle size={20} />
@@ -686,7 +589,7 @@ const { error } = await supabase
 
       {/* --- MODAL DE SUCESSO / AVISO (ESTILO DISCRETO & CENTRALIZADO) --- */}
       {(modalSucessoAberto.aberto || modalAvisoAberto.aberto) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-100 animate-fade-in">
           <div
             className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/10 animate-scale-in"
             style={{

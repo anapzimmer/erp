@@ -804,7 +804,7 @@ export default function CalculoVidros() {
 
       {/* MODAL */}
       {modalConfig.show && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
           <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full border border-gray-100">
             <div className="flex justify-center mb-4">
               <AlertCircle size={48} style={{ color: modalConfig.type === 'delete' ? theme.danger : theme.secondary }} />
@@ -838,7 +838,7 @@ export default function CalculoVidros() {
         </div>
       )}
       {mostrarModalTrocaVidro && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
+        <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
           <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-md w-full border border-gray-100">
 
             <h3 className="text-lg font-bold mb-2 text-center text-[#1C415B]">
@@ -864,7 +864,7 @@ export default function CalculoVidros() {
               />
 
               {buscaVidroLote && (
-                <div className="absolute z-[120] w-full mt-1 bg-white border rounded-xl shadow-xl max-h-40 overflow-auto">
+                <div className="absolute z-120 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-40 overflow-auto">
                   {vidros
                     .filter(v =>
                       `${v.nome} ${v.espessura} ${v.tipo}`
@@ -890,7 +890,7 @@ export default function CalculoVidros() {
             </div>
 
             {mostrarModalRecalculo && (
-              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
+              <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print px-4">
                 <div className="bg-white p-6 rounded-3xl shadow-xl max-w-sm w-full text-center">
 
                   <h3 className="text-lg font-bold text-[#1C415B] mb-3">
@@ -1013,7 +1013,7 @@ export default function CalculoVidros() {
               />
               <button
                 onClick={() => window.location.href = "/clientes"}
-                className="p-2 rounded-lg text-white shadow-sm flex-shrink-0 hover:opacity-90 transition-opacity"
+                className="p-2 rounded-lg text-white shadow-sm shrink-0 hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: theme.primary }}
               >
                 <UserPlus size={18} />
@@ -1022,7 +1022,7 @@ export default function CalculoVidros() {
 
             {/* LISTA COM DESTAQUE DE SELEÇÃO */}
             {mostrarClientes && buscaCliente.length > 0 && (
-              <div className="absolute left-0 right-0 z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+              <div className="absolute left-0 right-0 z-100 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                 <div className="max-h-48 overflow-y-auto custom-scrollbar">
                   {clientes
                     .filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
@@ -1122,7 +1122,7 @@ export default function CalculoVidros() {
                     }}
                   />
                   {mostrarVidros && (
-                    <div className="absolute z-[60] w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-auto no-print">
+                    <div className="absolute z-60 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-auto no-print">
                       {listaVidros.map((v, index) => (
                         <div
                           key={v.id}
@@ -1152,7 +1152,7 @@ export default function CalculoVidros() {
                 <input
                   ref={larguraRef}
                   type="number"
-                  className="w-full p-2 bg-gray-50 border border-gray-200 border-gray-300 rounded-xl font-medium"
+                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl font-medium"
                   value={larguraVao}
                   onChange={e => handleMedidaChange(e.target.value, setLarguraVao)}
                   onKeyDown={(e) => {
@@ -1282,7 +1282,7 @@ export default function CalculoVidros() {
                     />
                   </div>
                   {mostrarAdicionais && (
-                    <div className="absolute z-[70] w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-auto no-print">
+                    <div className="absolute z-70 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-auto no-print">
                       {listaAdicionais.filter(a => a.search.includes(buscaAdicional.toLowerCase())).map((a, idx) => (
                         <div key={idx} className={`p-2.5 cursor-pointer text-[11px] border-b last:border-0 ${idx === indiceAdicional ? "bg-[#F0FDF4]" : "hover:bg-[#F0FDF4]"}`}
                           onClick={() => {
@@ -1369,7 +1369,7 @@ export default function CalculoVidros() {
               )}
             </div>
             <div className="lg:col-span-3 flex flex-col items-center justify-center border-l border-gray-100 pl-6 text-center">
-              <div className="w-60 h-60 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-dashed border border-gray-200">
+              <div className="w-60 h-60 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-dashed border-gray-200">
                 {previewImagem ? <img src={previewImagem} alt="Preview" className="w-full h-full object-contain p-2" /> : (
                   <div className="text-gray-400 text-[10px]">
                     <ImageIcon className="mx-auto mb-1 opacity-20" size={30} />
@@ -1545,7 +1545,7 @@ export default function CalculoVidros() {
                   </span>
                 </div>
 
-                <div className={`flex flex-row ${index === 0 ? "print:min-h-0" : "print:min-h-[300px]"}`}>
+                <div className={`flex flex-row ${index === 0 ? "print:min-h-0" : "print:min-h-75"}`}>
                   {/* LADO ESQUERDO: DESENHO E MEDIDAS REVISADAS */}
                   <div className={`w-2/3 border-r-2 border-gray-100 flex flex-col items-center justify-center bg-[#FDFDFD] ${index === 0 ? "p-4 print:p-2" : "p-6"}`}>
 
@@ -1554,7 +1554,7 @@ export default function CalculoVidros() {
                       <img
                         src={item.imagem}
                         alt="Box"
-                        className={`w-auto object-contain ${index === 0 ? "max-h-[220px] print:max-h-[160px]" : "max-h-[220px]"}`}
+                        className={`w-auto object-contain ${index === 0 ? "max-h-55 print:max-h-40" : "max-h-55"}`}
                       />
 
                       {/* Medida Altura */}
@@ -1571,7 +1571,7 @@ export default function CalculoVidros() {
                       {item.descricao.toUpperCase().includes("CANTO") ? (
                         <>
                           {/* Lado A */}
-                          <div className="flex flex-col items-center min-w-[140px]">
+                          <div className="flex flex-col items-center min-w-35">
                             <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Lado A (mm)</span>
                             <div className="bg-white text-[#1C415B] w-full py-3 px-4 rounded-2xl text-4xl font-black text-center border border-gray-200 shadow-sm">
                               {Array.isArray(item.raw.larguraVao) ? item.raw.larguraVao[0] : item.raw.larguraVao}
@@ -1579,7 +1579,7 @@ export default function CalculoVidros() {
                           </div>
 
                           {/* Lado B */}
-                          <div className="flex flex-col items-center min-w-[140px]">
+                          <div className="flex flex-col items-center min-w-35">
                             <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Lado B (mm)</span>
                             <div className="bg-white text-[#1C415B] w-full py-3 px-4 rounded-2xl text-4xl font-black text-center border border-gray-200 shadow-sm">
                               {item.raw.larguraVaoB || (Array.isArray(item.raw.larguraVao) ? item.raw.larguraVao[1] : "---")}
@@ -1588,7 +1588,7 @@ export default function CalculoVidros() {
                         </>
                       ) : (
                         /* Box Reto */
-                        <div className="flex flex-col items-center min-w-[200px]">
+                        <div className="flex flex-col items-center min-w-50">
                           <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Largura do Vão (mm)</span>
                           <div className="bg-white text-[#1C415B] w-full py-3 px-6 rounded-2xl text-4xl font-black text-center border border-gray-200 shadow-sm">
                             {item.raw.larguraVao}

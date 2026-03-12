@@ -2,16 +2,41 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
-import { FileText, Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
+import { Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
-import ThemeLoader from "@/components/ThemeLoader"
 import { PDFViewer } from '@react-pdf/renderer';
+
+type OrcamentoItem = {
+    id: string | number;
+    descricao: string;
+    tipo?: string;
+    acabamento?: string;
+    servicos?: string;
+    medidaReal: string;
+    medidaCalc: string;
+    qtd: number;
+    total: number;
+};
+type Orcamento = {
+    id: string;
+    numero_formatado?: string | null;
+    cliente_nome: string;
+    obra_referencia?: string | null;
+    created_at: string;
+    excluir_em: string;
+    valor_total?: number | string | null;
+    peso_total?: number | string | null;
+    metragem_total?: number | string | null;
+    total_pecas?: number | string | null;
+    itens?: OrcamentoItem[];
+};
 
 export default function RelatorioOrçamento() {
     const router = useRouter()
@@ -28,29 +53,32 @@ export default function RelatorioOrçamento() {
     const [logoEmpresaPdf, setLogoEmpresaPdf] = useState<string | null>(null)
 
     // Estados de Dados
-    const [orcamentos, setOrcamentos] = useState<any[]>([])
+    const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
     const [filtro, setFiltro] = useState("")
     const [loadingDados, setLoadingDados] = useState(true)
 
     // Estados para Seleção e Modal
     const [selecionados, setSelecionados] = useState<string[]>([]);
     const [modalAberto, setModalAberto] = useState(false);
-    const [itemParaExcluir, setItemParaExcluir] = useState<any>(null);
+    const [itemParaExcluir, setItemParaExcluir] = useState<Orcamento | null>(null);
     const [showToast, setShowToast] = useState(false);
     const [showPDFModal, setShowPDFModal] = useState(false);
-    const [orcamentoParaVisualizar, setOrcamentoParaVisualizar] = useState<any>(null);
+    const [orcamentoParaVisualizar, setOrcamentoParaVisualizar] = useState<Orcamento | null>(null);
 
-    //Histórico de Totais
-    const hoje = new Date();
-    const inicioSemana = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    // Histórico de Totais
+    const agora = new Date();
+    const inicioSemana = new Date(agora);
+    inicioSemana.setHours(0, 0, 0, 0);
+    inicioSemana.setDate(agora.getDate() - agora.getDay());
+    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
 
     const totais = orcamentos.reduce((acc, orc) => {
         const dataOrc = new Date(orc.created_at);
+        if (Number.isNaN(dataOrc.getTime())) return acc;
         const valor = Number(orc.valor_total) || 0;
 
         // Diário (hoje)
-        if (dataOrc.toDateString() === new Date().toDateString()) acc.diario += valor;
+        if (dataOrc.toDateString() === agora.toDateString()) acc.diario += valor;
         // Semanal
         if (dataOrc >= inicioSemana) acc.semanal += valor;
         // Mensal
@@ -205,8 +233,10 @@ export default function RelatorioOrçamento() {
     });
 
     const calcularDiasRestantes = (dataExcluir: string) => {
+        if (!dataExcluir) return 0;
         const hoje = new Date();
         const expira = new Date(dataExcluir);
+        if (Number.isNaN(expira.getTime())) return 0;
         const diffTime = expira.getTime() - hoje.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 0 ? diffDays : 0;
@@ -220,44 +250,7 @@ export default function RelatorioOrçamento() {
         );
     }
 
-    const renderizarPDF = () => {
-        if (!orcamentoParaVisualizar) return null;
-
-        // Lógica para detectar se é Espelho (OR) ou Vidro (ORC)
-        const numero = orcamentoParaVisualizar.numero_formatado || "";
-        const ehEspelho = /^OR(?!C)/i.test(numero);
-
-        return (
-            <PDFViewer style={{ width: '100%', height: '100%' }}>
-                    {ehEspelho ? (
-                        <EspelhosPDF
-                            itens={orcamentoParaVisualizar.itens || []}
-                            nomeEmpresa={nomeEmpresa}
-                            themeColor={theme.contentTextLightBg}
-                            nomeCliente={orcamentoParaVisualizar.cliente_nome}
-                            nomeObra={orcamentoParaVisualizar.obra_referencia}
-                            valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
-                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
-                        />
-                    ) : (
-                        <CalculoVidroPDF
-                            itens={orcamentoParaVisualizar.itens || []}
-                            nomeEmpresa={nomeEmpresa}
-                            themeColor={theme.contentTextLightBg}
-                            nomeCliente={orcamentoParaVisualizar.cliente_nome}
-                            nomeObra={orcamentoParaVisualizar.obra_referencia}
-                            pesoTotal={Number(orcamentoParaVisualizar.peso_total) || 0}
-                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
-                            metragemTotal={orcamentoParaVisualizar.metragem_total || 0}
-                            valorTotal={Number(orcamentoParaVisualizar.valor_total) || 0}
-                            totalPecas={orcamentoParaVisualizar.total_pecas || 0}
-                        />
-                    )}
-            </PDFViewer>
-        );
-    };
-
-    const itens = orcamentoParaVisualizar?.itens || [];
+    const itens: OrcamentoItem[] = orcamentoParaVisualizar?.itens || [];
 
     return (
         <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -345,7 +338,7 @@ export default function RelatorioOrçamento() {
                                         <item.icon size={24} style={{ color: item.color }} />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-black text-gray-400 tracking-[0.1em]">{item.label}</span>
+                                        <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">{item.label}</span>
                                         <span className="text-xl font-black text-slate-800">
                                             {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </span>
@@ -355,24 +348,28 @@ export default function RelatorioOrçamento() {
                         </div>
 
                         {/* TABELA ESTILO CARD */}
-                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+                        <div className="bg-white rounded-4xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+                            {selecionados.length > 0 && (
+                                <div className="px-6 pt-6">
+                                    <button
+                                        onClick={() => setModalAberto(true)}
+                                        className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-bold hover:bg-red-100 transition-all animate-in fade-in slide-in-from-top-2"
+                                    >
+                                        <Trash2 size={18} />
+                                        Excluir ({selecionados.length})
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
-                                    {selecionados.length > 0 && (
-                                        <button
-                                            onClick={() => setModalAberto(true)}
-                                            className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-bold hover:bg-red-100 transition-all animate-in fade-in slide-in-from-top-2"
-                                        >
-                                            <Trash2 size={18} />
-                                            Excluir ({selecionados.length})
-                                        </button>
-                                    )}
                                     <thead>
                                         <tr className="bg-gray-50/50 border-b border-gray-100">
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-leftfont-black text-left">N° Orçamento</th>
+                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400 font-black text-left">N° Orçamento</th>
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Cliente & Projeto</th>
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Criado</th>
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-right">Valor Obra</th>
+                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400 text-center">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
@@ -457,7 +454,7 @@ export default function RelatorioOrçamento() {
                                                                     '--hover-bg': `${theme.menuIconColor}10`, // 10% de opacidade do seu verde
                                                                     '--hover-text': theme.menuIconColor,
                                                                     '--hover-border': `${theme.menuIconColor}30`
-                                                                } as any}
+                                                                } as CSSProperties}
                                                                 onMouseEnter={(e) => {
                                                                     e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
                                                                     e.currentTarget.style.color = 'var(--hover-text)';
@@ -488,7 +485,7 @@ export default function RelatorioOrçamento() {
                                                                     '--hover-bg': `${theme.menuHoverColor}10`, // 10% de opacidade do seu azul
                                                                     '--hover-text': theme.menuHoverColor,
                                                                     '--hover-border': `${theme.menuHoverColor}30`
-                                                                } as any}
+                                                                } as CSSProperties}
                                                                 onMouseEnter={(e) => {
                                                                     e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
                                                                     e.currentTarget.style.color = 'var(--hover-text)';
@@ -532,7 +529,7 @@ export default function RelatorioOrçamento() {
             </div>
             {/* MODAL DE CONFIRMAÇÃO */}
             {modalAberto && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
                         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-6 mx-auto">
                             <Trash2 size={32} />
@@ -563,7 +560,7 @@ export default function RelatorioOrçamento() {
             )}
             {/* TOAST DISCRETO - PADRÃO ERP */}
             {showToast && (
-                <div className="fixed bottom-8 right-8 z-[110] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="fixed bottom-8 right-8 z-110 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div
                         className="flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border border-white/10"
                         style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
@@ -582,7 +579,7 @@ export default function RelatorioOrçamento() {
                 </div>
             )}
             {showPDFModal && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
                         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
@@ -605,9 +602,9 @@ export default function RelatorioOrçamento() {
                                             nomeEmpresa={nomeEmpresa}
                                             themeColor={theme.contentTextLightBg}
                                             nomeCliente={orcamentoParaVisualizar?.cliente_nome}
-                                            nomeObra={orcamentoParaVisualizar?.obra_referencia}
+                                            nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                             valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
-                                            logoUrl={theme.logoLightUrl || undefined}
+                                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                         />
                                     ) : (
                                         <CalculoVidroPDF
@@ -615,12 +612,12 @@ export default function RelatorioOrçamento() {
                                             nomeEmpresa={nomeEmpresa}
                                             themeColor={theme.contentTextLightBg}
                                             nomeCliente={orcamentoParaVisualizar?.cliente_nome}
-                                            nomeObra={orcamentoParaVisualizar?.obra_referencia}
+                                            nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                             pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
-                                            metragemTotal={orcamentoParaVisualizar?.metragem_total || 0}
-                                            totalPecas={orcamentoParaVisualizar?.total_pecas || 0}
+                                            metragemTotal={Number(orcamentoParaVisualizar?.metragem_total) || 0}
+                                            totalPecas={Number(orcamentoParaVisualizar?.total_pecas) || 0}
                                             valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
-                                            logoUrl={theme.logoLightUrl || undefined}
+                                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                         />
                                     )}
                                 </PDFViewer>

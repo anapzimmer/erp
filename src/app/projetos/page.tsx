@@ -95,6 +95,8 @@ type FormData = {
   perfis: ProjetoPerfil[]
 }
 
+type ProjetoVisualTipo = "aberturas" | "portas" | "janelas" | "box" | "generico"
+
 type KitDBItem = {
   id: string
   nome: string
@@ -230,6 +232,136 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
 
 const TIPOS_FOLHA = ["Fixo", "Móvel", "Basculante", "Pivotante", "Maxim-Ar"]
 
+type VariacaoOpcao = {
+  key: string
+  label: string
+  arquivo: string
+}
+
+type VariacaoGrupo = {
+  id: string
+  label: string
+  opcoes: VariacaoOpcao[]
+}
+
+type VariacaoCustom = {
+  id: string
+  label: string
+  opcoes: Array<{ label: string; arquivo: string }>
+}
+
+type VariacaoCustomDraftOpcao = {
+  id: string
+  label: string
+  arquivo: string
+}
+
+const ARQUIVOS_DESENHOS = new Set(Object.values(DESENHOS).flat().map((d) => d.arquivo))
+const STEMS_DESENHOS = new Set(Array.from(ARQUIVOS_DESENHOS).map((arquivo) => arquivo.replace(/\.png$/i, "")))
+
+const PARES_TRINCO: Array<{ com: string; sem: string }> = [
+  { com: "janela-c-trinco-2fls.png", sem: "janela-s-trinco-2fls.png" },
+  { com: "janela-c-trinco-4fls.png", sem: "janela-s-trinco-4fls.png" },
+  { com: "janela-bct-trinco-2fls.png", sem: "janela-bst-trinco-2fls.png" },
+  { com: "janela-bct-trinco-4fls.png", sem: "janela-bst-trinco-4fls.png" },
+  { com: "janela-canto-ct.png", sem: "janela-canto-st.png" },
+  { com: "janela-canto90-ct.png", sem: "janela-canto90-st.png" },
+]
+
+const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const criarArquivo = (stem: string) => `${stem}.png`
+
+const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
+  const nome = stem.split("-").pop() || ""
+  const numeroMatch = nome.match(/(\d+)$/)
+  const base = nome.replace(/\d+$/, "")
+
+  if (base === "simples") {
+    return { key: stem, label: "Simples", arquivo: criarArquivo(stem) }
+  }
+
+  if (base === "completo" || base === "completa") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Completo${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
+  return { key: stem, label: nome.toUpperCase(), arquivo: criarArquivo(stem) }
+}
+
+const getVariacoesDesenho = (arquivoAtual: string): VariacaoGrupo[] => {
+  if (!arquivoAtual) return []
+
+  const variacoes: VariacaoGrupo[] = []
+  const stemAtual = arquivoAtual.replace(/\.png$/i, "")
+
+  const parTrinco = PARES_TRINCO.find((par) => par.com === arquivoAtual || par.sem === arquivoAtual)
+  if (parTrinco) {
+    variacoes.push({
+      id: "trinco",
+      label: "Trinco",
+      opcoes: [
+        { key: "sem", label: "Sem trinco", arquivo: parTrinco.sem },
+        { key: "com", label: "Com trinco", arquivo: parTrinco.com },
+      ],
+    })
+  }
+
+  if (/-ci(?:-|$)/.test(stemAtual) || /-cs(?:-|$)/.test(stemAtual)) {
+    const stemCI = stemAtual.replace(/-cs(?=-|$)/g, "-ci")
+    const stemCS = stemAtual.replace(/-ci(?=-|$)/g, "-cs")
+
+    if (STEMS_DESENHOS.has(stemCI) && STEMS_DESENHOS.has(stemCS)) {
+      variacoes.push({
+        id: "sistema",
+        label: "Sistema",
+        opcoes: [
+          { key: "ci", label: "CI", arquivo: criarArquivo(stemCI) },
+          { key: "cs", label: "CS", arquivo: criarArquivo(stemCS) },
+        ],
+      })
+    }
+  }
+
+  const baseVersao = stemAtual.replace(/-(simples|completo\d*|completa\d*)$/, "")
+  if (baseVersao !== stemAtual) {
+    const regexFamilia = new RegExp(`^${escapeRegExp(baseVersao)}-(simples|completo\\d*|completa\\d*)$`)
+    const stemsFamilia = Array.from(STEMS_DESENHOS).filter((stem) => regexFamilia.test(stem))
+
+    if (stemsFamilia.length >= 2) {
+      const opcoes = stemsFamilia
+        .sort((a, b) => {
+          const aNome = a.split("-").pop() || ""
+          const bNome = b.split("-").pop() || ""
+
+          const rank = (nome: string) => {
+            if (nome === "simples") return 0
+            if (nome === "completo" || nome === "completa") return 1
+            if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 2
+            return 3
+          }
+
+          const rankA = rank(aNome)
+          const rankB = rank(bNome)
+          if (rankA !== rankB) return rankA - rankB
+
+          const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
+          const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
+          return numA - numB
+        })
+        .map((stem) => criarOpcaoVersao(stem))
+
+      variacoes.push({
+        id: "versao",
+        label: "Versão",
+        opcoes,
+      })
+    }
+  }
+
+  return variacoes
+}
+
 const FORM_VAZIO: FormData = {
   nome: "",
   categoria: "",
@@ -238,6 +370,61 @@ const FORM_VAZIO: FormData = {
   kits: [],
   ferragens: [],
   perfis: [],
+}
+
+const detectarTipoProjetoVisual = (dados: Pick<FormData, "nome" | "categoria" | "desenho">): ProjetoVisualTipo => {
+  const textoProjeto = `${dados.nome} ${dados.categoria} ${dados.desenho}`.toLowerCase()
+
+  if (/abertur/.test(textoProjeto)) return "aberturas"
+  if (/porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)) return "portas"
+  if (/janela/.test(textoProjeto)) return "janelas"
+  if (/box/.test(textoProjeto)) return "box"
+  return "generico"
+}
+
+const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pick<ProjetoFolha, "tipo_folha" | "formula_largura" | "formula_altura" | "observacao"> => {
+  if (tipo === "aberturas") {
+    return {
+      tipo_folha: "Móvel",
+      formula_largura: "L / 2 - 5",
+      formula_altura: "AB - 10",
+      observacao: "Abertura padrão com ajuste de folga lateral e superior.",
+    }
+  }
+
+  if (tipo === "portas") {
+    return {
+      tipo_folha: numeroFolha % 2 === 0 ? "Móvel" : "Fixo",
+      formula_largura: "L / 2 - 12",
+      formula_altura: "A - 45",
+      observacao: "Porta deslizante com compensação de trilho e transpasse.",
+    }
+  }
+
+  if (tipo === "janelas") {
+    return {
+      tipo_folha: numeroFolha % 2 === 0 ? "Móvel" : "Fixo",
+      formula_largura: numeroFolha % 2 === 0 ? "L / 2 + 50" : "L / 2",
+      formula_altura: numeroFolha % 2 === 0 ? "A - 20" : "A - 60",
+      observacao: "Janela com diferença entre folhas fixas e móveis.",
+    }
+  }
+
+  if (tipo === "box") {
+    return {
+      tipo_folha: numeroFolha % 2 === 0 ? "Móvel" : "Fixo",
+      formula_largura: numeroFolha % 2 === 0 ? "L / 2 + 50" : "L / 2",
+      formula_altura: "A - 40",
+      observacao: "Box com folha móvel compensada no transpasse.",
+    }
+  }
+
+  return {
+    tipo_folha: "Fixo",
+    formula_largura: "L",
+    formula_altura: "A",
+    observacao: "",
+  }
 }
 
 // ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
@@ -266,6 +453,12 @@ export default function ProjetosPage() {
   // ── Picker de desenho ──
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
+  const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
+  const [novaVariacaoNome, setNovaVariacaoNome] = useState("")
+  const [novaVariacaoOpcoes, setNovaVariacaoOpcoes] = useState<VariacaoCustomDraftOpcao[]>([
+    { id: "a", label: "Opção A", arquivo: "" },
+    { id: "b", label: "Opção B", arquivo: "" },
+  ])
 
   // ── Modal de aviso ──
   const [modalAviso, setModalAviso] = useState<{
@@ -292,10 +485,49 @@ export default function ProjetosPage() {
     setCarregando(false)
   }, [empresaId])
 
+  const storageVariacoesKey = `projetos:variacoes-custom:${empresaId || "global"}`
+
   // ─── EFEITOS ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (empresaId) carregarTudo()
   }, [empresaId, carregarTudo])
+
+  useEffect(() => {
+    try {
+      const bruto = window.localStorage.getItem(storageVariacoesKey)
+      if (!bruto) {
+        setVariacoesCustom([])
+        return
+      }
+
+      const parsed = JSON.parse(bruto) as VariacaoCustom[]
+      if (!Array.isArray(parsed)) {
+        setVariacoesCustom([])
+        return
+      }
+
+      const saneadas = parsed
+        .filter((item) => item && typeof item.id === "string" && typeof item.label === "string" && Array.isArray(item.opcoes))
+        .map((item) => ({
+          id: item.id,
+          label: item.label,
+          opcoes: item.opcoes.filter((op) => op && typeof op.label === "string" && typeof op.arquivo === "string"),
+        }))
+        .filter((item) => item.opcoes.length >= 2)
+
+      setVariacoesCustom(saneadas)
+    } catch {
+      setVariacoesCustom([])
+    }
+  }, [storageVariacoesKey])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(storageVariacoesKey, JSON.stringify(variacoesCustom))
+    } catch {
+      // Ignora falha de persistencia para nao quebrar o modal.
+    }
+  }, [variacoesCustom, storageVariacoesKey])
 
   // ─── ABRIR EDIÇÃO ─────────────────────────────────────────────────────────
   const abrirEdicao = async (projeto: Projeto) => {
@@ -458,12 +690,10 @@ export default function ProjetosPage() {
     const numero = form.folhas.length + 1
     setForm(prev => ({
       ...prev,
+      // Aplica fórmulas iniciais por tipo para acelerar o cadastro.
       folhas: [...prev.folhas, {
         numero_folha: numero,
-        tipo_folha: "Fixo",
-        formula_largura: "L",
-        formula_altura: "A",
-        observacao: "",
+        ...getPresetFolhaPorTipo(detectarTipoProjetoVisual(prev), numero),
       }],
     }))
   }
@@ -479,6 +709,35 @@ export default function ProjetosPage() {
       ...prev,
       folhas: prev.folhas.filter((_, idx) => idx !== i).map((f, idx) => ({ ...f, numero_folha: idx + 1 })),
     }))
+  }
+
+  const aplicarPresetEmFolha = (indiceFolha: number) => {
+    setForm((prev) => {
+      const tipo = detectarTipoProjetoVisual(prev)
+      const folhas = [...prev.folhas]
+      const alvo = folhas[indiceFolha]
+      if (!alvo) return prev
+
+      folhas[indiceFolha] = {
+        ...alvo,
+        ...getPresetFolhaPorTipo(tipo, alvo.numero_folha),
+      }
+
+      return { ...prev, folhas }
+    })
+  }
+
+  const aplicarPresetEmTodasFolhas = () => {
+    setForm((prev) => {
+      const tipo = detectarTipoProjetoVisual(prev)
+      return {
+        ...prev,
+        folhas: prev.folhas.map((folha, idx) => ({
+          ...folha,
+          ...getPresetFolhaPorTipo(tipo, idx + 1),
+        })),
+      }
+    })
   }
 
   // ─── HELPERS KITS ───────────────────────────────────────────────────────
@@ -608,7 +867,134 @@ export default function ProjetosPage() {
   }
 
   const todosDesenhos = Object.values(DESENHOS).flat()
+  const desenhosPorArquivo = new Map(todosDesenhos.map((d) => [d.arquivo, d]))
   const desenhoAtual = todosDesenhos.find(d => d.arquivo === form.desenho)
+  const variacoesAutomaticas = getVariacoesDesenho(form.desenho)
+  const variacoesManuais = variacoesCustom
+    .filter((grupo) => grupo.opcoes.some((opcao) => opcao.arquivo === form.desenho))
+    .map((grupo) => ({
+      id: `custom-${grupo.id}`,
+      label: `${grupo.label} (Personalizado)`,
+      opcoes: grupo.opcoes.map((opcao) => ({
+        key: `${grupo.id}-${opcao.arquivo}`,
+        label: opcao.label,
+        arquivo: opcao.arquivo,
+      })),
+    }))
+  const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
+
+  const atualizarOpcaoNovaVariacao = (id: string, campo: "label" | "arquivo", valor: string) => {
+    setNovaVariacaoOpcoes((prev) => prev.map((opcao) => (opcao.id === id ? { ...opcao, [campo]: valor } : opcao)))
+  }
+
+  const adicionarOpcaoNovaVariacao = () => {
+    setNovaVariacaoOpcoes((prev) => {
+      const proximoIndice = prev.length + 1
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}-${proximoIndice}`,
+          label: `Opção ${proximoIndice}`,
+          arquivo: "",
+        },
+      ]
+    })
+  }
+
+  const removerOpcaoNovaVariacao = (id: string) => {
+    setNovaVariacaoOpcoes((prev) => {
+      if (prev.length <= 2) return prev
+      return prev.filter((opcao) => opcao.id !== id)
+    })
+  }
+
+  const duplicarOpcaoNovaVariacao = (id: string) => {
+    setNovaVariacaoOpcoes((prev) => {
+      const indice = prev.findIndex((opcao) => opcao.id === id)
+      if (indice < 0) return prev
+
+      const origem = prev[indice]
+      const clone: VariacaoCustomDraftOpcao = {
+        id: `${Date.now()}-dup-${indice}`,
+        label: origem.label ? `${origem.label} (copia)` : `Opção ${prev.length + 1}`,
+        arquivo: origem.arquivo,
+      }
+
+      return [...prev.slice(0, indice + 1), clone, ...prev.slice(indice + 1)]
+    })
+  }
+
+  const salvarVariacaoManual = () => {
+    if (!form.desenho) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Selecione um desenho antes de cadastrar variação.", tipo: "aviso" })
+      return
+    }
+
+    const nome = novaVariacaoNome.trim()
+    const opcoesSaneadas = novaVariacaoOpcoes
+      .map((opcao, idx) => ({
+        label: opcao.label.trim() || `Opção ${idx + 1}`,
+        arquivo: opcao.arquivo.trim(),
+      }))
+      .filter((opcao) => opcao.arquivo)
+
+    if (!nome) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Informe o nome da variação (ex.: Trinco).", tipo: "aviso" })
+      return
+    }
+
+    if (opcoesSaneadas.length < 2) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Cadastre pelo menos duas opções com desenho selecionado.", tipo: "aviso" })
+      return
+    }
+
+    const arquivos = opcoesSaneadas.map((opcao) => opcao.arquivo)
+    const arquivosUnicos = new Set(arquivos)
+    if (arquivosUnicos.size < 2) {
+      setModalAviso({ titulo: "Atenção", mensagem: "As opções precisam apontar para desenhos diferentes.", tipo: "aviso" })
+      return
+    }
+
+    if (arquivos.some((arquivo) => !ARQUIVOS_DESENHOS.has(arquivo))) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Um dos desenhos escolhidos não existe no catálogo.", tipo: "aviso" })
+      return
+    }
+
+    const novaVariacao: VariacaoCustom = {
+      id: `${Date.now()}`,
+      label: nome,
+      opcoes: opcoesSaneadas,
+    }
+
+    setVariacoesCustom((prev) => [...prev, novaVariacao])
+    setNovaVariacaoNome("")
+    setNovaVariacaoOpcoes([
+      { id: "a", label: "Opção A", arquivo: form.desenho },
+      { id: "b", label: "Opção B", arquivo: "" },
+    ])
+    setModalAviso({ titulo: "Sucesso", mensagem: "Variação personalizada cadastrada e salva para próximos projetos.", tipo: "sucesso" })
+  }
+
+  const removerVariacaoManual = (id: string) => {
+    setVariacoesCustom((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  useEffect(() => {
+    setNovaVariacaoOpcoes((prev) => {
+      if (!prev.length) {
+        return [
+          { id: "a", label: "Opção A", arquivo: form.desenho || "" },
+          { id: "b", label: "Opção B", arquivo: "" },
+        ]
+      }
+
+      return prev.map((opcao, index) => {
+        if (index !== 0) return opcao
+        if (opcao.arquivo && opcao.arquivo !== form.desenho) return opcao
+        return { ...opcao, arquivo: form.desenho || "" }
+      })
+    })
+  }, [form.desenho])
 
   if (checkingAuth) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -924,6 +1310,170 @@ export default function ProjetosPage() {
                       </div>
                     )}
                   </div>
+
+                  {form.desenho && variacoesDesenho.length > 0 && (
+                    <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-3">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Variações do desenho
+                      </p>
+
+                      <div className="space-y-3">
+                        {variacoesDesenho.map((grupo) => (
+                          <div key={grupo.id}>
+                            <p className="text-[11px] font-bold text-gray-500 mb-1">{grupo.label}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {grupo.opcoes.map((opcao) => (
+                                <button
+                                  key={opcao.key}
+                                  type="button"
+                                  onClick={() => setForm((prev) => ({ ...prev, desenho: opcao.arquivo }))}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${
+                                    form.desenho === opcao.arquivo
+                                      ? "text-white shadow-sm"
+                                      : "border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100"
+                                  }`}
+                                  style={form.desenho === opcao.arquivo ? { backgroundColor: theme.menuBackgroundColor } : {}}
+                                >
+                                  {opcao.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="text-[11px] text-gray-400 mt-3">
+                        Ao trocar a variação, o projeto mantém todos os dados e altera apenas o desenho.
+                      </p>
+                    </div>
+                  )}
+
+                  {form.desenho && (
+                    <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-3">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Cadastrar variação manual
+                      </p>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Se não existir variação automática, cadastre aqui uma vez e ela aparecerá nos próximos cadastros.
+                      </p>
+
+                      <div className="space-y-3 mb-3">
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                            Nome da Variação
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Trinco"
+                            value={novaVariacaoNome}
+                            onChange={(e) => setNovaVariacaoNome(e.target.value)}
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+
+                        {novaVariacaoOpcoes.map((opcao, index) => (
+                          <div key={opcao.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <p className="text-[11px] font-black text-gray-500 uppercase tracking-wider">
+                                Opção {index + 1}
+                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => duplicarOpcaoNovaVariacao(opcao.id)}
+                                  className="px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all text-[10px] font-black"
+                                  title="Duplicar opção"
+                                >
+                                  Duplicar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removerOpcaoNovaVariacao(opcao.id)}
+                                  disabled={novaVariacaoOpcoes.length <= 2}
+                                  className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all disabled:opacity-40"
+                                  title="Remover opção"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                value={opcao.label}
+                                onChange={(e) => atualizarOpcaoNovaVariacao(opcao.id, "label", e.target.value)}
+                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
+                                placeholder={`Nome da opção ${index + 1}`}
+                              />
+
+                              <select
+                                value={opcao.arquivo}
+                                onChange={(e) => atualizarOpcaoNovaVariacao(opcao.id, "arquivo", e.target.value)}
+                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold outline-none"
+                              >
+                                <option value="">Selecionar desenho</option>
+                                {todosDesenhos.map((d) => (
+                                  <option key={d.arquivo} value={d.arquivo}>{d.label}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {opcao.arquivo && (
+                              <p className="text-[11px] text-gray-400 mt-1 truncate">
+                                {desenhosPorArquivo.get(opcao.arquivo)?.label || opcao.arquivo}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={adicionarOpcaoNovaVariacao}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 transition-all"
+                        >
+                          <Plus size={12} /> Adicionar opção
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={salvarVariacaoManual}
+                        className="px-4 py-2 rounded-xl text-xs font-black text-white shadow-sm hover:opacity-90 transition-all"
+                        style={{ backgroundColor: theme.menuBackgroundColor }}
+                      >
+                        Salvar variação
+                      </button>
+
+                      {variacoesCustom.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-gray-200">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                            Variações personalizadas salvas
+                          </p>
+                          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            {variacoesCustom.map((grupo) => (
+                              <div key={grupo.id} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-gray-100 px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-black text-gray-600 truncate">{grupo.label}</p>
+                                  <p className="text-[11px] text-gray-400 truncate">
+                                    {grupo.opcoes.map((op) => `${op.label}: ${desenhosPorArquivo.get(op.arquivo)?.label || op.arquivo}`).join(" | ")}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removerVariacaoManual(grupo.id)}
+                                  className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all"
+                                  title="Remover variação"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -934,13 +1484,22 @@ export default function ProjetosPage() {
                     <p className="text-xs text-gray-400 font-bold">
                       Defina quantas folhas o projeto terá, a fórmula de largura/altura de cada uma e uma observação opcional para orientar o orçamento.
                     </p>
-                    <button
-                      onClick={adicionarFolha}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                      style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-                    >
-                      <Plus size={13} /> Adicionar Folha
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={aplicarPresetEmTodasFolhas}
+                        disabled={form.folhas.length === 0}
+                        className="px-3 py-2 rounded-xl text-[11px] font-black border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 transition-all disabled:opacity-40"
+                      >
+                        Aplicar em Todas
+                      </button>
+                      <button
+                        onClick={adicionarFolha}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                        style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                      >
+                        <Plus size={13} /> Adicionar Folha
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -976,19 +1535,27 @@ export default function ProjetosPage() {
 
                   {form.folhas.map((folha, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-3 gap-2">
                         <span
                           className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg"
                           style={{ backgroundColor: `${theme.menuBackgroundColor}15`, color: theme.menuBackgroundColor }}
                         >
                           Folha {folha.numero_folha}
                         </span>
-                        <button
-                          onClick={() => removerFolha(idx)}
-                          className="p-1.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-all"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => aplicarPresetEmFolha(idx)}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 transition-all"
+                          >
+                            Aplicar Preset
+                          </button>
+                          <button
+                            onClick={() => removerFolha(idx)}
+                            className="p-1.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-all"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>

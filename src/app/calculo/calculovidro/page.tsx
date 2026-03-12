@@ -1,23 +1,39 @@
 //app/calculovidro/page.tsx
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import type { CSSProperties } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
-import { Building2, ChevronDown, Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
+import { Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
 import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
-import ThemeLoader from "@/components/ThemeLoader"
-import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
-interface ItemOrcamento { id: string | number; descricao: string; tipo?: string; medidaReal: string; medidaCalc: string; qtd: number; total: number; }
+interface ItemOrcamento {
+  id: string | number;
+  descricao: string;
+  tipo?: string;
+  medidaReal: string;
+  medidaCalc: string;
+  qtd: number;
+  total: number;
+  acabamento?: string;
+  servico?: string;
+  servicos?: string;
+  valorServicoUn?: number;
+  vidro_id?: string | number;
+}
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
+interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
+interface Servico { id: string | number; nome: string; preco: number; unidade?: string | null; }
+interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
+interface ItemNaoEncontrado { nomeExcel: string; l: number; a: number; qtd: number; }
 
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -40,17 +56,15 @@ export default function RelatorioOrçamento() {
 
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
   const [sidebarExpandido, setSidebarExpandido] = useState(true)
-  const userMenuRef = useRef<HTMLDivElement>(null)
   const [isMounted, setIsMounted] = useState(false);
   const draftRestauradoRef = useRef(false);
 
   // Estados de Dados do Supabase
-  const [listaClientes, setListaClientes] = useState<any[]>([])
-  const [listaVidros, setListaVidros] = useState<any[]>([])
-  const [listaServicos, setListaServicos] = useState<any[]>([])
-  const [precosEspeciais, setPrecosEspeciais] = useState<any[]>([]);
+  const [listaClientes, setListaClientes] = useState<Cliente[]>([])
+  const [listaVidros, setListaVidros] = useState<Vidro[]>([])
+  const [listaServicos, setListaServicos] = useState<Servico[]>([])
+  const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
 
   // Estados do Orçamento
   const [clienteId, setClienteId] = useState("")
@@ -58,14 +72,14 @@ export default function RelatorioOrçamento() {
   const [largura, setLargura] = useState("")
   const [altura, setAltura] = useState("")
   const [quantidade, setQuantidade] = useState(1)
-  const [vidroSelecionado, setVidroSelecionado] = useState<any>(null)
-  const [servicoSelecionado, setServicoSelecionado] = useState<any>(null)
-  const [itens, setItens] = useState<any[]>([])
+  const [vidroSelecionado, setVidroSelecionado] = useState<Vidro | null>(null)
+  const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null)
+  const [itens, setItens] = useState<ItemOrcamento[]>([])
   const [quantidadeServico, setQuantidadeServico] = useState(1);
 
   // Edição de Modal
-  const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [itemParaExcluir, setItemParaExcluir] = useState<number | null>(null);
+  const [editandoId, setEditandoId] = useState<string | number | null>(null);
+  const [itemParaExcluir, setItemParaExcluir] = useState<string | number | null>(null);
   const [mostrarModalLimpar, setMostrarModalLimpar] = useState(false);
   const larguraRef = useRef<HTMLInputElement>(null);
   const alturaRef = useRef<HTMLInputElement>(null);
@@ -74,7 +88,7 @@ export default function RelatorioOrçamento() {
 
   //excel
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [itensNaoEncontrados, setItensNaoEncontrados] = useState<any[]>([]);
+  const [itensNaoEncontrados, setItensNaoEncontrados] = useState<ItemNaoEncontrado[]>([]);
   const [mostrarModalAssociacao, setMostrarModalAssociacao] = useState(false);
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
@@ -82,7 +96,7 @@ export default function RelatorioOrçamento() {
   const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
   // Estados para seleção em massa
-  const [selecionados, setSelecionados] = useState<number[]>([]);
+  const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
 
   // Função para marcar/desmarcar todos
   const toggleTodos = () => {
@@ -94,13 +108,13 @@ export default function RelatorioOrçamento() {
   };
 
   // Função para alternar um item individual
-  const toggleItem = (id: number) => {
+  const toggleItem = (id: string | number) => {
     setSelecionados(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
 
-  const buscarOrcamentoParaEdicao = async (id: string) => {
+  const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
     try {
       console.log("Buscando orçamento ID:", id);
       const { data: orcamento, error } = await supabase
@@ -114,7 +128,7 @@ export default function RelatorioOrçamento() {
       if (orcamento) {
         // 1. Vincula o cliente
         const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
-        if (clienteEncontrado) setClienteId(clienteEncontrado.id);
+        if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
 
         // 2. Preenche os campos básicos
         setObra(orcamento.obra_referencia || "");
@@ -131,7 +145,7 @@ export default function RelatorioOrçamento() {
     } catch (err) {
       console.error("Erro ao carregar orçamento para edição:", err);
     }
-  };
+  }, [listaClientes]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -170,7 +184,7 @@ useEffect(() => {
     buscarOrcamentoParaEdicao(editId);
     carregadoRef.current = true;
   }
-}, [editId, isMounted, listaClientes]);
+}, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
   useEffect(() => {
     if (!isMounted || !empresaId || draftRestauradoRef.current) return;
@@ -200,7 +214,7 @@ useEffect(() => {
       }
 
       if (draft.servicoIdSelecionado && listaServicos.length > 0) {
-        const servico = listaServicos.find((s: any) => String(s.id) === String(draft.servicoIdSelecionado));
+        const servico = listaServicos.find((s) => String(s.id) === String(draft.servicoIdSelecionado));
         if (servico) setServicoSelecionado(servico);
       }
     } catch (error) {
@@ -391,7 +405,6 @@ useEffect(() => {
 
         // 4. Calcular novos valores
         const novoValorVidroTotal = areaCobrada * precoVidroM2;
-        const totalAntigoPorPeca = item.total / item.qtd;
         const novoTotalUnitario = novoValorVidroTotal + (item.valorServicoUn || 0);
 
         return {
@@ -407,7 +420,7 @@ useEffect(() => {
     setSelecionados([]); // Limpa seleção após a troca
   };
 
-  const handleEditarItem = (item: any) => {
+  const handleEditarItem = (item: ItemOrcamento) => {
     setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
 
     const [l, a] = item.medidaCalc.split('x');
@@ -498,9 +511,10 @@ useEffect(() => {
       sessionStorage.removeItem(draftKey);
       setMostrarModalSucesso(true);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro completo:", error);
-      alert("Erro ao salvar no banco: " + error.message);
+      alert("Erro ao salvar no banco: " + message);
     }
   };
 
@@ -533,22 +547,23 @@ useEffect(() => {
       const ws = wb.Sheets[wb.SheetNames[0]];
 
       // sheet_to_json tenta detectar o cabeçalho automaticamente
-      const data: any[] = XLSX.utils.sheet_to_json(ws);
+      const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
 
-      const pendentesParaAssociar: any[] = [];
-      const novosItensProcessados: any[] = [];
+      const pendentesParaAssociar: ItemNaoEncontrado[] = [];
+      const novosItensProcessados: ItemOrcamento[] = [];
 
       data.forEach((linha) => {
         // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
-        const nomeExcel = extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]);
+        const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]) || "").trim();
 
         // Captura de medidas - seu arquivo usa "Largura" e "Altura"
-        const l = parseFloat(extrairValor(linha, ["largura", "larg", "l"]) || 0);
-        const a = parseFloat(extrairValor(linha, ["altura", "alt", "a"]) || 0);
+        const l = parseFloat(String(extrairValor(linha, ["largura", "larg", "l"]) || 0));
+        const a = parseFloat(String(extrairValor(linha, ["altura", "alt", "a"]) || 0));
 
         // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
         const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
-        const qtd = (rawQtd !== null && !isNaN(parseInt(rawQtd))) ? parseInt(rawQtd) : 1;
+        const qtdRaw = String(rawQtd ?? "");
+        const qtd = qtdRaw && !isNaN(parseInt(qtdRaw, 10)) ? parseInt(qtdRaw, 10) : 1;
 
         if (!nomeExcel || !l || !a) return;
 
@@ -580,21 +595,21 @@ useEffect(() => {
   };
 
 
-  const extrairValor = (linha: any, variações: string[]) => {
+  const extrairValor = (linha: Record<string, unknown>, variacoes: string[]) => {
     // Pega todas as chaves da linha (ex: "Vidro", "Qtde.")
     const chaves = Object.keys(linha);
 
     const chaveEncontrada = chaves.find(chave => {
       // Remove espaços e pontos para comparar (ex: "Qtde." vira "qtde")
       const chaveLimpa = chave.toLowerCase().replace(/[.\s]/g, '').trim();
-      return variações.some(v => v.toLowerCase().replace(/[.\s]/g, '').trim() === chaveLimpa);
+      return variacoes.some(v => v.toLowerCase().replace(/[.\s]/g, '').trim() === chaveLimpa);
     });
 
     return chaveEncontrada ? linha[chaveEncontrada] : null;
   };
 
   // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
-  const gerarObjetoItem = (vidro: any, l: number, a: number, qtd: number) => {
+  const gerarObjetoItem = (vidro: Vidro, l: number, a: number, qtd: number): ItemOrcamento => {
     // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
@@ -618,7 +633,7 @@ useEffect(() => {
     };
   };
 
-  const calcularPesoItem = (item: any) => {
+  const calcularPesoItem = (item: ItemOrcamento) => {
     // Extrai a espessura da descrição (ex: "4+4" = 8)
     const numeros = item.descricao.match(/\d+/g);
     const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
@@ -650,7 +665,7 @@ useEffect(() => {
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR - PADRÃO ORIGINAL */}
-      <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 flex-shrink-0 sticky top-0 h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
+      <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
         <Sidebar showMobileMenu={showMobileMenu} setShowMobileMenu={setShowMobileMenu} nomeEmpresa={nomeEmpresa} expandido={sidebarExpandido} setExpandido={setSidebarExpandido} />
       </div>
 
@@ -724,7 +739,7 @@ useEffect(() => {
               document={
                 <CalculoVidroPDF
                   // GARANTA QUE O MAP REPASSE OS CAMPOS NOVOS:
-                  itens={itens.map((item: any) => ({
+                  itens={itens.map((item) => ({
                     ...item,
                     // Caso seu objeto original use nomes diferentes, ajuste aqui:
                     tipo: item.tipo || "",
@@ -734,26 +749,26 @@ useEffect(() => {
                   nomeEmpresa={nomeEmpresa}
                   logoUrl={"logoLightUrl" in theme ? theme.logoLightUrl || undefined : undefined}
                   themeColor={theme.contentTextLightBg}
-                  nomeCliente={listaClientes.find((c: any) => String(c.id) === String(clienteId))?.nome || "Não selecionado"}
+                  nomeCliente={listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || "Não selecionado"}
                   nomeObra={obra}
 
                   // Cálculo do Peso Total seguindo a lógica do seu rodapé
-                  pesoTotal={itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)}
+                  pesoTotal={itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)}
 
                   // Cálculo da Metragem Total (M² de Cobrança) - Alinhado com o rodapé
-                  metragemTotal={itens.reduce((acc: number, item: any) => {
+                  metragemTotal={itens.reduce((acc: number, item) => {
                     const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
                     return acc + ((l / 1000) * (a / 1000) * item.qtd);
                   }, 0)}
 
                   // Adicionado: Valor Total do Pedido (importante para o PDF bater com a tela)
-                  valorTotal={itens.reduce((acc: number, i: any) => acc + i.total, 0)}
+                  valorTotal={itens.reduce((acc: number, i) => acc + i.total, 0)}
 
                   // Adicionado: Total de Peças
-                  totalPecas={itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0)}
+                  totalPecas={itens.reduce((acc: number, i) => acc + Number(i.qtd), 0)}
                 />
               }
-              fileName={`Orçamento ${listaClientes.find((c: any) => String(c.id) === String(clienteId))?.nome || 'Geral'
+              fileName={`Orçamento ${listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || 'Geral'
                 } - N° ${Date.now().toString().slice(-6)}.pdf`}
             >
               {({ loading }) => (
@@ -840,9 +855,9 @@ useEffect(() => {
                         setLargura(valorNumerico);
                       }}
                       onKeyDown={handleKeyDown}
-                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
-               focus:border-[var(--menu-icon-color)] focus:ring-2 focus:ring-[var(--menu-icon-color)]/10"
-                      style={{ '--menu-icon-color': theme.menuIconColor } as any}
+                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                     focus:border-(--menu-icon-color) focus:ring-2 focus:ring-(--menu-icon-color)/10"
+                       style={{ '--menu-icon-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                   <div className="space-y-1">
@@ -857,9 +872,9 @@ useEffect(() => {
                         setAltura(valorNumerico);
                       }}
                       onKeyDown={handleKeyDown}
-                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
-               focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-color)]/10"
-                      style={{ '--focus-color': theme.menuIconColor } as any}
+                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                     focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
+                       style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                   {/* CAMPO QUANTIDADE */}
@@ -872,9 +887,9 @@ useEffect(() => {
                       value={quantidade}
                       onChange={(e) => setQuantidade(Number(e.target.value))}
                       onKeyDown={handleKeyDown}
-                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
-               focus:border-[var(--focus-color)] focus:ring-2 focus:ring-[var(--focus-color)]/10"
-                      style={{ '--focus-color': theme.menuIconColor } as any}
+                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                     focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
+                       style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                 </div>
@@ -883,7 +898,7 @@ useEffect(() => {
                   <select
                     className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
                     value={vidroSelecionado?.id}
-                    onChange={(e) => setVidroSelecionado(listaVidros.find((v: Vidro) => v.id === e.target.value))}
+                    onChange={(e) => setVidroSelecionado(listaVidros.find((v: Vidro) => String(v.id) === String(e.target.value)) || null)}
                   >
                     <option value="">Selecione o material...</option>
                     {listaVidros.map(v => (
@@ -931,7 +946,7 @@ useEffect(() => {
                     </h3>
                   </div>
                 </div>
-                <div className="space-y-2 max-h-[115px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-2 max-h-28.75 overflow-y-auto pr-2 custom-scrollbar">
                   {/* Opção Padrão (Nenhum) */}
                   <div
                     onClick={() => setServicoSelecionado(null)}
@@ -1193,32 +1208,32 @@ useEffect(() => {
                       <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Total de Peças</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-xl font-black text-[#1e3a5a]">
-                          {itens.reduce((acc: number, i: any) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
+                          {itens.reduce((acc: number, i) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
                         </span>
                         <span className="text-xs font-bold text-[#1e3a5a]">un</span>
                       </div>
                     </div>
 
-                    <div className="h-8 w-[1px] bg-gray-100" />
+                    <div className="h-8 w-px bg-gray-100" />
 
                     {/* 2. Metragem de Cobrança: Sem destaque colorido */}
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
                       <span className="text-lg font-medium text-gray-500">
-                        {itens.reduce((acc: number, item: any) => {
+                        {itens.reduce((acc: number, item) => {
                           const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
                           return acc + ((l / 1000) * (a / 1000) * item.qtd);
                         }, 0).toFixed(3)} m²
                       </span>
                     </div>
 
-                    <div className="h-8 w-[1px] bg-gray-100" />
+                    <div className="h-8 w-px bg-gray-100" />
 
                     {/* 3. Peso da Carga: Sem destaque colorido */}
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Peso Logístico</span>
                       <span className="text-lg font-medium text-gray-500">
-                        {itens.reduce((acc: number, item: any) => acc + calcularPesoItem(item), 0)
+                        {itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)
                           .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
                       </span>
                     </div>
@@ -1228,7 +1243,7 @@ useEffect(() => {
                   <div className="text-right">
                     <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Orçamento</p>
                     <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
-                      {formatarMoeda(itens.reduce((acc: number, i: any) => acc + i.total, 0))}
+                      {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
                     </p>
                   </div>
                 </div>              </div>
@@ -1238,7 +1253,7 @@ useEffect(() => {
 
         {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
         {itemParaExcluir && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1273,7 +1288,7 @@ useEffect(() => {
 
         {/* 2. Adicione este Modal no final do componente (perto do outro modal) */}
         {mostrarModalLimpar && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1308,7 +1323,7 @@ useEffect(() => {
 
         {/* MODAL DE AVISO: CAMPOS VAZIOS */}
         {mostrarModalAviso && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-xs overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1333,7 +1348,7 @@ useEffect(() => {
         )}
 
         {mostrarModalAssociacao && itensNaoEncontrados.length > 0 && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[#1e3a5a]/40 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-[#1e3a5a]/40 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up border border-white/20">
 
               {/* Cabeçalho */}
@@ -1415,7 +1430,7 @@ useEffect(() => {
 
         {/* MODAL DISCRETO E AUTOMÁTICO - POSIÇÃO SUPERIOR */}
         {mostrarModalSucesso && (
-          <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 fade-in duration-500">
+          <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
             <div
               className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
               style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
@@ -1423,7 +1438,7 @@ useEffect(() => {
 
               {/* Ícone com a cor do tema */}
               <div
-                className="p-2 rounded-xl flex-shrink-0"
+                className="p-2 rounded-xl shrink-0"
                 style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}
               >
                 <Sparkles size={20} />
