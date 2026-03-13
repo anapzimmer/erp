@@ -620,6 +620,7 @@ export default function RelatorioOrçamento() {
                                             itens={itens}
                                             nomeEmpresa={nomeEmpresa}
                                             themeColor={theme.contentTextLightBg}
+                                            textColor={theme.contentTextLightBg}
                                             nomeCliente={orcamentoParaVisualizar?.cliente_nome}
                                             nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                             valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
@@ -630,6 +631,7 @@ export default function RelatorioOrçamento() {
                                             itens={itens}
                                             nomeEmpresa={nomeEmpresa}
                                             themeColor={theme.contentTextLightBg}
+                                            textColor={theme.contentTextLightBg}
                                             nomeCliente={orcamentoParaVisualizar?.cliente_nome}
                                             nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                             pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}

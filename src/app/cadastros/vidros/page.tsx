@@ -489,7 +489,7 @@ const logoLight = branding?.logo_light || null;
                         primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
                         secondary: theme.menuTextColor,
                         tertiary: theme.menuIconColor,
-                        textDefault: '#1C415B'
+                        textDefault: theme.contentTextLightBg
                       }}
                     />
                   }
@@ -621,7 +621,7 @@ const logoLight = branding?.logo_light || null;
       {mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-50 animate-fade-in px-4">
           <div
-            className="rounded-[2rem] p-10 shadow-2xl w-full max-w-lg border border-white/20 transition-all"
+            className="rounded-4xl p-10 shadow-2xl w-full max-w-lg border border-white/20 transition-all"
             style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
           >
             {/* Cabeçalho */}
@@ -737,8 +737,8 @@ const logoLight = branding?.logo_light || null;
       />
 
       {carregando && !modalAviso && !mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-[100] animate-fade-in">
-          <div className="bg-white rounded-[2rem] p-10 shadow-2xl flex flex-col items-center gap-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-100 animate-fade-in">
+          <div className="bg-white rounded-4xl p-10 shadow-2xl flex flex-col items-center gap-4">
             <div className="relative">
               <Loader2 className="w-12 h-12 animate-spin" style={{ color: theme.menuIconColor }} />
               <div className="absolute inset-0 rounded-full blur-md opacity-20 animate-pulse" style={{ backgroundColor: theme.menuIconColor }}></div>

@@ -434,7 +434,7 @@ export default function KitsPage() {
     primary: theme.menuBackgroundColor,
     secondary: theme.menuTextColor,
     tertiary: theme.menuIconColor,
-    textDefault: '#1C415B'
+    textDefault: theme.contentTextLightBg
   }}
 />
                   }
@@ -691,8 +691,8 @@ export default function KitsPage() {
       )}
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
-          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-100">
+          <div className="bg-white rounded-4xl p-10 flex flex-col items-center shadow-2xl border border-white/20">
             <div className="relative mb-6">
               {/* Spinner Principal */}
               <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />

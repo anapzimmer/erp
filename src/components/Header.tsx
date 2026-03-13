@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, Building2, ChevronDown, Settings, LogOut } from "lucide-react";
+import { Menu, Building2, ChevronDown, Settings, Palette, LogOut } from "lucide-react";
 import Image from "next/image"; // Importado para performance
+import { useTheme } from "@/context/ThemeContext";
 
 interface HeaderProps {
   setShowMobileMenu?: (show: boolean) => void;
@@ -16,15 +17,17 @@ interface HeaderProps {
 
 export default function Header({
   setShowMobileMenu,
-  nomeEmpresa, // Mantive aqui, mas vamos usar no JSX para sumir o erro
+  nomeEmpresa,
   usuarioEmail,
   handleSignOut,
   logoUrl,
   children
 }: HeaderProps) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const displayedLogo = logoUrl ?? theme.logoLightUrl;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,21 +40,27 @@ export default function Header({
   }, []);
 
   return (
-    <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md py-4 px-6 flex items-center justify-between sticky top-0 z-30">
+    <header
+      className="border-b py-4 px-6 flex items-center justify-between sticky top-0 z-30"
+      style={{
+        borderColor: `${theme.contentTextLightBg}1A`,
+        backgroundColor: `${theme.contentTextDarkBg}F2`,
+        backdropFilter: "blur(8px)",
+      }}
+    >
       <div className="flex items-center gap-4">
-        <button onClick={() => setShowMobileMenu?.(true)} className="md:hidden p-2 rounded-lg hover:bg-slate-100">
-          <Menu size={20} className="text-slate-600" />
+        <button onClick={() => setShowMobileMenu?.(true)} className="md:hidden p-2 rounded-lg hover:bg-black/5">
+          <Menu size={20} style={{ color: theme.contentTextLightBg }} />
         </button>
         
-        {/* Correção da Imagem e uso do nomeEmpresa para acessibilidade */}
-        {logoUrl ? (
+        {displayedLogo ? (
           <div className="relative h-8 w-32">
             <Image 
-              src={logoUrl} 
-              alt={nomeEmpresa} // Usando a variável aqui remove o erro do ESLint
+              src={displayedLogo}
+              alt={nomeEmpresa}
               fill
               className="object-contain object-left"
-              unoptimized // Útil se a URL for externa/dinâmica
+              unoptimized
             />
           </div>
         ) : null}
@@ -61,26 +70,33 @@ export default function Header({
 
       <div className="flex items-center">
         <div className="relative" ref={userMenuRef}>
-          <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 pl-4 border-l border-slate-200">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-3 pl-4 border-l"
+            style={{ borderColor: `${theme.contentTextLightBg}26` }}
+          >
             <div className="hidden sm:flex flex-col items-end">
-              <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-slate-400 leading-none">Empresa</p>
-              <p className="text-xs font-semibold text-slate-700 max-w-[170px] truncate">{nomeEmpresa}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] font-bold leading-none" style={{ color: `${theme.contentTextLightBg}99` }}>Empresa</p>
+              <p className="text-xs font-semibold max-w-42.5 truncate" style={{ color: theme.contentTextLightBg }}>{nomeEmpresa}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}1F`, color: theme.contentTextLightBg }}>
               <Building2 size={16} />
             </div>
-            <ChevronDown size={14} className={`text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: `${theme.contentTextLightBg}80` }} />
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-lg border border-slate-100 p-2 z-50">
+            <div className="absolute right-0 mt-3 w-56 rounded-xl shadow-lg border p-2 z-50" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}1A` }}>
               <div className="px-3 py-2 mb-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Logado como</p>
-                <p className="text-sm font-medium text-slate-800 truncate">{usuarioEmail}</p>
+                <p className="text-[10px] font-bold uppercase" style={{ color: `${theme.contentTextLightBg}80` }}>Logado como</p>
+                <p className="text-sm font-medium truncate" style={{ color: theme.contentTextLightBg }}>{usuarioEmail}</p>
               </div>
-              <hr className="border-slate-100 my-1" />
-              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg">
+              <hr className="my-1" style={{ borderColor: `${theme.contentTextLightBg}14` }} />
+              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-black/5" style={{ color: theme.contentTextLightBg }}>
                 <Settings size={16} /> Configurações
+              </button>
+              <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-black/5" style={{ color: theme.contentTextLightBg }}>
+                <Palette size={16} /> Identidade Visual
               </button>
               <button 
                 onClick={async (e) => { 

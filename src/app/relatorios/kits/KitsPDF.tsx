@@ -2,6 +2,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
+import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 interface Kit {
   id: number;
@@ -34,17 +35,17 @@ export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps)
 
   const styles = StyleSheet.create({
     page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 70, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: coresEmpresa.tertiary || '#39B89F' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: PDF_HEADER_LAYOUT.marginBottom, paddingBottom: PDF_HEADER_LAYOUT.paddingBottom, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth, borderBottomColor: coresEmpresa.tertiary || '#39B89F' },
     headerLeft: { flexDirection: 'column', flex: 1 },
-    tituloRelatorio: { fontSize: 18, fontWeight: 'bold', color: coresEmpresa.primary || '#1C415B', textTransform: 'uppercase' },
-    subtitulo: { fontSize: 10, color: textColor, marginTop: 2, fontWeight: 'bold' },
-    dataEmissao: { fontSize: 9, color: '#666', marginTop: 6 },
-    logo: { width: 140, height: 45, objectFit: 'contain', objectPosition: 'right' },
+    tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', color: coresEmpresa.primary || '#1C415B', textTransform: 'uppercase' },
+    subtitulo: { fontSize: PDF_HEADER_LAYOUT.subtitleSize, color: textColor, marginTop: 2, fontWeight: 'bold' },
+    dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: '#666', marginTop: 6 },
+    logo: { width: PDF_HEADER_LAYOUT.logoWidth, height: PDF_HEADER_LAYOUT.logoHeight, objectFit: 'contain', objectPosition: 'right' },
     table: { width: '100%', marginTop: 10 },
     tableHeader: { flexDirection: 'row', backgroundColor: coresEmpresa.primary || '#1C415B', borderRadius: 4, minHeight: 30, alignItems: 'center' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', alignItems: 'center', paddingVertical: 6 },
-    tableColHeader: { paddingHorizontal: 6, color: coresEmpresa.secondary || '#FFFFFF', fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase' },
-    tableCol: { paddingHorizontal: 6, fontSize: 8 },
+    tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'center', paddingVertical: 6 },
+    tableColHeader: { paddingHorizontal: 6, color: coresEmpresa.secondary || '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
+    tableCol: { paddingHorizontal: 6, fontSize: PDF_TABLE_LAYOUT.bodyFontSize },
     colNome: { width: '30%' },
     colMedidas: { width: '20%' },
     colCor: { width: '20%' },
@@ -59,6 +60,7 @@ export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps)
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.tituloRelatorio}>CATÁLOGO DE KITS</Text>
+            <Text style={styles.subtitulo}>{empresa}</Text>
             <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
           </View>
           <View style={{ width: 120, alignItems: 'flex-end' }}>
@@ -76,7 +78,7 @@ export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps)
           </View>
 
           {dados.map((item, index) => (
-            <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9F9F9' }]}>
+            <View key={index} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
               <Text style={[styles.tableCol, styles.colNome, { color: textColor }]}>{item.nome}</Text>
               <Text style={[styles.tableCol, styles.colMedidas, { color: textColor }]}>{`${item.largura} x ${item.altura}`}</Text>
               <Text style={[styles.tableCol, styles.colCor, { color: textColor }]}>{item.cores || '-'}</Text>
@@ -88,7 +90,7 @@ export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps)
           ))}
         </View>
 
-        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (`Glass Code ERP - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`)} fixed />
+        <Text style={styles.footer} render={({ pageNumber, totalPages }) => (buildPdfFooterText(empresa, pageNumber, totalPages))} fixed />
       </Page>
     </Document>
   );

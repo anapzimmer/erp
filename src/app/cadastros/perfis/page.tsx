@@ -324,8 +324,7 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
             primary: darkPrimary,
             secondary: darkSecondary,
             tertiary: darkTertiary,
-            // 🔥 Adicione esta linha abaixo para resolver o erro de tipagem
-            textDefault: '#1C415B'
+            textDefault: lightTertiary
           }}
         />
       );
@@ -754,8 +753,8 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
       />
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100]">
-          <div className="bg-white rounded-[32px] p-10 flex flex-col items-center shadow-2xl border border-white/20">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-100">
+          <div className="bg-white rounded-4xl p-10 flex flex-col items-center shadow-2xl border border-white/20">
             <div className="relative mb-6">
               {/* Spinner Principal */}
               <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />

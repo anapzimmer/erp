@@ -2,6 +2,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
+import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 interface Perfil {
   id?: string;
@@ -47,9 +48,9 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 20,
-      paddingBottom: 10,
-      borderBottomWidth: 2,
+      marginBottom: PDF_HEADER_LAYOUT.marginBottom,
+      paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
+      borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
       borderBottomColor: coresEmpresa.tertiary || '#39B89F',
     },
     headerLeft: {
@@ -57,25 +58,25 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
       flex: 1,
     },
     tituloRelatorio: {
-      fontSize: 18,
+      fontSize: PDF_HEADER_LAYOUT.titleSize,
       fontWeight: 'bold',
       color: coresEmpresa.primary || '#1C415B',
       textTransform: 'uppercase',
     },
     subtitulo: {
-      fontSize: 10,
+      fontSize: PDF_HEADER_LAYOUT.subtitleSize,
       color: textColor, // Aplicando a cor aqui também
       marginTop: 2,
       fontWeight: 'bold',
     },
     dataEmissao: {
-      fontSize: 9,
+      fontSize: PDF_HEADER_LAYOUT.dateSize,
       color: '#666',
       marginTop: 6, 
     },
    logo: {
-      width: 140, // Aumente um pouco a largura se as logos forem muito horizontais
-      height: 45, // Reduza um pouco a altura para não empurrar a tabela
+      width: PDF_HEADER_LAYOUT.logoWidth,
+      height: PDF_HEADER_LAYOUT.logoHeight,
       objectFit: 'contain',
       objectPosition: 'right',
     },
@@ -93,15 +94,15 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
     },
     tableRow: {
       flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: '#EEEEEE',
+      borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth,
+      borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor,
       alignItems: 'center',
       paddingVertical: 6,
     },
     tableColHeader: {
       paddingHorizontal: 6,
       color: coresEmpresa.secondary || '#FFFFFF',
-      fontSize: 9,
+      fontSize: PDF_TABLE_LAYOUT.headerFontSize,
       fontWeight: 'bold',
       textTransform: 'uppercase',
       lineHeight: 1.5, 
@@ -109,7 +110,7 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
     // 🔥 Estilo base da coluna (sem a cor aqui para forçar no componente)
     tableCol: {
       paddingHorizontal: 6,
-      fontSize: 8,
+      fontSize: PDF_TABLE_LAYOUT.bodyFontSize,
     },
     colCodigo: { width: '15%' },
     colNome: { width: '40%' },
@@ -154,7 +155,7 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
           </View>
 
           {dados.map((item, index) => (
-            <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9F9F9' }]}>
+            <View key={index} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
               {/* Forçamos a cor diretamente no estilo inline de cada texto */}
               <Text style={[styles.tableCol, styles.colCodigo, { color: textColor }]}>{item.codigo}</Text>
               <Text style={[styles.tableCol, styles.colNome, { color: textColor }]}>{item.nome}</Text>
@@ -170,7 +171,7 @@ export function PerfisPDF({ dados, empresa, logoUrl, coresEmpresa }: PerfisPDFPr
         <Text 
           style={styles.footer} 
           render={({ pageNumber, totalPages }) => (
-            `Glass Code ERP - Licenciado para ${empresa} - Página ${pageNumber} de ${totalPages}`
+            buildPdfFooterText(empresa, pageNumber, totalPages)
           )} 
           fixed 
         />

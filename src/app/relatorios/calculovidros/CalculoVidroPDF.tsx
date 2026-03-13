@@ -2,6 +2,7 @@
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 // --- TIPAGENS ---
 interface ItemVidro {
@@ -22,6 +23,7 @@ interface CalculoVidroPDFProps {
     logoUrl?: string | null;
     nomeCliente?: string | null;
     themeColor: string; // Cor principal (ex: o azul do header)
+    textColor?: string;
     nomeObra?: string;
     pesoTotal: number;
     metragemTotal: number;
@@ -29,24 +31,25 @@ interface CalculoVidroPDFProps {
     totalPecas: number;
 }
 
-const CONTENT_COLOR = "#1C415B"; // Sua cor contentTextLightBg
-
 const styles = StyleSheet.create({
     page: { padding: 40, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginBottom: 20,
-        paddingBottom: 10,
-        borderBottomWidth: 2,
+        alignItems: 'flex-start',
+        marginBottom: PDF_HEADER_LAYOUT.marginBottom,
+        paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
+        borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
     },
-    headerLeft: { flexDirection: 'column' },
-    tituloRelatorio: { fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
-    subtitulo: { fontSize: 8, color: '#666', marginTop: 2 },
+    headerLeft: { flexDirection: 'column', flex: 1 },
+    tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', textTransform: 'uppercase' },
+    subtitulo: { fontSize: PDF_HEADER_LAYOUT.subtitleSize, color: '#1C415B', marginTop: 2, fontWeight: 'bold' },
+    dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: '#666', marginTop: 6 },
     logo: {
-        width: 100,
-        height: 30
+        width: PDF_HEADER_LAYOUT.logoWidth,
+        height: PDF_HEADER_LAYOUT.logoHeight,
+        objectFit: 'contain',
+        objectPosition: 'right',
     },
 
     infoSection: {
@@ -61,16 +64,16 @@ const styles = StyleSheet.create({
         borderLeftWidth: 3,
     },
     label: { fontSize: 6, color: '#999', textTransform: 'uppercase', marginBottom: 3, fontWeight: 'bold' },
-    value: { fontSize: 10, fontWeight: 'bold', color: CONTENT_COLOR },
+    value: { fontSize: 10, fontWeight: 'bold', color: '#1C415B' },
 
     // Tabela
     table: { width: '100%', marginTop: 5 },
     tableHeader: { flexDirection: 'row' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#EEE', alignItems: 'center', minHeight: 32 },
-    tableColHeader: { padding: 5, color: '#FFFFFF', fontSize: 7, fontWeight: 'bold', textTransform: 'uppercase' },
+    tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'center', minHeight: 32 },
+    tableColHeader: { padding: 5, color: '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
 
     // Textos da Tabela com a cor solicitada
-    tableCol: { padding: 5, fontSize: 9, color: CONTENT_COLOR },
+    tableCol: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: '#1C415B' },
 
     colDesc: { width: '50%' },
     colMedReal: { width: '20%', textAlign: 'center' },
@@ -89,7 +92,7 @@ const styles = StyleSheet.create({
     summaryGroup: { flexDirection: 'row', gap: 20 },
     summaryItem: { flexDirection: 'column', alignItems: 'flex-start' },
     summaryLabel: { fontSize: 6, color: '#999', textTransform: 'uppercase', marginBottom: 2 },
-    summaryValue: { fontSize: 10, fontWeight: 'bold', color: CONTENT_COLOR },
+    summaryValue: { fontSize: 10, fontWeight: 'bold', color: '#1C415B' },
 
     totalFinalBox: { textAlign: 'right' },
     totalFinalLabel: { fontSize: 7, color: '#999', textTransform: 'uppercase' },
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
 
     footer: {
         position: 'absolute', bottom: 20, left: 40, right: 40, textAlign: 'center',
-        fontSize: 7, color: '#BBB', paddingTop: 10, borderTopWidth: 0.5, borderTopColor: '#EEE'
+        fontSize: 8, color: '#999', paddingTop: 10, borderTopWidth: 0.5, borderTopColor: '#DDD'
     }
 });
 
@@ -106,6 +109,7 @@ export function CalculoVidroPDF({
     nomeEmpresa,
     logoUrl,
     themeColor,
+    textColor,
     nomeCliente,
     nomeObra,
     pesoTotal,
@@ -114,6 +118,7 @@ export function CalculoVidroPDF({
 
     const totalFinanceiro = itens.reduce((sum, item) => sum + item.total, 0);
     const totalPecas = itens.reduce((sum, item) => sum + item.qtd, 0);
+    const contentColor = textColor || themeColor;
 
     return (
         <Document>
@@ -123,7 +128,7 @@ export function CalculoVidroPDF({
                 <View style={[styles.header, { borderBottomColor: themeColor }]}>
                     <View style={styles.headerLeft}>
                         <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Vidros</Text>
-                        <Text style={styles.subtitulo}>Emitido em: {new Date().toLocaleDateString('pt-BR')}</Text>
+                        <Text style={styles.dataEmissao}>Emissão em: {new Date().toLocaleDateString('pt-BR')}</Text>
                     </View>
                     {logoUrl && <Image src={logoUrl} style={styles.logo} />}
                 </View>
@@ -132,11 +137,11 @@ export function CalculoVidroPDF({
                 <View style={styles.infoSection}>
                     <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
                         <Text style={styles.label}>Cliente / Razão Social</Text>
-                        <Text style={styles.value}>{nomeCliente || "Não informado"}</Text>
+                        <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
                     </View>
                     <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
                         <Text style={styles.label}>Obra / Referência</Text>
-                        <Text style={styles.value}>{nomeObra || "Geral"}</Text>
+                        <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
                     </View>
                 </View>
 
@@ -150,11 +155,11 @@ export function CalculoVidroPDF({
                     </View>
 
                     {itens.map((item, index) => (
-                        <View key={item.id} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#FAFAFA' }]}>
+                        <View key={item.id} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>
-                                <Text style={{ fontWeight: 'bold' }}>
+                                <Text style={{ fontWeight: 'bold', color: contentColor }}>
                                     {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
                                 </Text>
                                 {(item.servicos || item.acabamento) && (
@@ -167,11 +172,11 @@ export function CalculoVidroPDF({
                             </View>
 
                             {/* Medidas, Qtd e Preço */}
-                            <Text style={[styles.tableCol, styles.colMedReal]}>{item.medidaReal}</Text>
-                            <Text style={[styles.tableCol, styles.colQtd]}>
+                            <Text style={[styles.tableCol, styles.colMedReal, { color: contentColor }]}>{item.medidaReal}</Text>
+                            <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colTotal, { fontWeight: 'bold' }]}>
+                            <Text style={[styles.tableCol, styles.colTotal, { fontWeight: 'bold', color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                         </View>
@@ -183,15 +188,15 @@ export function CalculoVidroPDF({
                     <View style={styles.summaryGroup}>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Total Peças</Text>
-                            <Text style={styles.summaryValue}>{totalPecas} un</Text>
+                            <Text style={[styles.summaryValue, { color: contentColor }]}>{totalPecas} un</Text>
                         </View>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Metragem</Text>
-                            <Text style={styles.summaryValue}>{metragemTotal.toFixed(3)} m²</Text>
+                            <Text style={[styles.summaryValue, { color: contentColor }]}>{metragemTotal.toFixed(3)} m²</Text>
                         </View>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Peso Total</Text>
-                            <Text style={styles.summaryValue}>{pesoTotal.toFixed(3)} kg</Text>
+                            <Text style={[styles.summaryValue, { color: contentColor }]}>{pesoTotal.toFixed(3)} kg</Text>
                         </View>
                     </View>
 
@@ -203,9 +208,13 @@ export function CalculoVidroPDF({
                     </View>
                 </View>
 
-                <Text style={styles.footer} fixed>
-                    {nomeEmpresa} • Sistema Glass Code • Página gerada automaticamente
-                </Text>
+                <Text
+                    style={styles.footer}
+                    render={({ pageNumber, totalPages }) => (
+                        buildPdfFooterText(nomeEmpresa, pageNumber, totalPages)
+                    )}
+                    fixed
+                />
             </Page>
         </Document>
     );

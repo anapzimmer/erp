@@ -15,6 +15,7 @@ interface RelatorioBaseProps {
   subtitulo?: string
   empresa: string
   logo?: string
+  corPrimaria?: string
   children: React.ReactNode
 }
 
@@ -23,6 +24,7 @@ export function RelatorioBase({
   subtitulo,
   empresa,
   logo,
+  corPrimaria = "#1C415B",
   children
 }: RelatorioBaseProps) {
 
@@ -40,7 +42,7 @@ export function RelatorioBase({
       justifyContent: 'space-between', // Joga o texto para a esquerda e a logo para a direita
       alignItems: 'flex-start',
       marginBottom: 20,
-      borderBottom: "1 solid #1C415B", // Cor primária do seu sistema
+      borderBottom: `1 solid ${corPrimaria}`,
       paddingBottom: 10
     },
     headerTextGroup: {
@@ -50,7 +52,7 @@ export function RelatorioBase({
     empresa: {
       fontSize: 14,
       fontWeight: "bold",
-      color: "#1C415B"
+      color: corPrimaria
     },
     titulo: {
       fontSize: 12,

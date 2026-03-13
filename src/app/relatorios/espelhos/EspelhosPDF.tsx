@@ -2,6 +2,7 @@
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 // --- TIPAGENS ---
 interface ItemPedido {
@@ -18,6 +19,7 @@ interface EspelhosPDFProps {
   itens: any[]
   nomeEmpresa: string
   themeColor: string
+  textColor?: string
   nomeCliente?: string
   nomeObra?: string
   logoUrl?: string
@@ -30,19 +32,22 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
+    alignItems: 'flex-start',
+    marginBottom: PDF_HEADER_LAYOUT.marginBottom,
+    paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
+    borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
     // borderBottomColor será definido inline
   },
   headerLeft: { flexDirection: 'column' },
-  tituloRelatorio: { fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 },
-  subtitulo: { fontSize: 9, color: '#666', marginTop: 2 },
+  tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', textTransform: 'uppercase' },
+  subtitulo: { fontSize: PDF_HEADER_LAYOUT.subtitleSize, color: '#1C415B', marginTop: 2, fontWeight: 'bold' },
+  dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: '#666', marginTop: 6 },
   headerRight: { width: 140, alignItems: 'flex-end' },
   logo: {
-    width: 100,
-    height: 40
+    width: PDF_HEADER_LAYOUT.logoWidth,
+    height: PDF_HEADER_LAYOUT.logoHeight,
+    objectFit: 'contain',
+    objectPosition: 'right',
   },
 
   // Box do Cliente
@@ -62,9 +67,9 @@ const styles = StyleSheet.create({
   // Tabela
   table: { width: '100%' },
   tableHeader: { flexDirection: 'row' },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EEEEEE', alignItems: 'center', minHeight: 35 },
-  tableColHeader: { padding: 8, color: '#FFFFFF', fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase' },
-  tableCol: { padding: 6, fontSize: 8 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'center', minHeight: 35 },
+  tableColHeader: { padding: 8, color: '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
+  tableCol: { padding: 6, fontSize: PDF_TABLE_LAYOUT.bodyFontSize },
 
   // --- MUDANÇA: Novas larguras das colunas ---
   colDesc: { width: '50%' }, // Aumentado
@@ -78,9 +83,10 @@ const styles = StyleSheet.create({
   }
 });
 
-export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeCliente, nomeObra }: EspelhosPDFProps) {
+export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra }: EspelhosPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
+  const contentColor = textColor || themeColor;
 
   return (
     <Document>
@@ -90,7 +96,8 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
       <View style={[styles.header, { marginRight: 10 }, { borderBottomColor: themeColor }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Espelhos</Text>
-          <Text style={styles.subtitulo}>Gerado em: {dataGeracao}</Text>
+          <Text style={[styles.subtitulo, { color: contentColor }]}>{nomeEmpresa}</Text>
+          <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
         </View>
         <View style={styles.headerRight}>
           {/* Usando a logoUrl passada do tema claro */}
@@ -102,11 +109,11 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
       <View style={[styles.customerBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
         <View style={styles.customerInfo}>
           <Text style={styles.label}>Cliente</Text>
-          <Text style={styles.value}>{nomeCliente || ""}</Text>
+          <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || ""}</Text>
         </View>
         <View style={styles.customerInfo}>
           <Text style={styles.label}>Obra / Referência</Text>
-          <Text style={styles.value}>{nomeObra || ""}</Text>
+          <Text style={[styles.value, { color: contentColor }]}>{nomeObra || ""}</Text>
         </View>
       </View>
 
@@ -121,14 +128,12 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
         </View>
 
         {itens.map((item, index) => (
-          <View key={item.id || index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#FCFCFC' }]}>
+          <View key={item.id || index} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
             {/* --- MUDANÇA: Coluna Img removida --- */}
-            <Text style={[styles.tableCol, styles.colDesc, { color: themeColor }]}>{item.descricao}</Text>
+            <Text style={[styles.tableCol, styles.colDesc, { color: contentColor }]}>{item.descricao}</Text>
+            <Text style={[styles.tableCol, styles.colMedidas, { color: contentColor }]}>{item.medidas}</Text>
 
-            {/* --- ALTERAÇÃO AQUI: Adicionado color: '#333' ou a cor que deseja --- */}
-            <Text style={[styles.tableCol, styles.colMedidas, { color: "#1C415B", }]}>{item.medidas}</Text>
-
-            <Text style={[styles.tableCol, styles.colQtd]}>{item.quantidade.toString()}</Text>
+            <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>{item.quantidade.toString()}</Text>
             <Text style={[styles.tableCol, styles.colTotal, { color: themeColor, fontWeight: 'bold' }]}>
               {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </Text>
@@ -145,7 +150,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, nomeClien
       </View>
 
       <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
-        `Sistema Glass Code - Licenciado para ${nomeEmpresa} - Página ${pageNumber} de ${totalPages}`
+        buildPdfFooterText(nomeEmpresa, pageNumber, totalPages)
       )} fixed />
     </Page>
     </Document>

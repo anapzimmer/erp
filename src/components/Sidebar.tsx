@@ -20,7 +20,6 @@ import {
   ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
-import Image from "next/image";
 
 type MenuItem = {
   nome: string;
@@ -188,7 +187,7 @@ export default function Sidebar({
     <div className={`flex items-center ${expandido ? "gap-3" : ""}`}>
       <Icon
         className={`w-5 h-5 shrink-0 transition-transform duration-300 ${isActive ? "scale-105" : ""}`}
-        style={{ color: "#FFFFFF" }}
+        style={{ color: theme.menuIconColor }}
       />
       {expandido && (
         <span className="font-medium text-sm truncate">{item.nome}</span>
@@ -256,6 +255,7 @@ export default function Sidebar({
       className={`fixed inset-y-0 left-0 z-50 min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0 overflow-hidden
       ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
       ${expandido ? "w-64" : "w-20"}`}
+      aria-label={`Menu lateral - ${nomeEmpresa}`}
       style={{ background: variantStyles.asideBackground, borderRight: `1px solid ${variantStyles.asideBorder}` }}
     >
       <div
@@ -282,32 +282,6 @@ export default function Sidebar({
       >
         {expandido ? <ChevronLeft size={16} /> : <ChevronRightIcon size={16} />}
       </button>
-
-     <div className="mb-7 mt-1 flex flex-col items-center justify-center h-18 relative group z-10">
-        {theme.logoDarkUrl ? (
-          <Image
-            src={theme.logoDarkUrl}
-            alt={nomeEmpresa || "Logo"}
-            width={120}
-            height={56}
-            style={{ width: "auto", height: "auto" }}
-            className="object-contain max-h-14"
-          />
-        ) : (
-          <Building2 size={32} style={{ color: "#FFFFFF" }} />
-        )}
-        {!expandido && (
-          <div
-className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shadow-lg"            style={{
-              color: theme.menuTextColor,
-              backgroundColor: theme.menuHoverColor,
-              border: `1px solid ${theme.menuIconColor}30`
-            }}
-          >
-            {nomeEmpresa}
-          </div>
-        )}
-      </div>
 
       <nav className={`flex-1 overflow-y-auto ${expandido ? "overflow-x-hidden" : "overflow-x-visible"} space-y-5 z-10 scrollbar-erp pr-1`}>
         <div

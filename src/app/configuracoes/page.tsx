@@ -1,12 +1,13 @@
 //app/configuracoes/page.tsx
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Menu, ChevronDown, Building2, Settings, Palette, LogOut, TableProperties, Brush, Search } from "lucide-react"
+import { TableProperties, Brush } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar"
+import Header from "@/components/Header"
 
 export default function ConfiguracoesPage() {
   const router = useRouter()
@@ -15,19 +16,10 @@ export default function ConfiguracoesPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-
     const fetchData = async () => {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) {
@@ -56,8 +48,6 @@ export default function ConfiguracoesPage() {
       setCheckingAuth(false);
     };
     fetchData();
-
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
 
   const handleSignOut = async () => {
@@ -90,57 +80,12 @@ export default function ConfiguracoesPage() {
 
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">
-
-        {/* TOPBAR ORIGINAL */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-              <Menu size={24} className="text-gray-600" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
-                  </div>
-
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                    <Settings size={18} className="text-gray-400" />
-                    Configurações
-                  </button>
-
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes/branding"); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                    <Palette size={18} className="text-gray-400" />
-                    Identidade Visual
-                  </button>
-
-                  <button onClick={handleSignOut}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl">
-                    <LogOut size={18} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <Header
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={usuarioEmail}
+          handleSignOut={handleSignOut}
+        />
 
         {/* CONTEÚDO ORIGINAL */}
         <main className="p-4 md:p-8 flex-1">
@@ -155,7 +100,7 @@ export default function ConfiguracoesPage() {
             <div className="p-6 md:p-8 rounded-3xl border shadow-sm flex flex-col justify-between transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}1A` }}>
               <div>
                 <div className="flex items-center gap-6 mb-6">
-                  <div className="p-5 rounded-3xl border flex-shrink-0" style={{ backgroundColor: `${theme.menuIconColor}1A`, borderColor: `${theme.menuIconColor}33` }}>
+                  <div className="p-5 rounded-3xl border shrink-0" style={{ backgroundColor: `${theme.menuIconColor}1A`, borderColor: `${theme.menuIconColor}33` }}>
                     <TableProperties className="w-10 h-10" style={{ color: theme.menuIconColor }} />
                   </div>
                   <div>
@@ -178,7 +123,7 @@ export default function ConfiguracoesPage() {
             <div className="p-6 md:p-8 rounded-3xl border shadow-sm flex flex-col justify-between transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}1A` }}>
               <div>
                 <div className="flex items-center gap-6 mb-6">
-                  <div className="p-5 rounded-3xl border flex-shrink-0" style={{ backgroundColor: `${theme.menuIconColor}1A`, borderColor: `${theme.menuIconColor}33` }}>
+                  <div className="p-5 rounded-3xl border shrink-0" style={{ backgroundColor: `${theme.menuIconColor}1A`, borderColor: `${theme.menuIconColor}33` }}>
                     <Brush className="w-10 h-10" style={{ color: theme.menuIconColor }} />
                   </div>
                   <div>

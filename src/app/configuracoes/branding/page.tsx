@@ -1,55 +1,24 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Palette, UploadCloud, Save, X, LayoutDashboard, ChevronRight, Settings, UsersRound, Search, ChevronDown, Building2, Square, Package, Wrench, Boxes, Briefcase, BarChart3, Image as ImageIcon, FileText, LogOut, Sun, Moon, CheckCircle, Menu } from "lucide-react";
+import { Palette, UploadCloud, Save, Image as ImageIcon, Sun, Moon } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/context/ThemeContext";
 import Image from "next/image";
 import Sidebar from "@/components/Sidebar";
 import Toast from "@/components/Toast"
-
-// --- Tipagens e Menus ---
-type MenuItem = {
-  nome: string
-  rota: string
-  icone: any
-  submenu?: { nome: string; rota: string }[]
-}
-
-const ModalSucesso = ({ isOpen, onClose, titulo, mensagem }: { isOpen: boolean; onClose: () => void; titulo: string; mensagem: string }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className="flex justify-center mb-4 text-[#059669]">
-          <CheckCircle size={48} />
-        </div>
-        <h3 className="text-xl font-bold text-center text-gray-800 mb-2">{titulo}</h3>
-        <p className="text-gray-500 text-center mb-6">{mensagem}</p>
-        <button
-          onClick={onClose}
-          className="w-full py-3 bg-[#1C415B] text-white rounded-xl font-bold hover:bg-[#1C415B]/90 transition-colors"
-        >
-          Entendido
-        </button>
-      </div>
-    </div>
-  );
-};
+import Header from "@/components/Header";
 
 export default function ConfiguracoesBrandingPage() {
   const router = useRouter();
-  const { theme, refreshTheme } = useTheme();
+  const { refreshTheme } = useTheme();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [usuarioEmail, setUsuarioEmail] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [empresaId, setEmpresaId] = useState<string | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const [showModal, setShowModal] = useState(false);
 
   // Estados de Imagem
   const [logoLight, setLogoLight] = useState<string | null>("/glasscode.png");
@@ -81,13 +50,6 @@ export default function ConfiguracoesBrandingPage() {
   const [showToast, setShowToast] = useState(false)
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-
     const fetchData = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
@@ -157,7 +119,6 @@ export default function ConfiguracoesBrandingPage() {
       setCheckingAuth(false);
     };
     fetchData();
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setLogo: React.Dispatch<React.SetStateAction<string | null>>) => {
@@ -286,7 +247,7 @@ const handleSave = async () => {
       {/* Overlay para Mobile */}
       {showMobileMenu && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-60 md:hidden transition-opacity"
           onClick={() => setShowMobileMenu(false)}
         />
       )}
@@ -300,46 +261,13 @@ const handleSave = async () => {
 
       {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col w-full">
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm bg-white">
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-              <Menu size={24} className="text-gray-600" />
-            </button>
-            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200 focus-within:ring-2 focus-within:ring-[#39B89F]/30">
-              <Search className="text-gray-400" size={18} />
-              <input type="search" placeholder="Buscar..." className="w-full text-sm bg-transparent outline-none" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl">
-                    <Settings size={18} className="text-gray-400" />
-                    Configurações
-                  </button>
-                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl">
-                    <LogOut size={18} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <Header
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={usuarioEmail}
+          handleSignOut={handleSignOut}
+          logoUrl={logoLight}
+        />
 
         <main className="p-4 md:p-8 flex-1">
           <div className="mb-8">
