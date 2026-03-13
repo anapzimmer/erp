@@ -12,7 +12,7 @@ import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import Image from "next/image"
 import {
   Calculator, Package, Wrench, Square,
-  Layers, AlertTriangle, CheckCircle2, Info,
+  AlertTriangle, CheckCircle2, Info,
   Scissors, Plus, Trash2, Save,
 } from "lucide-react"
 
@@ -214,7 +214,6 @@ const avaliarFormula = (formula: string, vars: Record<string, number>): number =
       .forEach(([k, v]) => {
         expr = expr.replace(new RegExp(`\\b${k}\\b`, "gi"), String(v))
       })
-    // eslint-disable-next-line no-new-func
     return Number(new Function(`return (${expr})`)()) || 0
   } catch {
     return 0
@@ -439,7 +438,7 @@ export default function CalculoProjetoPage() {
   const [kitsDB, setKitsDB] = useState<KitItem[]>([])
   const [ferragensDB, setFerragensDB] = useState<FerragemItem[]>([])
   const [perfisDB, setPerfisDB] = useState<PerfilItem[]>([])
-  const [carregando, setCarregando] = useState(true)
+  const [, setCarregando] = useState(true)
 
   // ── Seleções do usuário ──
   const [clienteId, setClienteId] = useState<string>("")
@@ -507,7 +506,7 @@ export default function CalculoProjetoPage() {
       setDetalhesProjetos((prev) => ({
         ...prev,
         [projetoId]: {
-          folhas: (data.projetos_folhas || []).sort((a: any, b: any) => a.numero_folha - b.numero_folha),
+          folhas: (data.projetos_folhas || []).sort((a: { numero_folha: number }, b: { numero_folha: number }) => a.numero_folha - b.numero_folha),
           kits: data.projetos_kits || [],
           ferragens: data.projetos_ferragens || [],
           perfis: data.projetos_perfis || [],
@@ -1166,7 +1165,7 @@ export default function CalculoProjetoPage() {
                               key={arquivo}
                               type="button"
                               onClick={() => atualizarItem(item.id, "variacaoDrawing", arquivo)}
-                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-[160px]"
+                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-40"
                               style={item.variacaoDrawing === arquivo
                                 ? { backgroundColor: "#8b5cf6", color: "#fff", borderColor: "#8b5cf6" }
                                 : { backgroundColor: "#f5f3ff", color: "#7c3aed", borderColor: "#ddd6fe" }}
@@ -1268,8 +1267,12 @@ export default function CalculoProjetoPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
                           { label: "Vidros", valor: itemResultado.resultado.totalVidro },
-                          { label: itemResultado.resultado.usouKit ? "Kits" : "Perfis", valor: itemResultado.resultado.usouKit ? itemResultado.resultado.precoKit : itemResultado.resultado.precoPerfis },
-                          { label: "Ferragens", valor: itemResultado.resultado.precoFerragens },
+{ 
+  label: itemResultado.resultado.usouKit ? "Kits" : "Perfis",
+  valor: itemResultado.resultado.usouKit 
+    ? itemResultado.resultado.precoKit 
+    : itemResultado.resultado.precoPerfis
+},                          { label: "Ferragens", valor: itemResultado.resultado.precoFerragens },
                           { label: "Total", valor: itemResultado.resultado.totalGeral },
                         ].map(({ label, valor }) => (
                           <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">

@@ -50,19 +50,21 @@ const styles = StyleSheet.create({
     objectPosition: 'right',
   },
 
-  // Box do Cliente
-  customerBox: {
+  // Info boxes do Cliente
+  infoSection: {
     flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8,
+  },
+  infoBox: {
+    flex: 1,
     backgroundColor: '#F9FAFB',
     padding: 10,
-    borderRadius: 4,
-    marginBottom: 20,
+    borderRadius: 6,
     borderLeftWidth: 3,
-    // borderLeftColor será definido inline
   },
-  customerInfo: { flex: 1 },
-  label: { fontSize: 7, color: '#999', textTransform: 'uppercase', marginBottom: 2 },
-  value: { fontSize: 10, fontWeight: 'bold', color: '#333' },
+  label: { fontSize: 6, color: '#999', textTransform: 'uppercase', marginBottom: 3, fontWeight: 'bold' },
+  value: { fontSize: 10, fontWeight: 'bold', color: '#1C415B' },
 
   // Tabela
   table: { width: '100%' },
@@ -106,14 +108,14 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
       </View>
 
       {/* Informações do Cliente */}
-      <View style={[styles.customerBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
-        <View style={styles.customerInfo}>
+      <View style={styles.infoSection}>
+        <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
           <Text style={styles.label}>Cliente</Text>
-          <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || ""}</Text>
+          <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
         </View>
-        <View style={styles.customerInfo}>
+        <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
           <Text style={styles.label}>Obra / Referência</Text>
-          <Text style={[styles.value, { color: contentColor }]}>{nomeObra || ""}</Text>
+          <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
         </View>
       </View>
 

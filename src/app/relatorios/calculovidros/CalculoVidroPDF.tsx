@@ -54,7 +54,8 @@ const styles = StyleSheet.create({
 
     infoSection: {
         flexDirection: 'row',
-        marginBottom: 20,
+        marginBottom: 12,
+        gap: 8,
     },
     infoBox: {
         flex: 1,
@@ -135,11 +136,11 @@ export function CalculoVidroPDF({
 
                 {/* Info do Cliente */}
                 <View style={styles.infoSection}>
-                    <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
-                        <Text style={styles.label}>Cliente / Razão Social</Text>
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+                        <Text style={styles.label}>Cliente</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
                     </View>
-                    <View style={[styles.infoBox, { marginRight: 10 }, { borderLeftColor: themeColor }]}>
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
                         <Text style={styles.label}>Obra / Referência</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
                     </View>

@@ -45,6 +45,12 @@ type FerragemTabela = {
   empresa_id?: string;
 };
 
+type PrecoEspecial = {
+  vidro_id: string;
+  grupo_preco_id: string;
+  preco: number;
+};
+
 const CORES_PERFIL = ["Branco", "Preto", "Fosco"];
 
 const normalizarTextoComparacao = (texto?: string | null) =>
@@ -123,6 +129,7 @@ export default function CalculoSacadaFrontalPage() {
   const [buscaVidro, setBuscaVidro] = useState("");
   const [vidroId, setVidroId] = useState("");
   const [corPerfil, setCorPerfil] = useState(CORES_PERFIL[0]);
+  const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
   const [carregandoInsumos, setCarregandoInsumos] = useState(true);
 
   useEffect(() => {
@@ -141,11 +148,12 @@ export default function CalculoSacadaFrontalPage() {
 
       setCarregandoInsumos(true);
 
-      const [resVidros, resPerfis, resFerragens, resClientes] = await Promise.all([
+      const [resVidros, resPerfis, resFerragens, resClientes, resPrecos] = await Promise.all([
         supabase.from("vidros").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("perfis").select("id, codigo, nome, cores, preco, empresa_id").eq("empresa_id", empresaId).order("codigo", { ascending: true }),
         supabase.from("ferragens").select("id, codigo, nome, cores, preco, empresa_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
       ]);
 
       if (!ativo) {
@@ -173,6 +181,7 @@ export default function CalculoSacadaFrontalPage() {
       setPerfisTabela((resPerfis.data || []) as PerfilTabela[]);
       setFerragensTabela((resFerragens.data || []) as FerragemTabela[]);
       if (resClientes.data) setListaClientes(resClientes.data as ClienteSacada[]);
+      if (resPrecos.data) setPrecosEspeciais(resPrecos.data as PrecoEspecial[]);
       setCarregandoInsumos(false);
     };
 
@@ -233,16 +242,29 @@ export default function CalculoSacadaFrontalPage() {
   const quantidadeNumero = Math.max(Number(quantidadeVaos) || 0, 0);
   const quantidadeDivisoesNumero = Math.max(Number(quantidadeDivisoesLargura) || 0, 1);
 
+  const precoVidroM2Efetivo = useMemo(() => {
+    if (!vidroSelecionado) return 0;
+    const clienteObj = listaClientes.find((c) => String(c.id) === String(clienteId));
+    const grupoId = clienteObj?.grupo_preco_id;
+    if (grupoId) {
+      const especial = precosEspeciais.find(
+        (p) => String(p.vidro_id) === String(vidroSelecionado.id) && String(p.grupo_preco_id) === String(grupoId)
+      );
+      if (especial) return Number(especial.preco);
+    }
+    return Number(vidroSelecionado.preco) || 0;
+  }, [clienteId, listaClientes, precosEspeciais, vidroSelecionado]);
+
   const resultado = useMemo(
     () => calcularSacadaFrontal({
       larguraVaoMm: larguraNumero,
       alturaVaoMm: alturaNumero,
       quantidadeVaos: quantidadeNumero,
       quantidadeDivisoesLargura: quantidadeDivisoesNumero,
-      precoVidroM2: Number(vidroSelecionado?.preco) || 0,
+      precoVidroM2: precoVidroM2Efetivo,
       vidroDescricao: montarDescricaoVidro(vidroSelecionado),
     }),
-    [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, vidroSelecionado]
+    [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, vidroSelecionado]
   );
 
   const perfisComPrecoTabela = useMemo(() => {

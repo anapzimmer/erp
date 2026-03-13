@@ -64,8 +64,18 @@ const styles = StyleSheet.create({
   data: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: "#666", marginTop: 6 },
   logo: { width: PDF_HEADER_LAYOUT.logoWidth, height: PDF_HEADER_LAYOUT.logoHeight, objectFit: "contain", objectPosition: "right" },
 
-  infoSection: { flexDirection: "row", marginBottom: 16 },
-  infoBox: { flex: 1, backgroundColor: "#F9FAFB", padding: 10, borderRadius: 6, borderLeftWidth: 3 },
+  infoSection: {
+    flexDirection: "row",
+    marginBottom: 12,
+    gap: 8,
+  },
+  infoBox: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+    padding: 10,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+  },
   label: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
   value: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
 
@@ -109,28 +119,29 @@ export function SacadaFrontalPDF({
           {logoUrl && <Image src={logoUrl} style={styles.logo} />}
         </View>
 
-        {/* Info boxes */}
+        {/* Info boxes - Linha 1: Cliente / Obra / Vidro */}
         <View style={styles.infoSection}>
-          <View style={[styles.infoBox, { marginRight: 8, borderLeftColor: themeColor }]}>
+          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
             <Text style={styles.label}>Cliente</Text>
             <Text style={[styles.value, { color: c }]}>{nomeCliente || "Não informado"}</Text>
           </View>
-          <View style={[styles.infoBox, { marginRight: 8, borderLeftColor: themeColor }]}>
+          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
             <Text style={styles.label}>Obra / Referência</Text>
             <Text style={[styles.value, { color: c }]}>{nomeObra || "Geral"}</Text>
           </View>
           <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
-            <Text style={styles.label}>Configuração</Text>
-            <Text style={[styles.value, { color: c }]}>{larguraVaoMm}x{alturaVaoMm}mm · {quantidadeVaos} vão(s) · {divisoesPorVao} div.</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={[styles.infoBox, { marginRight: 8, borderLeftColor: themeColor }]}>
             <Text style={styles.label}>Vidro</Text>
             <Text style={[styles.value, { color: c }]}>{vidroDescricao}</Text>
           </View>
-          <View style={[styles.infoBox, { marginRight: 8, borderLeftColor: themeColor }]}>
+        </View>
+
+        {/* Info boxes - Linha 2: Configuração / Medida do vidro / Cor dos perfis */}
+        <View style={styles.infoSection}>
+          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+            <Text style={styles.label}>Configuração</Text>
+            <Text style={[styles.value, { color: c }]}>{larguraVaoMm}x{alturaVaoMm}mm · {quantidadeVaos} vão(s) · {divisoesPorVao} div.</Text>
+          </View>
+          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
             <Text style={styles.label}>Medida do vidro</Text>
             <Text style={[styles.value, { color: c }]}>{medidaVidro}</Text>
           </View>
