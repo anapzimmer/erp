@@ -3,6 +3,7 @@
 
 import { useTheme } from "@/context/ThemeContext";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 type ThemeLoaderProps = {
   children?: ReactNode;
@@ -10,8 +11,40 @@ type ThemeLoaderProps = {
 
 export default function ThemeLoader({ children }: ThemeLoaderProps) {
   const { isLoading, theme } = useTheme();
+  const pathname = usePathname();
+  const isRelatorioOrcamentoScreen = pathname?.startsWith("/admin/relatorio.orcamento");
 
   if (isLoading) {
+    if (isRelatorioOrcamentoScreen) {
+      return (
+        <div
+          className="h-screen w-screen flex flex-col items-center justify-center"
+          style={{ backgroundColor: theme.contentTextDarkBg }}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: theme.menuIconColor, animationDuration: "1.2s" }}
+            />
+            <span
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: theme.menuIconColor, animationDelay: "0.15s", animationDuration: "1.2s", opacity: 0.8 }}
+            />
+            <span
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: theme.menuIconColor, animationDelay: "0.3s", animationDuration: "1.2s", opacity: 0.65 }}
+            />
+          </div>
+          <span
+            className="mt-4 text-xs tracking-[0.08em]"
+            style={{ color: `${theme.contentTextLightBg}AA` }}
+          >
+            Carregando...
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div style={{ 
         backgroundColor: theme.contentTextDarkBg,

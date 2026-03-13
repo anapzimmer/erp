@@ -89,8 +89,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         .eq("id", session.user.id)
         .maybeSingle();
 
-      if (perfilError || !perfil?.empresa_id) {
-        console.error("Vínculo de empresa não encontrado:", perfilError);
+      if (perfilError) {
+        console.error("Erro ao buscar vínculo de empresa:", perfilError);
+        setTheme(defaultTheme);
+        return;
+      }
+
+      if (!perfil?.empresa_id) {
         setTheme(defaultTheme);
         return;
       }

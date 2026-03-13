@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { decodeCsvFile } from "@/utils/csvEncoding"
 import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Loader2, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -222,32 +223,29 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
   // --- Funções de Importação/Exportação ---
   const exportarCSV = () => {
     if (perfis.length === 0) { setModalAviso({ titulo: "Aviso", mensagem: "Nenhum perfil para exportar." }); return; }
-    const csvContent = "data:text/csv;charset=utf-8,"
-      + "Codigo;Nome;Cores;Preco;Categoria\n"
+    const csvContent = "Codigo;Nome;Cores;Preco;Categoria\n"
       + perfis.map(p =>
         `${p.codigo.trim()};${p.nome.trim()};${p.cores.trim()};${p.preco || ""};${p.categoria.trim()}`
       ).join("\n");
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob(["\ufeff", csvContent], { type: "text/csv;charset=utf-8;" });
+    const encodedUri = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", "perfis.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(encodedUri);
   }
 
-const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const file = event.target.files?.[0];
   if (!file || !empresaIdUsuario) return;
 
   setModalCarregando(true);
-  const reader = new FileReader();
-
-  reader.onload = async (e) => {
-    try {
-      const decoder = new TextDecoder("iso-8859-1");
-      const text = decoder.decode(e.target?.result as ArrayBuffer);
+  try {
+      const text = await decodeCsvFile(file);
 
       // Divide linhas e ignora o cabeçalho
       const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0).slice(1);
@@ -297,8 +295,6 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
       setModalAviso({ titulo: "Erro", mensagem: "Falha ao processar CSV." });
     }
     event.target.value = "";
-  };
-  reader.readAsArrayBuffer(file);
 };
   const [logoLight, setLogoLight] = useState<string | null>(null);
 

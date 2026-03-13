@@ -2,14 +2,21 @@
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
+    import Image from "next/image"
+
+    type Vidro = { id: string; nome: string; espessura?: string; tipo?: string; preco: number | string };
+    type Cliente = { id: string; nome: string };
+    type AdicionalDB = { id: string; codigo: string; nome: string; preco: number | string; categoria?: string; cores?: string };
+    type AdicionalPendente = { texto: string; qtd: string; valor: number | string };
+    type ItemOrcamento = { id: number; descricao: string; vidroInfo: string; adicionais: AdicionalPendente[]; medidaVao: string; quantidade: string; imagem: string; total: number };
 
     export default function CalculoJanelas() {
-    const [vidros, setVidros] = useState<any[]>([])
-    const [clientes, setClientes] = useState<any[]>([])
-    const [adicionaisDB, setAdicionaisDB] = useState<any[]>([])
-    const [itens, setItens] = useState<any[]>([])
+    const [vidros, setVidros] = useState<Vidro[]>([])
+    const [clientes, setClientes] = useState<Cliente[]>([])
+    const [adicionaisDB, setAdicionaisDB] = useState<AdicionalDB[]>([])
+    const [itens, setItens] = useState<ItemOrcamento[]>([])
     
-    const [adicionaisPendentes, setAdicionaisPendentes] = useState<any[]>([])
+    const [adicionaisPendentes, setAdicionaisPendentes] = useState<AdicionalPendente[]>([])
     
     const [buscaCliente, setBuscaCliente] = useState("")
     const [mostrarClientes, setMostrarClientes] = useState(false)
@@ -18,7 +25,7 @@
     const [buscaVidro, setBuscaVidro] = useState("")
     const [mostrarVidros, setMostrarVidros] = useState(false)
     const [vidroIndex, setVidroIndex] = useState(-1)
-    const [vidroSel, setVidroSel] = useState<any>(null)
+    const [vidroSel, setVidroSel] = useState<Vidro | null>(null)
 
     const [buscaAdicional, setBuscaAdicional] = useState("")
     const [mostrarAdicionais, setMostrarAdicionais] = useState(false)
@@ -444,7 +451,7 @@
                             if (e.key === "ArrowUp") setAdicionalIndex(p => Math.max(p - 1, 0));
                             if (e.key === "Enter") {
                             const a = adicionalIndex >= 0 ? adicionaisFiltrados[adicionalIndex] : adicionaisFiltrados[0];
-                            if (a) { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }
+                            if (a) { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(String(a.preco)); setMostrarAdicionais(false); }
                             }
                         }}
                         />
@@ -452,7 +459,7 @@
                         <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                             {adicionaisFiltrados.map((a, i) => (
                             <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} 
-                                onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(a.preco); setMostrarAdicionais(false); }}>
+                                onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(String(a.preco)); setMostrarAdicionais(false); }}>
                                 <span>{a.codigo} - {a.nome} <span className="text-gray-400 font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
                                 <span className="text-[#92D050] font-bold">R$ {a.preco}</span>
                             </div>
@@ -486,15 +493,15 @@
             </div>
 
             <div className="col-span-2 flex items-center justify-center">
-                <div className="w-full aspect-square bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
-                    {imgPath ? <img src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" /> : <ImageIcon className="text-gray-200" size={40} />}
+                <div className="w-full aspect-square bg-gray-50 rounded-4xl border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
+                    {imgPath ? <Image src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" width={200} height={200} /> : <ImageIcon className="text-gray-200" size={40} />}
                 </div>
             </div>
             </div>
         </div>
 
         {/* TABELA RESULTADOS */}
-        <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 bg-white shadow-sm">
+        <div className="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm">
             <table className="w-full text-left text-sm">
             <thead className="bg-[#1C415B] text-white text-[10px] uppercase font-bold tracking-widest">
                 <tr><th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th><th className="p-4 text-center">QTD</th><th className="p-4 text-center">MEDIDA DO VÃO (MM)</th><th className="p-4 text-center">TOTAL</th><th className="p-4 text-center">AÇÕES</th></tr>
@@ -503,11 +510,11 @@
                 {itens.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 flex items-start gap-4">
-                    {item.imagem && <img src={item.imagem} className="w-20 h-20 object-contain" alt="item" />}
+                    {item.imagem && <Image src={item.imagem} className="w-20 h-20 object-contain" alt="item" width={80} height={80} />}
                     <div>
                         <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
                         <span className="text-[10px] text-gray-400 font-normal block">{item.vidroInfo}</span>
-                        {item.adicionais && item.adicionais.map((a: any, i: number) => (
+                        {item.adicionais && item.adicionais.map((a: AdicionalPendente, i: number) => (
                         <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
                         ))}
                     </div>

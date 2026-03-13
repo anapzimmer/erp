@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { decodeCsvFile } from "@/utils/csvEncoding"
 import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2,Square, PlusCircle, X, Printer, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -108,19 +109,20 @@ export default function VidrosPage() {
 
   // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8,"
-      + "Nome;Espessura;Tipo;Preco\n"
+    const csvContent = "Nome;Espessura;Tipo;Preco\n"
       + vidros.map(v =>
         `${formatarParaBanco(v.nome)};${padronizarEspessura(v.espessura)};${formatarParaBanco(v.tipo)};${v.preco}`
       ).join("\n");
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob(["\ufeff", csvContent], { type: "text/csv;charset=utf-8;" });
+    const encodedUri = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", "vidros.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(encodedUri);
   }
 
   const capitalizarFrase = (texto: string) => {
@@ -129,7 +131,7 @@ export default function VidrosPage() {
     return limpo.charAt(0).toUpperCase() + limpo.slice(1);
   };
 
-  const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     // DEBUG: Verifique se o empresaId está chegando aqui
@@ -141,14 +143,8 @@ export default function VidrosPage() {
     }
 
     setCarregando(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result;
-      if (typeof text !== "string") {
-        setModalAviso({ titulo: "Erro", mensagem: "Formato de arquivo inválido." });
-        setCarregando(false);
-        return;
-      }
+    try {
+      const text = await decodeCsvFile(file);
 
       const rows = text.split("\n").slice(1);
       let atualizados = 0, inseridos = 0, erros = 0;
@@ -228,12 +224,10 @@ export default function VidrosPage() {
         tipo: "sucesso"
       });
       event.target.value = "";
-    };
-    reader.onerror = () => {
+    } catch {
       setCarregando(false);
       setModalAviso({ titulo: "Erro", mensagem: "Falha ao ler o arquivo." });
-    };
-    reader.readAsText(file);
+    }
   }
 
   const limparDuplicados = () => {

@@ -1,29 +1,74 @@
 //app/ferragens/page.tsx
 "use client"
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { decodeCsvFile } from "@/utils/csvEncoding"
 import {
-  LayoutDashboard, FileText, Image as ImageIcon, BarChart3, Wrench, Printer,
-  Boxes, Briefcase, UsersRound, Layers, Palette, Package, Trash2, Edit2,
-  PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search,
-  DollarSign, ArrowUp, Square
+  Wrench, Printer,
+  Layers, Palette, Package, Trash2, Edit2,
+  PlusCircle, X, Download, Upload, Search,
+  DollarSign, ArrowUp
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { useTheme } from "@/context/ThemeContext";
 import type { Ferragem } from "@/types/ferragem"
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- TIPAGENS ---
-type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
   return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
+};
+
+const normalizarCabecalho = (texto: string) =>
+  texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const escaparCampoCsv = (valor: string | number | null | undefined) => {
+  const texto = valor == null ? "" : String(valor);
+  if (texto.includes(";") || texto.includes('"') || texto.includes("\n") || texto.includes("\r")) {
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+  return texto;
+};
+
+const splitCsvLine = (line: string, delimiter: string) => {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+
+  return values.map((value) => value.replace(/^['"]|['"]$/g, "").trim());
 };
 
 export default function FerragensPage() {
@@ -32,8 +77,6 @@ export default function FerragensPage() {
   // --- ESTADOS UI/BRANDING ---
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
@@ -46,7 +89,6 @@ export default function FerragensPage() {
   const darkPrimary = theme.menuBackgroundColor;
   const darkSecondary = theme.menuTextColor;
   const darkTertiary = theme.menuIconColor;
-  const darkHover = theme.menuHoverColor;
   const lightPrimary = theme.screenBackgroundColor;
   const lightSecondary = theme.modalBackgroundColor;
   const lightTertiary = theme.contentTextLightBg;
@@ -69,8 +111,7 @@ export default function FerragensPage() {
   const [modalCarregando, setModalCarregando] = useState(false);
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => { /* client guard */ }, []);
 
   // --- EFEITOS ---
   useEffect(() => {
@@ -99,6 +140,7 @@ export default function FerragensPage() {
       setCheckingAuth(false);
     };
     init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -160,12 +202,13 @@ export default function FerragensPage() {
       setEditando(null);
       await carregarDados(empresaIdUsuario);
 
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
       setModalAviso({
         titulo: "Item Duplicado",
         mensagem: "Já existe uma ferragem com este código, nome e cor. Verifique os dados ou edite o item existente."
       });
-      console.error("Erro ao salvar:", e.message);
+      console.error("Erro ao salvar:", msg);
     } finally {
       setCarregando(false);
     }
@@ -183,8 +226,9 @@ export default function FerragensPage() {
             .eq("id", id);
           if (error) throw error;
           setFerragens(prev => prev.filter(f => f.id !== id));
-        } catch (e: any) {
-          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir: " + e.message });
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir: " + msg });
         }
       }
     });
@@ -192,73 +236,98 @@ export default function FerragensPage() {
 
   const exportarCSV = () => {
     if (ferragens.length === 0) return;
-    const csvContent = "data:text/csv;charset=utf-8,Codigo;Nome;Cores;Preco;Categoria\n" +
-      ferragens.map(f => `${f.codigo};${f.nome};${f.cores};${f.preco || ""};${f.categoria}`).join("\n");
+    const header = "Codigo;Nome;Cores;Preco;Categoria";
+    const linhas = ferragens.map(f =>
+      [f.codigo, f.nome, f.cores, f.preco != null ? f.preco : "", f.categoria]
+        .map(escaparCampoCsv)
+        .join(";")
+    );
+    const csvContent = [header, ...linhas].join("\n");
+    const blob = new Blob(["\ufeff", csvContent], { type: "text/csv;charset=utf-8;" });
+    const csvUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("href", csvUrl);
     link.setAttribute("download", "ferragens.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(csvUrl);
   }
 
-  const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !empresaIdUsuario) return;
 
     setModalCarregando(true);
-    const reader = new FileReader();
+    try {
+        const text = await decodeCsvFile(file);
 
-    reader.onload = async (e) => {
-      try {
-        // 1. Pega o resultado como ArrayBuffer
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-
-        // 2. Tenta decodificar. Se vier UTF-8 com erro, ele tenta ISO-8859-1
-        let text = new TextDecoder("utf-8").decode(arrayBuffer);
-
-        // Se o texto contiver o símbolo de erro do UTF-8 (aquele losango com interrogação)
-        // ou o padrão de erro comum 'Ã£', tentamos o padrão Windows.
-        if (text.includes('') || text.includes('Ã')) {
-          text = new TextDecoder("windows-1252").decode(arrayBuffer);
+        const rows = text
+          .split(/\r\n|\n|\r/)
+          .map(r => r.trim())
+          .filter(Boolean);
+        if (!rows.length) {
+          setModalAviso({ titulo: "Aviso", mensagem: "Arquivo CSV vazio." });
+          return;
         }
 
-        const rows = text.split(/\r?\n/);
+        let linhasTotais = 0;
+        let linhasComCodigoNome = 0;
+        let linhasSemCodigoOuNome = 0;
+        let linhasDuplicadasNoArquivo = 0;
+        let linhasProcessadas = 0;
+        let linhasComErro = 0;
+        const chavesNoArquivo = new Set<string>();
 
-        // Remove o cabeçalho e linhas vazias
-        const dados = rows.slice(1).filter(row => row.trim() !== "");
+        const headerRow = rows[0];
+        const delimiter = (headerRow.match(/;/g)?.length || 0) >= (headerRow.match(/,/g)?.length || 0) ? ";" : ",";
+        const headers = splitCsvLine(headerRow, delimiter).map(normalizarCabecalho);
+
+        const idxCodigo = headers.findIndex((h) => h === "codigo" || h === "cod" || h === "codigo item");
+        const idxNome = headers.findIndex((h) => h === "nome" || h === "descricao" || h === "ferragem");
+        const idxCores = headers.findIndex((h) => h === "cor" || h === "cores");
+        const idxPreco = headers.findIndex((h) => h === "preco" || h === "valor" || h === "preco unitario");
+        const idxCategoria = headers.findIndex((h) => h === "categoria" || h === "grupo");
+
+        const dados = rows.slice(1);
 
         for (const row of dados) {
-          // Divide pelo ponto e vírgula
-          const columns = row.split(';').map(c => c.replace(/^["']|["']$/g, "").trim());
+          linhasTotais++;
+          const columns = splitCsvLine(row, delimiter);
 
-          // MAPEAMENTO CORRIGIDO PARA O SEU ARQUIVO:
-          const codigo = columns[0];       // Coluna 1: Codigo
-          let nomeOriginal = columns[1];   // Coluna 2: Nome
-          let corOriginal = columns[2];    // Coluna 3: Cores (Estava errado antes)
-          const precoRaw = columns[3];     // Coluna 4: Preco
-          const categoriaArq = columns[4]; // Coluna 5: Categoria
+          const codigo = columns[idxCodigo >= 0 ? idxCodigo : 0]?.trim() || "";
+          let nomeOriginal = columns[idxNome >= 0 ? idxNome : 1]?.trim() || "";
+          let corOriginal = columns[idxCores >= 0 ? idxCores : 2]?.trim() || "";
+          const precoRaw = columns[idxPreco >= 0 ? idxPreco : 3]?.trim() || "";
+          const categoriaArq = columns[idxCategoria >= 0 ? idxCategoria : 4]?.trim() || "";
 
           if (codigo && nomeOriginal) {
-            // Se a coluna cor estiver vazia mas o nome tiver um hífen (Ex: "Puxador - Preto")
-            if (!corOriginal && nomeOriginal.includes("-")) {
+            linhasComCodigoNome++;
+            // Só tenta extrair cor do nome quando NÃO existe coluna de cor no cabeçalho
+            if (!corOriginal && idxCores < 0 && nomeOriginal.includes("-")) {
               const partes = nomeOriginal.split("-");
               corOriginal = partes[partes.length - 1].trim();
               nomeOriginal = partes.slice(0, -1).join("-").trim();
             }
 
+            const chaveArquivo = `${codigo.toUpperCase().trim()}|${padronizarTexto(nomeOriginal)}|${padronizarTexto(corOriginal || "Padrão")}`;
+            if (chavesNoArquivo.has(chaveArquivo)) {
+              linhasDuplicadasNoArquivo++;
+            } else {
+              chavesNoArquivo.add(chaveArquivo);
+            }
+
             // Tratamento de Preço
             let precoLimpo = null;
             if (precoRaw) {
-              const apenasNumeros = precoRaw.replace(/[^\d,.]/g, "");
-              const formatado = apenasNumeros.includes(',')
-                ? apenasNumeros.replace(/\./g, "").replace(",", ".")
-                : apenasNumeros;
+              const formatado = precoRaw
+                .replace(/[^\d,.-]/g, "")
+                .replace(",", ".");
               precoLimpo = parseFloat(formatado);
             }
 
             // Envia para o Banco
-            await supabase.from("ferragens").upsert([{
+            const { error } = await supabase.from("ferragens").upsert([{
               codigo: codigo.toUpperCase(),
               nome: padronizarTexto(nomeOriginal),
               cores: corOriginal ? padronizarTexto(corOriginal) : "Padrão",
@@ -268,22 +337,36 @@ export default function FerragensPage() {
             }], {
               onConflict: 'codigo,nome,cores' // Evita duplicar se código e cor forem iguais
             });
+
+            if (error) {
+              linhasComErro++;
+              console.error("Erro ao importar linha de ferragem:", error.message, { codigo, nomeOriginal, corOriginal });
+            } else {
+              linhasProcessadas++;
+            }
+          } else {
+            linhasSemCodigoOuNome++;
           }
         }
 
         await carregarDados(empresaIdUsuario);
-        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com acentos corrigidos!" });
-      } catch (err: any) {
+        setModalAviso({
+          titulo: "Importação concluída",
+          mensagem:
+            `Linhas no arquivo: ${linhasTotais}\n` +
+            `Com código e nome: ${linhasComCodigoNome}\n` +
+            `Ignoradas (sem código/nome): ${linhasSemCodigoOuNome}\n` +
+            `Duplicadas no arquivo: ${linhasDuplicadasNoArquivo}\n` +
+            `Processadas no banco: ${linhasProcessadas}\n` +
+            `Com erro: ${linhasComErro}`,
+        });
+      } catch (err: unknown) {
         console.error(err);
         setModalAviso({ titulo: "Erro", mensagem: "Falha ao processar arquivo." });
       } finally {
         setModalCarregando(false);
         event.target.value = "";
       }
-    };
-
-    // IMPORTANTE: Manter como readAsArrayBuffer para o TextDecoder funcionar
-    reader.readAsArrayBuffer(file);
   };
 
   const eliminarDuplicados = () => {
@@ -306,38 +389,6 @@ export default function FerragensPage() {
       }
     });
   }
-
-  const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icone;
-    const temSubmenu = !!item.submenu;
-    return (
-      <div key={item.nome} className="mb-1">
-        <div onClick={() => { if (!temSubmenu) { router.push(item.rota); setShowMobileMenu(false); } }}
-          className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
-          style={{ color: darkSecondary }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${darkHover}33`}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-        >
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
-            <span className="font-medium text-sm">{item.nome}</span>
-          </div>
-        </div>
-        {temSubmenu && (
-          <div className="ml-8 mt-1 space-y-1">
-            {item.submenu!.map((sub) => (
-              <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
-                className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
-                style={{ color: darkSecondary }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${darkHover}33`}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              >{sub.nome}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 

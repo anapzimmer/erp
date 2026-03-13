@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { decodeCsvFile } from "@/utils/csvEncoding"
 import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -186,17 +187,13 @@ export default function KitsPage() {
     });
   };
 
-  const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportarCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !empresaIdUsuario) return;
 
     setModalCarregando(true);
-    const reader = new FileReader();
-
-    reader.onload = async (event) => {
-      try {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const conteudo = new TextDecoder("windows-1252").decode(arrayBuffer);
+    try {
+        const conteudo = await decodeCsvFile(file);
         const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
 
         // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
@@ -277,8 +274,6 @@ export default function KitsPage() {
         setModalCarregando(false);
         if (e.target) e.target.value = "";
       }
-    };
-    reader.readAsArrayBuffer(file);
   };
 
   const handleExportarCSV = () => {
