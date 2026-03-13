@@ -12,6 +12,15 @@ import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar" // 🔥 IMPORTAÇÃO DO COMPONENTE SIDEBAR CORRETO
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
+import Header from "@/components/Header"
+
+const alphaHex = (hexColor: string, alpha: string) => {
+  const normalized = hexColor.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(normalized)) {
+    return `${normalized}${alpha}`;
+  }
+  return hexColor;
+};
 
 // --- Tipagens ---
 type Cliente = { 
@@ -196,7 +205,7 @@ const carregarDados = useCallback(async () => {
   if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div></div>;
 
   return (
-    <div className="cadastros-layout flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* 🔥 SIDEBAR COMPONENTE */}
       <Sidebar 
@@ -210,51 +219,22 @@ const carregarDados = useCallback(async () => {
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">
 
-        {/* TOPBAR */}
-        <header className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 rounded-lg hover:bg-gray-100"> <Menu size={24} className="text-gray-600" /> </button>
-            <div className="flex items-center gap-4 bg-gray-100 px-3 py-2 rounded-full w-full md:w-96 border border-gray-200 focus-within:ring-2" style={{ borderColor: theme.menuIconColor, "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}>
-              <Search className="text-gray-400" size={18} />
-              <input
-                type="search"
-                placeholder="Buscar por nome..."
-                value={buscaNome}
-                onChange={e => setBuscaNome(e.target.value)}
-                className="w-full text-sm bg-transparent outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600"> <Building2 size={16} /> </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block"> {nomeEmpresa || "Empresa"} </span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100 mb-2">
-                    <p className="text-xs text-gray-400">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-800 truncate"> {user?.email} </p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"> <Settings size={18} className="text-gray-400" />Configurações </button>
-                  <button onClick={handleSignOut} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl"> <LogOut size={18} />Sair </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <Header 
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={user?.email || ""}
+          handleSignOut={handleSignOut}
+        />
 
         {/* CONTEÚDO ESPECÍFICO */}
-        <main className="p-4 md:p-8 flex-1">
-          <div className="flex items-center gap-4 mb-8">
+        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}> <UsersRound size={28} /> </div>
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}> 
+                <UsersRound size={28} /> 
+              </div>
               <div>
-                <h1 className="text-2xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Clientes</h1>
+                <h1 className="text-3xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Clientes</h1>
                 <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu cadastro de clientes e rotas.</p>
               </div>
             </div>
@@ -268,7 +248,7 @@ const carregarDados = useCallback(async () => {
               { titulo: "Com Cidade", valor: clientes.filter(c => c.cidade?.trim()).length, icone: MapPin },
               { titulo: "Rotas Distintas", valor: rotasUnicas.length, icone: Map }
             ].map(card => (
-              <div key={card.titulo} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+              <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                 <card.icone className="w-7 h-7 mb-2" style={{ color: theme.menuIconColor }} />
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
                 <p className="text-2xl font-bold" style={{ color: theme.menuBackgroundColor }}>{card.valor}</p>
@@ -289,13 +269,13 @@ const carregarDados = useCallback(async () => {
               </select>
               <button onClick={() => { setBuscaNome(""); setFiltroRota(""); setFiltroCidade("") }} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200"> Limpar </button>
             </div>
-            <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95" style={{ backgroundColor: theme.menuIconColor, color: theme.menuBackgroundColor }}>
+            <button onClick={abrirModalParaNovo} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95" style={{ backgroundColor: theme.menuIconColor, color: "#ffffff" }}>
               <PlusCircle size={20} /> Novo Cliente
             </button>
           </div>
 
           {/* TABELA */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border" style={{ borderColor: alphaHex(theme.menuBackgroundColor, "29") }}>
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}>
                 <tr>

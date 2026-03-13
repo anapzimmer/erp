@@ -514,7 +514,7 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
         />
 
         {/* CORPO DA PÁGINA */}
-        <main className="p-4 md:p-8 flex-1">
+        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}>
@@ -553,7 +553,7 @@ const importarCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
               { titulo: "Cores", valor: coresDistintas, icone: Palette },
               { titulo: "Categorias", valor: categoriasDistintas, icone: Package }
             ].map(card => (
-              <div key={card.titulo} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+              <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                 <card.icone className="w-7 h-7 mb-2" style={{ color: darkTertiary }} />
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
                 <p className="text-2xl font-bold" style={{ color: darkPrimary }}>{card.valor}</p>

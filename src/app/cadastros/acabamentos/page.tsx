@@ -9,11 +9,10 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Header from "@/components/Header"
+import Sidebar from "@/components/Sidebar"
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
-
-// --- TIPAGENS ---
-type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
 interface Acabamento {
     id: number;
@@ -29,27 +28,6 @@ interface Acabamento {
     bordasSelecionadas?: string[];
     formatoSelecionado?: string;
 }
-
-// --- CONSTANTES DE MENU ---
-const menuPrincipal: MenuItem[] = [
-    { nome: "Dashboard", rota: "/", icone: LayoutDashboard },
-    {
-        nome: "Orçamentos", rota: "/orcamentos", icone: FileText,
-        submenu: [{ nome: "Espelhos", rota: "/calculo/espelhos" }, { nome: "Vidros", rota: "/calculo/calculovidro" }]
-    },
-    { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
-    { nome: "Relatórios", rota: "/relatorios", icone: BarChart3 },
-]
-
-const menuCadastros: MenuItem[] = [
-    { nome: "Clientes", rota: "/cadastros/clientes", icone: UsersRound },
-    { nome: "Vidros", rota: "/cadastros/vidros", icone: Square },
-    { nome: "Perfis", rota: "/cadastros/perfis", icone: Package },
-    { nome: "Ferragens", rota: "/cadastros/ferragens", icone: Wrench },
-    { nome: "Kits", rota: "/cadastros/kits", icone: Boxes },
-    { nome: "Serviços", rota: "/cadastros/servicos", icone: Briefcase },
-    { nome: "Acabamentos", rota: "/cadastros/acabamentos", icone: Palette },
-]
 
 // --- ESTRUTURA VISUAL PARA O CADASTRO ---
 const opcoesVisual = [
@@ -73,15 +51,13 @@ export default function AcabamentosPage() {
     // --- ESTADOS UI/BRANDING ---
     const [checkingAuth, setCheckingAuth] = useState(true);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
-    const [showUserMenu, setShowUserMenu] = useState(false);
-    const userMenuRef = useRef<HTMLDivElement>(null);
+    const [sidebarExpandido, setSidebarExpandido] = useState(true);
     const [empresaIdUsuario, setEmpresaIdUsuario] = useState<string | null>(null);
     const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null);
     const [mostrarModalExclusao, setMostrarModalExclusao] = useState(false);
     const [acabamentoParaExcluir, setAcabamentoParaExcluir] = useState<Acabamento | null>(null);
 
     const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-    const [logoUrl, setLogoUrl] = useState("/glasscode2.png");
     const [theme, setTheme] = useState({
         primary: "#1C415B",
         secondary: "#FFFFFF",
@@ -151,7 +127,6 @@ export default function AcabamentosPage() {
                         .single();
 
                     if (branding) {
-                        setLogoUrl(branding.logo_dark || "/glasscode2.png");
                         setTheme({
                             primary: branding.menu_background_color || "#1C415B",
                             secondary: "#FFFFFF",
@@ -273,98 +248,26 @@ export default function AcabamentosPage() {
 
     if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
-    const renderMenuItem = (item: MenuItem) => {
-        const Icon = item.icone;
-        const temSubmenu = !!item.submenu;
-        return (
-            <div key={item.nome} className="mb-1">
-                <div onClick={() => { if (!temSubmenu) { router.push(item.rota); setShowMobileMenu(false); } }}
-                    className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
-                    style={{ color: theme.secondary }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.hover}33`}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                >
-                    <div className="flex items-center gap-3">
-                        <Icon className="w-5 h-5" style={{ color: theme.tertiary }} />
-                        <span className="font-medium text-sm">{item.nome}</span>
-                    </div>
-                </div>
-                {temSubmenu && (
-                    <div className="ml-8 mt-1 space-y-1">
-                        {item.submenu!.map((sub) => (
-                            <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
-                                className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
-                                style={{ color: theme.secondary }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.hover}33`}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                            >{sub.nome}</div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
         <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col p-4 shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: theme.primary }}>
-                <button onClick={() => setShowMobileMenu(false)} className="md:hidden absolute top-4 right-4 text-white/50"> <X size={24} /> </button>
-                <div className="px-3 py-4 mb-4 flex justify-center">
-                    <Image src={logoUrl} alt="Logo" width={200} height={56} className="h-12 md:h-14 object-contain" loading="eager" />
-                </div>
-                <nav className="flex-1 overflow-y-auto space-y-6 pr-2">
-                    <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.tertiary }}>Principal</p> {menuPrincipal.map(renderMenuItem)} </div>
-                    <div> <p className="px-3 text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.tertiary }}>Cadastros</p> {menuCadastros.map(renderMenuItem)} </div>
-                </nav>
-            </aside>
+            <Sidebar
+                showMobileMenu={showMobileMenu}
+                setShowMobileMenu={setShowMobileMenu}
+                nomeEmpresa={nomeEmpresa}
+                expandido={sidebarExpandido}
+                setExpandido={setSidebarExpandido}
+            />
 
 
             <div className="flex-1 flex flex-col w-full min-w-0">
-                <header
-                    className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
-                    style={{ backgroundColor: theme.secondary }}
-                >
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <button
-                            onClick={() => setShowMobileMenu(true)}
-                            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-                        >
-                            <Menu size={24} className="text-gray-600" />
-                        </button>
-                    </div>
+                <Header
+                    setShowMobileMenu={setShowMobileMenu}
+                    nomeEmpresa={nomeEmpresa}
+                    usuarioEmail={usuarioEmail || ""}
+                    handleSignOut={handleLogout}
+                />
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative" ref={userMenuRef}>
-                            <button
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                                    <Building2 size={16} />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
-                            </button>
-
-                            {showUserMenu && (
-                                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
-                                    <div className="px-3 py-2 border-b border-gray-100">
-                                        <p className="text-xs text-gray-400 font-medium">Logado como</p>
-                                        <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
-                                    </div>
-                                    <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                                        <Wrench size={18} className="text-gray-400" /> Configurações
-                                    </button>
-                                    <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-                                        <X size={18} className="text-red-500" /> Sair
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                <main className="p-4 md:p-8 flex-1">
+                <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
                         <div className="flex items-center gap-4">
                             <div className="p-4 rounded-2xl" style={{ backgroundColor: `${theme.tertiary}15`, color: theme.tertiary }}>
@@ -378,7 +281,7 @@ export default function AcabamentosPage() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                        <div className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                             <Layers className="w-7 h-7 mb-2" style={{ color: theme.tertiary }} />
                             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</h3>
                             <p className="text-2xl font-bold" style={{ color: theme.primary }}>{acabamentos.length}</p>

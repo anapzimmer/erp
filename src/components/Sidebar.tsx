@@ -40,7 +40,15 @@ const menuPrincipal: MenuItem[] = [
       { nome: "Vidros", rota: "/calculo/calculovidro" },
     ],
   },
-  { nome: "Projetos", rota: "/projetos", icone: Building2 },
+  {
+    nome: "Projetos",
+    rota: "/projetos",
+    icone: Building2,
+    submenu: [
+      { nome: "Cadastro de Projetos", rota: "/projetos" },
+      { nome: "Calcular Projeto", rota: "/calculoprojeto" },
+    ],
+  },
   { nome: "Imagens", rota: "/imagens", icone: ImageIcon },
   {
     nome: "Relatórios",
@@ -66,17 +74,24 @@ interface SidebarProps {
   showMobileMenu: boolean;
   setShowMobileMenu: (show: boolean) => void;
   nomeEmpresa: string;
-  // Adicione estas duas linhas abaixo:
   expandido: boolean;
   setExpandido: (expandido: boolean) => void;
 }
+
+const alphaHex = (hexColor: string, alpha: string) => {
+  const normalized = hexColor.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(normalized)) {
+    return `${normalized}${alpha}`;
+  }
+  return hexColor;
+};
 
 export default function Sidebar({
   showMobileMenu,
   setShowMobileMenu,
   nomeEmpresa,
-  expandido, // Agora o TS reconhecerá
-  setExpandido  // Agora o TS reconhecerá
+  expandido,
+  setExpandido
 }: SidebarProps) {
 
   const SIDEBAR_EXPANDED_STORAGE_KEY = "sidebar:expandido";
@@ -87,6 +102,24 @@ export default function Sidebar({
 
   const [hoveredSubmenu, setHoveredSubmenu] = useState<string | null>(null);
   const skipFirstPersist = useRef(true);
+
+  // Estilos do menu baseados no tema
+  const variantStyles = {
+    itemActiveBg: alphaHex(theme.menuIconColor, "1A"),
+    itemActiveBorder: alphaHex(theme.menuIconColor, "4D"),
+    itemActiveShadow: `inset 0 0 8px ${alphaHex(theme.menuIconColor, "1A")}`,
+    marker: true,
+    submenuActiveBg: alphaHex(theme.menuIconColor, "1A"),
+    asideBackground: theme.menuBackgroundColor,
+    asideBorder: alphaHex(theme.menuBackgroundColor, "4D"),
+    overlayBackground: "transparent",
+    sectionPrincipalBg: alphaHex(theme.menuBackgroundColor, "33"),
+    sectionCadastroBg: alphaHex(theme.menuBackgroundColor, "33"),
+    sectionBorder: alphaHex(theme.menuBackgroundColor, "59"),
+    footerText: theme.menuTextColor,
+    footerBg: alphaHex(theme.menuBackgroundColor, "4D"),
+    footerBorder: alphaHex(theme.menuBackgroundColor, "7A")
+  };
 
   useEffect(() => {
     try {
@@ -121,7 +154,7 @@ export default function Sidebar({
     return (
       <div
   key={item.nome}
-  className="group mb-1 px-2 relative"
+  className="group mb-1.5 px-2 relative"
   onMouseEnter={() => setHoveredSubmenu(item.nome)}
   onMouseLeave={() => setHoveredSubmenu(null)}
 >
@@ -131,18 +164,31 @@ export default function Sidebar({
       setShowMobileMenu(false);
     }}
     title={!expandido ? item.nome : undefined}
-    className={`flex items-center ${
+    className={`relative flex items-center ${
       expandido ? "justify-between" : "justify-center"
-    } p-3 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-1`}
+    } px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 hover:translate-x-0.5`}
     style={{
       color: theme.menuTextColor,
-      backgroundColor: isActive ? theme.menuHoverColor : "transparent",
+      backgroundColor: isActive ? variantStyles.itemActiveBg : "transparent",
+      border: `1px solid ${isActive ? variantStyles.itemActiveBorder : "transparent"}`,
+      boxShadow: isActive ? variantStyles.itemActiveShadow : "none",
     }}
   >
+    {isActive && variantStyles.marker && (
+      <span
+        className="absolute left-0 top-1/2 h-6 -translate-y-1/2 rounded-r-full"
+        style={{
+          width: "3px",
+          backgroundColor: theme.menuIconColor,
+          boxShadow: `0 0 14px ${alphaHex(theme.menuIconColor, "B3")}`
+        }}
+      />
+    )}
+
     <div className={`flex items-center ${expandido ? "gap-3" : ""}`}>
       <Icon
-        className="w-5 h-5 shrink-0"
-        style={{ color: theme.menuIconColor }}
+        className={`w-5 h-5 shrink-0 transition-transform duration-300 ${isActive ? "scale-105" : ""}`}
+        style={{ color: "#FFFFFF" }}
       />
       {expandido && (
         <span className="font-medium text-sm truncate">{item.nome}</span>
@@ -191,7 +237,7 @@ export default function Sidebar({
                   className="p-2 text-xs rounded-lg cursor-pointer transition-colors duration-200"
                   style={{
                     color: theme.menuTextColor,
-                    backgroundColor: isSubActive ? theme.menuHoverColor : "transparent",
+                    backgroundColor: isSubActive ? variantStyles.submenuActiveBg : "transparent",
                     opacity: isSubActive ? 1 : 0.85
                   }}
                 >
@@ -207,14 +253,19 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0
+      className={`fixed inset-y-0 left-0 z-50 min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0 overflow-hidden
       ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
       ${expandido ? "w-64" : "w-20"}`}
-      style={{ backgroundColor: theme.menuBackgroundColor }}
+      style={{ background: variantStyles.asideBackground, borderRight: `1px solid ${variantStyles.asideBorder}` }}
     >
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: variantStyles.overlayBackground }}
+      />
+
       <button
         onClick={() => setShowMobileMenu(false)}
-        className="md:hidden absolute top-4 right-4"
+        className="md:hidden absolute top-4 right-4 z-20"
         style={{ color: theme.menuTextColor }}
       >
         <X size={24} />
@@ -222,12 +273,17 @@ export default function Sidebar({
 
       <button
         onClick={() => setExpandido(!expandido)}
-        className="absolute -right-3 top-10 bg-white border border-gray-200 p-1 rounded-full shadow-md z-50 text-gray-500 hover:text-gray-800 transition-colors hidden md:block"
+        className="absolute -right-3 top-10 p-1 rounded-full shadow-md z-50 hidden md:block transition-colors"
+        style={{
+          backgroundColor: "#FFFFFF",
+          border: `1px solid ${alphaHex(theme.menuIconColor, "59")}`,
+          color: "#475569"
+        }}
       >
         {expandido ? <ChevronLeft size={16} /> : <ChevronRightIcon size={16} />}
       </button>
 
-     <div className="mb-8 flex flex-col items-center justify-center h-18 relative group">
+     <div className="mb-7 mt-1 flex flex-col items-center justify-center h-18 relative group z-10">
         {theme.logoDarkUrl ? (
           <Image
             src={theme.logoDarkUrl}
@@ -238,7 +294,7 @@ export default function Sidebar({
             className="object-contain max-h-14"
           />
         ) : (
-          <Building2 size={32} style={{ color: theme.menuIconColor }} />
+          <Building2 size={32} style={{ color: "#FFFFFF" }} />
         )}
         {!expandido && (
           <div
@@ -253,24 +309,37 @@ className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 
         )}
       </div>
 
-      <nav className={`flex-1 overflow-y-auto ${expandido ? "overflow-x-hidden" : "overflow-x-visible"} space-y-6`}>
-        <div>
+      <nav className={`flex-1 overflow-y-auto ${expandido ? "overflow-x-hidden" : "overflow-x-visible"} space-y-5 z-10 scrollbar-erp pr-1`}>
+        <div
+          className="rounded-2xl p-2.5"
+          style={{
+            backgroundColor: variantStyles.sectionPrincipalBg,
+            border: `1px solid ${variantStyles.sectionBorder}`
+          }}
+        >
           {expandido && (
-            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: theme.menuIconColor }}>
+            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.18em] mb-2.5" style={{ color: alphaHex(theme.menuTextColor, "B8") }}>
               Principal
             </p>
           )}
           {menuPrincipal.map(renderMenuItem)}
         </div>
-        <div>
+        <div
+          className="rounded-2xl p-2.5"
+          style={{
+            backgroundColor: variantStyles.sectionCadastroBg,
+            border: `1px solid ${variantStyles.sectionBorder}`
+          }}
+        >
           {expandido && (
-            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: theme.menuIconColor }}>
+            <p className="px-4 text-[10px] font-bold uppercase tracking-[0.18em] mb-2.5" style={{ color: alphaHex(theme.menuTextColor, "B8") }}>
               Cadastros
             </p>
           )}
           {menuCadastros.map(renderMenuItem)}
         </div>
       </nav>
+
     </aside>
   );
 }

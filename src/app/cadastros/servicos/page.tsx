@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
@@ -250,52 +251,14 @@ if (branding) {
       />
 
       <div className="flex-1 flex flex-col w-full min-w-0">
-        {/* HEADER */}
-        <header
-          className="border-b border-gray-100 py-3 px-4 md:py-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm no-print"
-          style={{ backgroundColor: theme.secondary }}
-        >
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => setShowMobileMenu(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-            >
-              <Menu size={24} className="text-gray-600" />
-            </button>
-          </div>
+        <Header
+          setShowMobileMenu={setShowMobileMenu}
+          nomeEmpresa={nomeEmpresa}
+          usuarioEmail={usuarioEmail || ""}
+          handleSignOut={handleLogout}
+        />
 
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 pl-2 md:pl-4 border-l border-gray-200 hover:opacity-75 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden md:block">{nomeEmpresa}</span>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in duration-200">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-400 font-medium">Logado como</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{usuarioEmail}</p>
-                  </div>
-                  <button onClick={() => { setShowUserMenu(false); router.push("/configuracoes"); }} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                    <Wrench size={18} className="text-gray-400" /> Configurações
-                  </button>
-                  <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-                    <X size={18} className="text-red-500" /> Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="p-4 md:p-8 flex-1">
+        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
           {/* HEADER DA SEÇÃO */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
@@ -311,7 +274,7 @@ if (branding) {
 
           {/* INDICADORES */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+            <div className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
               <Layers className="w-7 h-7 mb-2" style={{ color: theme.tertiary }} />
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</h3>
               <p className="text-2xl font-bold" style={{ color: theme.primary }}>{servicos.length}</p>

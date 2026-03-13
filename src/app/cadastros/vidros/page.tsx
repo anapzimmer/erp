@@ -465,7 +465,7 @@ const logoLight = branding?.logo_light || null;
         />
 
         {/* CONTEÚDO ESPECÍFICO */}
-        <main className="p-4 md:p-8 flex-1">
+        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}> <Square size={28} /> </div>
@@ -550,7 +550,7 @@ const logoLight = branding?.logo_light || null;
               { titulo: "Preço Médio", valor: calcularPrecoMedio(), icone: DollarSign },
               { titulo: "Grupos Especiais", valor: contarPrecoEspecial(), icone: Tag }
             ].map(card => (
-              <div key={card.titulo} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+              <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
                 <card.icone className="w-7 h-7 mb-2" style={{ color: theme.menuIconColor }} />
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
                 <p className="text-2xl font-bold" style={{ color: theme.menuBackgroundColor }}>{card.valor}</p>

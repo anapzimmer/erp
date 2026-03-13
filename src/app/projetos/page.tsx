@@ -66,6 +66,7 @@ type ProjetoKit = {
   altura_referencia: number
   tolerancia_mm: number
   observacao: string
+  variacao_restrita?: string | null
 }
 type ProjetoFerragem = {
   id?: string
@@ -75,6 +76,7 @@ type ProjetoFerragem = {
   usar_no_kit: boolean
   usar_no_perfil: boolean
   observacao: string
+  variacao_restrita?: string | null
 }
 type ProjetoPerfil = {
   id?: string
@@ -84,6 +86,7 @@ type ProjetoPerfil = {
   qtd_altura: number
   qtd_outros: number
   tipo_fornecimento: "barra"
+  variacao_restrita?: string | null
 }
 type FormData = {
   nome: string
@@ -637,14 +640,15 @@ export default function ProjetosPage() {
       categoria: detalhe.categoria || "",
       desenho: detalhe.desenho || "",
       folhas: (detalhe.projetos_folhas || []).sort((a, b) => a.numero_folha - b.numero_folha),
-      kits: (detalhe.projetos_kits || []).map((k) => ({ ...k, nome: k.kits?.nome || undefined })),
-      ferragens: (detalhe.projetos_ferragens || []).map((f) => ({ ...f, nome: f.ferragens?.nome || undefined })),
+      kits: (detalhe.projetos_kits || []).map((k) => ({ ...k, nome: k.kits?.nome || undefined, variacao_restrita: k.variacao_restrita ?? null })),
+      ferragens: (detalhe.projetos_ferragens || []).map((f) => ({ ...f, nome: f.ferragens?.nome || undefined, variacao_restrita: f.variacao_restrita ?? null })),
       perfis: (detalhe.projetos_perfis || []).map((p) => ({
         ...p,
         nome: p.perfis?.nome || undefined,
         qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
         qtd_altura: Number(p.qtd_altura ?? 0),
         qtd_outros: Number(p.qtd_outros ?? 0),
+        variacao_restrita: p.variacao_restrita ?? null,
       })),
     })
     setEditandoId(projeto.id)
@@ -713,6 +717,7 @@ export default function ProjetosPage() {
             altura_referencia: k.altura_referencia,
             tolerancia_mm: k.tolerancia_mm,
             observacao: k.observacao,
+            variacao_restrita: k.variacao_restrita ?? null,
           }))
         )
       }
@@ -726,6 +731,7 @@ export default function ProjetosPage() {
             usar_no_kit: f.usar_no_kit,
             usar_no_perfil: f.usar_no_perfil,
             observacao: f.observacao,
+            variacao_restrita: f.variacao_restrita ?? null,
           }))
         )
       }
@@ -739,6 +745,7 @@ export default function ProjetosPage() {
             qtd_altura: p.qtd_altura,
             qtd_outros: p.qtd_outros,
             tipo_fornecimento: p.tipo_fornecimento,
+            variacao_restrita: p.variacao_restrita ?? null,
           }))
         )
       }
@@ -859,6 +866,7 @@ export default function ProjetosPage() {
         altura_referencia: Number(kit.altura) || 0,
         tolerancia_mm: 50,
         observacao: "",
+        variacao_restrita: null,
       }],
     }))
   }
@@ -906,6 +914,7 @@ export default function ProjetosPage() {
         usar_no_kit: false,
         usar_no_perfil: false,
         observacao: "",
+        variacao_restrita: null,
       }],
     }))
   }
@@ -947,6 +956,7 @@ export default function ProjetosPage() {
         qtd_altura: 0,
         qtd_outros: 0,
         tipo_fornecimento: "barra",
+        variacao_restrita: null,
       }],
     }))
   }
@@ -987,6 +997,17 @@ export default function ProjetosPage() {
       })),
     }))
   const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
+
+  // Opções planas de variação para usar nos selects de cada item (ferragem/kit/perfil)
+  const variacaoOpcoesFlat = variacoesDesenho.flatMap((grupo, gi) =>
+    grupo.opcoes.map(opcao => ({
+      label: `${grupo.label}: ${opcao.label}`,
+      arquivo: opcao.arquivo,
+      corBg: (["#eff6ff", "#fef3c7", "#ecfdf5", "#f5f3ff", "#fff7ed"] as const)[gi % 5],
+      corText: (["#3b82f6", "#d97706", "#10b981", "#8b5cf6", "#f97316"] as const)[gi % 5],
+    }))
+  )
+
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
     item.label.toLowerCase().includes(buscaVariacaoCustom.toLowerCase().trim())
   )
@@ -1344,11 +1365,25 @@ export default function ProjetosPage() {
                 background: `linear-gradient(120deg, ${theme.menuBackgroundColor}16, ${theme.menuIconColor}12)`,
               }}
             >
-              <div>
-                <h2 className="text-lg font-black" style={{ color: theme.modalTextColor || theme.contentTextLightBg }}>
-                  {editandoId ? "Editar Projeto" : "Novo Projeto"}
-                </h2>
-                <p className="text-xs text-gray-400">{form.nome || "Preencha os dados abaixo"}</p>
+              <div className="flex items-center gap-3">
+                {form.desenho && (
+                  <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/60 border border-white/40">
+                    <Image src={`/desenhos/${form.desenho}`} alt="" fill className="object-contain p-1" />
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-lg font-black" style={{ color: theme.modalTextColor || theme.contentTextLightBg }}>
+                    {editandoId ? "Editar Projeto" : "Novo Projeto"}
+                  </h2>
+                  <p className="text-xs text-gray-400">
+                    {form.nome || "Preencha os dados abaixo"}
+                    {variacoesDesenho.length > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-0.5 font-black" style={{ color: "#8b5cf6" }}>
+                        · {variacoesDesenho.map(g => g.label).join(", ")}
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={fecharModal}
@@ -1836,6 +1871,19 @@ export default function ProjetosPage() {
                     Exemplo: numa porta de 2 folhas, o orçamento consulta os kits vinculados, filtra pela espessura do vidro e escolhe o kit cuja largura/altura de referência ficar mais próxima da medida calculada.
                   </div>
 
+                  {variacoesDesenho.length > 0 && (
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                      <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Variações detectadas neste projeto</p>
+                      <p className="text-xs text-violet-900 font-medium">
+                        Variações:{" "}
+                        {variacoesDesenho.map((g, i) => (
+                          <span key={g.id}>{i > 0 && " · "}<strong>{g.label}</strong> ({g.opcoes.map(o => o.label).join(" / ")})</span>
+                        ))}.
+                        {" "}Use <strong className="text-violet-700">"Aplica em"</strong> para restringir um kit a uma variação. Sem restrição, o kit é considerado em todas.
+                      </p>
+                    </div>
+                  )}
+
                   {!kitsDB.length && (
                     <div className="p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs font-bold">
                       Nenhum kit cadastrado. Acesse Cadastros → Kits primeiro.
@@ -1846,7 +1894,11 @@ export default function ProjetosPage() {
                   )}
 
                   {form.kits.map((kit, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3">
+                    <div
+                      key={idx}
+                      className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
+                      style={kit.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
+                    >
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Kit</label>
@@ -1911,6 +1963,35 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
                           />
                         </div>
+                        {variacoesDesenho.length > 0 && (
+                          <div className="md:col-span-2 xl:col-span-2">
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
+                              Aplica em qual variação?
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={kit.variacao_restrita || ""}
+                                onChange={e => atualizarKit(idx, "variacao_restrita", e.target.value || null)}
+                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
+                                style={{
+                                  backgroundColor: kit.variacao_restrita ? "#f5f3ff" : "#ffffff",
+                                  borderColor: kit.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: kit.variacao_restrita ? "#6d28d9" : "#6b7280",
+                                }}
+                              >
+                                <option value="">Todas as variações</option>
+                                {variacaoOpcoesFlat.map(op => (
+                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
+                                ))}
+                              </select>
+                              {kit.variacao_restrita && (
+                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
+                                  {variacaoOpcoesFlat.find(o => o.arquivo === kit.variacao_restrita)?.label || "Restrita"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => removerKit(idx)}
@@ -1946,6 +2027,21 @@ export default function ProjetosPage() {
                     Marque aqui quais ferragens entram como acessórios do cálculo de kit e quais entram no cálculo ligado aos perfis. Assim o orçamento consegue somar: vidros + kit mais próximo + acessórios necessários.
                   </div>
 
+                  {variacoesDesenho.length > 0 && (
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                      <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1.5">
+                        Atenção — este projeto tem variações
+                      </p>
+                      <p className="text-xs text-violet-900 font-medium">
+                        Variações detectadas:{" "}
+                        {variacoesDesenho.map((g, i) => (
+                          <span key={g.id}>{i > 0 && " · "}<strong>{g.label}</strong> ({g.opcoes.map(o => o.label).join(" / ")})</span>
+                        ))}.
+                        {" "}Use <strong className="text-violet-700">"Aplica em"</strong> em cada ferragem para indicar se ela é exclusiva de uma variação — exemplo: o <em>trinco</em> só entra na variação "Com trinco".
+                      </p>
+                    </div>
+                  )}
+
                   {!ferragensDB.length && (
                     <div className="p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs font-bold">
                       Nenhuma ferragem cadastrada. Acesse Cadastros → Ferragens primeiro.
@@ -1956,7 +2052,11 @@ export default function ProjetosPage() {
                   )}
 
                   {form.ferragens.map((f, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3">
+                    <div
+                      key={idx}
+                      className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
+                      style={f.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
+                    >
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Ferragem</label>
@@ -2015,6 +2115,35 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
                           />
                         </div>
+                        {variacoesDesenho.length > 0 && (
+                          <div className="sm:col-span-2 xl:col-span-4">
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
+                              Aplica em qual variação?
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={f.variacao_restrita || ""}
+                                onChange={e => atualizarFerragem(idx, "variacao_restrita", e.target.value || null)}
+                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
+                                style={{
+                                  backgroundColor: f.variacao_restrita ? "#f5f3ff" : "#ffffff",
+                                  borderColor: f.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: f.variacao_restrita ? "#6d28d9" : "#6b7280",
+                                }}
+                              >
+                                <option value="">Todas as variações</option>
+                                {variacaoOpcoesFlat.map(op => (
+                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
+                                ))}
+                              </select>
+                              {f.variacao_restrita && (
+                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
+                                  {variacaoOpcoesFlat.find(o => o.arquivo === f.variacao_restrita)?.label || "Restrita"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => removerFerragem(idx)}
@@ -2046,6 +2175,15 @@ export default function ProjetosPage() {
                     Perfis ficam fixos como barra e sem cor nesta etapa. A cor do perfil será definida depois no orçamento/motor de cálculo. Se o modelo for vendido em kit, use a aba de kits para o orçamento identificar o kit mais próximo pela medida e pela espessura do vidro.
                   </div>
 
+                  {variacoesDesenho.length > 0 && (
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                      <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Variações detectadas</p>
+                      <p className="text-xs text-violet-900 font-medium">
+                        Use <strong className="text-violet-700">"Aplica em"</strong> para restringir um perfil a uma variação específica. Perfis sem restrição entram em todas as variações.
+                      </p>
+                    </div>
+                  )}
+
                   {!perfisDB.length && (
                     <div className="p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs font-bold">
                       Nenhum perfil cadastrado. Acesse Cadastros → Perfis primeiro.
@@ -2056,7 +2194,11 @@ export default function ProjetosPage() {
                   )}
 
                   {form.perfis.map((p, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3">
+                    <div
+                      key={idx}
+                      className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
+                      style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
+                    >
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
@@ -2109,6 +2251,35 @@ export default function ProjetosPage() {
                             Em Barra
                           </div>
                         </div>
+                        {variacoesDesenho.length > 0 && (
+                          <div className="sm:col-span-2 xl:col-span-5">
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
+                              Aplica em qual variação?
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={p.variacao_restrita || ""}
+                                onChange={e => atualizarPerfil(idx, "variacao_restrita", e.target.value || null)}
+                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
+                                style={{
+                                  backgroundColor: p.variacao_restrita ? "#f5f3ff" : "#ffffff",
+                                  borderColor: p.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: p.variacao_restrita ? "#6d28d9" : "#6b7280",
+                                }}
+                              >
+                                <option value="">Todas as variações</option>
+                                {variacaoOpcoesFlat.map(op => (
+                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
+                                ))}
+                              </select>
+                              {p.variacao_restrita && (
+                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
+                                  {variacaoOpcoesFlat.find(o => o.arquivo === p.variacao_restrita)?.label || "Restrita"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => removerPerfil(idx)}
