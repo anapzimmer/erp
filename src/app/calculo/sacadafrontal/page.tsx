@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useTheme } from "@/context/ThemeContext";
@@ -284,6 +285,9 @@ const resolverFerragemPorCodigoECor = (
 export default function CalculoSacadaFrontalPage() {
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams.get("edit");
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
@@ -296,6 +300,8 @@ export default function CalculoSacadaFrontalPage() {
   const [obra, setObra] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [mensagemSalvo, setMensagemSalvo] = useState("");
+  const [editNumeroFormatado, setEditNumeroFormatado] = useState("");
+  const editCarregadoRef = useRef(false);
 
   const [larguraVaoMm, setLarguraVaoMm] = useState("");
   const [alturaVaoMm, setAlturaVaoMm] = useState("");
@@ -319,7 +325,8 @@ export default function CalculoSacadaFrontalPage() {
   useEffect(() => {
     setDraftHidratado(false);
 
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || editId) {
+      setDraftHidratado(true);
       return;
     }
 
@@ -350,7 +357,7 @@ export default function CalculoSacadaFrontalPage() {
   }, [chaveDraft]);
 
   useEffect(() => {
-    if (!draftHidratado || typeof window === "undefined") {
+    if (!draftHidratado || typeof window === "undefined" || editId) {
       return;
     }
 
@@ -464,11 +471,50 @@ export default function CalculoSacadaFrontalPage() {
     };
   }, [empresaId]);
 
+  const carregarOrcamentoParaEdicao = useCallback(async (id: string) => {
+    try {
+      const { data: orc, error } = await supabase
+        .from("orcamentos")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !orc) return;
+
+      const itensData = orc.itens as Record<string, unknown> | null;
+      if (!itensData) return;
+
+      // Preencher campos do formulário
+      setBuscaCliente(orc.cliente_nome || "");
+      setObra(orc.obra_referencia || "");
+      setEditNumeroFormatado(orc.numero_formatado || "");
+
+      if (itensData.larguraVaoMm != null) setLarguraVaoMm(String(itensData.larguraVaoMm));
+      if (itensData.alturaVaoMm != null) setAlturaVaoMm(String(itensData.alturaVaoMm));
+      if (itensData.quantidadeVaos != null) setQuantidadeVaos(String(itensData.quantidadeVaos));
+      if (itensData.divisoesPorVao != null) setQuantidadeDivisoesLargura(String(itensData.divisoesPorVao));
+      if (itensData.corPerfil) setCorPerfil(String(itensData.corPerfil));
+      if (itensData.vidroId) setVidroId(String(itensData.vidroId));
+
+      // Vincular cliente pelo nome
+      const clienteEncontrado = listaClientes.find((c) => c.nome === orc.cliente_nome);
+      if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
+    } catch (err) {
+      console.error("Erro ao carregar orçamento para edição:", err);
+    }
+  }, [listaClientes]);
+
   useEffect(() => {
-    if (!vidros.length && vidroId) {
+    if (editId && !carregandoInsumos && listaClientes.length > 0 && !editCarregadoRef.current) {
+      carregarOrcamentoParaEdicao(editId);
+      editCarregadoRef.current = true;
+    }
+  }, [editId, carregandoInsumos, listaClientes.length, carregarOrcamentoParaEdicao]);
+
+  useEffect(() => {
+    if (!carregandoInsumos && !vidros.length && vidroId) {
       setVidroId("");
     }
-  }, [vidroId, vidros]);
+  }, [carregandoInsumos, vidroId, vidros]);
 
   const vidroSelecionado = useMemo(
     () => vidros.find((vidro) => vidro.id === vidroId) || null,
@@ -493,10 +539,10 @@ export default function CalculoSacadaFrontalPage() {
   }, [buscaVidro, vidros]);
 
   useEffect(() => {
-    if (vidroId && !vidrosFiltrados.some((vidro) => vidro.id === vidroId)) {
+    if (!carregandoInsumos && vidroId && !vidrosFiltrados.some((vidro) => vidro.id === vidroId)) {
       setVidroId("");
     }
-  }, [vidroId, vidrosFiltrados]);
+  }, [carregandoInsumos, vidroId, vidrosFiltrados]);
 
   const larguraNumero = normalizarNumeroInteiro(larguraVaoMm);
   const alturaNumero = normalizarNumeroInteiro(alturaVaoMm);
@@ -670,20 +716,24 @@ const acessoriosComPrecoTabela = useMemo(() => {
     setMensagemSalvo("");
 
     try {
-      const dataAtual = new Date();
-      const prefixoData = `SAC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-      const { data: ultimos } = await supabase
-        .from("orcamentos")
-        .select("numero_formatado")
-        .like("numero_formatado", `${prefixoData}%`)
-        .order("numero_formatado", { ascending: false })
-        .limit(1);
+      let numeroFinal = editNumeroFormatado;
 
-      let seq = 1;
-      if (ultimos && ultimos.length > 0) {
-        seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
+      if (!editId) {
+        const dataAtual = new Date();
+        const prefixoData = `SAC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
+        const { data: ultimos } = await supabase
+          .from("orcamentos")
+          .select("numero_formatado")
+          .like("numero_formatado", `${prefixoData}%`)
+          .order("numero_formatado", { ascending: false })
+          .limit(1);
+
+        let seq = 1;
+        if (ultimos && ultimos.length > 0) {
+          seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
+        }
+        numeroFinal = `${prefixoData}${seq.toString().padStart(2, "0")}`;
       }
-      const numeroFinal = `${prefixoData}${seq.toString().padStart(2, "0")}`;
 
       const dadosParaSalvar = {
         numero_formatado: numeroFinal,
@@ -705,14 +755,19 @@ const acessoriosComPrecoTabela = useMemo(() => {
         empresa_id: empresaId,
         metragem_total: resultado.areaTotalVidro,
         peso_total: 0,
-        total_pecas: resultado.quantidadeTotalVidros,
         theme_color: theme.menuIconColor || "#1e3a5a",
       };
 
-      const { error } = await supabase.from("orcamentos").insert([dadosParaSalvar]);
-      if (error) throw error;
-
-      setMensagemSalvo(`Orçamento ${numeroFinal} salvo com sucesso!`);
+      if (editId) {
+        const { error } = await supabase.from("orcamentos").update(dadosParaSalvar).eq("id", editId);
+        if (error) throw error;
+        setMensagemSalvo(`Orçamento ${numeroFinal} atualizado com sucesso!`);
+        setTimeout(() => router.push("/admin/relatorio.orcamento"), 1200);
+      } else {
+        const { error } = await supabase.from("orcamentos").insert([dadosParaSalvar]);
+        if (error) throw error;
+        setMensagemSalvo(`Orçamento ${numeroFinal} salvo com sucesso!`);
+      }
       setTimeout(() => setMensagemSalvo(""), 4000);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -813,6 +868,27 @@ const acessoriosComPrecoTabela = useMemo(() => {
             {/* Botões */}
             <div className="flex items-center gap-2">
               <button
+                onClick={() => {
+                  setClienteId("");
+                  setBuscaCliente("");
+                  setObra("");
+                  setLarguraVaoMm("");
+                  setAlturaVaoMm("");
+                  setQuantidadeVaos("");
+                  setQuantidadeDivisoesLargura("");
+                  setBuscaVidro("");
+                  setVidroId("");
+                  setCorPerfil("");
+                  setMensagemSalvo("");
+                }}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+              >
+                <FilePlus2 size={16} />
+                Novo
+              </button>
+
+              <button
                 onClick={handleSalvar}
                 disabled={salvando}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
@@ -848,6 +924,8 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     totalPerfis={totalPerfisCalculado}
                     totalAcessorios={totalAcessoriosCalculado}
                     totalGeral={totalGeralCalculado}
+                    larguraVidroMm={resultado.larguraVidroMm}
+                    alturaVidroMm={resultado.alturaVidroMm}
                   />
                 }
                 fileName={`Sacada Frontal ${nomeClienteSelecionado || "Geral"} - ${Date.now().toString().slice(-6)}.pdf`}
@@ -884,10 +962,10 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   Sacada Frontal
                 </div>
                 <h1 className="mt-4 text-3xl md:text-5xl font-black leading-none" style={{ color: theme.contentTextLightBg }}>
-                  Cálculo de orçamento para vidro temperado com gradil de alumínio
+                  Cálculo de orçamento sacada com gradil de alumínio
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
-                  Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da tabela. O sistema arredonda o vidro em passos de 50 mm e calcula vidro, perfis e barras.
+                  Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da tabela. O sistema arredonda o vidro, calcula perfis e barras.
                 </p>
               </div>
 
@@ -1077,7 +1155,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(perfil.precoBarra) : "-"}</td>
-                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{corPerfilSelecionada ? formatarPreco(perfil.valorTotal) : "-"}</td>
+                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(perfil.valorTotal) : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1086,7 +1164,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                       <td colSpan={5} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
                         Total dos perfis
                       </td>
-                      <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.menuIconColor }}>
+                      <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
                         {formatarPreco(totalPerfisCalculado)}
                       </td>
                     </tr>
@@ -1110,7 +1188,6 @@ const acessoriosComPrecoTabela = useMemo(() => {
                       <tr>
                         <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Acessorio</th>
                         <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Codigo</th>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Cor</th>
                         <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Qtd</th>
                         <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preco unit.</th>
                         <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
@@ -1121,23 +1198,22 @@ const acessoriosComPrecoTabela = useMemo(() => {
                         <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
                           <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
                           <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
-                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.corEncontrada || "-"}</td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
                             {acessorio.quantidadePacote
                               ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
                               : acessorio.quantidade}
                           </td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.precoUnitario) : "-"}</td>
-                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{corPerfilSelecionada ? formatarPreco(acessorio.valorTotal) : "-"}</td>
+                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.valorTotal) : "-"}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                        <td colSpan={5} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                        <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
                           Total dos acessorios
                         </td>
-                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.menuIconColor }}>
+                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
                           {formatarPreco(totalAcessoriosCalculado)}
                         </td>
                       </tr>
@@ -1148,6 +1224,156 @@ const acessoriosComPrecoTabela = useMemo(() => {
             </article>
 
             <div className="space-y-6">
+              {/* Preview visual da sacada */}
+              <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
+                  Vista frontal
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                  Representação proporcional do vão
+                </p>
+                <div className="mt-4">
+                  {(() => {
+                    const divisoes = Math.max(quantidadeDivisoesNumero, 1);
+                    const larg = larguraNumero || 2000;
+                    const alt = alturaNumero || 1000;
+
+                    const svgW = 360;
+                    const padL = 40;
+                    const padR = 10;
+                    const padTop = 15;
+                    const padBot = 40;
+                    const drawW = svgW - padL - padR;
+
+                    const ratio = Math.min(Math.max(alt / larg, 0.3), 2.0);
+                    const drawH = drawW * ratio;
+                    const svgH = drawH + padTop + padBot;
+
+                    const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
+                    const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
+
+                    const numPosts = divisoes + 1;
+                    const totalPostW = numPosts * postW;
+                    const glassW = (drawW - totalPostW) / divisoes;
+                    const glassH = drawH - railH * 2;
+
+                    const x0 = padL;
+                    const y0 = padTop;
+
+                    const vidroLargMm = resultado.larguraVidroMm;
+                    const showLabelInside = divisoes <= 8 && glassW > 28;
+
+                    // Cor do perfil conforme seleção
+                    const corPerfilNorm = normalizarTextoComparacao(corPerfil);
+                    const corAluminio = corPerfilNorm === "branco"
+                      ? "#e8e8e8"
+                      : corPerfilNorm === "preto"
+                        ? "#2a2a2a"
+                        : corPerfilNorm === "fosco"
+                          ? "#8c8c8c"
+                          : "#9e9e9e";
+                    const corAluminioBorda = corPerfilNorm === "branco"
+                      ? "#c0c0c0"
+                      : corPerfilNorm === "preto"
+                        ? "#1a1a1a"
+                        : corPerfilNorm === "fosco"
+                          ? "#6b6b6b"
+                          : "#787878";
+
+                    // Cor do vidro (tom esverdeado/azulado de vidro temperado)
+                    const corVidroFill = "#b8e6e0";
+                    const corVidroBorda = "#7cbfb5";
+                    const corVidroReflexo = "#ffffff";
+
+                    return (
+                      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor={corVidroFill} stopOpacity={0.35} />
+                            <stop offset="50%" stopColor={corVidroFill} stopOpacity={0.18} />
+                            <stop offset="100%" stopColor={corVidroFill} stopOpacity={0.3} />
+                          </linearGradient>
+                          <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={corAluminio} />
+                            <stop offset="50%" stopColor={corAluminioBorda} />
+                            <stop offset="100%" stopColor={corAluminio} />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Top rail - corrimão */}
+                        <rect x={x0} y={y0} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
+                        <rect x={x0} y={y0} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
+
+                        {/* Bottom rail - perfil inferior */}
+                        <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
+                        <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
+
+                        {/* Glass panels & pontaletes */}
+                        {Array.from({ length: divisoes }).map((_, i) => {
+                          const pX = x0 + i * (glassW + postW);
+                          const gX = pX + postW;
+                          return (
+                            <g key={i}>
+                              {/* Pontalete */}
+                              <rect x={pX} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
+                              <rect x={pX} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
+
+                              {/* Vidro */}
+                              <rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="url(#glassGrad)" rx={1} />
+                              <rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={1} />
+
+                              {/* Reflexo diagonal */}
+                              <line x1={gX + glassW * 0.18} y1={y0 + railH + glassH * 0.06} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
+                              <line x1={gX + glassW * 0.24} y1={y0 + railH + glassH * 0.06} x2={gX + glassW * 0.14} y2={y0 + railH + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
+
+                              {showLabelInside && (
+                                <text x={gX + glassW / 2} y={y0 + railH + glassH / 2 + 3} textAnchor="middle" fontSize={glassW > 55 ? 7.5 : 6} fill="#4a7a73" opacity={0.55} fontWeight={600} fontFamily="system-ui, sans-serif">
+                                  {formatarNumero(vidroLargMm, 0)}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {/* Last pontalete */}
+                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
+                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
+
+                        {/* Dimension: largura (bottom) */}
+                        <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif">
+                          {formatarNumero(larg, 0)} mm
+                        </text>
+
+                        {/* Dimension: altura (left) */}
+                        <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
+                          {formatarNumero(alt, 0)} mm
+                        </text>
+                      </svg>
+                    );
+                  })()}
+                </div>
+                {/* Medida do vidro e info de vãos */}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                  <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
+                    Vidro: {formatarNumero(resultado.larguraVidroMm, 0)} × {formatarNumero(resultado.alturaVidroMm, 0)} mm
+                  </span>
+                  {quantidadeNumero > 1 && (
+                    <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}50` }}>
+                      × {quantidadeNumero} vãos
+                    </span>
+                  )}
+                  <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
+                    {quantidadeDivisoesNumero} {quantidadeDivisoesNumero === 1 ? "peça" : "peças"} por vão
+                  </span>
+                </div>
+              </article>
+
               <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
                 <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
                   Resumo técnico

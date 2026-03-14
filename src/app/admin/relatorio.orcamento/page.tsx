@@ -12,6 +12,8 @@ import Header from "@/components/Header"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
+import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
+import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
 
 type OrcamentoItem = {
@@ -36,7 +38,7 @@ type Orcamento = {
     peso_total?: number | string | null;
     metragem_total?: number | string | null;
     total_pecas?: number | string | null;
-    itens?: OrcamentoItem[];
+    itens?: OrcamentoItem[] | Record<string, unknown>;
 };
 
 export default function RelatorioOrçamento() {
@@ -266,7 +268,9 @@ export default function RelatorioOrçamento() {
         );
     }
 
-    const itens: OrcamentoItem[] = orcamentoParaVisualizar?.itens || [];
+    const itensRaw = orcamentoParaVisualizar?.itens;
+    const itens: OrcamentoItem[] = Array.isArray(itensRaw) ? itensRaw : [];
+    const ehSacadaVisualizar = /^SAC/i.test(String(orcamentoParaVisualizar?.numero_formatado || ""));
 
     return (
         <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -499,10 +503,13 @@ export default function RelatorioOrçamento() {
                                                             <button
                                                                 onClick={() => {
                                                                     const numero = String(orc.numero_formatado || "");
+                                                                    const ehSacada = /^SAC/i.test(numero);
                                                                     const ehEspelho = /^OR(?!C)/i.test(numero);
-                                                                    const rotaEdicao = ehEspelho
-                                                                        ? `/calculo/espelhos?edit=${orc.id}`
-                                                                        : `/calculo/calculovidro?edit=${orc.id}`;
+                                                                    const rotaEdicao = ehSacada
+                                                                        ? `/calculo/sacadafrontal?edit=${orc.id}`
+                                                                        : ehEspelho
+                                                                            ? `/calculo/espelhos?edit=${orc.id}`
+                                                                            : `/calculo/calculovidro?edit=${orc.id}`;
                                                                     router.push(rotaEdicao);
                                                                 }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
@@ -615,7 +622,50 @@ export default function RelatorioOrçamento() {
                         <div className="flex-1 w-full h-full bg-gray-200">
                             <div className="flex-1 w-full h-full bg-gray-200">
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
-                                    {(/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? (
+                                    {ehSacadaVisualizar ? (() => {
+                                        const sacadaData = (orcamentoParaVisualizar?.itens || {}) as Record<string, unknown>;
+                                        const largVao = Number(sacadaData.larguraVaoMm) || 0;
+                                        const altVao = Number(sacadaData.alturaVaoMm) || 0;
+                                        const qtdVaos = Number(sacadaData.quantidadeVaos) || 0;
+                                        const divVao = Number(sacadaData.divisoesPorVao) || 1;
+                                        const sacResult = calcularSacadaFrontal({
+                                            larguraVaoMm: largVao,
+                                            alturaVaoMm: altVao,
+                                            quantidadeVaos: qtdVaos,
+                                            quantidadeDivisoesLargura: divVao,
+                                        });
+                                        const perfisArr = (sacadaData.perfis || []) as Array<Record<string, unknown>>;
+                                        const acessArr = (sacadaData.acessorios || []) as Array<Record<string, unknown>>;
+                                        const totalPerfis = perfisArr.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
+                                        const totalAcessorios = acessArr.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+                                        const totalGeral = Number(orcamentoParaVisualizar?.valor_total) || 0;
+                                        const totalVidro = Math.max(0, totalGeral - totalPerfis - totalAcessorios);
+                                        return (
+                                            <SacadaFrontalPDF
+                                                nomeEmpresa={nomeEmpresa}
+                                                logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                themeColor={theme.contentTextLightBg}
+                                                nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
+                                                nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
+                                                larguraVaoMm={largVao}
+                                                alturaVaoMm={altVao}
+                                                quantidadeVaos={qtdVaos}
+                                                divisoesPorVao={divVao}
+                                                corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
+                                                vidroDescricao={String(sacadaData.vidroDescricao || "")}
+                                                medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
+                                                areaTotal={sacResult.areaTotalVidro}
+                                                totalVidro={totalVidro}
+                                                perfis={perfisArr as any}
+                                                acessorios={acessArr as any}
+                                                totalPerfis={totalPerfis}
+                                                totalAcessorios={totalAcessorios}
+                                                totalGeral={totalGeral}
+                                                larguraVidroMm={sacResult.larguraVidroMm}
+                                                alturaVidroMm={sacResult.alturaVidroMm}
+                                            />
+                                        );
+                                    })() : (/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? (
                                         <EspelhosPDF
                                             itens={itens}
                                             nomeEmpresa={nomeEmpresa}

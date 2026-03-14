@@ -813,7 +813,6 @@ export default function CalculoProjetoPage() {
         empresa_id: empresaId,
         metragem_total: Number(metragemTotal || 0),
         peso_total: 0,
-        total_pecas: Number(totalPecas || 0),
         theme_color: theme.menuIconColor || "#1e3a5a",
       }
 

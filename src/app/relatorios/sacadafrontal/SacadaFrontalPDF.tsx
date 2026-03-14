@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Page, Text, View, Document, StyleSheet, Image } from "@react-pdf/renderer";
+import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
 import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 interface PerfilPDF {
@@ -45,6 +45,8 @@ interface SacadaFrontalPDFProps {
   totalPerfis: number;
   totalAcessorios: number;
   totalGeral: number;
+  larguraVidroMm?: number;
+  alturaVidroMm?: number;
 }
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -110,6 +112,7 @@ export function SacadaFrontalPDF({
   larguraVaoMm, alturaVaoMm, quantidadeVaos, divisoesPorVao, corPerfil,
   vidroDescricao, medidaVidro, areaTotal, totalVidro,
   perfis, acessorios, totalPerfis, totalAcessorios, totalGeral,
+  larguraVidroMm, alturaVidroMm,
 }: SacadaFrontalPDFProps) {
   const c = textColor || themeColor;
 
@@ -148,6 +151,66 @@ export function SacadaFrontalPDF({
           <Text style={styles.plainInfoText}>Cor dos perfis: {corPerfil}</Text>
         </View>
 
+        {/* Vista frontal */}
+        {(() => {
+          const div = Math.max(divisoesPorVao, 1);
+          const sw = 460;
+          const sl = 28;
+          const sr = 8;
+          const st = 6;
+          const sb = 14;
+          const cw = sw - sl - sr;
+          const rat = Math.min(Math.max(alturaVaoMm / (larguraVaoMm || 1), 0.25), 1.2);
+          const ch = cw * rat;
+          const sh = ch + st + sb;
+          const pw = Math.max(1.5, Math.min(4, cw * 0.01));
+          const rh = Math.max(2.5, Math.min(6, ch * 0.025));
+          const gw = (cw - (div + 1) * pw) / div;
+          const gh = ch - rh * 2;
+          const x0 = sl;
+          const y0 = st;
+          const cl = (corPerfil || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          const ac = cl === "branco" ? "#d8d8d8" : cl === "preto" ? "#303030" : cl === "fosco" ? "#888888" : "#999999";
+          const ab = cl === "branco" ? "#b0b0b0" : cl === "preto" ? "#1a1a1a" : cl === "fosco" ? "#666666" : "#777777";
+          const dw = 440;
+          const dh = dw * (sh / sw);
+          return (
+            <View style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>
+              <Text style={{ fontSize: 9, fontWeight: "bold", color: themeColor, marginBottom: 5, alignSelf: "flex-start" }}>Vista Frontal</Text>
+              <Svg viewBox={`0 0 ${sw} ${sh}`} style={{ width: dw, height: dh }}>
+                <Rect x={x0} y={y0} width={cw} height={rh} fill={ac} />
+                <Rect x={x0} y={y0} width={cw} height={rh} fill="none" stroke={ab} strokeWidth={0.4} />
+                <Rect x={x0} y={y0 + ch - rh} width={cw} height={rh} fill={ac} />
+                <Rect x={x0} y={y0 + ch - rh} width={cw} height={rh} fill="none" stroke={ab} strokeWidth={0.4} />
+                {Array.from({ length: div }).map((_, i) => {
+                  const pX = x0 + i * (gw + pw);
+                  const gX = pX + pw;
+                  return (
+                    <G key={i}>
+                      <Rect x={pX} y={y0} width={pw} height={ch} fill={ac} />
+                      <Rect x={pX} y={y0} width={pw} height={ch} fill="none" stroke={ab} strokeWidth={0.3} />
+                      <Rect x={gX} y={y0 + rh} width={gw} height={gh} fill="#ddf2ee" />
+                      <Rect x={gX} y={y0 + rh} width={gw} height={gh} fill="none" stroke="#88bbb2" strokeWidth={0.4} />
+                      <Line x1={gX + gw * 0.18} y1={y0 + rh + gh * 0.06} x2={gX + gw * 0.08} y2={y0 + rh + gh * 0.35} stroke="#ffffff" strokeWidth={0.5} />
+                    </G>
+                  );
+                })}
+                <Rect x={x0 + div * (gw + pw)} y={y0} width={pw} height={ch} fill={ac} />
+                <Rect x={x0 + div * (gw + pw)} y={y0} width={pw} height={ch} fill="none" stroke={ab} strokeWidth={0.3} />
+                <Line x1={x0} y1={y0 + ch + 6} x2={x0 + cw} y2={y0 + ch + 6} stroke="#999999" strokeWidth={0.3} />
+                <Line x1={x0} y1={y0 + ch + 3} x2={x0} y2={y0 + ch + 9} stroke="#999999" strokeWidth={0.3} />
+                <Line x1={x0 + cw} y1={y0 + ch + 3} x2={x0 + cw} y2={y0 + ch + 9} stroke="#999999" strokeWidth={0.3} />
+                <Line x1={x0 - 6} y1={y0} x2={x0 - 6} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
+                <Line x1={x0 - 9} y1={y0} x2={x0 - 3} y2={y0} stroke="#999999" strokeWidth={0.3} />
+                <Line x1={x0 - 9} y1={y0 + ch} x2={x0 - 3} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
+              </Svg>
+              <Text style={{ fontSize: 7, color: "#777777", marginTop: 3 }}>
+                Vão: {larguraVaoMm} × {alturaVaoMm} mm  ·  Vidro: {larguraVidroMm ?? "–"} × {alturaVidroMm ?? "–"} mm  ·  {divisoesPorVao} peça(s)/vão{quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}
+              </Text>
+            </View>
+          );
+        })()}
+
         {/* Perfis */}
         <Text style={[styles.sectionTitle, { color: themeColor }]}>Perfis de Alumínio</Text>
         <View style={styles.table}>
@@ -177,19 +240,17 @@ export function SacadaFrontalPDF({
           <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
             <Text style={[styles.thCell, { width: "30%" }]}>Acessório</Text>
             <Text style={[styles.thCell, { width: "14%", textAlign: "center" }]}>Código</Text>
-            <Text style={[styles.thCell, { width: "14%", textAlign: "center" }]}>Cor</Text>
-            <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>Qtd</Text>
-            <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]}>Preço un.</Text>
-            <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]}>Total</Text>
+            <Text style={[styles.thCell, { width: "14%", textAlign: "right" }]}>Qtd</Text>
+            <Text style={[styles.thCell, { width: "21%", textAlign: "right" }]}>Preço un.</Text>
+            <Text style={[styles.thCell, { width: "21%", textAlign: "right" }]}>Total</Text>
           </View>
           {acessorios.map((a, i) => (
             <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
               <Text style={[styles.tdCell, { width: "30%" }]}>{a.nome}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.codigo}</Text>
-              <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.corEncontrada}</Text>
-              <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
+              <Text style={[styles.tdCell, { width: "14%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
+              <Text style={[styles.tdCell, { width: "21%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
+              <Text style={[styles.tdCell, { width: "21%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
             </View>
           ))}
         </View>
