@@ -774,13 +774,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
     }
   };
 
-  if (loading || carregandoInsumos) {
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: theme.screenBackgroundColor }}>
-        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: "transparent", borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }} />
-      </div>
-    );
-  }
+  const conteudoCarregando = loading || carregandoInsumos;
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -801,6 +795,12 @@ const acessoriosComPrecoTabela = useMemo(() => {
         />
 
         <main className="p-4 md:p-8 flex-1 space-y-6">
+
+          {conteudoCarregando ? (
+            <div className="flex flex-1 items-center justify-center min-h-[60vh]">
+              <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: "transparent", borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }} />
+            </div>
+          ) : (<>
 
           {/* CLIENTE / OBRA / AÇÕES */}
           <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
@@ -1394,6 +1394,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
               </article>
             </div>
           </section>
+          </>)}
         </main>
       </div>
     </div>

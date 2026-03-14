@@ -414,9 +414,9 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
   // --- Lógica de Filtros e Métricas ---
   const perfisFiltrados = perfis.filter(p =>
-    (filtroNome ? p.nome.toLowerCase().includes(filtroNome.toLowerCase()) : true) &&
-    (filtroCor ? p.cores.toLowerCase().includes(filtroCor.toLowerCase()) : true) &&
-    (filtroCategoria ? p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()) : true)
+    (filtroNome ? (p.nome || "").toLowerCase().includes(filtroNome.toLowerCase()) || (p.codigo || "").toLowerCase().includes(filtroNome.toLowerCase()) : true) &&
+    (filtroCor ? (p.cores || "").toLowerCase().includes(filtroCor.toLowerCase()) : true) &&
+    (filtroCategoria ? (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase()) : true)
   )
 
   const totalPerfis = perfis.length
