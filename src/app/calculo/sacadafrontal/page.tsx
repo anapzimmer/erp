@@ -189,97 +189,63 @@ const resolverFerragemPorCodigoECor = (
   codigo: string,
   nomeFallback: string,
   corUsar: string
-) => {
+): { preco: number; corEncontrada: string } => {
   const codigoNorm = normalizarCodigo(codigo);
   const corNorm = normalizarTextoComparacao(corUsar);
-  const nomeNorm = normalizarTextoComparacao(nomeFallback);
-  const codigosAceitos = new Set([
+  const codigosAceitos = [
     ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
-  ]);
+  ];
 
-  const porCodigo = ferragensTabela.filter(
-    (f) => codigosAceitos.has(normalizarCodigo(f.codigo))
-  );
+  // Mapa de sufixo de código → cor (ex: CAN625-BC → BC → branco)
+  const SUFIXO_COR: Record<string, string> = { BC: "branco", PT: "preto", NF: "fosco" };
 
-  // Busca por nome: primeiro tenta exata/contem, depois por palavras-chave
-  let porNome = ferragensTabela.filter((f) => {
-    const nomeFerragem = normalizarTextoComparacao(f.nome);
-    return nomeFerragem === nomeNorm || nomeFerragem.includes(nomeNorm) || nomeNorm.includes(nomeFerragem);
+  // Busca por código: exato OU código do banco começa com o código alvo
+  // Isso cobre CAN625 (exato) e CAN625-BC → CAN625BC (prefixo)
+  const candidatos = ferragensTabela.filter((f) => {
+    const fCodigo = normalizarCodigo(f.codigo);
+    return codigosAceitos.some((aceito) => fCodigo === aceito || fCodigo.startsWith(aceito));
   });
 
-  if (porNome.length === 0 && nomeNorm.length > 2) {
-    const palavras = nomeNorm.split(/\s+/).filter((p) => p.length >= 3);
-    if (palavras.length > 0) {
-      porNome = ferragensTabela.filter((f) => {
-        const nomeFerragem = normalizarTextoComparacao(f.nome);
-        const matches = palavras.filter((p) => nomeFerragem.includes(p));
-        return matches.length >= Math.min(2, palavras.length);
-      });
+  if (candidatos.length === 0) {
+    return { preco: 0, corEncontrada: corUsar || "Padrão" };
+  }
+
+  // 1️⃣ tentar achar por campo cores
+  if (corNorm) {
+    const comCor = candidatos.find((f) => corCompativel(f.cores, corNorm));
+    if (comCor && normalizarPrecoFerragem(comCor.preco) > 0) {
+      return { preco: normalizarPrecoFerragem(comCor.preco), corEncontrada: corUsar };
+    }
+
+    // 2️⃣ tentar por sufixo do código (ex: CAN625-BC → BC → branco)
+    const comSufixo = candidatos.find((f) => {
+      const fCodigo = normalizarCodigo(f.codigo);
+      return Object.entries(SUFIXO_COR).some(
+        ([sufixo, corSufixo]) => fCodigo.endsWith(sufixo) && corSufixo === corNorm
+      );
+    });
+    if (comSufixo && normalizarPrecoFerragem(comSufixo.preco) > 0) {
+      return { preco: normalizarPrecoFerragem(comSufixo.preco), corEncontrada: corUsar };
     }
   }
 
-  const ferragensMesmoCodigo = porCodigo.length > 0 ? porCodigo : porNome;
-
-  if (ferragensMesmoCodigo.length === 0) {
-    return {
-      nome: nomeFallback,
-      codigo,
-      preco: 0,
-      corEncontrada: corUsar || "Padrão",
-    };
+  // 3️⃣ tentar entrada sem cor (padrão) — código exato sem sufixo de cor
+  const semCor = candidatos.find((f) => {
+    const fCodigo = normalizarCodigo(f.codigo);
+    const ehExato = codigosAceitos.includes(fCodigo);
+    return ehExato && (!f.cores || f.cores.trim() === "");
+  });
+  if (semCor && normalizarPrecoFerragem(semCor.preco) > 0) {
+    return { preco: normalizarPrecoFerragem(semCor.preco), corEncontrada: "Padrão" };
   }
 
-  // 1️⃣ tentar achar código + cor
-  const ferragemComCor = ferragensMesmoCodigo.find((f) =>
-    corCompativel(f.cores, corNorm)
-  );
-
-  if (ferragemComCor && normalizarPrecoFerragem(ferragemComCor.preco) > 0) {
-    return {
-      nome: ferragemComCor.nome,
-      codigo: ferragemComCor.codigo,
-      preco: normalizarPrecoFerragem(ferragemComCor.preco),
-      corEncontrada: corUsar,
-    };
+  // 4️⃣ qualquer com preço
+  const comPreco = candidatos.find((f) => normalizarPrecoFerragem(f.preco) > 0);
+  if (comPreco) {
+    return { preco: normalizarPrecoFerragem(comPreco.preco), corEncontrada: comPreco.cores || "Padrão" };
   }
 
-  // 2️⃣ tentar código sem cor
-  const ferragemPadrao = ferragensMesmoCodigo.find(
-    (f) => !f.cores || f.cores.trim() === ""
-  );
-
-  if (ferragemPadrao && normalizarPrecoFerragem(ferragemPadrao.preco) > 0) {
-    return {
-      nome: ferragemPadrao.nome,
-      codigo: ferragemPadrao.codigo,
-      preco: normalizarPrecoFerragem(ferragemPadrao.preco),
-      corEncontrada: "Padrão",
-    };
-  }
-
-  // 3️⃣ fallback seguro (qualquer com preço)
-  const ferragemComPreco = ferragensMesmoCodigo.find(
-    (f) => normalizarPrecoFerragem(f.preco) > 0
-  );
-
-  if (ferragemComPreco) {
-    return {
-      nome: ferragemComPreco.nome,
-      codigo: ferragemComPreco.codigo,
-      preco: normalizarPrecoFerragem(ferragemComPreco.preco),
-      corEncontrada: ferragemComPreco.cores || "Padrão",
-    };
-  }
-
-  // 4️⃣ último fallback
-  const primeira = ferragensMesmoCodigo[0];
-
-  return {
-    nome: primeira.nome,
-    codigo: primeira.codigo,
-    preco: normalizarPrecoFerragem(primeira.preco),
-    corEncontrada: primeira.cores || "Padrão",
-  };
+  return { preco: 0, corEncontrada: corUsar || "Padrão" };
 };
 
 export default function CalculoSacadaFrontalPage() {
@@ -629,25 +595,21 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
   return regras.map(({ nome, codigo, quantidade, pacote }) => {
     const corUsar = resolverCorAcessorio(codigo, corPerfil);
-    const ferragemSelecionada = resolverFerragemPorCodigoECor(
+    const resultado = resolverFerragemPorCodigoECor(
       ferragensTabela,
       codigo,
       nome,
       corUsar
     );
 
-    const precoUnitario = ferragemSelecionada.preco;
+    const precoUnitario = resultado.preco;
     const quantidadeNecessaria = Number(quantidade) || 0;
 
     const quantidadePacote = pacote
       ? Math.ceil(quantidadeNecessaria / pacote) * pacote
       : quantidadeNecessaria;
 
-    if (
-      process.env.NODE_ENV !== "production" &&
-      ["CAN625", "SUP626", "NYL314", "NYL042"].includes(normalizarCodigo(codigo)) &&
-      precoUnitario === 0
-    ) {
+    if (process.env.NODE_ENV !== "production" && precoUnitario === 0) {
       const codigoNorm = normalizarCodigo(codigo);
       const codigosAceitos = new Set([
         ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
@@ -658,16 +620,17 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
       console.warn("[SACADA][FERRAGENS] Acessorio zerado", {
         codigo,
+        nome,
         corPerfil,
         corUsar,
-        registros,
+        registrosBanco: registros,
       });
     }
 
     return {
-      nome: ferragemSelecionada.nome,
-      codigo: ferragemSelecionada.codigo,
-      corEncontrada: ferragemSelecionada.corEncontrada,
+      nome,
+      codigo,
+      corEncontrada: resultado.corEncontrada,
       quantidade: quantidadeNecessaria,
       quantidadePacote: pacote ? quantidadePacote : undefined,
       pacote,
@@ -683,6 +646,38 @@ const acessoriosComPrecoTabela = useMemo(() => {
   resultado.larguraVidroMm,
   resultado.quantidadeTotalVidros
 ]);
+
+  // Log temporário para debug de acessórios
+  useEffect(() => {
+    if (acessoriosComPrecoTabela.length > 0 && ferragensTabela.length > 0) {
+      console.table(
+        acessoriosComPrecoTabela.map((a) => ({
+          nome: a.nome,
+          codigo: a.codigo,
+          cor: a.corEncontrada,
+          preco: a.precoUnitario,
+          qtd: a.quantidade,
+          valorTotal: a.valorTotal,
+          status: a.precoUnitario > 0 ? "OK" : "⚠️ ZERADO",
+        }))
+      );
+
+      const zerados = acessoriosComPrecoTabela.filter((a) => a.precoUnitario === 0);
+      if (zerados.length > 0) {
+        console.warn("[SACADA] Acessórios zerados:", zerados.map((a) => a.codigo));
+        zerados.forEach((a) => {
+          const codigoNorm = normalizarCodigo(a.codigo);
+          const codigosAceitos = new Set([
+            ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
+          ]);
+          const nobanco = ferragensTabela
+            .filter((f) => codigosAceitos.has(normalizarCodigo(f.codigo)))
+            .map((f) => ({ codigo: f.codigo, nome: f.nome, cores: f.cores, preco: f.preco }));
+          console.warn(`[SACADA] ${a.codigo} (${a.nome}) - registros no banco:`, nobanco.length > 0 ? nobanco : "NENHUM ENCONTRADO");
+        });
+      }
+    }
+  }, [acessoriosComPrecoTabela, ferragensTabela]);
 
   const totalPerfisCalculado = useMemo(
     () => Number(perfisComPrecoTabela.reduce((acc, perfil) => acc + perfil.valorTotal, 0).toFixed(2)),
