@@ -24,25 +24,20 @@ type Vidro = {
   espessura?: string | null;
   tipo?: string | null;
   preco: number;
-  empresa_id?: string;
 };
 
 type PerfilTabela = {
-  id: string;
   codigo: string;
   nome: string;
   cores?: string | null;
   preco?: number | null;
-  empresa_id?: string;
 };
 
 type FerragemTabela = {
-  id: string;
   codigo: string;
   nome: string;
   cores?: string | null;
   preco?: number | null;
-  empresa_id?: string;
 };
 
 type PrecoEspecial = {
@@ -51,7 +46,26 @@ type PrecoEspecial = {
   preco: number;
 };
 
+type SacadaFrontalDraft = {
+  clienteId: string;
+  buscaCliente: string;
+  obra: string;
+  larguraVaoMm: string;
+  alturaVaoMm: string;
+  quantidadeVaos: string;
+  quantidadeDivisoesLargura: string;
+  buscaVidro: string;
+  vidroId: string;
+  corPerfil: string;
+};
+
 const CORES_PERFIL = ["Branco", "Preto", "Fosco"];
+const SACADA_FRONTAL_DRAFT_KEY = "sacada-frontal-draft";
+const CODIGOS_COR_PERFIL = new Set(["CAN625", "SUP626", "NYL314", "NYL042"]);
+const CODIGOS_SEMPRE_PRETO = new Set(["GUA033"]);
+const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
+  NYL314: ["NYL314", "NYL342"],
+};
 
 const normalizarTextoComparacao = (texto?: string | null) =>
   (texto || "")
@@ -60,20 +74,32 @@ const normalizarTextoComparacao = (texto?: string | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
-const atendeCor = (coresItem?: string | null, corSelecionada?: string) => {
-  const cor = normalizarTextoComparacao(corSelecionada);
-  const cores = normalizarTextoComparacao(coresItem);
+const normalizarCodigo = (codigo?: string | null) =>
+  (codigo || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
 
-  if (!cor) {
-    return true;
+const corCompativel = (coresBanco?: string | null, corSelecionada?: string) => {
+  if (!coresBanco || !corSelecionada) {
+    return false;
   }
 
-  if (!cores) {
-    return true;
+  const corNormalizada = normalizarTextoComparacao(corSelecionada).replace(/\s+/g, "");
+  if (!corNormalizada) {
+    return false;
   }
 
-  return cores.includes(cor);
+  const lista = coresBanco
+    .toLowerCase()
+    .split(",")
+    .map((cor) => normalizarTextoComparacao(cor).replace(/\s+/g, ""))
+    .filter(Boolean);
+
+  return lista.includes(corNormalizada);
 };
+
+const atendeCor = (coresItem?: string | null, corSelecionada?: string) => corCompativel(coresItem, corSelecionada);
 
 const formatarNumero = (valor: number, casasDecimais = 3) =>
   valor.toLocaleString("pt-BR", {
@@ -94,14 +120,166 @@ const montarDescricaoVidro = (vidro?: Vidro | null) => {
     .join(" - ");
 };
 
-const normalizarNomeAcessorio = (nome: string) =>
-  normalizarTextoComparacao(nome)
-    .replace(/1\/4/g, "")
-    .replace(/3\/4/g, "")
-    .replace(/3\/8/g, "")
-    .replace(/x\s*5\/8/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+const semCorCadastrada = (coresItem?: string | null) => !normalizarTextoComparacao(coresItem);
+
+const normalizarPrecoFerragem = (preco?: number | string | null) => {
+  if (typeof preco === "number") {
+    return Number.isFinite(preco) ? preco : 0;
+  }
+
+  if (typeof preco !== "string") {
+    return 0;
+  }
+
+  const bruto = preco.trim();
+  if (!bruto) {
+    return 0;
+  }
+
+  // Remove simbolos de moeda e caracteres nao numericos, preservando separadores.
+  const somenteNumero = bruto.replace(/[^\d,.-]/g, "");
+  if (!somenteNumero) {
+    return 0;
+  }
+
+  const temVirgula = somenteNumero.includes(",");
+  const temPonto = somenteNumero.includes(".");
+
+  let normalizado = somenteNumero;
+
+  if (temVirgula && temPonto) {
+    // Decide separador decimal pelo ultimo simbolo encontrado.
+    const ultimaVirgula = somenteNumero.lastIndexOf(",");
+    const ultimoPonto = somenteNumero.lastIndexOf(".");
+    if (ultimaVirgula > ultimoPonto) {
+      // Ex.: 1.234,56 -> 1234.56
+      normalizado = somenteNumero.replace(/\./g, "").replace(/,/g, ".");
+    } else {
+      // Ex.: 1,234.56 -> 1234.56
+      normalizado = somenteNumero.replace(/,/g, "");
+    }
+  } else if (temVirgula) {
+    // Ex.: 12,50 -> 12.50
+    normalizado = somenteNumero.replace(/,/g, ".");
+  } else {
+    normalizado = somenteNumero;
+  }
+
+  const valor = Number(normalizado);
+  return Number.isFinite(valor) ? valor : 0;
+};
+
+const resolverCorAcessorio = (codigo: string, corPerfilSelecionada: string) => {
+  const codigoNorm = normalizarCodigo(codigo);
+
+  if (CODIGOS_COR_PERFIL.has(codigoNorm)) {
+    return corPerfilSelecionada;
+  }
+
+  if (CODIGOS_SEMPRE_PRETO.has(codigoNorm)) {
+    return "Preto";
+  }
+
+  return "";
+};
+
+const resolverFerragemPorCodigoECor = (
+  ferragensTabela: FerragemTabela[],
+  codigo: string,
+  nomeFallback: string,
+  corUsar: string
+) => {
+  const codigoNorm = normalizarCodigo(codigo);
+  const corNorm = normalizarTextoComparacao(corUsar);
+  const nomeNorm = normalizarTextoComparacao(nomeFallback);
+  const codigosAceitos = new Set([
+    ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
+  ]);
+
+  const porCodigo = ferragensTabela.filter(
+    (f) => codigosAceitos.has(normalizarCodigo(f.codigo))
+  );
+
+  // Busca por nome: primeiro tenta exata/contem, depois por palavras-chave
+  let porNome = ferragensTabela.filter((f) => {
+    const nomeFerragem = normalizarTextoComparacao(f.nome);
+    return nomeFerragem === nomeNorm || nomeFerragem.includes(nomeNorm) || nomeNorm.includes(nomeFerragem);
+  });
+
+  if (porNome.length === 0 && nomeNorm.length > 2) {
+    const palavras = nomeNorm.split(/\s+/).filter((p) => p.length >= 3);
+    if (palavras.length > 0) {
+      porNome = ferragensTabela.filter((f) => {
+        const nomeFerragem = normalizarTextoComparacao(f.nome);
+        const matches = palavras.filter((p) => nomeFerragem.includes(p));
+        return matches.length >= Math.min(2, palavras.length);
+      });
+    }
+  }
+
+  const ferragensMesmoCodigo = porCodigo.length > 0 ? porCodigo : porNome;
+
+  if (ferragensMesmoCodigo.length === 0) {
+    return {
+      nome: nomeFallback,
+      codigo,
+      preco: 0,
+      corEncontrada: corUsar || "Padrão",
+    };
+  }
+
+  // 1️⃣ tentar achar código + cor
+  const ferragemComCor = ferragensMesmoCodigo.find((f) =>
+    corCompativel(f.cores, corNorm)
+  );
+
+  if (ferragemComCor && normalizarPrecoFerragem(ferragemComCor.preco) > 0) {
+    return {
+      nome: ferragemComCor.nome,
+      codigo: ferragemComCor.codigo,
+      preco: normalizarPrecoFerragem(ferragemComCor.preco),
+      corEncontrada: corUsar,
+    };
+  }
+
+  // 2️⃣ tentar código sem cor
+  const ferragemPadrao = ferragensMesmoCodigo.find(
+    (f) => !f.cores || f.cores.trim() === ""
+  );
+
+  if (ferragemPadrao && normalizarPrecoFerragem(ferragemPadrao.preco) > 0) {
+    return {
+      nome: ferragemPadrao.nome,
+      codigo: ferragemPadrao.codigo,
+      preco: normalizarPrecoFerragem(ferragemPadrao.preco),
+      corEncontrada: "Padrão",
+    };
+  }
+
+  // 3️⃣ fallback seguro (qualquer com preço)
+  const ferragemComPreco = ferragensMesmoCodigo.find(
+    (f) => normalizarPrecoFerragem(f.preco) > 0
+  );
+
+  if (ferragemComPreco) {
+    return {
+      nome: ferragemComPreco.nome,
+      codigo: ferragemComPreco.codigo,
+      preco: normalizarPrecoFerragem(ferragemComPreco.preco),
+      corEncontrada: ferragemComPreco.cores || "Padrão",
+    };
+  }
+
+  // 4️⃣ último fallback
+  const primeira = ferragensMesmoCodigo[0];
+
+  return {
+    nome: primeira.nome,
+    codigo: primeira.codigo,
+    preco: normalizarPrecoFerragem(primeira.preco),
+    corEncontrada: primeira.cores || "Padrão",
+  };
+};
 
 export default function CalculoSacadaFrontalPage() {
   const { theme } = useTheme();
@@ -119,18 +297,91 @@ export default function CalculoSacadaFrontalPage() {
   const [salvando, setSalvando] = useState(false);
   const [mensagemSalvo, setMensagemSalvo] = useState("");
 
-  const [larguraVaoMm, setLarguraVaoMm] = useState("7800");
-  const [alturaVaoMm, setAlturaVaoMm] = useState("1100");
-  const [quantidadeVaos, setQuantidadeVaos] = useState("1");
-  const [quantidadeDivisoesLargura, setQuantidadeDivisoesLargura] = useState("8");
+  const [larguraVaoMm, setLarguraVaoMm] = useState("");
+  const [alturaVaoMm, setAlturaVaoMm] = useState("");
+  const [quantidadeVaos, setQuantidadeVaos] = useState("");
+  const [quantidadeDivisoesLargura, setQuantidadeDivisoesLargura] = useState("");
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [perfisTabela, setPerfisTabela] = useState<PerfilTabela[]>([]);
   const [ferragensTabela, setFerragensTabela] = useState<FerragemTabela[]>([]);
   const [buscaVidro, setBuscaVidro] = useState("");
   const [vidroId, setVidroId] = useState("");
-  const [corPerfil, setCorPerfil] = useState(CORES_PERFIL[0]);
+  const [corPerfil, setCorPerfil] = useState("");
   const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
   const [carregandoInsumos, setCarregandoInsumos] = useState(true);
+  const [draftHidratado, setDraftHidratado] = useState(false);
+
+  const chaveDraft = useMemo(
+    () => `${SACADA_FRONTAL_DRAFT_KEY}:${empresaId || "global"}`,
+    [empresaId]
+  );
+
+  useEffect(() => {
+    setDraftHidratado(false);
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const bruto = window.localStorage.getItem(chaveDraft);
+      if (!bruto) {
+        setDraftHidratado(true);
+        return;
+      }
+
+      const draft = JSON.parse(bruto) as Partial<SacadaFrontalDraft>;
+
+      if (typeof draft.clienteId === "string") setClienteId(draft.clienteId);
+      if (typeof draft.buscaCliente === "string") setBuscaCliente(draft.buscaCliente);
+      if (typeof draft.obra === "string") setObra(draft.obra);
+      if (typeof draft.larguraVaoMm === "string") setLarguraVaoMm(draft.larguraVaoMm);
+      if (typeof draft.alturaVaoMm === "string") setAlturaVaoMm(draft.alturaVaoMm);
+      if (typeof draft.quantidadeVaos === "string") setQuantidadeVaos(draft.quantidadeVaos);
+      if (typeof draft.quantidadeDivisoesLargura === "string") setQuantidadeDivisoesLargura(draft.quantidadeDivisoesLargura);
+      if (typeof draft.buscaVidro === "string") setBuscaVidro(draft.buscaVidro);
+      if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
+      if (typeof draft.corPerfil === "string") setCorPerfil(draft.corPerfil);
+    } catch (error) {
+      console.warn("Nao foi possivel restaurar rascunho da sacada frontal:", error);
+    } finally {
+      setDraftHidratado(true);
+    }
+  }, [chaveDraft]);
+
+  useEffect(() => {
+    if (!draftHidratado || typeof window === "undefined") {
+      return;
+    }
+
+    const draft: SacadaFrontalDraft = {
+      clienteId,
+      buscaCliente,
+      obra,
+      larguraVaoMm,
+      alturaVaoMm,
+      quantidadeVaos,
+      quantidadeDivisoesLargura,
+      buscaVidro,
+      vidroId,
+      corPerfil,
+    };
+
+    window.localStorage.setItem(chaveDraft, JSON.stringify(draft));
+  }, [
+    alturaVaoMm,
+    buscaCliente,
+    buscaVidro,
+    chaveDraft,
+    clienteId,
+    corPerfil,
+    draftHidratado,
+    larguraVaoMm,
+    obra,
+    quantidadeDivisoesLargura,
+    quantidadeVaos,
+    vidroId,
+  ]);
 
   useEffect(() => {
     let ativo = true;
@@ -149,9 +400,9 @@ export default function CalculoSacadaFrontalPage() {
       setCarregandoInsumos(true);
 
       const [resVidros, resPerfis, resFerragens, resClientes, resPrecos] = await Promise.all([
-        supabase.from("vidros").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
-        supabase.from("perfis").select("id, codigo, nome, cores, preco, empresa_id").eq("empresa_id", empresaId).order("codigo", { ascending: true }),
-        supabase.from("ferragens").select("id, codigo, nome, cores, preco, empresa_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("vidros").select("id, nome, espessura, tipo, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("perfis").select("codigo, nome, cores, preco").eq("empresa_id", empresaId).order("codigo", { ascending: true }),
+        supabase.from("ferragens").select("codigo, nome, cores, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
       ]);
@@ -177,12 +428,33 @@ export default function CalculoSacadaFrontalPage() {
         return;
       }
 
+      const ferragensCarregadas = (resFerragens.data || []) as FerragemTabela[];
+
       setVidros((resVidros.data || []) as Vidro[]);
       setPerfisTabela((resPerfis.data || []) as PerfilTabela[]);
-      setFerragensTabela((resFerragens.data || []) as FerragemTabela[]);
+      setFerragensTabela(ferragensCarregadas);
       if (resClientes.data) setListaClientes(resClientes.data as ClienteSacada[]);
       if (resPrecos.data) setPrecosEspeciais(resPrecos.data as PrecoEspecial[]);
       setCarregandoInsumos(false);
+
+      if (process.env.NODE_ENV !== "production") {
+        const codigosAlvo = ["NYL", "TAM", "NYLON", "TAMPA"];
+        const relacionadas = ferragensCarregadas.filter((f) => {
+          const cod = normalizarCodigo(f.codigo);
+          const nom = normalizarTextoComparacao(f.nome);
+          return codigosAlvo.some((alvo) => cod.includes(alvo) || nom.includes(alvo.toLowerCase()));
+        });
+        console.log(
+          "[DEBUG][SACADA] Ferragens NYL/TAMPA encontradas no banco:",
+          relacionadas.map((f) => ({ codigo: f.codigo, nome: f.nome, cores: f.cores, preco: f.preco }))
+        );
+        console.log(
+          "[DEBUG][SACADA] Total de ferragens carregadas:",
+          ferragensCarregadas.length,
+          "| Todos os codigos:",
+          ferragensCarregadas.map((f) => f.codigo)
+        );
+      }
     };
 
     carregarInsumos();
@@ -193,15 +465,8 @@ export default function CalculoSacadaFrontalPage() {
   }, [empresaId]);
 
   useEffect(() => {
-    if (!vidros.length) {
-      if (vidroId) {
-        setVidroId("");
-      }
-      return;
-    }
-
-    if (!vidros.some((vidro) => vidro.id === vidroId)) {
-      setVidroId(vidros[0].id);
+    if (!vidros.length && vidroId) {
+      setVidroId("");
     }
   }, [vidroId, vidros]);
 
@@ -228,12 +493,8 @@ export default function CalculoSacadaFrontalPage() {
   }, [buscaVidro, vidros]);
 
   useEffect(() => {
-    if (!vidrosFiltrados.length) {
-      return;
-    }
-
-    if (!vidrosFiltrados.some((vidro) => vidro.id === vidroId)) {
-      setVidroId(vidrosFiltrados[0].id);
+    if (vidroId && !vidrosFiltrados.some((vidro) => vidro.id === vidroId)) {
+      setVidroId("");
     }
   }, [vidroId, vidrosFiltrados]);
 
@@ -267,8 +528,19 @@ export default function CalculoSacadaFrontalPage() {
     [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, vidroSelecionado]
   );
 
+  const corPerfilSelecionada = Boolean(normalizarTextoComparacao(corPerfil));
+
   const perfisComPrecoTabela = useMemo(() => {
     return resultado.perfis.map((perfilResultado) => {
+      if (!corPerfilSelecionada) {
+        return {
+          ...perfilResultado,
+          corEncontrada: "",
+          precoBarra: 0,
+          valorTotal: 0,
+        };
+      }
+
       const corSelecionada = normalizarTextoComparacao(corPerfil);
       const perfilDaTabela = perfisTabela.find((perfilTabela) => {
         const mesmoCodigo = normalizarTextoComparacao(perfilTabela.codigo) === normalizarTextoComparacao(perfilResultado.codigo);
@@ -291,63 +563,80 @@ export default function CalculoSacadaFrontalPage() {
         valorTotal: Number((precoBarra * perfilResultado.quantidadeBarras).toFixed(2)),
       };
     });
-  }, [corPerfil, perfisTabela, resultado.perfis]);
+  }, [corPerfil, corPerfilSelecionada, perfisTabela, resultado.perfis]);
 
-  const acessoriosComPrecoTabela = useMemo(() => {
-    const pontoDivisao = (quantidadeDivisoesNumero + 1) * quantidadeNumero;
-    const guarnicaoMm = (resultado.larguraVidroMm * 2 + 50) * resultado.quantidadeTotalVidros;
+const acessoriosComPrecoTabela = useMemo(() => {
+  const pontoDivisao = (quantidadeDivisoesNumero + 1) * quantidadeNumero;
+  const guarnicaoMm = (resultado.larguraVidroMm * 2 + 50) * resultado.quantidadeTotalVidros;
 
-    const regras = [
-      { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
-      { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
-      { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
-      { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
-      { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100 },
-      { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
-    ];
+  const regras = [
+    { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
+    { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
+    { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
+    { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
+    { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
+    { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
+    { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
+    { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100 },
+    { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
+  ];
 
-    return regras.map(({ nome, codigo, quantidade, pacote }) => {
-      const corSelecionada = normalizarTextoComparacao(corPerfil);
-      const codigoNorm = normalizarTextoComparacao(codigo);
-      const nomeNormalizado = normalizarNomeAcessorio(nome);
+  return regras.map(({ nome, codigo, quantidade, pacote }) => {
+    const corUsar = resolverCorAcessorio(codigo, corPerfil);
+    const ferragemSelecionada = resolverFerragemPorCodigoECor(
+      ferragensTabela,
+      codigo,
+      nome,
+      corUsar
+    );
 
-      const ferragem =
-        ferragensTabela.find((item) =>
-          normalizarTextoComparacao(item.codigo) === codigoNorm && atendeCor(item.cores, corSelecionada)
-        ) ||
-        ferragensTabela.find((item) =>
-          normalizarTextoComparacao(item.codigo) === codigoNorm
-        ) ||
-        ferragensTabela.find((item) => {
-          const nomeItem = normalizarNomeAcessorio(item.nome);
-          return (nomeItem.includes(nomeNormalizado) || nomeNormalizado.includes(nomeItem)) && atendeCor(item.cores, corSelecionada);
-        }) ||
-        ferragensTabela.find((item) => {
-          const nomeItem = normalizarNomeAcessorio(item.nome);
-          return nomeItem.includes(nomeNormalizado) || nomeNormalizado.includes(nomeItem);
-        });
+    const precoUnitario = ferragemSelecionada.preco;
+    const quantidadeNecessaria = Number(quantidade) || 0;
 
-      const precoUnitario = Number(ferragem?.preco) || 0;
-      const quantidadeNecessaria = Number(quantidade) || 0;
-      const quantidadePacote = pacote
-        ? Math.ceil(quantidadeNecessaria / pacote) * pacote
-        : quantidadeNecessaria;
+    const quantidadePacote = pacote
+      ? Math.ceil(quantidadeNecessaria / pacote) * pacote
+      : quantidadeNecessaria;
 
-      return {
-        nome: ferragem?.nome || nome,
-        codigo: ferragem?.codigo || codigo,
-        corEncontrada: ferragem?.cores || corPerfil,
-        quantidade: quantidadeNecessaria,
-        quantidadePacote: pacote ? quantidadePacote : undefined,
-        pacote,
-        precoUnitario,
-        valorTotal: Number((quantidadePacote * precoUnitario).toFixed(2)),
-      };
-    });
-  }, [corPerfil, ferragensTabela, quantidadeDivisoesNumero, quantidadeNumero, resultado.larguraVidroMm, resultado.quantidadeTotalVidros]);
+    if (
+      process.env.NODE_ENV !== "production" &&
+      ["CAN625", "SUP626", "NYL314", "NYL042"].includes(normalizarCodigo(codigo)) &&
+      precoUnitario === 0
+    ) {
+      const codigoNorm = normalizarCodigo(codigo);
+      const codigosAceitos = new Set([
+        ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
+      ]);
+      const registros = ferragensTabela
+        .filter((f) => codigosAceitos.has(normalizarCodigo(f.codigo)))
+        .map((f) => ({ codigo: f.codigo, nome: f.nome, cores: f.cores, preco: f.preco }));
+
+      console.warn("[SACADA][FERRAGENS] Acessorio zerado", {
+        codigo,
+        corPerfil,
+        corUsar,
+        registros,
+      });
+    }
+
+    return {
+      nome: ferragemSelecionada.nome,
+      codigo: ferragemSelecionada.codigo,
+      corEncontrada: ferragemSelecionada.corEncontrada,
+      quantidade: quantidadeNecessaria,
+      quantidadePacote: pacote ? quantidadePacote : undefined,
+      pacote,
+      precoUnitario,
+      valorTotal: Number((quantidadePacote * precoUnitario).toFixed(2)),
+    };
+  });
+}, [
+  corPerfil,
+  ferragensTabela,
+  quantidadeDivisoesNumero,
+  quantidadeNumero,
+  resultado.larguraVidroMm,
+  resultado.quantidadeTotalVidros
+]);
 
   const totalPerfisCalculado = useMemo(
     () => Number(perfisComPrecoTabela.reduce((acc, perfil) => acc + perfil.valorTotal, 0).toFixed(2)),
@@ -406,7 +695,7 @@ export default function CalculoSacadaFrontalPage() {
           alturaVaoMm: alturaNumero,
           quantidadeVaos: quantidadeNumero,
           divisoesPorVao: quantidadeDivisoesNumero,
-          corPerfil,
+          corPerfil: corPerfil || "Não selecionada",
           vidroId,
           vidroDescricao: montarDescricaoVidro(vidroSelecionado),
           perfis: perfisComPrecoTabela,
@@ -549,7 +838,7 @@ export default function CalculoSacadaFrontalPage() {
                     alturaVaoMm={alturaNumero}
                     quantidadeVaos={quantidadeNumero}
                     divisoesPorVao={quantidadeDivisoesNumero}
-                    corPerfil={corPerfil}
+                    corPerfil={corPerfil || "Não selecionada"}
                     vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
                     medidaVidro={`${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`}
                     areaTotal={resultado.areaTotalVidro}
@@ -665,6 +954,7 @@ export default function CalculoSacadaFrontalPage() {
                     className="mt-3 w-full bg-transparent text-lg font-black outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
+                    <option value="" className="text-slate-900">Selecione a cor</option>
                     {CORES_PERFIL.map((cor) => (
                       <option key={cor} value={cor} className="text-slate-900">
                         {cor}
@@ -690,6 +980,7 @@ export default function CalculoSacadaFrontalPage() {
                     className="mt-3 w-full bg-transparent text-lg font-black outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
+                    <option value="" className="text-slate-900">Selecione o vidro</option>
                     {vidrosFiltrados.length === 0 ? (
                       <option value="" className="text-slate-900">Nenhum vidro encontrado</option>
                     ) : vidros.length === 0 ? (
@@ -785,8 +1076,8 @@ export default function CalculoSacadaFrontalPage() {
                         <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{perfil.codigo}</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
-                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.precoBarra)}</td>
-                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{formatarPreco(perfil.valorTotal)}</td>
+                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(perfil.precoBarra) : "-"}</td>
+                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{corPerfilSelecionada ? formatarPreco(perfil.valorTotal) : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -830,14 +1121,14 @@ export default function CalculoSacadaFrontalPage() {
                         <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
                           <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
                           <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
-                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.corEncontrada}</td>
+                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.corEncontrada || "-"}</td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
                             {acessorio.quantidadePacote
                               ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
                               : acessorio.quantidade}
                           </td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.precoUnitario)}</td>
-                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{formatarPreco(acessorio.valorTotal)}</td>
+                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.precoUnitario) : "-"}</td>
+                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.menuIconColor }}>{corPerfilSelecionada ? formatarPreco(acessorio.valorTotal) : "-"}</td>
                         </tr>
                       ))}
                     </tbody>

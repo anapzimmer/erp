@@ -64,17 +64,24 @@ const styles = StyleSheet.create({
   data: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: "#666", marginTop: 6 },
   logo: { width: PDF_HEADER_LAYOUT.logoWidth, height: PDF_HEADER_LAYOUT.logoHeight, objectFit: "contain", objectPosition: "right" },
 
-  infoSection: {
-    flexDirection: "row",
-    marginBottom: 12,
-    gap: 8,
-  },
-  infoBox: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
+  clientObraBox: {
+    backgroundColor: "#EFEFEF",
     padding: 10,
     borderRadius: 6,
-    borderLeftWidth: 3,
+    marginBottom: 10,
+  },
+  clientObraLine: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  clientObraItem: { flex: 1 },
+  plainInfoList: {
+    marginBottom: 12,
+    gap: 4,
+  },
+  plainInfoText: {
+    fontSize: 9,
+    color: "#1C415B",
   },
   label: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
   value: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
@@ -119,36 +126,26 @@ export function SacadaFrontalPDF({
           {logoUrl && <Image src={logoUrl} style={styles.logo} />}
         </View>
 
-        {/* Info boxes - Linha 1: Cliente / Obra / Vidro */}
-        <View style={styles.infoSection}>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+        {/* Destaque cinza apenas para Cliente e Obra */}
+        <View style={styles.clientObraBox}>
+          <View style={styles.clientObraLine}>
+            <View style={styles.clientObraItem}>
             <Text style={styles.label}>Cliente</Text>
             <Text style={[styles.value, { color: c }]}>{nomeCliente || "Não informado"}</Text>
-          </View>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+            </View>
+            <View style={styles.clientObraItem}>
             <Text style={styles.label}>Obra / Referência</Text>
             <Text style={[styles.value, { color: c }]}>{nomeObra || "Geral"}</Text>
-          </View>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
-            <Text style={styles.label}>Vidro</Text>
-            <Text style={[styles.value, { color: c }]}>{vidroDescricao}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Info boxes - Linha 2: Configuração / Medida do vidro / Cor dos perfis */}
-        <View style={styles.infoSection}>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
-            <Text style={styles.label}>Configuração</Text>
-            <Text style={[styles.value, { color: c }]}>{larguraVaoMm}x{alturaVaoMm}mm · {quantidadeVaos} vão(s) · {divisoesPorVao} div.</Text>
-          </View>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
-            <Text style={styles.label}>Medida do vidro</Text>
-            <Text style={[styles.value, { color: c }]}>{medidaVidro}</Text>
-          </View>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
-            <Text style={styles.label}>Cor dos perfis</Text>
-            <Text style={[styles.value, { color: c }]}>{corPerfil}</Text>
-          </View>
+        {/* Demais dados em texto simples, um abaixo do outro */}
+        <View style={styles.plainInfoList}>
+          <Text style={styles.plainInfoText}>Vidro: {vidroDescricao}</Text>
+          <Text style={styles.plainInfoText}>Medidas de vão: {larguraVaoMm}x{alturaVaoMm}mm · {quantidadeVaos} vão(s) · {divisoesPorVao} div.</Text>
+          <Text style={styles.plainInfoText}>Medida do vidro: {medidaVidro}</Text>
+          <Text style={styles.plainInfoText}>Cor dos perfis: {corPerfil}</Text>
         </View>
 
         {/* Perfis */}
@@ -164,12 +161,12 @@ export function SacadaFrontalPDF({
           </View>
           {perfis.map((p, i) => (
             <View key={`p-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-              <Text style={[styles.tdCell, { width: "30%", fontWeight: "bold" }]}>{p.nome}</Text>
+              <Text style={[styles.tdCell, { width: "30%" }]}>{p.nome}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{p.codigo}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "right" }]}>{p.comprimentoTotal.toLocaleString("pt-BR")}</Text>
               <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{p.quantidadeBarras}</Text>
               <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.precoBarra)}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right", fontWeight: "bold" }]}>{fmt(p.valorTotal)}</Text>
+              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.valorTotal)}</Text>
             </View>
           ))}
         </View>
@@ -187,12 +184,12 @@ export function SacadaFrontalPDF({
           </View>
           {acessorios.map((a, i) => (
             <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-              <Text style={[styles.tdCell, { width: "30%", fontWeight: "bold" }]}>{a.nome}</Text>
+              <Text style={[styles.tdCell, { width: "30%" }]}>{a.nome}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.codigo}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.corEncontrada}</Text>
               <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
               <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right", fontWeight: "bold" }]}>{fmt(a.valorTotal)}</Text>
+              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
             </View>
           ))}
         </View>
