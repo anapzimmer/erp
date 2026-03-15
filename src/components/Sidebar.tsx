@@ -72,6 +72,7 @@ const menuPrincipal: MenuItem[] = [
       { nome: "Espelhos", rota: "/calculo/espelhos" },
       { nome: "Vidros", rota: "/calculo/calculovidro" },
       { nome: "Sacada Frontal", rota: "/calculo/sacadafrontal" },
+      { nome: "Pele de Vidro", rota: "/calculo/peledevidro" },
     ],
   },
   {

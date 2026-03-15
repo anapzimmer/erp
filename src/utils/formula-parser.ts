@@ -1,13 +1,13 @@
+//app/utils/formula-parser.ts
 // Transforma uma string "(L + 50) / 4" em um cálculo matemático real
-export const processarFormula = (formula: string, L: number, A: number, folgas: number = 0) => {
+export const processarFormula = (formula: string, variaveis: Record<string, number>) => {
   try {
-    // Substitui as variáveis pelas medidas do vão
-    let expressao = formula
-      .replace(/L/gi, L.toString())
-      .replace(/A/gi, A.toString())
-      .replace(/FOLGAS/gi, folgas.toString());
-
-    // Usa Function para processar a string como matemática (bem mais seguro que eval)
+    let expressao = formula;
+    for (const [key, value] of Object.entries(variaveis)) {
+      expressao = expressao.replace(new RegExp(`\\b${key}\\b`, "g"), String(value));
+    }
+    // Corrige substituição errada de MULT para MU0T
+    expressao = expressao.replace(/MU0T/g, "MULT");
     return new Function(`return ${expressao}`)();
   } catch (error) {
     console.error("Erro na fórmula:", formula, error);
