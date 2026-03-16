@@ -187,51 +187,36 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4 overflow-hidden font-inter">
+<div className="relative min-h-screen w-full bg-[#FFFFFF] overflow-hidden font-inter flex items-center justify-center">
 
       {/* --- CAMADA 1: VIDROS FLUTUANTES --- */}
-      <div className="absolute inset-0 z-10 pointer-events-none opacity-60">
-        {/* Vidro 1: Lento e grande */}
-        <div
-          className="glass-element w-64 h-96 rounded-3xl"
-          style={{
-            top: '10%', left: '5%',
-            '--speed': '5s', '--lap-time': '10s'
-          } as React.CSSProperties}
-        />
-
-        {/* Vidro 2: Rápido e médio */}
-        <div
-          className="glass-element w-80 h-48 rounded-[3rem]"
-          style={{
-            bottom: '15%', right: '10%',
-            '--speed': '8s', '--lap-time': '5s'
-          } as React.CSSProperties}
-        />
-
-        {/* Vidro 3: Pequeno e flutuante */}
-        <div
-          className="glass-element w-32 h-32 rounded-2xl"
-          style={{
-            top: '40%', right: '5%',
-            '--speed': '8s', '--lap-time': '7s'
-          } as React.CSSProperties}
-        />
-      </div>
-
+    <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
+      <div
+        className="glass-element w-64 h-96 rounded-3xl"
+        style={{ top: '10%', left: '5%', '--speed': '5s', '--lap-time': '10s' } as React.CSSProperties}
+      />
+      <div
+        className="glass-element w-80 h-48 rounded-[3rem]"
+        style={{ bottom: '15%', right: '5%', '--speed': '8s', '--lap-time': '5s' } as React.CSSProperties}
+      />
+      <div
+        className="glass-element w-32 h-32 rounded-2xl"
+        style={{ top: '40%', right: '2%', '--speed': '8s', '--lap-time': '7s' } as React.CSSProperties}
+      />
+    </div>
 
       {/* --- CAMADA 2: AS 5 MÁQUINAS CNC --- */}
-      <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 1000 1000">
-        {/* Laser 1: Horizontal Topo */}
+<svg className="absolute inset-0 w-full h-full z-10 pointer-events-none" viewBox="0 0 1000 1000">
+          {/* Laser 1: Horizontal Topo */}
         <path d="M-100,200 H1100" className="cnc-laser stroke-[#39B89F]" strokeWidth="1" fill="none" />
         <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.5s infinite' }}>
           <animateMotion dur="8s" repeatCount="indefinite" path="M-100,200 H1100" />
         </circle>
 
-        {/* Laser 2: Círculo Esquerda */}
-        <path d="M200,500 A100,100 0 1,1 200,501" className="cnc-laser stroke-[#1C415B]" strokeWidth="1.5" fill="none" />
+        {/* Laser 2: Círculo Esquerda (movido) */}
+        <path d="M80,500 A100,100 0 1,1 80,501" className="cnc-laser stroke-[#39B89F]" strokeWidth="1.5" fill="none" />
         <circle fill="#39B89F" className="spark" style={{ animation: 'sparkLight 0.3s infinite' }}>
-          <animateMotion dur="10s" repeatCount="indefinite" path="M200,500 A100,100 0 1,1 200,501" />
+          <animateMotion dur="10s" repeatCount="indefinite" path="M80,500 A100,100 0 1,1 80,501" />
         </circle>
 
         {/* Laser 3: Diagonal */}
@@ -254,20 +239,26 @@ const LoginPage = () => {
       </svg>
 
       {/* --- CAMADA 3: CARD DE LOGIN CENTRALIZADO --- */}
-      <div className="relative z-50 w-full max-w-md animate-scale-up">
-        <div className="mb-8 text-center">
-          <Image
-            src="/glasscode.png"
-            alt="Logo"
-            width={160}
-            height={80}
-            loading="eager"
-            style={{ width: "auto" }}
-            className="h-20 mx-auto object-contain drop-shadow-md"
-          />
-        </div>
+<div className="relative z-20 w-full max-w-md animate-scale-up">
+  <div className="mb-8 text-center relative z-100"> {/* Z-index alto aqui */}
+ <Image
+    src="/glasscode.png"
+    alt="Logo"
+    width={160}
+    height={80}
+    priority
+    unoptimized // <--- FORÇA O NEXT.JS A NÃO MEXER NA IMAGEM
+    style={{ 
+      width: "auto", 
+      height: "80px",
+      display: "block",
+      margin: "0 auto",
+      filter: "none" // Garante que nenhum efeito global a afete
+    }}
+  />
+</div>
 
-        <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">
+        <div className="bg-white/90 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-black text-[#1C415B] tracking-tight">Bem-vindo</h2>
             <p className="text-[#1C415B]/60 text-sm mt-2 font-medium">Acesse o painel de precisão.</p>
