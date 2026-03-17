@@ -59,6 +59,18 @@ export default function RelatorioOrçamento() {
     const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
     const [filtro, setFiltro] = useState("")
     const [loadingDados, setLoadingDados] = useState(true)
+    const [perfisDb, setPerfisDb] = useState<any[]>([]);
+    const [acessoriosDb, setAcessoriosDb] = useState<any[]>([]);
+    useEffect(() => {
+        if (!empresaIdAtual) return;
+        const buscarCadastros = async () => {
+            const { data: perfisData } = await supabase.from("perfis").select("*").eq("empresa_id", empresaIdAtual);
+            setPerfisDb(perfisData || []);
+            const { data: acessoriosData } = await supabase.from("ferragens").select("*").eq("empresa_id", empresaIdAtual);
+            setAcessoriosDb(acessoriosData || []);
+        };
+        buscarCadastros();
+    }, [empresaIdAtual]);
 
     // Estados para Seleção e Modal
     const [selecionados, setSelecionados] = useState<string[]>([]);
@@ -505,11 +517,14 @@ export default function RelatorioOrçamento() {
                                                                     const numero = String(orc.numero_formatado || "");
                                                                     const ehSacada = /^SAC/i.test(numero);
                                                                     const ehEspelho = /^OR(?!C)/i.test(numero);
+                                                                    const ehPeleVidro = (orc.itens && (orc.itens as any).tipo === "pele_de_vidro");
                                                                     const rotaEdicao = ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}`
                                                                         : ehEspelho
                                                                             ? `/calculo/espelhos?edit=${orc.id}`
-                                                                            : `/calculo/calculovidro?edit=${orc.id}`;
+                                                                            : ehPeleVidro
+                                                                                ? `/calculo/peledevidro?edit=${orc.id}`
+                                                                                : `/calculo/calculovidro?edit=${orc.id}`;
                                                                     router.push(rotaEdicao);
                                                                 }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
@@ -622,75 +637,153 @@ export default function RelatorioOrçamento() {
                         <div className="flex-1 w-full h-full bg-gray-200">
                             <div className="flex-1 w-full h-full bg-gray-200">
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
-                                    {ehSacadaVisualizar ? (() => {
-                                        const sacadaData = (orcamentoParaVisualizar?.itens || {}) as Record<string, unknown>;
-                                        const largVao = Number(sacadaData.larguraVaoMm) || 0;
-                                        const altVao = Number(sacadaData.alturaVaoMm) || 0;
-                                        const qtdVaos = Number(sacadaData.quantidadeVaos) || 0;
-                                        const divVao = Number(sacadaData.divisoesPorVao) || 1;
-                                        const sacResult = calcularSacadaFrontal({
-                                            larguraVaoMm: largVao,
-                                            alturaVaoMm: altVao,
-                                            quantidadeVaos: qtdVaos,
-                                            quantidadeDivisoesLargura: divVao,
-                                        });
-                                        const perfisArr = (sacadaData.perfis || []) as Array<Record<string, unknown>>;
-                                        const acessArr = (sacadaData.acessorios || []) as Array<Record<string, unknown>>;
-                                        const totalPerfis = perfisArr.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
-                                        const totalAcessorios = acessArr.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
-                                        const totalGeral = Number(orcamentoParaVisualizar?.valor_total) || 0;
-                                        const totalVidro = Math.max(0, totalGeral - totalPerfis - totalAcessorios);
+                                    {/* PDF da Pele de Vidro */}
+                                    {(() => {
+                                        const itensRaw = orcamentoParaVisualizar?.itens || {};
+                                        // Detecta se é pele de vidro
+                                        const tipo = (itensRaw as any).tipo;
+                                        if (tipo === "pele_de_vidro") {
+                                            // Importação dinâmica para evitar erro de import circular
+                                            const { PeleDeVidroPDF } = require("@/app/relatorios/peledevidro/PeleDeVidroPDF");
+                                            // Mapeamento dos perfis
+                                            const perfisCorrigidos = ((itensRaw as any).perfis || []).map((p: any) => {
+                                                const cadastro = perfisDb.find((db) => db.codigo === p.codigo || db.nome === p.nome);
+                                                let unidade = cadastro?.unidade ?? p.unidade ?? "6MT";
+                                                const nome = (cadastro?.nome || p.nome || "").toLowerCase();
+                                                if (nome.includes("cantoneira") || nome.includes("cunha")) unidade = "3MT";
+                                                return {
+                                                    ...p,
+                                                    nome: cadastro?.nome || p.nome,
+                                                    codigo: cadastro?.codigo || p.codigo,
+                                                    kgmt: cadastro?.kgmt ?? p.kgmt ?? "-",
+                                                    precoBarra: cadastro?.preco ?? p.precoBarra ?? 0,
+                                                    unidade,
+                                                };
+                                            });
+                                            // Mapeamento dos acessórios
+                                            const acessoriosCorrigidos = ((itensRaw as any).acessorios || []).map((a: any) => {
+                                                const cadastro = acessoriosDb.find((db) => db.nome === a.nome);
+                                                return {
+                                                    ...a,
+                                                    codigo: cadastro?.codigo || a.codigo || "-",
+                                                    unidade: cadastro?.unidade || a.unidade || "UN",
+                                                    precoUnitario: cadastro?.preco ?? a.precoUnitario ?? 0,
+                                                    valorTotal: ((cadastro?.preco ?? a.precoUnitario ?? 0) * a.quantidade),
+                                                };
+                                            });
+                                            return (
+                                                <PeleDeVidroPDF
+                                                    nomeEmpresa={nomeEmpresa}
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    themeColor={theme.contentTextLightBg}
+                                                    textColor={theme.contentTextLightBg}
+                                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
+                                                    nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
+                                                    numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
+                                                    larguraVaoMm={Number((itensRaw as any).larguraVaoMm) || 0}
+                                                    alturaVaoMm={Number((itensRaw as any).alturaVaoMm) || 0}
+                                                    quadrosHorizontal={Number((itensRaw as any).quadrosHorizontal) || 0}
+                                                    quadrosVertical={Number((itensRaw as any).quadrosVertical) || 0}
+                                                    quantidadeLajes={Number((itensRaw as any).quantidadeLajes) || 0}
+                                                    quantidadeFachadas={Number((itensRaw as any).quantidadeFachadas) || 0}
+                                                    quadrosFixos={Number((itensRaw as any).quadrosFixos) || 0}
+                                                    quadrosMoveis={Number((itensRaw as any).quadrosMoveis) || 0}
+                                                    vidroDescricao={String((itensRaw as any).vidroDescricao || "")}
+                                                    areaVidro={Number(orcamentoParaVisualizar?.metragem_total) || 0}
+                                                    totalVidro={(() => {
+                                                        const total = Number(orcamentoParaVisualizar?.valor_total) || 0;
+                                                        const totalPerfis = perfisCorrigidos.reduce((acc: number, p: any) => acc + (Number(p.valorTotal) || 0), 0);
+                                                        const totalAcessorios = acessoriosCorrigidos.reduce((acc: number, a: any) => acc + (Number(a.valorTotal) || 0), 0);
+                                                        return Math.max(0, total - totalPerfis - totalAcessorios);
+                                                    })()}
+                                                    perfis={perfisCorrigidos}
+                                                    acessorios={acessoriosCorrigidos}
+                                                    totalPerfis={perfisCorrigidos.reduce((acc: number, p: any) => acc + (Number(p.valorTotal) || 0), 0)}
+                                                    totalAcessorios={acessoriosCorrigidos.reduce((acc: number, a: any) => acc + (Number(a.valorTotal) || 0), 0)}
+                                                    totalGeral={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                                />
+                                            );
+                                        }
+                                        // Sacada Frontal
+                                        if (ehSacadaVisualizar) {
+                                            const sacadaData = itensRaw as Record<string, unknown>;
+                                            const largVao = Number(sacadaData.larguraVaoMm) || 0;
+                                            const altVao = Number(sacadaData.alturaVaoMm) || 0;
+                                            const qtdVaos = Number(sacadaData.quantidadeVaos) || 0;
+                                            const divVao = Number(sacadaData.divisoesPorVao) || 1;
+                                            const sacResult = calcularSacadaFrontal({
+                                                larguraVaoMm: largVao,
+                                                alturaVaoMm: altVao,
+                                                quantidadeVaos: qtdVaos,
+                                                quantidadeDivisoesLargura: divVao,
+                                            });
+                                            const perfisArr = (sacadaData.perfis || []) as Array<Record<string, unknown>>;
+                                            const acessArr = (sacadaData.acessorios || []) as Array<Record<string, unknown>>;
+                                            const totalPerfis = perfisArr.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
+                                            const totalAcessorios = acessArr.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+                                            const totalGeral = Number(orcamentoParaVisualizar?.valor_total) || 0;
+                                            const totalVidro = Math.max(0, totalGeral - totalPerfis - totalAcessorios);
+                                            return (
+                                                <SacadaFrontalPDF
+                                                    nomeEmpresa={nomeEmpresa}
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    themeColor={theme.contentTextLightBg}
+                                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
+                                                    nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
+                                                    larguraVaoMm={largVao}
+                                                    alturaVaoMm={altVao}
+                                                    quantidadeVaos={qtdVaos}
+                                                    divisoesPorVao={divVao}
+                                                    corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
+                                                    vidroDescricao={String(sacadaData.vidroDescricao || "")}
+                                                    medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
+                                                    areaTotal={sacResult.areaTotalVidro}
+                                                    totalVidro={totalVidro}
+                                                    perfis={perfisArr as any}
+                                                    acessorios={acessArr as any}
+                                                    totalPerfis={totalPerfis}
+                                                    totalAcessorios={totalAcessorios}
+                                                    totalGeral={totalGeral}
+                                                    larguraVidroMm={sacResult.larguraVidroMm}
+                                                    alturaVidroMm={sacResult.alturaVidroMm}
+                                                    numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
+                                                />
+                                            );
+                                        }
+                                        // Espelhos
+                                        if (/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) {
+                                            return (
+                                                <EspelhosPDF
+                                                    itens={itens}
+                                                    nomeEmpresa={nomeEmpresa}
+                                                    themeColor={theme.contentTextLightBg}
+                                                    textColor={theme.contentTextLightBg}
+                                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome}
+                                                    nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
+                                                    valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    numeroOrcamento={orcamentoParaVisualizar?.numero_formatado ?? undefined}
+                                                />
+                                            );
+                                        }
+                                        // Vidros
                                         return (
-                                            <SacadaFrontalPDF
+                                            <CalculoVidroPDF
+                                                itens={itens}
                                                 nomeEmpresa={nomeEmpresa}
-                                                logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                 themeColor={theme.contentTextLightBg}
-                                                nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
-                                                nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
-                                                larguraVaoMm={largVao}
-                                                alturaVaoMm={altVao}
-                                                quantidadeVaos={qtdVaos}
-                                                divisoesPorVao={divVao}
-                                                corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
-                                                vidroDescricao={String(sacadaData.vidroDescricao || "")}
-                                                medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
-                                                areaTotal={sacResult.areaTotalVidro}
-                                                totalVidro={totalVidro}
-                                                perfis={perfisArr as any}
-                                                acessorios={acessArr as any}
-                                                totalPerfis={totalPerfis}
-                                                totalAcessorios={totalAcessorios}
-                                                totalGeral={totalGeral}
-                                                larguraVidroMm={sacResult.larguraVidroMm}
-                                                alturaVidroMm={sacResult.alturaVidroMm}
+                                                textColor={theme.contentTextLightBg}
+                                                nomeCliente={orcamentoParaVisualizar?.cliente_nome}
+                                                nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
+                                                pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
+                                                metragemTotal={Number(orcamentoParaVisualizar?.metragem_total) || 0}
+                                                totalPecas={itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0)}
+                                                valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
+                                                logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                numeroOrcamento={orcamentoParaVisualizar?.numero_formatado ?? undefined}
                                             />
                                         );
-                                    })() : (/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? (
-                                        <EspelhosPDF
-                                            itens={itens}
-                                            nomeEmpresa={nomeEmpresa}
-                                            themeColor={theme.contentTextLightBg}
-                                            textColor={theme.contentTextLightBg}
-                                            nomeCliente={orcamentoParaVisualizar?.cliente_nome}
-                                            nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
-                                            valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
-                                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
-                                        />
-                                    ) : (
-                                        <CalculoVidroPDF
-                                            itens={itens}
-                                            nomeEmpresa={nomeEmpresa}
-                                            themeColor={theme.contentTextLightBg}
-                                            textColor={theme.contentTextLightBg}
-                                            nomeCliente={orcamentoParaVisualizar?.cliente_nome}
-                                            nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
-                                            pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
-                                            metragemTotal={Number(orcamentoParaVisualizar?.metragem_total) || 0}
-                                            totalPecas={Number(orcamentoParaVisualizar?.total_pecas) || 0}
-                                            valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
-                                            logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
-                                        />
-                                    )}
+                                    })()}
                                 </PDFViewer>
                             </div>
                         </div>

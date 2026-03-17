@@ -32,6 +32,7 @@ interface PeleDeVidroPDFProps {
     textColor?: string;
     nomeCliente: string;
     nomeObra: string;
+    numeroOrcamento?: string;
     larguraVaoMm: number;
     alturaVaoMm: number;
     quadrosHorizontal: number;
@@ -122,8 +123,11 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                 {/* Header */}
                 <View style={[styles.header, { borderBottomColor: props.themeColor }]}>
                     <View style={styles.headerLeft}>
-                        <Text style={[styles.titulo, { color: props.themeColor }]}>Orçamento Pele de Vidro</Text>
-                        <Text style={styles.data}>Emissão em: {dataGeracao}</Text>
+                                                <Text style={[styles.titulo, { color: props.themeColor }]}>Orçamento Pele de Vidro</Text>
+                                                {props.numeroOrcamento && (
+                                                    <Text style={[styles.label, { color: props.themeColor, fontSize: 11, fontWeight: "bold", marginTop: 4 }]}>Nº Orçamento: {props.numeroOrcamento}</Text>
+                                                )}
+                                                <Text style={styles.data}>Emissão em: {dataGeracao}</Text>
                     </View>
                     {props.logoUrl && <Image src={props.logoUrl} style={styles.logo} />}
                 </View>

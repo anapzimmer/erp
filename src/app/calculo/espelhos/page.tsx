@@ -1062,6 +1062,7 @@ export default function CalculoEspelhosPage() {
                       themeColor={theme.contentTextLightBg}
                       nomeCliente={nomeCliente}
                       nomeObra={nomeObra}
+                      numeroOrcamento={ultimoNumeroGerado}
                     />
                   }
                   fileName={`Orçamento_${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'}.pdf`}

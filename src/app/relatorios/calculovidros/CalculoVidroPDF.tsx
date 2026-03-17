@@ -29,6 +29,7 @@ interface CalculoVidroPDFProps {
     metragemTotal: number;
     valorTotal: number;
     totalPecas: number;
+    numeroOrcamento?: string;
 }
 
 const styles = StyleSheet.create({
@@ -115,10 +116,13 @@ export function CalculoVidroPDF({
     nomeObra,
     pesoTotal,
     metragemTotal,
+    valorTotal,
+    totalPecas,
+    numeroOrcamento,
 }: CalculoVidroPDFProps) {
 
     const totalFinanceiro = itens.reduce((sum, item) => sum + item.total, 0);
-    const totalPecas = itens.reduce((sum, item) => sum + item.qtd, 0);
+    // totalPecas já vem das props, não precisa recalcular
     const contentColor = textColor || themeColor;
 
     return (
@@ -126,21 +130,22 @@ export function CalculoVidroPDF({
             <Page size="A4" style={styles.page}>
 
                 {/* Cabeçalho */}
-                <View style={[styles.header, { borderBottomColor: themeColor }]}>
+                <View style={[styles.header, { borderBottomColor: themeColor }]}> 
                     <View style={styles.headerLeft}>
                         <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Vidros</Text>
+                        {numeroOrcamento && (
+                            <Text style={styles.subtitulo}>Nº {numeroOrcamento}</Text>
+                        )}
                         <Text style={styles.dataEmissao}>Emissão em: {new Date().toLocaleDateString('pt-BR')}</Text>
                     </View>
                     {logoUrl && <Image src={logoUrl} style={styles.logo} />}
                 </View>
-
-                {/* Info do Cliente */}
                 <View style={styles.infoSection}>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
                         <Text style={styles.label}>Cliente</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
                     </View>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}>
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
                         <Text style={styles.label}>Obra / Referência</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
                     </View>

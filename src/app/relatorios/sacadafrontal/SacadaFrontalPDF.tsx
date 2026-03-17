@@ -47,6 +47,7 @@ interface SacadaFrontalPDFProps {
   totalGeral: number;
   larguraVidroMm?: number;
   alturaVidroMm?: number;
+  numeroOrcamento?: string;
 }
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontWeight: "bold", marginTop: 18, marginBottom: 6 },
 
   table: { width: "100%", marginTop: 4 },
-  tableHeader: { flexDirection: "row" },
+  tableHeader: { flexDirection: "row", minHeight: 20 },
   tableRow: { flexDirection: "row", borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: "center", minHeight: 26 },
   thCell: { padding: 5, color: "#FFFFFF", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
   tdCell: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: "#1C415B" },
@@ -109,6 +110,7 @@ const styles = StyleSheet.create({
 
 export function SacadaFrontalPDF({
   nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra,
+  numeroOrcamento,
   larguraVaoMm, alturaVaoMm, quantidadeVaos, divisoesPorVao, corPerfil,
   vidroDescricao, medidaVidro, areaTotal, totalVidro,
   perfis, acessorios, totalPerfis, totalAcessorios, totalGeral,
@@ -123,6 +125,11 @@ export function SacadaFrontalPDF({
         <View style={[styles.header, { borderBottomColor: themeColor }]}>
           <View style={styles.headerLeft}>
             <Text style={[styles.titulo, { color: themeColor }]}>Orçamento Sacada Frontal</Text>
+            {numeroOrcamento && (
+              <Text style={[styles.label, { color: themeColor, fontSize: 11, fontWeight: "bold", marginTop: 4 }]}>
+                Nº Orçamento: {numeroOrcamento}
+              </Text>
+            )}
             <Text style={styles.data}>Emissão em: {new Date().toLocaleDateString("pt-BR")}</Text>
           </View>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -237,20 +244,22 @@ export function SacadaFrontalPDF({
         {/* Acessórios */}
         <Text style={[styles.sectionTitle, { color: themeColor }]}>Acessórios / Ferragens</Text>
         <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-            <Text style={[styles.thCell, { width: "30%" }]}>Acessório</Text>
+          <View style={[styles.tableHeader, { backgroundColor: themeColor }]}> 
+            <Text style={[styles.thCell, { width: "28%" }]}>Acessório</Text>
             <Text style={[styles.thCell, { width: "14%", textAlign: "center" }]}>Código</Text>
-            <Text style={[styles.thCell, { width: "14%", textAlign: "right" }]}>Qtd</Text>
-            <Text style={[styles.thCell, { width: "21%", textAlign: "right" }]}>Preço un.</Text>
-            <Text style={[styles.thCell, { width: "21%", textAlign: "right" }]}>Total</Text>
+            <Text style={[styles.thCell, { width: "12%", textAlign: "right" }]}>Qtd</Text>
+            <Text style={[styles.thCell, { width: "12%", textAlign: "right" }]}>Cor</Text>
+            <Text style={[styles.thCell, { width: "17%", textAlign: "right" }]}>Preço un.</Text>
+            <Text style={[styles.thCell, { width: "17%", textAlign: "right" }]}>Total</Text>
           </View>
           {acessorios.map((a, i) => (
             <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-              <Text style={[styles.tdCell, { width: "30%" }]}>{a.nome}</Text>
+              <Text style={[styles.tdCell, { width: "28%" }]}>{a.nome}</Text>
               <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.codigo}</Text>
-              <Text style={[styles.tdCell, { width: "14%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
-              <Text style={[styles.tdCell, { width: "21%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
-              <Text style={[styles.tdCell, { width: "21%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
+              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
+              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{a.corEncontrada || "-"}</Text>
+              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
+              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
             </View>
           ))}
         </View>
@@ -260,7 +269,7 @@ export function SacadaFrontalPDF({
           <View style={{ flexDirection: "row", gap: 20 }}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Área total de vidro</Text>
-              <Text style={[styles.summaryValue, { color: c }]}>{areaTotal.toFixed(3)} m²</Text>
+                <Text style={[styles.summaryValue, { color: c }]}>{Number(areaTotal).toFixed(2)} m²</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Total vidro</Text>

@@ -18,6 +18,7 @@ interface ItemPedido {
 interface EspelhosPDFProps {
   itens: any[]
   nomeEmpresa: string
+  numeroOrcamento?: string
   themeColor: string
   textColor?: string
   nomeCliente?: string
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   }
 });
 
-export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra }: EspelhosPDFProps) {
+export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra, numeroOrcamento }: EspelhosPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
   const contentColor = textColor || themeColor;
@@ -98,7 +99,14 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
       <View style={[styles.header, { marginRight: 10 }, { borderBottomColor: themeColor }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Espelhos</Text>
-          <Text style={[styles.subtitulo, { color: contentColor }]}>{nomeEmpresa}</Text>
+          {/* Número do orçamento substitui nomeEmpresa */}
+          {numeroOrcamento ? (
+            <Text style={[styles.subtitulo, { color: themeColor, fontWeight: "bold", marginTop: 4 }]}>
+              Nº Orçamento: {numeroOrcamento}
+            </Text>
+          ) : (
+            <Text style={[styles.subtitulo, { color: contentColor }]}>{nomeEmpresa}</Text>
+          )}
           <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
         </View>
         <View style={styles.headerRight}>
