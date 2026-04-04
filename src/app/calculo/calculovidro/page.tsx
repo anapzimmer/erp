@@ -23,6 +23,7 @@ interface ItemOrcamento {
   medidaCalc: string;
   qtd: number;
   total: number;
+  precoVidroM2?: number;
   acabamento?: string;
   servico?: string;
   servicos?: string;
@@ -217,6 +218,44 @@ export default function RelatorioOrçamento() {
 
     setValorRateioLote("");
     setSelecionados([]);
+  };
+
+  const limparFormularioOrcamento = () => {
+    setClienteId("");
+    setObra("");
+    setLargura("");
+    setAltura("");
+    setQuantidade(1);
+    setQuantidadeServico(1);
+    setItens([]);
+    setSelecionados([]);
+    setValorRateioLote("");
+    setServicoSelecionado(null);
+    setEditandoId(null);
+    setItemParaExcluir(null);
+    setMostrarModalLimpar(false);
+    setMostrarModalAssociacao(false);
+    setItensNaoEncontrados([]);
+    setUltimoNumeroGerado("");
+    sessionStorage.removeItem(draftKey);
+
+    if (listaVidros.length > 0) {
+      setVidroSelecionado(listaVidros[0]);
+    } else {
+      setVidroSelecionado(null);
+    }
+
+    setTimeout(() => larguraRef.current?.focus(), 50);
+  };
+
+  const handleNovoOrcamento = () => {
+    if (editId) {
+      sessionStorage.removeItem(draftKey);
+      router.push('/calculo/calculovidro');
+      return;
+    }
+
+    limparFormularioOrcamento();
   };
 
   const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
@@ -461,6 +500,7 @@ useEffect(() => {
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
+      precoVidroM2,
       acabamento: "", // Se você tiver um estado de acabamento, coloque aqui
       servicos: detalheServico, // Passa o detalhe do serviço (Furos, CNC, etc)
 
@@ -521,6 +561,7 @@ useEffect(() => {
           ...item,
           descricao: `${novoVidro.nome} ${novoVidro.espessura || ''}`,
           vidro_id: novoVidro.id,
+          precoVidroM2,
           total: novoTotalUnitario * item.qtd,
           totalOriginal: undefined,
           totalRateado: false,
@@ -746,6 +787,7 @@ useEffect(() => {
       medidaReal: `${lReal} x ${aReal}`,
       medidaCalc: `${lCalc} x ${aCalc}`,
       qtd: Number(qtd),
+      precoVidroM2: precoM2,
       total: areaCobradaM2 * precoM2 * Number(qtd),
       totalOriginal: undefined,
       totalRateado: false,
@@ -805,18 +847,25 @@ useEffect(() => {
             </div>
 
             {/* ÁREA DE AÇÕES DISCRETAS */}
-            {itens.length > 0 && (
-              <div className="ml-6 flex items-center gap-3 animate-fade-in">
-                {/* Botão Salvar (Mantido como você gosta) */}
+            <div className="ml-6 flex items-center gap-2 animate-fade-in">
+              <button
+                onClick={handleNovoOrcamento}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all hover:border-slate-300 hover:text-slate-700"
+              >
+                <Plus size={14} />
+                Novo Orçamento
+              </button>
+
+              {itens.length > 0 && (
                 <button
                   onClick={handleSalvarOrcamento}
-                  className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
+                  className="flex items-center gap-2 rounded-full border border-[#1e3a5a]/15 bg-[#1e3a5a]/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#1e3a5a] transition-all hover:border-[#1e3a5a]/30 hover:bg-[#1e3a5a]/10"
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#1e3a5a]/55" />
                   Salvar Orçamento
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
 
             {/* --- BOTÃO PDF CORRIGIDO --- */}
@@ -1336,22 +1385,31 @@ useEffect(() => {
                     <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
                       {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
                     </p>
-                    {itens.length > 0 && (
-                      <div className="mt-4 flex flex-col items-end gap-3 animate-fade-in">
-                        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                          <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
-                          {selecionados.length > 0 && (
-                            <button
-                              onClick={() => setSelecionados([])}
-                              className="rounded-full p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
-                              title="Limpar seleção"
-                            >
-                              <X size={14} />
-                            </button>
-                          )}
+                  </div>
+                </div>
+
+                {itens.length > 0 && (
+                  <div className="border-t border-gray-100 bg-[#fafbfd] px-10 py-5">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-300">Resumo do Orçamento</p>
+                          <h4 className="mt-1 text-sm font-bold text-[#1e3a5a]">Troca de vidro e rateio</h4>
+                          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
+                            {selecionados.length > 0 && (
+                              <button
+                                onClick={() => setSelecionados([])}
+                                className="rounded-full p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                                title="Limpar seleção"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
                             <Edit2 size={13} style={{ color: theme.menuIconColor }} />
                             <select
@@ -1367,7 +1425,7 @@ useEffect(() => {
                             </select>
                           </div>
 
-                          <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+                          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1391,9 +1449,10 @@ useEffect(() => {
                           </div>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>              </div>
+                )}
+              </div>
             </div>
           </div>
         </main>

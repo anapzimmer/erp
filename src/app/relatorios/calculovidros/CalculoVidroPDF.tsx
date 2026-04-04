@@ -9,6 +9,7 @@ interface ItemVidro {
     id: string | number;
     descricao: string;
     tipo?: string;
+    precoVidroM2?: number;
     acabamento?: string;
     servicos?: string;
     observacaoRateio?: string;
@@ -16,6 +17,7 @@ interface ItemVidro {
     medidaCalc: string;
     qtd: number;
     total: number;
+    valorServicoUn?: number;
 }
 
 interface CalculoVidroPDFProps {
@@ -78,10 +80,12 @@ const styles = StyleSheet.create({
     // Textos da Tabela com a cor solicitada
     tableCol: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: '#1C415B' },
 
-    colDesc: { width: '50%' },
-    colMedReal: { width: '20%', textAlign: 'center' },
-    colQtd: { width: '10%', textAlign: 'center' },
-    colTotal: { width: '20%', textAlign: 'right' },
+    colDesc: { width: '32%' },
+    colQtd: { width: '8%' , textAlign: 'center' },
+    colMedReal: { width: '17%', textAlign: 'center' },
+    colM2: { width: '10%', textAlign: 'right' },
+    colSubtotal: { width: '16%', textAlign: 'right' },
+    colTotal: { width: '17%', textAlign: 'right' },
 
     summaryContainer: {
         marginTop: 30,
@@ -125,6 +129,25 @@ export function CalculoVidroPDF({
     const totalFinanceiro = itens.reduce((sum, item) => sum + item.total, 0);
     // totalPecas já vem das props, não precisa recalcular
     const contentColor = textColor || themeColor;
+    const calcularM2Item = (item: ItemVidro) => {
+        const [largura, altura] = item.medidaCalc
+            .split('x')
+            .map((valor) => parseInt(valor.replace(/\D/g, ''), 10) || 0);
+
+        return (largura / 1000) * (altura / 1000) * Number(item.qtd || 0);
+    };
+
+    const calcularPrecoM2Item = (item: ItemVidro) => {
+        if (typeof item.precoVidroM2 === 'number' && !Number.isNaN(item.precoVidroM2)) {
+            return item.precoVidroM2;
+        }
+
+        const metragemItem = calcularM2Item(item);
+        if (!metragemItem) return 0;
+
+        const totalSemServico = item.total - (item.valorServicoUn || 0) * Number(item.qtd || 0);
+        return totalSemServico > 0 ? totalSemServico / metragemItem : 0;
+    };
 
     return (
         <Document>
@@ -156,9 +179,11 @@ export function CalculoVidroPDF({
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
                         <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição do Material</Text>
-                        <Text style={[styles.tableColHeader, styles.colMedReal]}>Dimensões (mm)</Text>
                         <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
-                        <Text style={[styles.tableColHeader, styles.colTotal]}>Subtotal</Text>
+                        <Text style={[styles.tableColHeader, styles.colMedReal]}>Dimensão</Text>
+                        <Text style={[styles.tableColHeader, styles.colM2]}>M²</Text>
+                        <Text style={[styles.tableColHeader, styles.colSubtotal]}>Valor m²</Text>
+                        <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
                     </View>
 
                     {itens.map((item, index) => (
@@ -166,7 +191,7 @@ export function CalculoVidroPDF({
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>
-                                <Text style={{ fontWeight: 'bold', color: contentColor }}>
+                                <Text style={{ color: contentColor }}>
                                     {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
                                 </Text>
                                 {(item.servicos || item.acabamento) && (
@@ -184,11 +209,17 @@ export function CalculoVidroPDF({
                             </View>
 
                             {/* Medidas, Qtd e Preço */}
-                            <Text style={[styles.tableCol, styles.colMedReal, { color: contentColor }]}>{item.medidaReal}</Text>
                             <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colTotal, { fontWeight: 'bold', color: contentColor }]}>
+                            <Text style={[styles.tableCol, styles.colMedReal, { color: contentColor }]}>{item.medidaReal}</Text>
+                            <Text style={[styles.tableCol, styles.colM2, { color: contentColor }]}>
+                                {calcularM2Item(item).toFixed(3)}
+                            </Text>
+                            <Text style={[styles.tableCol, styles.colSubtotal, { color: contentColor }]}>
+                                {calcularPrecoM2Item(item).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </Text>
+                            <Text style={[styles.tableCol, styles.colTotal, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                         </View>
