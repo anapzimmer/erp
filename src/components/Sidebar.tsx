@@ -279,7 +279,7 @@ export default function Sidebar({
 
    {!expandido && !item.submenu && (
   <div
-    className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shadow-lg z-50"
+    className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shadow-lg z-[130]"
     style={{
       backgroundColor: theme.menuHoverColor,
       color: theme.menuTextColor,
@@ -292,7 +292,7 @@ export default function Sidebar({
 
         {item.submenu && !expandido && (
           <div
-            className={`absolute left-full top-0 min-w-60 rounded-2xl p-2.5 shadow-md z-70 translate-x-2 transition-all duration-200 ${
+            className={`absolute left-full top-0 min-w-60 rounded-2xl p-2.5 shadow-md z-[140] translate-x-2 transition-all duration-200 ${
               isSubmenuVisibleCollapsed
                 ? "opacity-100 pointer-events-auto translate-x-0"
                 : "opacity-0 pointer-events-none"
@@ -406,7 +406,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0 ${expandido ? "overflow-hidden" : "overflow-visible"}
+      className={`fixed inset-y-0 left-0 z-[120] min-h-screen flex flex-col p-4 shadow-2xl transition-all duration-300 ease-in-out md:relative md:z-[120] md:translate-x-0 shrink-0 ${expandido ? "overflow-hidden" : "overflow-visible"}
       ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
       ${expandido ? "w-64" : "w-20"}`}
       aria-label={`Menu lateral - ${nomeEmpresa}`}
@@ -427,7 +427,7 @@ export default function Sidebar({
 
       <button
         onClick={() => setExpandido(!expandido)}
-        className="absolute -right-3 top-10 p-1 rounded-full shadow-md z-50 hidden md:block transition-colors"
+        className="absolute -right-3 top-10 p-1 rounded-full shadow-md z-[130] hidden md:block transition-colors"
         style={{
           backgroundColor: "#FFFFFF",
           border: `1px solid ${alphaHex(theme.menuIconColor, "59")}`,
@@ -437,7 +437,7 @@ export default function Sidebar({
         {expandido ? <ChevronLeft size={16} /> : <ChevronRightIcon size={16} />}
       </button>
 
-      <nav className={`flex-1 ${expandido ? "overflow-y-auto overflow-x-hidden" : "overflow-visible"} space-y-5 z-10 scrollbar-erp pr-1`}>
+      <nav className={`relative flex-1 ${expandido ? "overflow-y-auto overflow-x-hidden" : "overflow-visible"} space-y-5 z-[125] scrollbar-erp pr-1`}>
         <div
           className="rounded-2xl p-2.5"
           style={{

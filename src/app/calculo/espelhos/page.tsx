@@ -635,7 +635,7 @@ export default function CalculoEspelhosPage() {
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* Sidebar Container */}
       <div
-        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 h-screen`}
+        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 z-[120] h-screen`}
         style={{ backgroundColor: theme.menuBackgroundColor }} // Garante que a cor do fundo da sidebar acompanhe
       >
         <Sidebar
