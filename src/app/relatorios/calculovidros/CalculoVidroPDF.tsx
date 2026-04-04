@@ -11,6 +11,7 @@ interface ItemVidro {
     tipo?: string;
     acabamento?: string;
     servicos?: string;
+    observacaoRateio?: string;
     medidaReal: string;
     medidaCalc: string;
     qtd: number;
@@ -173,6 +174,11 @@ export function CalculoVidroPDF({
                                         {item.acabamento ? `Acabamento: ${item.acabamento}` : ''}
                                         {item.acabamento && item.servicos ? ' | ' : ''}
                                         {item.servicos ? `Serviço: ${item.servicos}` : ''}
+                                    </Text>
+                                )}
+                                {item.observacaoRateio && (
+                                    <Text style={{ fontSize: 6.5, color: '#7c8b9a', marginTop: 2 }}>
+                                        {item.observacaoRateio}
                                     </Text>
                                 )}
                             </View>

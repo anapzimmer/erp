@@ -28,6 +28,9 @@ interface ItemOrcamento {
   servicos?: string;
   valorServicoUn?: number;
   vidro_id?: string | number;
+  totalOriginal?: number;
+  totalRateado?: boolean;
+  observacaoRateio?: string;
 }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
@@ -40,6 +43,31 @@ const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
 const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07;
+
+const parseValorDigitado = (valor: string) => {
+  if (!valor) return 0;
+
+  let normalizado = valor.replace(/\s/g, '').replace(/R\$/gi, '');
+
+  if (normalizado.includes(',') && normalizado.includes('.')) {
+    normalizado = normalizado.replace(/\./g, '').replace(',', '.');
+  } else if (normalizado.includes(',')) {
+    normalizado = normalizado.replace(',', '.');
+  }
+
+  return Number(normalizado.replace(/[^\d.-]/g, '')) || 0;
+};
+
+const distribuirValorIgual = (valorTotal: number, quantidadeItens: number) => {
+  const totalCentavos = Math.round(valorTotal * 100);
+  const baseCentavos = Math.floor(totalCentavos / quantidadeItens);
+  const restoCentavos = totalCentavos % quantidadeItens;
+
+  return Array.from({ length: quantidadeItens }, (_, index) => {
+    const centavosItem = baseCentavos + (index < restoCentavos ? 1 : 0);
+    return centavosItem / 100;
+  });
+};
 
 const aplicarAcrescimoPorMedida = (precoBaseM2: number, larguraMm: number, alturaMm: number) => {
   const excedeuLimite = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
@@ -101,6 +129,7 @@ export default function RelatorioOrçamento() {
 
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
+  const [valorRateioLote, setValorRateioLote] = useState("");
 
   // Função para marcar/desmarcar todos
   const toggleTodos = () => {
@@ -116,6 +145,78 @@ export default function RelatorioOrçamento() {
     setSelecionados(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+  };
+
+  const idsAlvoRateio = selecionados.length > 0 ? selecionados : itens.map(item => item.id);
+  const descricaoAlvoRateio = selecionados.length > 0
+    ? `${selecionados.length} cálculo(s) selecionado(s)`
+    : `todos os ${itens.length} cálculo(s)`;
+
+  const aplicarRateioValorSelecionados = () => {
+    if (itens.length === 0) {
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Adicione pelo menos um cálculo antes de aplicar o rateio.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    const valorTotalRateio = parseValorDigitado(valorRateioLote);
+
+    if (!valorTotalRateio || valorTotalRateio <= 0) {
+      setModalAvisoTitulo("Valor inválido");
+      setModalAvisoMensagem("Informe um valor total válido para distribuir entre os cálculos selecionados.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    const itensSelecionados = itens.filter(item => idsAlvoRateio.includes(item.id));
+    const valoresRateados = distribuirValorIgual(valorTotalRateio, itensSelecionados.length);
+    const valoresPorId = new Map(
+      itensSelecionados.map((item, index) => [item.id, valoresRateados[index]])
+    );
+
+    setItens(prev => prev.map(item => {
+      if (!valoresPorId.has(item.id)) return item;
+
+      return {
+        ...item,
+        total: valoresPorId.get(item.id) || 0,
+        totalOriginal: item.totalOriginal ?? item.total,
+        totalRateado: true,
+        observacaoRateio: `Rateio manual de ${formatarMoeda(valorTotalRateio)} entre ${descricaoAlvoRateio}`
+      };
+    }));
+
+    setValorRateioLote("");
+    setSelecionados([]);
+  };
+
+  const removerRateioSelecionados = () => {
+    const haRateioSelecionado = itens.some(item => idsAlvoRateio.includes(item.id) && item.totalRateado && typeof item.totalOriginal === 'number');
+
+    if (!haRateioSelecionado) {
+      setModalAvisoTitulo("Nada para restaurar");
+      setModalAvisoMensagem("Os itens alvo não possuem rateio manual para desfazer.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    setItens(prev => prev.map(item => {
+      if (!idsAlvoRateio.includes(item.id) || !item.totalRateado || typeof item.totalOriginal !== 'number') {
+        return item;
+      }
+
+      return {
+        ...item,
+        total: item.totalOriginal,
+        totalOriginal: undefined,
+        totalRateado: false,
+        observacaoRateio: undefined
+      };
+    }));
+
+    setValorRateioLote("");
+    setSelecionados([]);
   };
 
   const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
@@ -365,7 +466,10 @@ useEffect(() => {
 
       servico: detalheServico, // Mantém por compatibilidade com sua tabela na tela
       valorServicoUn: valorServicoTotal,
-      total: totalPorPeca * quantidade
+      total: totalPorPeca * quantidade,
+      totalOriginal: undefined,
+      totalRateado: false,
+      observacaoRateio: undefined
     };
 
     if (editandoId) {
@@ -417,7 +521,10 @@ useEffect(() => {
           ...item,
           descricao: `${novoVidro.nome} ${novoVidro.espessura || ''}`,
           vidro_id: novoVidro.id,
-          total: novoTotalUnitario * item.qtd
+          total: novoTotalUnitario * item.qtd,
+          totalOriginal: undefined,
+          totalRateado: false,
+          observacaoRateio: undefined
         };
       }
       return item;
@@ -639,7 +746,10 @@ useEffect(() => {
       medidaReal: `${lReal} x ${aReal}`,
       medidaCalc: `${lCalc} x ${aCalc}`,
       qtd: Number(qtd),
-      total: areaCobradaM2 * precoM2 * Number(qtd)
+      total: areaCobradaM2 * precoM2 * Number(qtd),
+      totalOriginal: undefined,
+      totalRateado: false,
+      observacaoRateio: undefined
     };
   };
 
@@ -697,41 +807,6 @@ useEffect(() => {
             {/* ÁREA DE AÇÕES DISCRETAS */}
             {itens.length > 0 && (
               <div className="ml-6 flex items-center gap-3 animate-fade-in">
-                {/* Seletor de Troca em Massa */}
-                {selecionados.length > 0 && (
-                  <div className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-full shadow-sm">
-
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                      {selecionados.length} itens
-                    </span>
-
-                    <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-                      <Edit2 size={13} style={{ color: theme.menuIconColor }} />
-
-                      <select
-                        onChange={(e) => trocarMaterialSelecionados(e.target.value)}
-                        // Removido o bg-transparent para dar um leve destaque ao select se necessário, 
-                        // mas mantido o visual limpo com font-medium
-                        className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-slate-700 hover:text-slate-900 transition-colors"
-                      >
-                        <option value="" className="text-gray-400">Trocar material...</option>
-                        {listaVidros.map(v => (
-                          <option key={v.id} value={v.id} className="text-slate-700">
-                            {v.nome} {v.espessura ? `| ${v.espessura}mm` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <button
-                      onClick={() => setSelecionados([])}
-                      className="ml-1 p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-all"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-
                 {/* Botão Salvar (Mantido como você gosta) */}
                 <button
                   onClick={handleSalvarOrcamento}
@@ -1146,6 +1221,12 @@ useEffect(() => {
                                 </div>
                               )}
 
+                              {item.totalRateado && item.observacaoRateio && (
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-sky-600">
+                                  {item.observacaoRateio}
+                                </div>
+                              )}
+
                               {/* Serviço / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
@@ -1210,7 +1291,7 @@ useEffect(() => {
                   )}
                 </div>
                 {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
-                <div className="p-6 bg-white border-t border-gray-100 flex items-center justify-between px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <div className="p-6 bg-white border-t border-gray-100 flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                   <div className="flex items-center gap-8">
 
                     {/* 1. Qtd Total EM EVIDÊNCIA (Destaque colorido) */}
@@ -1250,11 +1331,67 @@ useEffect(() => {
                   </div>
 
                   {/* 4. Valor Total do Pedido */}
-                  <div className="text-right">
+                  <div className="min-w-[320px] text-right">
                     <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Orçamento</p>
                     <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
                       {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
                     </p>
+                    {itens.length > 0 && (
+                      <div className="mt-4 flex flex-col items-end gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
+                          {selecionados.length > 0 && (
+                            <button
+                              onClick={() => setSelecionados([])}
+                              className="rounded-full p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                              title="Limpar seleção"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                            <Edit2 size={13} style={{ color: theme.menuIconColor }} />
+                            <select
+                              onChange={(e) => trocarMaterialSelecionados(e.target.value)}
+                              className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                            >
+                              <option value="" className="text-gray-400">Trocar vidro...</option>
+                              {listaVidros.map(v => (
+                                <option key={v.id} value={v.id} className="text-slate-700">
+                                  {v.nome} {v.espessura ? `| ${v.espessura}mm` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder={selecionados.length > 0 ? "Valor rateio seleção" : "Valor rateio geral"}
+                              value={valorRateioLote}
+                              onChange={(e) => setValorRateioLote(e.target.value)}
+                              className="w-36 rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-700 outline-none focus:border-[#1e3a5a]"
+                            />
+                            <button
+                              onClick={aplicarRateioValorSelecionados}
+                              className="rounded-full bg-slate-900 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-slate-700"
+                            >
+                              {selecionados.length > 0 ? "Ratear seleção" : "Ratear todos"}
+                            </button>
+                            <button
+                              onClick={removerRateioSelecionados}
+                              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                            >
+                              {selecionados.length > 0 ? "Restaurar seleção" : "Restaurar todos"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>              </div>
             </div>
