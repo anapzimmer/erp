@@ -26,6 +26,12 @@ type OrcamentoItem = {
     medidaCalc: string;
     qtd: number;
     total: number;
+    planoCorte?: Array<{
+        numero: number;
+        cortes: number[];
+        usadoMm: number;
+        sobraMm: number;
+    }>;
 };
 type Orcamento = {
     id: string;
@@ -777,7 +783,7 @@ export default function RelatorioOrçamento() {
                                                 nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                                 pesoTotal={Number(orcamentoParaVisualizar?.peso_total) || 0}
                                                 metragemTotal={Number(orcamentoParaVisualizar?.metragem_total) || 0}
-                                                totalPecas={itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0)}
+                                                totalPecas={Number(orcamentoParaVisualizar?.total_pecas) || itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0)}
                                                 valorTotal={Number(orcamentoParaVisualizar?.valor_total) || 0}
                                                 logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                 numeroOrcamento={orcamentoParaVisualizar?.numero_formatado ?? undefined}

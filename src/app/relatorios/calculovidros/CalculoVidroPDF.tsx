@@ -10,14 +10,23 @@ interface ItemVidro {
     descricao: string;
     tipo?: string;
     precoVidroM2?: number;
+    valorUnitario?: number;
     acabamento?: string;
+    corVidro?: string;
     servicos?: string;
     observacaoRateio?: string;
+    vao?: string;
     medidaReal: string;
     medidaCalc: string;
     qtd: number;
     total: number;
     valorServicoUn?: number;
+    planoCorte?: Array<{
+        numero: number;
+        cortes: number[];
+        usadoMm: number;
+        sobraMm: number;
+    }>;
 }
 
 interface CalculoVidroPDFProps {
@@ -74,18 +83,30 @@ const styles = StyleSheet.create({
     // Tabela
     table: { width: '100%', marginTop: 5 },
     tableHeader: { flexDirection: 'row' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'center', minHeight: 32 },
+    tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'stretch', minHeight: 32 },
     tableColHeader: { padding: 5, color: '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
 
     // Textos da Tabela com a cor solicitada
     tableCol: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: '#1C415B' },
+    planoCorteContainer: { marginTop: 4, gap: 3 },
+    planoCorteLinha: { borderWidth: 0.5, borderColor: '#E5E7EB', borderRadius: 4, padding: 4, backgroundColor: '#FAFAFA' },
+    planoCorteTopo: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+    planoCorteTexto: { fontSize: 6.5, color: '#6B7280' },
+    barraVisual: { flexDirection: 'row', width: '100%', height: 8, borderRadius: 999, overflow: 'hidden', marginTop: 3, backgroundColor: '#F3F4F6' },
+    corteVisual: { height: '100%', backgroundColor: '#94A3B8', borderRightWidth: 0.5, borderRightColor: '#FFFFFF' },
+    sobraVisualCurta: { height: '100%', backgroundColor: '#E5E7EB' },
+    sobraVisualReaproveitavel: { height: '100%', backgroundColor: '#DCFCE7' },
+    rowCabecalhoProjeto: { backgroundColor: '#EFF6FF' },
+    rowPerfilConsolidado: { backgroundColor: '#F8FAFC' },
+    tituloCabecalhoProjeto: { fontSize: 8.5, fontWeight: 'bold' },
+    seloConsolidado: { marginTop: 3, fontSize: 6.5, color: '#64748B' },
 
-    colDesc: { width: '32%' },
+    colDesc: { width: '29%' },
+    colVao: { width: '17%', textAlign: 'center' },
     colQtd: { width: '8%' , textAlign: 'center' },
-    colMedReal: { width: '17%', textAlign: 'center' },
-    colM2: { width: '10%', textAlign: 'right' },
-    colSubtotal: { width: '16%', textAlign: 'right' },
-    colTotal: { width: '17%', textAlign: 'right' },
+    colCorVidro: { width: '18%' },
+    colUnitario: { width: '13%', textAlign: 'right' },
+    colTotal: { width: '15%', textAlign: 'right' },
 
     summaryContainer: {
         marginTop: 30,
@@ -125,28 +146,19 @@ export function CalculoVidroPDF({
     totalPecas,
     numeroOrcamento,
 }: CalculoVidroPDFProps) {
-
-    const totalFinanceiro = itens.reduce((sum, item) => sum + item.total, 0);
-    // totalPecas já vem das props, não precisa recalcular
     const contentColor = textColor || themeColor;
-    const calcularM2Item = (item: ItemVidro) => {
-        const [largura, altura] = item.medidaCalc
-            .split('x')
-            .map((valor) => parseInt(valor.replace(/\D/g, ''), 10) || 0);
-
-        return (largura / 1000) * (altura / 1000) * Number(item.qtd || 0);
-    };
-
-    const calcularPrecoM2Item = (item: ItemVidro) => {
-        if (typeof item.precoVidroM2 === 'number' && !Number.isNaN(item.precoVidroM2)) {
-            return item.precoVidroM2;
+    const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
+    const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
+    const comprimentoBarraItem = (item: ItemVidro) => parseInt(String(item.medidaReal || '').replace(/\D/g, ''), 10) || 0;
+    const calcularValorUnitarioItem = (item: ItemVidro) => {
+        if (typeof item.valorUnitario === 'number' && !Number.isNaN(item.valorUnitario)) {
+            return item.valorUnitario;
         }
 
-        const metragemItem = calcularM2Item(item);
-        if (!metragemItem) return 0;
+        const quantidade = Number(item.qtd || 0);
+        if (!quantidade) return Number(item.total || 0);
 
-        const totalSemServico = item.total - (item.valorServicoUn || 0) * Number(item.qtd || 0);
-        return totalSemServico > 0 ? totalSemServico / metragemItem : 0;
+        return Number(item.total || 0) / quantidade;
     };
 
     return (
@@ -156,7 +168,7 @@ export function CalculoVidroPDF({
                 {/* Cabeçalho */}
                 <View style={[styles.header, { borderBottomColor: themeColor }]}> 
                     <View style={styles.headerLeft}>
-                        <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Vidros</Text>
+                        <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento da Obra</Text>
                         {numeroOrcamento && (
                             <Text style={styles.subtitulo}>Nº {numeroOrcamento}</Text>
                         )}
@@ -178,27 +190,42 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição do Material</Text>
+                        <Text style={[styles.tableColHeader, styles.colDesc]}>Item / Material</Text>
+                        <Text style={[styles.tableColHeader, styles.colVao]}>Tamanho do Vão</Text>
                         <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
-                        <Text style={[styles.tableColHeader, styles.colMedReal]}>Dimensão</Text>
-                        <Text style={[styles.tableColHeader, styles.colM2]}>M²</Text>
-                        <Text style={[styles.tableColHeader, styles.colSubtotal]}>Valor m²</Text>
+                        <Text style={[styles.tableColHeader, styles.colCorVidro]}>Cor do Vidro</Text>
+                        <Text style={[styles.tableColHeader, styles.colUnitario]}>Valor Unit.</Text>
                         <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
                     </View>
 
                     {itens.map((item, index) => (
-                        <View key={item.id} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
+                        <View key={item.id} style={[
+                            styles.tableRow,
+                            ehCabecalhoProjeto(item)
+                                ? styles.rowCabecalhoProjeto
+                                : ehPerfilConsolidado(item)
+                                    ? styles.rowPerfilConsolidado
+                                    : { backgroundColor: getPdfZebraRowBackground(index) }
+                        ]}> 
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>
-                                <Text style={{ color: contentColor }}>
+                                <Text style={ehCabecalhoProjeto(item) ? [styles.tituloCabecalhoProjeto, { color: contentColor }] : { color: contentColor }}>
                                     {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
                                 </Text>
+                                {ehPerfilConsolidado(item) && (
+                                    <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
+                                )}
+                                {item.medidaReal && item.medidaReal !== '-' && (
+                                    <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
+                                        Medida item: {item.medidaReal}
+                                    </Text>
+                                )}
                                 {(item.servicos || item.acabamento) && (
                                     <Text style={{ fontSize: 7, color: '#c9c9c9', marginTop: 2 }}>
                                         {item.acabamento ? `Acabamento: ${item.acabamento}` : ''}
                                         {item.acabamento && item.servicos ? ' | ' : ''}
-                                        {item.servicos ? `Serviço: ${item.servicos}` : ''}
+                                        {item.servicos ? `${ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: ${item.servicos}` : ''}
                                     </Text>
                                 )}
                                 {item.observacaoRateio && (
@@ -206,18 +233,54 @@ export function CalculoVidroPDF({
                                         {item.observacaoRateio}
                                     </Text>
                                 )}
+                                {ehPerfilConsolidado(item) && Array.isArray(item.planoCorte) && item.planoCorte.length > 0 && (
+                                    <View style={styles.planoCorteContainer}>
+                                        {item.planoCorte.map((barra) => {
+                                            const comprimentoBarra = Math.max(comprimentoBarraItem(item), 1);
+                                            const sobraReaproveitavel = barra.sobraMm >= 300;
+                                            return (
+                                                <View key={`${item.id}-barra-${barra.numero}`} style={styles.planoCorteLinha}>
+                                                    <View style={styles.planoCorteTopo}>
+                                                        <Text style={styles.planoCorteTexto}>Barra {barra.numero}</Text>
+                                                        <Text style={styles.planoCorteTexto}>Usado {barra.usadoMm} mm · Sobra {barra.sobraMm} mm</Text>
+                                                    </View>
+                                                    <View style={styles.barraVisual}>
+                                                        {barra.cortes.map((corte, index) => (
+                                                            <View
+                                                                key={`${item.id}-barra-${barra.numero}-corte-${index}`}
+                                                                style={[
+                                                                    styles.corteVisual,
+                                                                    { width: `${Math.max((corte / comprimentoBarra) * 100, 2)}%` },
+                                                                ]}
+                                                            />
+                                                        ))}
+                                                        {barra.sobraMm > 0 && (
+                                                            <View
+                                                                style={[
+                                                                    sobraReaproveitavel ? styles.sobraVisualReaproveitavel : styles.sobraVisualCurta,
+                                                                    { width: `${Math.max((barra.sobraMm / comprimentoBarra) * 100, 2)}%` },
+                                                                ]}
+                                                            />
+                                                        )}
+                                                    </View>
+                                                    <Text style={[styles.planoCorteTexto, { marginTop: 3 }]}>Cortes: {barra.cortes.join(' · ')} mm</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                )}
                             </View>
 
                             {/* Medidas, Qtd e Preço */}
+                            <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaCalc || '-'}</Text>
                             <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colMedReal, { color: contentColor }]}>{item.medidaReal}</Text>
-                            <Text style={[styles.tableCol, styles.colM2, { color: contentColor }]}>
-                                {calcularM2Item(item).toFixed(3)}
+                            <Text style={[styles.tableCol, styles.colCorVidro, { color: contentColor }]}>
+                                {item.corVidro || item.tipo || '-'}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colSubtotal, { color: contentColor }]}>
-                                {calcularPrecoM2Item(item).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            <Text style={[styles.tableCol, styles.colUnitario, { color: contentColor }]}>
+                                {calcularValorUnitarioItem(item).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                             <Text style={[styles.tableCol, styles.colTotal, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -246,7 +309,7 @@ export function CalculoVidroPDF({
                     <View style={styles.totalFinalBox}>
                         <Text style={styles.totalFinalLabel}>Valor Total do Orçamento</Text>
                         <Text style={[styles.totalFinalValue, { color: themeColor }]}>
-                            {totalFinanceiro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </Text>
                     </View>
                 </View>

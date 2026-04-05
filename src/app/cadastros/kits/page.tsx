@@ -28,10 +28,36 @@ type Kit = {
 
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
 
+type KitFormData = Omit<Kit, "id">;
+
 const padronizarTexto = (texto: string | null) => {
   if (!texto) return "";
   return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
 };
+
+const criarKitVazio = (): KitFormData => ({
+  nome: "",
+  largura: 0,
+  altura: 0,
+  categoria: "",
+  cores: "",
+  preco_por_cor: "",
+  preco: null
+});
+
+const extrairDadosDoNomeKit = (nome: string) => {
+  const dimensoesMatch = nome.match(/(\d{2,5})\s*(?:mm)?\s*[xX]\s*(\d{2,5})\s*(?:mm)?/);
+  const espessuraMatch = nome.match(/(\d+(?:\+\d+)?)\s*mm\b/i);
+
+  return {
+    largura: dimensoesMatch ? Number(dimensoesMatch[1]) : null,
+    altura: dimensoesMatch ? Number(dimensoesMatch[2]) : null,
+    espessura: espessuraMatch ? `${espessuraMatch[1]}mm` : ""
+  };
+};
+
+const normalizarNomeKit = (nome: string | null) =>
+  padronizarTexto(nome).toLowerCase().trim();
 
 export default function KitsPage() {
   const router = useRouter()
@@ -60,15 +86,7 @@ export default function KitsPage() {
 
   // --- ESTADOS LÓGICA ---
   const [kits, setKits] = useState<Kit[]>([])
-  const [novoKit, setNovoKit] = useState<Omit<Kit, "id">>({
-    nome: "",
-    largura: 0,
-    altura: 0,
-    categoria: "",
-    cores: "",
-    preco_por_cor: "",
-    preco: null
-  });
+  const [novoKit, setNovoKit] = useState<KitFormData>(criarKitVazio);
   const [editando, setEditando] = useState<Kit | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -77,6 +95,68 @@ export default function KitsPage() {
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
   const [isClient, setIsClient] = useState(false);
+  const [espessuraDetectada, setEspessuraDetectada] = useState("");
+  const larguraManualRef = useRef(false);
+  const alturaManualRef = useRef(false);
+  const ultimaDeteccaoRef = useRef<{ largura: number | null; altura: number | null }>({ largura: null, altura: null });
+
+  const atualizarDeteccaoNomeKit = (nome: string) => {
+    const dados = extrairDadosDoNomeKit(nome);
+    setEspessuraDetectada(dados.espessura);
+
+    setNovoKit(prev => ({
+      ...prev,
+      nome,
+      largura:
+        dados.largura !== null &&
+        !larguraManualRef.current &&
+        (prev.largura === 0 || prev.largura === ultimaDeteccaoRef.current.largura)
+          ? dados.largura
+          : prev.largura,
+      altura:
+        dados.altura !== null &&
+        !alturaManualRef.current &&
+        (prev.altura === 0 || prev.altura === ultimaDeteccaoRef.current.altura)
+          ? dados.altura
+          : prev.altura,
+    }));
+
+    ultimaDeteccaoRef.current = { largura: dados.largura, altura: dados.altura };
+  };
+
+  const aplicarMedidasDoNome = () => {
+    const dados = extrairDadosDoNomeKit(novoKit.nome);
+    setEspessuraDetectada(dados.espessura);
+    setNovoKit(prev => ({
+      ...prev,
+      largura: dados.largura ?? prev.largura,
+      altura: dados.altura ?? prev.altura,
+    }));
+    larguraManualRef.current = false;
+    alturaManualRef.current = false;
+    ultimaDeteccaoRef.current = { largura: dados.largura, altura: dados.altura };
+  };
+
+  const abrirModalParaNovo = () => {
+    setEditando(null);
+    setNovoKit(criarKitVazio());
+    larguraManualRef.current = false;
+    alturaManualRef.current = false;
+    ultimaDeteccaoRef.current = { largura: null, altura: null };
+    setEspessuraDetectada("");
+    setMostrarModal(true);
+  };
+
+  const abrirModalParaEdicao = (kit: Kit) => {
+    const deteccao = extrairDadosDoNomeKit(kit.nome);
+    setEditando(kit);
+    setNovoKit(kit);
+    larguraManualRef.current = true;
+    alturaManualRef.current = true;
+    ultimaDeteccaoRef.current = { largura: deteccao.largura, altura: deteccao.altura };
+    setEspessuraDetectada(deteccao.espessura);
+    setMostrarModal(true);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -138,6 +218,22 @@ export default function KitsPage() {
       return;
     }
 
+    const nomeNormalizado = normalizarNomeKit(novoKit.nome)
+    const conflitoExistente = kits.find((kit) => {
+      if (editando && kit.id === editando.id) return false
+      if (normalizarNomeKit(kit.nome) !== nomeNormalizado) return false
+
+      return Number(kit.largura) !== Number(novoKit.largura) || Number(kit.altura) !== Number(novoKit.altura)
+    })
+
+    if (conflitoExistente) {
+      setModalAviso({
+        titulo: "Nome duplicado com referência diferente",
+        mensagem: `Já existe um kit com esse nome usando a referência ${conflitoExistente.largura}x${conflitoExistente.altura} mm. Para evitar ambiguidade no projeto, altere o nome ou use a mesma referência.`,
+      });
+      return
+    }
+
     setCarregando(true);
     const dadosParaSalvar = {
       nome: padronizarTexto(novoKit.nome),
@@ -163,6 +259,10 @@ export default function KitsPage() {
       if (error) throw error;
       setMostrarModal(false);
       setEditando(null);
+      larguraManualRef.current = false;
+      alturaManualRef.current = false;
+      ultimaDeteccaoRef.current = { largura: null, altura: null };
+      setEspessuraDetectada("");
       await carregarDados();
     } catch (e: any) {
       setModalAviso({ titulo: "Erro", mensagem: "Falha ao salvar o kit: " + e.message });
@@ -535,9 +635,7 @@ export default function KitsPage() {
               </button>
               <button
                 onClick={() => {
-                  setEditando(null);
-                  setNovoKit({ nome: "", largura: 0, altura: 0, categoria: "", cores: "", preco_por_cor: "", preco: null });
-                  setMostrarModal(true);
+                  abrirModalParaNovo();
                 }}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95"
                 style={{ backgroundColor: darkTertiary, color: darkPrimary }}
@@ -579,7 +677,7 @@ export default function KitsPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => { setEditando(k); setNovoKit(k); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                        <button onClick={() => abrirModalParaEdicao(k)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
                         <button onClick={() => deletarKit(k.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
                       </div>
                     </td>
@@ -613,9 +711,28 @@ export default function KitsPage() {
                 <input
                   type="text"
                   value={novoKit.nome}
-                  onChange={e => setNovoKit({ ...novoKit, nome: e.target.value })}
+                  onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
                 />
+                <p className="mt-2 text-[11px] text-gray-400">
+                  Se o nome tiver algo como 1200x2100 8mm, a largura e a altura são sugeridas automaticamente, mas você pode alterar os campos abaixo.
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Kits com o mesmo nome não podem ter referências diferentes.
+                </p>
+                <button
+                  type="button"
+                  onClick={aplicarMedidasDoNome}
+                  className="mt-2 text-[11px] font-bold uppercase tracking-wide"
+                  style={{ color: darkTertiary }}
+                >
+                  Reaplicar medidas do nome
+                </button>
+                {espessuraDetectada && (
+                  <p className="mt-1 text-[11px] font-semibold" style={{ color: darkTertiary }}>
+                    Espessura detectada no nome: {espessuraDetectada}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -624,7 +741,10 @@ export default function KitsPage() {
                   <input
                     type="number"
                     value={novoKit.largura}
-                    onChange={e => setNovoKit({ ...novoKit, largura: Number(e.target.value) })}
+                    onChange={e => {
+                      larguraManualRef.current = true;
+                      setNovoKit({ ...novoKit, largura: Number(e.target.value) });
+                    }}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
                   />
                 </div>
@@ -633,7 +753,10 @@ export default function KitsPage() {
                   <input
                     type="number"
                     value={novoKit.altura}
-                    onChange={e => setNovoKit({ ...novoKit, altura: Number(e.target.value) })}
+                    onChange={e => {
+                      alturaManualRef.current = true;
+                      setNovoKit({ ...novoKit, altura: Number(e.target.value) });
+                    }}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
                   />
                 </div>
@@ -676,7 +799,13 @@ export default function KitsPage() {
             </div>
 
             <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-50">
-              <button onClick={() => setMostrarModal(false)} className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600">Descartar</button>
+              <button onClick={() => {
+                setMostrarModal(false);
+                larguraManualRef.current = false;
+                alturaManualRef.current = false;
+                ultimaDeteccaoRef.current = { largura: null, altura: null };
+                setEspessuraDetectada("");
+              }} className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600">Descartar</button>
               <button onClick={salvarKit} disabled={carregando} className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
                 {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Kit")}
               </button>

@@ -85,7 +85,7 @@ type ProjetoPerfil = {
   qtd_largura: number
   qtd_altura: number
   qtd_outros: number
-  tipo_fornecimento: "barra"
+  tipo_fornecimento: string
   variacao_restrita?: string | null
 }
 type FormData = {
@@ -119,7 +119,97 @@ type PerfilDBItem = {
   id: string
   nome: string
   codigo?: string | null
+  cores?: string | null
   categoria?: string | null
+}
+
+const normalizarBuscaItem = (valor?: string | null) =>
+  String(valor || "").toLowerCase().trim()
+
+const formatarRotuloItemTecnico = <T extends { codigo?: string | null; nome?: string | null }>(item: T) =>
+  item.codigo ? `${item.codigo} - ${item.nome || ""}` : String(item.nome || "")
+
+const formatarRotuloKit = (item: KitDBItem) => {
+  const largura = Number(item.largura || 0)
+  const altura = Number(item.altura || 0)
+  return `${item.nome} · Ref. ${largura} x ${altura} mm`
+}
+
+const filtrarItensTecnicosPorBusca = <T extends { codigo?: string | null; nome?: string | null; categoria?: string | null }>(
+  itens: T[],
+  busca: string
+) => {
+  const termo = normalizarBuscaItem(busca)
+  if (!termo) return itens
+
+  return itens.filter((item) => {
+    const campos = [item.codigo, item.nome, item.categoria]
+    return campos.some((campo) => normalizarBuscaItem(campo).includes(termo))
+  })
+}
+
+const reindexarMapaBusca = (mapa: Record<number, string>, indiceRemovido: number) => {
+  const atualizado: Record<number, string> = {}
+
+  Object.entries(mapa).forEach(([chave, valor]) => {
+    const indice = Number(chave)
+    if (Number.isNaN(indice) || indice === indiceRemovido) return
+    atualizado[indice > indiceRemovido ? indice - 1 : indice] = valor
+  })
+
+  return atualizado
+}
+
+const perfilEhPreto = (perfil: { cores?: string | null; nome?: string | null }) => {
+  const cores = normalizarBuscaItem(perfil.cores)
+  const nome = normalizarBuscaItem(perfil.nome)
+  return cores.includes("preto") || nome.includes("preto")
+}
+
+const deduplicarPerfisPreferindoPreto = <T extends { codigo?: string | null; nome?: string | null; cores?: string | null }>(lista: T[]) => {
+  const mapa = new Map<string, T>()
+
+  for (const item of lista) {
+    const chaveCodigo = String(item.codigo || "").toLowerCase().trim()
+    const chaveNome = limparNomeTecnico(item.nome)
+    const chave = chaveNome || chaveCodigo
+    if (!chave) continue
+
+    const existente = mapa.get(chave)
+    if (!existente || (perfilEhPreto(item) && !perfilEhPreto(existente))) {
+      mapa.set(chave, item)
+    }
+  }
+
+  return Array.from(mapa.values())
+}
+
+const VARIACAO_TOKEN = "__VARIACAO__="
+
+const limparTextoComVariacao = (valor?: string | null) =>
+  String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(VARIACAO_TOKEN))
+    .join("\n")
+    .trim()
+
+const extrairVariacaoDoTexto = (valor?: string | null) => {
+  const texto = String(valor || "")
+  const linhaVariacao = texto
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(VARIACAO_TOKEN))
+
+  return {
+    textoLimpo: limparTextoComVariacao(texto),
+    variacao: linhaVariacao ? linhaVariacao.slice(VARIACAO_TOKEN.length).trim() || null : null,
+  }
+}
+
+const aplicarVariacaoNoTexto = (valor: string | null | undefined, variacao: string | null | undefined) => {
+  const textoBase = limparTextoComVariacao(valor)
+  if (!variacao) return textoBase
+  return [textoBase, `${VARIACAO_TOKEN}${variacao}`].filter(Boolean).join("\n")
 }
 
 type ProjetoDetalheResponse = {
@@ -138,6 +228,57 @@ type ProjetoDetalheResponse = {
       qtd_outros?: number | null
     }
   >
+}
+
+const getMensagemErroSupabase = (error: unknown, contexto: string) => {
+  if (error && typeof error === "object" && "message" in error) {
+    const mensagem = String((error as { message?: unknown }).message || "")
+    if (mensagem) return `${contexto}: ${mensagem}`
+  }
+  return contexto
+}
+
+const colunasOpcionaisNoErro = (mensagem: string, colunas: string[]) =>
+  colunas.filter((coluna) => new RegExp(`\\b${coluna}\\b`, "i").test(mensagem))
+
+const removerColunasDasLinhas = <T extends Record<string, unknown>>(linhas: T[], colunas: string[]) =>
+  linhas.map((linha) => {
+    const clone: Record<string, unknown> = { ...linha }
+    colunas.forEach((coluna) => {
+      delete clone[coluna]
+    })
+    return clone as T
+  })
+
+const inserirComFallbackColunas = async <T extends Record<string, unknown>>(
+  tabela: string,
+  linhas: T[],
+  colunasOpcionais: string[],
+  contexto: string
+) => {
+  let payload = [...linhas]
+  let colunasRestantes = [...colunasOpcionais]
+  let ultimaMensagem = ""
+
+  while (true) {
+    const { error } = await supabase.from(tabela).insert(payload)
+    if (!error) return
+
+    ultimaMensagem = String(error.message || "")
+    const colunasInvalidas = colunasOpcionaisNoErro(ultimaMensagem, colunasRestantes)
+    if (colunasInvalidas.length === 0) {
+      throw new Error(getMensagemErroSupabase(error, contexto))
+    }
+
+    payload = removerColunasDasLinhas(payload, colunasInvalidas)
+    colunasRestantes = colunasRestantes.filter((coluna) => !colunasInvalidas.includes(coluna))
+
+    if (colunasRestantes.length === 0) {
+      const { error: retryError } = await supabase.from(tabela).insert(payload)
+      if (!retryError) return
+      throw new Error(getMensagemErroSupabase(retryError, contexto))
+    }
+  }
 }
 
 // ─── CATÁLOGO DE DESENHOS ────────────────────────────────────────────────────
@@ -443,6 +584,7 @@ export default function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [kitsDB, setKitsDB] = useState<KitDBItem[]>([])
   const [ferragensDB, setFerragensDB] = useState<FerragemDBItem[]>([])
+  const [perfisOriginaisDB, setPerfisOriginaisDB] = useState<PerfilDBItem[]>([])
   const [perfisDB, setPerfisDB] = useState<PerfilDBItem[]>([])
   const [carregando, setCarregando] = useState(true)
 
@@ -450,6 +592,8 @@ export default function ProjetosPage() {
   const [showModal, setShowModal] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState<"geral" | "folhas" | "kits" | "ferragens" | "perfis">("geral")
   const [form, setForm] = useState<FormData>(FORM_VAZIO)
+  const [buscaFerragemPorLinha, setBuscaFerragemPorLinha] = useState<Record<number, string>>({})
+  const [buscaPerfilPorLinha, setBuscaPerfilPorLinha] = useState<Record<number, string>>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
@@ -483,12 +627,16 @@ export default function ProjetosPage() {
       supabase.from("projetos").select("*").eq("empresa_id", empresaId).order("criado_em", { ascending: false }),
       supabase.from("kits").select("id, nome, largura, altura, categoria").eq("empresa_id", empresaId).order("nome"),
       supabase.from("ferragens").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
-      supabase.from("perfis").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
+      supabase.from("perfis").select("id, nome, codigo, cores, categoria").eq("empresa_id", empresaId).order("nome"),
     ])
     if (resProjetos.data) setProjetos(resProjetos.data)
     if (resKits.data) setKitsDB(resKits.data as KitDBItem[])
-    if (resFerragens.data) setFerragensDB(deduplicarItensTecnicos(resFerragens.data as FerragemDBItem[]))
-    if (resPerfis.data) setPerfisDB(deduplicarItensTecnicos(resPerfis.data as PerfilDBItem[]))
+    if (resFerragens.data) setFerragensDB(resFerragens.data as FerragemDBItem[])
+    if (resPerfis.data) {
+      const perfisCarregados = resPerfis.data as PerfilDBItem[]
+      setPerfisOriginaisDB(perfisCarregados)
+      setPerfisDB(deduplicarPerfisPreferindoPreto(perfisCarregados))
+    }
     setCarregando(false)
   }, [empresaId])
 
@@ -635,20 +783,60 @@ export default function ProjetosPage() {
     if (!data) return
     const detalhe = data as ProjetoDetalheResponse
 
+    const resolverPerfilRepresentante = (perfilId: string) => {
+      const perfilOriginal = perfisOriginaisDB.find((perfil) => String(perfil.id) === String(perfilId))
+      if (!perfilOriginal) {
+        return { id: perfilId, nome: undefined as string | undefined }
+      }
+
+      const chaveCodigo = String(perfilOriginal.codigo || "").toLowerCase().trim()
+      const chaveNome = limparNomeTecnico(perfilOriginal.nome)
+      const chave = chaveNome || chaveCodigo
+
+      const representante = perfisDB.find((perfil) => {
+        const codigo = String(perfil.codigo || "").toLowerCase().trim()
+        const nome = limparNomeTecnico(perfil.nome)
+        return (nome || codigo) === chave
+      })
+
+      return {
+        id: representante?.id || perfilId,
+        nome: representante?.nome || perfilOriginal.nome || undefined,
+      }
+    }
+
     setForm({
       nome: detalhe.nome || "",
       categoria: detalhe.categoria || "",
       desenho: detalhe.desenho || "",
       folhas: (detalhe.projetos_folhas || []).sort((a, b) => a.numero_folha - b.numero_folha),
-      kits: (detalhe.projetos_kits || []).map((k) => ({ ...k, nome: k.kits?.nome || undefined, variacao_restrita: k.variacao_restrita ?? null })),
-      ferragens: (detalhe.projetos_ferragens || []).map((f) => ({ ...f, nome: f.ferragens?.nome || undefined, variacao_restrita: f.variacao_restrita ?? null })),
+      kits: (detalhe.projetos_kits || []).map((k) => {
+        const metaObservacao = extrairVariacaoDoTexto(k.observacao)
+        return {
+          ...k,
+          nome: k.kits?.nome || undefined,
+          observacao: metaObservacao.textoLimpo,
+          variacao_restrita: k.variacao_restrita ?? metaObservacao.variacao ?? null,
+        }
+      }),
+      ferragens: (detalhe.projetos_ferragens || []).map((f) => {
+        const metaObservacao = extrairVariacaoDoTexto(f.observacao)
+        return {
+          ...f,
+          nome: f.ferragens?.nome || undefined,
+          observacao: metaObservacao.textoLimpo,
+          variacao_restrita: f.variacao_restrita ?? metaObservacao.variacao ?? null,
+        }
+      }),
       perfis: (detalhe.projetos_perfis || []).map((p) => ({
         ...p,
-        nome: p.perfis?.nome || undefined,
+        perfil_id: resolverPerfilRepresentante(String(p.perfil_id)).id,
+        nome: resolverPerfilRepresentante(String(p.perfil_id)).nome,
         qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
         qtd_altura: Number(p.qtd_altura ?? 0),
         qtd_outros: Number(p.qtd_outros ?? 0),
-        variacao_restrita: p.variacao_restrita ?? null,
+        tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
+        variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
       })),
     })
     setEditandoId(projeto.id)
@@ -671,18 +859,26 @@ export default function ProjetosPage() {
       let projetoId = editandoId
 
       if (editandoId) {
-        await supabase.from("projetos").update({
+        const { error: updateProjetoError } = await supabase.from("projetos").update({
           nome: form.nome.trim(),
           categoria: form.categoria,
           desenho: form.desenho,
         }).eq("id", editandoId)
+        if (updateProjetoError) throw new Error(getMensagemErroSupabase(updateProjetoError, "Erro ao atualizar projeto"))
 
-        await Promise.all([
+        const deleteResults = await Promise.all([
           supabase.from("projetos_folhas").delete().eq("projeto_id", editandoId),
           supabase.from("projetos_kits").delete().eq("projeto_id", editandoId),
           supabase.from("projetos_ferragens").delete().eq("projeto_id", editandoId),
           supabase.from("projetos_perfis").delete().eq("projeto_id", editandoId),
         ])
+        const deleteErrors = deleteResults
+          .map((result) => result.error)
+          .filter(Boolean)
+
+        if (deleteErrors.length > 0) {
+          throw new Error(getMensagemErroSupabase(deleteErrors[0], "Erro ao limpar itens antigos do projeto"))
+        }
       } else {
         const { data, error } = await supabase.from("projetos").insert([{
           nome: form.nome.trim(),
@@ -695,58 +891,70 @@ export default function ProjetosPage() {
       }
 
       if (form.folhas.length > 0) {
-        await supabase.from("projetos_folhas").insert(
-          form.folhas.map(f => ({
-            projeto_id: projetoId,
-            numero_folha: f.numero_folha,
-            tipo_folha: f.tipo_folha,
-            formula_largura: f.formula_largura,
-            formula_altura: f.formula_altura,
-            observacao: f.observacao,
-          }))
-        )
+        const folhasPayload = form.folhas.map(f => ({
+          projeto_id: projetoId,
+          numero_folha: f.numero_folha,
+          tipo_folha: f.tipo_folha,
+          formula_largura: f.formula_largura,
+          formula_altura: f.formula_altura,
+          observacao: f.observacao,
+        }))
+        const { error: folhasError } = await supabase.from("projetos_folhas").insert(folhasPayload)
+        if (folhasError) throw new Error(getMensagemErroSupabase(folhasError, "Erro ao salvar folhas do projeto"))
       }
 
       if (form.kits.length > 0) {
-        await supabase.from("projetos_kits").insert(
-          form.kits.map(k => ({
-            projeto_id: projetoId,
-            kit_id: k.kit_id,
-            espessura_vidro: k.espessura_vidro,
-            largura_referencia: k.largura_referencia,
-            altura_referencia: k.altura_referencia,
-            tolerancia_mm: k.tolerancia_mm,
-            observacao: k.observacao,
-            variacao_restrita: k.variacao_restrita ?? null,
-          }))
+        const kitsPayload = form.kits.map(k => ({
+          projeto_id: projetoId,
+          kit_id: k.kit_id,
+          espessura_vidro: k.espessura_vidro,
+          largura_referencia: k.largura_referencia,
+          altura_referencia: k.altura_referencia,
+          tolerancia_mm: k.tolerancia_mm,
+          observacao: aplicarVariacaoNoTexto(k.observacao, k.variacao_restrita),
+          variacao_restrita: k.variacao_restrita ?? null,
+        }))
+        await inserirComFallbackColunas(
+          "projetos_kits",
+          kitsPayload,
+          ["variacao_restrita"],
+          "Erro ao salvar kits do projeto"
         )
       }
 
       if (form.ferragens.length > 0) {
-        await supabase.from("projetos_ferragens").insert(
-          form.ferragens.map(f => ({
-            projeto_id: projetoId,
-            ferragem_id: f.ferragem_id,
-            quantidade: f.quantidade,
-            usar_no_kit: f.usar_no_kit,
-            usar_no_perfil: f.usar_no_perfil,
-            observacao: f.observacao,
-            variacao_restrita: f.variacao_restrita ?? null,
-          }))
+        const ferragensPayload = form.ferragens.map(f => ({
+          projeto_id: projetoId,
+          ferragem_id: f.ferragem_id,
+          quantidade: f.quantidade,
+          usar_no_kit: f.usar_no_kit,
+          usar_no_perfil: f.usar_no_perfil,
+          observacao: aplicarVariacaoNoTexto(f.observacao, f.variacao_restrita),
+          variacao_restrita: f.variacao_restrita ?? null,
+        }))
+        await inserirComFallbackColunas(
+          "projetos_ferragens",
+          ferragensPayload,
+          ["variacao_restrita"],
+          "Erro ao salvar ferragens do projeto"
         )
       }
 
       if (form.perfis.length > 0) {
-        await supabase.from("projetos_perfis").insert(
-          form.perfis.map(p => ({
-            projeto_id: projetoId,
-            perfil_id: p.perfil_id,
-            qtd_largura: p.qtd_largura,
-            qtd_altura: p.qtd_altura,
-            qtd_outros: p.qtd_outros,
-            tipo_fornecimento: p.tipo_fornecimento,
-            variacao_restrita: p.variacao_restrita ?? null,
-          }))
+        const perfisPayload = form.perfis.map(p => ({
+          projeto_id: projetoId,
+          perfil_id: p.perfil_id,
+          qtd_largura: p.qtd_largura,
+          qtd_altura: p.qtd_altura,
+          qtd_outros: p.qtd_outros,
+          tipo_fornecimento: aplicarVariacaoNoTexto(p.tipo_fornecimento || "barra", p.variacao_restrita),
+          variacao_restrita: p.variacao_restrita ?? null,
+        }))
+        await inserirComFallbackColunas(
+          "projetos_perfis",
+          perfisPayload,
+          ["variacao_restrita", "tipo_fornecimento"],
+          "Erro ao salvar perfis do projeto"
         )
       }
 
@@ -782,6 +990,8 @@ export default function ProjetosPage() {
     setShowModal(false)
     setShowCloseDraftModal(false)
     setForm(FORM_VAZIO)
+    setBuscaFerragemPorLinha({})
+    setBuscaPerfilPorLinha({})
     setEditandoId(null)
     setAbaAtiva("geral")
     setShowPicker(false)
@@ -901,6 +1111,9 @@ export default function ProjetosPage() {
     })
   }
 
+  const getFerragensFiltradas = (indice: number, ferragemAtualId?: string) =>
+    filtrarItensTecnicosPorBusca(getFerragensDisponiveis(ferragemAtualId), buscaFerragemPorLinha[indice] || "")
+
   const adicionarFerragem = () => {
     const disponiveis = getFerragensDisponiveis()
     if (!disponiveis.length) return
@@ -932,6 +1145,7 @@ export default function ProjetosPage() {
   }
   const removerFerragem = (i: number) => {
     setForm(prev => ({ ...prev, ferragens: prev.ferragens.filter((_, idx) => idx !== i) }))
+    setBuscaFerragemPorLinha((prev) => reindexarMapaBusca(prev, i))
   }
 
   // ─── HELPERS PERFIS ──────────────────────────────────────────────────────
@@ -942,6 +1156,9 @@ export default function ProjetosPage() {
       return id === String(perfilAtualId || "") || !selecionados.includes(id)
     })
   }
+
+  const getPerfisFiltrados = (indice: number, perfilAtualId?: string) =>
+    filtrarItensTecnicosPorBusca(getPerfisDisponiveis(perfilAtualId), buscaPerfilPorLinha[indice] || "")
 
   const adicionarPerfil = () => {
     const disponiveis = getPerfisDisponiveis()
@@ -974,6 +1191,7 @@ export default function ProjetosPage() {
   }
   const removerPerfil = (i: number) => {
     setForm(prev => ({ ...prev, perfis: prev.perfis.filter((_, idx) => idx !== i) }))
+    setBuscaPerfilPorLinha((prev) => reindexarMapaBusca(prev, i))
   }
 
   const handleSignOut = async () => {
@@ -1909,9 +2127,12 @@ export default function ProjetosPage() {
                             style={{ color: theme.contentTextLightBg }}
                           >
                             {kitsDB.map(item => (
-                              <option key={item.id} value={item.id}>{item.nome}</option>
+                              <option key={item.id} value={item.id}>{formatarRotuloKit(item)}</option>
                             ))}
                           </select>
+                          <p className="mt-1 text-[10px] text-gray-400 font-medium">
+                            Referência selecionada: {kit.largura_referencia} x {kit.altura_referencia} mm
+                          </p>
                         </div>
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Espessura do Vidro</label>
@@ -2059,6 +2280,16 @@ export default function ProjetosPage() {
                     >
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Buscar ferragem</label>
+                          <input
+                            type="text"
+                            value={buscaFerragemPorLinha[idx] || ""}
+                            onChange={e => setBuscaFerragemPorLinha(prev => ({ ...prev, [idx]: e.target.value }))}
+                            placeholder="Digite código, nome ou categoria"
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
+                          />
+                        </div>
+                        <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Ferragem</label>
                           <select
                             value={f.ferragem_id}
@@ -2066,9 +2297,12 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getFerragensDisponiveis(String(f.ferragem_id)).map((fer) => (
+                            {getFerragensFiltradas(idx, String(f.ferragem_id)).length === 0 && (
+                              <option value={f.ferragem_id}>Nenhuma ferragem encontrada</option>
+                            )}
+                            {getFerragensFiltradas(idx, String(f.ferragem_id)).map((fer) => (
                               <option key={fer.id} value={fer.id}>
-                                {fer.codigo ? `${fer.codigo} - ${fer.nome}` : fer.nome}
+                                {formatarRotuloItemTecnico(fer)}
                               </option>
                             ))}
                           </select>
@@ -2201,6 +2435,16 @@ export default function ProjetosPage() {
                     >
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                         <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Buscar perfil</label>
+                          <input
+                            type="text"
+                            value={buscaPerfilPorLinha[idx] || ""}
+                            onChange={e => setBuscaPerfilPorLinha(prev => ({ ...prev, [idx]: e.target.value }))}
+                            placeholder="Digite código, nome ou categoria"
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
+                          />
+                        </div>
+                        <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
                             value={p.perfil_id}
@@ -2208,9 +2452,12 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getPerfisDisponiveis(String(p.perfil_id)).map((per) => (
+                            {getPerfisFiltrados(idx, String(p.perfil_id)).length === 0 && (
+                              <option value={p.perfil_id}>Nenhum perfil encontrado</option>
+                            )}
+                            {getPerfisFiltrados(idx, String(p.perfil_id)).map((per) => (
                               <option key={per.id} value={per.id}>
-                                {per.codigo ? `${per.codigo} - ${per.nome}` : per.nome}
+                                {formatarRotuloItemTecnico(per)}
                               </option>
                             ))}
                           </select>

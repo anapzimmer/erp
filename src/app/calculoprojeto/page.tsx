@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/context/ThemeContext"
@@ -9,11 +9,14 @@ import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
+import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
+import { RelatorioObraPDF } from "../relatorios/calculovidros/RelatorioObraPDF"
 import Image from "next/image"
+import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer"
 import {
   Calculator, Package, Wrench, Square,
   AlertTriangle, CheckCircle2, Info,
-  Scissors, Plus, Trash2, Save,
+  Scissors, Plus, Trash2, Save, Eye, X, Loader2, Printer,
 } from "lucide-react"
 
 // ─── TIPOS ──────────────────────────────────────────────────────────────────
@@ -104,7 +107,6 @@ type PerfilItem = {
   nome: string
   codigo?: string | null
   preco: number
-  comprimento_barra?: number | null
   cores?: string[] | string | null
 }
 
@@ -114,6 +116,8 @@ type FolhaCalculada = {
   tipo: string
   largura: number
   altura: number
+  larguraArredondada: number
+  alturaArredondada: number
   area: number
   vidro?: VidroItem | null
   precoM2Utilizado: number
@@ -121,11 +125,19 @@ type FolhaCalculada = {
 }
 
 // Resultado de otimização de barra
+type BarraOtimizada = {
+  numero: number
+  cortes: number[]
+  usadoMm: number
+  sobraMm: number
+}
+
 type CorteOtimizado = {
   perfilNome: string
   comprimentoBarra: number
   qtdBarras: number
   cortes: number[]
+  barras: BarraOtimizada[]
   aproveitamento: number
   desperdicioMm: number
   precoBarra: number
@@ -175,6 +187,123 @@ type ResultadoProjetoCalculado = {
   resultado: ResultadoCalculo
 }
 
+type ItemPreviewOrcamento = {
+  id: string
+  descricao: string
+  tipo?: string
+  medidaReal: string
+  medidaCalc: string
+  qtd: number
+  total: number
+  acabamento?: string
+  servicos?: string
+  planoCorte?: BarraOtimizada[]
+  vao?: string
+  corVidro?: string
+  valorUnitario?: number
+}
+
+type OtimizacaoGlobalPerfil = {
+  projetoId: string
+  projetoNome: string
+  perfilNome: string
+  corMaterial: string
+  comprimentoBarra: number
+  precoBarra: number
+  cortes: number[]
+  barras: BarraOtimizada[]
+  qtdBarrasOriginal: number
+  precoOriginal: number
+  qtdBarrasOtimizada: number
+  precoOtimizado: number
+  aproveitamento: number
+  desperdicioMm: number
+}
+
+const VARIACAO_TOKEN = "__VARIACAO__="
+
+const limparTextoComVariacao = (valor?: string | null) =>
+  String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(VARIACAO_TOKEN))
+    .join("\n")
+    .trim()
+
+const extrairVariacaoDoTexto = (valor?: string | null) => {
+  const texto = String(valor || "")
+  const linhaVariacao = texto
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(VARIACAO_TOKEN))
+
+  return {
+    textoLimpo: limparTextoComVariacao(texto),
+    variacao: linhaVariacao ? linhaVariacao.slice(VARIACAO_TOKEN.length).trim() || null : null,
+  }
+}
+
+type VariacaoProjetoOpcao = {
+  arquivo: string
+  label: string
+}
+
+const PARES_TRINCO: Array<{ com: string; sem: string }> = [
+  { com: "janela-c-trinco-2fls.png", sem: "janela-s-trinco-2fls.png" },
+  { com: "janela-c-trinco-4fls.png", sem: "janela-s-trinco-4fls.png" },
+  { com: "janela-bct-trinco-2fls.png", sem: "janela-bst-trinco-2fls.png" },
+  { com: "janela-bct-trinco-4fls.png", sem: "janela-bst-trinco-4fls.png" },
+  { com: "janela-canto-ct.png", sem: "janela-canto-st.png" },
+  { com: "janela-canto90-ct.png", sem: "janela-canto90-st.png" },
+]
+
+const formatarLabelVariacaoArquivo = (arquivo: string) => {
+  const nome = arquivo.replace(/\.png$/i, "")
+
+  const parTrinco = PARES_TRINCO.find((par) => par.com === arquivo || par.sem === arquivo)
+  if (parTrinco) {
+    return arquivo === parTrinco.com ? "Com trinco" : "Sem trinco"
+  }
+
+  if (/-ci(?:-|$)/i.test(nome)) return "CI"
+  if (/-cs(?:-|$)/i.test(nome)) return "CS"
+  if (/-simples$/i.test(nome)) return "Simples"
+  if (/-complet[oa]\d*$/i.test(nome)) {
+    const numero = nome.match(/(\d+)$/)?.[1]
+    return numero ? `Completo ${numero}` : "Completo"
+  }
+
+  return nome.split("-").slice(-2).join(" ") || nome
+}
+
+const getVariacoesAutomaticasProjeto = (desenho?: string | null): VariacaoProjetoOpcao[] => {
+  const arquivoAtual = String(desenho || "").trim()
+  if (!arquivoAtual) return []
+
+  const variacoes: VariacaoProjetoOpcao[] = []
+  const parTrinco = PARES_TRINCO.find((par) => par.com === arquivoAtual || par.sem === arquivoAtual)
+  if (parTrinco) {
+    variacoes.push(
+      { arquivo: parTrinco.sem, label: "Sem trinco" },
+      { arquivo: parTrinco.com, label: "Com trinco" },
+    )
+  }
+
+  if (/-ci(?:-|$)/i.test(arquivoAtual) || /-cs(?:-|$)/i.test(arquivoAtual)) {
+    const arquivoCI = arquivoAtual.replace(/-cs(?=-|$)/gi, "-ci")
+    const arquivoCS = arquivoAtual.replace(/-ci(?=-|$)/gi, "-cs")
+    ;[
+      { arquivo: arquivoCI, label: "CI" },
+      { arquivo: arquivoCS, label: "CS" },
+    ].forEach((variacao) => {
+      if (!variacoes.some((item) => item.arquivo === variacao.arquivo)) {
+        variacoes.push(variacao)
+      }
+    })
+  }
+
+  return variacoes
+}
+
 const normalizarListaCores = (valor: string[] | string | null | undefined): string[] => {
   if (Array.isArray(valor)) {
     return valor.map((item) => String(item || "").trim()).filter(Boolean)
@@ -204,6 +333,30 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   variacaoDrawing: "",
 })
 
+const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto => {
+  if (!item || typeof item !== "object") return false
+
+  const candidato = item as Record<string, unknown>
+  return typeof candidato.id === "string"
+    && typeof candidato.projetoId === "string"
+    && typeof candidato.largura === "string"
+    && typeof candidato.altura === "string"
+    && typeof candidato.largura2 === "string"
+    && typeof candidato.altura2 === "string"
+    && typeof candidato.qtd === "string"
+    && typeof candidato.vidroId === "string"
+    && typeof candidato.corMaterial === "string"
+    && (candidato.modoCalculo === "kit" || candidato.modoCalculo === "barra")
+    && typeof candidato.variacaoDrawing === "string"
+}
+
+const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
+  if (!Array.isArray(itens)) return [criarItemCalculoProjeto()]
+
+  const itensValidos = itens.filter(validarItemCalculoProjeto)
+  return itensValidos.length > 0 ? itensValidos : [criarItemCalculoProjeto()]
+}
+
 // ─── ENGINE: AVALIAR FÓRMULA ─────────────────────────────────────────────────
 const avaliarFormula = (formula: string, vars: Record<string, number>): number => {
   try {
@@ -222,26 +375,28 @@ const avaliarFormula = (formula: string, vars: Record<string, number>): number =
 
 // ─── ENGINE: ARREDONDA PARA CIMA DE 50mm ─────────────────────────────────────
 const arred50 = (v: number) => Math.ceil(v / 50) * 50
+const SOBRA_REAPROVEITAVEL_MM = 300
 
 // ─── ENGINE: OTIMIZAÇÃO DE BARRAS (first-fit decreasing) ────────────────────
 const otimizarBarras = (
   cortes: number[],
   comprimentoBarra: number
-): { qtdBarras: number; cortes: number[]; aproveitamento: number; desperdicioMm: number } => {
+): { qtdBarras: number; cortes: number[]; barras: BarraOtimizada[]; aproveitamento: number; desperdicioMm: number } => {
   if (!cortes.length || comprimentoBarra <= 0) {
-    return { qtdBarras: 0, cortes: [], aproveitamento: 0, desperdicioMm: 0 }
+    return { qtdBarras: 0, cortes: [], barras: [], aproveitamento: 0, desperdicioMm: 0 }
   }
   const folga = 5 // mm de folga por corte de serra
   const sorted = [...cortes].sort((a, b) => b - a)
-  const barras: number[] = [] // espaço restante em cada barra
+  const barras: Array<{ restante: number; cortes: number[] }> = []
 
   for (const corte of sorted) {
     const corteComFolga = corte + folga
-    const idx = barras.findIndex(esp => esp >= corteComFolga)
+    const idx = barras.findIndex((barra) => barra.restante >= corteComFolga)
     if (idx >= 0) {
-      barras[idx] -= corteComFolga
+      barras[idx].restante -= corteComFolga
+      barras[idx].cortes.push(corte)
     } else {
-      barras.push(comprimentoBarra - corteComFolga)
+      barras.push({ restante: comprimentoBarra - corteComFolga, cortes: [corte] })
     }
   }
 
@@ -250,8 +405,14 @@ const otimizarBarras = (
   const totalDisponivel = qtdBarras * comprimentoBarra
   const desperdicio = totalDisponivel - totalUsado
   const aproveitamento = totalDisponivel > 0 ? Math.round((totalUsado / totalDisponivel) * 100) : 0
+  const barrasDetalhadas: BarraOtimizada[] = barras.map((barra, index) => ({
+    numero: index + 1,
+    cortes: barra.cortes,
+    usadoMm: comprimentoBarra - barra.restante,
+    sobraMm: barra.restante,
+  }))
 
-  return { qtdBarras, cortes: sorted, aproveitamento, desperdicioMm: desperdicio }
+  return { qtdBarras, cortes: sorted, barras: barrasDetalhadas, aproveitamento, desperdicioMm: desperdicio }
 }
 
 // ─── ENGINE: CALCULAR PROJETO COMPLETO ───────────────────────────────────────
@@ -295,8 +456,10 @@ const calcularProjeto = (params: {
     return {
       numero: f.numero_folha,
       tipo: f.tipo_folha,
-      largura: wR,
-      altura: hR,
+      largura: Math.round(w),
+      altura: Math.round(h),
+      larguraArredondada: wR,
+      alturaArredondada: hR,
       area,
       vidro: vidroSelecionado,
       precoM2Utilizado: precoVidroM2,
@@ -373,7 +536,7 @@ const calcularProjeto = (params: {
       const db = perfisDB.find(x => x.id === pProj.perfil_id)
       if (!db) continue
 
-      const comprimentoBarra = db.comprimento_barra || 6000
+      const comprimentoBarra = 6000
       const precoBarra = db.preco || 0
 
       // Monta lista de cortes: qtd_largura peças de L, qtd_altura peças de A, qtd_outros de (L+A)/2
@@ -393,6 +556,7 @@ const calcularProjeto = (params: {
         comprimentoBarra,
         qtdBarras: otim.qtdBarras,
         cortes: otim.cortes,
+        barras: otim.barras,
         aproveitamento: otim.aproveitamento,
         desperdicioMm: otim.desperdicioMm,
         precoBarra,
@@ -450,6 +614,8 @@ export default function CalculoProjetoPage() {
   // ── Resultado ──
   const [resultados, setResultados] = useState<ResultadoProjetoCalculado[]>([])
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false)
+  const [mostrarPreviewOrcamento, setMostrarPreviewOrcamento] = useState(false)
+  const [tipoPreviewPdf, setTipoPreviewPdf] = useState<"comercial" | "tecnico">("comercial")
 
   // ── Modal avisos ──
   const [modalAviso, setModalAviso] = useState<{
@@ -457,6 +623,12 @@ export default function CalculoProjetoPage() {
     mensagem: string
     tipo?: "sucesso" | "erro" | "aviso"
   } | null>(null)
+  const rascunhoRestauradoRef = useRef(false)
+
+  const getChaveRascunho = useCallback(() => {
+    if (!empresaId) return null
+    return `calculoprojeto:rascunho:${empresaId}:${user?.id || "anon"}`
+  }, [empresaId, user?.id])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -474,7 +646,7 @@ export default function CalculoProjetoPage() {
       supabase.from("vidro_precos_grupos").select("id, vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
       supabase.from("kits").select("id, nome, largura, altura, preco, categoria").eq("empresa_id", empresaId).order("nome"),
       supabase.from("ferragens").select("id, nome, codigo, preco, cores").eq("empresa_id", empresaId).order("nome"),
-      supabase.from("perfis").select("id, nome, codigo, preco, comprimento_barra, cores").eq("empresa_id", empresaId).order("nome"),
+      supabase.from("perfis").select("id, nome, codigo, preco, cores").eq("empresa_id", empresaId).order("nome"),
     ])
     if (resProjetos.data) setProjetos(resProjetos.data as Projeto[])
     if (resClientes.data) setClientesDB(resClientes.data as ClienteItem[])
@@ -489,6 +661,33 @@ export default function CalculoProjetoPage() {
   useEffect(() => {
     if (empresaId) carregarTudo()
   }, [empresaId, carregarTudo])
+
+  useEffect(() => {
+    const chave = getChaveRascunho()
+    if (!chave || rascunhoRestauradoRef.current || typeof window === "undefined") return
+
+    try {
+      const bruto = window.localStorage.getItem(chave)
+      if (!bruto) {
+        rascunhoRestauradoRef.current = true
+        return
+      }
+
+      const rascunho = JSON.parse(bruto) as {
+        clienteId?: string
+        obraReferencia?: string
+        itensCalculo?: unknown
+      }
+
+      if (typeof rascunho.clienteId === "string") setClienteId(rascunho.clienteId)
+      if (typeof rascunho.obraReferencia === "string") setObraReferencia(rascunho.obraReferencia)
+      setItensCalculo(normalizarItensCalculo(rascunho.itensCalculo))
+    } catch {
+      window.localStorage.removeItem(chave)
+    } finally {
+      rascunhoRestauradoRef.current = true
+    }
+  }, [getChaveRascunho])
 
   // ── Cliente selecionado ───────────────────────────────────────────────────
   const clienteSel = clientesDB.find(c => c.id === clienteId) || null
@@ -507,15 +706,60 @@ export default function CalculoProjetoPage() {
         ...prev,
         [projetoId]: {
           folhas: (data.projetos_folhas || []).sort((a: { numero_folha: number }, b: { numero_folha: number }) => a.numero_folha - b.numero_folha),
-          kits: data.projetos_kits || [],
-          ferragens: data.projetos_ferragens || [],
-          perfis: data.projetos_perfis || [],
+          kits: (data.projetos_kits || []).map((kit: { observacao?: string | null; variacao_restrita?: string | null }) => {
+            const meta = extrairVariacaoDoTexto(kit.observacao)
+            return {
+              ...kit,
+              observacao: meta.textoLimpo,
+              variacao_restrita: kit.variacao_restrita ?? meta.variacao ?? null,
+            }
+          }),
+          ferragens: (data.projetos_ferragens || []).map((ferragem: { observacao?: string | null; variacao_restrita?: string | null }) => {
+            const meta = extrairVariacaoDoTexto(ferragem.observacao)
+            return {
+              ...ferragem,
+              observacao: meta.textoLimpo,
+              variacao_restrita: ferragem.variacao_restrita ?? meta.variacao ?? null,
+            }
+          }),
+          perfis: (data.projetos_perfis || []).map((perfil: { tipo_fornecimento?: string | null; variacao_restrita?: string | null }) => {
+            const meta = extrairVariacaoDoTexto(perfil.tipo_fornecimento)
+            return {
+              ...perfil,
+              variacao_restrita: perfil.variacao_restrita ?? meta.variacao ?? null,
+            }
+          }),
         },
       }))
     }
 
     setProjetosCarregando((prev) => prev.filter((id) => id !== projetoId))
   }, [detalhesProjetos, projetosCarregando])
+
+  useEffect(() => {
+    if (!rascunhoRestauradoRef.current) return
+
+    const projetoIds = Array.from(new Set(
+      itensCalculo
+        .map((item) => item.projetoId)
+        .filter(Boolean)
+    ))
+
+    projetoIds.forEach((projetoId) => carregarDetalheProjeto(projetoId))
+  }, [carregarDetalheProjeto, itensCalculo])
+
+  useEffect(() => {
+    const chave = getChaveRascunho()
+    if (!chave || !rascunhoRestauradoRef.current || typeof window === "undefined") return
+
+    const payload = {
+      clienteId,
+      obraReferencia,
+      itensCalculo,
+    }
+
+    window.localStorage.setItem(chave, JSON.stringify(payload))
+  }, [clienteId, getChaveRascunho, itensCalculo, obraReferencia])
 
   const atualizarItem = <K extends keyof ItemCalculoProjeto>(id: string, campo: K, valor: ItemCalculoProjeto[K]) => {
     setItensCalculo((prev) => prev.map((item) => {
@@ -589,29 +833,349 @@ export default function CalculoProjetoPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
   }
 
-  const getVariacoesDisponiveis = (item: ItemCalculoProjeto) => {
+  const getVariacoesDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
     const detalhe = getDetalhe(item)
-    if (!detalhe) return []
+    const projeto = getProjeto(item)
+    if (!detalhe && !projeto?.desenho) return []
 
-    const arqs = new Set<string>()
+    const mapa = new Map<string, VariacaoProjetoOpcao>()
+    getVariacoesAutomaticasProjeto(projeto?.desenho).forEach((variacao) => {
+      mapa.set(variacao.arquivo, variacao)
+    })
+
     ;[
-      ...detalhe.kits.map((kit) => kit.variacao_restrita),
-      ...detalhe.ferragens.map((ferragem) => ferragem.variacao_restrita),
-      ...detalhe.perfis.map((perfil) => perfil.variacao_restrita),
-    ].filter(Boolean).forEach((arquivo) => arqs.add(String(arquivo)))
+      ...(detalhe?.kits || []).map((kit) => kit.variacao_restrita),
+      ...(detalhe?.ferragens || []).map((ferragem) => ferragem.variacao_restrita),
+      ...(detalhe?.perfis || []).map((perfil) => perfil.variacao_restrita),
+    ].filter(Boolean).forEach((arquivo) => {
+      const arquivoString = String(arquivo)
+      if (!mapa.has(arquivoString)) {
+        mapa.set(arquivoString, {
+          arquivo: arquivoString,
+          label: formatarLabelVariacaoArquivo(arquivoString),
+        })
+      }
+    })
 
-    return Array.from(arqs)
+    return Array.from(mapa.values())
   }
 
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
       acc.totalVidro += item.resultado.totalVidro
-      acc.totalKitsPerfis += item.resultado.usouKit ? item.resultado.precoKit : item.resultado.precoPerfis
+      if (item.resultado.usouKit) acc.totalKits += item.resultado.precoKit
+      else acc.totalPerfisOriginal += item.resultado.precoPerfis
       acc.totalFerragens += item.resultado.precoFerragens
-      acc.totalGeral += item.resultado.totalGeral
+      acc.totalGeralOriginal += item.resultado.totalGeral
       return acc
-    }, { totalVidro: 0, totalKitsPerfis: 0, totalFerragens: 0, totalGeral: 0 })
+    }, { totalVidro: 0, totalKits: 0, totalPerfisOriginal: 0, totalFerragens: 0, totalGeralOriginal: 0 })
   }, [resultados])
+
+  const otimizacaoGlobalPerfis = useMemo(() => {
+    const grupos = new Map<string, OtimizacaoGlobalPerfil>()
+
+    resultados.forEach((itemResultado) => {
+      if (itemResultado.resultado.usouKit || !itemResultado.resultado.cortes.length) return
+
+      itemResultado.resultado.cortes.forEach((corte) => {
+        const projetoId = itemResultado.projeto?.id || itemResultado.itemId
+        const projetoNome = itemResultado.projeto?.nome || "Projeto"
+        const corMaterial = itemResultado.corMaterial || "Sem cor definida"
+        const chave = [
+          projetoId,
+          corte.perfilNome,
+          corMaterial,
+          corte.comprimentoBarra,
+          corte.precoBarra,
+        ].join("|")
+
+        const existente = grupos.get(chave)
+        if (existente) {
+          existente.cortes.push(...corte.cortes)
+          existente.qtdBarrasOriginal += corte.qtdBarras
+          existente.precoOriginal += corte.precoTotal
+          return
+        }
+
+        grupos.set(chave, {
+          projetoId,
+          projetoNome,
+          perfilNome: corte.perfilNome,
+          corMaterial,
+          comprimentoBarra: corte.comprimentoBarra,
+          precoBarra: corte.precoBarra,
+          cortes: [...corte.cortes],
+          barras: [],
+          qtdBarrasOriginal: corte.qtdBarras,
+          precoOriginal: corte.precoTotal,
+          qtdBarrasOtimizada: 0,
+          precoOtimizado: 0,
+          aproveitamento: 0,
+          desperdicioMm: 0,
+        })
+      })
+    })
+
+    const gruposOtimizados = Array.from(grupos.values())
+      .map((grupo) => {
+        const otim = otimizarBarras(grupo.cortes, grupo.comprimentoBarra)
+        return {
+          ...grupo,
+          cortes: [...grupo.cortes].sort((a, b) => b - a),
+          barras: otim.barras,
+          qtdBarrasOtimizada: otim.qtdBarras,
+          precoOtimizado: otim.qtdBarras * grupo.precoBarra,
+          aproveitamento: otim.aproveitamento,
+          desperdicioMm: otim.desperdicioMm,
+        }
+      })
+      .sort((a, b) => {
+        const projeto = a.projetoNome.localeCompare(b.projetoNome, "pt-BR")
+        if (projeto !== 0) return projeto
+        const perfil = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
+        if (perfil !== 0) return perfil
+        return a.corMaterial.localeCompare(b.corMaterial, "pt-BR")
+      })
+
+    const resumo = gruposOtimizados.reduce((acc, grupo) => {
+      acc.barrasOriginais += grupo.qtdBarrasOriginal
+      acc.barrasOtimizadas += grupo.qtdBarrasOtimizada
+      acc.precoOriginal += grupo.precoOriginal
+      acc.precoOtimizado += grupo.precoOtimizado
+      return acc
+    }, { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0 })
+
+    return {
+      grupos: gruposOtimizados,
+      resumo,
+      economiaBarras: Math.max(0, resumo.barrasOriginais - resumo.barrasOtimizadas),
+      economiaValor: Math.max(0, resumo.precoOriginal - resumo.precoOtimizado),
+    }
+  }, [resultados])
+
+  const totaisComOtimizacao = useMemo(() => {
+    const totalPerfis = otimizacaoGlobalPerfis.grupos.length > 0
+      ? otimizacaoGlobalPerfis.resumo.precoOtimizado
+      : totaisGerais.totalPerfisOriginal
+
+    const totalGeral =
+      totaisGerais.totalVidro +
+      totaisGerais.totalKits +
+      totaisGerais.totalFerragens +
+      totalPerfis
+
+    return {
+      totalVidro: totaisGerais.totalVidro,
+      totalKits: totaisGerais.totalKits,
+      totalPerfis,
+      totalPerfisOriginal: totaisGerais.totalPerfisOriginal,
+      totalFerragens: totaisGerais.totalFerragens,
+      totalGeral,
+      totalGeralOriginal: totaisGerais.totalGeralOriginal,
+      economiaPerfis: Math.max(0, totaisGerais.totalPerfisOriginal - totalPerfis),
+      economiaTotal: Math.max(0, totaisGerais.totalGeralOriginal - totalGeral),
+    }
+  }, [otimizacaoGlobalPerfis, totaisGerais])
+
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+
+  const relatorioObra = useMemo(() => {
+    return resultados.map((itemResultado) => {
+      const nomesPerfis = Array.from(new Set(itemResultado.resultado.cortes.map((corte) => corte.perfilNome)))
+      const nomesFerragens = Array.from(new Set(itemResultado.resultado.ferragens.map((ferragem) => ferragem.nome)))
+
+      return {
+        itemId: itemResultado.itemId,
+        projetoNome: itemResultado.projeto?.nome || "Projeto",
+        quantidade: itemResultado.qtdProjeto,
+        vao: `${itemResultado.larguraProjeto} x ${itemResultado.alturaProjeto} mm`,
+        vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
+        corMaterial: itemResultado.corMaterial || "Sem cor definida",
+        folhas: itemResultado.resultado.folhas.map((folha) => ({
+          id: `${itemResultado.itemId}-folha-${folha.numero}`,
+          titulo: `Folha ${folha.numero} ${folha.tipo}`,
+          medida: `${folha.largura} x ${folha.altura} mm`,
+          medidaCalc: `${folha.larguraArredondada} x ${folha.alturaArredondada} mm`,
+          area: folha.area,
+          total: folha.precoVidro,
+        })),
+        materiais: [
+          itemResultado.resultado.kit ? `Kit: ${itemResultado.resultado.kit.nome}` : null,
+          nomesPerfis.length > 0 ? `Perfis: ${nomesPerfis.join(" · ")}` : null,
+          nomesFerragens.length > 0 ? `Ferragens: ${nomesFerragens.join(" · ")}` : null,
+        ].filter(Boolean) as string[],
+        otimizacao: itemResultado.resultado.cortes.map((corte) => ({
+          id: `${itemResultado.itemId}-${corte.perfilNome}-${corte.comprimentoBarra}`,
+          perfilNome: corte.perfilNome,
+          comprimentoBarra: corte.comprimentoBarra,
+          qtdBarras: corte.qtdBarras,
+          aproveitamento: corte.aproveitamento,
+          desperdicioMm: corte.desperdicioMm,
+          total: corte.precoTotal,
+        })),
+      }
+    })
+  }, [resultados])
+
+  const dadosOrcamentoComercial = useMemo(() => {
+    const totalPerfisPorProjeto = otimizacaoGlobalPerfis.grupos.reduce<Record<string, number>>((acc, grupo) => {
+      acc[grupo.projetoId] = (acc[grupo.projetoId] || 0) + grupo.precoOtimizado
+      return acc
+    }, {})
+
+    const itens: ItemPreviewOrcamento[] = resultados.map((resultadoProjeto) => {
+      const projetoId = resultadoProjeto.projeto?.id || resultadoProjeto.itemId
+      const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
+      const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
+      const totalProjeto =
+        resultadoProjeto.resultado.totalVidro +
+        resultadoProjeto.resultado.precoKit +
+        resultadoProjeto.resultado.precoFerragens +
+        (resultadoProjeto.resultado.usouKit
+          ? 0
+          : (totalPerfisPorProjeto[projetoId] || 0))
+
+      return {
+        id: `orc-${resultadoProjeto.itemId}`,
+        descricao: resultadoProjeto.projeto?.nome || "Projeto",
+        tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
+        medidaReal: vaoProjeto,
+        medidaCalc: vaoProjeto,
+        qtd: resultadoProjeto.qtdProjeto,
+        total: totalProjeto,
+        acabamento: resultadoProjeto.corMaterial || undefined,
+        vao: vaoProjeto,
+        corVidro: corVidroProjeto,
+        valorUnitario: resultadoProjeto.qtdProjeto > 0 ? totalProjeto / resultadoProjeto.qtdProjeto : totalProjeto,
+        servicos: [
+          resultadoProjeto.resultado.usouKit
+            ? "Estrutura calculada por kit"
+            : "Estrutura calculada por barra com otimização consolidada",
+          resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
+        ].join(" · "),
+      }
+    })
+
+    return {
+      itens,
+      metragemTotal: resultados.reduce((acc, resultadoProjeto) => {
+        const areaProjeto = resultadoProjeto.resultado.folhas.reduce((s, folha) => s + folha.area, 0)
+        return acc + (areaProjeto * resultadoProjeto.qtdProjeto)
+      }, 0),
+      totalPecas: resultados.reduce((acc, resultadoProjeto) => acc + resultadoProjeto.qtdProjeto, 0),
+    }
+  }, [otimizacaoGlobalPerfis.grupos, resultados])
+
+  const dadosPreviewOrcamento = useMemo(() => {
+    const itensOrcamento = resultados.flatMap((resultadoProjeto) => {
+      const nomeProjeto = resultadoProjeto.projeto?.nome || "Projeto"
+      const qtdProjeto = resultadoProjeto.qtdProjeto
+      const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
+      const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
+      const itensProjeto: ItemPreviewOrcamento[] = []
+
+      itensProjeto.push({
+        id: `cab-${resultadoProjeto.itemId}`,
+        descricao: `Projeto: ${nomeProjeto}`,
+        tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
+        medidaReal: vaoProjeto,
+        medidaCalc: vaoProjeto,
+        qtd: qtdProjeto,
+        total: resultadoProjeto.resultado.totalGeral,
+        acabamento: resultadoProjeto.corMaterial || undefined,
+        vao: vaoProjeto,
+        corVidro: corVidroProjeto,
+        valorUnitario: qtdProjeto > 0 ? resultadoProjeto.resultado.totalGeral / qtdProjeto : resultadoProjeto.resultado.totalGeral,
+        servicos: [
+          resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
+          !resultadoProjeto.resultado.usouKit && resultadoProjeto.resultado.cortes.length > 0
+            ? "Perfis consolidados no fechamento da composição"
+            : "",
+        ].filter(Boolean).join(" · "),
+      })
+
+      resultadoProjeto.resultado.folhas.forEach((folha, index) => {
+        itensProjeto.push({
+          id: `folha-${resultadoProjeto.itemId}-${index}`,
+          descricao: `Vidro ${nomeProjeto}`,
+          tipo: `Folha ${folha.numero} ${folha.tipo}`,
+          medidaReal: `${folha.largura}x${folha.altura} mm`,
+          medidaCalc: `${folha.largura}x${folha.altura} mm`,
+          qtd: qtdProjeto,
+          total: folha.precoVidro,
+          acabamento: resultadoProjeto.corMaterial || undefined,
+          vao: vaoProjeto,
+          corVidro: corVidroProjeto,
+          valorUnitario: qtdProjeto > 0 ? folha.precoVidro / qtdProjeto : folha.precoVidro,
+        })
+      })
+
+      if (resultadoProjeto.resultado.kit) {
+        itensProjeto.push({
+          id: `kit-${resultadoProjeto.itemId}`,
+          descricao: `Kit ${nomeProjeto}`,
+          tipo: resultadoProjeto.resultado.kit.nome,
+          medidaReal: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
+          medidaCalc: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
+          qtd: qtdProjeto,
+          total: resultadoProjeto.resultado.precoKit,
+          acabamento: resultadoProjeto.corMaterial || undefined,
+          vao: vaoProjeto,
+          corVidro: corVidroProjeto,
+          valorUnitario: resultadoProjeto.resultado.kit.preco || 0,
+        })
+      }
+
+      resultadoProjeto.resultado.ferragens.forEach((ferragem, index) => {
+        const qtdFerragem = ferragem.qtd * qtdProjeto
+        itensProjeto.push({
+          id: `ferr-${resultadoProjeto.itemId}-${index}`,
+          descricao: `Ferragem ${nomeProjeto}`,
+          tipo: ferragem.nome,
+          medidaReal: "-",
+          medidaCalc: "-",
+          qtd: qtdFerragem,
+          total: ferragem.total,
+          acabamento: resultadoProjeto.corMaterial || undefined,
+          vao: vaoProjeto,
+          corVidro: corVidroProjeto,
+          valorUnitario: ferragem.precoUnit,
+        })
+      })
+
+      return itensProjeto
+    })
+
+    const itensPerfisConsolidados = otimizacaoGlobalPerfis.grupos.map((grupo, index) => ({
+      id: `perfil-global-${grupo.projetoId}-${index}`,
+      descricao: `Perfil Consolidado ${grupo.projetoNome}`,
+      tipo: `${grupo.perfilNome} (${grupo.aproveitamento}% ap.)`,
+      medidaReal: `${grupo.comprimentoBarra} mm barra`,
+      medidaCalc: `${grupo.qtdBarrasOtimizada} barra(s)`,
+      qtd: grupo.qtdBarrasOtimizada,
+      total: grupo.precoOtimizado,
+      acabamento: grupo.corMaterial,
+      vao: "Múltiplos vãos",
+      corVidro: "Conforme projeto",
+      valorUnitario: grupo.precoBarra,
+      servicos: `Consolidado global · ${grupo.cortes.length} corte(s) · economia ${fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}`,
+      planoCorte: grupo.barras,
+    }))
+
+    const itens = [...itensOrcamento, ...itensPerfisConsolidados]
+    const metragemTotal = resultados.reduce((acc, resultadoProjeto) => {
+      const areaProjeto = resultadoProjeto.resultado.folhas.reduce((s, folha) => s + folha.area, 0)
+      return acc + (areaProjeto * resultadoProjeto.qtdProjeto)
+    }, 0)
+    const totalPecas = itens.reduce((acc, item) => acc + (Number(item.qtd) || 0), 0)
+
+    return {
+      itens,
+      metragemTotal,
+      totalPecas,
+    }
+  }, [fmt, otimizacaoGlobalPerfis.grupos, resultados])
 
   const calcularTodos = () => {
     if (!clienteId) {
@@ -715,103 +1279,14 @@ export default function CalculoProjetoPage() {
       }
       const numeroFinal = `${prefixoData}${seq.toString().padStart(2, "0")}`
 
-      const itensOrcamento = resultados.flatMap((resultadoProjeto) => {
-        const nomeProjeto = resultadoProjeto.projeto?.nome || "Projeto"
-        const qtdProjeto = resultadoProjeto.qtdProjeto
-        const itensProjeto: Array<{
-          id: string
-          descricao: string
-          tipo?: string
-          medidaReal: string
-          medidaCalc: string
-          qtd: number
-          total: number
-          acabamento?: string
-          servicos?: string
-        }> = []
-
-        itensProjeto.push({
-          id: `cab-${resultadoProjeto.itemId}`,
-          descricao: `Projeto: ${nomeProjeto}`,
-          tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
-          medidaReal: `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`,
-          medidaCalc: `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`,
-          qtd: qtdProjeto,
-          total: resultadoProjeto.resultado.totalGeral,
-          acabamento: resultadoProjeto.corMaterial || undefined,
-          servicos: resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
-        })
-
-        resultadoProjeto.resultado.folhas.forEach((folha, index) => {
-          itensProjeto.push({
-            id: `folha-${resultadoProjeto.itemId}-${index}`,
-            descricao: `Vidro ${nomeProjeto}`,
-            tipo: `Folha ${folha.numero} ${folha.tipo}`,
-            medidaReal: `${folha.largura}x${folha.altura} mm`,
-            medidaCalc: `${folha.largura}x${folha.altura} mm`,
-            qtd: qtdProjeto,
-            total: folha.precoVidro,
-            acabamento: resultadoProjeto.corMaterial || undefined,
-          })
-        })
-
-        if (resultadoProjeto.resultado.kit) {
-          itensProjeto.push({
-            id: `kit-${resultadoProjeto.itemId}`,
-            descricao: `Kit ${nomeProjeto}`,
-            tipo: resultadoProjeto.resultado.kit.nome,
-            medidaReal: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
-            medidaCalc: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
-            qtd: qtdProjeto,
-            total: resultadoProjeto.resultado.precoKit,
-            acabamento: resultadoProjeto.corMaterial || undefined,
-          })
-        }
-
-        resultadoProjeto.resultado.ferragens.forEach((ferragem, index) => {
-          itensProjeto.push({
-            id: `ferr-${resultadoProjeto.itemId}-${index}`,
-            descricao: `Ferragem ${nomeProjeto}`,
-            tipo: ferragem.nome,
-            medidaReal: "-",
-            medidaCalc: "-",
-            qtd: ferragem.qtd,
-            total: ferragem.total,
-            acabamento: resultadoProjeto.corMaterial || undefined,
-          })
-        })
-
-        resultadoProjeto.resultado.cortes.forEach((corte, index) => {
-          itensProjeto.push({
-            id: `perfil-${resultadoProjeto.itemId}-${index}`,
-            descricao: `Perfil ${nomeProjeto}`,
-            tipo: `${corte.perfilNome} (${corte.aproveitamento}% ap.)`,
-            medidaReal: `${corte.comprimentoBarra} mm barra`,
-            medidaCalc: `${corte.qtdBarras} barra(s)`,
-            qtd: corte.qtdBarras,
-            total: corte.precoTotal,
-            acabamento: resultadoProjeto.corMaterial || undefined,
-          })
-        })
-
-        return itensProjeto
-      })
-
-      const metragemTotal = resultados.reduce((acc, resultadoProjeto) => {
-        const areaProjeto = resultadoProjeto.resultado.folhas.reduce((s, folha) => s + folha.area, 0)
-        return acc + (areaProjeto * resultadoProjeto.qtdProjeto)
-      }, 0)
-
-      const totalPecas = itensOrcamento.reduce((acc, item) => acc + (Number(item.qtd) || 0), 0)
-
       const payload = {
         numero_formatado: numeroFinal,
         cliente_nome: clienteSel.nome,
         obra_referencia: obraReferencia.trim() || "Composição de Projetos",
-        itens: itensOrcamento,
-        valor_total: Number(totaisGerais.totalGeral || 0),
+        itens: dadosOrcamentoComercial.itens,
+        valor_total: Number(totaisComOtimizacao.totalGeral || 0),
         empresa_id: empresaId,
-        metragem_total: Number(metragemTotal || 0),
+        metragem_total: Number(dadosOrcamentoComercial.metragemTotal || 0),
         peso_total: 0,
         theme_color: theme.menuIconColor || "#1e3a5a",
       }
@@ -819,11 +1294,20 @@ export default function CalculoProjetoPage() {
       const { error } = await supabase.from("orcamentos").insert([payload])
       if (error) throw error
 
+      const chaveRascunho = getChaveRascunho()
+      if (chaveRascunho && typeof window !== "undefined") {
+        window.localStorage.removeItem(chaveRascunho)
+      }
+
       setModalAviso({
         titulo: "Sucesso",
         mensagem: `Orçamento ${numeroFinal} salvo com ${resultados.length} projeto(s) para ${clienteSel.nome}.`,
         tipo: "sucesso",
       })
+      setClienteId("")
+      setObraReferencia("")
+      setItensCalculo([criarItemCalculoProjeto()])
+      setResultados([])
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido"
       setModalAviso({ titulo: "Erro ao salvar", mensagem: `Não foi possível salvar o orçamento. ${message}`, tipo: "erro" })
@@ -832,8 +1316,108 @@ export default function CalculoProjetoPage() {
     }
   }
 
-  const fmt = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+  const renderBarraVisual = (barra: BarraOtimizada, comprimentoBarra: number, chave: string) => {
+    const larguraTotal = Math.max(comprimentoBarra, 1)
+    const sobraReaproveitavel = barra.sobraMm >= SOBRA_REAPROVEITAVEL_MM
+
+    return (
+      <div key={chave} className="rounded-xl bg-white border border-gray-100 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-black text-gray-700">Barra {barra.numero}</p>
+            <p className="text-[10px] text-gray-400">Usado: {barra.usadoMm} mm · Sobra: {barra.sobraMm} mm</p>
+          </div>
+          <span
+            className="text-[10px] font-black px-2.5 py-1 rounded-lg"
+            style={sobraReaproveitavel
+              ? { backgroundColor: "#dcfce7", color: "#166534" }
+              : { backgroundColor: "#f3f4f6", color: "#6b7280" }}
+          >
+            {sobraReaproveitavel ? "Sobra reaproveitável" : "Sobra curta"}
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <div className="flex w-full h-4 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
+            {barra.cortes.map((corte, index) => (
+              <div
+                key={`${chave}-corte-${index}`}
+                className="h-full border-r border-white/70"
+                style={{
+                  width: `${Math.max((corte / larguraTotal) * 100, 2)}%`,
+                  background: "linear-gradient(90deg, #64748b, #94a3b8)",
+                }}
+                title={`Corte ${index + 1}: ${corte} mm`}
+              />
+            ))}
+            {barra.sobraMm > 0 && (
+              <div
+                className="h-full"
+                style={{
+                  width: `${Math.max((barra.sobraMm / larguraTotal) * 100, 2)}%`,
+                  background: sobraReaproveitavel
+                    ? "linear-gradient(90deg, #bbf7d0, #dcfce7)"
+                    : "linear-gradient(90deg, #d1d5db, #e5e7eb)",
+                }}
+                title={`Sobra: ${barra.sobraMm} mm`}
+              />
+            )}
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+            {barra.cortes.map((corte, index) => (
+              <span key={`${chave}-tag-${index}`} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold">
+                Corte {index + 1}: {corte} mm
+              </span>
+            ))}
+            <span className={`px-2 py-1 rounded-lg font-bold ${sobraReaproveitavel ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+              Sobra: {barra.sobraMm} mm
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const documentoPreviewOrcamento = (
+    <CalculoVidroPDF
+      itens={dadosOrcamentoComercial.itens}
+      nomeEmpresa={nomeEmpresa}
+      logoUrl={theme.logoLightUrl ?? null}
+      nomeCliente={clienteSel?.nome || "Cliente não selecionado"}
+      themeColor={theme.contentTextLightBg}
+      textColor={theme.contentTextLightBg}
+      nomeObra={obraReferencia || "Composição de Projetos"}
+      pesoTotal={0}
+      metragemTotal={Number(dadosOrcamentoComercial.metragemTotal || 0)}
+      valorTotal={Number(totaisComOtimizacao.totalGeral || 0)}
+      totalPecas={Number(dadosOrcamentoComercial.totalPecas || 0)}
+      numeroOrcamento="PRÉVIA"
+    />
+  )
+
+  const documentoPreviewTecnico = (
+    <RelatorioObraPDF
+      nomeEmpresa={nomeEmpresa}
+      logoUrl={theme.logoLightUrl ?? null}
+      nomeCliente={clienteSel?.nome || "Cliente não selecionado"}
+      nomeObra={obraReferencia || "Composição de Projetos"}
+      themeColor={theme.contentTextLightBg}
+      relatorioObra={relatorioObra}
+      otimizacaoGlobal={otimizacaoGlobalPerfis.grupos.map((grupo) => ({
+        id: `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}`,
+        projetoNome: grupo.projetoNome,
+        perfilNome: grupo.perfilNome,
+        corMaterial: grupo.corMaterial,
+        comprimentoBarra: grupo.comprimentoBarra,
+        qtdBarrasOriginal: grupo.qtdBarrasOriginal,
+        qtdBarrasOtimizada: grupo.qtdBarrasOtimizada,
+        aproveitamento: grupo.aproveitamento,
+        desperdicioMm: grupo.desperdicioMm,
+        precoOtimizado: grupo.precoOtimizado,
+      }))}
+    />
+  )
 
   if (checkingAuth) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -1159,18 +1743,18 @@ export default function CalculoProjetoPage() {
                           >
                             Todas
                           </button>
-                          {variacoes.map((arquivo) => (
+                          {variacoes.map((variacao) => (
                             <button
-                              key={arquivo}
+                              key={variacao.arquivo}
                               type="button"
-                              onClick={() => atualizarItem(item.id, "variacaoDrawing", arquivo)}
+                              onClick={() => atualizarItem(item.id, "variacaoDrawing", variacao.arquivo)}
                               className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-40"
-                              style={item.variacaoDrawing === arquivo
+                              style={item.variacaoDrawing === variacao.arquivo
                                 ? { backgroundColor: "#8b5cf6", color: "#fff", borderColor: "#8b5cf6" }
                                 : { backgroundColor: "#f5f3ff", color: "#7c3aed", borderColor: "#ddd6fe" }}
-                              title={arquivo}
+                              title={variacao.arquivo}
                             >
-                              {arquivo.replace(/\.png$/i, "").split("-").slice(-2).join(" ")}
+                              {variacao.label}
                             </button>
                           ))}
                         </div>
@@ -1188,6 +1772,17 @@ export default function CalculoProjetoPage() {
               >
                 <Calculator size={18} />
                 Calcular Todos os Projetos
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setTipoPreviewPdf("comercial"); setMostrarPreviewOrcamento(true) }}
+                disabled={resultados.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl text-sm font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: "#ffffff", color: theme.menuBackgroundColor, border: `1px solid ${theme.menuBackgroundColor}22` }}
+              >
+                <Eye size={18} />
+                Ver / Imprimir Sem Salvar
               </button>
 
               <button
@@ -1226,24 +1821,200 @@ export default function CalculoProjetoPage() {
                   >
                     <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
                     <p className="text-[11px] uppercase tracking-widest font-black opacity-70 mb-1">Resultado Total do Cliente</p>
-                    <p className="text-4xl font-black">{fmt(totaisGerais.totalGeral)}</p>
+                    <p className="text-4xl font-black">{fmt(totaisComOtimizacao.totalGeral)}</p>
                     <p className="text-sm opacity-70 mt-1">
                       Cliente: {clienteSel?.nome || "—"} · {resultados.length} projeto(s) na composição
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                    {totaisComOtimizacao.economiaTotal > 0 && (
+                      <p className="text-xs opacity-80 mt-2">
+                        Total original: {fmt(totaisComOtimizacao.totalGeralOriginal)} · economia consolidada: {fmt(totaisComOtimizacao.economiaTotal)}
+                      </p>
+                    )}
+                    {otimizacaoGlobalPerfis.grupos.length > 0 && (
+                      <p className="text-xs opacity-80 mt-2">
+                        Abaixo há uma consolidação global de barras por projeto para mostrar reaproveitamento entre medidas diferentes.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 mt-4">
                       {[
-                        { label: "Vidros", valor: totaisGerais.totalVidro },
-                        { label: "Kits / Perfis", valor: totaisGerais.totalKitsPerfis },
-                        { label: "Ferragens", valor: totaisGerais.totalFerragens },
-                        { label: "Total", valor: totaisGerais.totalGeral },
-                      ].map(({ label, valor }) => (
+                        { label: "Vidros", valor: totaisComOtimizacao.totalVidro, detalhe: "" },
+                        {
+                          label: "Kits",
+                          valor: totaisComOtimizacao.totalKits,
+                          detalhe: totaisComOtimizacao.totalKits > 0 ? "itens em modo kit" : "sem kits",
+                        },
+                        {
+                          label: "Perfis",
+                          valor: totaisComOtimizacao.totalPerfis,
+                          detalhe: totaisComOtimizacao.economiaPerfis > 0
+                            ? `original ${fmt(totaisComOtimizacao.totalPerfisOriginal)}`
+                            : "valor consolidado",
+                        },
+                        { label: "Ferragens", valor: totaisComOtimizacao.totalFerragens, detalhe: "" },
+                        { label: "Total", valor: totaisComOtimizacao.totalGeral, detalhe: "com otimização" },
+                      ].map(({ label, valor, detalhe }) => (
                         <div key={label} className="bg-white/15 rounded-2xl p-3">
                           <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
                           <p className="text-lg font-black">{fmt(valor)}</p>
+                          {detalhe && <p className="text-[10px] opacity-70 mt-1">{detalhe}</p>}
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Relatório da Obra</p>
+                        <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Tamanhos dos vidros, materiais e otimização</h3>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Quadro consolidado para conferência da obra antes de salvar ou imprimir o orçamento.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {relatorioObra.map((obra, index) => (
+                        <div key={obra.itemId} className="rounded-2xl border border-gray-100 overflow-hidden">
+                          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-slate-50 border-b border-gray-100">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Obra {index + 1}</p>
+                              <h4 className="text-base font-black text-slate-800">{obra.projetoNome}</h4>
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2 text-[10px] font-bold">
+                              <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700">Vão {obra.vao}</span>
+                              <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-700">Qtd {obra.quantidade}</span>
+                              <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Vidro {obra.vidro}</span>
+                              <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Material {obra.corMaterial}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
+                            <div className="rounded-2xl bg-blue-50/60 border border-blue-100 p-4">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-3">Tamanhos dos Vidros</p>
+                              <div className="space-y-2">
+                                {obra.folhas.map((folha) => (
+                                  <div key={folha.id} className="rounded-xl bg-white/80 border border-blue-100 px-3 py-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="text-sm font-black text-slate-700">{folha.titulo}</p>
+                                      <p className="text-sm font-black text-blue-700">{fmt(folha.total)}</p>
+                                    </div>
+                                    <p className="text-xs text-slate-600 mt-1">Vão calculado: {folha.medida}</p>
+                                    <p className="text-[11px] text-slate-400 mt-1">Arredondado: {folha.medidaCalc} · {folha.area.toFixed(3)} m²</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-3">Materiais</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {obra.materiais.length > 0 ? obra.materiais.map((material) => (
+                                    <span key={material} className="px-3 py-2 rounded-xl bg-white border border-emerald-100 text-sm font-bold text-emerald-800">
+                                      {material}
+                                    </span>
+                                  )) : (
+                                    <span className="px-3 py-2 rounded-xl bg-white border border-emerald-100 text-sm font-bold text-emerald-800">
+                                      Sem material adicional
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="rounded-2xl bg-amber-50/60 border border-amber-100 p-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-3">Otimização de Barra</p>
+                                {obra.otimizacao.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {obra.otimizacao.map((otimizacao) => (
+                                      <div key={otimizacao.id} className="rounded-xl bg-white border border-amber-100 px-3 py-2">
+                                        <div className="flex items-center justify-between gap-3">
+                                          <p className="text-sm font-black text-slate-700">{otimizacao.perfilNome}</p>
+                                          <p className="text-sm font-black text-amber-700">{fmt(otimizacao.total)}</p>
+                                        </div>
+                                        <p className="text-xs text-slate-600 mt-1">
+                                          {otimizacao.qtdBarras} barra(s) de {otimizacao.comprimentoBarra} mm · aproveitamento {otimizacao.aproveitamento}%
+                                        </p>
+                                        <p className="text-[11px] text-slate-400 mt-1">Desperdício estimado: {otimizacao.desperdicioMm} mm</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm font-bold text-amber-800">Este item está em modo kit, sem otimização de barra.</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {otimizacaoGlobalPerfis.grupos.length > 0 && (
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Perfis Consolidados</p>
+                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Otimização Global de Barras</h3>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Reúne todos os cortes em barra do mesmo projeto, perfil e cor para simular a compra consolidada.
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Economia Potencial</p>
+                          <p className="text-2xl font-black" style={{ color: theme.menuBackgroundColor }}>{fmt(otimizacaoGlobalPerfis.economiaValor)}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { label: "Barras Individuais", valor: String(otimizacaoGlobalPerfis.resumo.barrasOriginais) },
+                          { label: "Barras Consolidadas", valor: String(otimizacaoGlobalPerfis.resumo.barrasOtimizadas) },
+                          { label: "Valor Individual", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOriginal) },
+                          { label: "Valor Consolidado", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOtimizado) },
+                        ].map(({ label, valor }) => (
+                          <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
+                            <p className="text-lg font-black text-slate-700">{valor}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-4">
+                        {otimizacaoGlobalPerfis.grupos.map((grupo, index) => (
+                          <div key={`${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-${index}`} className="rounded-2xl border border-gray-100 overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100 gap-4">
+                              <div>
+                                <p className="text-sm font-black text-gray-700">{grupo.projetoNome} · {grupo.perfilNome}</p>
+                                <p className="text-xs text-gray-400">
+                                  Cor: {grupo.corMaterial} · Barra: {grupo.comprimentoBarra} mm · {grupo.cortes.length} corte(s)
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-black text-emerald-600">{fmt(grupo.precoOtimizado)}</p>
+                                <p className="text-xs font-bold text-gray-400">
+                                  {grupo.qtdBarrasOriginal} barra(s) individual · {grupo.qtdBarrasOtimizada} consolidada(s)
+                                </p>
+                              </div>
+                            </div>
+                            <div className="px-4 py-3 space-y-2">
+                              <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                                <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700">Aproveitamento {grupo.aproveitamento}%</span>
+                                <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Desperdício {grupo.desperdicioMm} mm</span>
+                                <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Economia {fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}</span>
+                              </div>
+                              <p className="text-[11px] text-gray-500">
+                                Cortes agrupados: {grupo.cortes.join(" · ")} mm
+                              </p>
+                              <div className="space-y-2">
+                                {grupo.barras.map((barra) => renderBarraVisual(barra, grupo.comprimentoBarra, `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-global-${barra.numero}`))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {resultados.map((itemResultado, index) => (
                     <div key={itemResultado.itemId} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -1297,7 +2068,7 @@ export default function CalculoProjetoPage() {
                                   F{folha.numero} {folha.tipo}
                                 </span>
                                 <span className="text-sm font-bold text-gray-700 flex-1">{folha.largura} × {folha.altura} mm</span>
-                                <span className="text-xs text-gray-400">{folha.area.toFixed(3)} m² · {fmt(folha.precoM2Utilizado)}/m²</span>
+                                <span className="text-xs text-gray-400">Calc.: {folha.larguraArredondada} × {folha.alturaArredondada} mm · {folha.area.toFixed(3)} m² · {fmt(folha.precoM2Utilizado)}/m²</span>
                                 <span className="text-sm font-black text-blue-700">{fmt(folha.precoVidro)}</span>
                               </div>
                             ))}
@@ -1360,6 +2131,9 @@ export default function CalculoProjetoPage() {
                                   <p className="text-[10px] text-gray-400">
                                     Desperdício estimado: {corte.desperdicioMm} mm • Serras de 5 mm consideradas
                                   </p>
+                                  <div className="mt-3 space-y-2">
+                                    {corte.barras.map((barra) => renderBarraVisual(barra, corte.comprimentoBarra, `${corte.perfilNome}-individual-${corteIndex}-${barra.numero}`))}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1407,6 +2181,96 @@ export default function CalculoProjetoPage() {
           warning: theme.modalIconWarningColor,
         }}
       />
+
+      {mostrarPreviewOrcamento && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4 bg-gray-50">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Pré-visualização</p>
+                <h3 className="text-sm font-black" style={{ color: theme.contentTextLightBg }}>
+                  {tipoPreviewPdf === "comercial" ? "Orçamento comercial sem salvar" : "Relatório técnico da obra"}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2 mr-2">
+                  <button
+                    type="button"
+                    onClick={() => setTipoPreviewPdf("comercial")}
+                    className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                    style={tipoPreviewPdf === "comercial"
+                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                      : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                  >
+                    Orçamento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoPreviewPdf("tecnico")}
+                    className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                    style={tipoPreviewPdf === "tecnico"
+                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                      : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                  >
+                    Relatório Técnico
+                  </button>
+                </div>
+
+                <PDFDownloadLink
+                  document={tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : documentoPreviewTecnico}
+                  fileName={`${tipoPreviewPdf === "comercial" ? "orcamento" : "relatorio_tecnico"}_${(clienteSel?.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all"
+                >
+                  {({ loading }) => loading ? (
+                    <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Gerando PDF</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2"><Printer size={14} /> Baixar / Imprimir</span>
+                  )}
+                </PDFDownloadLink>
+
+                <button
+                  type="button"
+                  onClick={() => setMostrarPreviewOrcamento(false)}
+                  className="p-2 rounded-xl text-gray-500 hover:bg-gray-200 transition-all"
+                  title="Fechar preview"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-gray-200">
+              <div className="md:hidden px-4 pt-4 flex items-center gap-2 bg-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setTipoPreviewPdf("comercial")}
+                  className="flex-1 px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                  style={tipoPreviewPdf === "comercial"
+                    ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                    : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                >
+                  Orçamento
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoPreviewPdf("tecnico")}
+                  className="flex-1 px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                  style={tipoPreviewPdf === "tecnico"
+                    ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                    : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                >
+                  Relatório Técnico
+                </button>
+              </div>
+
+              <PDFViewer style={{ width: "100%", height: "100%" }}>
+                {tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : documentoPreviewTecnico}
+              </PDFViewer>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
