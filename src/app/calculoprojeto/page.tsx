@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
@@ -11,11 +11,11 @@ import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { RelatorioObraPDF } from "../relatorios/calculovidros/RelatorioObraPDF"
+import { TemperaPDF } from "../relatorios/calculovidros/TemperaPDF"
 import Image from "next/image"
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer"
 import {
-  Calculator, Package, Wrench, Square,
-  AlertTriangle, CheckCircle2, Info,
+  Calculator, Package, Info,
   Scissors, Plus, Trash2, Save, Eye, X, Loader2, Printer,
 } from "lucide-react"
 
@@ -92,6 +92,7 @@ type KitItem = {
   altura: number
   preco: number
   categoria?: string | null
+  cores?: string | null
 }
 
 type FerragemItem = {
@@ -99,7 +100,7 @@ type FerragemItem = {
   nome: string
   codigo?: string | null
   preco: number
-  cores?: string[] | null
+  cores?: string | null
 }
 
 type PerfilItem = {
@@ -177,6 +178,8 @@ type ItemCalculoProjeto = {
 type ResultadoProjetoCalculado = {
   itemId: string
   projeto: Projeto | null
+  desenhoProjeto: string | null
+  variacaoDrawing: string
   vidro: VidroItem | null
   qtdProjeto: number
   larguraProjeto: number
@@ -190,6 +193,7 @@ type ResultadoProjetoCalculado = {
 type ItemPreviewOrcamento = {
   id: string
   descricao: string
+  desenhoUrl?: string
   tipo?: string
   medidaReal: string
   medidaCalc: string
@@ -304,6 +308,18 @@ const getVariacoesAutomaticasProjeto = (desenho?: string | null): VariacaoProjet
   return variacoes
 }
 
+// Remove cor entre parênteses no final do nome, ex: "Roldana 1125a (amarela)" → "roldana 1125a"
+const normalizarNomeFerragem = (nome: string): string =>
+  nome.replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase()
+
+const ORDEM_PERFIS_OTIMIZACAO = ["tubo", "superior", "capa", "clic", "baguete", "transpasse", "cadeirinha"]
+
+const getPesoPerfilOtimizacao = (perfilNome: string): number => {
+  const nome = (perfilNome || "").toLowerCase()
+  const idx = ORDEM_PERFIS_OTIMIZACAO.findIndex((item) => nome.includes(item))
+  return idx === -1 ? ORDEM_PERFIS_OTIMIZACAO.length : idx
+}
+
 const normalizarListaCores = (valor: string[] | string | null | undefined): string[] => {
   if (Array.isArray(valor)) {
     return valor.map((item) => String(item || "").trim()).filter(Boolean)
@@ -375,7 +391,6 @@ const avaliarFormula = (formula: string, vars: Record<string, number>): number =
 
 // ─── ENGINE: ARREDONDA PARA CIMA DE 50mm ─────────────────────────────────────
 const arred50 = (v: number) => Math.ceil(v / 50) * 50
-const SOBRA_REAPROVEITAVEL_MM = 300
 
 // ─── ENGINE: OTIMIZAÇÃO DE BARRAS (first-fit decreasing) ────────────────────
 const otimizarBarras = (
@@ -385,7 +400,7 @@ const otimizarBarras = (
   if (!cortes.length || comprimentoBarra <= 0) {
     return { qtdBarras: 0, cortes: [], barras: [], aproveitamento: 0, desperdicioMm: 0 }
   }
-  const folga = 5 // mm de folga por corte de serra
+  const folga = 5
   const sorted = [...cortes].sort((a, b) => b - a)
   const barras: Array<{ restante: number; cortes: number[] }> = []
 
@@ -512,8 +527,31 @@ const calcularProjeto = (params: {
     .filter(f => isAplicavel(f.variacao_restrita))
     .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
     .map(f => {
-      const db = ferragensDB.find(x => x.id === f.ferragem_id)
-      const nome = db?.nome || f.ferragens?.nome || "Ferragem"
+      const base = ferragensDB.find(x => x.id === f.ferragem_id)
+      const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
+      const corAlvo = corMaterial.trim().toLowerCase()
+      const codigoBase = base?.codigo?.trim().toLowerCase()
+      const nomeNorm = base ? normalizarNomeFerragem(base.nome) : null
+      // 1ª tentativa: mesmo código + cor selecionada
+      // 2ª tentativa: mesmo nome normalizado + cor selecionada
+      const variante = corAlvo
+        ? (
+            ferragensDB.find(x =>
+              x.id !== base?.id &&
+              !!codigoBase &&
+              (x.codigo || "").trim().toLowerCase() === codigoBase &&
+              (x.cores || "").trim().toLowerCase() === corAlvo
+            ) ||
+            ferragensDB.find(x =>
+              x.id !== base?.id &&
+              !!nomeNorm &&
+              normalizarNomeFerragem(x.nome) === nomeNorm &&
+              (x.cores || "").trim().toLowerCase() === corAlvo
+            )
+          )
+        : null
+      const db = variante || base
+      const nome = db?.nome || nomeBase
       const precoUnit = db?.preco || 0
       return {
         nome,
@@ -525,7 +563,7 @@ const calcularProjeto = (params: {
 
   const precoFerragens = ferragensResult.reduce((s, f) => s + f.total, 0)
 
-  // ── Perfis: calcular cortes e otimizar barras ─────────────────────────────
+  // ── Perfis: calcular cortes para posterior consolidação por projeto ───────
   const cortesResult: CorteOtimizado[] = []
   let precoPerfis = 0
 
@@ -588,8 +626,11 @@ const calcularProjeto = (params: {
 // ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
 export default function CalculoProjetoPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { theme } = useTheme()
   const { user, empresaId, nomeEmpresa, loading: checkingAuth } = useAuth()
+  const editId = searchParams.get("edit")
+  const returnTo = searchParams.get("returnTo")
 
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [sidebarExpandido, setSidebarExpandido] = useState(true)
@@ -613,9 +654,11 @@ export default function CalculoProjetoPage() {
 
   // ── Resultado ──
   const [resultados, setResultados] = useState<ResultadoProjetoCalculado[]>([])
+  const [abaResultados, setAbaResultados] = useState<"resumo" | "relatorio" | "otimizacao">("resumo")
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false)
   const [mostrarPreviewOrcamento, setMostrarPreviewOrcamento] = useState(false)
-  const [tipoPreviewPdf, setTipoPreviewPdf] = useState<"comercial" | "tecnico">("comercial")
+  const [tipoPreviewPdf, setTipoPreviewPdf] = useState<"comercial" | "tecnico" | "tempera">("comercial")
+  const [numeroOrcamentoEdicao, setNumeroOrcamentoEdicao] = useState<string | null>(null)
 
   // ── Modal avisos ──
   const [modalAviso, setModalAviso] = useState<{
@@ -624,6 +667,7 @@ export default function CalculoProjetoPage() {
     tipo?: "sucesso" | "erro" | "aviso"
   } | null>(null)
   const rascunhoRestauradoRef = useRef(false)
+  const edicaoCarregadaRef = useRef(false)
 
   const getChaveRascunho = useCallback(() => {
     if (!empresaId) return null
@@ -644,7 +688,7 @@ export default function CalculoProjetoPage() {
       supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome"),
       supabase.from("vidros").select("id, nome, espessura, tipo, preco").eq("empresa_id", empresaId).order("nome"),
       supabase.from("vidro_precos_grupos").select("id, vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
-      supabase.from("kits").select("id, nome, largura, altura, preco, categoria").eq("empresa_id", empresaId).order("nome"),
+      supabase.from("kits").select("id, nome, largura, altura, preco, categoria, cores").eq("empresa_id", empresaId).order("nome"),
       supabase.from("ferragens").select("id, nome, codigo, preco, cores").eq("empresa_id", empresaId).order("nome"),
       supabase.from("perfis").select("id, nome, codigo, preco, cores").eq("empresa_id", empresaId).order("nome"),
     ])
@@ -664,7 +708,7 @@ export default function CalculoProjetoPage() {
 
   useEffect(() => {
     const chave = getChaveRascunho()
-    if (!chave || rascunhoRestauradoRef.current || typeof window === "undefined") return
+    if (!chave || rascunhoRestauradoRef.current || typeof window === "undefined" || editId) return
 
     try {
       const bruto = window.localStorage.getItem(chave)
@@ -687,7 +731,60 @@ export default function CalculoProjetoPage() {
     } finally {
       rascunhoRestauradoRef.current = true
     }
-  }, [getChaveRascunho])
+  }, [editId, getChaveRascunho])
+
+  useEffect(() => {
+    const carregarOrcamentoEdicao = async () => {
+      if (!empresaId || !editId || edicaoCarregadaRef.current) return
+
+      const { data, error } = await supabase
+        .from("orcamentos")
+        .select("id, numero_formatado, cliente_nome, obra_referencia, itens")
+        .eq("empresa_id", empresaId)
+        .eq("id", editId)
+        .single()
+
+      if (error || !data) {
+        setModalAviso({ titulo: "Erro", mensagem: "Não foi possível carregar o orçamento para edição.", tipo: "erro" })
+        return
+      }
+
+      const itensSalvos = data.itens as unknown
+      const payload = (itensSalvos && typeof itensSalvos === "object" && !Array.isArray(itensSalvos))
+        ? itensSalvos as {
+            tipo?: string
+            draft?: {
+              clienteId?: string
+              obraReferencia?: string
+              itensCalculo?: unknown
+            }
+          }
+        : null
+
+      if (payload?.tipo !== "calculoprojeto") {
+        setModalAviso({ titulo: "Atenção", mensagem: "Este orçamento não foi criado no cálculo de projetos.", tipo: "aviso" })
+        return
+      }
+
+      setNumeroOrcamentoEdicao(data.numero_formatado || null)
+      setObraReferencia(payload.draft?.obraReferencia || data.obra_referencia || "")
+      setItensCalculo(normalizarItensCalculo(payload.draft?.itensCalculo))
+
+      const clienteDraft = payload.draft?.clienteId
+      if (clienteDraft && clientesDB.some((c) => c.id === clienteDraft)) {
+        setClienteId(clienteDraft)
+      } else {
+        const clientePorNome = clientesDB.find((c) => c.nome === data.cliente_nome)
+        if (clientePorNome) setClienteId(clientePorNome.id)
+      }
+
+      setResultados([])
+      edicaoCarregadaRef.current = true
+      rascunhoRestauradoRef.current = true
+    }
+
+    carregarOrcamentoEdicao()
+  }, [clientesDB, editId, empresaId])
 
   // ── Cliente selecionado ───────────────────────────────────────────────────
   const clienteSel = clientesDB.find(c => c.id === clienteId) || null
@@ -750,7 +847,7 @@ export default function CalculoProjetoPage() {
 
   useEffect(() => {
     const chave = getChaveRascunho()
-    if (!chave || !rascunhoRestauradoRef.current || typeof window === "undefined") return
+    if (!chave || !rascunhoRestauradoRef.current || typeof window === "undefined" || editId) return
 
     const payload = {
       clienteId,
@@ -759,7 +856,7 @@ export default function CalculoProjetoPage() {
     }
 
     window.localStorage.setItem(chave, JSON.stringify(payload))
-  }, [clienteId, getChaveRascunho, itensCalculo, obraReferencia])
+  }, [clienteId, editId, getChaveRascunho, itensCalculo, obraReferencia])
 
   const atualizarItem = <K extends keyof ItemCalculoProjeto>(id: string, campo: K, valor: ItemCalculoProjeto[K]) => {
     setItensCalculo((prev) => prev.map((item) => {
@@ -822,15 +919,33 @@ export default function CalculoProjetoPage() {
 
   const getCoresMaterial = (item: ItemCalculoProjeto) => {
     const detalhe = getDetalhe(item)
-    if (!detalhe) return []
+    if (!detalhe) return ["Preto"]
 
     const set = new Set<string>()
     for (const perfilProjeto of detalhe.perfis) {
       const db = perfisDB.find((perfil) => perfil.id === perfilProjeto.perfil_id)
       normalizarListaCores(db?.cores).forEach((cor) => set.add(cor))
     }
+    for (const kitProjeto of detalhe.kits) {
+      const db = kitsDB.find((kit) => kit.id === kitProjeto.kit_id)
+      normalizarListaCores(db?.cores).forEach((cor) => set.add(cor))
+    }
+    // Inclui cores das próprias ferragens vinculadas (e suas variantes irmãs)
+    for (const ferragemProjeto of detalhe.ferragens) {
+      const base = ferragensDB.find((f) => f.id === ferragemProjeto.ferragem_id)
+      if (!base?.cores) continue
+      const codigoBase = base.codigo?.trim().toLowerCase()
+      const nomeNorm = normalizarNomeFerragem(base.nome)
+      ferragensDB
+        .filter(f =>
+          (!!codigoBase && (f.codigo || "").trim().toLowerCase() === codigoBase) ||
+          normalizarNomeFerragem(f.nome) === nomeNorm
+        )
+        .forEach(f => normalizarListaCores(f.cores).forEach(cor => set.add(cor)))
+    }
 
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
+    const lista = Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
+    return lista.length > 0 ? lista : ["Preto"]
   }
 
   const getVariacoesDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
@@ -953,32 +1068,51 @@ export default function CalculoProjetoPage() {
     }
   }, [resultados])
 
-  const totaisComOtimizacao = useMemo(() => {
+  const totaisCalculados = useMemo(() => {
     const totalPerfis = otimizacaoGlobalPerfis.grupos.length > 0
       ? otimizacaoGlobalPerfis.resumo.precoOtimizado
       : totaisGerais.totalPerfisOriginal
-
-    const totalGeral =
-      totaisGerais.totalVidro +
-      totaisGerais.totalKits +
-      totaisGerais.totalFerragens +
-      totalPerfis
 
     return {
       totalVidro: totaisGerais.totalVidro,
       totalKits: totaisGerais.totalKits,
       totalPerfis,
-      totalPerfisOriginal: totaisGerais.totalPerfisOriginal,
       totalFerragens: totaisGerais.totalFerragens,
-      totalGeral,
+      totalGeral: totaisGerais.totalVidro + totaisGerais.totalKits + totaisGerais.totalFerragens + totalPerfis,
+      totalPerfisOriginal: totaisGerais.totalPerfisOriginal,
       totalGeralOriginal: totaisGerais.totalGeralOriginal,
       economiaPerfis: Math.max(0, totaisGerais.totalPerfisOriginal - totalPerfis),
-      economiaTotal: Math.max(0, totaisGerais.totalGeralOriginal - totalGeral),
+      economiaTotal: Math.max(0, totaisGerais.totalGeralOriginal - (totaisGerais.totalVidro + totaisGerais.totalKits + totaisGerais.totalFerragens + totalPerfis)),
     }
   }, [otimizacaoGlobalPerfis, totaisGerais])
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+
+  const otimizacaoGlobalParaPDF = useMemo(() => {
+    return otimizacaoGlobalPerfis.grupos
+      .map((grupo) => ({
+        id: `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-${grupo.comprimentoBarra}`,
+        projetoNome: grupo.projetoNome,
+        perfilNome: grupo.perfilNome,
+        perfilCodigo: perfisDB.find((p) => p.nome === grupo.perfilNome)?.codigo || "-",
+        corMaterial: grupo.corMaterial,
+        comprimentoBarra: grupo.comprimentoBarra,
+        qtdBarrasOriginal: grupo.qtdBarrasOriginal,
+        qtdBarrasOtimizada: grupo.qtdBarrasOtimizada,
+        aproveitamento: grupo.aproveitamento,
+        desperdicioMm: grupo.desperdicioMm,
+        precoOtimizado: grupo.precoOtimizado,
+        barras: grupo.barras,
+      }))
+      .sort((a, b) => {
+        const pesoA = getPesoPerfilOtimizacao(a.perfilNome)
+        const pesoB = getPesoPerfilOtimizacao(b.perfilNome)
+        if (pesoA !== pesoB) return pesoA - pesoB
+        return a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
+      })
+  }, [otimizacaoGlobalPerfis.grupos, perfisDB])
+
 
   const relatorioObra = useMemo(() => {
     return resultados.map((itemResultado) => {
@@ -988,6 +1122,7 @@ export default function CalculoProjetoPage() {
       return {
         itemId: itemResultado.itemId,
         projetoNome: itemResultado.projeto?.nome || "Projeto",
+        desenhoUrl: itemResultado.desenhoProjeto ? `/desenhos/${itemResultado.desenhoProjeto}` : null,
         quantidade: itemResultado.qtdProjeto,
         vao: `${itemResultado.larguraProjeto} x ${itemResultado.alturaProjeto} mm`,
         vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
@@ -1002,21 +1137,53 @@ export default function CalculoProjetoPage() {
         })),
         materiais: [
           itemResultado.resultado.kit ? `Kit: ${itemResultado.resultado.kit.nome}` : null,
-          nomesPerfis.length > 0 ? `Perfis: ${nomesPerfis.join(" · ")}` : null,
+          nomesPerfis.length > 0 ? `Perfis: ${nomesPerfis.join(" · ")} (quantidade: ver otimização de barra)` : null,
           nomesFerragens.length > 0 ? `Ferragens: ${nomesFerragens.join(" · ")}` : null,
         ].filter(Boolean) as string[],
+        ferragens: itemResultado.resultado.ferragens.map((ferragem, index) => {
+          const corAlvo = (itemResultado.corMaterial || "").trim().toLowerCase()
+          const baseByNome = ferragensDB.find((f) => f.nome === ferragem.nome)
+          const codigoBase = baseByNome?.codigo?.trim().toLowerCase()
+          const nomeNorm = normalizarNomeFerragem(ferragem.nome)
+          // Mesma lógica do calcularProjeto: 1ª por código+cor, 2ª por nome normalizado+cor
+          const variante = corAlvo
+            ? (
+                ferragensDB.find(x =>
+                  !!codigoBase &&
+                  (x.codigo || "").trim().toLowerCase() === codigoBase &&
+                  (x.cores || "").trim().toLowerCase() === corAlvo
+                ) ||
+                ferragensDB.find(x =>
+                  normalizarNomeFerragem(x.nome) === nomeNorm &&
+                  (x.cores || "").trim().toLowerCase() === corAlvo
+                )
+              )
+            : null
+          const db = variante || baseByNome
+          return {
+            id: `${itemResultado.itemId}-ferragem-${index}`,
+            nome: db?.nome || ferragem.nome,
+            codigo: db?.codigo || null,
+            qtd: ferragem.qtd * itemResultado.qtdProjeto,
+            unidade: "un",
+            total: (db?.preco || ferragem.precoUnit || 0) * ferragem.qtd * itemResultado.qtdProjeto,
+          }
+        }),
         otimizacao: itemResultado.resultado.cortes.map((corte) => ({
           id: `${itemResultado.itemId}-${corte.perfilNome}-${corte.comprimentoBarra}`,
+          perfilCodigo: perfisDB.find((perfil) => perfil.nome === corte.perfilNome)?.codigo || "-",
           perfilNome: corte.perfilNome,
           comprimentoBarra: corte.comprimentoBarra,
           qtdBarras: corte.qtdBarras,
+          cortes: corte.cortes,
           aproveitamento: corte.aproveitamento,
           desperdicioMm: corte.desperdicioMm,
           total: corte.precoTotal,
+          barras: corte.barras,
         })),
       }
     })
-  }, [resultados])
+  }, [perfisDB, ferragensDB, resultados])
 
   const dadosOrcamentoComercial = useMemo(() => {
     const totalPerfisPorProjeto = otimizacaoGlobalPerfis.grupos.reduce<Record<string, number>>((acc, grupo) => {
@@ -1028,6 +1195,9 @@ export default function CalculoProjetoPage() {
       const projetoId = resultadoProjeto.projeto?.id || resultadoProjeto.itemId
       const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
       const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
+      const variacaoProjeto = resultadoProjeto.variacaoDrawing
+        ? formatarLabelVariacaoArquivo(resultadoProjeto.variacaoDrawing)
+        : ""
       const totalProjeto =
         resultadoProjeto.resultado.totalVidro +
         resultadoProjeto.resultado.precoKit +
@@ -1038,7 +1208,8 @@ export default function CalculoProjetoPage() {
 
       return {
         id: `orc-${resultadoProjeto.itemId}`,
-        descricao: resultadoProjeto.projeto?.nome || "Projeto",
+        descricao: `${resultadoProjeto.projeto?.nome || "Projeto"}${variacaoProjeto ? ` (${variacaoProjeto})` : ""}`,
+        desenhoUrl: resultadoProjeto.desenhoProjeto ? `/desenhos/${resultadoProjeto.desenhoProjeto}` : undefined,
         tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
         medidaReal: vaoProjeto,
         medidaCalc: vaoProjeto,
@@ -1051,7 +1222,7 @@ export default function CalculoProjetoPage() {
         servicos: [
           resultadoProjeto.resultado.usouKit
             ? "Estrutura calculada por kit"
-            : "Estrutura calculada por barra com otimização consolidada",
+            : "Estrutura calculada por barra consolidada por projeto",
           resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
         ].join(" · "),
       }
@@ -1066,116 +1237,6 @@ export default function CalculoProjetoPage() {
       totalPecas: resultados.reduce((acc, resultadoProjeto) => acc + resultadoProjeto.qtdProjeto, 0),
     }
   }, [otimizacaoGlobalPerfis.grupos, resultados])
-
-  const dadosPreviewOrcamento = useMemo(() => {
-    const itensOrcamento = resultados.flatMap((resultadoProjeto) => {
-      const nomeProjeto = resultadoProjeto.projeto?.nome || "Projeto"
-      const qtdProjeto = resultadoProjeto.qtdProjeto
-      const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
-      const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
-      const itensProjeto: ItemPreviewOrcamento[] = []
-
-      itensProjeto.push({
-        id: `cab-${resultadoProjeto.itemId}`,
-        descricao: `Projeto: ${nomeProjeto}`,
-        tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
-        medidaReal: vaoProjeto,
-        medidaCalc: vaoProjeto,
-        qtd: qtdProjeto,
-        total: resultadoProjeto.resultado.totalGeral,
-        acabamento: resultadoProjeto.corMaterial || undefined,
-        vao: vaoProjeto,
-        corVidro: corVidroProjeto,
-        valorUnitario: qtdProjeto > 0 ? resultadoProjeto.resultado.totalGeral / qtdProjeto : resultadoProjeto.resultado.totalGeral,
-        servicos: [
-          resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
-          !resultadoProjeto.resultado.usouKit && resultadoProjeto.resultado.cortes.length > 0
-            ? "Perfis consolidados no fechamento da composição"
-            : "",
-        ].filter(Boolean).join(" · "),
-      })
-
-      resultadoProjeto.resultado.folhas.forEach((folha, index) => {
-        itensProjeto.push({
-          id: `folha-${resultadoProjeto.itemId}-${index}`,
-          descricao: `Vidro ${nomeProjeto}`,
-          tipo: `Folha ${folha.numero} ${folha.tipo}`,
-          medidaReal: `${folha.largura}x${folha.altura} mm`,
-          medidaCalc: `${folha.largura}x${folha.altura} mm`,
-          qtd: qtdProjeto,
-          total: folha.precoVidro,
-          acabamento: resultadoProjeto.corMaterial || undefined,
-          vao: vaoProjeto,
-          corVidro: corVidroProjeto,
-          valorUnitario: qtdProjeto > 0 ? folha.precoVidro / qtdProjeto : folha.precoVidro,
-        })
-      })
-
-      if (resultadoProjeto.resultado.kit) {
-        itensProjeto.push({
-          id: `kit-${resultadoProjeto.itemId}`,
-          descricao: `Kit ${nomeProjeto}`,
-          tipo: resultadoProjeto.resultado.kit.nome,
-          medidaReal: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
-          medidaCalc: `${resultadoProjeto.resultado.kit.largura}x${resultadoProjeto.resultado.kit.altura} mm`,
-          qtd: qtdProjeto,
-          total: resultadoProjeto.resultado.precoKit,
-          acabamento: resultadoProjeto.corMaterial || undefined,
-          vao: vaoProjeto,
-          corVidro: corVidroProjeto,
-          valorUnitario: resultadoProjeto.resultado.kit.preco || 0,
-        })
-      }
-
-      resultadoProjeto.resultado.ferragens.forEach((ferragem, index) => {
-        const qtdFerragem = ferragem.qtd * qtdProjeto
-        itensProjeto.push({
-          id: `ferr-${resultadoProjeto.itemId}-${index}`,
-          descricao: `Ferragem ${nomeProjeto}`,
-          tipo: ferragem.nome,
-          medidaReal: "-",
-          medidaCalc: "-",
-          qtd: qtdFerragem,
-          total: ferragem.total,
-          acabamento: resultadoProjeto.corMaterial || undefined,
-          vao: vaoProjeto,
-          corVidro: corVidroProjeto,
-          valorUnitario: ferragem.precoUnit,
-        })
-      })
-
-      return itensProjeto
-    })
-
-    const itensPerfisConsolidados = otimizacaoGlobalPerfis.grupos.map((grupo, index) => ({
-      id: `perfil-global-${grupo.projetoId}-${index}`,
-      descricao: `Perfil Consolidado ${grupo.projetoNome}`,
-      tipo: `${grupo.perfilNome} (${grupo.aproveitamento}% ap.)`,
-      medidaReal: `${grupo.comprimentoBarra} mm barra`,
-      medidaCalc: `${grupo.qtdBarrasOtimizada} barra(s)`,
-      qtd: grupo.qtdBarrasOtimizada,
-      total: grupo.precoOtimizado,
-      acabamento: grupo.corMaterial,
-      vao: "Múltiplos vãos",
-      corVidro: "Conforme projeto",
-      valorUnitario: grupo.precoBarra,
-      servicos: `Consolidado global · ${grupo.cortes.length} corte(s) · economia ${fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}`,
-      planoCorte: grupo.barras,
-    }))
-
-    const itens = [...itensOrcamento, ...itensPerfisConsolidados]
-    const metragemTotal = resultados.reduce((acc, resultadoProjeto) => {
-      const areaProjeto = resultadoProjeto.resultado.folhas.reduce((s, folha) => s + folha.area, 0)
-      return acc + (areaProjeto * resultadoProjeto.qtdProjeto)
-    }, 0)
-    const totalPecas = itens.reduce((acc, item) => acc + (Number(item.qtd) || 0), 0)
-
-    return {
-      itens,
-      metragemTotal,
-      totalPecas,
-    }
-  }, [fmt, otimizacaoGlobalPerfis.grupos, resultados])
 
   const calcularTodos = () => {
     if (!clienteId) {
@@ -1232,6 +1293,8 @@ export default function CalculoProjetoPage() {
       novosResultados.push({
         itemId: item.id,
         projeto,
+        desenhoProjeto: (item.variacaoDrawing || projeto.desenho || "").trim() || null,
+        variacaoDrawing: item.variacaoDrawing,
         vidro,
         qtdProjeto: Math.max(1, Number(item.qtd || 1)),
         larguraProjeto: Number(item.largura),
@@ -1264,119 +1327,102 @@ export default function CalculoProjetoPage() {
 
     setSalvandoOrcamento(true)
     try {
-      const dataAtual = new Date()
-      const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`
-      const { data: ultimos } = await supabase
-        .from("orcamentos")
-        .select("numero_formatado")
-        .like("numero_formatado", `${prefixoData}%`)
-        .order("numero_formatado", { ascending: false })
-        .limit(1)
+      let numeroFinal = numeroOrcamentoEdicao || ""
+      if (!editId) {
+        const dataAtual = new Date()
+        const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`
+        const { data: ultimos } = await supabase
+          .from("orcamentos")
+          .select("numero_formatado")
+          .like("numero_formatado", `${prefixoData}%`)
+          .order("numero_formatado", { ascending: false })
+          .limit(1)
 
-      let seq = 1
-      if (ultimos && ultimos.length > 0) {
-        seq = parseInt(String(ultimos[0].numero_formatado || "").slice(-2), 10) + 1
+        let seq = 1
+        if (ultimos && ultimos.length > 0) {
+          seq = parseInt(String(ultimos[0].numero_formatado || "").slice(-2), 10) + 1
+        }
+        numeroFinal = `${prefixoData}${seq.toString().padStart(2, "0")}`
       }
-      const numeroFinal = `${prefixoData}${seq.toString().padStart(2, "0")}`
+
+      const itensTempera = dadosOrcamentoComercial.itens.map((item) => ({
+        id: item.id,
+        descricao: item.descricao,
+        desenhoUrl: item.desenhoUrl,
+        corVidro: item.corVidro,
+        vao: item.vao,
+        qtd: item.qtd,
+      }))
+
+      const itensPersistidos = {
+        tipo: "calculoprojeto",
+        comercial: {
+          itens: dadosOrcamentoComercial.itens,
+          metragemTotal: Number(dadosOrcamentoComercial.metragemTotal || 0),
+          totalPecas: Number(dadosOrcamentoComercial.totalPecas || 0),
+        },
+        tecnico: {
+          relatorioObra,
+          otimizacaoGlobal: otimizacaoGlobalParaPDF,
+        },
+        tempera: {
+          itens: itensTempera,
+        },
+        draft: {
+          clienteId,
+          obraReferencia,
+          itensCalculo,
+        },
+      }
 
       const payload = {
         numero_formatado: numeroFinal,
         cliente_nome: clienteSel.nome,
         obra_referencia: obraReferencia.trim() || "Composição de Projetos",
-        itens: dadosOrcamentoComercial.itens,
-        valor_total: Number(totaisComOtimizacao.totalGeral || 0),
+        itens: itensPersistidos,
+        valor_total: Number(totaisCalculados.totalGeral || 0),
         empresa_id: empresaId,
         metragem_total: Number(dadosOrcamentoComercial.metragemTotal || 0),
         peso_total: 0,
+        total_pecas: Number(dadosOrcamentoComercial.totalPecas || 0),
         theme_color: theme.menuIconColor || "#1e3a5a",
       }
 
-      const { error } = await supabase.from("orcamentos").insert([payload])
-      if (error) throw error
+      let orcamentoSalvoId: string | null = editId
+
+      if (editId) {
+        const { error } = await supabase
+          .from("orcamentos")
+          .update(payload)
+          .eq("id", editId)
+          .eq("empresa_id", empresaId)
+
+        if (error) throw error
+      } else {
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .insert([payload])
+          .select("id")
+          .single()
+
+        if (error) throw error
+        orcamentoSalvoId = data?.id || null
+      }
 
       const chaveRascunho = getChaveRascunho()
       if (chaveRascunho && typeof window !== "undefined") {
         window.localStorage.removeItem(chaveRascunho)
       }
 
-      setModalAviso({
-        titulo: "Sucesso",
-        mensagem: `Orçamento ${numeroFinal} salvo com ${resultados.length} projeto(s) para ${clienteSel.nome}.`,
-        tipo: "sucesso",
-      })
-      setClienteId("")
-      setObraReferencia("")
-      setItensCalculo([criarItemCalculoProjeto()])
-      setResultados([])
+      const destino = returnTo || "/admin/relatorio.orcamento"
+      const query = orcamentoSalvoId ? `?highlight=${encodeURIComponent(String(orcamentoSalvoId))}` : ""
+      router.push(`${destino}${query}`)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido"
       setModalAviso({ titulo: "Erro ao salvar", mensagem: `Não foi possível salvar o orçamento. ${message}`, tipo: "erro" })
     } finally {
       setSalvandoOrcamento(false)
     }
-  }
-
-  const renderBarraVisual = (barra: BarraOtimizada, comprimentoBarra: number, chave: string) => {
-    const larguraTotal = Math.max(comprimentoBarra, 1)
-    const sobraReaproveitavel = barra.sobraMm >= SOBRA_REAPROVEITAVEL_MM
-
-    return (
-      <div key={chave} className="rounded-xl bg-white border border-gray-100 px-3 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-black text-gray-700">Barra {barra.numero}</p>
-            <p className="text-[10px] text-gray-400">Usado: {barra.usadoMm} mm · Sobra: {barra.sobraMm} mm</p>
-          </div>
-          <span
-            className="text-[10px] font-black px-2.5 py-1 rounded-lg"
-            style={sobraReaproveitavel
-              ? { backgroundColor: "#dcfce7", color: "#166534" }
-              : { backgroundColor: "#f3f4f6", color: "#6b7280" }}
-          >
-            {sobraReaproveitavel ? "Sobra reaproveitável" : "Sobra curta"}
-          </span>
-        </div>
-
-        <div className="mt-3">
-          <div className="flex w-full h-4 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
-            {barra.cortes.map((corte, index) => (
-              <div
-                key={`${chave}-corte-${index}`}
-                className="h-full border-r border-white/70"
-                style={{
-                  width: `${Math.max((corte / larguraTotal) * 100, 2)}%`,
-                  background: "linear-gradient(90deg, #64748b, #94a3b8)",
-                }}
-                title={`Corte ${index + 1}: ${corte} mm`}
-              />
-            ))}
-            {barra.sobraMm > 0 && (
-              <div
-                className="h-full"
-                style={{
-                  width: `${Math.max((barra.sobraMm / larguraTotal) * 100, 2)}%`,
-                  background: sobraReaproveitavel
-                    ? "linear-gradient(90deg, #bbf7d0, #dcfce7)"
-                    : "linear-gradient(90deg, #d1d5db, #e5e7eb)",
-                }}
-                title={`Sobra: ${barra.sobraMm} mm`}
-              />
-            )}
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
-            {barra.cortes.map((corte, index) => (
-              <span key={`${chave}-tag-${index}`} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold">
-                Corte {index + 1}: {corte} mm
-              </span>
-            ))}
-            <span className={`px-2 py-1 rounded-lg font-bold ${sobraReaproveitavel ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-              Sobra: {barra.sobraMm} mm
-            </span>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   const documentoPreviewOrcamento = (
@@ -1390,7 +1436,7 @@ export default function CalculoProjetoPage() {
       nomeObra={obraReferencia || "Composição de Projetos"}
       pesoTotal={0}
       metragemTotal={Number(dadosOrcamentoComercial.metragemTotal || 0)}
-      valorTotal={Number(totaisComOtimizacao.totalGeral || 0)}
+      valorTotal={Number(totaisCalculados.totalGeral || 0)}
       totalPecas={Number(dadosOrcamentoComercial.totalPecas || 0)}
       numeroOrcamento="PRÉVIA"
     />
@@ -1404,17 +1450,24 @@ export default function CalculoProjetoPage() {
       nomeObra={obraReferencia || "Composição de Projetos"}
       themeColor={theme.contentTextLightBg}
       relatorioObra={relatorioObra}
-      otimizacaoGlobal={otimizacaoGlobalPerfis.grupos.map((grupo) => ({
-        id: `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}`,
-        projetoNome: grupo.projetoNome,
-        perfilNome: grupo.perfilNome,
-        corMaterial: grupo.corMaterial,
-        comprimentoBarra: grupo.comprimentoBarra,
-        qtdBarrasOriginal: grupo.qtdBarrasOriginal,
-        qtdBarrasOtimizada: grupo.qtdBarrasOtimizada,
-        aproveitamento: grupo.aproveitamento,
-        desperdicioMm: grupo.desperdicioMm,
-        precoOtimizado: grupo.precoOtimizado,
+      otimizacaoGlobal={otimizacaoGlobalParaPDF}
+    />
+  )
+
+  const documentoPreviewTempera = (
+    <TemperaPDF
+      nomeEmpresa={nomeEmpresa}
+      logoUrl={theme.logoLightUrl ?? null}
+      nomeCliente={clienteSel?.nome || "Cliente nao selecionado"}
+      nomeObra={obraReferencia || "Composicao de Projetos"}
+      themeColor={theme.contentTextLightBg}
+      itens={dadosOrcamentoComercial.itens.map((item) => ({
+        id: item.id,
+        descricao: item.descricao,
+        desenhoUrl: item.desenhoUrl,
+        corVidro: item.corVidro,
+        vao: item.vao,
+        qtd: item.qtd,
       }))}
     />
   )
@@ -1444,6 +1497,14 @@ export default function CalculoProjetoPage() {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleSignOut}
         />
+
+        {editId && (
+          <div className="px-4 md:px-8 pt-4">
+            <div className="max-w-7xl mx-auto rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Editando orçamento {numeroOrcamentoEdicao || ""}. Ao salvar, você retorna para o relatório de orçamentos.
+            </div>
+          </div>
+        )}
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
 
@@ -1547,7 +1608,7 @@ export default function CalculoProjetoPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
-                        <p className="text-sm font-bold text-slate-700">{projetoSel?.nome || "Selecione a tipologia"}</p>
+                        <p className="text-sm font-bold text-gray-700">{projetoSel?.nome || "Selecione a tipologia"}</p>
                       </div>
                       {itensCalculo.length > 1 && (
                         <button
@@ -1589,10 +1650,10 @@ export default function CalculoProjetoPage() {
                           {projetoSel.categoria && <p className="text-xs text-gray-400 mt-0.5">{projetoSel.categoria}</p>}
                           {detalhe && (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-600">{detalhe.folhas.length} folha(s)</span>
-                              {detalhe.kits.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600">{detalhe.kits.length} kit(s)</span>}
-                              {detalhe.perfis.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700">{detalhe.perfis.length} perfil(is)</span>}
-                              {detalhe.ferragens.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-violet-50 text-violet-600">{detalhe.ferragens.length} ferragem(ns)</span>}
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.folhas.length} folha(s)</span>
+                              {detalhe.kits.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.kits.length} kit(s)</span>}
+                              {detalhe.perfis.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.perfis.length} perfil(is)</span>}
+                              {detalhe.ferragens.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.ferragens.length} ferragem(ns)</span>}
                             </div>
                           )}
                         </div>
@@ -1730,16 +1791,16 @@ export default function CalculoProjetoPage() {
                     </div>
 
                     {variacoes.length > 0 && (
-                      <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-500 mb-2">Variação do Projeto</p>
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Variação do Projeto</p>
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => atualizarItem(item.id, "variacaoDrawing", "")}
                             className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
                             style={!item.variacaoDrawing
-                              ? { backgroundColor: "#8b5cf6", color: "#fff", borderColor: "#8b5cf6" }
-                              : { backgroundColor: "#f5f3ff", color: "#7c3aed", borderColor: "#ddd6fe" }}
+                              ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                              : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
                           >
                             Todas
                           </button>
@@ -1750,8 +1811,8 @@ export default function CalculoProjetoPage() {
                               onClick={() => atualizarItem(item.id, "variacaoDrawing", variacao.arquivo)}
                               className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-40"
                               style={item.variacaoDrawing === variacao.arquivo
-                                ? { backgroundColor: "#8b5cf6", color: "#fff", borderColor: "#8b5cf6" }
-                                : { backgroundColor: "#f5f3ff", color: "#7c3aed", borderColor: "#ddd6fe" }}
+                                ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                                : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
                               title={variacao.arquivo}
                             >
                               {variacao.label}
@@ -1815,43 +1876,59 @@ export default function CalculoProjetoPage() {
 
               {resultados.length > 0 && (
                 <>
+                  {/* ── Barra de Abas ── */}
+                  <div className="flex items-center gap-2 px-6 py-4 rounded-3xl bg-white border border-gray-100 shadow-sm overflow-x-auto">
+                    {[
+                      { id: "resumo", label: "Resumo", count: null },
+                      { id: "relatorio", label: "Relatório", count: null },
+                      { id: "otimizacao", label: "Otimização", count: otimizacaoGlobalPerfis.grupos.length > 0 ? otimizacaoGlobalPerfis.grupos.length : 0 },
+                    ].map((aba) => (
+                      <button
+                        key={aba.id}
+                        onClick={() => setAbaResultados(aba.id as "resumo" | "relatorio" | "otimizacao")}
+                        className="px-4 py-2 rounded-2xl text-sm font-black whitespace-nowrap transition-all border-2"
+                        style={abaResultados === aba.id
+                          ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                          : { backgroundColor: "#f9fafb", color: "#6b7280", borderColor: "#e5e7eb" }}
+                      >
+                        {aba.label}
+                        {aba.count !== null && aba.count > 0 && <span className="ml-1 text-xs opacity-70">({aba.count})</span>}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* ABA: RESUMO */}
+                  {abaResultados === "resumo" && (
                   <div
                     className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl"
                     style={{ background: `linear-gradient(135deg, ${theme.menuBackgroundColor}, ${theme.menuIconColor})` }}
                   >
                     <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
                     <p className="text-[11px] uppercase tracking-widest font-black opacity-70 mb-1">Resultado Total do Cliente</p>
-                    <p className="text-4xl font-black">{fmt(totaisComOtimizacao.totalGeral)}</p>
+                    <p className="text-4xl font-black">{fmt(totaisCalculados.totalGeral)}</p>
                     <p className="text-sm opacity-70 mt-1">
                       Cliente: {clienteSel?.nome || "—"} · {resultados.length} projeto(s) na composição
                     </p>
-                    {totaisComOtimizacao.economiaTotal > 0 && (
+                    {totaisCalculados.economiaTotal > 0 && (
                       <p className="text-xs opacity-80 mt-2">
-                        Total original: {fmt(totaisComOtimizacao.totalGeralOriginal)} · economia consolidada: {fmt(totaisComOtimizacao.economiaTotal)}
-                      </p>
-                    )}
-                    {otimizacaoGlobalPerfis.grupos.length > 0 && (
-                      <p className="text-xs opacity-80 mt-2">
-                        Abaixo há uma consolidação global de barras por projeto para mostrar reaproveitamento entre medidas diferentes.
+                        Total original: {fmt(totaisCalculados.totalGeralOriginal)} · economia consolidada: {fmt(totaisCalculados.economiaTotal)}
                       </p>
                     )}
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 mt-4">
                       {[
-                        { label: "Vidros", valor: totaisComOtimizacao.totalVidro, detalhe: "" },
+                        { label: "Vidros", valor: totaisCalculados.totalVidro, detalhe: "" },
                         {
                           label: "Kits",
-                          valor: totaisComOtimizacao.totalKits,
-                          detalhe: totaisComOtimizacao.totalKits > 0 ? "itens em modo kit" : "sem kits",
+                          valor: totaisCalculados.totalKits,
+                          detalhe: totaisCalculados.totalKits > 0 ? "itens em modo kit" : "sem kits",
                         },
                         {
                           label: "Perfis",
-                          valor: totaisComOtimizacao.totalPerfis,
-                          detalhe: totaisComOtimizacao.economiaPerfis > 0
-                            ? `original ${fmt(totaisComOtimizacao.totalPerfisOriginal)}`
-                            : "valor consolidado",
+                          valor: totaisCalculados.totalPerfis,
+                          detalhe: "otimizado por projeto",
                         },
-                        { label: "Ferragens", valor: totaisComOtimizacao.totalFerragens, detalhe: "" },
-                        { label: "Total", valor: totaisComOtimizacao.totalGeral, detalhe: "com otimização" },
+                        { label: "Ferragens", valor: totaisCalculados.totalFerragens, detalhe: "" },
+                        { label: "Total", valor: totaisCalculados.totalGeral, detalhe: "com otimização de perfis" },
                       ].map(({ label, valor, detalhe }) => (
                         <div key={label} className="bg-white/15 rounded-2xl p-3">
                           <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
@@ -1861,12 +1938,15 @@ export default function CalculoProjetoPage() {
                       ))}
                     </div>
                   </div>
+                  )}
 
+                  {/* ABA: RELATÓRIO */}
+                  {abaResultados === "relatorio" && (
                   <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Relatório da Obra</p>
-                        <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Tamanhos dos vidros, materiais e otimização</h3>
+                        <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Tamanhos dos vidros, materiais e perfis</h3>
                         <p className="text-xs text-gray-400 mt-1">
                           Quadro consolidado para conferência da obra antes de salvar ou imprimir o orçamento.
                         </p>
@@ -1876,88 +1956,80 @@ export default function CalculoProjetoPage() {
                     <div className="space-y-4">
                       {relatorioObra.map((obra, index) => (
                         <div key={obra.itemId} className="rounded-2xl border border-gray-100 overflow-hidden">
-                          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-slate-50 border-b border-gray-100">
+                          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
                             <div>
                               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Obra {index + 1}</p>
-                              <h4 className="text-base font-black text-slate-800">{obra.projetoNome}</h4>
+                              <h4 className="text-base font-black text-gray-800">{obra.projetoNome}</h4>
                             </div>
-                            <div className="flex flex-wrap justify-end gap-2 text-[10px] font-bold">
-                              <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700">Vão {obra.vao}</span>
-                              <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-700">Qtd {obra.quantidade}</span>
-                              <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Vidro {obra.vidro}</span>
-                              <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Material {obra.corMaterial}</span>
+                            <div className="flex flex-wrap justify-end gap-1.5 text-[10px] font-bold">
+                              <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Vão {obra.vao}</span>
+                              <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Qtd {obra.quantidade}</span>
+                              <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{obra.vidro}</span>
+                              <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{obra.corMaterial}</span>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
-                            <div className="rounded-2xl bg-blue-50/60 border border-blue-100 p-4">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-3">Tamanhos dos Vidros</p>
+                            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Tamanhos dos Vidros</p>
                               <div className="space-y-2">
                                 {obra.folhas.map((folha) => (
-                                  <div key={folha.id} className="rounded-xl bg-white/80 border border-blue-100 px-3 py-2">
+                                  <div key={folha.id} className="rounded-xl bg-white border border-gray-100 px-3 py-2">
                                     <div className="flex items-center justify-between gap-3">
-                                      <p className="text-sm font-black text-slate-700">{folha.titulo}</p>
-                                      <p className="text-sm font-black text-blue-700">{fmt(folha.total)}</p>
+                                      <p className="text-sm font-black text-gray-700">{folha.titulo}</p>
+                                      <p className="text-sm font-black text-gray-700">{fmt(folha.total)}</p>
                                     </div>
-                                    <p className="text-xs text-slate-600 mt-1">Vão calculado: {folha.medida}</p>
-                                    <p className="text-[11px] text-slate-400 mt-1">Arredondado: {folha.medidaCalc} · {folha.area.toFixed(3)} m²</p>
+                                    <p className="text-xs text-gray-600 mt-1">Vão calculado: {folha.medida}</p>
+                                    <p className="text-[11px] text-gray-400 mt-1">Área: {folha.area.toFixed(3)} m²</p>
                                   </div>
                                 ))}
                               </div>
                             </div>
 
                             <div className="space-y-4">
-                              <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-3">Materiais</p>
+                              <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Materiais / Ferragens</p>
                                 <div className="flex flex-wrap gap-2">
                                   {obra.materiais.length > 0 ? obra.materiais.map((material) => (
-                                    <span key={material} className="px-3 py-2 rounded-xl bg-white border border-emerald-100 text-sm font-bold text-emerald-800">
+                                    <span key={material} className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-gray-700">
                                       {material}
                                     </span>
                                   )) : (
-                                    <span className="px-3 py-2 rounded-xl bg-white border border-emerald-100 text-sm font-bold text-emerald-800">
-                                      Sem material adicional
+                                    <span className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-gray-700">
+                                      Sem material
                                     </span>
                                   )}
                                 </div>
-                              </div>
-
-                              <div className="rounded-2xl bg-amber-50/60 border border-amber-100 p-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-3">Otimização de Barra</p>
-                                {obra.otimizacao.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {obra.otimizacao.map((otimizacao) => (
-                                      <div key={otimizacao.id} className="rounded-xl bg-white border border-amber-100 px-3 py-2">
-                                        <div className="flex items-center justify-between gap-3">
-                                          <p className="text-sm font-black text-slate-700">{otimizacao.perfilNome}</p>
-                                          <p className="text-sm font-black text-amber-700">{fmt(otimizacao.total)}</p>
-                                        </div>
-                                        <p className="text-xs text-slate-600 mt-1">
-                                          {otimizacao.qtdBarras} barra(s) de {otimizacao.comprimentoBarra} mm · aproveitamento {otimizacao.aproveitamento}%
-                                        </p>
-                                        <p className="text-[11px] text-slate-400 mt-1">Desperdício estimado: {otimizacao.desperdicioMm} mm</p>
-                                      </div>
+                                {obra.ferragens.length > 0 && (
+                                  <div className="mt-3 space-y-1">
+                                    {obra.ferragens.map((ferragem) => (
+                                      <p key={ferragem.id} className="text-xs text-gray-600">
+                                        {ferragem.nome}: {ferragem.qtd} {ferragem.unidade}
+                                      </p>
                                     ))}
                                   </div>
-                                ) : (
-                                  <p className="text-sm font-bold text-amber-800">Este item está em modo kit, sem otimização de barra.</p>
                                 )}
                               </div>
+
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
+                  )}
 
+                  {/* ABA: OTIMIZAÇÃO */}
+                  {abaResultados === "otimizacao" && (
+                  <>
                   {otimizacaoGlobalPerfis.grupos.length > 0 && (
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Perfis Consolidados</p>
-                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Otimização Global de Barras</h3>
+                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Otimização de Perfis por Projeto</h3>
                           <p className="text-xs text-gray-400 mt-1">
-                            Reúne todos os cortes em barra do mesmo projeto, perfil e cor para simular a compra consolidada.
+                            Consolida medidas do mesmo projeto para aproveitar barras antes de definir a compra final.
                           </p>
                         </div>
                         <div className="text-right">
@@ -1975,13 +2047,22 @@ export default function CalculoProjetoPage() {
                         ].map(({ label, valor }) => (
                           <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-                            <p className="text-lg font-black text-slate-700">{valor}</p>
+                            <p className="text-lg font-black text-gray-700">{valor}</p>
                           </div>
                         ))}
                       </div>
 
                       <div className="space-y-4">
-                        {otimizacaoGlobalPerfis.grupos.map((grupo, index) => (
+                        {[...otimizacaoGlobalPerfis.grupos]
+                          .sort((a, b) => {
+                            const pesoA = getPesoPerfilOtimizacao(a.perfilNome)
+                            const pesoB = getPesoPerfilOtimizacao(b.perfilNome)
+                            if (pesoA !== pesoB) return pesoA - pesoB
+                            const nomeComp = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
+                            if (nomeComp !== 0) return nomeComp
+                            return a.projetoNome.localeCompare(b.projetoNome, "pt-BR")
+                          })
+                          .map((grupo, index) => (
                           <div key={`${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-${index}`} className="rounded-2xl border border-gray-100 overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100 gap-4">
                               <div>
@@ -1991,23 +2072,28 @@ export default function CalculoProjetoPage() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="text-sm font-black text-emerald-600">{fmt(grupo.precoOtimizado)}</p>
+                                <p className="text-sm font-black text-gray-700">{fmt(grupo.precoOtimizado)}</p>
                                 <p className="text-xs font-bold text-gray-400">
                                   {grupo.qtdBarrasOriginal} barra(s) individual · {grupo.qtdBarrasOtimizada} consolidada(s)
                                 </p>
                               </div>
                             </div>
                             <div className="px-4 py-3 space-y-2">
-                              <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                                <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700">Aproveitamento {grupo.aproveitamento}%</span>
-                                <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Desperdício {grupo.desperdicioMm} mm</span>
-                                <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Economia {fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}</span>
+                              <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Aproveitamento {grupo.aproveitamento}%</span>
+                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Desperdício {grupo.desperdicioMm} mm</span>
+                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Economia {fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}</span>
                               </div>
                               <p className="text-[11px] text-gray-500">
                                 Cortes agrupados: {grupo.cortes.join(" · ")} mm
                               </p>
-                              <div className="space-y-2">
-                                {grupo.barras.map((barra) => renderBarraVisual(barra, grupo.comprimentoBarra, `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-global-${barra.numero}`))}
+                              <div className="text-[11px] text-gray-500 space-y-1">
+                                <p>Barras consolidadas:</p>
+                                {grupo.barras.map((barra) => (
+                                  <p key={barra.numero}>
+                                    #{barra.numero}: {barra.cortes.join(" · ")} mm
+                                  </p>
+                                ))}
                               </div>
                             </div>
                           </div>
@@ -2015,152 +2101,8 @@ export default function CalculoProjetoPage() {
                       </div>
                     </div>
                   )}
-
-                  {resultados.map((itemResultado, index) => (
-                    <div key={itemResultado.itemId} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
-                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>{itemResultado.projeto?.nome || "Projeto"}</h3>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Cliente: {clienteSel?.nome || "—"} · Vidro: {itemResultado.vidro?.nome || "—"}
-                            {itemResultado.corMaterial && ` · Perfil ${itemResultado.corMaterial}`}
-                            {itemResultado.resultado.usouKit ? " · Modo Kit" : " · Modo Barra"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Subtotal</p>
-                          <p className="text-2xl font-black" style={{ color: theme.menuBackgroundColor }}>{fmt(itemResultado.resultado.totalGeral)}</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[
-                          { label: "Vidros", valor: itemResultado.resultado.totalVidro },
-{ 
-  label: itemResultado.resultado.usouKit ? "Kits" : "Perfis",
-  valor: itemResultado.resultado.usouKit 
-    ? itemResultado.resultado.precoKit 
-    : itemResultado.resultado.precoPerfis
-},                          { label: "Ferragens", valor: itemResultado.resultado.precoFerragens },
-                          { label: "Total", valor: itemResultado.resultado.totalGeral },
-                        ].map(({ label, valor }) => (
-                          <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-                            <p className="text-lg font-black text-slate-700">{fmt(valor)}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      {itemResultado.resultado.folhas.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Square size={16} className="text-blue-500" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">Corte de Vidro</h4>
-                          </div>
-                          <div className="mb-3 rounded-2xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs font-medium text-blue-700">
-                            Preço aplicado: {fmt(itemResultado.precoVidroM2Aplicado)}/m² {itemResultado.usandoPrecoEspecialVidro ? "pela tabela do cliente" : "pelo cadastro padrão do vidro"}.
-                          </div>
-                          <div className="space-y-2">
-                            {itemResultado.resultado.folhas.map((folha, folhaIndex) => (
-                              <div key={folhaIndex} className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50/50 border border-blue-50">
-                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-blue-100 text-blue-600 shrink-0">
-                                  F{folha.numero} {folha.tipo}
-                                </span>
-                                <span className="text-sm font-bold text-gray-700 flex-1">{folha.largura} × {folha.altura} mm</span>
-                                <span className="text-xs text-gray-400">Calc.: {folha.larguraArredondada} × {folha.alturaArredondada} mm · {folha.area.toFixed(3)} m² · {fmt(folha.precoM2Utilizado)}/m²</span>
-                                <span className="text-sm font-black text-blue-700">{fmt(folha.precoVidro)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {itemResultado.resultado.usouKit && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Package size={16} className="text-emerald-500" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">Kit Selecionado</h4>
-                          </div>
-
-                          {itemResultado.resultado.kit ? (
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-                              <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
-                              <div>
-                                <p className="font-black text-sm text-emerald-800">{itemResultado.resultado.kit.nome}</p>
-                                <p className="text-xs text-emerald-600 mt-0.5">
-                                  Ref.: {itemResultado.resultado.kit.largura} × {itemResultado.resultado.kit.altura} mm
-                                  {itemResultado.corMaterial && ` · Cor: ${itemResultado.corMaterial}`}
-                                </p>
-                              </div>
-                              <p className="ml-auto font-black text-emerald-700">{fmt(itemResultado.resultado.kit.preco || 0)}<span className="text-[10px] font-medium"> /un</span></p>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                              <AlertTriangle size={16} className="text-amber-500 shrink-0" />
-                              <p className="text-sm text-amber-700 font-medium">
-                                Nenhum kit compatível encontrado para esse projeto com essas medidas e espessura de vidro.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {!itemResultado.resultado.usouKit && itemResultado.resultado.cortes.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Scissors size={16} className="text-amber-500" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">Otimização de Barras</h4>
-                          </div>
-                          <div className="space-y-4">
-                            {itemResultado.resultado.cortes.map((corte, corteIndex) => (
-                              <div key={corteIndex} className="rounded-2xl border border-gray-100 overflow-hidden">
-                                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                  <div>
-                                    <p className="text-sm font-black text-gray-700">{corte.perfilNome}</p>
-                                    <p className="text-xs text-gray-400">Barra: {corte.comprimentoBarra} mm · {corte.qtdBarras} barra(s) · {fmt(corte.precoBarra)}/barra</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-sm font-black text-amber-600">{fmt(corte.precoTotal)}</p>
-                                    <p className={`text-xs font-bold ${corte.aproveitamento >= 80 ? "text-emerald-500" : corte.aproveitamento >= 60 ? "text-amber-500" : "text-red-400"}`}>
-                                      {corte.aproveitamento}% aproveitado
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="px-4 py-3">
-                                  <p className="text-[10px] text-gray-400">
-                                    Desperdício estimado: {corte.desperdicioMm} mm • Serras de 5 mm consideradas
-                                  </p>
-                                  <div className="mt-3 space-y-2">
-                                    {corte.barras.map((barra) => renderBarraVisual(barra, corte.comprimentoBarra, `${corte.perfilNome}-individual-${corteIndex}-${barra.numero}`))}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {itemResultado.resultado.ferragens.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Wrench size={16} className="text-violet-500" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">Ferragens</h4>
-                          </div>
-                          <div className="space-y-2">
-                            {itemResultado.resultado.ferragens.map((ferragem, ferragemIndex) => (
-                              <div key={ferragemIndex} className="flex items-center gap-3 p-3 rounded-2xl bg-violet-50/50 border border-violet-50">
-                                <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-violet-100 text-violet-600 shrink-0">×{ferragem.qtd}</span>
-                                <span className="text-sm font-bold text-gray-700 flex-1">{ferragem.nome}</span>
-                                <span className="text-xs text-gray-400">{fmt(ferragem.precoUnit)}/un</span>
-                                <span className="text-sm font-black text-violet-700">{fmt(ferragem.total)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  </>
+                  )}
                 </>
               )}
             </div>
@@ -2183,13 +2125,17 @@ export default function CalculoProjetoPage() {
       />
 
       {mostrarPreviewOrcamento && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-120 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4 bg-gray-50">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Pré-visualização</p>
                 <h3 className="text-sm font-black" style={{ color: theme.contentTextLightBg }}>
-                  {tipoPreviewPdf === "comercial" ? "Orçamento comercial sem salvar" : "Relatório técnico da obra"}
+                  {tipoPreviewPdf === "comercial"
+                    ? "Orçamento comercial sem salvar"
+                    : tipoPreviewPdf === "tecnico"
+                      ? "Relatório técnico da obra"
+                      : "Tempera"}
                 </h3>
               </div>
 
@@ -2215,11 +2161,21 @@ export default function CalculoProjetoPage() {
                   >
                     Relatório Técnico
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoPreviewPdf("tempera")}
+                    className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                    style={tipoPreviewPdf === "tempera"
+                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                      : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                  >
+                    Tempera
+                  </button>
                 </div>
 
                 <PDFDownloadLink
-                  document={tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : documentoPreviewTecnico}
-                  fileName={`${tipoPreviewPdf === "comercial" ? "orcamento" : "relatorio_tecnico"}_${(clienteSel?.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`}
+                  document={tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "tecnico" ? documentoPreviewTecnico : documentoPreviewTempera}
+                  fileName={`${tipoPreviewPdf === "comercial" ? "orcamento" : tipoPreviewPdf === "tecnico" ? "relatorio_tecnico" : "tempera"}_${(clienteSel?.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all"
                 >
                   {({ loading }) => loading ? (
@@ -2262,10 +2218,20 @@ export default function CalculoProjetoPage() {
                 >
                   Relatório Técnico
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoPreviewPdf("tempera")}
+                  className="flex-1 px-3 py-2 rounded-2xl text-xs font-black border transition-all"
+                  style={tipoPreviewPdf === "tempera"
+                    ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                    : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                >
+                  Tempera
+                </button>
               </div>
 
               <PDFViewer style={{ width: "100%", height: "100%" }}>
-                {tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : documentoPreviewTecnico}
+                {tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "tecnico" ? documentoPreviewTecnico : documentoPreviewTempera}
               </PDFViewer>
             </div>
           </div>

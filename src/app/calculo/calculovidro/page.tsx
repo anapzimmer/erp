@@ -827,7 +827,7 @@ useEffect(() => {
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR - PADRÃO ORIGINAL */}
-      <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 z-[120] h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
+      <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 z-120 h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
         <Sidebar showMobileMenu={showMobileMenu} setShowMobileMenu={setShowMobileMenu} nomeEmpresa={nomeEmpresa} expandido={sidebarExpandido} setExpandido={setSidebarExpandido} />
       </div>
 

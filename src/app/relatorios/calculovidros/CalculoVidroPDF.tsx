@@ -8,6 +8,7 @@ import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRow
 interface ItemVidro {
     id: string | number;
     descricao: string;
+    desenhoUrl?: string;
     tipo?: string;
     precoVidroM2?: number;
     valorUnitario?: number;
@@ -100,11 +101,24 @@ const styles = StyleSheet.create({
     rowPerfilConsolidado: { backgroundColor: '#F8FAFC' },
     tituloCabecalhoProjeto: { fontSize: 8.5, fontWeight: 'bold' },
     seloConsolidado: { marginTop: 3, fontSize: 6.5, color: '#64748B' },
+    descricaoComDesenho: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+    descricaoTexto: { flex: 1 },
+    desenhoThumbBox: {
+        width: 82,
+        height: 60,
+        padding: 2,
+        borderRadius: 4,
+        backgroundColor: '#FFFFFF',
+    },
+    desenhoThumb: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+    },
 
-    colDesc: { width: '29%' },
+    colDesc: { width: '47%' },
     colVao: { width: '17%', textAlign: 'center' },
     colQtd: { width: '8%' , textAlign: 'center' },
-    colCorVidro: { width: '18%' },
     colUnitario: { width: '13%', textAlign: 'right' },
     colTotal: { width: '15%', textAlign: 'right' },
 
@@ -166,7 +180,7 @@ export function CalculoVidroPDF({
             <Page size="A4" style={styles.page}>
 
                 {/* Cabeçalho */}
-                <View style={[styles.header, { borderBottomColor: themeColor }]}> 
+                <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
                     <View style={styles.headerLeft}>
                         <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento da Obra</Text>
                         {numeroOrcamento && (
@@ -177,11 +191,11 @@ export function CalculoVidroPDF({
                     {logoUrl && <Image src={logoUrl} style={styles.logo} />}
                 </View>
                 <View style={styles.infoSection}>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor, borderLeftWidth: 3 }]}> 
                         <Text style={styles.label}>Cliente</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
                     </View>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
+                    <View style={[styles.infoBox, { borderLeftColor: themeColor, borderLeftWidth: 3 }]}> 
                         <Text style={styles.label}>Obra / Referência</Text>
                         <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
                     </View>
@@ -193,7 +207,6 @@ export function CalculoVidroPDF({
                         <Text style={[styles.tableColHeader, styles.colDesc]}>Item / Material</Text>
                         <Text style={[styles.tableColHeader, styles.colVao]}>Tamanho do Vão</Text>
                         <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
-                        <Text style={[styles.tableColHeader, styles.colCorVidro]}>Cor do Vidro</Text>
                         <Text style={[styles.tableColHeader, styles.colUnitario]}>Valor Unit.</Text>
                         <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
                     </View>
@@ -210,29 +223,43 @@ export function CalculoVidroPDF({
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>
-                                <Text style={ehCabecalhoProjeto(item) ? [styles.tituloCabecalhoProjeto, { color: contentColor }] : { color: contentColor }}>
-                                    {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
-                                </Text>
-                                {ehPerfilConsolidado(item) && (
-                                    <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
-                                )}
-                                {item.medidaReal && item.medidaReal !== '-' && (
-                                    <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
-                                        Medida item: {item.medidaReal}
-                                    </Text>
-                                )}
-                                {(item.servicos || item.acabamento) && (
-                                    <Text style={{ fontSize: 7, color: '#c9c9c9', marginTop: 2 }}>
-                                        {item.acabamento ? `Acabamento: ${item.acabamento}` : ''}
-                                        {item.acabamento && item.servicos ? ' | ' : ''}
-                                        {item.servicos ? `${ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: ${item.servicos}` : ''}
-                                    </Text>
-                                )}
-                                {item.observacaoRateio && (
-                                    <Text style={{ fontSize: 6.5, color: '#7c8b9a', marginTop: 2 }}>
-                                        {item.observacaoRateio}
-                                    </Text>
-                                )}
+                                <View style={styles.descricaoComDesenho}>
+                                    {item.desenhoUrl && (
+                                        <View style={styles.desenhoThumbBox}>
+                                            <Image src={item.desenhoUrl} style={styles.desenhoThumb} />
+                                        </View>
+                                    )}
+                                    <View style={styles.descricaoTexto}>
+                                        <Text style={ehCabecalhoProjeto(item) ? [styles.tituloCabecalhoProjeto, { color: contentColor }] : { color: contentColor }}>
+                                            {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
+                                        </Text>
+                                        {ehPerfilConsolidado(item) && (
+                                            <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
+                                        )}
+                                        {item.medidaReal && item.medidaReal !== '-' && (
+                                            <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
+                                                Medida item: {item.medidaReal}
+                                            </Text>
+                                        )}
+                                        {item.corVidro && item.corVidro !== '-' && (
+                                            <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
+                                                Cor do vidro: {item.corVidro}
+                                            </Text>
+                                        )}
+                                        {(item.servicos || item.acabamento) && (
+                                            <Text style={{ fontSize: 7, color: '#c9c9c9', marginTop: 2 }}>
+                                                {item.acabamento ? `Acabamento: ${item.acabamento}` : ''}
+                                                {item.acabamento && item.servicos ? ' | ' : ''}
+                                                {item.servicos ? `${ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: ${item.servicos}` : ''}
+                                            </Text>
+                                        )}
+                                        {item.observacaoRateio && (
+                                            <Text style={{ fontSize: 6.5, color: '#7c8b9a', marginTop: 2 }}>
+                                                {item.observacaoRateio}
+                                            </Text>
+                                        )}
+                                    </View>
+                                </View>
                                 {ehPerfilConsolidado(item) && Array.isArray(item.planoCorte) && item.planoCorte.length > 0 && (
                                     <View style={styles.planoCorteContainer}>
                                         {item.planoCorte.map((barra) => {
@@ -275,9 +302,6 @@ export function CalculoVidroPDF({
                             <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaCalc || '-'}</Text>
                             <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={[styles.tableCol, styles.colCorVidro, { color: contentColor }]}>
-                                {item.corVidro || item.tipo || '-'}
                             </Text>
                             <Text style={[styles.tableCol, styles.colUnitario, { color: contentColor }]}>
                                 {calcularValorUnitarioItem(item).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

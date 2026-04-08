@@ -28,18 +28,6 @@ const limparNomeTecnico = (nome?: string | null) => {
   return (filtradas.join("-") || semParenteses).replace(/\s+/g, " ").trim()
 }
 
-const deduplicarItensTecnicos = <T extends { codigo?: string | null; nome?: string | null }>(lista: T[]) => {
-  const mapa = new Map<string, T>()
-  for (const item of lista) {
-    const chaveCodigo = String(item.codigo || "").toLowerCase().trim()
-    const chaveNome = limparNomeTecnico(item.nome)
-    const chave = chaveNome || chaveCodigo
-    if (!chave) continue
-    if (!mapa.has(chave)) mapa.set(chave, item)
-  }
-  return Array.from(mapa.values())
-}
-
 // ─── TIPOS ──────────────────────────────────────────────────────────────────
 type Projeto = {
   id: string
@@ -2097,7 +2085,7 @@ export default function ProjetosPage() {
                         {variacoesDesenho.map((g, i) => (
                           <span key={g.id}>{i > 0 && " · "}<strong>{g.label}</strong> ({g.opcoes.map(o => o.label).join(" / ")})</span>
                         ))}.
-                        {" "}Use <strong className="text-violet-700">"Aplica em"</strong> para restringir um kit a uma variação. Sem restrição, o kit é considerado em todas.
+                        {" "}Use <strong className="text-violet-700">&quot;Aplica em&quot;</strong> para restringir um kit a uma variação. Sem restrição, o kit é considerado em todas.
                       </p>
                     </div>
                   )}
@@ -2258,7 +2246,7 @@ export default function ProjetosPage() {
                         {variacoesDesenho.map((g, i) => (
                           <span key={g.id}>{i > 0 && " · "}<strong>{g.label}</strong> ({g.opcoes.map(o => o.label).join(" / ")})</span>
                         ))}.
-                        {" "}Use <strong className="text-violet-700">"Aplica em"</strong> em cada ferragem para indicar se ela é exclusiva de uma variação — exemplo: o <em>trinco</em> só entra na variação "Com trinco".
+                        {" "}Use <strong className="text-violet-700">&quot;Aplica em&quot;</strong> em cada ferragem para indicar se ela é exclusiva de uma variação — exemplo: o <em>trinco</em> só entra na variação &quot;Com trinco&quot;.
                       </p>
                     </div>
                   )}
@@ -2413,7 +2401,7 @@ export default function ProjetosPage() {
                     <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
                       <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Variações detectadas</p>
                       <p className="text-xs text-violet-900 font-medium">
-                        Use <strong className="text-violet-700">"Aplica em"</strong> para restringir um perfil a uma variação específica. Perfis sem restrição entram em todas as variações.
+                        Use <strong className="text-violet-700">&quot;Aplica em&quot;</strong> para restringir um perfil a uma variação específica. Perfis sem restrição entram em todas as variações.
                       </p>
                     </div>
                   )}

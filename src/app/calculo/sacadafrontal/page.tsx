@@ -121,8 +121,6 @@ const montarDescricaoVidro = (vidro?: Vidro | null) => {
     .join(" - ");
 };
 
-const semCorCadastrada = (coresItem?: string | null) => !normalizarTextoComparacao(coresItem);
-
 const normalizarPrecoFerragem = (preco?: number | string | null) => {
   if (typeof preco === "number") {
     return Number.isFinite(preco) ? preco : 0;
@@ -320,7 +318,7 @@ export default function CalculoSacadaFrontalPage() {
     } finally {
       setDraftHidratado(true);
     }
-  }, [chaveDraft]);
+  }, [chaveDraft, editId]);
 
   useEffect(() => {
     if (!draftHidratado || typeof window === "undefined" || editId) {
@@ -349,6 +347,7 @@ export default function CalculoSacadaFrontalPage() {
     clienteId,
     corPerfil,
     draftHidratado,
+    editId,
     larguraVaoMm,
     obra,
     quantidadeDivisoesLargura,

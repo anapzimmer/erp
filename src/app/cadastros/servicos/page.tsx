@@ -352,7 +352,7 @@ if (branding) {
       {/* MODAL */}
       {mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 backdrop-blur-sm p-4">
-          <div className="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl border border-gray-100">
+          <div className="bg-white p-8 rounded-4xl w-full max-w-md shadow-2xl border border-gray-100">
             <h2 className="text-2xl font-black mb-6" style={{ color: theme.primary }}>{editando ? "Editar" : "Novo"} Serviço</h2>
             <div className="space-y-4">
               <input type="text" placeholder="Nome do Serviço" value={novoServico.nome} onChange={e => setNovoServico({ ...novoServico, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />

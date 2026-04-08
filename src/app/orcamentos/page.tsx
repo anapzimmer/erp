@@ -140,7 +140,7 @@ export default function SelecaoOrcamento() {
                 className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
               >
                 {/* ÁREA DA IMAGEM (Fundo Cinza) */}
-                <div className="relative aspect-[4/3] bg-[#F1F5F9] flex items-center justify-center p-8 overflow-hidden">
+                <div className="relative aspect-4/3 bg-[#F1F5F9] flex items-center justify-center p-8 overflow-hidden">
                   <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                      <Maximize size={16} className="text-[#1C415B]" />
                   </div>
