@@ -89,11 +89,11 @@ const styles = StyleSheet.create({
 
     // Textos da Tabela com a cor solicitada
     tableCol: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: '#1C415B' },
-    planoCorteContainer: { marginTop: 4, gap: 3 },
-    planoCorteLinha: { borderWidth: 0.5, borderColor: '#E5E7EB', borderRadius: 4, padding: 4, backgroundColor: '#FAFAFA' },
+    planoCorteContainer: { marginTop: 6, gap: 6 },
+    planoCorteLinha: { borderWidth: 0.5, borderColor: '#E5E7EB', borderRadius: 4, padding: 5, backgroundColor: '#FAFAFA' },
     planoCorteTopo: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
     planoCorteTexto: { fontSize: 6.5, color: '#6B7280' },
-    barraVisual: { flexDirection: 'row', width: '100%', height: 8, borderRadius: 999, overflow: 'hidden', marginTop: 3, backgroundColor: '#F3F4F6' },
+    barraVisual: { flexDirection: 'row', width: '100%', height: 8, borderRadius: 999, overflow: 'hidden', marginTop: 5, backgroundColor: '#F3F4F6' },
     corteVisual: { height: '100%', backgroundColor: '#94A3B8', borderRightWidth: 0.5, borderRightColor: '#FFFFFF' },
     sobraVisualCurta: { height: '100%', backgroundColor: '#E5E7EB' },
     sobraVisualReaproveitavel: { height: '100%', backgroundColor: '#DCFCE7' },

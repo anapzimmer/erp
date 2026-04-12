@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
+import { getOpcoesRestricaoTecnicaBox, GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho } from "@/utils/variacaoProjeto"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
+import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnica"
 import Image from "next/image"
 import {
   Plus, X, Trash2, Edit2, Package, Layers, Wrench,
-  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft,
+  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search,
 } from "lucide-react"
 
 const CORES_COMUNS = [
@@ -37,6 +39,8 @@ type Projeto = {
   empresa_id: string
   criado_em: string
 }
+type TrilhoPorta = "aparente" | "interrompido" | "embutido"
+
 type ProjetoFolha = {
   id?: string
   numero_folha: number
@@ -44,6 +48,8 @@ type ProjetoFolha = {
   formula_largura: string
   formula_altura: string
   observacao: string
+  variacao_restrita?: string | null
+  trilho_restrito?: string | null
 }
 type ProjetoKit = {
   id?: string
@@ -75,6 +81,9 @@ type ProjetoPerfil = {
   qtd_outros: number
   tipo_fornecimento: string
   variacao_restrita?: string | null
+  condicao?: string | null
+  usar_no_kit?: boolean
+  altura_max_kit?: number | null
 }
 type FormData = {
   nome: string
@@ -93,6 +102,7 @@ type KitDBItem = {
   nome: string
   largura: number | string | null
   altura: number | string | null
+  cores?: string | null
   categoria?: string | null
 }
 
@@ -117,10 +127,16 @@ const normalizarBuscaItem = (valor?: string | null) =>
 const formatarRotuloItemTecnico = <T extends { codigo?: string | null; nome?: string | null }>(item: T) =>
   item.codigo ? `${item.codigo} - ${item.nome || ""}` : String(item.nome || "")
 
+const formatarRotuloFerragem = (item: { codigo?: string | null; nome?: string | null }) => {
+  const nomeBase = limparNomeTecnico(item.nome) || String(item.nome || "")
+  return item.codigo ? `${item.codigo} - ${nomeBase}` : nomeBase
+}
+
 const formatarRotuloKit = (item: KitDBItem) => {
+  const nomeBase = limparNomeTecnico(item.nome) || item.nome
   const largura = Number(item.largura || 0)
   const altura = Number(item.altura || 0)
-  return `${item.nome} · Ref. ${largura} x ${altura} mm`
+  return `${nomeBase} · Ref. ${largura} x ${altura} mm`
 }
 
 const filtrarItensTecnicosPorBusca = <T extends { codigo?: string | null; nome?: string | null; categoria?: string | null }>(
@@ -154,17 +170,99 @@ const perfilEhPreto = (perfil: { cores?: string | null; nome?: string | null }) 
   return cores.includes("preto") || nome.includes("preto")
 }
 
+const getChavePerfilProjeto = (perfil?: { codigo?: string | null; nome?: string | null }) => {
+  const codigo = normalizarBuscaItem(perfil?.codigo)
+  const nomeBase = limparNomeTecnico(perfil?.nome)
+  return codigo || nomeBase
+}
+
 const deduplicarPerfisPreferindoPreto = <T extends { codigo?: string | null; nome?: string | null; cores?: string | null }>(lista: T[]) => {
   const mapa = new Map<string, T>()
 
   for (const item of lista) {
-    const chaveCodigo = String(item.codigo || "").toLowerCase().trim()
-    const chaveNome = limparNomeTecnico(item.nome)
-    const chave = chaveNome || chaveCodigo
+    const chave = getChavePerfilProjeto(item)
     if (!chave) continue
 
     const existente = mapa.get(chave)
-    if (!existente || (perfilEhPreto(item) && !perfilEhPreto(existente))) {
+    if (!existente) {
+      mapa.set(chave, item)
+      continue
+    }
+
+    const idExistente = Number((existente as { id?: string | number }).id)
+    const idAtual = Number((item as { id?: string | number }).id)
+    const deveTrocarPorIdMenor = Number.isFinite(idAtual) && (!Number.isFinite(idExistente) || idAtual < idExistente)
+
+    if (deveTrocarPorIdMenor) {
+      mapa.set(chave, item)
+    }
+  }
+
+  return Array.from(mapa.values()).sort((a, b) => comparePerfisByNome(a.nome, b.nome))
+}
+
+const ferragemEhBranca = (ferragem?: { cores?: string | null; nome?: string | null }) => {
+  const cores = normalizarBuscaItem(ferragem?.cores)
+  const nome = normalizarBuscaItem(ferragem?.nome)
+  return cores.includes("branco") || nome.includes("branco")
+}
+
+const getChaveFerragemProjeto = (ferragem?: { codigo?: string | null; nome?: string | null }) => {
+  const nomeBase = limparNomeTecnico(ferragem?.nome)
+  const codigo = normalizarBuscaItem(ferragem?.codigo)
+  return nomeBase || codigo
+}
+
+const deduplicarFerragensPorModelo = <T extends { id?: string | number; codigo?: string | null; nome?: string | null; cores?: string | null }>(lista: T[]) => {
+  const mapa = new Map<string, T>()
+
+  for (const item of lista) {
+    const chave = getChaveFerragemProjeto(item)
+    if (!chave) continue
+
+    const existente = mapa.get(chave)
+    if (!existente) {
+      mapa.set(chave, item)
+      continue
+    }
+
+    const itemBranca = ferragemEhBranca(item)
+    const existenteBranca = ferragemEhBranca(existente)
+    if (itemBranca && !existenteBranca) {
+      mapa.set(chave, item)
+      continue
+    }
+
+    const idExistente = Number(existente.id)
+    const idAtual = Number(item.id)
+    const deveTrocarPorIdMenor = Number.isFinite(idAtual) && (!Number.isFinite(idExistente) || idAtual < idExistente)
+
+    if (deveTrocarPorIdMenor) {
+      mapa.set(chave, item)
+    }
+  }
+
+  return Array.from(mapa.values()).sort((a, b) => compareFerragensByNome(a.nome, b.nome))
+}
+
+const kitEhPreto = (kit: { cores?: string | null; nome?: string | null }) => {
+  const cores = normalizarBuscaItem(kit.cores)
+  const nome = normalizarBuscaItem(kit.nome)
+  return cores.includes("preto") || nome.includes("preto")
+}
+
+const deduplicarKitsPorMedidaPreferindoPreto = <T extends { nome?: string | null; largura?: number | string | null; altura?: number | string | null; cores?: string | null }>(lista: T[]) => {
+  const mapa = new Map<string, T>()
+
+  for (const item of lista) {
+    const chaveNome = limparNomeTecnico(item.nome)
+    const largura = Number(item.largura || 0)
+    const altura = Number(item.altura || 0)
+    const chave = `${chaveNome}|${largura}|${altura}`
+    if (!chaveNome && largura === 0 && altura === 0) continue
+
+    const existente = mapa.get(chave)
+    if (!existente || (kitEhPreto(item) && !kitEhPreto(existente))) {
       mapa.set(chave, item)
     }
   }
@@ -173,13 +271,51 @@ const deduplicarPerfisPreferindoPreto = <T extends { codigo?: string | null; nom
 }
 
 const VARIACAO_TOKEN = "__VARIACAO__="
+const COND_TOKEN = "__COND__="
+const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
+const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
+const TRILHO_TOKEN = "__TRILHO__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
     .split(/\r?\n/)
-    .filter((linha) => !linha.includes(VARIACAO_TOKEN))
+    .filter((linha) => !linha.includes(VARIACAO_TOKEN) && !linha.includes(TRILHO_TOKEN))
     .join("\n")
     .trim()
+
+const limparTextoComCond = (valor?: string | null) =>
+  String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(COND_TOKEN))
+    .join("\n")
+    .trim()
+
+const extrairCondicaoDoTexto = (valor?: string | null): string | null => {
+  const linhaCond = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(COND_TOKEN))
+  return linhaCond ? linhaCond.slice(COND_TOKEN.length).trim() || null : null
+}
+
+const extrairUsarNoKitDoTexto = (valor?: string | null): boolean => {
+  const linhaUsarNoKit = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(USAR_KIT_TOKEN))
+
+  return linhaUsarNoKit ? linhaUsarNoKit.slice(USAR_KIT_TOKEN.length).trim() === "1" : false
+}
+
+const extrairAlturaMaxKitDoTexto = (valor?: string | null): number | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(ALTURA_MAX_KIT_TOKEN))
+  if (!linha) return null
+  const num = Number(linha.slice(ALTURA_MAX_KIT_TOKEN.length).trim())
+  return Number.isFinite(num) && num > 0 ? num : null
+}
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
   const texto = String(valor || "")
@@ -200,6 +336,54 @@ const aplicarVariacaoNoTexto = (valor: string | null | undefined, variacao: stri
   return [textoBase, `${VARIACAO_TOKEN}${variacao}`].filter(Boolean).join("\n")
 }
 
+const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
+  const linhaTrilho = String(valor || "")
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(TRILHO_TOKEN))
+
+  const trilhosStr = linhaTrilho ? linhaTrilho.slice(TRILHO_TOKEN.length).trim().toLowerCase() : ""
+  if (!trilhosStr) return null
+  
+  const trilhos = trilhosStr.split(",").map(t => t.trim()).filter(t => ["aparente", "interrompido", "embutido"].includes(t))
+  return trilhos.length > 0 ? trilhos.join(",") : null
+}
+
+const aplicarTrilhoNoTexto = (valor: string | null | undefined, trilhos: string | null | undefined) => {
+  const textoBase = limparTextoComVariacao(valor)
+  if (!trilhos) return textoBase
+  return [textoBase, `${TRILHO_TOKEN}${trilhos}`].filter(Boolean).join("\n")
+}
+
+const aplicarCondicaoNoTexto = (valor: string | null | undefined, condicao: string | null | undefined) => {
+  const textoBase = limparTextoComCond(valor)
+  if (!condicao) return textoBase
+  return [textoBase, `${COND_TOKEN}${condicao.trim()}`].filter(Boolean).join("\n")
+}
+
+const aplicarUsarNoKitNoTexto = (valor: string | null | undefined, usarNoKit: boolean | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(USAR_KIT_TOKEN))
+    .join("\n")
+    .trim()
+
+  if (!usarNoKit) return textoBase
+  return [textoBase, `${USAR_KIT_TOKEN}1`].filter(Boolean).join("\n")
+}
+
+const aplicarAlturaMaxKitNoTexto = (valor: string | null | undefined, alturaMax: number | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(ALTURA_MAX_KIT_TOKEN))
+    .join("\n")
+    .trim()
+
+  const limite = Number(alturaMax)
+  if (!Number.isFinite(limite) || limite <= 0) return textoBase
+  return [textoBase, `${ALTURA_MAX_KIT_TOKEN}${Math.round(limite)}`].filter(Boolean).join("\n")
+}
+
 type ProjetoDetalheResponse = {
   nome?: string | null
   categoria?: string | null
@@ -218,6 +402,50 @@ type ProjetoDetalheResponse = {
   >
 }
 
+type ProjetoFolhaPersistencia = {
+  projeto_id: string
+  numero_folha: number
+  tipo_folha: string
+  formula_largura: string
+  formula_altura: string
+  observacao: string
+}
+
+type ProjetoKitPersistencia = {
+  projeto_id: string
+  kit_id: string
+  espessura_vidro: string
+  largura_referencia: number
+  altura_referencia: number
+  tolerancia_mm: number
+  observacao: string
+}
+
+type ProjetoFerragemPersistencia = {
+  projeto_id: string
+  ferragem_id: string
+  quantidade: number
+  usar_no_kit: boolean
+  usar_no_perfil: boolean
+  observacao: string
+}
+
+type ProjetoPerfilPersistencia = {
+  projeto_id: string
+  perfil_id: string
+  qtd_largura: number
+  qtd_altura: number
+  qtd_outros: number
+  tipo_fornecimento: string
+}
+
+type ProjetoRelacionamentosSnapshot = {
+  folhas: ProjetoFolhaPersistencia[]
+  kits: ProjetoKitPersistencia[]
+  ferragens: ProjetoFerragemPersistencia[]
+  perfis: ProjetoPerfilPersistencia[]
+}
+
 const getMensagemErroSupabase = (error: unknown, contexto: string) => {
   if (error && typeof error === "object" && "message" in error) {
     const mensagem = String((error as { message?: unknown }).message || "")
@@ -226,54 +454,22 @@ const getMensagemErroSupabase = (error: unknown, contexto: string) => {
   return contexto
 }
 
-const colunasOpcionaisNoErro = (mensagem: string, colunas: string[]) =>
-  colunas.filter((coluna) => new RegExp(`\\b${coluna}\\b`, "i").test(mensagem))
+const limparTextoSimples = (valor?: string | null) => String(valor || "").trim()
 
-const removerColunasDasLinhas = <T extends Record<string, unknown>>(linhas: T[], colunas: string[]) =>
-  linhas.map((linha) => {
-    const clone: Record<string, unknown> = { ...linha }
-    colunas.forEach((coluna) => {
-      delete clone[coluna]
-    })
-    return clone as T
-  })
-
-const inserirComFallbackColunas = async <T extends Record<string, unknown>>(
-  tabela: string,
-  linhas: T[],
-  colunasOpcionais: string[],
-  contexto: string
-) => {
-  let payload = [...linhas]
-  let colunasRestantes = [...colunasOpcionais]
-  let ultimaMensagem = ""
-
-  while (true) {
-    const { error } = await supabase.from(tabela).insert(payload)
-    if (!error) return
-
-    ultimaMensagem = String(error.message || "")
-    const colunasInvalidas = colunasOpcionaisNoErro(ultimaMensagem, colunasRestantes)
-    if (colunasInvalidas.length === 0) {
-      throw new Error(getMensagemErroSupabase(error, contexto))
-    }
-
-    payload = removerColunasDasLinhas(payload, colunasInvalidas)
-    colunasRestantes = colunasRestantes.filter((coluna) => !colunasInvalidas.includes(coluna))
-
-    if (colunasRestantes.length === 0) {
-      const { error: retryError } = await supabase.from(tabela).insert(payload)
-      if (!retryError) return
-      throw new Error(getMensagemErroSupabase(retryError, contexto))
-    }
-  }
+const normalizarNumero = (valor: unknown, fallback = 0) => {
+  const numero = Number(valor)
+  return Number.isFinite(numero) ? numero : fallback
 }
+
+const somarSeDuplicado = (atual: number, proximo: number) => atual + proximo
 
 // ─── CATÁLOGO DE DESENHOS ────────────────────────────────────────────────────
 const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
   "Portas": [
     { label: "Porta 2 Folhas Completo", arquivo: "porta2fls-completo.png" },
     { label: "Porta 2 Folhas Simples", arquivo: "porta2fls-simples.png" },
+    { label: "Porta 2 Folhas Puxador", arquivo: "porta2fls-puxador.png" },
+    { label: "Porta 2 Folhas Com Trinco", arquivo: "porta2fls-comtrinco.png" },
     { label: "Porta 4 Folhas - T1", arquivo: "porta4fls-completo1.png" },
     { label: "Porta 4 Folhas - T2", arquivo: "porta4fls-completo2.png" },
     { label: "Porta 4 Folhas - T3", arquivo: "porta4fls-completo3.png" },
@@ -363,6 +559,11 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
 }
 
 const TIPOS_FOLHA = ["Fixo", "Móvel", "Basculante", "Pivotante", "Maxim-Ar"]
+const TRILHO_PORTA_OPCOES: Array<{ value: TrilhoPorta; label: string }> = [
+  { value: "aparente", label: "Trilho Aparente" },
+  { value: "interrompido", label: "Trilho Interrompido" },
+  { value: "embutido", label: "Trilho Embutido" },
+]
 
 type VariacaoOpcao = {
   key: string
@@ -407,10 +608,21 @@ const criarArquivo = (stem: string) => `${stem}.png`
 const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
   const nome = stem.split("-").pop() || ""
   const numeroMatch = nome.match(/(\d+)$/)
-  const base = nome.replace(/\d+$/, "")
+  const base = nome.replace(/\d+$/, "").toLowerCase()
 
   if (base === "simples") {
-    return { key: stem, label: "Simples", arquivo: criarArquivo(stem) }
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Simples${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
+  if (base === "puxador") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Puxador${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
+  if (base === "comtrinco") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Com trinco${sufixo}`, arquivo: criarArquivo(stem) }
   }
 
   if (base === "completo" || base === "completa") {
@@ -455,40 +667,40 @@ const getVariacoesDesenho = (arquivoAtual: string): VariacaoGrupo[] => {
     }
   }
 
-  const baseVersao = stemAtual.replace(/-(simples|completo\d*|completa\d*)$/, "")
-  if (baseVersao !== stemAtual) {
-    const regexFamilia = new RegExp(`^${escapeRegExp(baseVersao)}-(simples|completo\\d*|completa\\d*)$`)
-    const stemsFamilia = Array.from(STEMS_DESENHOS).filter((stem) => regexFamilia.test(stem))
+  const baseFamilia = stemAtual.replace(/-(simples\d*|completo\d*|completa\d*)$/, "")
+  const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-(.+)$`)
+  const stemsFamilia = Array.from(STEMS_DESENHOS).filter((stem) => regexFamilia.test(stem))
 
-    if (stemsFamilia.length >= 2) {
-      const opcoes = stemsFamilia
-        .sort((a, b) => {
-          const aNome = a.split("-").pop() || ""
-          const bNome = b.split("-").pop() || ""
+  if (stemsFamilia.length >= 2) {
+    const opcoes = stemsFamilia
+      .sort((a, b) => {
+        const aNome = a.split("-").pop() || ""
+        const bNome = b.split("-").pop() || ""
 
-          const rank = (nome: string) => {
-            if (nome === "simples") return 0
-            if (nome === "completo" || nome === "completa") return 1
-            if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 2
-            return 3
-          }
+        const rank = (nome: string) => {
+          if (/^simples\d*$/i.test(nome)) return 0
+          if (/^puxador\d*$/i.test(nome)) return 1
+          if (/^comtrinco\d*$/i.test(nome)) return 2
+          if (nome === "completo" || nome === "completa") return 3
+          if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 4
+          return 5
+        }
 
-          const rankA = rank(aNome)
-          const rankB = rank(bNome)
-          if (rankA !== rankB) return rankA - rankB
+        const rankA = rank(aNome)
+        const rankB = rank(bNome)
+        if (rankA !== rankB) return rankA - rankB
 
-          const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
-          const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
-          return numA - numB
-        })
-        .map((stem) => criarOpcaoVersao(stem))
-
-      variacoes.push({
-        id: "versao",
-        label: "Versão",
-        opcoes,
+        const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
+        const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
+        return numA - numB
       })
-    }
+      .map((stem) => criarOpcaoVersao(stem))
+
+    variacoes.push({
+      id: "versao",
+      label: "Versão",
+      opcoes,
+    })
   }
 
   return variacoes
@@ -571,6 +783,7 @@ export default function ProjetosPage() {
   // ── Dados ──
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [kitsDB, setKitsDB] = useState<KitDBItem[]>([])
+  const [ferragensOriginaisDB, setFerragensOriginaisDB] = useState<FerragemDBItem[]>([])
   const [ferragensDB, setFerragensDB] = useState<FerragemDBItem[]>([])
   const [perfisOriginaisDB, setPerfisOriginaisDB] = useState<PerfilDBItem[]>([])
   const [perfisDB, setPerfisDB] = useState<PerfilDBItem[]>([])
@@ -580,11 +793,19 @@ export default function ProjetosPage() {
   const [showModal, setShowModal] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState<"geral" | "folhas" | "kits" | "ferragens" | "perfis">("geral")
   const [form, setForm] = useState<FormData>(FORM_VAZIO)
+  const [buscaKitDisponivel, setBuscaKitDisponivel] = useState("")
+  const [kitsSelecionadosParaAdicionar, setKitsSelecionadosParaAdicionar] = useState<string[]>([])
+  const [buscaFerragemDisponivel, setBuscaFerragemDisponivel] = useState("")
+  const [ferragensSelecionadasParaAdicionar, setFerragensSelecionadasParaAdicionar] = useState<string[]>([])
+  const [buscaPerfilDisponivel, setBuscaPerfilDisponivel] = useState("")
+  const [perfisSelecionadosParaAdicionar, setPerfisSelecionadosParaAdicionar] = useState<string[]>([])
   const [buscaFerragemPorLinha, setBuscaFerragemPorLinha] = useState<Record<number, string>>({})
   const [buscaPerfilPorLinha, setBuscaPerfilPorLinha] = useState<Record<number, string>>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
+  const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
+  const [editandoNomesVariacao, setEditandoNomesVariacao] = useState(false)
 
   // ── Picker de desenho ──
   const [showPicker, setShowPicker] = useState(false)
@@ -613,13 +834,25 @@ export default function ProjetosPage() {
     setCarregando(true)
     const [resProjetos, resKits, resFerragens, resPerfis] = await Promise.all([
       supabase.from("projetos").select("*").eq("empresa_id", empresaId).order("criado_em", { ascending: false }),
-      supabase.from("kits").select("id, nome, largura, altura, categoria").eq("empresa_id", empresaId).order("nome"),
+      supabase.from("kits").select("id, nome, largura, altura, cores, categoria").eq("empresa_id", empresaId).order("nome"),
       supabase.from("ferragens").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
-      supabase.from("perfis").select("id, nome, codigo, cores, categoria").eq("empresa_id", empresaId).order("nome"),
+      supabase
+        .from("perfis")
+        .select("id, nome, codigo, cores, categoria")
+        .eq("empresa_id", empresaId)
+        .order("codigo", { ascending: true })
+        .order("nome", { ascending: true }),
     ])
     if (resProjetos.data) setProjetos(resProjetos.data)
-    if (resKits.data) setKitsDB(resKits.data as KitDBItem[])
-    if (resFerragens.data) setFerragensDB(resFerragens.data as FerragemDBItem[])
+    if (resKits.data) {
+      const kitsCarregados = resKits.data as KitDBItem[]
+      setKitsDB(deduplicarKitsPorMedidaPreferindoPreto(kitsCarregados))
+    }
+    if (resFerragens.data) {
+      const ferragensCarregadas = resFerragens.data as FerragemDBItem[]
+      setFerragensOriginaisDB(ferragensCarregadas)
+      setFerragensDB(deduplicarFerragensPorModelo(ferragensCarregadas))
+    }
     if (resPerfis.data) {
       const perfisCarregados = resPerfis.data as PerfilDBItem[]
       setPerfisOriginaisDB(perfisCarregados)
@@ -627,6 +860,27 @@ export default function ProjetosPage() {
     }
     setCarregando(false)
   }, [empresaId])
+
+  useEffect(() => {
+    if (!empresaId || typeof window === "undefined") return
+    const chave = `variacao-box:nomes:${empresaId}`
+    try {
+      const bruto = window.localStorage.getItem(chave)
+      if (!bruto) return
+      const dados = JSON.parse(bruto)
+      if (dados && typeof dados === "object") {
+        setNomesVariacaoPersonalizados(dados as Record<string, string>)
+      }
+    } catch {
+      // ignora inconsistencias de armazenamento local
+    }
+  }, [empresaId])
+
+  useEffect(() => {
+    if (!empresaId || typeof window === "undefined") return
+    const chave = `variacao-box:nomes:${empresaId}`
+    window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
+  }, [empresaId, nomesVariacaoPersonalizados])
 
   const storageVariacoesKey = `projetos:variacoes-custom:${empresaId || "global"}`
   const draftProjetoKey = `projetos:draft:${empresaId || "sem_empresa"}:${editandoId || "novo"}`
@@ -675,6 +929,10 @@ export default function ProjetosPage() {
 
   useEffect(() => {
     if (!showModal || !empresaId) return
+    if (editandoId) {
+      draftRestauradoRef.current = draftProjetoKey
+      return
+    }
     if (draftRestauradoRef.current === draftProjetoKey) return
 
     try {
@@ -710,10 +968,11 @@ export default function ProjetosPage() {
     } finally {
       draftRestauradoRef.current = draftProjetoKey
     }
-  }, [showModal, empresaId, draftProjetoKey])
+  }, [showModal, empresaId, draftProjetoKey, editandoId])
 
   useEffect(() => {
     if (!showModal || !empresaId) return
+    if (editandoId) return
 
     const temDadosNoForm =
       !!form.nome.trim() ||
@@ -750,8 +1009,8 @@ export default function ProjetosPage() {
     showModal,
     empresaId,
     draftProjetoKey,
-    form,
     editandoId,
+    form,
     abaAtiva,
     categoriaPicker,
     showPicker,
@@ -762,6 +1021,9 @@ export default function ProjetosPage() {
 
   // ─── ABRIR EDIÇÃO ─────────────────────────────────────────────────────────
   const abrirEdicao = async (projeto: Projeto) => {
+    sessionStorage.removeItem(`projetos:draft:${empresaId || "sem_empresa"}:${projeto.id}`)
+    draftRestauradoRef.current = null
+
     const { data } = await supabase
       .from("projetos")
       .select(`*, projetos_folhas(*), projetos_kits(*, kits(nome)), projetos_ferragens(*, ferragens(nome)), projetos_perfis(*, perfis(nome))`)
@@ -771,33 +1033,19 @@ export default function ProjetosPage() {
     if (!data) return
     const detalhe = data as ProjetoDetalheResponse
 
-    const resolverPerfilRepresentante = (perfilId: string) => {
-      const perfilOriginal = perfisOriginaisDB.find((perfil) => String(perfil.id) === String(perfilId))
-      if (!perfilOriginal) {
-        return { id: perfilId, nome: undefined as string | undefined }
-      }
-
-      const chaveCodigo = String(perfilOriginal.codigo || "").toLowerCase().trim()
-      const chaveNome = limparNomeTecnico(perfilOriginal.nome)
-      const chave = chaveNome || chaveCodigo
-
-      const representante = perfisDB.find((perfil) => {
-        const codigo = String(perfil.codigo || "").toLowerCase().trim()
-        const nome = limparNomeTecnico(perfil.nome)
-        return (nome || codigo) === chave
-      })
-
-      return {
-        id: representante?.id || perfilId,
-        nome: representante?.nome || perfilOriginal.nome || undefined,
-      }
-    }
-
     setForm({
       nome: detalhe.nome || "",
       categoria: detalhe.categoria || "",
       desenho: detalhe.desenho || "",
-      folhas: (detalhe.projetos_folhas || []).sort((a, b) => a.numero_folha - b.numero_folha),
+      folhas: (detalhe.projetos_folhas || []).map((folha) => {
+        const metaObservacao = extrairVariacaoDoTexto(folha.observacao)
+        return {
+          ...folha,
+          observacao: metaObservacao.textoLimpo,
+          variacao_restrita: metaObservacao.variacao ?? null,
+          trilho_restrito: extrairTrilhoDoTexto(folha.observacao),
+        }
+      }).sort((a, b) => a.numero_folha - b.numero_folha),
       kits: (detalhe.projetos_kits || []).map((k) => {
         const metaObservacao = extrairVariacaoDoTexto(k.observacao)
         return {
@@ -815,17 +1063,22 @@ export default function ProjetosPage() {
           observacao: metaObservacao.textoLimpo,
           variacao_restrita: f.variacao_restrita ?? metaObservacao.variacao ?? null,
         }
-      }),
-      perfis: (detalhe.projetos_perfis || []).map((p) => ({
-        ...p,
-        perfil_id: resolverPerfilRepresentante(String(p.perfil_id)).id,
-        nome: resolverPerfilRepresentante(String(p.perfil_id)).nome,
-        qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
-        qtd_altura: Number(p.qtd_altura ?? 0),
-        qtd_outros: Number(p.qtd_outros ?? 0),
-        tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
-        variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
-      })),
+      }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+      perfis: (detalhe.projetos_perfis || []).map((p) => {
+        return {
+          ...p,
+          perfil_id: String(p.perfil_id),
+          nome: perfisOriginaisDB.find((perfil) => String(perfil.id) === String(p.perfil_id))?.nome || p.perfis?.nome || undefined,
+          qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
+          qtd_altura: Number(p.qtd_altura ?? 0),
+          qtd_outros: Number(p.qtd_outros ?? 0),
+          tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
+          variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
+          condicao: extrairCondicaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
+          usar_no_kit: extrairUsarNoKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
+          altura_max_kit: extrairAlturaMaxKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
+        }
+      }).sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
     })
     setEditandoId(projeto.id)
     setAbaAtiva("geral")
@@ -833,6 +1086,139 @@ export default function ProjetosPage() {
   }
 
   // ─── SALVAR ───────────────────────────────────────────────────────────────
+  const carregarSnapshotRelacionamentos = async (projetoId: string): Promise<ProjetoRelacionamentosSnapshot> => {
+    const [folhas, kits, ferragens, perfis] = await Promise.all([
+      supabase.from("projetos_folhas").select("projeto_id, numero_folha, tipo_folha, formula_largura, formula_altura, observacao").eq("projeto_id", projetoId),
+      supabase.from("projetos_kits").select("projeto_id, kit_id, espessura_vidro, largura_referencia, altura_referencia, tolerancia_mm, observacao").eq("projeto_id", projetoId),
+      supabase.from("projetos_ferragens").select("projeto_id, ferragem_id, quantidade, usar_no_kit, usar_no_perfil, observacao").eq("projeto_id", projetoId),
+      supabase.from("projetos_perfis").select("projeto_id, perfil_id, qtd_largura, qtd_altura, qtd_outros, tipo_fornecimento").eq("projeto_id", projetoId),
+    ])
+
+    const erros = [folhas.error, kits.error, ferragens.error, perfis.error].filter(Boolean)
+    if (erros.length > 0) {
+      throw new Error(getMensagemErroSupabase(erros[0], "Erro ao preparar snapshot do projeto"))
+    }
+
+    return {
+      folhas: (folhas.data || []) as ProjetoFolhaPersistencia[],
+      kits: (kits.data || []) as ProjetoKitPersistencia[],
+      ferragens: (ferragens.data || []) as ProjetoFerragemPersistencia[],
+      perfis: (perfis.data || []) as ProjetoPerfilPersistencia[],
+    }
+  }
+
+  const persistirRelacionamentosProjeto = async (payload: ProjetoRelacionamentosSnapshot) => {
+    if (payload.folhas.length > 0) {
+      const { error: folhasError } = await supabase.from("projetos_folhas").insert(payload.folhas)
+      if (folhasError) throw new Error(getMensagemErroSupabase(folhasError, "Erro ao salvar folhas do projeto"))
+    }
+
+    if (payload.kits.length > 0) {
+      const { error: kitsError } = await supabase.from("projetos_kits").insert(payload.kits)
+      if (kitsError) throw new Error(getMensagemErroSupabase(kitsError, "Erro ao salvar kits do projeto"))
+    }
+
+    if (payload.ferragens.length > 0) {
+      const { error: ferragensError } = await supabase.from("projetos_ferragens").insert(payload.ferragens)
+      if (ferragensError) throw new Error(getMensagemErroSupabase(ferragensError, "Erro ao salvar ferragens do projeto"))
+    }
+
+    if (payload.perfis.length > 0) {
+      const { error: perfisError } = await supabase.from("projetos_perfis").insert(payload.perfis)
+      if (perfisError) throw new Error(getMensagemErroSupabase(perfisError, "Erro ao salvar perfis do projeto"))
+    }
+  }
+
+  const restaurarSnapshotRelacionamentos = async (snapshot: ProjetoRelacionamentosSnapshot) => {
+    await persistirRelacionamentosProjeto(snapshot)
+  }
+
+  const normalizarPayloadProjeto = (projetoId: string): ProjetoRelacionamentosSnapshot => {
+    const folhas = form.folhas
+      .map((folha, indice) => ({
+        projeto_id: projetoId,
+        numero_folha: normalizarNumero(folha.numero_folha, indice + 1) || indice + 1,
+        tipo_folha: limparTextoSimples(folha.tipo_folha),
+        formula_largura: limparTextoSimples(folha.formula_largura),
+        formula_altura: limparTextoSimples(folha.formula_altura),
+        observacao: aplicarTrilhoNoTexto(
+          aplicarVariacaoNoTexto(limparTextoSimples(folha.observacao), folha.variacao_restrita),
+          folha.trilho_restrito ?? null
+        ),
+      }))
+      .filter((folha) => folha.tipo_folha || folha.formula_largura || folha.formula_altura || folha.observacao)
+
+    const kitsPorId = new Map<string, ProjetoKitPersistencia>()
+    form.kits.forEach((kit) => {
+      const kitId = limparTextoSimples(kit.kit_id)
+      if (!kitId) return
+
+      kitsPorId.set(kitId, {
+        projeto_id: projetoId,
+        kit_id: kitId,
+        espessura_vidro: limparTextoSimples(kit.espessura_vidro) || "8mm",
+        largura_referencia: normalizarNumero(kit.largura_referencia),
+        altura_referencia: normalizarNumero(kit.altura_referencia),
+        tolerancia_mm: normalizarNumero(kit.tolerancia_mm, 50),
+        observacao: aplicarVariacaoNoTexto(limparTextoSimples(kit.observacao), kit.variacao_restrita),
+      })
+    })
+
+    const ferragensPorId = new Map<string, ProjetoFerragemPersistencia>()
+    form.ferragens.forEach((ferragem) => {
+      const ferragemId = limparTextoSimples(ferragem.ferragem_id)
+      if (!ferragemId) return
+
+      const existente = ferragensPorId.get(ferragemId)
+      const quantidadeAtual = Math.max(1, normalizarNumero(ferragem.quantidade, 1))
+
+      ferragensPorId.set(ferragemId, {
+        projeto_id: projetoId,
+        ferragem_id: ferragemId,
+        quantidade: existente ? somarSeDuplicado(existente.quantidade, quantidadeAtual) : quantidadeAtual,
+        usar_no_kit: Boolean(existente?.usar_no_kit || ferragem.usar_no_kit),
+        usar_no_perfil: Boolean(existente?.usar_no_perfil || ferragem.usar_no_perfil),
+        observacao: aplicarVariacaoNoTexto(limparTextoSimples(ferragem.observacao), ferragem.variacao_restrita),
+      })
+    })
+
+    const perfisPorId = new Map<string, ProjetoPerfilPersistencia>()
+    form.perfis.forEach((perfil) => {
+      const perfilId = limparTextoSimples(String(perfil.perfil_id || ""))
+      if (!perfilId) return
+
+      const existente = perfisPorId.get(perfilId)
+
+      perfisPorId.set(perfilId, {
+        projeto_id: projetoId,
+        perfil_id: perfilId,
+        qtd_largura: existente ? somarSeDuplicado(existente.qtd_largura, Math.max(0, normalizarNumero(perfil.qtd_largura))) : Math.max(0, normalizarNumero(perfil.qtd_largura)),
+        qtd_altura: existente ? somarSeDuplicado(existente.qtd_altura, Math.max(0, normalizarNumero(perfil.qtd_altura))) : Math.max(0, normalizarNumero(perfil.qtd_altura)),
+        qtd_outros: existente ? somarSeDuplicado(existente.qtd_outros, Math.max(0, normalizarNumero(perfil.qtd_outros))) : Math.max(0, normalizarNumero(perfil.qtd_outros)),
+        tipo_fornecimento: aplicarAlturaMaxKitNoTexto(
+          aplicarUsarNoKitNoTexto(
+            aplicarCondicaoNoTexto(
+              aplicarVariacaoNoTexto(
+                limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
+                perfil.variacao_restrita ?? null
+              ),
+              perfil.condicao ?? null
+            ),
+            Boolean(perfil.usar_no_kit)
+          ),
+          perfil.altura_max_kit ?? null
+        ),
+      })
+    })
+
+    return {
+      folhas,
+      kits: Array.from(kitsPorId.values()),
+      ferragens: Array.from(ferragensPorId.values()),
+      perfis: Array.from(perfisPorId.values()),
+    }
+  }
+
   const salvar = async () => {
     if (!form.nome.trim()) {
       setModalAviso({ titulo: "Atenção", mensagem: "O nome do projeto é obrigatório.", tipo: "aviso" })
@@ -845,8 +1231,11 @@ export default function ProjetosPage() {
     setSalvando(true)
     try {
       let projetoId = editandoId
+      let snapshotAnterior: ProjetoRelacionamentosSnapshot | null = null
 
       if (editandoId) {
+        snapshotAnterior = await carregarSnapshotRelacionamentos(editandoId)
+
         const { error: updateProjetoError } = await supabase.from("projetos").update({
           nome: form.nome.trim(),
           categoria: form.categoria,
@@ -878,72 +1267,15 @@ export default function ProjetosPage() {
         projetoId = data.id
       }
 
-      if (form.folhas.length > 0) {
-        const folhasPayload = form.folhas.map(f => ({
-          projeto_id: projetoId,
-          numero_folha: f.numero_folha,
-          tipo_folha: f.tipo_folha,
-          formula_largura: f.formula_largura,
-          formula_altura: f.formula_altura,
-          observacao: f.observacao,
-        }))
-        const { error: folhasError } = await supabase.from("projetos_folhas").insert(folhasPayload)
-        if (folhasError) throw new Error(getMensagemErroSupabase(folhasError, "Erro ao salvar folhas do projeto"))
-      }
+      const payloadNormalizado = normalizarPayloadProjeto(String(projetoId))
 
-      if (form.kits.length > 0) {
-        const kitsPayload = form.kits.map(k => ({
-          projeto_id: projetoId,
-          kit_id: k.kit_id,
-          espessura_vidro: k.espessura_vidro,
-          largura_referencia: k.largura_referencia,
-          altura_referencia: k.altura_referencia,
-          tolerancia_mm: k.tolerancia_mm,
-          observacao: aplicarVariacaoNoTexto(k.observacao, k.variacao_restrita),
-          variacao_restrita: k.variacao_restrita ?? null,
-        }))
-        await inserirComFallbackColunas(
-          "projetos_kits",
-          kitsPayload,
-          ["variacao_restrita"],
-          "Erro ao salvar kits do projeto"
-        )
-      }
-
-      if (form.ferragens.length > 0) {
-        const ferragensPayload = form.ferragens.map(f => ({
-          projeto_id: projetoId,
-          ferragem_id: f.ferragem_id,
-          quantidade: f.quantidade,
-          usar_no_kit: f.usar_no_kit,
-          usar_no_perfil: f.usar_no_perfil,
-          observacao: aplicarVariacaoNoTexto(f.observacao, f.variacao_restrita),
-          variacao_restrita: f.variacao_restrita ?? null,
-        }))
-        await inserirComFallbackColunas(
-          "projetos_ferragens",
-          ferragensPayload,
-          ["variacao_restrita"],
-          "Erro ao salvar ferragens do projeto"
-        )
-      }
-
-      if (form.perfis.length > 0) {
-        const perfisPayload = form.perfis.map(p => ({
-          projeto_id: projetoId,
-          perfil_id: p.perfil_id,
-          qtd_largura: p.qtd_largura,
-          qtd_altura: p.qtd_altura,
-          qtd_outros: p.qtd_outros,
-          tipo_fornecimento: aplicarVariacaoNoTexto(p.tipo_fornecimento || "barra", p.variacao_restrita),
-          variacao_restrita: p.variacao_restrita ?? null,
-        }))
-        await inserirComFallbackColunas(
-          "projetos_perfis",
-          perfisPayload,
-          ["variacao_restrita", "tipo_fornecimento"],
-          "Erro ao salvar perfis do projeto"
-        )
+      try {
+        await persistirRelacionamentosProjeto(payloadNormalizado)
+      } catch (errorRelacionamentos) {
+        if (editandoId && snapshotAnterior) {
+          await restaurarSnapshotRelacionamentos(snapshotAnterior)
+        }
+        throw errorRelacionamentos
       }
 
       setModalAviso({
@@ -978,6 +1310,12 @@ export default function ProjetosPage() {
     setShowModal(false)
     setShowCloseDraftModal(false)
     setForm(FORM_VAZIO)
+    setBuscaKitDisponivel("")
+    setKitsSelecionadosParaAdicionar([])
+    setBuscaFerragemDisponivel("")
+    setFerragensSelecionadasParaAdicionar([])
+    setBuscaPerfilDisponivel("")
+    setPerfisSelecionadosParaAdicionar([])
     setBuscaFerragemPorLinha({})
     setBuscaPerfilPorLinha({})
     setEditandoId(null)
@@ -1004,6 +1342,8 @@ export default function ProjetosPage() {
       folhas: [...prev.folhas, {
         numero_folha: numero,
         ...getPresetFolhaPorTipo(detectarTipoProjetoVisual(prev), numero),
+        variacao_restrita: null,
+        trilho_restrito: null,
       }],
     }))
   }
@@ -1051,23 +1391,62 @@ export default function ProjetosPage() {
   }
 
   // ─── HELPERS KITS ───────────────────────────────────────────────────────
-  const adicionarKit = () => {
-    if (!kitsDB.length) return
-    const kit = kitsDB[0]
+  const criarProjetoKitAPartirDoBanco = useCallback((kit: KitDBItem): ProjetoKit => ({
+    kit_id: String(kit.id),
+    nome: kit.nome,
+    espessura_vidro: "8mm",
+    largura_referencia: Number(kit.largura) || 0,
+    altura_referencia: Number(kit.altura) || 0,
+    tolerancia_mm: 50,
+    observacao: "",
+    variacao_restrita: null,
+  }), [])
+
+  const adicionarKit = (kitSelecionado?: KitDBItem) => {
+    const kit = kitSelecionado || kitsDB[0]
+    if (!kit) return
     setForm(prev => ({
       ...prev,
-      kits: [...prev.kits, {
-        kit_id: String(kit.id),
-        nome: kit.nome,
-        espessura_vidro: "8mm",
-        largura_referencia: Number(kit.largura) || 0,
-        altura_referencia: Number(kit.altura) || 0,
-        tolerancia_mm: 50,
-        observacao: "",
-        variacao_restrita: null,
-      }],
+      kits: [...prev.kits, criarProjetoKitAPartirDoBanco(kit)],
     }))
   }
+
+  const alternarSelecaoKitParaAdicionar = (kitId: string) => {
+    setKitsSelecionadosParaAdicionar((prev) =>
+      prev.includes(kitId)
+        ? prev.filter((id) => id !== kitId)
+        : [...prev, kitId]
+    )
+  }
+
+  const kitsDisponiveisFiltrados = filtrarItensTecnicosPorBusca(kitsDB, buscaKitDisponivel)
+
+  const selecionarOuLimparTodosKitsFiltrados = () => {
+    const idsFiltrados = kitsDisponiveisFiltrados.map((kit) => String(kit.id))
+    const todosSelecionados = idsFiltrados.length > 0 && idsFiltrados.every((id) => kitsSelecionadosParaAdicionar.includes(id))
+
+    setKitsSelecionadosParaAdicionar((prev) => {
+      if (todosSelecionados) {
+        return prev.filter((id) => !idsFiltrados.includes(id))
+      }
+
+      return Array.from(new Set([...prev, ...idsFiltrados]))
+    })
+  }
+
+  const adicionarKitsSelecionados = () => {
+    if (kitsSelecionadosParaAdicionar.length === 0) return
+
+    const kitsSelecionados = kitsDB.filter((kit) => kitsSelecionadosParaAdicionar.includes(String(kit.id)))
+    if (kitsSelecionados.length === 0) return
+
+    setForm((prev) => ({
+      ...prev,
+      kits: [...prev.kits, ...kitsSelecionados.map((kit) => criarProjetoKitAPartirDoBanco(kit))],
+    }))
+    setKitsSelecionadosParaAdicionar([])
+  }
+
   const atualizarKit = <K extends keyof ProjetoKit>(i: number, campo: K, val: ProjetoKit[K]) => {
     setForm(prev => {
       const arr = [...prev.kits]
@@ -1091,9 +1470,28 @@ export default function ProjetosPage() {
   }
 
   // ─── HELPERS FERRAGENS ───────────────────────────────────────────────────
+  const getCatalogoFerragensParaLinha = (ferragemAtualId?: string, ferragemAtualNome?: string) => {
+    const ferragemAtual = ferragensOriginaisDB.find((item) => String(item.id) === String(ferragemAtualId || ""))
+    if (ferragemAtual) {
+      if (ferragensDB.some((item) => String(item.id) === String(ferragemAtual.id))) return ferragensDB
+      return [ferragemAtual, ...ferragensDB]
+    }
+
+    if (!ferragemAtualId || !ferragemAtualNome) return ferragensDB
+
+    const ferragemFallback: FerragemDBItem = {
+      id: String(ferragemAtualId),
+      nome: ferragemAtualNome,
+    }
+
+    if (ferragensDB.some((item) => String(item.id) === String(ferragemFallback.id))) return ferragensDB
+    return [ferragemFallback, ...ferragensDB]
+  }
+
   const getFerragensDisponiveis = (ferragemAtualId?: string) => {
     const selecionadas = form.ferragens.map(item => String(item.ferragem_id))
-    return ferragensDB.filter((item) => {
+    const ferragemAtualNome = form.ferragens.find((item) => String(item.ferragem_id) === String(ferragemAtualId || ""))?.nome
+    return getCatalogoFerragensParaLinha(ferragemAtualId, ferragemAtualNome).filter((item) => {
       const id = String(item.id)
       return id === String(ferragemAtualId || "") || !selecionadas.includes(id)
     })
@@ -1101,6 +1499,55 @@ export default function ProjetosPage() {
 
   const getFerragensFiltradas = (indice: number, ferragemAtualId?: string) =>
     filtrarItensTecnicosPorBusca(getFerragensDisponiveis(ferragemAtualId), buscaFerragemPorLinha[indice] || "")
+
+  const alternarSelecaoFerragemParaAdicionar = (ferragemId: string) => {
+    setFerragensSelecionadasParaAdicionar((prev) =>
+      prev.includes(ferragemId)
+        ? prev.filter((id) => id !== ferragemId)
+        : [...prev, ferragemId]
+    )
+  }
+
+  const ferragensDisponiveisFiltradas = filtrarItensTecnicosPorBusca(getFerragensDisponiveis(), buscaFerragemDisponivel)
+
+  const selecionarOuLimparTodasFerragensFiltradas = () => {
+    const idsFiltrados = ferragensDisponiveisFiltradas.map((ferragem) => String(ferragem.id))
+    const todosSelecionados = idsFiltrados.length > 0 && idsFiltrados.every((id) => ferragensSelecionadasParaAdicionar.includes(id))
+
+    setFerragensSelecionadasParaAdicionar((prev) => {
+      if (todosSelecionados) {
+        return prev.filter((id) => !idsFiltrados.includes(id))
+      }
+
+      return Array.from(new Set([...prev, ...idsFiltrados]))
+    })
+  }
+
+  const adicionarFerragensSelecionadas = () => {
+    if (ferragensSelecionadasParaAdicionar.length === 0) return
+
+    const ferragensSelecionadas = getFerragensDisponiveis().filter((ferragem) =>
+      ferragensSelecionadasParaAdicionar.includes(String(ferragem.id))
+    )
+    if (ferragensSelecionadas.length === 0) return
+
+    setForm((prev) => ({
+      ...prev,
+      ferragens: [
+        ...prev.ferragens,
+        ...ferragensSelecionadas.map((ferragem) => ({
+          ferragem_id: String(ferragem.id),
+          nome: ferragem.nome,
+          quantidade: 1,
+          usar_no_kit: false,
+          usar_no_perfil: false,
+          observacao: "",
+          variacao_restrita: null,
+        })),
+      ].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+    }))
+    setFerragensSelecionadasParaAdicionar([])
+  }
 
   const adicionarFerragem = () => {
     const disponiveis = getFerragensDisponiveis()
@@ -1116,14 +1563,14 @@ export default function ProjetosPage() {
         usar_no_perfil: false,
         observacao: "",
         variacao_restrita: null,
-      }],
+      }].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
     }))
   }
   const atualizarFerragem = <K extends keyof ProjetoFerragem>(i: number, campo: K, val: ProjetoFerragem[K]) => {
     setForm(prev => {
       const arr = [...prev.ferragens]
       if (campo === "ferragem_id") {
-        const found = ferragensDB.find((x) => String(x.id) === String(val))
+        const found = ferragensOriginaisDB.find((x) => String(x.id) === String(val)) || ferragensDB.find((x) => String(x.id) === String(val))
         arr[i] = { ...arr[i], ferragem_id: String(val), nome: found?.nome || "" }
       } else {
         arr[i] = { ...arr[i], [campo]: val }
@@ -1137,16 +1584,86 @@ export default function ProjetosPage() {
   }
 
   // ─── HELPERS PERFIS ──────────────────────────────────────────────────────
-  const getPerfisDisponiveis = (perfilAtualId?: string) => {
+  const getCatalogoPerfisParaLinha = (perfilAtualId?: string, perfilAtualNome?: string) => {
+    const perfilAtual = perfisOriginaisDB.find((item) => String(item.id) === String(perfilAtualId || ""))
+    if (perfilAtual) {
+      if (perfisDB.some((item) => String(item.id) === String(perfilAtual.id))) return perfisDB
+      return [perfilAtual, ...perfisDB]
+    }
+
+    if (!perfilAtualId || !perfilAtualNome) return perfisDB
+
+    const perfilFallback: PerfilDBItem = {
+      id: String(perfilAtualId),
+      nome: perfilAtualNome,
+    }
+
+    if (perfisDB.some((item) => String(item.id) === String(perfilFallback.id))) return perfisDB
+    return [perfilFallback, ...perfisDB]
+  }
+
+  const getPerfisDisponiveis = (perfilAtualId?: string, perfilAtualNome?: string) => {
     const selecionados = form.perfis.map(item => String(item.perfil_id))
-    return perfisDB.filter((item) => {
+    return getCatalogoPerfisParaLinha(perfilAtualId, perfilAtualNome).filter((item) => {
       const id = String(item.id)
       return id === String(perfilAtualId || "") || !selecionados.includes(id)
     })
   }
 
-  const getPerfisFiltrados = (indice: number, perfilAtualId?: string) =>
-    filtrarItensTecnicosPorBusca(getPerfisDisponiveis(perfilAtualId), buscaPerfilPorLinha[indice] || "")
+  const getPerfisFiltrados = (indice: number, perfilAtualId?: string, perfilAtualNome?: string) =>
+    filtrarItensTecnicosPorBusca(getPerfisDisponiveis(perfilAtualId, perfilAtualNome), buscaPerfilPorLinha[indice] || "")
+
+  const alternarSelecaoPerfilParaAdicionar = (perfilId: string) => {
+    setPerfisSelecionadosParaAdicionar((prev) =>
+      prev.includes(perfilId)
+        ? prev.filter((id) => id !== perfilId)
+        : [...prev, perfilId]
+    )
+  }
+
+  const perfisDisponiveisFiltrados = filtrarItensTecnicosPorBusca(getPerfisDisponiveis(), buscaPerfilDisponivel)
+
+  const selecionarOuLimparTodosPerfisFiltrados = () => {
+    const idsFiltrados = perfisDisponiveisFiltrados.map((perfil) => String(perfil.id))
+    const todosSelecionados = idsFiltrados.length > 0 && idsFiltrados.every((id) => perfisSelecionadosParaAdicionar.includes(id))
+
+    setPerfisSelecionadosParaAdicionar((prev) => {
+      if (todosSelecionados) {
+        return prev.filter((id) => !idsFiltrados.includes(id))
+      }
+
+      return Array.from(new Set([...prev, ...idsFiltrados]))
+    })
+  }
+
+  const adicionarPerfisSelecionados = () => {
+    if (perfisSelecionadosParaAdicionar.length === 0) return
+
+    const perfisSelecionados = getPerfisDisponiveis().filter((perfil) =>
+      perfisSelecionadosParaAdicionar.includes(String(perfil.id))
+    )
+    if (perfisSelecionados.length === 0) return
+
+    setForm((prev) => ({
+      ...prev,
+      perfis: [
+        ...prev.perfis,
+        ...perfisSelecionados.map((perfil) => ({
+          perfil_id: String(perfil.id),
+          nome: perfil.nome,
+          qtd_largura: 0,
+          qtd_altura: 0,
+          qtd_outros: 0,
+          tipo_fornecimento: "barra",
+          variacao_restrita: null,
+          condicao: null,
+          usar_no_kit: false,
+          altura_max_kit: null,
+        })),
+      ].sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
+    }))
+    setPerfisSelecionadosParaAdicionar([])
+  }
 
   const adicionarPerfil = () => {
     const disponiveis = getPerfisDisponiveis()
@@ -1162,15 +1679,18 @@ export default function ProjetosPage() {
         qtd_outros: 0,
         tipo_fornecimento: "barra",
         variacao_restrita: null,
-      }],
+        condicao: null,
+        usar_no_kit: false,
+        altura_max_kit: null,
+      }].sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
     }))
   }
   const atualizarPerfil = <K extends keyof ProjetoPerfil>(i: number, campo: K, val: ProjetoPerfil[K]) => {
     setForm(prev => {
       const arr = [...prev.perfis]
       if (campo === "perfil_id") {
-        const found = perfisDB.find((x) => String(x.id) === String(val))
-        arr[i] = { ...arr[i], perfil_id: String(val), nome: found?.nome || "" }
+        const found = perfisOriginaisDB.find((x) => String(x.id) === String(val)) || perfisDB.find((x) => String(x.id) === String(val))
+        arr[i] = { ...arr[i], perfil_id: String(val), nome: found?.nome || arr[i]?.nome || "" }
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
@@ -1203,15 +1723,61 @@ export default function ProjetosPage() {
       })),
     }))
   const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
+  const tipoProjetoVisual = detectarTipoProjetoVisual(form)
+  const projetoEhPorta = tipoProjetoVisual === "portas"
+  const projetoUsaPresetVariacaoBox =
+    tipoProjetoVisual === "box" ||
+    normalizarBuscaItem(`${form.nome} ${form.categoria} ${desenhoAtual?.label || ""}`).includes("box")
+  const opcoesRestricaoBox = projetoUsaPresetVariacaoBox
+    ? getOpcoesRestricaoTecnicaBox().map((opcao, indice) => ({
+        label: opcao.label,
+        arquivo: opcao.valor,
+        corBg: (["#eef2ff", "#fef3c7", "#ecfdf5", "#fdf2f8", "#fff7ed"] as const)[indice % 5],
+        corText: (["#4338ca", "#d97706", "#059669", "#db2777", "#ea580c"] as const)[indice % 5],
+      }))
+    : []
 
   // Opções planas de variação para usar nos selects de cada item (ferragem/kit/perfil)
-  const variacaoOpcoesFlat = variacoesDesenho.flatMap((grupo, gi) =>
-    grupo.opcoes.map(opcao => ({
-      label: `${grupo.label}: ${opcao.label}`,
-      arquivo: opcao.arquivo,
-      corBg: (["#eff6ff", "#fef3c7", "#ecfdf5", "#f5f3ff", "#fff7ed"] as const)[gi % 5],
-      corText: (["#3b82f6", "#d97706", "#10b981", "#8b5cf6", "#f97316"] as const)[gi % 5],
-    }))
+  const variacaoOpcoesFlat = Array.from(new Map(
+    [
+      ...variacoesDesenho.flatMap((grupo, gi) =>
+        grupo.opcoes.map(opcao => ({
+          label: `${grupo.label}: ${opcao.label}`,
+          arquivo: opcao.arquivo,
+          corBg: (["#eff6ff", "#fef3c7", "#ecfdf5", "#f5f3ff", "#fff7ed"] as const)[gi % 5],
+          corText: (["#3b82f6", "#d97706", "#10b981", "#8b5cf6", "#f97316"] as const)[gi % 5],
+        }))
+      ),
+      ...opcoesRestricaoBox,
+    ].map((opcao) => [opcao.arquivo, opcao] as const)
+  ).values())
+  const temOpcoesRestricao = variacaoOpcoesFlat.length > 0
+
+  // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
+  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op => isValorEixoAltura(op.arquivo))
+
+  // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
+  const variacaoOpcoesKit = variacaoOpcoesFlat.filter(op => {
+    if (ehVariacaoDeDesenho(op.arquivo)) return true
+    return getEixoVariacaoProjeto(op.arquivo) === "kit"
+  })
+
+  // Para ferragens: separa por eixo para reduzir confusão de aplicação
+  const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
+    !ehVariacaoDeDesenho(op.arquivo) && getEixoVariacaoProjeto(op.arquivo) === "kit"
+  )
+  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
+  )
+
+  const getNomeVariacao = (valor: string, fallback: string) => {
+    const custom = nomesVariacaoPersonalizados[valor]
+    return custom && custom.trim() ? custom : fallback
+  }
+
+  // Para perfis: variações visuais + altura, sem eixo de kit
+  const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter(op =>
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
   )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
@@ -1317,11 +1883,6 @@ export default function ProjetosPage() {
     const arquivosUnicos = new Set(arquivos)
     if (arquivosUnicos.size < 2) {
       setModalAviso({ titulo: "Atenção", mensagem: "As opções precisam apontar para desenhos diferentes.", tipo: "aviso" })
-      return
-    }
-
-    if (arquivos.some((arquivo) => !ARQUIVOS_DESENHOS.has(arquivo))) {
-      setModalAviso({ titulo: "Atenção", mensagem: "Um dos desenhos escolhidos não existe no catálogo.", tipo: "aviso" })
       return
     }
 
@@ -1583,9 +2144,9 @@ export default function ProjetosPage() {
                   </h2>
                   <p className="text-xs text-gray-400">
                     {form.nome || "Preencha os dados abaixo"}
-                    {variacoesDesenho.length > 0 && (
+                    {temOpcoesRestricao && (
                       <span className="ml-2 inline-flex items-center gap-0.5 font-black" style={{ color: "#8b5cf6" }}>
-                        · {variacoesDesenho.map(g => g.label).join(", ")}
+                        · {variacaoOpcoesFlat.map((g) => g.label).join(", ")}
                       </span>
                     )}
                   </p>
@@ -1599,6 +2160,38 @@ export default function ProjetosPage() {
                 <X size={20} />
               </button>
             </div>
+
+            {projetoUsaPresetVariacaoBox && (
+              <div className="px-6 py-3 border-b" style={{ borderColor: `${theme.menuBackgroundColor}22`, backgroundColor: "#fafafa" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-black uppercase tracking-wider" style={{ color: "#6b7280" }}>
+                    Nomes de Variação do Box
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setEditandoNomesVariacao((v) => !v)}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all"
+                    style={{ borderColor: "#d1d5db", color: "#4b5563", backgroundColor: "#fff" }}
+                  >
+                    {editandoNomesVariacao ? "Ocultar edição" : "Editar nomes"}
+                  </button>
+                </div>
+                {editandoNomesVariacao && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                    {GRUPOS_VARIACAO_BOX.flatMap((grupo) => grupo.options).map((opcao) => (
+                      <input
+                        key={`nome-var-${opcao.value}`}
+                        type="text"
+                        value={nomesVariacaoPersonalizados[opcao.value] || opcao.label}
+                        onChange={(e) => setNomesVariacaoPersonalizados((prev) => ({ ...prev, [opcao.value]: e.target.value }))}
+                        className="w-full p-2 rounded-lg border text-xs font-bold"
+                        placeholder={opcao.label}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tabs */}
             <div
@@ -1682,6 +2275,22 @@ export default function ProjetosPage() {
                       </div>
                       <Grid3x3 size={18} className="text-gray-400 shrink-0" />
                     </button>
+
+                    <div className="mt-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                        Arquivo manual do desenho
+                      </label>
+                      <input
+                        type="text"
+                        value={form.desenho}
+                        onChange={(e) => setForm((p) => ({ ...p, desenho: e.target.value.trim() }))}
+                        placeholder="Ex: box-frontal-personalizado.png"
+                        className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Use este campo quando o desenho existir na pasta, mas não aparecer no catálogo.
+                      </p>
+                    </div>
 
                     {showPicker && (
                       <div className="mt-2 border border-gray-100 rounded-2xl overflow-hidden shadow-lg bg-white">
@@ -1881,6 +2490,14 @@ export default function ProjetosPage() {
                               </select>
                             </div>
 
+                            <input
+                              type="text"
+                              value={opcao.arquivo}
+                              onChange={(e) => atualizarOpcaoNovaVariacao(opcao.id, "arquivo", e.target.value.trim())}
+                              className="w-full mt-2 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold outline-none"
+                              placeholder="Ou digite manualmente o arquivo (ex: desenho-custom.png)"
+                            />
+
                             {opcao.arquivo && (
                               <p className="text-[11px] text-gray-400 mt-1 truncate">
                                 {desenhosPorArquivo.get(opcao.arquivo)?.label || opcao.arquivo}
@@ -1978,7 +2595,7 @@ export default function ProjetosPage() {
                   )}
 
                   {form.folhas.map((folha, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100" style={folha.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}>
                       <div className="flex items-center justify-between mb-3 gap-2">
                         <span
                           className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg"
@@ -2052,6 +2669,79 @@ export default function ProjetosPage() {
                             style={{ color: theme.contentTextLightBg }}
                           />
                         </div>
+                        {projetoEhPorta && (
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                              Tipo de Trilho (Porta)
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {TRILHO_PORTA_OPCOES.map((opcao) => {
+                                const selecionados = (folha.trilho_restrito || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(opcao.value)
+                                return (
+                                  <button
+                                    key={opcao.value}
+                                    type="button"
+                                    onClick={() => {
+                                      const novosTrilhos = ativo 
+                                        ? selecionados.filter(v => v !== opcao.value)
+                                        : [...selecionados, opcao.value]
+                                      atualizarFolha(idx, "trilho_restrito", novosTrilhos.length > 0 ? novosTrilhos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f3f4f6" : "#fafbfc",
+                                      borderColor: ativo ? "#374151" : "#e5e7eb",
+                                      color: ativo ? "#374151" : "#9ca3af",
+                                    }}
+                                  >
+                                    {opcao.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            {!folha.trilho_restrito && (
+                              <span className="text-[10px] text-gray-400 italic">Nenhum — aplica em todos</span>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              Um vidro pode servir para múltiplos tipos. Filtra o cálculo quando cliente escolhe trilho.
+                            </p>
+                          </div>
+                        )}
+                        {variacaoOpcoesFolha.length > 0 && (
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
+                              Tipo de Box
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {variacaoOpcoesFolha.map(op => {
+                                const selecionados = (folha.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(op.arquivo)
+                                return (
+                                  <button
+                                    key={op.arquivo}
+                                    type="button"
+                                    onClick={() => {
+                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                      atualizarFolha(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                      color: ativo ? "#6d28d9" : "#9ca3af",
+                                    }}
+                                  >
+                                    {getNomeVariacao(op.arquivo, op.label)}
+                                  </button>
+                                )
+                              })}
+                              {!folha.variacao_restrita && (
+                                <span className="text-[10px] text-gray-400 italic self-center">Nenhuma — aplica em todas</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2095,6 +2785,82 @@ export default function ProjetosPage() {
                       Nenhum kit cadastrado. Acesse Cadastros → Kits primeiro.
                     </div>
                   )}
+
+                  {!!kitsDB.length && (
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                      <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+                        <div className="relative flex-1">
+                          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Digite para filtrar kits por nome ou categoria"
+                            value={buscaKitDisponivel}
+                            onChange={e => setBuscaKitDisponivel(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
+                            style={{ color: theme.contentTextLightBg }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={selecionarOuLimparTodosKitsFiltrados}
+                            disabled={kitsDisponiveisFiltrados.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
+                          >
+                            {kitsDisponiveisFiltrados.length > 0 && kitsDisponiveisFiltrados.every((item) => kitsSelecionadosParaAdicionar.includes(String(item.id)))
+                              ? "Limpar filtrados"
+                              : "Selecionar filtrados"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={adicionarKitsSelecionados}
+                            disabled={kitsSelecionadosParaAdicionar.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
+                            style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                          >
+                            Adicionar selecionados ({kitsSelecionadosParaAdicionar.length})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2 space-y-2">
+                        {kitsDisponiveisFiltrados.length === 0 ? (
+                          <div className="px-3 py-8 text-center text-xs font-bold text-gray-300">
+                            Nenhum kit encontrado para este filtro.
+                          </div>
+                        ) : kitsDisponiveisFiltrados.map((item) => {
+                          const kitId = String(item.id)
+                          const selecionado = kitsSelecionadosParaAdicionar.includes(kitId)
+
+                          return (
+                            <label
+                              key={kitId}
+                              className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all"
+                              style={selecionado
+                                ? { backgroundColor: `${theme.menuBackgroundColor}12`, borderColor: `${theme.menuBackgroundColor}40` }
+                                : { backgroundColor: "#ffffff", borderColor: "#e5e7eb" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selecionado}
+                                onChange={() => alternarSelecaoKitParaAdicionar(kitId)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-black truncate" style={{ color: theme.contentTextLightBg }}>
+                                  {item.nome}
+                                </p>
+                                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                                  Ref. {Number(item.largura || 0)} x {Number(item.altura || 0)} mm{item.categoria ? ` · ${item.categoria}` : ""}
+                                </p>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {form.kits.length === 0 && !!kitsDB.length && (
                     <div className="text-center py-12 text-gray-300 text-sm font-bold">Nenhum kit vinculado</div>
                   )}
@@ -2172,31 +2938,36 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
                           />
                         </div>
-                        {variacoesDesenho.length > 0 && (
+                        {variacaoOpcoesKit.length > 0 && (
                           <div className="md:col-span-2 xl:col-span-2">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Aplica em qual variação?
+                              Tipo de kit (qual variação usa?)
                             </label>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={kit.variacao_restrita || ""}
-                                onChange={e => atualizarKit(idx, "variacao_restrita", e.target.value || null)}
-                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
-                                style={{
-                                  backgroundColor: kit.variacao_restrita ? "#f5f3ff" : "#ffffff",
-                                  borderColor: kit.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
-                                  color: kit.variacao_restrita ? "#6d28d9" : "#6b7280",
-                                }}
-                              >
-                                <option value="">Todas as variações</option>
-                                {variacaoOpcoesFlat.map(op => (
-                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
-                                ))}
-                              </select>
-                              {kit.variacao_restrita && (
-                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
-                                  {variacaoOpcoesFlat.find(o => o.arquivo === kit.variacao_restrita)?.label || "Restrita"}
-                                </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {variacaoOpcoesKit.map(op => {
+                                const selecionados = (kit.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(op.arquivo)
+                                return (
+                                  <button
+                                    key={op.arquivo}
+                                    type="button"
+                                    onClick={() => {
+                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                      atualizarKit(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                      color: ativo ? "#6d28d9" : "#9ca3af",
+                                    }}
+                                  >
+                                    {getNomeVariacao(op.arquivo, op.label)}
+                                  </button>
+                                )
+                              })}
+                              {!kit.variacao_restrita && (
+                                <span className="text-[10px] text-gray-400 italic self-center">Nenhum — aplica em todos os tipos</span>
                               )}
                             </div>
                           </div>
@@ -2256,6 +3027,82 @@ export default function ProjetosPage() {
                       Nenhuma ferragem cadastrada. Acesse Cadastros → Ferragens primeiro.
                     </div>
                   )}
+
+                  {!!ferragensDB.length && (
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                      <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+                        <div className="relative flex-1">
+                          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Digite para filtrar ferragens por codigo, nome ou categoria"
+                            value={buscaFerragemDisponivel}
+                            onChange={e => setBuscaFerragemDisponivel(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
+                            style={{ color: theme.contentTextLightBg }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={selecionarOuLimparTodasFerragensFiltradas}
+                            disabled={ferragensDisponiveisFiltradas.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
+                          >
+                            {ferragensDisponiveisFiltradas.length > 0 && ferragensDisponiveisFiltradas.every((item) => ferragensSelecionadasParaAdicionar.includes(String(item.id)))
+                              ? "Limpar filtradas"
+                              : "Selecionar filtradas"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={adicionarFerragensSelecionadas}
+                            disabled={ferragensSelecionadasParaAdicionar.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
+                            style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                          >
+                            Adicionar selecionadas ({ferragensSelecionadasParaAdicionar.length})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2 space-y-2">
+                        {ferragensDisponiveisFiltradas.length === 0 ? (
+                          <div className="px-3 py-8 text-center text-xs font-bold text-gray-300">
+                            Nenhuma ferragem encontrada para este filtro.
+                          </div>
+                        ) : ferragensDisponiveisFiltradas.map((item) => {
+                          const ferragemId = String(item.id)
+                          const selecionada = ferragensSelecionadasParaAdicionar.includes(ferragemId)
+
+                          return (
+                            <label
+                              key={ferragemId}
+                              className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all"
+                              style={selecionada
+                                ? { backgroundColor: `${theme.menuBackgroundColor}12`, borderColor: `${theme.menuBackgroundColor}40` }
+                                : { backgroundColor: "#ffffff", borderColor: "#e5e7eb" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selecionada}
+                                onChange={() => alternarSelecaoFerragemParaAdicionar(ferragemId)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-black truncate" style={{ color: theme.contentTextLightBg }}>
+                                  {formatarRotuloFerragem(item)}
+                                </p>
+                                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                                  {item.categoria || "Sem categoria"}
+                                </p>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {form.ferragens.length === 0 && !!ferragensDB.length && (
                     <div className="text-center py-12 text-gray-300 text-sm font-bold">Nenhuma ferragem adicionada</div>
                   )}
@@ -2290,7 +3137,7 @@ export default function ProjetosPage() {
                             )}
                             {getFerragensFiltradas(idx, String(f.ferragem_id)).map((fer) => (
                               <option key={fer.id} value={fer.id}>
-                                {formatarRotuloItemTecnico(fer)}
+                                {formatarRotuloFerragem(fer)}
                               </option>
                             ))}
                           </select>
@@ -2313,7 +3160,7 @@ export default function ProjetosPage() {
                               onChange={e => atualizarFerragem(idx, "usar_no_kit", e.target.checked)}
                               className="h-4 w-4"
                             />
-                            <span className="text-sm font-bold text-gray-600">Usado no kit</span>
+                            <span className="text-sm font-bold text-gray-600">Aplicar no modo Kit</span>
                           </label>
                         </div>
                         <div className="flex items-end">
@@ -2324,7 +3171,7 @@ export default function ProjetosPage() {
                               onChange={e => atualizarFerragem(idx, "usar_no_perfil", e.target.checked)}
                               className="h-4 w-4"
                             />
-                            <span className="text-sm font-bold text-gray-600">Usado no perfil</span>
+                            <span className="text-sm font-bold text-gray-600">Aplicar no modo Barra</span>
                           </label>
                         </div>
                         <div className="sm:col-span-2 xl:col-span-4">
@@ -2337,33 +3184,72 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
                           />
                         </div>
-                        {variacoesDesenho.length > 0 && (
+                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0) && (
                           <div className="sm:col-span-2 xl:col-span-4">
-                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Aplica em qual variação?
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: "#7c3aed" }}>
+                              Aplicação por variação
                             </label>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={f.variacao_restrita || ""}
-                                onChange={e => atualizarFerragem(idx, "variacao_restrita", e.target.value || null)}
-                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
-                                style={{
-                                  backgroundColor: f.variacao_restrita ? "#f5f3ff" : "#ffffff",
-                                  borderColor: f.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
-                                  color: f.variacao_restrita ? "#6d28d9" : "#6b7280",
-                                }}
-                              >
-                                <option value="">Todas as variações</option>
-                                {variacaoOpcoesFlat.map(op => (
-                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
-                                ))}
-                              </select>
-                              {f.variacao_restrita && (
-                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
-                                  {variacaoOpcoesFlat.find(o => o.arquivo === f.variacao_restrita)?.label || "Restrita"}
-                                </span>
-                              )}
-                            </div>
+                            {variacaoOpcoesFerragemKit.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Kit</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {variacaoOpcoesFerragemKit.map(op => {
+                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                    const ativo = selecionados.includes(op.arquivo)
+                                    return (
+                                      <button
+                                        key={op.arquivo}
+                                        type="button"
+                                        onClick={() => {
+                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        style={{
+                                          backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                          borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                          color: ativo ? "#6d28d9" : "#9ca3af",
+                                        }}
+                                      >
+                                        {getNomeVariacao(op.arquivo, op.label)}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {variacaoOpcoesFerragemBoxDesenho.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Box / Desenho</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {variacaoOpcoesFerragemBoxDesenho.map(op => {
+                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                    const ativo = selecionados.includes(op.arquivo)
+                                    return (
+                                      <button
+                                        key={op.arquivo}
+                                        type="button"
+                                        onClick={() => {
+                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        style={{
+                                          backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                          borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                          color: ativo ? "#6d28d9" : "#9ca3af",
+                                        }}
+                                      >
+                                        {getNomeVariacao(op.arquivo, op.label)}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {!f.variacao_restrita && (
+                              <span className="text-[10px] text-gray-400 italic self-center">Nenhuma — aplica em todas</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2394,7 +3280,7 @@ export default function ProjetosPage() {
                   </div>
 
                   <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-xs text-gray-500 font-medium">
-                    Perfis ficam fixos como barra e sem cor nesta etapa. A cor do perfil será definida depois no orçamento/motor de cálculo. Se o modelo for vendido em kit, use a aba de kits para o orçamento identificar o kit mais próximo pela medida e pela espessura do vidro.
+                    Perfis ficam fixos como barra nesta etapa. A lista mostra uma opção por perfil, sem repetir as variações de cor, e o projeto preserva o item salvo ao reabrir a edição. Se o modelo for vendido em kit, use a aba de kits para o orçamento identificar o kit mais próximo pela medida e pela espessura do vidro.
                   </div>
 
                   {variacoesDesenho.length > 0 && (
@@ -2411,6 +3297,82 @@ export default function ProjetosPage() {
                       Nenhum perfil cadastrado. Acesse Cadastros → Perfis primeiro.
                     </div>
                   )}
+
+                  {!!perfisDB.length && (
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                      <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+                        <div className="relative flex-1">
+                          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Digite para filtrar perfis por codigo, nome ou categoria"
+                            value={buscaPerfilDisponivel}
+                            onChange={e => setBuscaPerfilDisponivel(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
+                            style={{ color: theme.contentTextLightBg }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={selecionarOuLimparTodosPerfisFiltrados}
+                            disabled={perfisDisponiveisFiltrados.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
+                          >
+                            {perfisDisponiveisFiltrados.length > 0 && perfisDisponiveisFiltrados.every((item) => perfisSelecionadosParaAdicionar.includes(String(item.id)))
+                              ? "Limpar filtrados"
+                              : "Selecionar filtrados"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={adicionarPerfisSelecionados}
+                            disabled={perfisSelecionadosParaAdicionar.length === 0}
+                            className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
+                            style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                          >
+                            Adicionar selecionados ({perfisSelecionadosParaAdicionar.length})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2 space-y-2">
+                        {perfisDisponiveisFiltrados.length === 0 ? (
+                          <div className="px-3 py-8 text-center text-xs font-bold text-gray-300">
+                            Nenhum perfil encontrado para este filtro.
+                          </div>
+                        ) : perfisDisponiveisFiltrados.map((item) => {
+                          const perfilId = String(item.id)
+                          const selecionado = perfisSelecionadosParaAdicionar.includes(perfilId)
+
+                          return (
+                            <label
+                              key={perfilId}
+                              className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all"
+                              style={selecionado
+                                ? { backgroundColor: `${theme.menuBackgroundColor}12`, borderColor: `${theme.menuBackgroundColor}40` }
+                                : { backgroundColor: "#ffffff", borderColor: "#e5e7eb" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selecionado}
+                                onChange={() => alternarSelecaoPerfilParaAdicionar(perfilId)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-black truncate" style={{ color: theme.contentTextLightBg }}>
+                                  {formatarRotuloItemTecnico(item)}
+                                </p>
+                                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                                  {item.categoria || "Sem categoria"}
+                                </p>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {form.perfis.length === 0 && !!perfisDB.length && (
                     <div className="text-center py-12 text-gray-300 text-sm font-bold">Nenhum perfil adicionado</div>
                   )}
@@ -2440,10 +3402,10 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getPerfisFiltrados(idx, String(p.perfil_id)).length === 0 && (
+                            {getPerfisFiltrados(idx, String(p.perfil_id), p.nome).length === 0 && (
                               <option value={p.perfil_id}>Nenhum perfil encontrado</option>
                             )}
-                            {getPerfisFiltrados(idx, String(p.perfil_id)).map((per) => (
+                            {getPerfisFiltrados(idx, String(p.perfil_id), p.nome).map((per) => (
                               <option key={per.id} value={per.id}>
                                 {formatarRotuloItemTecnico(per)}
                               </option>
@@ -2486,31 +3448,73 @@ export default function ProjetosPage() {
                             Em Barra
                           </div>
                         </div>
-                        {variacoesDesenho.length > 0 && (
+                        <div className="sm:col-span-2 xl:col-span-2">
+                          <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0891b2" }}>
+                            Condição de aplicação
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ex: A > 1900  |  L >= 1200  |  A >= 1800 (vazio = sempre)"
+                            value={p.condicao || ""}
+                            onChange={e => atualizarPerfil(idx, "condicao", e.target.value.trim() || null)}
+                            className="w-full p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
+                            style={{
+                              backgroundColor: p.condicao ? "#ecfeff" : "#ffffff",
+                              borderColor: p.condicao ? "#06b6d4" : "#e5e7eb",
+                              color: p.condicao ? "#0e7490" : "#6b7280",
+                            }}
+                          />
+                          {p.condicao && (
+                            <p className="text-[10px] text-cyan-600 mt-0.5 font-bold">Só entra no cálculo quando: {p.condicao}</p>
+                          )}
+                        </div>
+                        <div className="sm:col-span-2 xl:col-span-1">
+                          <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0f766e" }}>
+                            Calcular Junto no Kit
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => atualizarPerfil(idx, "usar_no_kit", !p.usar_no_kit)}
+                            className="w-full p-2.5 rounded-xl text-xs font-black border transition-all"
+                            style={{
+                              backgroundColor: p.usar_no_kit ? "#ecfdf5" : "#ffffff",
+                              borderColor: p.usar_no_kit ? "#10b981" : "#e5e7eb",
+                              color: p.usar_no_kit ? "#047857" : "#6b7280",
+                            }}
+                          >
+                            {p.usar_no_kit ? "Sim - incluir também no modo Kit" : "Não - só no modo Barra"}
+                          </button>
+                        </div>
+                        {variacaoOpcoesPerfil.length > 0 && (
                           <div className="sm:col-span-2 xl:col-span-5">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Aplica em qual variação?
+                              Aplica em qual variação? (altura/desenho)
                             </label>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={p.variacao_restrita || ""}
-                                onChange={e => atualizarPerfil(idx, "variacao_restrita", e.target.value || null)}
-                                className="flex-1 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
-                                style={{
-                                  backgroundColor: p.variacao_restrita ? "#f5f3ff" : "#ffffff",
-                                  borderColor: p.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
-                                  color: p.variacao_restrita ? "#6d28d9" : "#6b7280",
-                                }}
-                              >
-                                <option value="">Todas as variações</option>
-                                {variacaoOpcoesFlat.map(op => (
-                                  <option key={op.arquivo} value={op.arquivo}>{op.label}</option>
-                                ))}
-                              </select>
-                              {p.variacao_restrita && (
-                                <span className="text-[10px] font-black px-2.5 py-1.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}>
-                                  {variacaoOpcoesFlat.find(o => o.arquivo === p.variacao_restrita)?.label || "Restrita"}
-                                </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {variacaoOpcoesPerfil.map(op => {
+                                const selecionados = (p.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(op.arquivo)
+                                return (
+                                  <button
+                                    key={op.arquivo}
+                                    type="button"
+                                    onClick={() => {
+                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                      atualizarPerfil(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                      color: ativo ? "#6d28d9" : "#9ca3af",
+                                    }}
+                                  >
+                                    {op.label}
+                                  </button>
+                                )
+                              })}
+                              {!p.variacao_restrita && (
+                                <span className="text-[10px] text-gray-400 italic self-center">Nenhuma — aplica em todas</span>
                               )}
                             </div>
                           </div>

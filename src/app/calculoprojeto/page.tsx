@@ -12,6 +12,8 @@ import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { RelatorioObraPDF } from "../relatorios/calculovidros/RelatorioObraPDF"
 import { TemperaPDF } from "../relatorios/calculovidros/TemperaPDF"
+import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnica"
+import { correspondeRestricaoTecnica, decomporVariacaoTecnica, ehVariacaoDeDesenho, formatarVariacaoTecnica, getEixoVariacaoProjeto, getGruposVariacaoTecnicaDisponiveis, GRUPOS_VARIACAO_BOX, montarVariacaoTecnica } from "@/utils/variacaoProjeto"
 import Image from "next/image"
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer"
 import {
@@ -40,6 +42,8 @@ type PrecoVidroGrupo = {
   preco: number
 }
 
+type TrilhoPorta = "aparente" | "interrompido" | "embutido"
+
 type ProjetoDetalhe = {
   folhas: Array<{
     numero_folha: number
@@ -47,6 +51,8 @@ type ProjetoDetalhe = {
     formula_largura: string
     formula_altura: string
     observacao: string
+    variacao_restrita?: string | null
+    trilho_restrito?: string | null
   }>
   kits: Array<{
     kit_id: string
@@ -73,6 +79,9 @@ type ProjetoDetalhe = {
     qtd_altura: number
     qtd_outros: number
     variacao_restrita: string | null
+    condicao?: string | null
+    usar_no_kit?: boolean
+    altura_max_kit?: number | null
     perfis?: { nome?: string | null } | null
   }>
 }
@@ -138,6 +147,9 @@ type CorteOtimizado = {
   comprimentoBarra: number
   qtdBarras: number
   cortes: number[]
+  qtdCortesLargura: number
+  qtdCortesAltura: number
+  qtdCortesOutros: number
   barras: BarraOtimizada[]
   aproveitamento: number
   desperdicioMm: number
@@ -173,6 +185,9 @@ type ItemCalculoProjeto = {
   corMaterial: string
   modoCalculo: "kit" | "barra"
   variacaoDrawing: string
+  variacaoAltura: string
+  variacaoKit: string
+  variacaoTrilho: TrilhoPorta | ""
 }
 
 type ResultadoProjetoCalculado = {
@@ -180,6 +195,7 @@ type ResultadoProjetoCalculado = {
   projeto: Projeto | null
   desenhoProjeto: string | null
   variacaoDrawing: string
+  variacaoTecnica: string
   vidro: VidroItem | null
   qtdProjeto: number
   larguraProjeto: number
@@ -215,6 +231,9 @@ type OtimizacaoGlobalPerfil = {
   comprimentoBarra: number
   precoBarra: number
   cortes: number[]
+  qtdCortesLargura: number
+  qtdCortesAltura: number
+  qtdCortesOutros: number
   barras: BarraOtimizada[]
   qtdBarrasOriginal: number
   precoOriginal: number
@@ -225,13 +244,43 @@ type OtimizacaoGlobalPerfil = {
 }
 
 const VARIACAO_TOKEN = "__VARIACAO__="
+const COND_TOKEN = "__COND__="
+const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
+const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
+const TRILHO_TOKEN = "__TRILHO__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
     .split(/\r?\n/)
-    .filter((linha) => !linha.includes(VARIACAO_TOKEN))
+    .filter((linha) => !linha.includes(VARIACAO_TOKEN) && !linha.includes(TRILHO_TOKEN))
     .join("\n")
     .trim()
+
+const extrairCondicaoDoTexto = (valor?: string | null): string | null => {
+  const linhaCond = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(COND_TOKEN))
+  return linhaCond ? linhaCond.slice(COND_TOKEN.length).trim() || null : null
+}
+
+const extrairUsarNoKitDoTexto = (valor?: string | null): boolean => {
+  const linhaUsarNoKit = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(USAR_KIT_TOKEN))
+  return linhaUsarNoKit ? linhaUsarNoKit.slice(USAR_KIT_TOKEN.length).trim() === "1" : false
+}
+
+const extrairAlturaMaxKitDoTexto = (valor?: string | null): number | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(ALTURA_MAX_KIT_TOKEN))
+  if (!linha) return null
+  const num = Number(linha.slice(ALTURA_MAX_KIT_TOKEN.length).trim())
+  return Number.isFinite(num) && num > 0 ? num : null
+}
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
   const texto = String(valor || "")
@@ -244,6 +293,19 @@ const extrairVariacaoDoTexto = (valor?: string | null) => {
     textoLimpo: limparTextoComVariacao(texto),
     variacao: linhaVariacao ? linhaVariacao.slice(VARIACAO_TOKEN.length).trim() || null : null,
   }
+}
+
+const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
+  const linhaTrilho = String(valor || "")
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(TRILHO_TOKEN))
+
+  const trilhosStr = linhaTrilho ? linhaTrilho.slice(TRILHO_TOKEN.length).trim().toLowerCase() : ""
+  if (!trilhosStr) return null
+  
+  const trilhos = trilhosStr.split(",").map(t => t.trim()).filter(t => ["aparente", "interrompido", "embutido"].includes(t))
+  return trilhos.length > 0 ? trilhos.join(",") : null
 }
 
 type VariacaoProjetoOpcao = {
@@ -270,7 +332,18 @@ const formatarLabelVariacaoArquivo = (arquivo: string) => {
 
   if (/-ci(?:-|$)/i.test(nome)) return "CI"
   if (/-cs(?:-|$)/i.test(nome)) return "CS"
-  if (/-simples$/i.test(nome)) return "Simples"
+  if (/-puxador\d*$/i.test(nome)) {
+    const numero = nome.match(/(\d+)$/)?.[1]
+    return numero ? `Puxador ${numero}` : "Puxador"
+  }
+  if (/-comtrinco\d*$/i.test(nome)) {
+    const numero = nome.match(/(\d+)$/)?.[1]
+    return numero ? `Com trinco ${numero}` : "Com trinco"
+  }
+  if (/-simples\d*$/i.test(nome)) {
+    const numero = nome.match(/(\d+)$/)?.[1]
+    return numero ? `Simples ${numero}` : "Simples"
+  }
   if (/-complet[oa]\d*$/i.test(nome)) {
     const numero = nome.match(/(\d+)$/)?.[1]
     return numero ? `Completo ${numero}` : "Completo"
@@ -279,31 +352,104 @@ const formatarLabelVariacaoArquivo = (arquivo: string) => {
   return nome.split("-").slice(-2).join(" ") || nome
 }
 
-const getVariacoesAutomaticasProjeto = (desenho?: string | null): VariacaoProjetoOpcao[] => {
+const normalizarTextoComparacao = (valor?: string | null) =>
+  String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean => {
+  const restricaoNorm = normalizarTextoComparacao(restricao)
+  const drawingArquivoNorm = normalizarTextoComparacao(variacaoDrawing)
+  const drawingLabelNorm = normalizarTextoComparacao(variacaoDrawing ? formatarLabelVariacaoArquivo(variacaoDrawing) : "")
+
+  if (!restricaoNorm || !drawingArquivoNorm) return false
+  if (restricaoNorm === drawingArquivoNorm) return true
+  if (restricaoNorm === drawingLabelNorm) return true
+  return drawingArquivoNorm.includes(restricaoNorm) || drawingLabelNorm.includes(restricaoNorm)
+}
+
+const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const obterBaseFamiliaDesenho = (arquivo: string): string => {
+  const stem = String(arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  return stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*|ci|cs)$/i, "")
+}
+
+const getVariacoesAutomaticasProjeto = (
+  desenho?: string | null,
+  arquivosDisponiveis?: string[]
+): VariacaoProjetoOpcao[] => {
   const arquivoAtual = String(desenho || "").trim()
   if (!arquivoAtual) return []
 
   const variacoes: VariacaoProjetoOpcao[] = []
+  const disponiveis = new Set(
+    (arquivosDisponiveis || [])
+      .map((arquivo) => String(arquivo || "").trim())
+      .filter(Boolean)
+  )
+  disponiveis.add(arquivoAtual)
+
+  const adicionarVariacao = (arquivo: string, label?: string) => {
+    const arquivoNormalizado = String(arquivo || "").trim()
+    if (!arquivoNormalizado || !disponiveis.has(arquivoNormalizado)) return
+    if (variacoes.some((item) => item.arquivo === arquivoNormalizado)) return
+    const labelFinal = label && label.trim() ? label : formatarLabelVariacaoArquivo(arquivoNormalizado)
+    variacoes.push({
+      arquivo: arquivoNormalizado,
+      label: labelFinal,
+    })
+  }
+
+  adicionarVariacao(arquivoAtual)
+
   const parTrinco = PARES_TRINCO.find((par) => par.com === arquivoAtual || par.sem === arquivoAtual)
   if (parTrinco) {
-    variacoes.push(
-      { arquivo: parTrinco.sem, label: "Sem trinco" },
-      { arquivo: parTrinco.com, label: "Com trinco" },
-    )
+    adicionarVariacao(parTrinco.sem, "Sem trinco")
+    adicionarVariacao(parTrinco.com, "Com trinco")
   }
 
   if (/-ci(?:-|$)/i.test(arquivoAtual) || /-cs(?:-|$)/i.test(arquivoAtual)) {
     const arquivoCI = arquivoAtual.replace(/-cs(?=-|$)/gi, "-ci")
     const arquivoCS = arquivoAtual.replace(/-ci(?=-|$)/gi, "-cs")
-    ;[
-      { arquivo: arquivoCI, label: "CI" },
-      { arquivo: arquivoCS, label: "CS" },
-    ].forEach((variacao) => {
-      if (!variacoes.some((item) => item.arquivo === variacao.arquivo)) {
-        variacoes.push(variacao)
-      }
-    })
+    adicionarVariacao(arquivoCI, "CI")
+    adicionarVariacao(arquivoCS, "CS")
   }
+
+  const baseFamilia = obterBaseFamiliaDesenho(arquivoAtual)
+
+  const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-([^.]+)\\.(png|jpe?g|webp|gif|svg)$`, "i")
+  Array.from(disponiveis)
+    .filter((arquivo) => regexFamilia.test(arquivo))
+    .sort((a, b) => {
+      const aNome = a.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
+      const bNome = b.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
+
+      const rank = (nomeVersao: string) => {
+        if (/^simples\d*$/i.test(nomeVersao)) return 0
+        if (/^puxador\d*$/i.test(nomeVersao)) return 1
+        if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
+        if (/^completo$|^completa$/i.test(nomeVersao)) return 3
+        if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 4
+        return 5
+      }
+
+      const rankA = rank(aNome)
+      const rankB = rank(bNome)
+      if (rankA !== rankB) return rankA - rankB
+
+      const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
+      const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
+      if (numA !== numB) return numA - numB
+
+      return a.localeCompare(b, "pt-BR")
+    })
+    .forEach((arquivo) => adicionarVariacao(arquivo))
 
   return variacoes
 }
@@ -311,14 +457,6 @@ const getVariacoesAutomaticasProjeto = (desenho?: string | null): VariacaoProjet
 // Remove cor entre parênteses no final do nome, ex: "Roldana 1125a (amarela)" → "roldana 1125a"
 const normalizarNomeFerragem = (nome: string): string =>
   nome.replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase()
-
-const ORDEM_PERFIS_OTIMIZACAO = ["tubo", "superior", "capa", "clic", "baguete", "transpasse", "cadeirinha"]
-
-const getPesoPerfilOtimizacao = (perfilNome: string): number => {
-  const nome = (perfilNome || "").toLowerCase()
-  const idx = ORDEM_PERFIS_OTIMIZACAO.findIndex((item) => nome.includes(item))
-  return idx === -1 ? ORDEM_PERFIS_OTIMIZACAO.length : idx
-}
 
 const normalizarListaCores = (valor: string[] | string | null | undefined): string[] => {
   if (Array.isArray(valor)) {
@@ -347,6 +485,9 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   corMaterial: "",
   modoCalculo: "kit",
   variacaoDrawing: "",
+  variacaoAltura: "",
+  variacaoKit: "",
+  variacaoTrilho: "",
 })
 
 const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto => {
@@ -364,13 +505,61 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.corMaterial === "string"
     && (candidato.modoCalculo === "kit" || candidato.modoCalculo === "barra")
     && typeof candidato.variacaoDrawing === "string"
+    && typeof candidato.variacaoAltura === "string"
+    && typeof candidato.variacaoKit === "string"
+    && (typeof candidato.variacaoTrilho === "string" || typeof candidato.variacaoTrilho === "undefined")
 }
 
 const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
   if (!Array.isArray(itens)) return [criarItemCalculoProjeto()]
 
-  const itensValidos = itens.filter(validarItemCalculoProjeto)
-  return itensValidos.length > 0 ? itensValidos : [criarItemCalculoProjeto()]
+  const itensNormalizados = itens
+    .map((item) => {
+      if (!item || typeof item !== "object") return null
+
+      const candidato = item as Record<string, unknown>
+      const variacaoTecnicaLegacy = typeof candidato.variacaoTecnica === "string" ? candidato.variacaoTecnica : ""
+      const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnicaLegacy)
+
+      return {
+        id: typeof candidato.id === "string" ? candidato.id : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        projetoId: typeof candidato.projetoId === "string" ? candidato.projetoId : "",
+        largura: typeof candidato.largura === "string" ? candidato.largura : "",
+        altura: typeof candidato.altura === "string" ? candidato.altura : "",
+        largura2: typeof candidato.largura2 === "string" ? candidato.largura2 : "",
+        altura2: typeof candidato.altura2 === "string" ? candidato.altura2 : "",
+        qtd: typeof candidato.qtd === "string" ? candidato.qtd : "1",
+        vidroId: typeof candidato.vidroId === "string" ? candidato.vidroId : "",
+        corMaterial: typeof candidato.corMaterial === "string" ? candidato.corMaterial : "",
+        modoCalculo: candidato.modoCalculo === "barra" ? "barra" : "kit",
+        variacaoDrawing: typeof candidato.variacaoDrawing === "string" ? candidato.variacaoDrawing : "",
+        variacaoAltura: typeof candidato.variacaoAltura === "string" ? candidato.variacaoAltura : (variacaoTecnicaDecomposta.altura || ""),
+        variacaoKit: typeof candidato.variacaoKit === "string" ? candidato.variacaoKit : (variacaoTecnicaDecomposta.kit || ""),
+        variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
+      }
+    })
+    .filter((item): item is ItemCalculoProjeto => item !== null)
+
+  return itensNormalizados.length > 0 ? itensNormalizados : [criarItemCalculoProjeto()]
+}
+
+// ─── ENGINE: AVALIAR CONDIÇÃO (ex: "A > 1900") ───────────────────────────────
+const avaliarCondicao = (cond: string | null | undefined, vars: Record<string, number>): boolean => {
+  if (!cond) return true
+  const match = cond.trim().match(/^(.+?)(>=|<=|!=|>|<|==|=)(.+)$/)
+  if (!match) return true
+  const left = avaliarFormula(match[1].trim(), vars)
+  const right = avaliarFormula(match[3].trim(), vars)
+  if (isNaN(left) || isNaN(right)) return true
+  switch (match[2]) {
+    case ">":  return left > right
+    case "<":  return left < right
+    case ">=": return left >= right
+    case "<=": return left <= right
+    case "==": case "=": return left === right
+    case "!=": return left !== right
+    default:   return true
+  }
 }
 
 // ─── ENGINE: AVALIAR FÓRMULA ─────────────────────────────────────────────────
@@ -442,6 +631,9 @@ const calcularProjeto = (params: {
   corMaterial: string
   modoCalculo: "kit" | "barra"
   variacaoDrawing: string
+  variacaoTecnica: string
+  variacaoTrilho: ItemCalculoProjeto["variacaoTrilho"]
+  projetoEhPorta: boolean
   kitsDB: KitItem[]
   ferragensDB: FerragemItem[]
   perfisDB: PerfilItem[]
@@ -449,7 +641,8 @@ const calcularProjeto = (params: {
 }): ResultadoCalculo => {
   const {
     detalhe, largura, altura, largura2, altura2,
-    vidroSelecionado, precoVidroM2, corMaterial, modoCalculo, variacaoDrawing,
+    vidroSelecionado, precoVidroM2, corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
+    variacaoTrilho, projetoEhPorta,
     kitsDB, ferragensDB, perfisDB, qtd,
   } = params
 
@@ -460,9 +653,43 @@ const calcularProjeto = (params: {
     A1: altura, A2: altura2 || altura,
     AB: altura2 || altura,
   }
+  const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
+  const kitSelecionadoTecnico = String(variacaoTecnicaDecomposta.kit || "").trim()
+  const kitComPerfilAte3000 = kitSelecionadoTecnico === "quadrado" || kitSelecionadoTecnico === "outro"
 
   // ── Calcular folhas de vidro ──────────────────────────────────────────────
-  const folhasCalc: FolhaCalculada[] = detalhe.folhas.map(f => {
+  const isAplicavel = (varRestrita: string | null | undefined) => {
+    if (!varRestrita) return true
+    const partes = String(varRestrita).split(",").map(s => s.trim()).filter(Boolean)
+    if (partes.length === 0) return true
+    return partes.some(parte => {
+      if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawing && parte === variacaoDrawing
+      const eixo = getEixoVariacaoProjeto(parte)
+      if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
+      if (correspondeVariacaoVisualTextual(parte, variacaoDrawing)) return true
+      return correspondeRestricaoTecnica(parte, variacaoTecnica)
+    })
+  }
+
+  const temFolhaComRestricaoVisual = detalhe.folhas.some((f) => {
+    const partes = String(f.variacao_restrita || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    return partes.some((parte) => ehVariacaoDeDesenho(parte))
+  })
+
+  const folhasCalc: FolhaCalculada[] = detalhe.folhas
+    .filter((f) => {
+      if (variacaoDrawing && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
+      if (!isAplicavel(f.variacao_restrita)) return false
+      if (!projetoEhPorta) return true
+      if (!variacaoTrilho) return true
+      if (!f.trilho_restrito) return true
+      const trilhosPermitidos = f.trilho_restrito.split(",").map(t => t.trim())
+      return trilhosPermitidos.includes(variacaoTrilho)
+    })
+    .map(f => {
     const w = Math.max(avaliarFormula(f.formula_largura, vars), 0)
     const h = Math.max(avaliarFormula(f.formula_altura, vars), 0)
     const wR = arred50(w)
@@ -484,10 +711,6 @@ const calcularProjeto = (params: {
 
   const totalVidro = folhasCalc.reduce((s, f) => s + f.precoVidro, 0)
 
-  // ── Filtrar itens aplicáveis à variação atual ─────────────────────────────
-  const isAplicavel = (varRestrita: string | null | undefined) =>
-    !varRestrita || varRestrita === variacaoDrawing
-
   // ── Kit: encontrar o mais próximo ─────────────────────────────────────────
   let kitSelecionado: KitItem | null = null
   let precoKit = 0
@@ -505,9 +728,28 @@ const calcularProjeto = (params: {
       espessura.toLowerCase().includes(k.espessura_vidro.toLowerCase())
     )
 
+    // Se o usuário escolheu tipo de kit, prioriza kits amarrados àquele tipo.
+    const kitSelecionadoTecnicoAtual = String(decomporVariacaoTecnica(variacaoTecnica).kit || "").trim()
+    const kitsPreferenciais = (() => {
+      if (!kitSelecionadoTecnicoAtual) return kitsFiltrados
+      const candidatos = kitsFiltrados.filter((k) => {
+        const partes = String(k.variacao_restrita || "")
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean)
+        if (partes.length === 0) return false
+        return partes.some((parte) => {
+          if (ehVariacaoDeDesenho(parte)) return false
+          const decomposta = decomporVariacaoTecnica(parte)
+          return decomposta.kit === kitSelecionadoTecnicoAtual && correspondeRestricaoTecnica(parte, variacaoTecnica)
+        })
+      })
+      return candidatos.length > 0 ? candidatos : kitsFiltrados
+    })()
+
     // Escolhe pelo menor delta (distância euclidiana entre L×A e largura_referencia×altura_referencia)
     let menorDelta = Infinity
-    for (const kitProj of kitsFiltrados) {
+    for (const kitProj of kitsPreferenciais) {
       const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
       if (!dbKit) continue
       const delta = Math.abs(largura - kitProj.largura_referencia) + Math.abs(altura - kitProj.altura_referencia)
@@ -525,7 +767,7 @@ const calcularProjeto = (params: {
   // ── Ferragens ─────────────────────────────────────────────────────────────
   const ferragensResult: ResultadoCalculo["ferragens"] = detalhe.ferragens
     .filter(f => isAplicavel(f.variacao_restrita))
-    .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
+    .filter(f => modoCalculo === "kit" ? (f.usar_no_kit || Boolean(f.variacao_restrita)) : f.usar_no_perfil)
     .map(f => {
       const base = ferragensDB.find(x => x.id === f.ferragem_id)
       const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
@@ -560,6 +802,7 @@ const calcularProjeto = (params: {
         total: f.quantidade * precoUnit * qtd,
       }
     })
+    .sort((a, b) => compareFerragensByNome(a.nome, b.nome))
 
   const precoFerragens = ferragensResult.reduce((s, f) => s + f.total, 0)
 
@@ -567,8 +810,49 @@ const calcularProjeto = (params: {
   const cortesResult: CorteOtimizado[] = []
   let precoPerfis = 0
 
-  if (modoCalculo === "barra") {
-    const perfisAplicaveis = detalhe.perfis.filter(p => isAplicavel(p.variacao_restrita))
+  const calcularPerfisNesteModo =
+    modoCalculo === "barra" ||
+    detalhe.perfis.some((p) => {
+      const possuiRestricaoKit = String(p.variacao_restrita || "")
+        .split(",")
+        .map((parte) => parte.trim())
+        .filter(Boolean)
+        .some((parte) => {
+          if (ehVariacaoDeDesenho(parte)) return false
+          return Boolean(decomporVariacaoTecnica(parte).kit)
+        })
+      const incluiPorRegraKit = modoCalculo === "kit" && kitComPerfilAte3000 && altura <= 3000 && possuiRestricaoKit
+      return incluiPorRegraKit || Boolean(p.usar_no_kit) || Boolean(String(p.condicao || "").trim())
+    })
+
+  if (calcularPerfisNesteModo) {
+    const perfisAplicaveis = detalhe.perfis
+      .filter((p) => {
+        const condicaoExiste = Boolean(String(p.condicao || "").trim())
+        const possuiRestricaoKit = String(p.variacao_restrita || "")
+          .split(",")
+          .map((parte) => parte.trim())
+          .filter(Boolean)
+          .some((parte) => {
+            if (ehVariacaoDeDesenho(parte)) return false
+            return Boolean(decomporVariacaoTecnica(parte).kit)
+          })
+        const incluiPorRegraKit = modoCalculo === "kit" && kitComPerfilAte3000 && altura <= 3000 && possuiRestricaoKit
+        const podeNoModoAtual =
+          modoCalculo === "barra" ||
+          Boolean(p.usar_no_kit) ||
+          condicaoExiste ||
+          incluiPorRegraKit
+
+        if (!podeNoModoAtual) return false
+        if (!isAplicavel(p.variacao_restrita)) return false
+        return !condicaoExiste || avaliarCondicao(p.condicao, vars)
+      })
+      .sort((a, b) => {
+        const nomeA = perfisDB.find((perfil) => perfil.id === a.perfil_id)?.nome || a.perfis?.nome || ""
+        const nomeB = perfisDB.find((perfil) => perfil.id === b.perfil_id)?.nome || b.perfis?.nome || ""
+        return comparePerfisByNome(nomeA, nomeB)
+      })
 
     for (const pProj of perfisAplicaveis) {
       const db = perfisDB.find(x => x.id === pProj.perfil_id)
@@ -578,10 +862,13 @@ const calcularProjeto = (params: {
       const precoBarra = db.preco || 0
 
       // Monta lista de cortes: qtd_largura peças de L, qtd_altura peças de A, qtd_outros de (L+A)/2
+      const qtdCortesLargura = largura > 0 ? Math.max(0, pProj.qtd_largura * qtd) : 0
+      const qtdCortesAltura = altura > 0 ? Math.max(0, pProj.qtd_altura * qtd) : 0
+      const qtdCortesOutros = (largura + altura) > 0 ? Math.max(0, pProj.qtd_outros * qtd) : 0
       const listaCortes: number[] = [
-        ...Array(pProj.qtd_largura * qtd).fill(largura),
-        ...Array(pProj.qtd_altura * qtd).fill(altura),
-        ...Array(pProj.qtd_outros * qtd).fill(Math.round((largura + altura) / 2)),
+        ...Array(qtdCortesLargura).fill(largura),
+        ...Array(qtdCortesAltura).fill(altura),
+        ...Array(qtdCortesOutros).fill(Math.round((largura + altura) / 2)),
       ].filter(c => c > 0)
 
       if (!listaCortes.length) continue
@@ -594,6 +881,9 @@ const calcularProjeto = (params: {
         comprimentoBarra,
         qtdBarras: otim.qtdBarras,
         cortes: otim.cortes,
+        qtdCortesLargura,
+        qtdCortesAltura,
+        qtdCortesOutros,
         barras: otim.barras,
         aproveitamento: otim.aproveitamento,
         desperdicioMm: otim.desperdicioMm,
@@ -643,6 +933,7 @@ export default function CalculoProjetoPage() {
   const [kitsDB, setKitsDB] = useState<KitItem[]>([])
   const [ferragensDB, setFerragensDB] = useState<FerragemItem[]>([])
   const [perfisDB, setPerfisDB] = useState<PerfilItem[]>([])
+  const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
   const [, setCarregando] = useState(true)
 
   // ── Seleções do usuário ──
@@ -651,6 +942,7 @@ export default function CalculoProjetoPage() {
   const [itensCalculo, setItensCalculo] = useState<ItemCalculoProjeto[]>([criarItemCalculoProjeto()])
   const [detalhesProjetos, setDetalhesProjetos] = useState<Record<string, ProjetoDetalhe>>({})
   const [projetosCarregando, setProjetosCarregando] = useState<string[]>([])
+  const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
 
   // ── Resultado ──
   const [resultados, setResultados] = useState<ResultadoProjetoCalculado[]>([])
@@ -664,10 +956,16 @@ export default function CalculoProjetoPage() {
   const [modalAviso, setModalAviso] = useState<{
     titulo: string
     mensagem: string
+    confirmar?: () => void
     tipo?: "sucesso" | "erro" | "aviso"
+    labelConfirmar?: string
+    labelCancelar?: string
   } | null>(null)
   const rascunhoRestauradoRef = useRef(false)
   const edicaoCarregadaRef = useRef(false)
+  const secaoProjetosRef = useRef<HTMLElement | null>(null)
+  const secaoResultadosRef = useRef<HTMLElement | null>(null)
+  const projetoPendenteScrollRef = useRef<string | null>(null)
 
   const getChaveRascunho = useCallback(() => {
     if (!empresaId) return null
@@ -678,6 +976,14 @@ export default function CalculoProjetoPage() {
     await supabase.auth.signOut()
     router.push("/login")
   }
+
+  const rolarParaProjetos = useCallback(() => {
+    secaoProjetosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [])
+
+  const rolarParaResultados = useCallback(() => {
+    secaoResultadosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [])
 
   // ── Carregar listas ──────────────────────────────────────────────────────
   const carregarTudo = useCallback(async () => {
@@ -705,6 +1011,48 @@ export default function CalculoProjetoPage() {
   useEffect(() => {
     if (empresaId) carregarTudo()
   }, [empresaId, carregarTudo])
+
+  useEffect(() => {
+    let cancelado = false
+
+    const carregarDesenhosPasta = async () => {
+      try {
+        const res = await fetch("/api/desenhos", { cache: "no-store" })
+        if (!res.ok) return
+        const data = await res.json() as { arquivos?: unknown }
+        if (cancelado) return
+
+        const arquivos = Array.isArray(data.arquivos)
+          ? data.arquivos.map((item) => String(item || "").trim()).filter(Boolean)
+          : []
+
+        setDesenhosPasta(arquivos)
+      } catch {
+        if (!cancelado) setDesenhosPasta([])
+      }
+    }
+
+    carregarDesenhosPasta()
+
+    return () => {
+      cancelado = true
+    }
+  }, [empresaId])
+
+  useEffect(() => {
+    if (!empresaId || typeof window === "undefined") return
+    const chave = `variacao-box:nomes:${empresaId}`
+    try {
+      const bruto = window.localStorage.getItem(chave)
+      if (!bruto) return
+      const dados = JSON.parse(bruto)
+      if (dados && typeof dados === "object") {
+        setNomesVariacaoPersonalizados(dados as Record<string, string>)
+      }
+    } catch {
+      // ignora inconsistencias de armazenamento local
+    }
+  }, [empresaId])
 
   useEffect(() => {
     const chave = getChaveRascunho()
@@ -802,7 +1150,15 @@ export default function CalculoProjetoPage() {
       setDetalhesProjetos((prev) => ({
         ...prev,
         [projetoId]: {
-          folhas: (data.projetos_folhas || []).sort((a: { numero_folha: number }, b: { numero_folha: number }) => a.numero_folha - b.numero_folha),
+          folhas: (data.projetos_folhas || []).map((folha: { observacao?: string | null }) => {
+            const meta = extrairVariacaoDoTexto(folha.observacao)
+            return {
+              ...folha,
+              observacao: meta.textoLimpo,
+              variacao_restrita: meta.variacao ?? null,
+              trilho_restrito: extrairTrilhoDoTexto(folha.observacao),
+            }
+          }).sort((a: { numero_folha: number }, b: { numero_folha: number }) => a.numero_folha - b.numero_folha),
           kits: (data.projetos_kits || []).map((kit: { observacao?: string | null; variacao_restrita?: string | null }) => {
             const meta = extrairVariacaoDoTexto(kit.observacao)
             return {
@@ -824,6 +1180,9 @@ export default function CalculoProjetoPage() {
             return {
               ...perfil,
               variacao_restrita: perfil.variacao_restrita ?? meta.variacao ?? null,
+              condicao: extrairCondicaoDoTexto(perfil.tipo_fornecimento),
+              usar_no_kit: extrairUsarNoKitDoTexto(perfil.tipo_fornecimento),
+              altura_max_kit: extrairAlturaMaxKitDoTexto(perfil.tipo_fornecimento),
             }
           }),
         },
@@ -858,6 +1217,23 @@ export default function CalculoProjetoPage() {
     window.localStorage.setItem(chave, JSON.stringify(payload))
   }, [clienteId, editId, getChaveRascunho, itensCalculo, obraReferencia])
 
+  useEffect(() => {
+    const projetoId = projetoPendenteScrollRef.current
+    if (!projetoId) return
+
+    if (!itensCalculo.some((item) => item.id === projetoId)) {
+      projetoPendenteScrollRef.current = null
+      return
+    }
+
+    if (typeof window === "undefined") return
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(`projeto-card-${projetoId}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+      projetoPendenteScrollRef.current = null
+    })
+  }, [itensCalculo])
+
   const atualizarItem = <K extends keyof ItemCalculoProjeto>(id: string, campo: K, valor: ItemCalculoProjeto[K]) => {
     setItensCalculo((prev) => prev.map((item) => {
       if (item.id !== id) return item
@@ -868,6 +1244,9 @@ export default function CalculoProjetoPage() {
           projetoId: String(valor),
           corMaterial: "",
           variacaoDrawing: "",
+          variacaoAltura: "",
+          variacaoKit: "",
+          variacaoTrilho: "",
         }
       }
 
@@ -881,7 +1260,9 @@ export default function CalculoProjetoPage() {
   }
 
   const adicionarProjetoNaFila = () => {
-    setItensCalculo((prev) => [...prev, criarItemCalculoProjeto()])
+    const novoProjeto = criarItemCalculoProjeto()
+    projetoPendenteScrollRef.current = novoProjeto.id
+    setItensCalculo((prev) => [...prev, novoProjeto])
     setResultados([])
   }
 
@@ -893,6 +1274,61 @@ export default function CalculoProjetoPage() {
   const getProjeto = (item: ItemCalculoProjeto) => projetos.find((projeto) => projeto.id === item.projetoId) || null
   const getDetalhe = (item: ItemCalculoProjeto) => (item.projetoId ? detalhesProjetos[item.projetoId] || null : null)
   const getVidro = (item: ItemCalculoProjeto) => vidrosDB.find((vidro) => vidro.id === item.vidroId) || null
+
+  const projetosSemKitNoCalculo = useMemo(() => {
+    return itensCalculo.flatMap((item, index) => {
+      const detalhe = getDetalhe(item)
+      if (!detalhe || item.modoCalculo !== "kit") return []
+
+      const variacaoTecnicaSelecionada = montarVariacaoTecnica({
+        altura: item.variacaoAltura,
+        kit: item.variacaoKit,
+      })
+
+      const isAplicavel = (variacaoRestrita?: string | null) => {
+        if (!variacaoRestrita) return true
+        const partes = String(variacaoRestrita).split(",").map(s => s.trim()).filter(Boolean)
+        if (partes.length === 0) return true
+        return partes.some(parte => {
+          if (ehVariacaoDeDesenho(parte)) return !!item.variacaoDrawing && parte === item.variacaoDrawing
+          const eixo = getEixoVariacaoProjeto(parte)
+          if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnicaSelecionada)
+          if (correspondeVariacaoVisualTextual(parte, item.variacaoDrawing)) return true
+          return correspondeRestricaoTecnica(parte, variacaoTecnicaSelecionada)
+        })
+      }
+
+      const kitsAplicaveis = detalhe.kits.filter((kit) => isAplicavel(kit.variacao_restrita))
+      if (kitsAplicaveis.length > 0) return []
+
+      return [{
+        itemId: item.id,
+        indice: index + 1,
+        nome: getProjeto(item)?.nome || `Projeto ${index + 1}`,
+        motivo: "sem kit cadastrado",
+      }]
+    })
+  }, [detalhesProjetos, itensCalculo, projetos])
+
+  const confirmarProjetoSemKitNoCalculo = useCallback((acao: () => void) => {
+    if (projetosSemKitNoCalculo.length === 0) {
+      acao()
+      return
+    }
+
+    const listaProjetos = projetosSemKitNoCalculo
+      .map((projeto) => `${projeto.indice}. ${projeto.nome} (${projeto.motivo})`)
+      .join("\n")
+
+    setModalAviso({
+      titulo: "Projeto sem kit cadastrado",
+      mensagem: `Os projetos abaixo estão em modo kit, mas sem kit cadastrado:\n${listaProjetos}\n\nDeseja calcular mesmo assim?`,
+      tipo: "aviso",
+      confirmar: acao,
+      labelConfirmar: "Calcular mesmo assim",
+      labelCancelar: "Revisar projetos",
+    })
+  }, [projetosSemKitNoCalculo])
 
   const getPrecoVidroM2 = (item: ItemCalculoProjeto) => {
     const vidroSel = getVidro(item)
@@ -948,38 +1384,177 @@ export default function CalculoProjetoPage() {
     return lista.length > 0 ? lista : ["Preto"]
   }
 
-  const getVariacoesDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
-    const detalhe = getDetalhe(item)
-    const projeto = getProjeto(item)
-    if (!detalhe && !projeto?.desenho) return []
+  const desenhosDisponiveisCadastro = useMemo(() => {
+    const set = new Set<string>()
+    projetos.forEach((projeto) => {
+      const arquivo = String(projeto.desenho || "").trim()
+      if (arquivo) set.add(arquivo)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [projetos])
 
-    const mapa = new Map<string, VariacaoProjetoOpcao>()
-    getVariacoesAutomaticasProjeto(projeto?.desenho).forEach((variacao) => {
-      mapa.set(variacao.arquivo, variacao)
+  const desenhosFallbackFamilia = useMemo(() => {
+    const set = new Set<string>()
+
+    projetos.forEach((projeto) => {
+      const arquivo = String(projeto.desenho || "").trim()
+      if (!arquivo) return
+
+      const match = arquivo.match(/^(.*?)(\.(png|jpe?g|webp|gif|svg))$/i)
+      if (!match) return
+
+      const stem = match[1]
+      const ext = match[2]
+      const base = stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/i, "")
+
+      ;["simples", "puxador", "comtrinco", "completo"].forEach((sufixo) => {
+        set.add(`${base}-${sufixo}${ext}`)
+      })
     })
 
-    ;[
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [projetos])
+
+  const desenhosDisponiveis = useMemo(() => {
+    const set = new Set<string>()
+    desenhosDisponiveisCadastro.forEach((arquivo) => set.add(arquivo))
+    desenhosPasta.forEach((arquivo) => set.add(arquivo))
+    desenhosFallbackFamilia.forEach((arquivo) => set.add(arquivo))
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [desenhosDisponiveisCadastro, desenhosFallbackFamilia, desenhosPasta])
+
+  const getRestricoesProjeto = (item: ItemCalculoProjeto) => {
+    const detalhe = getDetalhe(item)
+    const brutos = [
+      ...(detalhe?.folhas || []).map((folha) => folha.variacao_restrita),
       ...(detalhe?.kits || []).map((kit) => kit.variacao_restrita),
       ...(detalhe?.ferragens || []).map((ferragem) => ferragem.variacao_restrita),
       ...(detalhe?.perfis || []).map((perfil) => perfil.variacao_restrita),
-    ].filter(Boolean).forEach((arquivo) => {
-      const arquivoString = String(arquivo)
-      if (!mapa.has(arquivoString)) {
-        mapa.set(arquivoString, {
-          arquivo: arquivoString,
-          label: formatarLabelVariacaoArquivo(arquivoString),
-        })
-      }
+    ]
+    return brutos.flatMap(v => v ? String(v).split(",").map(s => s.trim()).filter(Boolean) : [null])
+  }
+
+  const getVariacoesDesenhoDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
+    const projeto = getProjeto(item)
+    if (!projeto?.desenho) return []
+
+    const mapa = new Map<string, VariacaoProjetoOpcao>()
+
+    getVariacoesAutomaticasProjeto(projeto?.desenho, desenhosDisponiveis).forEach((variacao) => {
+      mapa.set(variacao.arquivo, variacao)
     })
 
     return Array.from(mapa.values())
   }
 
+  const getGruposVariacaoTecnica = (item: ItemCalculoProjeto) =>
+    getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item))
+
+  const getQuantidadeFolhasAplicaveis = (item: ItemCalculoProjeto): number => {
+    const detalhe = getDetalhe(item)
+    const projeto = getProjeto(item)
+    if (!detalhe || !projeto) return 0
+
+    const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
+    const variacaoTecnica = montarVariacaoTecnica({
+      altura: item.variacaoAltura,
+      kit: item.variacaoKit,
+    })
+    const textoProjeto = `${projeto.nome} ${projeto.categoria} ${projeto.desenho}`.toLowerCase()
+    const projetoEhPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+
+    const isAplicavel = (varRestrita: string | null | undefined) => {
+      if (!varRestrita) return true
+      const partes = String(varRestrita).split(",").map((s) => s.trim()).filter(Boolean)
+      if (partes.length === 0) return true
+      return partes.some((parte) => {
+        if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawingAtiva && parte === variacaoDrawingAtiva
+        const eixo = getEixoVariacaoProjeto(parte)
+        if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
+        if (correspondeVariacaoVisualTextual(parte, variacaoDrawingAtiva)) return true
+        return correspondeRestricaoTecnica(parte, variacaoTecnica)
+      })
+    }
+
+    const temFolhaComRestricaoVisual = detalhe.folhas.some((f) => {
+      const partes = String(f.variacao_restrita || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      return partes.some((parte) => ehVariacaoDeDesenho(parte))
+    })
+
+    return detalhe.folhas.filter((f) => {
+      if (variacaoDrawingAtiva && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
+      if (!isAplicavel(f.variacao_restrita)) return false
+      if (!projetoEhPorta) return true
+      if (!item.variacaoTrilho) return true
+      if (!f.trilho_restrito) return true
+      const trilhosPermitidos = String(f.trilho_restrito).split(",").map((t) => t.trim())
+      return trilhosPermitidos.includes(item.variacaoTrilho)
+    }).length
+  }
+
+  const formatarResumoVariacaoSelecionada = (variacaoDrawing?: string | null, variacaoTecnica?: string | null) =>
+    [
+      variacaoTecnica ? formatarVariacaoTecnica(variacaoTecnica) : "",
+      variacaoDrawing ? formatarLabelVariacaoArquivo(variacaoDrawing) : "",
+    ].filter(Boolean).join(" · ")
+
+  useEffect(() => {
+    setItensCalculo((prev) => {
+      let houveMudanca = false
+
+      const atualizados = prev.map((item) => {
+        const grupos = getGruposVariacaoTecnica(item)
+        if (grupos.length === 0) {
+          if (!item.variacaoAltura && !item.variacaoKit) return item
+          houveMudanca = true
+          return {
+            ...item,
+            variacaoAltura: "",
+            variacaoKit: "",
+          }
+        }
+
+        let proximo = item
+
+        grupos.forEach((grupo) => {
+          const campo = grupo.key === "altura" ? "variacaoAltura" : "variacaoKit"
+          const valorAtual = proximo[campo]
+          const valorEhValido = grupo.options.some((opcao) => opcao.value === valorAtual)
+
+          if (!valorEhValido) {
+            houveMudanca = true
+            proximo = {
+              ...proximo,
+              [campo]: grupo.options[0]?.value || "",
+            }
+          }
+        })
+
+        if (!grupos.some((grupo) => grupo.key === "altura") && proximo.variacaoAltura) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoAltura: "" }
+        }
+
+        if (!grupos.some((grupo) => grupo.key === "kit") && proximo.variacaoKit) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoKit: "" }
+        }
+
+        return proximo
+      })
+
+      return houveMudanca ? atualizados : prev
+    })
+  }, [detalhesProjetos, projetos])
+
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
       acc.totalVidro += item.resultado.totalVidro
       if (item.resultado.usouKit) acc.totalKits += item.resultado.precoKit
-      else acc.totalPerfisOriginal += item.resultado.precoPerfis
+      acc.totalPerfisOriginal += item.resultado.precoPerfis
       acc.totalFerragens += item.resultado.precoFerragens
       acc.totalGeralOriginal += item.resultado.totalGeral
       return acc
@@ -990,14 +1565,13 @@ export default function CalculoProjetoPage() {
     const grupos = new Map<string, OtimizacaoGlobalPerfil>()
 
     resultados.forEach((itemResultado) => {
-      if (itemResultado.resultado.usouKit || !itemResultado.resultado.cortes.length) return
+      if (!itemResultado.resultado.cortes.length) return
 
       itemResultado.resultado.cortes.forEach((corte) => {
         const projetoId = itemResultado.projeto?.id || itemResultado.itemId
         const projetoNome = itemResultado.projeto?.nome || "Projeto"
         const corMaterial = itemResultado.corMaterial || "Sem cor definida"
         const chave = [
-          projetoId,
           corte.perfilNome,
           corMaterial,
           corte.comprimentoBarra,
@@ -1007,8 +1581,17 @@ export default function CalculoProjetoPage() {
         const existente = grupos.get(chave)
         if (existente) {
           existente.cortes.push(...corte.cortes)
+          existente.qtdCortesLargura += corte.qtdCortesLargura
+          existente.qtdCortesAltura += corte.qtdCortesAltura
+          existente.qtdCortesOutros += corte.qtdCortesOutros
           existente.qtdBarrasOriginal += corte.qtdBarras
           existente.precoOriginal += corte.precoTotal
+          if (!existente.projetoNome.split(" | ").includes(projetoNome)) {
+            existente.projetoNome = `${existente.projetoNome} | ${projetoNome}`
+          }
+          if (existente.projetoId !== projetoId) {
+            existente.projetoId = "multi"
+          }
           return
         }
 
@@ -1020,6 +1603,9 @@ export default function CalculoProjetoPage() {
           comprimentoBarra: corte.comprimentoBarra,
           precoBarra: corte.precoBarra,
           cortes: [...corte.cortes],
+          qtdCortesLargura: corte.qtdCortesLargura,
+          qtdCortesAltura: corte.qtdCortesAltura,
+          qtdCortesOutros: corte.qtdCortesOutros,
           barras: [],
           qtdBarrasOriginal: corte.qtdBarras,
           precoOriginal: corte.precoTotal,
@@ -1045,11 +1631,11 @@ export default function CalculoProjetoPage() {
         }
       })
       .sort((a, b) => {
-        const projeto = a.projetoNome.localeCompare(b.projetoNome, "pt-BR")
-        if (projeto !== 0) return projeto
         const perfil = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
         if (perfil !== 0) return perfil
-        return a.corMaterial.localeCompare(b.corMaterial, "pt-BR")
+        const cor = a.corMaterial.localeCompare(b.corMaterial, "pt-BR")
+        if (cor !== 0) return cor
+        return a.projetoNome.localeCompare(b.projetoNome, "pt-BR")
       })
 
     const resumo = gruposOtimizados.reduce((acc, grupo) => {
@@ -1106,10 +1692,7 @@ export default function CalculoProjetoPage() {
         barras: grupo.barras,
       }))
       .sort((a, b) => {
-        const pesoA = getPesoPerfilOtimizacao(a.perfilNome)
-        const pesoB = getPesoPerfilOtimizacao(b.perfilNome)
-        if (pesoA !== pesoB) return pesoA - pesoB
-        return a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
+        return comparePerfisByNome(a.perfilNome, b.perfilNome)
       })
   }, [otimizacaoGlobalPerfis.grupos, perfisDB])
 
@@ -1117,16 +1700,20 @@ export default function CalculoProjetoPage() {
   const relatorioObra = useMemo(() => {
     return resultados.map((itemResultado) => {
       const nomesPerfis = Array.from(new Set(itemResultado.resultado.cortes.map((corte) => corte.perfilNome)))
-      const nomesFerragens = Array.from(new Set(itemResultado.resultado.ferragens.map((ferragem) => ferragem.nome)))
+        .sort((a, b) => comparePerfisByNome(a, b))
+      const variacaoLabel = formatarResumoVariacaoSelecionada(itemResultado.variacaoDrawing, itemResultado.variacaoTecnica) || null
 
       return {
         itemId: itemResultado.itemId,
         projetoNome: itemResultado.projeto?.nome || "Projeto",
         desenhoUrl: itemResultado.desenhoProjeto ? `/desenhos/${itemResultado.desenhoProjeto}` : null,
+        variacaoLabel,
         quantidade: itemResultado.qtdProjeto,
         vao: `${itemResultado.larguraProjeto} x ${itemResultado.alturaProjeto} mm`,
         vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
         corMaterial: itemResultado.corMaterial || "Sem cor definida",
+        modoCalculo: itemResultado.resultado.usouKit ? "Kit" : "Barra",
+        subtotal: itemResultado.resultado.totalGeral,
         folhas: itemResultado.resultado.folhas.map((folha) => ({
           id: `${itemResultado.itemId}-folha-${folha.numero}`,
           titulo: `Folha ${folha.numero} ${folha.tipo}`,
@@ -1135,11 +1722,11 @@ export default function CalculoProjetoPage() {
           area: folha.area,
           total: folha.precoVidro,
         })),
-        materiais: [
-          itemResultado.resultado.kit ? `Kit: ${itemResultado.resultado.kit.nome}` : null,
-          nomesPerfis.length > 0 ? `Perfis: ${nomesPerfis.join(" · ")} (quantidade: ver otimização de barra)` : null,
-          nomesFerragens.length > 0 ? `Ferragens: ${nomesFerragens.join(" · ")}` : null,
-        ].filter(Boolean) as string[],
+        kitNome: itemResultado.resultado.kit?.nome || null,
+        kitQuantidade: itemResultado.resultado.usouKit && itemResultado.resultado.kit
+          ? itemResultado.qtdProjeto
+          : 0,
+        perfis: nomesPerfis,
         ferragens: itemResultado.resultado.ferragens.map((ferragem, index) => {
           const corAlvo = (itemResultado.corMaterial || "").trim().toLowerCase()
           const baseByNome = ferragensDB.find((f) => f.nome === ferragem.nome)
@@ -1168,7 +1755,7 @@ export default function CalculoProjetoPage() {
             unidade: "un",
             total: (db?.preco || ferragem.precoUnit || 0) * ferragem.qtd * itemResultado.qtdProjeto,
           }
-        }),
+        }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
         otimizacao: itemResultado.resultado.cortes.map((corte) => ({
           id: `${itemResultado.itemId}-${corte.perfilNome}-${corte.comprimentoBarra}`,
           perfilCodigo: perfisDB.find((perfil) => perfil.nome === corte.perfilNome)?.codigo || "-",
@@ -1185,9 +1772,23 @@ export default function CalculoProjetoPage() {
     })
   }, [perfisDB, ferragensDB, resultados])
 
+  const indiceProjetoPorItemId = useMemo(
+    () => new Map(relatorioObra.map((obra, index) => [obra.itemId, index + 1])),
+    [relatorioObra]
+  )
+
   const dadosOrcamentoComercial = useMemo(() => {
-    const totalPerfisPorProjeto = otimizacaoGlobalPerfis.grupos.reduce<Record<string, number>>((acc, grupo) => {
-      acc[grupo.projetoId] = (acc[grupo.projetoId] || 0) + grupo.precoOtimizado
+    const totalPerfisOriginalBarra = resultados.reduce((acc, resultadoProjeto) => {
+      return acc + resultadoProjeto.resultado.precoPerfis
+    }, 0)
+
+    const fatorOtimGlobalPerfis = totalPerfisOriginalBarra > 0
+      ? (otimizacaoGlobalPerfis.resumo.precoOtimizado / totalPerfisOriginalBarra)
+      : 1
+
+    const totalPerfisPorProjeto = resultados.reduce<Record<string, number>>((acc, resultadoProjeto) => {
+      const projetoId = resultadoProjeto.projeto?.id || resultadoProjeto.itemId
+      acc[projetoId] = resultadoProjeto.resultado.precoPerfis * fatorOtimGlobalPerfis
       return acc
     }, {})
 
@@ -1195,16 +1796,12 @@ export default function CalculoProjetoPage() {
       const projetoId = resultadoProjeto.projeto?.id || resultadoProjeto.itemId
       const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
       const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
-      const variacaoProjeto = resultadoProjeto.variacaoDrawing
-        ? formatarLabelVariacaoArquivo(resultadoProjeto.variacaoDrawing)
-        : ""
+      const variacaoProjeto = formatarResumoVariacaoSelecionada(resultadoProjeto.variacaoDrawing, resultadoProjeto.variacaoTecnica)
       const totalProjeto =
         resultadoProjeto.resultado.totalVidro +
         resultadoProjeto.resultado.precoKit +
         resultadoProjeto.resultado.precoFerragens +
-        (resultadoProjeto.resultado.usouKit
-          ? 0
-          : (totalPerfisPorProjeto[projetoId] || 0))
+        (totalPerfisPorProjeto[projetoId] || 0)
 
       return {
         id: `orc-${resultadoProjeto.itemId}`,
@@ -1222,7 +1819,7 @@ export default function CalculoProjetoPage() {
         servicos: [
           resultadoProjeto.resultado.usouKit
             ? "Estrutura calculada por kit"
-            : "Estrutura calculada por barra consolidada por projeto",
+            : "Estrutura calculada por barra com otimização global",
           resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
         ].join(" · "),
       }
@@ -1238,7 +1835,7 @@ export default function CalculoProjetoPage() {
     }
   }, [otimizacaoGlobalPerfis.grupos, resultados])
 
-  const calcularTodos = () => {
+  const executarCalculoTodos = () => {
     if (!clienteId) {
       setModalAviso({ titulo: "Atenção", mensagem: "Selecione primeiro o cliente deste cálculo.", tipo: "aviso" })
       return
@@ -1273,6 +1870,15 @@ export default function CalculoProjetoPage() {
       }
 
       const precoVidroM2Aplicado = getPrecoVidroM2(item)
+      const variacaoTecnica = montarVariacaoTecnica({
+        altura: item.variacaoAltura,
+        kit: item.variacaoKit,
+      })
+      const textoProjeto = `${projeto.nome} ${projeto.categoria} ${projeto.desenho}`.toLowerCase()
+      const projetoEhPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+
+      const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
+
       const resultado = calcularProjeto({
         detalhe,
         largura: Number(item.largura),
@@ -1283,7 +1889,10 @@ export default function CalculoProjetoPage() {
         precoVidroM2: precoVidroM2Aplicado,
         corMaterial: item.corMaterial,
         modoCalculo: item.modoCalculo,
-        variacaoDrawing: item.variacaoDrawing,
+        variacaoDrawing: variacaoDrawingAtiva,
+        variacaoTecnica,
+        variacaoTrilho: item.variacaoTrilho,
+        projetoEhPorta,
         kitsDB,
         ferragensDB,
         perfisDB,
@@ -1293,8 +1902,11 @@ export default function CalculoProjetoPage() {
       novosResultados.push({
         itemId: item.id,
         projeto,
-        desenhoProjeto: (item.variacaoDrawing || projeto.desenho || "").trim() || null,
-        variacaoDrawing: item.variacaoDrawing,
+        desenhoProjeto: (variacaoDrawingAtiva && ehVariacaoDeDesenho(variacaoDrawingAtiva)
+          ? variacaoDrawingAtiva
+          : projeto.desenho || "").trim() || null,
+        variacaoDrawing: variacaoDrawingAtiva,
+        variacaoTecnica,
         vidro,
         qtdProjeto: Math.max(1, Number(item.qtd || 1)),
         larguraProjeto: Number(item.largura),
@@ -1307,6 +1919,17 @@ export default function CalculoProjetoPage() {
     }
 
     setResultados(novosResultados)
+    setAbaResultados("resumo")
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        rolarParaResultados()
+      })
+    }
+  }
+
+  const calcularTodos = () => {
+    confirmarProjetoSemKitNoCalculo(executarCalculoTodos)
   }
 
   const salvarComposicaoComoOrcamento = async () => {
@@ -1384,7 +2007,6 @@ export default function CalculoProjetoPage() {
         empresa_id: empresaId,
         metragem_total: Number(dadosOrcamentoComercial.metragemTotal || 0),
         peso_total: 0,
-        total_pecas: Number(dadosOrcamentoComercial.totalPecas || 0),
         theme_color: theme.menuIconColor || "#1e3a5a",
       }
 
@@ -1528,41 +2150,41 @@ export default function CalculoProjetoPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-            {/* ─── PAINEL ESQUERDO: CONFIGURAÇÕES ───────────────────── */}
-            <div className="xl:col-span-1 space-y-5">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.8fr)] gap-6 items-start">
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Info size={16} style={{ color: theme.menuIconColor }} />
                   <h2 className="text-xs font-black uppercase tracking-widest text-gray-500">1. Cliente do Cálculo</h2>
                 </div>
 
-                <div className="space-y-3">
-                  <select
-                    value={clienteId}
-                    onChange={e => { setClienteId(e.target.value); setResultados([]) }}
-                    className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                    style={{ color: theme.contentTextLightBg }}
-                  >
-                    <option value="">— Selecione o cliente —</option>
-                    {clientesDB.map((cliente) => (
-                      <option key={cliente.id} value={cliente.id}>{cliente.nome}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)] gap-4">
+                  <div className="space-y-3">
+                    <select
+                      value={clienteId}
+                      onChange={e => { setClienteId(e.target.value); setResultados([]) }}
+                      className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                      style={{ color: theme.contentTextLightBg }}
+                    >
+                      <option value="">— Selecione o cliente —</option>
+                      {clientesDB.map((cliente) => (
+                        <option key={cliente.id} value={cliente.id}>{cliente.nome}</option>
+                      ))}
+                    </select>
 
-                  <div className="rounded-2xl border p-3 text-xs font-medium"
-                    style={{
-                      backgroundColor: clienteSel?.grupo_preco_id ? "#eff6ff" : "#f8fafc",
-                      borderColor: clienteSel?.grupo_preco_id ? "#bfdbfe" : "#e5e7eb",
-                      color: clienteSel?.grupo_preco_id ? "#1d4ed8" : "#64748b",
-                    }}
-                  >
-                    {clienteSel
-                      ? clienteSel.grupo_preco_id
-                        ? "Cliente com tabela de vidro vinculada. Todos os projetos abaixo usarão essa tabela antes do preço padrão do vidro."
-                        : "Cliente sem tabela vinculada. Todos os projetos usarão o preço padrão do cadastro de vidros."
-                      : "Defina primeiro o cliente. O cálculo inteiro será feito para um único cliente por vez."}
+                    <div className="rounded-2xl border p-3 text-xs font-medium"
+                      style={{
+                        backgroundColor: clienteSel?.grupo_preco_id ? "#eff6ff" : "#f8fafc",
+                        borderColor: clienteSel?.grupo_preco_id ? "#bfdbfe" : "#e5e7eb",
+                        color: clienteSel?.grupo_preco_id ? "#1d4ed8" : "#64748b",
+                      }}
+                    >
+                      {clienteSel
+                        ? clienteSel.grupo_preco_id
+                          ? "Cliente com tabela de vidro vinculada. Todos os projetos abaixo usarão essa tabela antes do preço padrão do vidro."
+                          : "Cliente sem tabela vinculada. Todos os projetos usarão o preço padrão do cadastro de vidros."
+                        : "Defina primeiro o cliente. O cálculo inteiro será feito para um único cliente por vez."}
+                    </div>
                   </div>
 
                   <div>
@@ -1579,32 +2201,109 @@ export default function CalculoProjetoPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 px-1">
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400">Fluxo do Lançamento</p>
+                <h2 className="text-lg font-black mt-1" style={{ color: theme.contentTextLightBg }}>Cadastro e resultado no mesmo eixo</h2>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projetos</p>
+                    <p className="text-2xl font-black text-gray-700">{itensCalculo.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-gray-50 border border-gray-100 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Calculados</p>
+                    <p className="text-2xl font-black text-gray-700">{resultados.length}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={rolarParaProjetos}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-all"
+                  >
+                    <Plus size={14} /> Continuar Lançamento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={rolarParaResultados}
+                    disabled={resultados.length === 0}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                  >
+                    <Eye size={14} /> Ver Resultado
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-4">
+                  O lançamento ficou em largura total e o cálculo desce direto para a área de resultado.
+                </p>
+              </div>
+            </div>
+
+            <section ref={secaoProjetosRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-gray-400">2. Projetos do Cliente</p>
-                  <p className="text-sm text-gray-500">Monte a lista e calcule tudo junto no final.</p>
+                  <p className="text-sm text-gray-500">Monte todos os vãos primeiro. As ações principais ficam no final da lista para evitar voltar ao topo.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={adicionarProjetoNaFila}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
-                >
-                  <Plus size={14} /> Adicionar Projeto
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={adicionarProjetoNaFila}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
+                  >
+                    <Plus size={14} /> Adicionar Projeto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resultados.length > 0 ? rolarParaResultados : calcularTodos}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all"
+                    style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                  >
+                    {resultados.length > 0 ? <Eye size={14} /> : <Calculator size={14} />}
+                    {resultados.length > 0 ? "Ir para Resultado" : "Calcular Projetos"}
+                  </button>
+                </div>
               </div>
 
+              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
               {itensCalculo.map((item, index) => {
                 const projetoSel = getProjeto(item)
                 const detalhe = getDetalhe(item)
                 const vidroSel = getVidro(item)
                 const coresMaterial = getCoresMaterial(item)
-                const variacoes = getVariacoesDisponiveis(item)
+                const variacoesDesenho = getVariacoesDesenhoDisponiveis(item)
+                const gruposVariacaoTecnica = getGruposVariacaoTecnica(item)
+                const variacaoTecnicaSelecionada = montarVariacaoTecnica({
+                  altura: item.variacaoAltura,
+                  kit: item.variacaoKit,
+                })
+                // Detecção de características do projeto
+                const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
+                const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
+                const projetoEPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+                const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!
+                const kitTypesDosProjeto = (() => {
+                  if (!detalhe || !projetoEBox) return []
+                  const valoresKit = new Set(
+                    detalhe.kits.flatMap(k =>
+                      (k.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                    ).filter(v => getEixoVariacaoProjeto(v) === "kit")
+                  )
+                  return valoresKit.size > 0
+                    ? kitAxisGroup.options.filter(o => valoresKit.has(o.value))
+                    : kitAxisGroup.options
+                })()
                 const usandoPrecoEspecialVidro = getUsandoPrecoEspecial(item)
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
+                const getNomeVariacao = (value: string, fallback: string) => {
+                  const custom = nomesVariacaoPersonalizados[value]
+                  return custom && custom.trim() ? custom : fallback
+                }
 
                 return (
-                  <div key={item.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4">
+                  <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
@@ -1646,11 +2345,12 @@ export default function CalculoProjetoPage() {
                           <Image src={`/desenhos/${projetoSel.desenho}`} alt={projetoSel.nome} fill className="object-contain p-2" />
                         </div>
                         <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
                           <p className="font-black text-sm" style={{ color: theme.contentTextLightBg }}>{projetoSel.nome}</p>
                           {projetoSel.categoria && <p className="text-xs text-gray-400 mt-0.5">{projetoSel.categoria}</p>}
                           {detalhe && (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.folhas.length} folha(s)</span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{getQuantidadeFolhasAplicaveis(item)} folha(s)</span>
                               {detalhe.kits.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.kits.length} kit(s)</span>}
                               {detalhe.perfis.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.perfis.length} perfil(is)</span>}
                               {detalhe.ferragens.length > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{detalhe.ferragens.length} ferragem(ns)</span>}
@@ -1688,24 +2388,28 @@ export default function CalculoProjetoPage() {
                           style={{ color: theme.contentTextLightBg }}
                         />
                       </div>
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Largura 2 (L2)</label>
-                        <input
-                          type="number" min={0} placeholder="Canto/Lado B"
-                          value={item.largura2}
-                          onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
-                        <input
-                          type="number" min={0} placeholder="Bandeira/A2"
-                          value={item.altura2}
-                          onChange={(e) => atualizarItem(item.id, "altura2", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                        />
-                      </div>
+                      {usaL2 && (
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Largura 2 (L2)</label>
+                          <input
+                            type="number" min={0} placeholder="Canto/Lado B"
+                            value={item.largura2}
+                            onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
+                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                          />
+                        </div>
+                      )}
+                      {usaAB && (
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
+                          <input
+                            type="number" min={0} placeholder="Bandeira/A2"
+                            value={item.altura2}
+                            onChange={(e) => atualizarItem(item.id, "altura2", e.target.value)}
+                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                          />
+                        </div>
+                      )}
                       <div className="col-span-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade</label>
                         <input
@@ -1790,79 +2494,249 @@ export default function CalculoProjetoPage() {
                       </div>
                     </div>
 
-                    {variacoes.length > 0 && (
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Variação do Projeto</p>
+                    {projetoEPorta && (
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Tipo de Trilho (Portas)</p>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => atualizarItem(item.id, "variacaoDrawing", "")}
-                            className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
-                            style={!item.variacaoDrawing
-                              ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
-                              : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
-                          >
-                            Todas
-                          </button>
-                          {variacoes.map((variacao) => (
+                          {([
+                            { key: "", label: "Todos" },
+                            { key: "aparente", label: "Aparente" },
+                            { key: "interrompido", label: "Interrompido" },
+                            { key: "embutido", label: "Embutido" },
+                          ] as const).map((opcao) => (
                             <button
-                              key={variacao.arquivo}
+                              key={opcao.key || "todos"}
                               type="button"
-                              onClick={() => atualizarItem(item.id, "variacaoDrawing", variacao.arquivo)}
-                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-40"
-                              style={item.variacaoDrawing === variacao.arquivo
+                              onClick={() => {
+                                const novoValor = item.variacaoTrilho === opcao.key ? "" : opcao.key
+                                atualizarItem(item.id, "variacaoTrilho", novoValor)
+                              }}
+                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                              style={item.variacaoTrilho === opcao.key
                                 ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
                                 : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
-                              title={variacao.arquivo}
                             >
-                              {variacao.label}
+                              {opcao.label}
                             </button>
                           ))}
                         </div>
+                        <p className="text-[11px] text-gray-400">
+                          Essa escolha filtra apenas as folhas de porta configuradas com esse tipo de trilho no cadastro.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Tipo de Box + Kit — exclusivo para projetos Box */}
+                    {projetoEBox && (() => {
+                      const gruposBox = gruposVariacaoTecnica.filter(g => g.key === "altura" || g.key === "kit")
+                      const alturaGroup = gruposBox.find(g => g.key === "altura")
+                      const mostrarKit = kitTypesDosProjeto.length > 0
+                      if (!alturaGroup && !mostrarKit) return null
+                      return (
+                        <div className="rounded-2xl border-2 p-4 space-y-3" style={{ borderColor: theme.menuBackgroundColor + "33", backgroundColor: theme.menuBackgroundColor + "08" }}>
+                          {alturaGroup && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.menuBackgroundColor }}>Tipo de Box</p>
+                              <div className="flex flex-wrap gap-2">
+                                {alturaGroup.options.map((opcao) => (
+                                  <button
+                                    key={opcao.value}
+                                    type="button"
+                                    onClick={() => atualizarItem(item.id, "variacaoAltura", item.variacaoAltura === opcao.value ? "" : opcao.value)}
+                                    className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                                    style={item.variacaoAltura === opcao.value
+                                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                                      : { backgroundColor: "#f9fafb", color: "#6b7280", borderColor: "#e5e7eb" }}
+                                  >
+                                    {getNomeVariacao(opcao.value, opcao.label)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {mostrarKit && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.menuBackgroundColor }}>Tipo de Kit</p>
+                              <div className="flex flex-wrap gap-2">
+                                {kitTypesDosProjeto.map((opcao) => (
+                                  <button
+                                    key={opcao.value}
+                                    type="button"
+                                    onClick={() => atualizarItem(item.id, "variacaoKit", item.variacaoKit === opcao.value ? "" : opcao.value)}
+                                    className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                                    style={item.variacaoKit === opcao.value
+                                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                                      : { backgroundColor: "#f9fafb", color: "#6b7280", borderColor: "#e5e7eb" }}
+                                  >
+                                    {getNomeVariacao(opcao.value, opcao.label)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {(item.variacaoAltura || item.variacaoKit) && (
+                            <p className="text-[11px] font-bold" style={{ color: theme.menuBackgroundColor }}>
+                              {[
+                                item.variacaoAltura && (() => {
+                                  const opc = alturaGroup?.options.find(o => o.value === item.variacaoAltura)
+                                  return opc ? getNomeVariacao(opc.value, opc.label) : null
+                                })(),
+                                item.variacaoKit && (() => {
+                                  const opc = kitAxisGroup.options.find(o => o.value === item.variacaoKit)
+                                  return opc ? getNomeVariacao(opc.value, opc.label) : null
+                                })(),
+                              ].filter(Boolean).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
+
+                    {/* Variação Técnica — eixos não tratados pelo bloco box */}
+                    {gruposVariacaoTecnica.filter(g => !(projetoEBox && (g.key === "kit" || g.key === "altura"))).length > 0 && (
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Variação Técnica</p>
+                        {gruposVariacaoTecnica.filter(g => !(projetoEBox && (g.key === "kit" || g.key === "altura"))).map((grupo) => {
+                          const campo = grupo.key === "altura" ? "variacaoAltura" : "variacaoKit"
+                          const valorSelecionado = item[campo]
+
+                          return (
+                            <div key={grupo.key} className="space-y-2">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-gray-400">{grupo.label}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {grupo.options.map((opcao) => (
+                                  <button
+                                    key={opcao.value}
+                                    type="button"
+                                    onClick={() => atualizarItem(item.id, campo, opcao.value)}
+                                    className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                                    style={valorSelecionado === opcao.value
+                                      ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                                      : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
+                                  >
+                                    {opcao.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {variacaoTecnicaSelecionada && !projetoEBox && (
+                          <p className="text-[11px] font-bold text-violet-700">
+                            Seleção ativa: {formatarVariacaoTecnica(variacaoTecnicaSelecionada)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {(variacoesDesenho.length > 0 || !!projetoSel) && (
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Variação Visual do Desenho</p>
+                        {variacoesDesenho.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            <button
+                              type="button"
+                              onClick={() => atualizarItem(item.id, "variacaoDrawing", "")}
+                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                              style={!item.variacaoDrawing
+                                ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                                : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
+                            >
+                              Todas
+                            </button>
+                            {variacoesDesenho.map((variacao) => (
+                              <button
+                                key={variacao.arquivo}
+                                type="button"
+                                onClick={() => atualizarItem(item.id, "variacaoDrawing", variacao.arquivo)}
+                                className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all truncate max-w-40"
+                                style={item.variacaoDrawing === variacao.arquivo
+                                  ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                                  : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
+                                title={variacao.arquivo}
+                              >
+                                {variacao.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                       </div>
                     )}
                   </div>
                 )
               })}
+              </div>
 
-              <button
-                type="button"
-                onClick={calcularTodos}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl text-sm font-black shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-              >
-                <Calculator size={18} />
-                Calcular Todos os Projetos
-              </button>
+              <div className="sticky bottom-4 z-10 rounded-3xl border border-gray-200 bg-white/95 backdrop-blur shadow-xl p-4">
+                <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ações do Motor</p>
+                    <p className="text-sm text-gray-500">Você pode lançar mais projetos aqui embaixo, calcular e seguir direto para o resultado.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:flex gap-3">
+                    <button
+                      type="button"
+                      onClick={adicionarProjetoNaFila}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all"
+                    >
+                      <Plus size={16} />
+                      Adicionar Projeto
+                    </button>
 
-              <button
-                type="button"
-                onClick={() => { setTipoPreviewPdf("comercial"); setMostrarPreviewOrcamento(true) }}
-                disabled={resultados.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl text-sm font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#ffffff", color: theme.menuBackgroundColor, border: `1px solid ${theme.menuBackgroundColor}22` }}
-              >
-                <Eye size={18} />
-                Ver / Imprimir Sem Salvar
-              </button>
+                    <button
+                      type="button"
+                      onClick={calcularTodos}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                      style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                    >
+                      <Calculator size={16} />
+                      Calcular Todos os Projetos
+                    </button>
 
-              <button
-                type="button"
-                onClick={salvarComposicaoComoOrcamento}
-                disabled={salvandoOrcamento || resultados.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-3xl text-sm font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#0f766e", color: "#ffffff" }}
-              >
-                {salvandoOrcamento
-                  ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  : <Save size={18} />
-                }
-                Salvar Composição como Orçamento
-              </button>
-            </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoPreviewPdf("comercial")
+                        setMostrarPreviewOrcamento(true)
+                      }}
+                      disabled={resultados.length === 0}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: "#ffffff", color: theme.menuBackgroundColor, border: `1px solid ${theme.menuBackgroundColor}22` }}
+                    >
+                      <Eye size={16} />
+                      Ver / Imprimir
+                    </button>
 
-            {/* ─── PAINEL DIREITO: RESULTADO ────────────────────────── */}
-            <div className="xl:col-span-2 space-y-5">
+                    <button
+                      type="button"
+                      onClick={salvarComposicaoComoOrcamento}
+                      disabled={salvandoOrcamento || resultados.length === 0}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: "#0f766e", color: "#ffffff" }}
+                    >
+                      {salvandoOrcamento
+                        ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        : <Save size={16} />
+                      }
+                      Salvar Orçamento
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={rolarParaResultados}
+                      disabled={resultados.length === 0}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black border border-gray-200 bg-gray-50 text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Eye size={16} />
+                      Ir para Resultado
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section ref={secaoResultadosRef} className="space-y-5">
 
               {resultados.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -1870,7 +2744,7 @@ export default function CalculoProjetoPage() {
                     <Calculator size={36} className="text-gray-300" />
                   </div>
                   <p className="font-bold text-gray-400">Escolha o cliente e monte a lista de projetos</p>
-                  <p className="text-gray-300 text-sm mt-1">O cálculo consolidado aparecerá aqui depois</p>
+                  <p className="text-gray-300 text-sm mt-1">Quando calcular, a tela desce sozinha para esta área</p>
                 </div>
               )}
 
@@ -1958,7 +2832,7 @@ export default function CalculoProjetoPage() {
                         <div key={obra.itemId} className="rounded-2xl border border-gray-100 overflow-hidden">
                           <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Obra {index + 1}</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
                               <h4 className="text-base font-black text-gray-800">{obra.projetoNome}</h4>
                             </div>
                             <div className="flex flex-wrap justify-end gap-1.5 text-[10px] font-bold">
@@ -1966,6 +2840,7 @@ export default function CalculoProjetoPage() {
                               <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Qtd {obra.quantidade}</span>
                               <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{obra.vidro}</span>
                               <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{obra.corMaterial}</span>
+                              <span className={`px-2 py-1 rounded-lg ${obra.modoCalculo === "Kit" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{obra.modoCalculo}</span>
                             </div>
                           </div>
 
@@ -1988,23 +2863,18 @@ export default function CalculoProjetoPage() {
 
                             <div className="space-y-4">
                               <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Materiais / Ferragens</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {obra.materiais.length > 0 ? obra.materiais.map((material) => (
-                                    <span key={material} className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-gray-700">
-                                      {material}
-                                    </span>
-                                  )) : (
-                                    <span className="px-3 py-2 rounded-xl bg-white border border-gray-100 text-sm font-bold text-gray-700">
-                                      Sem material
-                                    </span>
-                                  )}
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Estrutura / Ferragens</p>
+                                <div className="space-y-2 text-sm text-gray-700">
+                                  <p><span className="font-black">Modo:</span> {obra.modoCalculo}</p>
+                                  {obra.kitNome && <p><span className="font-black">Kit:</span> {obra.kitNome}</p>}
+                                  <p><span className="font-black">Perfis:</span> {obra.perfis.length > 0 ? obra.perfis.join(" · ") : "Sem perfis"}</p>
+                                  <p><span className="font-black">Subtotal:</span> {fmt(obra.subtotal)}</p>
                                 </div>
                                 {obra.ferragens.length > 0 && (
                                   <div className="mt-3 space-y-1">
                                     {obra.ferragens.map((ferragem) => (
                                       <p key={ferragem.id} className="text-xs text-gray-600">
-                                        {ferragem.nome}: {ferragem.qtd} {ferragem.unidade}
+                                        {(ferragem.codigo ? `${ferragem.codigo} | ` : "") + ferragem.nome}: {ferragem.qtd} un
                                       </p>
                                     ))}
                                   </div>
@@ -2055,9 +2925,8 @@ export default function CalculoProjetoPage() {
                       <div className="space-y-4">
                         {[...otimizacaoGlobalPerfis.grupos]
                           .sort((a, b) => {
-                            const pesoA = getPesoPerfilOtimizacao(a.perfilNome)
-                            const pesoB = getPesoPerfilOtimizacao(b.perfilNome)
-                            if (pesoA !== pesoB) return pesoA - pesoB
+                            const ordemPerfis = comparePerfisByNome(a.perfilNome, b.perfilNome)
+                            if (ordemPerfis !== 0) return ordemPerfis
                             const nomeComp = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
                             if (nomeComp !== 0) return nomeComp
                             return a.projetoNome.localeCompare(b.projetoNome, "pt-BR")
@@ -2087,6 +2956,9 @@ export default function CalculoProjetoPage() {
                               <p className="text-[11px] text-gray-500">
                                 Cortes agrupados: {grupo.cortes.join(" · ")} mm
                               </p>
+                              <p className="text-[11px] text-gray-500">
+                                Origem dos cortes: Largura {grupo.qtdCortesLargura} · Altura {grupo.qtdCortesAltura} · Outros {grupo.qtdCortesOutros}
+                              </p>
                               <div className="text-[11px] text-gray-500 space-y-1">
                                 <p>Barras consolidadas:</p>
                                 {grupo.barras.map((barra) => (
@@ -2105,7 +2977,7 @@ export default function CalculoProjetoPage() {
                   )}
                 </>
               )}
-            </div>
+            </section>
           </div>
         </main>
       </div>

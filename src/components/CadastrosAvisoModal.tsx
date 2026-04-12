@@ -40,7 +40,14 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
     : aviso.tipo === "aviso" ? warning
     : aviso.confirmar ? error
     : warning;
-  const Icon = aviso.tipo === "sucesso" ? CheckCircle2 : aviso.confirmar ? Trash2 : AlertTriangle;
+  const Icon = aviso.tipo === "sucesso"
+    ? CheckCircle2
+    : aviso.tipo === "aviso"
+      ? AlertTriangle
+      : aviso.confirmar
+        ? Trash2
+        : AlertTriangle;
+  const confirmButtonBg = aviso.tipo === "aviso" ? warning : error;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/45 backdrop-blur-sm z-70 px-4 animate-fade-in">
@@ -78,7 +85,7 @@ export default function CadastrosAvisoModal({ aviso, onClose, colors }: Cadastro
                   onClose();
                 }}
                 className="flex-1 py-3 rounded-2xl text-xs font-bold text-white shadow-md active:scale-95 transition-all"
-                style={{ backgroundColor: error }}
+                style={{ backgroundColor: confirmButtonBg }}
               >
                 {aviso.labelConfirmar ?? "Confirmar"}
               </button>
