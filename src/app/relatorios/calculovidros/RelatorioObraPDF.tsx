@@ -15,6 +15,9 @@ const chunkArray = <T,>(items: T[], size: number): T[][] => {
   return chunks.length > 0 ? chunks : [[]]
 }
 
+const fmtMoeda = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+
 const extrairMedidasVao = (vao?: string | null) => {
   const partes = String(vao || "").split(/\s*[xX]\s*/)
   if (partes.length !== 2) {
@@ -90,6 +93,11 @@ type OtimizacaoGlobalItem = {
   aproveitamento: number
   desperdicioMm: number
   precoOtimizado: number
+  precoOriginal?: number
+  cortes?: number[]
+  qtdCortesLargura?: number
+  qtdCortesAltura?: number
+  qtdCortesOutros?: number
   barras?: Array<{
     numero: number
     cortes: number[]
@@ -297,6 +305,24 @@ const styles = StyleSheet.create({
   destaque: { fontWeight: "bold", color: "#0F172A" },
   barraLista: { marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
   barraLinha: { fontSize: 7.2, color: "#475569", marginBottom: 5 },
+  otimResumoGrid: { flexDirection: "row", gap: 6, marginBottom: 10 },
+  otimResumoBox: { flex: 1, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, backgroundColor: "#F8FAFC", padding: 8 },
+  otimResumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", fontWeight: "bold", marginBottom: 3 },
+  otimResumoValor: { fontSize: 10, color: "#0F172A", fontWeight: "bold" },
+  otimCard: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, marginBottom: 8, overflow: "hidden" },
+  otimCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", padding: 8, backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", gap: 8 },
+  otimCardLeft: { flex: 1 },
+  otimCardRight: { alignItems: "flex-end" },
+  otimCardTitle: { fontSize: 8.5, fontWeight: "bold", color: "#1E293B", marginBottom: 2 },
+  otimCardMeta: { fontSize: 7, color: "#94A3B8" },
+  otimCardPreco: { fontSize: 9, fontWeight: "bold", color: "#1E293B", marginBottom: 2 },
+  otimCardBody: { padding: 8 },
+  otimChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 6 },
+  otimChip: { backgroundColor: "#F1F5F9", borderRadius: 6, paddingVertical: 3, paddingHorizontal: 6 },
+  otimChipText: { fontSize: 7, color: "#475569", fontWeight: "bold" },
+  otimBodyLinha: { fontSize: 7.5, color: "#64748B", marginBottom: 4 },
+  otimBarraLista: { marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
+  otimBarraLinha: { fontSize: 7, color: "#475569", marginBottom: 3 },
   footer: {
     position: "absolute", bottom: 18, left: 32, right: 32,
     textAlign: "center", fontSize: 8, color: "#94A3B8",
@@ -524,28 +550,102 @@ export function RelatorioObraPDF({
           </View>
 
           <Text style={styles.sectionTitle}>Fechamento Global e Depois Detalhe Individual</Text>
-          {paginaIndex === 0 && otimizacaoGlobal.length > 0 && (
-            <View style={styles.bloco}>
-              <Text style={styles.blocoTitulo}>Global - Fechamento de Perfis</Text>
-              <Text style={styles.blocoSubtitulo}>Consolidação de todos os itens da obra antes do detalhamento individual.</Text>
-              {otimizacaoGlobal.map((item) => (
-                <View key={item.id} style={styles.blocoSemMargem}>
-                  <Text style={styles.linha}>
-                    <Text style={styles.destaque}>{item.perfilCodigo || "-"} | {item.perfilNome}:</Text> origem {item.projetoNome} | cor {item.corMaterial} | {item.qtdBarrasOriginal} barras separadas / {item.qtdBarrasOtimizada} barras no global | aproveitamento {item.aproveitamento}% | desperdício {item.desperdicioMm} mm
-                  </Text>
-                  {Array.isArray(item.barras) && item.barras.length > 0 && (
-                    <View style={styles.barraLista}>
-                      {item.barras.map((barra) => (
-                        <Text key={`${item.id}-barra-${barra.numero}`} style={styles.barraLinha}>
-                          Barra {barra.numero}: cortes {barra.cortes.join(" · ")} mm | usado {barra.usadoMm} mm | sobra {barra.sobraMm} mm
-                        </Text>
-                      ))}
+          {paginaIndex === 0 && otimizacaoGlobal.length > 0 && (() => {
+            const resumoOtim = otimizacaoGlobal.reduce(
+              (acc, item) => ({
+                barrasOriginais: acc.barrasOriginais + item.qtdBarrasOriginal,
+                barrasOtimizadas: acc.barrasOtimizadas + item.qtdBarrasOtimizada,
+                precoOriginal: acc.precoOriginal + (item.precoOriginal ?? 0),
+                precoOtimizado: acc.precoOtimizado + item.precoOtimizado,
+              }),
+              { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0 }
+            )
+            const economiaValor = Math.max(0, resumoOtim.precoOriginal - resumoOtim.precoOtimizado)
+            return (
+              <View style={styles.bloco}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <View>
+                    <Text style={[styles.blocoTitulo, { fontSize: 10 }]}>Otimização de Perfis Consolidada</Text>
+                    <Text style={styles.blocoSubtitulo}>Consolida medidas de todos os itens para aproveitar barras antes de definir a compra final.</Text>
+                  </View>
+                  {economiaValor > 0 && (
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={[styles.blocoSubtitulo, { marginBottom: 2 }]}>Economia potencial</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "bold", color: themeColor }}>{fmtMoeda(economiaValor)}</Text>
                     </View>
                   )}
                 </View>
-              ))}
-            </View>
-          )}
+
+                <View style={styles.otimResumoGrid}>
+                  {[
+                    { label: "Barras Individuais", valor: String(resumoOtim.barrasOriginais) },
+                    { label: "Barras Consolidadas", valor: String(resumoOtim.barrasOtimizadas) },
+                    { label: "Valor Individual", valor: fmtMoeda(resumoOtim.precoOriginal) },
+                    { label: "Valor Consolidado", valor: fmtMoeda(resumoOtim.precoOtimizado) },
+                  ].map(({ label, valor }) => (
+                    <View key={label} style={styles.otimResumoBox}>
+                      <Text style={styles.otimResumoLabel}>{label}</Text>
+                      <Text style={styles.otimResumoValor}>{valor}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {otimizacaoGlobal.map((item) => (
+                  <View key={item.id} style={styles.otimCard} wrap={false}>
+                    <View style={styles.otimCardHeader}>
+                      <View style={styles.otimCardLeft}>
+                        <Text style={styles.otimCardTitle}>{item.projetoNome} · {item.perfilNome}</Text>
+                        <Text style={styles.otimCardMeta}>
+                          Cor: {item.corMaterial} · Barra: {item.comprimentoBarra} mm{item.cortes ? ` · ${item.cortes.length} corte(s)` : ""}
+                        </Text>
+                      </View>
+                      <View style={styles.otimCardRight}>
+                        <Text style={styles.otimCardPreco}>{fmtMoeda(item.precoOtimizado)}</Text>
+                        <Text style={styles.otimCardMeta}>{item.qtdBarrasOriginal} individual · {item.qtdBarrasOtimizada} consolidada(s)</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.otimCardBody}>
+                      <View style={styles.otimChipsRow}>
+                        <View style={styles.otimChip}>
+                          <Text style={styles.otimChipText}>Aproveitamento {item.aproveitamento}%</Text>
+                        </View>
+                        <View style={styles.otimChip}>
+                          <Text style={styles.otimChipText}>Desperdício {item.desperdicioMm} mm</Text>
+                        </View>
+                        {item.precoOriginal !== undefined && item.precoOriginal > item.precoOtimizado && (
+                          <View style={styles.otimChip}>
+                            <Text style={styles.otimChipText}>Economia {fmtMoeda(Math.max(0, item.precoOriginal - item.precoOtimizado))}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {item.cortes && item.cortes.length > 0 && (
+                        <Text style={styles.otimBodyLinha}>Cortes agrupados: {item.cortes.join(" · ")} mm</Text>
+                      )}
+
+                      {item.qtdCortesLargura !== undefined && (
+                        <Text style={styles.otimBodyLinha}>
+                          Origem dos cortes: Largura {item.qtdCortesLargura} · Altura {item.qtdCortesAltura} · Outros {item.qtdCortesOutros}
+                        </Text>
+                      )}
+
+                      {Array.isArray(item.barras) && item.barras.length > 0 && (
+                        <View style={styles.otimBarraLista}>
+                          <Text style={[styles.otimBarraLinha, { fontWeight: "bold", marginBottom: 4 }]}>Barras consolidadas:</Text>
+                          {item.barras.map((barra) => (
+                            <Text key={`${item.id}-barra-${barra.numero}`} style={styles.otimBarraLinha}>
+                              #{barra.numero}: {barra.cortes.join(" · ")} mm · usado {barra.usadoMm} mm · sobra {barra.sobraMm} mm
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )
+          })()}
 
           {paginaIndex === 0 && ferragensGlobal.length > 0 && (
             <View style={styles.bloco}>

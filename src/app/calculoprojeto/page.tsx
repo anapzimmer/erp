@@ -423,8 +423,6 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
   return drawingArquivoNorm.includes(restricaoNorm) || drawingLabelNorm.includes(restricaoNorm)
 }
 
-const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
 const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
   const stem = String(arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
 
@@ -612,7 +610,7 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
       }
     })
-    .filter((item): item is ItemCalculoProjeto => item !== null)
+    .filter((item): item is ItemCalculoProjeto => item !== null && validarItemCalculoProjeto(item))
 
   return itensNormalizados.length > 0 ? itensNormalizados : [criarItemCalculoProjeto()]
 }
@@ -1378,8 +1376,14 @@ export default function CalculoProjetoPage() {
     setResultados((prev) => prev.filter((item) => item.itemId !== id))
   }
 
-  const getProjeto = (item: ItemCalculoProjeto) => projetos.find((projeto) => projeto.id === item.projetoId) || null
-  const getDetalhe = (item: ItemCalculoProjeto) => (item.projetoId ? detalhesProjetos[item.projetoId] || null : null)
+  const getProjeto = useCallback(
+    (item: ItemCalculoProjeto) => projetos.find((projeto) => projeto.id === item.projetoId) || null,
+    [projetos]
+  )
+  const getDetalhe = useCallback(
+    (item: ItemCalculoProjeto) => (item.projetoId ? detalhesProjetos[item.projetoId] || null : null),
+    [detalhesProjetos]
+  )
   const getVidro = (item: ItemCalculoProjeto) => vidrosDB.find((vidro) => vidro.id === item.vidroId) || null
 
   const projetosSemKitNoCalculo = useMemo(() => {
@@ -1415,7 +1419,7 @@ export default function CalculoProjetoPage() {
         motivo: "sem kit cadastrado",
       }]
     })
-  }, [detalhesProjetos, itensCalculo, projetos])
+  }, [getDetalhe, getProjeto, itensCalculo])
 
   const confirmarProjetoSemKitNoCalculo = useCallback((acao: () => void) => {
     if (projetosSemKitNoCalculo.length === 0) {
@@ -1507,7 +1511,7 @@ export default function CalculoProjetoPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
   }, [desenhosDisponiveisCadastro, desenhosPasta])
 
-  const getRestricoesProjeto = (item: ItemCalculoProjeto) => {
+  const getRestricoesProjeto = useCallback((item: ItemCalculoProjeto) => {
     const detalhe = getDetalhe(item)
     const brutos = [
       ...(detalhe?.folhas || []).map((folha) => folha.variacao_restrita),
@@ -1516,7 +1520,7 @@ export default function CalculoProjetoPage() {
       ...(detalhe?.perfis || []).map((perfil) => perfil.variacao_restrita),
     ]
     return brutos.flatMap(v => v ? String(v).split(",").map(s => s.trim()).filter(Boolean) : [null])
-  }
+  }, [getDetalhe])
 
   const getVariacoesDesenhoDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
     const projeto = getProjeto(item)
@@ -1531,8 +1535,10 @@ export default function CalculoProjetoPage() {
     return Array.from(mapa.values())
   }
 
-  const getGruposVariacaoTecnica = (item: ItemCalculoProjeto) =>
-    getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item))
+  const getGruposVariacaoTecnica = useCallback(
+    (item: ItemCalculoProjeto) => getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item)),
+    [getRestricoesProjeto]
+  )
 
   const getQuantidadeFolhasAplicaveis = (item: ItemCalculoProjeto): number => {
     const detalhe = getDetalhe(item)
@@ -1579,13 +1585,16 @@ export default function CalculoProjetoPage() {
     }).reduce((total, folha) => total + Math.max(1, Number(folha.quantidade_folhas || 1)), 0)
   }
 
-  const formatarResumoVariacaoSelecionada = (variacaoDrawing?: string | null, variacaoTecnica?: string | null) =>
-    [
-      variacaoTecnica ? formatarVariacaoTecnica(variacaoTecnica) : "",
-      variacaoDrawing
-        ? (nomesVariacaoPersonalizados[variacaoDrawing]?.trim() || formatarLabelVariacaoArquivo(variacaoDrawing))
-        : "",
-    ].filter(Boolean).join(" · ")
+  const formatarResumoVariacaoSelecionada = useCallback(
+    (variacaoDrawing?: string | null, variacaoTecnica?: string | null) =>
+      [
+        variacaoTecnica ? formatarVariacaoTecnica(variacaoTecnica) : "",
+        variacaoDrawing
+          ? (nomesVariacaoPersonalizados[variacaoDrawing]?.trim() || formatarLabelVariacaoArquivo(variacaoDrawing))
+          : "",
+      ].filter(Boolean).join(" · "),
+    [nomesVariacaoPersonalizados]
+  )
 
   const formatarLabelTrilho = (trilho?: TrilhoPorta | "" | null) => {
     if (trilho === "aparente") return "Aparente"
@@ -1641,7 +1650,7 @@ export default function CalculoProjetoPage() {
 
       return houveMudanca ? atualizados : prev
     })
-  }, [detalhesProjetos, projetos])
+  }, [getGruposVariacaoTecnica])
 
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
@@ -1782,6 +1791,11 @@ export default function CalculoProjetoPage() {
         aproveitamento: grupo.aproveitamento,
         desperdicioMm: grupo.desperdicioMm,
         precoOtimizado: grupo.precoOtimizado,
+        precoOriginal: grupo.precoOriginal,
+        cortes: grupo.cortes,
+        qtdCortesLargura: grupo.qtdCortesLargura,
+        qtdCortesAltura: grupo.qtdCortesAltura,
+        qtdCortesOutros: grupo.qtdCortesOutros,
         barras: grupo.barras,
       }))
       .sort((a, b) => {
@@ -1872,12 +1886,7 @@ export default function CalculoProjetoPage() {
         })),
       }
     })
-  }, [perfisDB, ferragensDB, resultados])
-
-  const indiceProjetoPorItemId = useMemo(
-    () => new Map(relatorioObra.map((obra, index) => [obra.itemId, index + 1])),
-    [relatorioObra]
-  )
+  }, [ferragensDB, formatarResumoVariacaoSelecionada, nomesVariacaoPersonalizados, perfisDB, resultados])
 
   const dadosOrcamentoComercial = useMemo(() => {
     const totalPerfisOriginalBarra = resultados.reduce((acc, resultadoProjeto) => {
@@ -1939,7 +1948,12 @@ export default function CalculoProjetoPage() {
       }, 0),
       totalPecas: resultados.reduce((acc, resultadoProjeto) => acc + resultadoProjeto.qtdProjeto, 0),
     }
-  }, [otimizacaoGlobalPerfis.grupos, resultados])
+  }, [
+    formatarResumoVariacaoSelecionada,
+    nomesVariacaoPersonalizados,
+    otimizacaoGlobalPerfis.resumo.precoOtimizado,
+    resultados,
+  ])
 
   const executarCalculoTodos = () => {
     if (!clienteId) {
