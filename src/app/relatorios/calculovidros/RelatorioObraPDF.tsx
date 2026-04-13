@@ -32,6 +32,9 @@ type RelatorioObraItem = {
   projetoNome: string
   desenhoUrl?: string | null
   variacaoLabel?: string | null
+  ehPorta?: boolean
+  especificacaoDesenho?: string | null
+  trilhoLabel?: string | null
   quantidade: number
   vao: string
   vidro: string
@@ -41,6 +44,7 @@ type RelatorioObraItem = {
   folhas: Array<{
     id: string
     titulo: string
+    quantidadeFolhas: number
     medida: string
     medidaCalc: string
     area: number
@@ -366,7 +370,7 @@ export function RelatorioObraPDF({
             </View>
             <View style={styles.coverInfoBox}>
               <Text style={styles.coverInfoLabel}>Obra</Text>
-              <Text style={styles.coverInfoValue}>{nomeObra || "Composição de Projetos"}</Text>
+              <Text style={styles.coverInfoValue}>{nomeObra || "Composição de Itens"}</Text>
             </View>
             <View style={styles.coverInfoBox}>
               <Text style={styles.coverInfoLabel}>Emissão</Text>
@@ -375,7 +379,7 @@ export function RelatorioObraPDF({
 
             <View style={styles.coverResumoGrid}>
               <View style={styles.coverResumoBox}>
-                <Text style={styles.coverResumoLabel}>Projetos</Text>
+                <Text style={styles.coverResumoLabel}>Itens</Text>
                 <Text style={styles.coverResumoValor}>{resumo.projetos}</Text>
               </View>
               <View style={styles.coverResumoBox}>
@@ -393,26 +397,26 @@ export function RelatorioObraPDF({
             </View>
 
             <View style={styles.coverModesWrap}>
-              <Text style={styles.coverModesTitle}>Classificação dos Projetos</Text>
+              <Text style={styles.coverModesTitle}>Classificação dos Itens</Text>
               <View style={styles.coverModesRow}>
                 <View style={styles.coverModesBox}>
                   <Text style={[styles.coverModesLabel, { color: "#166534" }]}>Modo Kit ({projetosKit.length})</Text>
                   {projetosKit.length > 0 ? projetosKit.map((obra) => (
                     <Text key={`kit-${obra.itemId}`} style={styles.coverModesLine}>
-                      Projeto {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
+                      Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
                     </Text>
                   )) : (
-                    <Text style={styles.coverModesLine}>Nenhum projeto em modo kit.</Text>
+                    <Text style={styles.coverModesLine}>Nenhum item em modo kit.</Text>
                   )}
                 </View>
                 <View style={styles.coverModesBox}>
                   <Text style={[styles.coverModesLabel, { color: "#92400E" }]}>Modo Barra ({projetosBarra.length})</Text>
                   {projetosBarra.length > 0 ? projetosBarra.map((obra) => (
                     <Text key={`barra-${obra.itemId}`} style={styles.coverModesLine}>
-                      Projeto {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
+                      Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
                     </Text>
                   )) : (
-                    <Text style={styles.coverModesLine}>Nenhum projeto em modo barra.</Text>
+                    <Text style={styles.coverModesLine}>Nenhum item em modo barra.</Text>
                   )}
                 </View>
               </View>
@@ -423,7 +427,7 @@ export function RelatorioObraPDF({
         <View style={styles.coverBottom}>
           <Text style={styles.coverBottomText}>Caderno 1: desenhos e vidros</Text>
           <Text style={styles.coverBottomText}>Caderno 2: ferragens e otimização</Text>
-          <Text style={styles.coverBottomText}>A numeração dos projetos é mantida igual nos dois cadernos para facilitar a conferência.</Text>
+          <Text style={styles.coverBottomText}>A numeração dos itens é mantida igual nos dois cadernos para facilitar a conferência.</Text>
         </View>
 
         <Text
@@ -440,18 +444,24 @@ export function RelatorioObraPDF({
               <Text style={[styles.titulo, { color: themeColor }]}>Relatório Técnico da Obra</Text>
               <Text style={styles.subtitulo}>Caderno 1: desenhos e vidros</Text>
               <Text style={styles.subtitulo}>Emissão em: {new Date().toLocaleDateString("pt-BR")}</Text>
-              <Text style={styles.pageBadge}>Projeto {indicesProjetos.get(obra.itemId)} - Desenhos e Vidros</Text>
+              <Text style={styles.pageBadge}>Item {indicesProjetos.get(obra.itemId)} - Desenhos e Vidros</Text>
             </View>
             {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
 
           <View style={styles.desenhoPaginaBloco}>
-            <Text style={styles.cardTitle}>Projeto {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
+            <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
             <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
             <Text style={styles.cardMeta}>
               Material {obra.corMaterial} · Modo {obra.modoCalculo}
               {obra.variacaoLabel ? ` · Variação ${obra.variacaoLabel}` : ""}
             </Text>
+            {obra.ehPorta && obra.especificacaoDesenho && (
+              <Text style={styles.cardMeta}>Especificação do desenho: {obra.especificacaoDesenho}</Text>
+            )}
+            {obra.ehPorta && obra.trilhoLabel && (
+              <Text style={styles.cardMeta}>Tipo do trilho: {obra.trilhoLabel}</Text>
+            )}
             <View style={styles.destaqueVao}>
               <Text style={styles.destaqueVaoTexto}>Quantidade de vãos: {obra.quantidade}</Text>
             </View>
@@ -484,10 +494,10 @@ export function RelatorioObraPDF({
             </View>
 
             <View style={styles.blocoSemMargem}>
-              <Text style={styles.blocoTitulo}>Folhas do Projeto</Text>
+              <Text style={styles.blocoTitulo}>Folhas do Item</Text>
               {obra.folhas.map((folha) => (
                 <Text key={folha.id} style={styles.linha}>
-                  <Text style={styles.destaque}>{folha.titulo}:</Text> {folha.medida} | qtd. {obra.quantidade} | {folha.area.toFixed(3)} m²
+                  <Text style={styles.destaque}>{folha.titulo}:</Text> {folha.medida} | qtd. {folha.quantidadeFolhas * obra.quantidade} | {folha.area.toFixed(3)} m²
                 </Text>
               ))}
             </View>
@@ -517,7 +527,7 @@ export function RelatorioObraPDF({
           {paginaIndex === 0 && otimizacaoGlobal.length > 0 && (
             <View style={styles.bloco}>
               <Text style={styles.blocoTitulo}>Global - Fechamento de Perfis</Text>
-              <Text style={styles.blocoSubtitulo}>Consolidação de todos os projetos da obra antes do detalhamento individual.</Text>
+              <Text style={styles.blocoSubtitulo}>Consolidação de todos os itens da obra antes do detalhamento individual.</Text>
               {otimizacaoGlobal.map((item) => (
                 <View key={item.id} style={styles.blocoSemMargem}>
                   <Text style={styles.linha}>
@@ -540,7 +550,7 @@ export function RelatorioObraPDF({
           {paginaIndex === 0 && ferragensGlobal.length > 0 && (
             <View style={styles.bloco}>
               <Text style={styles.blocoTitulo}>Global - Fechamento de Ferragens</Text>
-              <Text style={styles.blocoSubtitulo}>Quantidade total somada da obra inteira, sem separar por projeto.</Text>
+              <Text style={styles.blocoSubtitulo}>Quantidade total somada da obra inteira, sem separar por item.</Text>
               {ferragensGlobal.map((ferragem) => (
                 <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={styles.blocoSemMargem}>
                   <Text style={styles.linha}>
@@ -553,16 +563,16 @@ export function RelatorioObraPDF({
 
           {paginaIndex === 0 && (
             <View style={styles.blocoSemContorno}>
-              <Text style={styles.blocoTitulo}>Individual - Projetos Separados</Text>
-              <Text style={styles.blocoSubtitulo}>A partir daqui, cada bloco mostra apenas o detalhe daquele projeto.</Text>
+              <Text style={styles.blocoTitulo}>Individual - Itens Separados</Text>
+              <Text style={styles.blocoSubtitulo}>A partir daqui, cada bloco mostra apenas o detalhe daquele item.</Text>
             </View>
           )}
 
           {pagina.map((obra) => (
             <View key={`${obra.itemId}-estrutura`} style={styles.card} wrap={false}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>Projeto {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
-                <Text style={styles.cardMeta}>Individual deste projeto · Modo {obra.modoCalculo} · Cor {obra.corMaterial} · Quantidade {obra.quantidade}</Text>
+                <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
+                <Text style={styles.cardMeta}>Individual deste item · Modo {obra.modoCalculo} · Cor {obra.corMaterial} · Quantidade {obra.quantidade}</Text>
               </View>
 
               <View style={styles.cardBody}>
@@ -587,7 +597,7 @@ export function RelatorioObraPDF({
                 </View>
 
                 <View style={styles.blocoSemMargem}>
-                  <Text style={styles.blocoTitulo}>Otimização por Projeto</Text>
+                  <Text style={styles.blocoTitulo}>Otimização por Item</Text>
                   {obra.otimizacao.length > 0 ? obra.otimizacao.map((item) => (
                     <View key={item.id} style={styles.blocoSemMargem}>
                       <Text style={styles.linha}>

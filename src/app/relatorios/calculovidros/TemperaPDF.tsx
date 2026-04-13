@@ -12,6 +12,8 @@ type TemperaItem = {
   descricao: string
   desenhoUrl?: string
   corVidro?: string
+  especificacaoDesenho?: string
+  trilhoLabel?: string
   vao?: string
   qtd?: number
 }
@@ -152,7 +154,7 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
             <View style={styles.headerLeft}>
               <Text style={[styles.titulo, { color: themeColor }]}>Tempera</Text>
               <Text style={styles.subtitulo}>Cliente: {nomeCliente || "Nao informado"}</Text>
-              <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Projetos"}</Text>
+              <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Itens"}</Text>
             </View>
             {logoUrl && <PdfImage src={logoUrl} style={styles.logo} />}
           </View>
@@ -160,8 +162,10 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
           <View style={styles.bloco}>
             <Text style={styles.blocoTitulo}>{item.descricao}</Text>
             <Text style={styles.blocoMeta}>Cor do vidro: {item.corVidro || "-"}</Text>
+            {item.especificacaoDesenho ? <Text style={styles.blocoMeta}>Especificação do desenho: {item.especificacaoDesenho}</Text> : null}
+            {item.trilhoLabel ? <Text style={styles.blocoMeta}>Tipo do trilho: {item.trilhoLabel}</Text> : null}
             <View style={styles.destaqueVao}>
-              <Text style={styles.destaqueVaoTexto}>Quantidade de vaos: {item.qtd || 1}</Text>
+              <Text style={styles.destaqueVaoTexto}>Quantidade de vãos: {item.qtd || 1}</Text>
             </View>
 
             {(() => {
@@ -211,11 +215,11 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
             <View style={styles.headerLeft}>
               <Text style={[styles.titulo, { color: themeColor }]}>Tempera</Text>
               <Text style={styles.subtitulo}>Cliente: {nomeCliente || "Nao informado"}</Text>
-              <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Projetos"}</Text>
+              <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Itens"}</Text>
             </View>
             {logoUrl && <PdfImage src={logoUrl} style={styles.logo} />}
           </View>
-          <Text style={styles.blocoMeta}>Nenhum desenho disponivel para os projetos calculados.</Text>
+          <Text style={styles.blocoMeta}>Nenhum desenho disponivel para os itens calculados.</Text>
         </Page>
       )}
     </Document>

@@ -47,6 +47,7 @@ type TrilhoPorta = "aparente" | "interrompido" | "embutido"
 type ProjetoDetalhe = {
   folhas: Array<{
     numero_folha: number
+    quantidade_folhas: number
     tipo_folha: string
     formula_largura: string
     formula_altura: string
@@ -79,6 +80,7 @@ type ProjetoDetalhe = {
     qtd_altura: number
     qtd_outros: number
     variacao_restrita: string | null
+    espessura_vidro_restrita?: string | null
     condicao?: string | null
     usar_no_kit?: boolean
     altura_max_kit?: number | null
@@ -123,6 +125,7 @@ type PerfilItem = {
 // Item de resultado de cálculo de folha
 type FolhaCalculada = {
   numero: number
+  quantidadeFolhas: number
   tipo: string
   largura: number
   altura: number
@@ -196,6 +199,7 @@ type ResultadoProjetoCalculado = {
   desenhoProjeto: string | null
   variacaoDrawing: string
   variacaoTecnica: string
+  variacaoTrilho: ItemCalculoProjeto["variacaoTrilho"]
   vidro: VidroItem | null
   qtdProjeto: number
   larguraProjeto: number
@@ -211,6 +215,8 @@ type ItemPreviewOrcamento = {
   descricao: string
   desenhoUrl?: string
   tipo?: string
+  especificacaoDesenho?: string
+  trilhoLabel?: string
   medidaReal: string
   medidaCalc: string
   qtd: number
@@ -247,7 +253,9 @@ const VARIACAO_TOKEN = "__VARIACAO__="
 const COND_TOKEN = "__COND__="
 const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
 const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
+const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 const TRILHO_TOKEN = "__TRILHO__="
+const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -282,6 +290,38 @@ const extrairAlturaMaxKitDoTexto = (valor?: string | null): number | null => {
   return Number.isFinite(num) && num > 0 ? num : null
 }
 
+const extrairEspessuraVidroDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(ESPESSURA_VIDRO_TOKEN))
+
+  const espessura = linha ? linha.slice(ESPESSURA_VIDRO_TOKEN.length).trim() : ""
+  return espessura || null
+}
+
+const extrairNumeroEspessura = (valor?: string | null): number | null => {
+  const texto = String(valor || "").trim().replace(",", ".")
+  if (!texto) return null
+
+  const match = texto.match(/(\d+(?:\.\d+)?)/)
+  if (!match) return null
+
+  const numero = Number(match[1])
+  return Number.isFinite(numero) ? numero : null
+}
+
+const extrairQuantidadeFolhasDoNome = (valor?: string | null): number | null => {
+  const texto = String(valor || "").toLowerCase()
+  if (!texto) return null
+
+  const match = texto.match(/(\d+)\s*(?:fls?|folhas?)/i) || texto.match(/(\d+)fls?/i)
+  if (!match) return null
+
+  const numero = Number(match[1])
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : null
+}
+
 const extrairVariacaoDoTexto = (valor?: string | null) => {
   const texto = String(valor || "")
   const linhaVariacao = texto
@@ -306,6 +346,16 @@ const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
   
   const trilhos = trilhosStr.split(",").map(t => t.trim()).filter(t => ["aparente", "interrompido", "embutido"].includes(t))
   return trilhos.length > 0 ? trilhos.join(",") : null
+}
+
+const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
+  const linhaQtd = String(valor || "")
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(QTD_FOLHA_TOKEN))
+
+  const numero = linhaQtd ? Number(linhaQtd.slice(QTD_FOLHA_TOKEN.length).trim()) : 1
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 1
 }
 
 type VariacaoProjetoOpcao = {
@@ -375,9 +425,32 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
 
 const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
-const obterBaseFamiliaDesenho = (arquivo: string): string => {
+const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
   const stem = String(arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
-  return stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*|ci|cs)$/i, "")
+
+  if (/^box-/i.test(stem)) return null
+
+  if (/^porta\d+fls-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/i, "")
+  }
+
+  if (/^deslizante-\d+fls-(ci|cs)(-(simples\d*|completo\d*|completa\d*))?$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+  }
+
+  if (/^pma-\d+fs-(simples\d*|completo\d*|completa\d*)$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+  }
+
+  if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*))?$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+  }
+
+  if (/^(portagiro|portaforavao)-\d+fls(completo|completa)?$/i.test(stem)) {
+    return stem.replace(/(completo|completa)$/i, "")
+  }
+
+  return null
 }
 
 const getVariacoesAutomaticasProjeto = (
@@ -421,35 +494,36 @@ const getVariacoesAutomaticasProjeto = (
     adicionarVariacao(arquivoCS, "CS")
   }
 
-  const baseFamilia = obterBaseFamiliaDesenho(arquivoAtual)
+  const chaveFamiliaAtual = obterChaveFamiliaVariacao(arquivoAtual)
 
-  const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-([^.]+)\\.(png|jpe?g|webp|gif|svg)$`, "i")
-  Array.from(disponiveis)
-    .filter((arquivo) => regexFamilia.test(arquivo))
-    .sort((a, b) => {
-      const aNome = a.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
-      const bNome = b.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
+  if (chaveFamiliaAtual) {
+    Array.from(disponiveis)
+      .filter((arquivo) => arquivo !== arquivoAtual && obterChaveFamiliaVariacao(arquivo) === chaveFamiliaAtual)
+      .sort((a, b) => {
+        const aNome = a.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
+        const bNome = b.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").split("-").pop() || ""
 
-      const rank = (nomeVersao: string) => {
-        if (/^simples\d*$/i.test(nomeVersao)) return 0
-        if (/^puxador\d*$/i.test(nomeVersao)) return 1
-        if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
-        if (/^completo$|^completa$/i.test(nomeVersao)) return 3
-        if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 4
-        return 5
-      }
+        const rank = (nomeVersao: string) => {
+          if (/^simples\d*$/i.test(nomeVersao)) return 0
+          if (/^puxador\d*$/i.test(nomeVersao)) return 1
+          if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
+          if (/^completo$|^completa$/i.test(nomeVersao)) return 3
+          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 4
+          return 5
+        }
 
-      const rankA = rank(aNome)
-      const rankB = rank(bNome)
-      if (rankA !== rankB) return rankA - rankB
+        const rankA = rank(aNome)
+        const rankB = rank(bNome)
+        if (rankA !== rankB) return rankA - rankB
 
-      const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
-      const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
-      if (numA !== numB) return numA - numB
+        const numA = Number((aNome.match(/(\d+)$/) || ["", "0"])[1])
+        const numB = Number((bNome.match(/(\d+)$/) || ["", "0"])[1])
+        if (numA !== numB) return numA - numB
 
-      return a.localeCompare(b, "pt-BR")
-    })
-    .forEach((arquivo) => adicionarVariacao(arquivo))
+        return a.localeCompare(b, "pt-BR")
+      })
+      .forEach((arquivo) => adicionarVariacao(arquivo))
+  }
 
   return variacoes
 }
@@ -690,6 +764,7 @@ const calcularProjeto = (params: {
       return trilhosPermitidos.includes(variacaoTrilho)
     })
     .map(f => {
+    const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
     const w = Math.max(avaliarFormula(f.formula_largura, vars), 0)
     const h = Math.max(avaliarFormula(f.formula_altura, vars), 0)
     const wR = arred50(w)
@@ -697,6 +772,7 @@ const calcularProjeto = (params: {
     const area = Math.max((wR * hR) / 1_000_000, 0.25)
     return {
       numero: f.numero_folha,
+      quantidadeFolhas,
       tipo: f.tipo_folha,
       largura: Math.round(w),
       altura: Math.round(h),
@@ -705,7 +781,7 @@ const calcularProjeto = (params: {
       area,
       vidro: vidroSelecionado,
       precoM2Utilizado: precoVidroM2,
-      precoVidro: area * precoVidroM2 * qtd,
+      precoVidro: area * precoVidroM2 * qtd * quantidadeFolhas,
     }
   })
 
@@ -719,6 +795,7 @@ const calcularProjeto = (params: {
     // kits do projeto filtrados pela variação e espessura do vidro
     const kitsAplicaveis = detalhe.kits.filter(k => isAplicavel(k.variacao_restrita))
     const espessura = vidroSelecionado?.espessura || ""
+    const quantidadeFolhasProjeto = detalhe.folhas.reduce((total, folha) => total + Math.max(1, Number(folha.quantidade_folhas || 1)), 0)
 
     // Filtra por espessura (se contém o texto da espessura do vidro)
     const kitsFiltrados = kitsAplicaveis.filter(k =>
@@ -747,9 +824,18 @@ const calcularProjeto = (params: {
       return candidatos.length > 0 ? candidatos : kitsFiltrados
     })()
 
+    const kitsPriorizadosPorFolhas = (() => {
+      const candidatos = kitsPreferenciais.filter((kitProj) => {
+        const dbKit = kitsDB.find((kit) => kit.id === kitProj.kit_id)
+        const quantidadeKit = extrairQuantidadeFolhasDoNome(dbKit?.nome)
+        return quantidadeKit !== null && quantidadeKit === quantidadeFolhasProjeto
+      })
+      return candidatos.length > 0 ? candidatos : kitsPreferenciais
+    })()
+
     // Escolhe pelo menor delta (distância euclidiana entre L×A e largura_referencia×altura_referencia)
     let menorDelta = Infinity
-    for (const kitProj of kitsPreferenciais) {
+    for (const kitProj of kitsPriorizadosPorFolhas) {
       const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
       if (!dbKit) continue
       const delta = Math.abs(largura - kitProj.largura_referencia) + Math.abs(altura - kitProj.altura_referencia)
@@ -828,6 +914,10 @@ const calcularProjeto = (params: {
   if (calcularPerfisNesteModo) {
     const perfisAplicaveis = detalhe.perfis
       .filter((p) => {
+        const espessuraPerfil = String(p.espessura_vidro_restrita || "").trim().toLowerCase()
+        const espessuraAtual = String(vidroSelecionado?.espessura || "").trim().toLowerCase()
+        const espessuraPerfilNumero = extrairNumeroEspessura(espessuraPerfil)
+        const espessuraAtualNumero = extrairNumeroEspessura(espessuraAtual)
         const condicaoExiste = Boolean(String(p.condicao || "").trim())
         const possuiRestricaoKit = String(p.variacao_restrita || "")
           .split(",")
@@ -846,6 +936,15 @@ const calcularProjeto = (params: {
 
         if (!podeNoModoAtual) return false
         if (!isAplicavel(p.variacao_restrita)) return false
+        if (espessuraPerfil) {
+          if (espessuraPerfilNumero !== null && espessuraAtualNumero !== null) {
+            if (Math.abs(espessuraPerfilNumero - espessuraAtualNumero) > 0.001) return false
+          } else {
+            const espPerfilLimpa = espessuraPerfil.replace(/\s+/g, "")
+            const espAtualLimpa = espessuraAtual.replace(/\s+/g, "")
+            if (!espAtualLimpa || (!espPerfilLimpa.includes(espAtualLimpa) && !espAtualLimpa.includes(espPerfilLimpa))) return false
+          }
+        }
         return !condicaoExiste || avaliarCondicao(p.condicao, vars)
       })
       .sort((a, b) => {
@@ -946,10 +1045,10 @@ export default function CalculoProjetoPage() {
 
   // ── Resultado ──
   const [resultados, setResultados] = useState<ResultadoProjetoCalculado[]>([])
-  const [abaResultados, setAbaResultados] = useState<"resumo" | "relatorio" | "otimizacao">("resumo")
+  const [abaResultados, setAbaResultados] = useState<"resumo" | "caderno" | "otimizacao">("resumo")
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false)
   const [mostrarPreviewOrcamento, setMostrarPreviewOrcamento] = useState(false)
-  const [tipoPreviewPdf, setTipoPreviewPdf] = useState<"comercial" | "tecnico" | "tempera">("comercial")
+  const [tipoPreviewPdf, setTipoPreviewPdf] = useState<"comercial" | "caderno" | "tempera">("comercial")
   const [numeroOrcamentoEdicao, setNumeroOrcamentoEdicao] = useState<string | null>(null)
 
   // ── Modal avisos ──
@@ -1055,6 +1154,12 @@ export default function CalculoProjetoPage() {
   }, [empresaId])
 
   useEffect(() => {
+    if (!empresaId || typeof window === "undefined") return
+    const chave = `variacao-box:nomes:${empresaId}`
+    window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
+  }, [empresaId, nomesVariacaoPersonalizados])
+
+  useEffect(() => {
     const chave = getChaveRascunho()
     if (!chave || rascunhoRestauradoRef.current || typeof window === "undefined" || editId) return
 
@@ -1154,6 +1259,7 @@ export default function CalculoProjetoPage() {
             const meta = extrairVariacaoDoTexto(folha.observacao)
             return {
               ...folha,
+              quantidade_folhas: extrairQuantidadeFolhaDoTexto(folha.observacao),
               observacao: meta.textoLimpo,
               variacao_restrita: meta.variacao ?? null,
               trilho_restrito: extrairTrilhoDoTexto(folha.observacao),
@@ -1180,6 +1286,7 @@ export default function CalculoProjetoPage() {
             return {
               ...perfil,
               variacao_restrita: perfil.variacao_restrita ?? meta.variacao ?? null,
+              espessura_vidro_restrita: extrairEspessuraVidroDoTexto(perfil.tipo_fornecimento),
               condicao: extrairCondicaoDoTexto(perfil.tipo_fornecimento),
               usar_no_kit: extrairUsarNoKitDoTexto(perfil.tipo_fornecimento),
               altura_max_kit: extrairAlturaMaxKitDoTexto(perfil.tipo_fornecimento),
@@ -1393,35 +1500,12 @@ export default function CalculoProjetoPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
   }, [projetos])
 
-  const desenhosFallbackFamilia = useMemo(() => {
-    const set = new Set<string>()
-
-    projetos.forEach((projeto) => {
-      const arquivo = String(projeto.desenho || "").trim()
-      if (!arquivo) return
-
-      const match = arquivo.match(/^(.*?)(\.(png|jpe?g|webp|gif|svg))$/i)
-      if (!match) return
-
-      const stem = match[1]
-      const ext = match[2]
-      const base = stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/i, "")
-
-      ;["simples", "puxador", "comtrinco", "completo"].forEach((sufixo) => {
-        set.add(`${base}-${sufixo}${ext}`)
-      })
-    })
-
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
-  }, [projetos])
-
   const desenhosDisponiveis = useMemo(() => {
     const set = new Set<string>()
     desenhosDisponiveisCadastro.forEach((arquivo) => set.add(arquivo))
     desenhosPasta.forEach((arquivo) => set.add(arquivo))
-    desenhosFallbackFamilia.forEach((arquivo) => set.add(arquivo))
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
-  }, [desenhosDisponiveisCadastro, desenhosFallbackFamilia, desenhosPasta])
+  }, [desenhosDisponiveisCadastro, desenhosPasta])
 
   const getRestricoesProjeto = (item: ItemCalculoProjeto) => {
     const detalhe = getDetalhe(item)
@@ -1492,14 +1576,23 @@ export default function CalculoProjetoPage() {
       if (!f.trilho_restrito) return true
       const trilhosPermitidos = String(f.trilho_restrito).split(",").map((t) => t.trim())
       return trilhosPermitidos.includes(item.variacaoTrilho)
-    }).length
+    }).reduce((total, folha) => total + Math.max(1, Number(folha.quantidade_folhas || 1)), 0)
   }
 
   const formatarResumoVariacaoSelecionada = (variacaoDrawing?: string | null, variacaoTecnica?: string | null) =>
     [
       variacaoTecnica ? formatarVariacaoTecnica(variacaoTecnica) : "",
-      variacaoDrawing ? formatarLabelVariacaoArquivo(variacaoDrawing) : "",
+      variacaoDrawing
+        ? (nomesVariacaoPersonalizados[variacaoDrawing]?.trim() || formatarLabelVariacaoArquivo(variacaoDrawing))
+        : "",
     ].filter(Boolean).join(" · ")
+
+  const formatarLabelTrilho = (trilho?: TrilhoPorta | "" | null) => {
+    if (trilho === "aparente") return "Aparente"
+    if (trilho === "interrompido") return "Interrompido"
+    if (trilho === "embutido") return "Embutido"
+    return ""
+  }
 
   useEffect(() => {
     setItensCalculo((prev) => {
@@ -1702,12 +1795,20 @@ export default function CalculoProjetoPage() {
       const nomesPerfis = Array.from(new Set(itemResultado.resultado.cortes.map((corte) => corte.perfilNome)))
         .sort((a, b) => comparePerfisByNome(a, b))
       const variacaoLabel = formatarResumoVariacaoSelecionada(itemResultado.variacaoDrawing, itemResultado.variacaoTecnica) || null
+      const textoProjeto = `${itemResultado.projeto?.nome || ""} ${itemResultado.projeto?.categoria || ""} ${itemResultado.projeto?.desenho || ""}`.toLowerCase()
+      const ehPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+      const desenhoAtivo = itemResultado.desenhoProjeto || itemResultado.variacaoDrawing || itemResultado.projeto?.desenho || ""
 
       return {
         itemId: itemResultado.itemId,
         projetoNome: itemResultado.projeto?.nome || "Projeto",
         desenhoUrl: itemResultado.desenhoProjeto ? `/desenhos/${itemResultado.desenhoProjeto}` : null,
         variacaoLabel,
+        ehPorta,
+        especificacaoDesenho: desenhoAtivo
+          ? (nomesVariacaoPersonalizados[desenhoAtivo]?.trim() || formatarLabelVariacaoArquivo(desenhoAtivo))
+          : null,
+        trilhoLabel: itemResultado.variacaoTrilho ? formatarLabelTrilho(itemResultado.variacaoTrilho) : null,
         quantidade: itemResultado.qtdProjeto,
         vao: `${itemResultado.larguraProjeto} x ${itemResultado.alturaProjeto} mm`,
         vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
@@ -1717,6 +1818,7 @@ export default function CalculoProjetoPage() {
         folhas: itemResultado.resultado.folhas.map((folha) => ({
           id: `${itemResultado.itemId}-folha-${folha.numero}`,
           titulo: `Folha ${folha.numero} ${folha.tipo}`,
+          quantidadeFolhas: folha.quantidadeFolhas,
           medida: `${folha.largura} x ${folha.altura} mm`,
           medidaCalc: `${folha.larguraArredondada} x ${folha.alturaArredondada} mm`,
           area: folha.area,
@@ -1808,6 +1910,10 @@ export default function CalculoProjetoPage() {
         descricao: `${resultadoProjeto.projeto?.nome || "Projeto"}${variacaoProjeto ? ` (${variacaoProjeto})` : ""}`,
         desenhoUrl: resultadoProjeto.desenhoProjeto ? `/desenhos/${resultadoProjeto.desenhoProjeto}` : undefined,
         tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
+        especificacaoDesenho: resultadoProjeto.desenhoProjeto
+          ? (nomesVariacaoPersonalizados[resultadoProjeto.desenhoProjeto]?.trim() || formatarLabelVariacaoArquivo(resultadoProjeto.desenhoProjeto))
+          : undefined,
+        trilhoLabel: resultadoProjeto.variacaoTrilho ? formatarLabelTrilho(resultadoProjeto.variacaoTrilho) : undefined,
         medidaReal: vaoProjeto,
         medidaCalc: vaoProjeto,
         qtd: resultadoProjeto.qtdProjeto,
@@ -1907,6 +2013,7 @@ export default function CalculoProjetoPage() {
           : projeto.desenho || "").trim() || null,
         variacaoDrawing: variacaoDrawingAtiva,
         variacaoTecnica,
+        variacaoTrilho: item.variacaoTrilho,
         vidro,
         qtdProjeto: Math.max(1, Number(item.qtd || 1)),
         larguraProjeto: Number(item.largura),
@@ -2064,7 +2171,7 @@ export default function CalculoProjetoPage() {
     />
   )
 
-  const documentoPreviewTecnico = (
+  const documentoPreviewCaderno = (
     <RelatorioObraPDF
       nomeEmpresa={nomeEmpresa}
       logoUrl={theme.logoLightUrl ?? null}
@@ -2088,6 +2195,8 @@ export default function CalculoProjetoPage() {
         descricao: item.descricao,
         desenhoUrl: item.desenhoUrl,
         corVidro: item.corVidro,
+        especificacaoDesenho: item.especificacaoDesenho,
+        trilhoLabel: item.trilhoLabel,
         vao: item.vao,
         qtd: item.qtd,
       }))}
@@ -2241,8 +2350,8 @@ export default function CalculoProjetoPage() {
             <section ref={secaoProjetosRef} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">2. Projetos do Cliente</p>
-                  <p className="text-sm text-gray-500">Monte todos os vãos primeiro. As ações principais ficam no final da lista para evitar voltar ao topo.</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">2. Itens do Orçamento</p>
+                  <p className="text-sm text-gray-500">Monte os itens do orçamento e depois siga para o cálculo e conferência final.</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <button
@@ -2250,7 +2359,7 @@ export default function CalculoProjetoPage() {
                     onClick={adicionarProjetoNaFila}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
                   >
-                    <Plus size={14} /> Adicionar Projeto
+                    <Plus size={14} /> Adicionar Item
                   </button>
                   <button
                     type="button"
@@ -2259,7 +2368,7 @@ export default function CalculoProjetoPage() {
                     style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
                   >
                     {resultados.length > 0 ? <Eye size={14} /> : <Calculator size={14} />}
-                    {resultados.length > 0 ? "Ir para Resultado" : "Calcular Projetos"}
+                    {resultados.length > 0 ? "Ir para Resultado" : "Calcular Itens"}
                   </button>
                 </div>
               </div>
@@ -2276,6 +2385,16 @@ export default function CalculoProjetoPage() {
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
                 })
+                const getNomeVariacao = (value: string, fallback: string) => {
+                  const custom = nomesVariacaoPersonalizados[value]
+                  return custom && custom.trim() ? custom : fallback
+                }
+                const desenhoPreview = (item.variacaoDrawing && ehVariacaoDeDesenho(item.variacaoDrawing)
+                  ? item.variacaoDrawing
+                  : projetoSel?.desenho || "").trim()
+                const labelDesenhoPreview = desenhoPreview
+                  ? getNomeVariacao(desenhoPreview, formatarLabelVariacaoArquivo(desenhoPreview))
+                  : ""
                 // Detecção de características do projeto
                 const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
                 const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
@@ -2297,17 +2416,12 @@ export default function CalculoProjetoPage() {
                 const usandoPrecoEspecialVidro = getUsandoPrecoEspecial(item)
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
-                const getNomeVariacao = (value: string, fallback: string) => {
-                  const custom = nomesVariacaoPersonalizados[value]
-                  return custom && custom.trim() ? custom : fallback
-                }
-
                 return (
                   <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
-                        <p className="text-sm font-bold text-gray-700">{projetoSel?.nome || "Selecione a tipologia"}</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Item {index + 1}</p>
+                        <p className="text-sm font-bold text-gray-700">{projetoSel?.nome || "Selecione o projeto base"}</p>
                       </div>
                       {itensCalculo.length > 1 && (
                         <button
@@ -2322,7 +2436,7 @@ export default function CalculoProjetoPage() {
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Tipologia / Projeto</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Projeto Base</label>
                       <select
                         value={item.projetoId}
                         onChange={(e) => atualizarItem(item.id, "projetoId", e.target.value)}
@@ -2342,12 +2456,13 @@ export default function CalculoProjetoPage() {
                           className="relative w-24 h-24 rounded-2xl overflow-hidden border border-gray-100 shrink-0"
                           style={{ background: `linear-gradient(140deg, ${theme.menuBackgroundColor}0a, #f8fafc)` }}
                         >
-                          <Image src={`/desenhos/${projetoSel.desenho}`} alt={projetoSel.nome} fill className="object-contain p-2" />
+                          <Image src={`/desenhos/${desenhoPreview}`} alt={labelDesenhoPreview || projetoSel.nome} fill className="object-contain p-2" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Item {index + 1}</p>
                           <p className="font-black text-sm" style={{ color: theme.contentTextLightBg }}>{projetoSel.nome}</p>
                           {projetoSel.categoria && <p className="text-xs text-gray-400 mt-0.5">{projetoSel.categoria}</p>}
+                          {labelDesenhoPreview && <p className="text-xs text-gray-500 mt-0.5">Modelo: {labelDesenhoPreview}</p>}
                           {detalhe && (
                             <div className="flex flex-wrap gap-1 mt-2">
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{getQuantidadeFolhasAplicaveis(item)} folha(s)</span>
@@ -2411,7 +2526,7 @@ export default function CalculoProjetoPage() {
                         </div>
                       )}
                       <div className="col-span-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
                         <input
                           type="number" min={1} placeholder="1"
                           value={item.qtd}
@@ -2629,10 +2744,10 @@ export default function CalculoProjetoPage() {
                       </div>
                     )}
 
-                    {(variacoesDesenho.length > 0 || !!projetoSel) && (
+                    {variacoesDesenho.length > 1 && (
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Variação Visual do Desenho</p>
-                        {variacoesDesenho.length > 0 && (
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Qual Tipologia Deste Projeto?</p>
+                        {variacoesDesenho.length > 1 && (
                           <div className="flex flex-wrap gap-2 mb-3">
                             <button
                               type="button"
@@ -2642,7 +2757,7 @@ export default function CalculoProjetoPage() {
                                 ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
                                 : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
                             >
-                              Todas
+                              Padrão do projeto
                             </button>
                             {variacoesDesenho.map((variacao) => (
                               <button
@@ -2655,11 +2770,14 @@ export default function CalculoProjetoPage() {
                                   : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
                                 title={variacao.arquivo}
                               >
-                                {variacao.label}
+                                {getNomeVariacao(variacao.arquivo, variacao.label)}
                               </button>
                             ))}
                           </div>
                         )}
+                        <p className="text-[11px] text-gray-400">
+                          Ao escolher uma opção, o desenho acima muda para acompanhar o modelo selecionado.
+                        </p>
 
                       </div>
                     )}
@@ -2681,7 +2799,7 @@ export default function CalculoProjetoPage() {
                       className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all"
                     >
                       <Plus size={16} />
-                      Adicionar Projeto
+                      Adicionar Item
                     </button>
 
                     <button
@@ -2753,13 +2871,13 @@ export default function CalculoProjetoPage() {
                   {/* ── Barra de Abas ── */}
                   <div className="flex items-center gap-2 px-6 py-4 rounded-3xl bg-white border border-gray-100 shadow-sm overflow-x-auto">
                     {[
-                      { id: "resumo", label: "Resumo", count: null },
-                      { id: "relatorio", label: "Relatório", count: null },
+                      { id: "resumo", label: "Resumo Geral", count: null },
+                      { id: "caderno", label: "Caderno Técnico", count: null },
                       { id: "otimizacao", label: "Otimização", count: otimizacaoGlobalPerfis.grupos.length > 0 ? otimizacaoGlobalPerfis.grupos.length : 0 },
                     ].map((aba) => (
                       <button
                         key={aba.id}
-                        onClick={() => setAbaResultados(aba.id as "resumo" | "relatorio" | "otimizacao")}
+                        onClick={() => setAbaResultados(aba.id as "resumo" | "caderno" | "otimizacao")}
                         className="px-4 py-2 rounded-2xl text-sm font-black whitespace-nowrap transition-all border-2"
                         style={abaResultados === aba.id
                           ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
@@ -2778,10 +2896,10 @@ export default function CalculoProjetoPage() {
                     style={{ background: `linear-gradient(135deg, ${theme.menuBackgroundColor}, ${theme.menuIconColor})` }}
                   >
                     <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
-                    <p className="text-[11px] uppercase tracking-widest font-black opacity-70 mb-1">Resultado Total do Cliente</p>
+                    <p className="text-[11px] uppercase tracking-widest font-black opacity-70 mb-1">Resumo Geral do Orçamento</p>
                     <p className="text-4xl font-black">{fmt(totaisCalculados.totalGeral)}</p>
                     <p className="text-sm opacity-70 mt-1">
-                      Cliente: {clienteSel?.nome || "—"} · {resultados.length} projeto(s) na composição
+                      Cliente: {clienteSel?.nome || "—"} · {resultados.length} item(ns) no orçamento
                     </p>
                     {totaisCalculados.economiaTotal > 0 && (
                       <p className="text-xs opacity-80 mt-2">
@@ -2815,12 +2933,12 @@ export default function CalculoProjetoPage() {
                   )}
 
                   {/* ABA: RELATÓRIO */}
-                  {abaResultados === "relatorio" && (
+                  {abaResultados === "caderno" && (
                   <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Relatório da Obra</p>
-                        <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Tamanhos dos vidros, materiais e perfis</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Caderno Técnico da Obra</p>
+                        <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Vidros, materiais e perfis do orçamento</h3>
                         <p className="text-xs text-gray-400 mt-1">
                           Quadro consolidado para conferência da obra antes de salvar ou imprimir o orçamento.
                         </p>
@@ -2832,7 +2950,7 @@ export default function CalculoProjetoPage() {
                         <div key={obra.itemId} className="rounded-2xl border border-gray-100 overflow-hidden">
                           <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Projeto {index + 1}</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Item {index + 1}</p>
                               <h4 className="text-base font-black text-gray-800">{obra.projetoNome}</h4>
                             </div>
                             <div className="flex flex-wrap justify-end gap-1.5 text-[10px] font-bold">
@@ -2855,7 +2973,7 @@ export default function CalculoProjetoPage() {
                                       <p className="text-sm font-black text-gray-700">{fmt(folha.total)}</p>
                                     </div>
                                     <p className="text-xs text-gray-600 mt-1">Vão calculado: {folha.medida}</p>
-                                    <p className="text-[11px] text-gray-400 mt-1">Área: {folha.area.toFixed(3)} m²</p>
+                                    <p className="text-[11px] text-gray-400 mt-1">Quantidade: {folha.quantidadeFolhas * obra.quantidade} · Área: {folha.area.toFixed(3)} m²</p>
                                   </div>
                                 ))}
                               </div>
@@ -2897,9 +3015,9 @@ export default function CalculoProjetoPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Perfis Consolidados</p>
-                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Otimização de Perfis por Projeto</h3>
+                          <h3 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Otimização de Perfis por Item</h3>
                           <p className="text-xs text-gray-400 mt-1">
-                            Consolida medidas do mesmo projeto para aproveitar barras antes de definir a compra final.
+                            Consolida medidas do mesmo item para aproveitar barras antes de definir a compra final.
                           </p>
                         </div>
                         <div className="text-right">
@@ -3005,8 +3123,8 @@ export default function CalculoProjetoPage() {
                 <h3 className="text-sm font-black" style={{ color: theme.contentTextLightBg }}>
                   {tipoPreviewPdf === "comercial"
                     ? "Orçamento comercial sem salvar"
-                    : tipoPreviewPdf === "tecnico"
-                      ? "Relatório técnico da obra"
+                    : tipoPreviewPdf === "caderno"
+                      ? "Caderno técnico da obra"
                       : "Tempera"}
                 </h3>
               </div>
@@ -3025,13 +3143,13 @@ export default function CalculoProjetoPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTipoPreviewPdf("tecnico")}
+                    onClick={() => setTipoPreviewPdf("caderno")}
                     className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
-                    style={tipoPreviewPdf === "tecnico"
+                    style={tipoPreviewPdf === "caderno"
                       ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
                       : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
                   >
-                    Relatório Técnico
+                    Caderno Técnico
                   </button>
                   <button
                     type="button"
@@ -3046,14 +3164,14 @@ export default function CalculoProjetoPage() {
                 </div>
 
                 <PDFDownloadLink
-                  document={tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "tecnico" ? documentoPreviewTecnico : documentoPreviewTempera}
-                  fileName={`${tipoPreviewPdf === "comercial" ? "orcamento" : tipoPreviewPdf === "tecnico" ? "relatorio_tecnico" : "tempera"}_${(clienteSel?.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`}
+                  document={tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "caderno" ? documentoPreviewCaderno : documentoPreviewTempera}
+                  fileName={`${tipoPreviewPdf === "comercial" ? "orcamento" : tipoPreviewPdf === "caderno" ? "caderno_tecnico" : "tempera"}_${(clienteSel?.nome || "cliente").toLowerCase().replace(/\s+/g, "_")}.pdf`}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-all"
                 >
                   {({ loading }) => loading ? (
                     <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Gerando PDF</span>
                   ) : (
-                    <span className="inline-flex items-center gap-2"><Printer size={14} /> Baixar / Imprimir</span>
+                    <span className="inline-flex items-center gap-2"><Printer size={14} /> Baixar PDF</span>
                   )}
                 </PDFDownloadLink>
 
@@ -3082,13 +3200,13 @@ export default function CalculoProjetoPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTipoPreviewPdf("tecnico")}
+                  onClick={() => setTipoPreviewPdf("caderno")}
                   className="flex-1 px-3 py-2 rounded-2xl text-xs font-black border transition-all"
-                  style={tipoPreviewPdf === "tecnico"
+                  style={tipoPreviewPdf === "caderno"
                     ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
                     : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
                 >
-                  Relatório Técnico
+                  Caderno Técnico
                 </button>
                 <button
                   type="button"
@@ -3103,7 +3221,7 @@ export default function CalculoProjetoPage() {
               </div>
 
               <PDFViewer style={{ width: "100%", height: "100%" }}>
-                {tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "tecnico" ? documentoPreviewTecnico : documentoPreviewTempera}
+                {tipoPreviewPdf === "comercial" ? documentoPreviewOrcamento : tipoPreviewPdf === "caderno" ? documentoPreviewCaderno : documentoPreviewTempera}
               </PDFViewer>
             </div>
           </div>

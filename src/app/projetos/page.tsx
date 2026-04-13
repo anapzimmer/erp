@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo, type MouseEventHandler } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
@@ -44,6 +44,7 @@ type TrilhoPorta = "aparente" | "interrompido" | "embutido"
 type ProjetoFolha = {
   id?: string
   numero_folha: number
+  quantidade_folhas: number
   tipo_folha: string
   formula_largura: string
   formula_altura: string
@@ -81,6 +82,7 @@ type ProjetoPerfil = {
   qtd_outros: number
   tipo_fornecimento: string
   variacao_restrita?: string | null
+  espessura_vidro_restrita?: string | null
   condicao?: string | null
   usar_no_kit?: boolean
   altura_max_kit?: number | null
@@ -275,6 +277,7 @@ const COND_TOKEN = "__COND__="
 const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
 const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const TRILHO_TOKEN = "__TRILHO__="
+const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -317,6 +320,16 @@ const extrairAlturaMaxKitDoTexto = (valor?: string | null): number | null => {
   return Number.isFinite(num) && num > 0 ? num : null
 }
 
+const extrairEspessuraVidroDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(ESPESSURA_VIDRO_TOKEN))
+
+  const espessura = linha ? linha.slice(ESPESSURA_VIDRO_TOKEN.length).trim() : ""
+  return espessura || null
+}
+
 const extrairVariacaoDoTexto = (valor?: string | null) => {
   const texto = String(valor || "")
   const linhaVariacao = texto
@@ -336,6 +349,8 @@ const aplicarVariacaoNoTexto = (valor: string | null | undefined, variacao: stri
   return [textoBase, `${VARIACAO_TOKEN}${variacao}`].filter(Boolean).join("\n")
 }
 
+const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
+
 const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
   const linhaTrilho = String(valor || "")
     .split(/\r?\n/)
@@ -349,10 +364,32 @@ const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
   return trilhos.length > 0 ? trilhos.join(",") : null
 }
 
+const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
+  const linhaQtd = String(valor || "")
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .find((linha) => linha.startsWith(QTD_FOLHA_TOKEN))
+
+  const numero = linhaQtd ? Number(linhaQtd.slice(QTD_FOLHA_TOKEN.length).trim()) : 1
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 1
+}
+
 const aplicarTrilhoNoTexto = (valor: string | null | undefined, trilhos: string | null | undefined) => {
   const textoBase = limparTextoComVariacao(valor)
   if (!trilhos) return textoBase
   return [textoBase, `${TRILHO_TOKEN}${trilhos}`].filter(Boolean).join("\n")
+}
+
+const aplicarQuantidadeFolhaNoTexto = (valor: string | null | undefined, quantidade: number | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(QTD_FOLHA_TOKEN))
+    .join("\n")
+    .trim()
+
+  const qtd = Number(quantidade)
+  const quantidadeFinal = Number.isFinite(qtd) && qtd > 0 ? Math.round(qtd) : 1
+  return [textoBase, `${QTD_FOLHA_TOKEN}${quantidadeFinal}`].filter(Boolean).join("\n")
 }
 
 const aplicarCondicaoNoTexto = (valor: string | null | undefined, condicao: string | null | undefined) => {
@@ -382,6 +419,18 @@ const aplicarAlturaMaxKitNoTexto = (valor: string | null | undefined, alturaMax:
   const limite = Number(alturaMax)
   if (!Number.isFinite(limite) || limite <= 0) return textoBase
   return [textoBase, `${ALTURA_MAX_KIT_TOKEN}${Math.round(limite)}`].filter(Boolean).join("\n")
+}
+
+const aplicarEspessuraVidroNoTexto = (valor: string | null | undefined, espessura: string | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(ESPESSURA_VIDRO_TOKEN))
+    .join("\n")
+    .trim()
+
+  const espessuraFinal = String(espessura || "").trim()
+  if (!espessuraFinal) return textoBase
+  return [textoBase, `${ESPESSURA_VIDRO_TOKEN}${espessuraFinal}`].filter(Boolean).join("\n")
 }
 
 type ProjetoDetalheResponse = {
@@ -605,6 +654,17 @@ const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\
 
 const criarArquivo = (stem: string) => `${stem}.png`
 
+const formatarLabelArquivoDesenho = (arquivo: string) => {
+  const nome = String(arquivo || "")
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (!nome) return arquivo
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
+
 const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
   const nome = stem.split("-").pop() || ""
   const numeroMatch = nome.match(/(\d+)$/)
@@ -633,7 +693,7 @@ const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
   return { key: stem, label: nome.toUpperCase(), arquivo: criarArquivo(stem) }
 }
 
-const getVariacoesDesenho = (arquivoAtual: string): VariacaoGrupo[] => {
+const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string> = STEMS_DESENHOS): VariacaoGrupo[] => {
   if (!arquivoAtual) return []
 
   const variacoes: VariacaoGrupo[] = []
@@ -655,7 +715,7 @@ const getVariacoesDesenho = (arquivoAtual: string): VariacaoGrupo[] => {
     const stemCI = stemAtual.replace(/-cs(?=-|$)/g, "-ci")
     const stemCS = stemAtual.replace(/-ci(?=-|$)/g, "-cs")
 
-    if (STEMS_DESENHOS.has(stemCI) && STEMS_DESENHOS.has(stemCS)) {
+    if (stemsDisponiveis.has(stemCI) && stemsDisponiveis.has(stemCS)) {
       variacoes.push({
         id: "sistema",
         label: "Sistema",
@@ -667,9 +727,9 @@ const getVariacoesDesenho = (arquivoAtual: string): VariacaoGrupo[] => {
     }
   }
 
-  const baseFamilia = stemAtual.replace(/-(simples\d*|completo\d*|completa\d*)$/, "")
+  const baseFamilia = stemAtual.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/, "")
   const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-(.+)$`)
-  const stemsFamilia = Array.from(STEMS_DESENHOS).filter((stem) => regexFamilia.test(stem))
+  const stemsFamilia = Array.from(stemsDisponiveis).filter((stem) => regexFamilia.test(stem))
 
   if (stemsFamilia.length >= 2) {
     const opcoes = stemsFamilia
@@ -720,10 +780,16 @@ const detectarTipoProjetoVisual = (dados: Pick<FormData, "nome" | "categoria" | 
   const textoProjeto = `${dados.nome} ${dados.categoria} ${dados.desenho}`.toLowerCase()
 
   if (/abertur/.test(textoProjeto)) return "aberturas"
-  if (/porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)) return "portas"
-  if (/janela/.test(textoProjeto)) return "janelas"
+  if (/janela|maxim|basculante/.test(textoProjeto)) return "janelas"
+  if (/porta|deslizante|pma|giro|pivotante/.test(textoProjeto)) return "portas"
   if (/box/.test(textoProjeto)) return "box"
   return "generico"
+}
+
+const getEspessuraPadraoKitPorTipo = (tipo: ProjetoVisualTipo) => {
+  if (tipo === "portas") return "10mm"
+  if (tipo === "janelas") return "8mm"
+  return "8mm"
 }
 
 const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pick<ProjetoFolha, "tipo_folha" | "formula_largura" | "formula_altura" | "observacao"> => {
@@ -810,6 +876,8 @@ export default function ProjetosPage() {
   // ── Picker de desenho ──
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
+  const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
+  const [editandoNomesDesenho, setEditandoNomesDesenho] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
   const [variacaoCustomSelecionadaId, setVariacaoCustomSelecionadaId] = useState<string | null>(null)
   const [buscaVariacaoCustom, setBuscaVariacaoCustom] = useState("")
@@ -875,6 +943,30 @@ export default function ProjetosPage() {
       // ignora inconsistencias de armazenamento local
     }
   }, [empresaId])
+
+  useEffect(() => {
+    let cancelado = false
+
+    const carregarDesenhosPasta = async () => {
+      try {
+        const resposta = await fetch("/api/desenhos", { cache: "no-store" })
+        const payload = await resposta.json().catch(() => ({ arquivos: [] }))
+        const arquivos = Array.isArray(payload?.arquivos)
+          ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
+          : []
+
+        if (!cancelado) setDesenhosPasta(arquivos)
+      } catch {
+        if (!cancelado) setDesenhosPasta([])
+      }
+    }
+
+    carregarDesenhosPasta()
+
+    return () => {
+      cancelado = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -1041,6 +1133,7 @@ export default function ProjetosPage() {
         const metaObservacao = extrairVariacaoDoTexto(folha.observacao)
         return {
           ...folha,
+          quantidade_folhas: extrairQuantidadeFolhaDoTexto(folha.observacao),
           observacao: metaObservacao.textoLimpo,
           variacao_restrita: metaObservacao.variacao ?? null,
           trilho_restrito: extrairTrilhoDoTexto(folha.observacao),
@@ -1074,6 +1167,7 @@ export default function ProjetosPage() {
           qtd_outros: Number(p.qtd_outros ?? 0),
           tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
           variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
+          espessura_vidro_restrita: extrairEspessuraVidroDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
           condicao: extrairCondicaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
           usar_no_kit: extrairUsarNoKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
           altura_max_kit: extrairAlturaMaxKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
@@ -1141,12 +1235,15 @@ export default function ProjetosPage() {
         tipo_folha: limparTextoSimples(folha.tipo_folha),
         formula_largura: limparTextoSimples(folha.formula_largura),
         formula_altura: limparTextoSimples(folha.formula_altura),
-        observacao: aplicarTrilhoNoTexto(
-          aplicarVariacaoNoTexto(limparTextoSimples(folha.observacao), folha.variacao_restrita),
+        observacao: aplicarQuantidadeFolhaNoTexto(
+          aplicarTrilhoNoTexto(
+            aplicarVariacaoNoTexto(limparTextoSimples(folha.observacao), folha.variacao_restrita),
           folha.trilho_restrito ?? null
+          ),
+          folha.quantidade_folhas
         ),
       }))
-      .filter((folha) => folha.tipo_folha || folha.formula_largura || folha.formula_altura || folha.observacao)
+      .filter((folha) => folha.tipo_folha || folha.formula_largura || folha.formula_altura)
 
     const kitsPorId = new Map<string, ProjetoKitPersistencia>()
     form.kits.forEach((kit) => {
@@ -1156,7 +1253,7 @@ export default function ProjetosPage() {
       kitsPorId.set(kitId, {
         projeto_id: projetoId,
         kit_id: kitId,
-        espessura_vidro: limparTextoSimples(kit.espessura_vidro) || "8mm",
+        espessura_vidro: limparTextoSimples(kit.espessura_vidro) || getEspessuraPadraoKitPorTipo(detectarTipoProjetoVisual(form)),
         largura_referencia: normalizarNumero(kit.largura_referencia),
         altura_referencia: normalizarNumero(kit.altura_referencia),
         tolerancia_mm: normalizarNumero(kit.tolerancia_mm, 50),
@@ -1187,26 +1284,38 @@ export default function ProjetosPage() {
       const perfilId = limparTextoSimples(String(perfil.perfil_id || ""))
       if (!perfilId) return
 
-      const existente = perfisPorId.get(perfilId)
+      const chavePerfil = [
+        perfilId,
+        String(perfil.variacao_restrita || "").trim(),
+        String(perfil.espessura_vidro_restrita || "").trim(),
+        String(perfil.condicao || "").trim(),
+        Boolean(perfil.usar_no_kit) ? "1" : "0",
+        perfil.altura_max_kit ?? "",
+      ].join("|")
 
-      perfisPorId.set(perfilId, {
+      const existente = perfisPorId.get(chavePerfil)
+
+      perfisPorId.set(chavePerfil, {
         projeto_id: projetoId,
         perfil_id: perfilId,
         qtd_largura: existente ? somarSeDuplicado(existente.qtd_largura, Math.max(0, normalizarNumero(perfil.qtd_largura))) : Math.max(0, normalizarNumero(perfil.qtd_largura)),
         qtd_altura: existente ? somarSeDuplicado(existente.qtd_altura, Math.max(0, normalizarNumero(perfil.qtd_altura))) : Math.max(0, normalizarNumero(perfil.qtd_altura)),
         qtd_outros: existente ? somarSeDuplicado(existente.qtd_outros, Math.max(0, normalizarNumero(perfil.qtd_outros))) : Math.max(0, normalizarNumero(perfil.qtd_outros)),
-        tipo_fornecimento: aplicarAlturaMaxKitNoTexto(
-          aplicarUsarNoKitNoTexto(
-            aplicarCondicaoNoTexto(
-              aplicarVariacaoNoTexto(
-                limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
-                perfil.variacao_restrita ?? null
+        tipo_fornecimento: aplicarEspessuraVidroNoTexto(
+          aplicarAlturaMaxKitNoTexto(
+            aplicarUsarNoKitNoTexto(
+              aplicarCondicaoNoTexto(
+                aplicarVariacaoNoTexto(
+                  limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
+                  perfil.variacao_restrita ?? null
+                ),
+                perfil.condicao ?? null
               ),
-              perfil.condicao ?? null
+              Boolean(perfil.usar_no_kit)
             ),
-            Boolean(perfil.usar_no_kit)
+            perfil.altura_max_kit ?? null
           ),
-          perfil.altura_max_kit ?? null
+          perfil.espessura_vidro_restrita ?? null
         ),
       })
     })
@@ -1341,6 +1450,7 @@ export default function ProjetosPage() {
       // Aplica fórmulas iniciais por tipo para acelerar o cadastro.
       folhas: [...prev.folhas, {
         numero_folha: numero,
+        quantidade_folhas: 1,
         ...getPresetFolhaPorTipo(detectarTipoProjetoVisual(prev), numero),
         variacao_restrita: null,
         trilho_restrito: null,
@@ -1391,10 +1501,10 @@ export default function ProjetosPage() {
   }
 
   // ─── HELPERS KITS ───────────────────────────────────────────────────────
-  const criarProjetoKitAPartirDoBanco = useCallback((kit: KitDBItem): ProjetoKit => ({
+  const criarProjetoKitAPartirDoBanco = useCallback((kit: KitDBItem, tipoProjeto: ProjetoVisualTipo): ProjetoKit => ({
     kit_id: String(kit.id),
     nome: kit.nome,
-    espessura_vidro: "8mm",
+    espessura_vidro: getEspessuraPadraoKitPorTipo(tipoProjeto),
     largura_referencia: Number(kit.largura) || 0,
     altura_referencia: Number(kit.altura) || 0,
     tolerancia_mm: 50,
@@ -1405,10 +1515,15 @@ export default function ProjetosPage() {
   const adicionarKit = (kitSelecionado?: KitDBItem) => {
     const kit = kitSelecionado || kitsDB[0]
     if (!kit) return
+    const tipoProjeto = detectarTipoProjetoVisual(form)
     setForm(prev => ({
       ...prev,
-      kits: [...prev.kits, criarProjetoKitAPartirDoBanco(kit)],
+      kits: [...prev.kits, criarProjetoKitAPartirDoBanco(kit, tipoProjeto)],
     }))
+  }
+
+  const handleAdicionarKitClick: MouseEventHandler<HTMLButtonElement> = () => {
+    adicionarKit()
   }
 
   const alternarSelecaoKitParaAdicionar = (kitId: string) => {
@@ -1439,10 +1554,11 @@ export default function ProjetosPage() {
 
     const kitsSelecionados = kitsDB.filter((kit) => kitsSelecionadosParaAdicionar.includes(String(kit.id)))
     if (kitsSelecionados.length === 0) return
+    const tipoProjeto = detectarTipoProjetoVisual(form)
 
     setForm((prev) => ({
       ...prev,
-      kits: [...prev.kits, ...kitsSelecionados.map((kit) => criarProjetoKitAPartirDoBanco(kit))],
+      kits: [...prev.kits, ...kitsSelecionados.map((kit) => criarProjetoKitAPartirDoBanco(kit, tipoProjeto))],
     }))
     setKitsSelecionadosParaAdicionar([])
   }
@@ -1656,6 +1772,7 @@ export default function ProjetosPage() {
           qtd_outros: 0,
           tipo_fornecimento: "barra",
           variacao_restrita: null,
+          espessura_vidro_restrita: null,
           condicao: null,
           usar_no_kit: false,
           altura_max_kit: null,
@@ -1679,6 +1796,7 @@ export default function ProjetosPage() {
         qtd_outros: 0,
         tipo_fornecimento: "barra",
         variacao_restrita: null,
+        espessura_vidro_restrita: null,
         condicao: null,
         usar_no_kit: false,
         altura_max_kit: null,
@@ -1707,10 +1825,47 @@ export default function ProjetosPage() {
     router.push("/login")
   }
 
-  const todosDesenhos = Object.values(DESENHOS).flat()
+  const catalogoDesenhos = useMemo(() => {
+    const mapa = new Map<string, { label: string; arquivo: string; categoria: string }>()
+
+    Object.entries(DESENHOS).forEach(([categoria, itens]) => {
+      itens.forEach((item) => {
+        mapa.set(item.arquivo, { ...item, categoria })
+      })
+    })
+
+    desenhosPasta.forEach((arquivo) => {
+      if (mapa.has(arquivo)) return
+      mapa.set(arquivo, {
+        arquivo,
+        label: formatarLabelArquivoDesenho(arquivo),
+        categoria: "Pasta",
+      })
+    })
+
+    return Array.from(mapa.values()).reduce<Record<string, { label: string; arquivo: string }[]>>((acc, item) => {
+      if (!acc[item.categoria]) acc[item.categoria] = []
+      acc[item.categoria].push({ label: item.label, arquivo: item.arquivo })
+      return acc
+    }, {})
+  }, [desenhosPasta])
+
+  useEffect(() => {
+    const categorias = Object.keys(catalogoDesenhos)
+    if (categorias.length === 0) return
+    if (!catalogoDesenhos[categoriaPicker]) {
+      setCategoriaPicker(categorias[0])
+    }
+  }, [catalogoDesenhos, categoriaPicker])
+
+  const todosDesenhos = useMemo(() => Object.values(catalogoDesenhos).flat(), [catalogoDesenhos])
+  const stemsDesenhosDisponiveis = useMemo(
+    () => new Set(todosDesenhos.map((d) => d.arquivo.replace(/\.(png|jpe?g|webp|gif|svg)$/i, ""))),
+    [todosDesenhos]
+  )
   const desenhosPorArquivo = new Map(todosDesenhos.map((d) => [d.arquivo, d]))
   const desenhoAtual = todosDesenhos.find(d => d.arquivo === form.desenho)
-  const variacoesAutomaticas = getVariacoesDesenho(form.desenho)
+  const variacoesAutomaticas = getVariacoesDesenho(form.desenho, stemsDesenhosDisponiveis)
   const variacoesManuais = variacoesCustom
     .filter((grupo) => grupo.opcoes.some((opcao) => opcao.arquivo === form.desenho))
     .map((grupo) => ({
@@ -1724,6 +1879,37 @@ export default function ProjetosPage() {
     }))
   const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
   const tipoProjetoVisual = detectarTipoProjetoVisual(form)
+  const ultimoTipoProjetoRef = useRef<ProjetoVisualTipo | null>(null)
+
+  useEffect(() => {
+    const tipoAnterior = ultimoTipoProjetoRef.current
+    ultimoTipoProjetoRef.current = tipoProjetoVisual
+
+    if (!tipoAnterior || tipoAnterior === tipoProjetoVisual) return
+
+    const espessuraAnterior = getEspessuraPadraoKitPorTipo(tipoAnterior)
+    const novaEspessura = getEspessuraPadraoKitPorTipo(tipoProjetoVisual)
+
+    if (espessuraAnterior === novaEspessura) return
+
+    setForm((prev) => {
+      let houveMudanca = false
+
+      const kits = prev.kits.map((kit) => {
+        const espessuraAtual = limparTextoSimples(kit.espessura_vidro)
+        if (espessuraAtual && espessuraAtual !== espessuraAnterior) return kit
+
+        houveMudanca = true
+        return {
+          ...kit,
+          espessura_vidro: novaEspessura,
+        }
+      })
+
+      return houveMudanca ? { ...prev, kits } : prev
+    })
+  }, [tipoProjetoVisual])
+
   const projetoEhPorta = tipoProjetoVisual === "portas"
   const projetoUsaPresetVariacaoBox =
     tipoProjetoVisual === "box" ||
@@ -2296,7 +2482,7 @@ export default function ProjetosPage() {
                       <div className="mt-2 border border-gray-100 rounded-2xl overflow-hidden shadow-lg bg-white">
                         {/* Tabs categorias */}
                         <div className="flex gap-1 p-2 overflow-x-auto bg-gray-50 border-b border-gray-100">
-                          {Object.keys(DESENHOS).map(cat => (
+                          {Object.keys(catalogoDesenhos).map(cat => (
                             <button
                               key={cat}
                               onClick={() => setCategoriaPicker(cat)}
@@ -2311,7 +2497,7 @@ export default function ProjetosPage() {
                         </div>
                         {/* Grade */}
                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto">
-                          {DESENHOS[categoriaPicker].map(d => (
+                          {(catalogoDesenhos[categoriaPicker] || []).map(d => (
                             <button
                               key={d.arquivo}
                               type="button"
@@ -2344,9 +2530,19 @@ export default function ProjetosPage() {
 
                   {form.desenho && variacoesDesenho.length > 0 && (
                     <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-3">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                        Variações do desenho
-                      </p>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Variações do desenho
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setEditandoNomesDesenho((v) => !v)}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all"
+                          style={{ borderColor: "#d1d5db", color: "#4b5563", backgroundColor: "#fff" }}
+                        >
+                          {editandoNomesDesenho ? "Ocultar nomes" : "Editar nomes"}
+                        </button>
+                      </div>
 
                       <div className="space-y-3">
                         {variacoesDesenho.map((grupo) => (
@@ -2365,13 +2561,44 @@ export default function ProjetosPage() {
                                   }`}
                                   style={form.desenho === opcao.arquivo ? { backgroundColor: theme.menuBackgroundColor } : {}}
                                 >
-                                  {opcao.label}
+                                  {getNomeVariacao(opcao.arquivo, opcao.label)}
                                 </button>
                               ))}
                             </div>
                           </div>
                         ))}
                       </div>
+
+                      {editandoNomesDesenho && (
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {Array.from(new Map(
+                            variacoesDesenho
+                              .flatMap((grupo) => grupo.opcoes)
+                              .map((opcao) => [opcao.arquivo, opcao] as const)
+                          ).values()).map((opcao) => (
+                            <div key={`nome-desenho-${opcao.arquivo}`}>
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                                {opcao.label}
+                              </label>
+                              <input
+                                type="text"
+                                value={nomesVariacaoPersonalizados[opcao.arquivo] || ""}
+                                onChange={(e) =>
+                                  setNomesVariacaoPersonalizados((prev) => {
+                                    const proximo = { ...prev }
+                                    const valor = e.target.value
+                                    if (valor.trim()) proximo[opcao.arquivo] = valor
+                                    else delete proximo[opcao.arquivo]
+                                    return proximo
+                                  })
+                                }
+                                className="w-full p-2 rounded-lg border text-xs font-bold"
+                                placeholder={opcao.label}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       <p className="text-[11px] text-gray-400 mt-3">
                         Ao trocar a variação, o projeto mantém todos os dados e altera apenas o desenho.
@@ -2543,7 +2770,7 @@ export default function ProjetosPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <p className="text-xs text-gray-400 font-bold">
-                      Defina quantas folhas o projeto terá, a fórmula de largura/altura de cada uma e uma observação opcional para orientar o orçamento.
+                      Defina quantas folhas iguais cada item terá e a fórmula de largura/altura de cada configuração.
                     </p>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
@@ -2583,8 +2810,8 @@ export default function ProjetosPage() {
                       </div>
                     </div>
                     <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Observação</p>
-                      <p className="text-xs text-emerald-800 font-medium">Salve instruções como &quot;folha central móvel&quot;, &quot;usar medida até bandeira&quot; ou &quot;conferir lado A e lado B&quot;.</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Quantidade</p>
+                      <p className="text-xs text-emerald-800 font-medium">Use a quantidade para repetir a mesma configuração de folha sem precisar cadastrar linhas duplicadas.</p>
                     </div>
                   </div>
 
@@ -2634,6 +2861,18 @@ export default function ProjetosPage() {
                         </div>
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
+                            Quantidade de Folhas
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={folha.quantidade_folhas}
+                            onChange={e => atualizarFolha(idx, "quantidade_folhas", Math.max(1, Number(e.target.value || 1)))}
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
                             Fórmula Largura
                           </label>
                           <input
@@ -2654,19 +2893,6 @@ export default function ProjetosPage() {
                             value={folha.formula_altura}
                             onChange={e => atualizarFolha(idx, "formula_altura", e.target.value)}
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-mono outline-none"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">
-                            Observação da Folha
-                          </label>
-                          <textarea
-                            rows={3}
-                            placeholder="Ex: Folha central móvel, usar medida de vão livre, conferir sobreposição no encontro."
-                            value={folha.observacao}
-                            onChange={e => atualizarFolha(idx, "observacao", e.target.value)}
-                            className="w-full p-3 rounded-xl bg-white border border-gray-200 text-sm outline-none resize-none"
-                            style={{ color: theme.contentTextLightBg }}
                           />
                         </div>
                         {projetoEhPorta && (
@@ -2754,7 +2980,7 @@ export default function ProjetosPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-400 font-bold">Vincule kits que devem ser escolhidos pelo orçamento conforme espessura e medida mais próxima.</p>
                     <button
-                      onClick={adicionarKit}
+                      onClick={handleAdicionarKitClick}
                       disabled={!kitsDB.length}
                       className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
                       style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
@@ -2944,6 +3170,18 @@ export default function ProjetosPage() {
                               Tipo de kit (qual variação usa?)
                             </label>
                             <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => atualizarKit(idx, "variacao_restrita", null)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                style={{
+                                  backgroundColor: !kit.variacao_restrita ? "#f5f3ff" : "#f9fafb",
+                                  borderColor: !kit.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: !kit.variacao_restrita ? "#6d28d9" : "#9ca3af",
+                                }}
+                              >
+                                Todas as variações
+                              </button>
                               {variacaoOpcoesKit.map(op => {
                                 const selecionados = (kit.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
                                 const ativo = selecionados.includes(op.arquivo)
@@ -2967,7 +3205,7 @@ export default function ProjetosPage() {
                                 )
                               })}
                               {!kit.variacao_restrita && (
-                                <span className="text-[10px] text-gray-400 italic self-center">Nenhum — aplica em todos os tipos</span>
+                                <span className="text-[10px] text-gray-400 italic self-center">Aplica em todos os tipos</span>
                               )}
                             </div>
                           </div>
@@ -3485,12 +3723,56 @@ export default function ProjetosPage() {
                             {p.usar_no_kit ? "Sim - incluir também no modo Kit" : "Não - só no modo Barra"}
                           </button>
                         </div>
+                        <div className="sm:col-span-2 xl:col-span-2">
+                          <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#b45309" }}>
+                            Espessura do vidro para este perfil
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { valor: null, label: "Todas" },
+                              { valor: "8mm", label: "8mm" },
+                              { valor: "10mm", label: "10mm" },
+                            ].map((opcao) => {
+                              const ativo = (p.espessura_vidro_restrita || null) === opcao.valor
+                              return (
+                                <button
+                                  key={opcao.label}
+                                  type="button"
+                                  onClick={() => atualizarPerfil(idx, "espessura_vidro_restrita", opcao.valor)}
+                                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                  style={{
+                                    backgroundColor: ativo ? "#fff7ed" : "#f9fafb",
+                                    borderColor: ativo ? "#f59e0b" : "#e5e7eb",
+                                    color: ativo ? "#b45309" : "#9ca3af",
+                                  }}
+                                >
+                                  {opcao.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          {!p.espessura_vidro_restrita && (
+                            <p className="text-[10px] text-gray-400 mt-1">Sem filtro de espessura. O perfil vale para qualquer espessura.</p>
+                          )}
+                        </div>
                         {variacaoOpcoesPerfil.length > 0 && (
                           <div className="sm:col-span-2 xl:col-span-5">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
                               Aplica em qual variação? (altura/desenho)
                             </label>
                             <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => atualizarPerfil(idx, "variacao_restrita", null)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                style={{
+                                  backgroundColor: !p.variacao_restrita ? "#f5f3ff" : "#f9fafb",
+                                  borderColor: !p.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: !p.variacao_restrita ? "#6d28d9" : "#9ca3af",
+                                }}
+                              >
+                                Todas as variações
+                              </button>
                               {variacaoOpcoesPerfil.map(op => {
                                 const selecionados = (p.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
                                 const ativo = selecionados.includes(op.arquivo)
@@ -3514,7 +3796,7 @@ export default function ProjetosPage() {
                                 )
                               })}
                               {!p.variacao_restrita && (
-                                <span className="text-[10px] text-gray-400 italic self-center">Nenhuma — aplica em todas</span>
+                                <span className="text-[10px] text-gray-400 italic self-center">Aplica em todas</span>
                               )}
                             </div>
                           </div>
