@@ -15,6 +15,7 @@ import { RelatorioObraPDF } from "@/app/relatorios/calculovidros/RelatorioObraPD
 import { TemperaPDF } from "@/app/relatorios/calculovidros/TemperaPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
+import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
 
@@ -72,6 +73,52 @@ type OrcamentoCalculoprojetoPersistido = {
     };
 };
 
+type PerfilCadastro = {
+    codigo?: string | null;
+    nome?: string | null;
+    preco_unitario?: number | string | null;
+    barra_padrao_mm?: number | string | null;
+    unidade?: string | null;
+    kgmt?: number | string | null;
+    preco?: number | string | null;
+};
+
+type AcessorioCadastro = {
+    codigo?: string | null;
+    nome?: string | null;
+    preco?: number | string | null;
+    pacote?: number | string | null;
+    unidade?: string | null;
+};
+
+type PelePerfilItem = {
+    nome?: string;
+    codigo?: string;
+    unidade?: string;
+    kgmt?: number | string;
+    metroLinear?: number;
+    barras?: number;
+    kgTotal?: number;
+    precoBarra?: number;
+    valorTotal?: number;
+};
+
+type PeleAcessorioItem = {
+    nome?: string;
+    codigo?: string;
+    unidade?: string;
+    quantidade?: number;
+    precoUnitario?: number;
+    valorTotal?: number;
+};
+
+type PelePerfisProp = Parameters<typeof PeleDeVidroPDF>[0]["perfis"];
+type PeleAcessoriosProp = Parameters<typeof PeleDeVidroPDF>[0]["acessorios"];
+type SacadaPerfisProp = Parameters<typeof SacadaFrontalPDF>[0]["perfis"];
+type SacadaAcessoriosProp = Parameters<typeof SacadaFrontalPDF>[0]["acessorios"];
+type RelatorioObraProp = Parameters<typeof RelatorioObraPDF>[0]["relatorioObra"];
+type OtimizacaoGlobalProp = Parameters<typeof RelatorioObraPDF>[0]["otimizacaoGlobal"];
+
 export default function RelatorioOrçamento() {
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -90,22 +137,22 @@ export default function RelatorioOrçamento() {
     const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
     const [filtro, setFiltro] = useState("")
     const [loadingDados, setLoadingDados] = useState(true)
-    const [perfisDb, setPerfisDb] = useState<any[]>([]);
-    const [acessoriosDb, setAcessoriosDb] = useState<any[]>([]);
+    const [perfisDb, setPerfisDb] = useState<PerfilCadastro[]>([]);
+    const [acessoriosDb, setAcessoriosDb] = useState<AcessorioCadastro[]>([]);
     useEffect(() => {
         if (!empresaIdAtual) return;
         const buscarCadastros = async () => {
             const { data: perfisData } = await supabase.from("perfis").select("*").eq("empresa_id", empresaIdAtual);
-            setPerfisDb(perfisData || []);
+            setPerfisDb((perfisData as PerfilCadastro[] | null) || []);
             const { data: acessoriosData } = await supabase.from("ferragens").select("*").eq("empresa_id", empresaIdAtual);
-            setAcessoriosDb(acessoriosData || []);
+            setAcessoriosDb((acessoriosData as AcessorioCadastro[] | null) || []);
         };
         buscarCadastros();
     }, [empresaIdAtual]);
 
     // Estados para Seleção e Modal
     const [selecionados, setSelecionados] = useState<string[]>([]);
-    const [itemParaExcluir, setItemParaExcluir] = useState<Orcamento | null>(null);
+    const [, setItemParaExcluir] = useState<Orcamento | null>(null);
     const [modalConfirmacao, setModalConfirmacao] = useState<{
         titulo: string;
         mensagem: string;
@@ -590,8 +637,10 @@ export default function RelatorioOrçamento() {
                                                                     const numero = String(orc.numero_formatado || "");
                                                                     const ehSacada = /^SAC/i.test(numero);
                                                                     const ehEspelho = /^OR(?!C)/i.test(numero);
-                                                                    const ehPeleVidro = (orc.itens && (orc.itens as any).tipo === "pele_de_vidro");
-                                                                    const ehCalculoprojeto = (orc.itens && !Array.isArray(orc.itens) && (orc.itens as any).tipo === "calculoprojeto");
+                                                                    const itensObj = (orc.itens && !Array.isArray(orc.itens)) ? orc.itens : undefined;
+                                                                    const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
+                                                                    const ehPeleVidro = tipoItem === "pele_de_vidro";
+                                                                    const ehCalculoprojeto = tipoItem === "calculoprojeto";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
@@ -740,7 +789,9 @@ export default function RelatorioOrçamento() {
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
                                     {/* PDF da Pele de Vidro */}
                                     {(() => {
-                                        const itensRaw = orcamentoParaVisualizar?.itens || {};
+                                        const itensRaw = (orcamentoParaVisualizar?.itens && !Array.isArray(orcamentoParaVisualizar.itens))
+                                            ? orcamentoParaVisualizar.itens as Record<string, unknown>
+                                            : {};
                                         if (ehOrcamentoCalculoprojeto) {
                                             if (tipoPreviewCalculoprojeto === "tecnico") {
                                                 return (
@@ -750,8 +801,8 @@ export default function RelatorioOrçamento() {
                                                         nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
                                                         nomeObra={orcamentoParaVisualizar?.obra_referencia || undefined}
                                                         themeColor={theme.contentTextLightBg}
-                                                        relatorioObra={relatorioTecnicoVisualizacao as any}
-                                                        otimizacaoGlobal={otimizacaoTecnicaVisualizacao as any}
+                                                        relatorioObra={relatorioTecnicoVisualizacao as RelatorioObraProp}
+                                                        otimizacaoGlobal={otimizacaoTecnicaVisualizacao as OtimizacaoGlobalProp}
                                                     />
                                                 );
                                             }
@@ -771,34 +822,42 @@ export default function RelatorioOrçamento() {
                                         }
 
                                         // Detecta se é pele de vidro
-                                        const tipo = (itensRaw as any).tipo;
+                                        const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
                                         if (tipo === "pele_de_vidro") {
-                                            // Importação dinâmica para evitar erro de import circular
-                                            const { PeleDeVidroPDF } = require("@/app/relatorios/peledevidro/PeleDeVidroPDF");
                                             // Mapeamento dos perfis
-                                            const perfisCorrigidos = ((itensRaw as any).perfis || []).map((p: any) => {
+                                            const perfisOriginais = Array.isArray(itensRaw.perfis) ? itensRaw.perfis as PelePerfilItem[] : [];
+                                            const perfisCorrigidos: PelePerfisProp = perfisOriginais.map((p) => {
                                                 const cadastro = perfisDb.find((db) => db.codigo === p.codigo || db.nome === p.nome);
                                                 let unidade = cadastro?.unidade ?? p.unidade ?? "6MT";
                                                 const nome = (cadastro?.nome || p.nome || "").toLowerCase();
                                                 if (nome.includes("cantoneira") || nome.includes("cunha")) unidade = "3MT";
                                                 return {
                                                     ...p,
-                                                    nome: cadastro?.nome || p.nome,
-                                                    codigo: cadastro?.codigo || p.codigo,
+                                                    nome: cadastro?.nome || p.nome || "",
+                                                    codigo: cadastro?.codigo || p.codigo || "",
                                                     kgmt: cadastro?.kgmt ?? p.kgmt ?? "-",
-                                                    precoBarra: cadastro?.preco ?? p.precoBarra ?? 0,
+                                                    precoBarra: Number(cadastro?.preco ?? p.precoBarra ?? 0),
                                                     unidade,
+                                                    metroLinear: Number(p.metroLinear || 0),
+                                                    barras: Number(p.barras || 0),
+                                                    kgTotal: Number(p.kgTotal || 0),
+                                                    valorTotal: Number(p.valorTotal || 0),
                                                 };
                                             });
                                             // Mapeamento dos acessórios
-                                            const acessoriosCorrigidos = ((itensRaw as any).acessorios || []).map((a: any) => {
+                                            const acessoriosOriginais = Array.isArray(itensRaw.acessorios) ? itensRaw.acessorios as PeleAcessorioItem[] : [];
+                                            const acessoriosCorrigidos: PeleAcessoriosProp = acessoriosOriginais.map((a) => {
                                                 const cadastro = acessoriosDb.find((db) => db.nome === a.nome);
+                                                const precoUnitario = Number(cadastro?.preco ?? a.precoUnitario ?? 0);
+                                                const quantidade = Number(a.quantidade || 0);
                                                 return {
                                                     ...a,
                                                     codigo: cadastro?.codigo || a.codigo || "-",
                                                     unidade: cadastro?.unidade || a.unidade || "UN",
-                                                    precoUnitario: cadastro?.preco ?? a.precoUnitario ?? 0,
-                                                    valorTotal: ((cadastro?.preco ?? a.precoUnitario ?? 0) * a.quantidade),
+                                                    precoUnitario,
+                                                    quantidade,
+                                                    valorTotal: precoUnitario * quantidade,
+                                                    nome: a.nome || "",
                                                 };
                                             });
                                             return (
@@ -810,26 +869,26 @@ export default function RelatorioOrçamento() {
                                                     nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
                                                     nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
                                                     numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
-                                                    larguraVaoMm={Number((itensRaw as any).larguraVaoMm) || 0}
-                                                    alturaVaoMm={Number((itensRaw as any).alturaVaoMm) || 0}
-                                                    quadrosHorizontal={Number((itensRaw as any).quadrosHorizontal) || 0}
-                                                    quadrosVertical={Number((itensRaw as any).quadrosVertical) || 0}
-                                                    quantidadeLajes={Number((itensRaw as any).quantidadeLajes) || 0}
-                                                    quantidadeFachadas={Number((itensRaw as any).quantidadeFachadas) || 0}
-                                                    quadrosFixos={Number((itensRaw as any).quadrosFixos) || 0}
-                                                    quadrosMoveis={Number((itensRaw as any).quadrosMoveis) || 0}
-                                                    vidroDescricao={String((itensRaw as any).vidroDescricao || "")}
+                                                    larguraVaoMm={Number(itensRaw.larguraVaoMm) || 0}
+                                                    alturaVaoMm={Number(itensRaw.alturaVaoMm) || 0}
+                                                    quadrosHorizontal={Number(itensRaw.quadrosHorizontal) || 0}
+                                                    quadrosVertical={Number(itensRaw.quadrosVertical) || 0}
+                                                    quantidadeLajes={Number(itensRaw.quantidadeLajes) || 0}
+                                                    quantidadeFachadas={Number(itensRaw.quantidadeFachadas) || 0}
+                                                    quadrosFixos={Number(itensRaw.quadrosFixos) || 0}
+                                                    quadrosMoveis={Number(itensRaw.quadrosMoveis) || 0}
+                                                    vidroDescricao={String(itensRaw.vidroDescricao || "")}
                                                     areaVidro={Number(orcamentoParaVisualizar?.metragem_total) || 0}
                                                     totalVidro={(() => {
                                                         const total = Number(orcamentoParaVisualizar?.valor_total) || 0;
-                                                        const totalPerfis = perfisCorrigidos.reduce((acc: number, p: any) => acc + (Number(p.valorTotal) || 0), 0);
-                                                        const totalAcessorios = acessoriosCorrigidos.reduce((acc: number, a: any) => acc + (Number(a.valorTotal) || 0), 0);
+                                                        const totalPerfis = perfisCorrigidos.reduce((acc, p) => acc + (Number(p.valorTotal) || 0), 0);
+                                                        const totalAcessorios = acessoriosCorrigidos.reduce((acc, a) => acc + (Number(a.valorTotal) || 0), 0);
                                                         return Math.max(0, total - totalPerfis - totalAcessorios);
                                                     })()}
                                                     perfis={perfisCorrigidos}
                                                     acessorios={acessoriosCorrigidos}
-                                                    totalPerfis={perfisCorrigidos.reduce((acc: number, p: any) => acc + (Number(p.valorTotal) || 0), 0)}
-                                                    totalAcessorios={acessoriosCorrigidos.reduce((acc: number, a: any) => acc + (Number(a.valorTotal) || 0), 0)}
+                                                    totalPerfis={perfisCorrigidos.reduce((acc, p) => acc + (Number(p.valorTotal) || 0), 0)}
+                                                    totalAcessorios={acessoriosCorrigidos.reduce((acc, a) => acc + (Number(a.valorTotal) || 0), 0)}
                                                     totalGeral={Number(orcamentoParaVisualizar?.valor_total) || 0}
                                                 />
                                             );
@@ -847,8 +906,27 @@ export default function RelatorioOrçamento() {
                                                 quantidadeVaos: qtdVaos,
                                                 quantidadeDivisoesLargura: divVao,
                                             });
-                                            const perfisArr = (sacadaData.perfis || []) as Array<Record<string, unknown>>;
-                                            const acessArr = (sacadaData.acessorios || []) as Array<Record<string, unknown>>;
+                                            const perfisRaw = Array.isArray(sacadaData.perfis) ? sacadaData.perfis as Array<Record<string, unknown>> : [];
+                                            const acessRaw = Array.isArray(sacadaData.acessorios) ? sacadaData.acessorios as Array<Record<string, unknown>> : [];
+                                            const perfisArr: SacadaPerfisProp = perfisRaw.map((p) => ({
+                                                nome: String(p.nome || ""),
+                                                codigo: String(p.codigo || ""),
+                                                corEncontrada: String(p.corEncontrada || ""),
+                                                comprimentoTotal: Number(p.comprimentoTotal) || 0,
+                                                quantidadeBarras: Number(p.quantidadeBarras) || 0,
+                                                precoBarra: Number(p.precoBarra) || 0,
+                                                valorTotal: Number(p.valorTotal) || 0,
+                                            }));
+                                            const acessArr: SacadaAcessoriosProp = acessRaw.map((a) => ({
+                                                nome: String(a.nome || ""),
+                                                codigo: String(a.codigo || ""),
+                                                corEncontrada: String(a.corEncontrada || ""),
+                                                quantidade: Number(a.quantidade) || 0,
+                                                quantidadePacote: Number(a.quantidadePacote) || undefined,
+                                                pacote: Number(a.pacote) || undefined,
+                                                precoUnitario: Number(a.precoUnitario) || 0,
+                                                valorTotal: Number(a.valorTotal) || 0,
+                                            }));
                                             const totalPerfis = perfisArr.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
                                             const totalAcessorios = acessArr.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
                                             const totalGeral = Number(orcamentoParaVisualizar?.valor_total) || 0;
@@ -869,8 +947,8 @@ export default function RelatorioOrçamento() {
                                                     medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
                                                     areaTotal={sacResult.areaTotalVidro}
                                                     totalVidro={totalVidro}
-                                                    perfis={perfisArr as any}
-                                                    acessorios={acessArr as any}
+                                                    perfis={perfisArr}
+                                                    acessorios={acessArr}
                                                     totalPerfis={totalPerfis}
                                                     totalAcessorios={totalAcessorios}
                                                     totalGeral={totalGeral}

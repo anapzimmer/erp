@@ -53,7 +53,7 @@ interface SacadaFrontalPDFProps {
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const styles = StyleSheet.create({
-  page: { padding: 40, backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
+  page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 80, backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -75,16 +75,16 @@ const styles = StyleSheet.create({
   },
   clientObraLine: {
     flexDirection: "row",
-    gap: 12,
   },
   clientObraItem: { flex: 1 },
+  clientObraItemRight: { flex: 1, marginLeft: 12 },
   plainInfoList: {
     marginBottom: 12,
-    gap: 4,
   },
   plainInfoText: {
     fontSize: 9,
     color: "#1C415B",
+    marginBottom: 4,
   },
   label: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
   value: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
@@ -97,11 +97,13 @@ const styles = StyleSheet.create({
   thCell: { padding: 5, color: "#FFFFFF", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
   tdCell: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: "#1C415B" },
 
-  summaryContainer: { marginTop: 24, borderTopWidth: 1, borderTopColor: "#F0F0F0", paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  summaryContainer: { marginTop: 24, borderTopWidth: 1, borderTopColor: "#F0F0F0", paddingTop: 12 },
+  summaryMetrics: { flexDirection: "row", alignItems: "flex-end" },
   summaryItem: { flexDirection: "column", alignItems: "flex-start" },
+  summaryItemCol: { width: "17%" },
   summaryLabel: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 2 },
   summaryValue: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
-  totalBox: { textAlign: "right" },
+  totalBox: { width: "32%", alignItems: "flex-end" },
   totalLabel: { fontSize: 7, color: "#999", textTransform: "uppercase" },
   totalValue: { fontSize: 16, fontWeight: "bold" },
 
@@ -143,7 +145,7 @@ export function SacadaFrontalPDF({
             <Text style={styles.label}>Cliente</Text>
             <Text style={[styles.value, { color: c }]}>{nomeCliente || "Não informado"}</Text>
             </View>
-            <View style={styles.clientObraItem}>
+            <View style={styles.clientObraItemRight}>
             <Text style={styles.label}>Obra / Referência</Text>
             <Text style={[styles.value, { color: c }]}>{nomeObra || "Geral"}</Text>
             </View>
@@ -155,7 +157,7 @@ export function SacadaFrontalPDF({
           <Text style={styles.plainInfoText}>Vidro: {vidroDescricao}</Text>
           <Text style={styles.plainInfoText}>Medidas de vão: {larguraVaoMm}x{alturaVaoMm}mm · {quantidadeVaos} vão(s) · {divisoesPorVao} div.</Text>
           <Text style={styles.plainInfoText}>Medida do vidro: {medidaVidro}</Text>
-          <Text style={styles.plainInfoText}>Cor dos perfis: {corPerfil}</Text>
+          <Text style={[styles.plainInfoText, { marginBottom: 0 }]}>Cor dos perfis: {corPerfil}</Text>
         </View>
 
         {/* Vista frontal */}
@@ -266,27 +268,27 @@ export function SacadaFrontalPDF({
 
         {/* Resumo */}
         <View style={styles.summaryContainer}>
-          <View style={{ flexDirection: "row", gap: 20 }}>
-            <View style={styles.summaryItem}>
+          <View style={styles.summaryMetrics}>
+            <View style={[styles.summaryItem, styles.summaryItemCol]}>
               <Text style={styles.summaryLabel}>Área total de vidro</Text>
                 <Text style={[styles.summaryValue, { color: c }]}>{Number(areaTotal).toFixed(2)} m²</Text>
             </View>
-            <View style={styles.summaryItem}>
+            <View style={[styles.summaryItem, styles.summaryItemCol]}>
               <Text style={styles.summaryLabel}>Total vidro</Text>
               <Text style={[styles.summaryValue, { color: c }]}>{fmt(totalVidro)}</Text>
             </View>
-            <View style={styles.summaryItem}>
+            <View style={[styles.summaryItem, styles.summaryItemCol]}>
               <Text style={styles.summaryLabel}>Total perfis</Text>
               <Text style={[styles.summaryValue, { color: c }]}>{fmt(totalPerfis)}</Text>
             </View>
-            <View style={styles.summaryItem}>
+            <View style={[styles.summaryItem, styles.summaryItemCol]}>
               <Text style={styles.summaryLabel}>Total acessórios</Text>
               <Text style={[styles.summaryValue, { color: c }]}>{fmt(totalAcessorios)}</Text>
             </View>
-          </View>
-          <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Valor Total</Text>
-            <Text style={[styles.totalValue, { color: themeColor }]}>{fmt(totalGeral)}</Text>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalLabel}>Valor Total</Text>
+              <Text style={[styles.totalValue, { color: themeColor }]}>{fmt(totalGeral)}</Text>
+            </View>
           </View>
         </View>
 
