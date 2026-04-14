@@ -639,10 +639,13 @@ export default function RelatorioOrçamento() {
                                                                     const ehEspelho = /^OR(?!C)/i.test(numero);
                                                                     const itensObj = (orc.itens && !Array.isArray(orc.itens)) ? orc.itens : undefined;
                                                                     const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
+                                                                    const ehFechamentoSacada = tipoItem === "fechamento_sacada";
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
                                                                     const ehCalculoprojeto = tipoItem === "calculoprojeto";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
-                                                                    const rotaEdicao = ehSacada
+                                                                    const rotaEdicao = ehFechamentoSacada
+                                                                        ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehEspelho
                                                                             ? `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`
