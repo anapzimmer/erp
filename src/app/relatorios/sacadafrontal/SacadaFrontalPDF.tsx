@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontWeight: "bold", marginTop: 18, marginBottom: 6 },
 
   table: { width: "100%", marginTop: 4 },
-  tableHeader: { flexDirection: "row", minHeight: 20 },
+  tableHeader: { flexDirection: "row", minHeight: 20, alignItems: "center" },
   tableRow: { flexDirection: "row", borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: "center", minHeight: 26 },
   thCell: { padding: 5, color: "#FFFFFF", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
   tdCell: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: "#1C415B" },
@@ -169,7 +169,9 @@ export function SacadaFrontalPDF({
           const st = 6;
           const sb = 14;
           const cw = sw - sl - sr;
-          const rat = Math.min(Math.max(alturaVaoMm / (larguraVaoMm || 1), 0.25), 1.2);
+          const larguraBase = larguraVaoMm > 0 ? larguraVaoMm : 1000;
+          const alturaBase = alturaVaoMm > 0 ? alturaVaoMm : 1100;
+          const rat = Math.min(Math.max(alturaBase / larguraBase, 0.45), 1.1);
           const ch = cw * rat;
           const sh = ch + st + sb;
           const pw = Math.max(1.5, Math.min(4, cw * 0.01));
@@ -181,12 +183,12 @@ export function SacadaFrontalPDF({
           const cl = (corPerfil || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
           const ac = cl === "branco" ? "#d8d8d8" : cl === "preto" ? "#303030" : cl === "fosco" ? "#888888" : "#999999";
           const ab = cl === "branco" ? "#b0b0b0" : cl === "preto" ? "#1a1a1a" : cl === "fosco" ? "#666666" : "#777777";
-          const dw = 440;
+          const dw = 430;
           const dh = dw * (sh / sw);
           return (
             <View style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>
               <Text style={{ fontSize: 9, fontWeight: "bold", color: themeColor, marginBottom: 5, alignSelf: "flex-start" }}>Vista Frontal</Text>
-              <Svg viewBox={`0 0 ${sw} ${sh}`} style={{ width: dw, height: dh }}>
+              <Svg viewBox={`0 0 ${sw} ${sh}`} width={dw} height={dh} preserveAspectRatio="xMidYMid meet">
                 <Rect x={x0} y={y0} width={cw} height={rh} fill={ac} />
                 <Rect x={x0} y={y0} width={cw} height={rh} fill="none" stroke={ab} strokeWidth={0.4} />
                 <Rect x={x0} y={y0 + ch - rh} width={cw} height={rh} fill={ac} />
@@ -255,13 +257,13 @@ export function SacadaFrontalPDF({
             <Text style={[styles.thCell, { width: "17%", textAlign: "right" }]}>Total</Text>
           </View>
           {acessorios.map((a, i) => (
-            <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-              <Text style={[styles.tdCell, { width: "28%" }]}>{a.nome}</Text>
-              <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{a.codigo}</Text>
-              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{a.quantidadePacote ?? a.quantidade}</Text>
-              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{a.corEncontrada || "-"}</Text>
-              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
-              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
+            <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]} wrap={false}>
+              <Text style={[styles.tdCell, { width: "28%" }]} wrap={false}>{a.nome}</Text>
+              <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]} wrap={false}>{a.codigo}</Text>
+              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]} wrap={false}>{a.quantidadePacote ?? a.quantidade}</Text>
+              <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]} wrap={false}>{a.corEncontrada || "-"}</Text>
+              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]} wrap={false}>{fmt(a.precoUnitario)}</Text>
+              <Text style={[styles.tdCell, { width: "17%", textAlign: "right" }]} wrap={false}>{fmt(a.valorTotal)}</Text>
             </View>
           ))}
         </View>

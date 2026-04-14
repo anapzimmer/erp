@@ -21,31 +21,36 @@ export default function ConfiguracoesPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        router.push("/login");
-        return;
-      }
-      setUsuarioEmail(authData.user.email || "Usuário");
-
-      const { data: perfil } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", authData.user.id)
-        .maybeSingle();
-
-      if (perfil) {
-        const { data: empresaData } = await supabase
-          .from("empresas")
-          .select("nome")
-          .eq("id", perfil.empresa_id)
-          .single();
-
-        if (empresaData) {
-          setNomeEmpresa(empresaData.nome);
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData.user) {
+          router.push("/login");
+          return;
         }
+        setUsuarioEmail(authData.user.email || "Usuário");
+
+        const { data: perfil } = await supabase
+          .from("perfis_usuarios")
+          .select("empresa_id")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        if (perfil) {
+          const { data: empresaData } = await supabase
+            .from("empresas")
+            .select("nome")
+            .eq("id", perfil.empresa_id)
+            .single();
+
+          if (empresaData) {
+            setNomeEmpresa(empresaData.nome);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configuracoes:", error);
+      } finally {
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     };
     fetchData();
   }, [router]);

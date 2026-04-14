@@ -71,9 +71,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<ThemeColors>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTheme = useCallback(async () => {
+  const fetchTheme = useCallback(async (showLoader = false) => {
     try {
-      setIsLoading(true);
+      if (showLoader) {
+        setIsLoading(true);
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -146,7 +148,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    fetchTheme();
+    fetchTheme(true);
   }, [fetchTheme]);
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-        fetchTheme();
+        fetchTheme(false);
       }
 
       if (event === "SIGNED_OUT") {
@@ -197,7 +199,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, refreshTheme: fetchTheme, isLoading }}>
+    <ThemeContext.Provider value={{ theme, refreshTheme: () => fetchTheme(false), isLoading }}>
       {children}
     </ThemeContext.Provider>
   );

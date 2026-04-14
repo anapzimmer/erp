@@ -131,36 +131,41 @@ export default function GestaoPrecosPage() {
   // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
     const fetchData = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        router.push("/login");
-        return;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData.user) {
+          router.push("/login");
+          return;
+        }
+        setUsuarioEmail(authData.user.email || "Usuário");
+
+        const { data: perfil } = await supabase
+          .from("perfis_usuarios")
+          .select("empresa_id")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        if (perfil) {
+          // 🔥 SALVE O ID AQUI
+          setEmpresaIdAtual(perfil.empresa_id);
+
+          const { data: empresaData } = await supabase
+            .from("empresas")
+            .select("nome")
+            .eq("id", perfil.empresa_id)
+            .single();
+
+          if (empresaData) setNomeEmpresa(empresaData.nome);
+
+          // 🔥 PASSE O ID PARA AS FUNÇÕES DE CARREGAMENTO
+          await carregarTabelas(perfil.empresa_id);
+          await carregarTodosVidros(perfil.empresa_id);
+        }
+      } catch (error) {
+        console.error("Erro ao iniciar tabela de precos:", error);
+      } finally {
+        setCheckingAuth(false);
       }
-      setUsuarioEmail(authData.user.email || "Usuário");
-
-      const { data: perfil } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", authData.user.id)
-        .maybeSingle();
-
-      if (perfil) {
-        // 🔥 SALVE O ID AQUI
-        setEmpresaIdAtual(perfil.empresa_id);
-
-        const { data: empresaData } = await supabase
-          .from("empresas")
-          .select("nome")
-          .eq("id", perfil.empresa_id)
-          .single();
-
-        if (empresaData) setNomeEmpresa(empresaData.nome);
-
-        // 🔥 PASSE O ID PARA AS FUNÇÕES DE CARREGAMENTO
-        await carregarTabelas(perfil.empresa_id);
-        await carregarTodosVidros(perfil.empresa_id);
-      }
-      setCheckingAuth(false);
     };
 
     fetchData();

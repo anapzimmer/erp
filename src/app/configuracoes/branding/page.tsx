@@ -51,72 +51,76 @@ export default function ConfiguracoesBrandingPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        router.push("/login");
-        return;
-      }
-      setUsuarioEmail(userData.user.email || "Usuário");
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          router.push("/login");
+          return;
+        }
+        setUsuarioEmail(userData.user.email || "Usuário");
 
-      const { data: perfil, error: perfilError } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", userData.user.id)
-        .maybeSingle();
+        const { data: perfil, error: perfilError } = await supabase
+          .from("perfis_usuarios")
+          .select("empresa_id")
+          .eq("id", userData.user.id)
+          .maybeSingle();
 
-      if (perfilError || !perfil) {
-        console.error("Erro ao buscar perfil:", perfilError);
+        if (perfilError || !perfil) {
+          console.error("Erro ao buscar perfil:", perfilError);
+          return;
+        }
+
+        setEmpresaId(perfil.empresa_id);
+
+        // Buscar branding atual
+        const { data: brandingData } = await supabase
+          .from("configuracoes_branding")
+          .select("*")
+          .eq("empresa_id", perfil.empresa_id)
+          .single();
+
+        // Buscar Nome da Empresa
+        const { data: empresaData } = await supabase
+          .from("empresas")
+          .select("nome")
+          .eq("id", perfil.empresa_id)
+          .single();
+
+        if (empresaData) {
+          setNomeEmpresa(empresaData.nome);
+        }
+
+        if (brandingData) {
+          setLogoLight(brandingData.logo_light || "/glasscode.png");
+          setLogoDark(brandingData.logo_dark || "/glasscode2.png");
+
+          // SETTERS ATUALIZADOS
+          setScreenBackgroundColor(brandingData.screen_background_color || "#F4F7FA");
+          setMenuBackgroundColor(brandingData.menu_background_color || "#1C415B");
+          setMenuTextColor(brandingData.menu_text_color || "#FFFFFF");
+          setMenuIconColor(brandingData.menu_icon_color || "#39B89F");
+          setMenuHoverColor(brandingData.menu_hover_color || "#2A5C7E");
+          setContentTextLightBg(brandingData.content_text_light_bg || "#1C415B");
+          setContentTextDarkBg(brandingData.content_text_dark_bg || "#FFFFFF");
+          setButtonDarkBg(brandingData.button_dark_bg || "#1C415B");
+          setButtonDarkText(brandingData.button_dark_text || "#FFFFFF");
+          setButtonLightBg(brandingData.button_light_bg || "#FFFFFF");
+          setButtonLightText(brandingData.button_light_text || "#1C415B");
+
+          // SETTERS DO MODAL
+          setModalBackgroundColor(brandingData.modal_background_color || "#FFFFFF");
+          setModalTextColor(brandingData.modal_text_color || "#1C415B");
+          setModalButtonBackgroundColor(brandingData.modal_button_background_color || "#1C415B");
+          setModalButtonTextColor(brandingData.modal_button_text_color || "#FFFFFF");
+          setModalIconSuccessColor(brandingData.modal_icon_success_color || "#059669");
+          setModalIconErrorColor(brandingData.modal_icon_error_color || "#DC2626");
+          setModalIconWarningColor(brandingData.modal_icon_warning_color || "#D97706");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configuracoes de branding:", error);
+      } finally {
         setCheckingAuth(false);
-        return;
       }
-
-      setEmpresaId(perfil.empresa_id);
-
-      // Buscar branding atual
-      const { data: brandingData } = await supabase
-        .from("configuracoes_branding")
-        .select("*")
-        .eq("empresa_id", perfil.empresa_id)
-        .single();
-
-      // Buscar Nome da Empresa
-      const { data: empresaData } = await supabase
-        .from("empresas")
-        .select("nome")
-        .eq("id", perfil.empresa_id)
-        .single();
-
-      if (empresaData) {
-        setNomeEmpresa(empresaData.nome);
-      }
-
-      if (brandingData) {
-        setLogoLight(brandingData.logo_light || "/glasscode.png");
-        setLogoDark(brandingData.logo_dark || "/glasscode2.png");
-
-        // SETTERS ATUALIZADOS
-        setScreenBackgroundColor(brandingData.screen_background_color || "#F4F7FA");
-        setMenuBackgroundColor(brandingData.menu_background_color || "#1C415B");
-        setMenuTextColor(brandingData.menu_text_color || "#FFFFFF");
-        setMenuIconColor(brandingData.menu_icon_color || "#39B89F");
-        setMenuHoverColor(brandingData.menu_hover_color || "#2A5C7E");
-        setContentTextLightBg(brandingData.content_text_light_bg || "#1C415B");
-        setContentTextDarkBg(brandingData.content_text_dark_bg || "#FFFFFF");
-        setButtonDarkBg(brandingData.button_dark_bg || "#1C415B");
-        setButtonDarkText(brandingData.button_dark_text || "#FFFFFF");
-        setButtonLightBg(brandingData.button_light_bg || "#FFFFFF");
-        setButtonLightText(brandingData.button_light_text || "#1C415B");
-
-        // SETTERS DO MODAL
-        setModalBackgroundColor(brandingData.modal_background_color || "#FFFFFF");
-        setModalTextColor(brandingData.modal_text_color || "#1C415B");
-        setModalButtonBackgroundColor(brandingData.modal_button_background_color || "#1C415B");
-        setModalButtonTextColor(brandingData.modal_button_text_color || "#FFFFFF");
-        setModalIconSuccessColor(brandingData.modal_icon_success_color || "#059669");
-        setModalIconErrorColor(brandingData.modal_icon_error_color || "#DC2626");
-        setModalIconWarningColor(brandingData.modal_icon_warning_color || "#D97706");
-      }
-      setCheckingAuth(false);
     };
     fetchData();
   }, [router]);

@@ -32,23 +32,27 @@ export default function ConfiguracaoTipologia() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-      setUsuarioEmail(user.email || "");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+        setUsuarioEmail(user.email || "");
 
-      const { data: perfil } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", user.id).maybeSingle();
-      if (perfil?.empresa_id) {
-        const { data: empresa } = await supabase.from("empresas").select("nome").eq("id", perfil.empresa_id).single();
-        if (empresa) setNomeEmpresa(empresa.nome);
-      }
+        const { data: perfil } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", user.id).maybeSingle();
+        if (perfil?.empresa_id) {
+          const { data: empresa } = await supabase.from("empresas").select("nome").eq("id", perfil.empresa_id).single();
+          if (empresa) setNomeEmpresa(empresa.nome);
+        }
 
-      const { data } = await supabase.from("tipologias").select("id, nome");
-      if (data) setTipologias(data);
-      
-      setCheckingAuth(false);
+        const { data } = await supabase.from("tipologias").select("id, nome");
+        if (data) setTipologias(data);
+      } catch (error) {
+        console.error("Erro ao iniciar cadastro de tipologia:", error);
+      } finally {
+        setCheckingAuth(false);
+      }
     };
     fetchData();
   }, [router]);

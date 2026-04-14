@@ -116,28 +116,33 @@ export default function FerragensPage() {
   // --- EFEITOS ---
   useEffect(() => {
     const init = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) { router.push("/login"); return; }
-      setUsuarioEmail(userData.user.email ?? null);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) { router.push("/login"); return; }
+        setUsuarioEmail(userData.user.email ?? null);
 
-      const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).maybeSingle();
-      if (data) {
-        setEmpresaIdUsuario(data.empresa_id);
-        const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
-        if (emp) setNomeEmpresa(emp.nome);
+        const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).maybeSingle();
+        if (data) {
+          setEmpresaIdUsuario(data.empresa_id);
+          const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
+          if (emp) setNomeEmpresa(emp.nome);
 
-        const { data: brandingData } = await supabase
-          .from("configuracoes_branding")
-          .select("logo_light")
-          .eq("empresa_id", data.empresa_id)
-          .limit(1)
-          .maybeSingle();
+          const { data: brandingData } = await supabase
+            .from("configuracoes_branding")
+            .select("logo_light")
+            .eq("empresa_id", data.empresa_id)
+            .limit(1)
+            .maybeSingle();
 
-        setLogoEmpresaPdf(brandingData?.logo_light || null);
+          setLogoEmpresaPdf(brandingData?.logo_light || null);
 
-        await carregarDados(data.empresa_id);
+          await carregarDados(data.empresa_id);
+        }
+      } catch (error) {
+        console.error("Erro ao iniciar cadastro de ferragens:", error);
+      } finally {
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     };
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps

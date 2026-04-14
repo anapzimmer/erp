@@ -167,18 +167,23 @@ export default function KitsPage() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) { router.push("/login"); return; }
-      setUsuarioEmail(userData.user.email ?? null);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) { router.push("/login"); return; }
+        setUsuarioEmail(userData.user.email ?? null);
 
-      const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).maybeSingle();
-      if (data) {
-        setEmpresaIdUsuario(data.empresa_id);
-        const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
-        if (emp) setNomeEmpresa(emp.nome);
-        await carregarDados(data.empresa_id);
+        const { data } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", userData.user.id).maybeSingle();
+        if (data) {
+          setEmpresaIdUsuario(data.empresa_id);
+          const { data: emp } = await supabase.from("empresas").select("nome").eq("id", data.empresa_id).single();
+          if (emp) setNomeEmpresa(emp.nome);
+          await carregarDados(data.empresa_id);
+        }
+      } catch (error) {
+        console.error("Erro ao iniciar cadastro de kits:", error);
+      } finally {
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     };
     init();
   }, []);

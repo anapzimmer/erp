@@ -74,67 +74,71 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
   // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
     const init = async () => {
-      // 🔥 LIMPEZA: Evita que a logo da empresa anterior apareça enquanto a nova carrega
-      setLogoDark(null);
-      setLogoLight(null);
-      setNomeEmpresa("");
+      try {
+        // 🔥 LIMPEZA: Evita que a logo da empresa anterior apareça enquanto a nova carrega
+        setLogoDark(null);
+        setLogoLight(null);
+        setNomeEmpresa("");
 
-      const { data: userData } = await supabase.auth.getUser();
+        const { data: userData } = await supabase.auth.getUser();
 
-      if (!userData.user) {
-        router.push("/login");
-        return;
-      }
+        if (!userData.user) {
+          router.push("/login");
+          return;
+        }
 
-      setUsuarioEmail(userData.user.email ?? null);
+        setUsuarioEmail(userData.user.email ?? null);
 
-      const { data: relData, error: relError } = await supabase
-        .from("perfis_usuarios")
-        .select("empresa_id")
-        .eq("id", userData.user.id)
-        .maybeSingle();
+        const { data: relData, error: relError } = await supabase
+          .from("perfis_usuarios")
+          .select("empresa_id")
+          .eq("id", userData.user.id)
+          .maybeSingle();
 
-      if (relError || !relData) {
+        if (relError || !relData) {
+          return;
+        }
+
+        const empresaId = relData.empresa_id;
+        setEmpresaIdUsuario(empresaId);
+
+        // 🔥 BUSCA CONECTADA À TABELA configuracoes_branding
+        // Buscamos o nome da empresa e as configurações visuais em paralelo
+        const [resEmpresa, resBranding] = await Promise.all([
+          supabase.from("empresas").select("nome").eq("id", empresaId).single(),
+          supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single()
+        ]);
+
+        if (!resEmpresa.error && resEmpresa.data) {
+          setNomeEmpresa(resEmpresa.data.nome);
+        }
+
+        if (!resBranding.error && resBranding.data) {
+          const b = resBranding.data;
+
+          // 🔥 ARRUADO AQUI: Salve as duas logos separadamente
+          // Use b.logo_dark para o que for aparecer na tela (se o fundo for escuro)
+          setLogoDark(b.logo_dark);
+
+          // Use b.logo_light para o PDF (que tem fundo branco)
+          setLogoLight(b.logo_light);
+
+          // Mapeamento exato das colunas
+          setDarkPrimary(b.menu_background_color || "#1C415B");
+          setDarkSecondary(b.menu_text_color || "#FFFFFF");
+          setDarkTertiary(b.menu_icon_color || "#39B89F");
+          setDarkHover(b.menu_hover_color || "#39B89F");
+          setLightPrimary(b.screen_background_color || "#F4F7FA");
+          setLightSecondary(b.modal_background_color || "#FFFFFF");
+          setLightTertiary(b.content_text_light_bg || "#1C415B");
+        }
+
+        await carregarDados(empresaId);
+      } catch (error) {
+        console.error("Erro ao iniciar cadastro de perfis:", error);
+      } finally {
         setCheckingAuth(false);
-        return;
       }
-
-      const empresaId = relData.empresa_id;
-      setEmpresaIdUsuario(empresaId);
-
-      // 🔥 BUSCA CONECTADA À TABELA configuracoes_branding
-      // Buscamos o nome da empresa e as configurações visuais em paralelo
-      const [resEmpresa, resBranding] = await Promise.all([
-        supabase.from("empresas").select("nome").eq("id", empresaId).single(),
-        supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single()
-      ]);
-
-      if (!resEmpresa.error && resEmpresa.data) {
-        setNomeEmpresa(resEmpresa.data.nome);
-      }
-
-      if (!resBranding.error && resBranding.data) {
-        const b = resBranding.data;
-
-        // 🔥 ARRUADO AQUI: Salve as duas logos separadamente
-        // Use b.logo_dark para o que for aparecer na tela (se o fundo for escuro)
-        setLogoDark(b.logo_dark);
-
-        // Use b.logo_light para o PDF (que tem fundo branco)
-        setLogoLight(b.logo_light);
-
-        // Mapeamento exato das colunas
-        setDarkPrimary(b.menu_background_color || "#1C415B");
-        setDarkSecondary(b.menu_text_color || "#FFFFFF");
-        setDarkTertiary(b.menu_icon_color || "#39B89F");
-        setDarkHover(b.menu_hover_color || "#39B89F");
-        setLightPrimary(b.screen_background_color || "#F4F7FA");
-        setLightSecondary(b.modal_background_color || "#FFFFFF");
-        setLightTertiary(b.content_text_light_bg || "#1C415B");
-      }
-
-      await carregarDados(empresaId);
-      setCheckingAuth(false);
     };
 
     init();
