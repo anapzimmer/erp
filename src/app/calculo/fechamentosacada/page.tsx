@@ -38,6 +38,18 @@ type FerragemTabela = {
   codigo: string;
   nome: string;
   cores?: string | null;
+  preco?: number | string | null;
+  valor?: number | string | null;
+  preco_por_cor?: number | string | null;
+};
+
+type KitTabela = {
+  nome: string;
+  largura?: number | null;
+  altura?: number | null;
+  categoria?: string | null;
+  cores?: string | null;
+  preco_por_cor?: number | string | null;
   preco?: number | null;
 };
 
@@ -85,6 +97,11 @@ const normalizarCodigo = (codigo?: string | null) =>
     .replace(/[^A-Z0-9]/g, "")
     .trim();
 
+const normalizarBuscaAmpla = (texto?: string | null) =>
+  normalizarTextoComparacao(texto)
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+
 const corCompativel = (coresBanco?: string | null, corSelecionada?: string) => {
   if (!coresBanco || !corSelecionada) {
     return false;
@@ -97,7 +114,7 @@ const corCompativel = (coresBanco?: string | null, corSelecionada?: string) => {
 
   const lista = coresBanco
     .toLowerCase()
-    .split(",")
+    .split(/[;,/|]/)
     .map((cor) => normalizarTextoComparacao(cor).replace(/\s+/g, ""))
     .filter(Boolean);
 
@@ -105,6 +122,9 @@ const corCompativel = (coresBanco?: string | null, corSelecionada?: string) => {
 };
 
 const atendeCor = (coresItem?: string | null, corSelecionada?: string) => corCompativel(coresItem, corSelecionada);
+
+const sentenceCase = (s?: string | null) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
 const formatarNumero = (valor: number, casasDecimais = 3) =>
   valor.toLocaleString("pt-BR", {
@@ -172,6 +192,9 @@ const normalizarPrecoFerragem = (preco?: number | string | null) => {
   return Number.isFinite(valor) ? valor : 0;
 };
 
+const obterPrecoFerragem = (item?: Partial<FerragemTabela> | null) =>
+  normalizarPrecoFerragem(item?.preco ?? item?.valor ?? item?.preco_por_cor ?? null);
+
 const resolverCorAcessorio = (codigo: string, corPerfilSelecionada: string) => {
   const codigoNorm = normalizarCodigo(codigo);
 
@@ -215,8 +238,8 @@ const resolverFerragemPorCodigoECor = (
   // 1️⃣ tentar achar por campo cores
   if (corNorm) {
     const comCor = candidatos.find((f) => corCompativel(f.cores, corNorm));
-    if (comCor && normalizarPrecoFerragem(comCor.preco) > 0) {
-      return { preco: normalizarPrecoFerragem(comCor.preco), corEncontrada: corUsar };
+    if (comCor && obterPrecoFerragem(comCor) > 0) {
+      return { preco: obterPrecoFerragem(comCor), corEncontrada: corUsar };
     }
 
     // 2️⃣ tentar por sufixo do código (ex: CAN625-BC → BC → branco)
@@ -226,8 +249,8 @@ const resolverFerragemPorCodigoECor = (
         ([sufixo, corSufixo]) => fCodigo.endsWith(sufixo) && corSufixo === corNorm
       );
     });
-    if (comSufixo && normalizarPrecoFerragem(comSufixo.preco) > 0) {
-      return { preco: normalizarPrecoFerragem(comSufixo.preco), corEncontrada: corUsar };
+    if (comSufixo && obterPrecoFerragem(comSufixo) > 0) {
+      return { preco: obterPrecoFerragem(comSufixo), corEncontrada: corUsar };
     }
   }
 
@@ -237,17 +260,151 @@ const resolverFerragemPorCodigoECor = (
     const ehExato = codigosAceitos.includes(fCodigo);
     return ehExato && (!f.cores || f.cores.trim() === "");
   });
-  if (semCor && normalizarPrecoFerragem(semCor.preco) > 0) {
-    return { preco: normalizarPrecoFerragem(semCor.preco), corEncontrada: "Padrão" };
+  if (semCor && obterPrecoFerragem(semCor) > 0) {
+    return { preco: obterPrecoFerragem(semCor), corEncontrada: "Padrão" };
   }
 
   // 4️⃣ qualquer com preço
-  const comPreco = candidatos.find((f) => normalizarPrecoFerragem(f.preco) > 0);
+  const comPreco = candidatos.find((f) => obterPrecoFerragem(f) > 0);
   if (comPreco) {
-    return { preco: normalizarPrecoFerragem(comPreco.preco), corEncontrada: comPreco.cores || "Padrão" };
+    return { preco: obterPrecoFerragem(comPreco), corEncontrada: comPreco.cores || "Padrão" };
   }
 
   return { preco: 0, corEncontrada: corUsar || "Padrão" };
+};
+
+const resolverFerragemPorNome = (
+  ferragensTabela: FerragemTabela[],
+  nomeAlvo: string
+): { codigo: string; nomeEncontrado: string; preco: number } => {
+  const nomeNormalizado = normalizarTextoComparacao(nomeAlvo).replace(/\s+/g, " ").trim();
+
+  const candidatos = ferragensTabela.filter((ferragem) => {
+    const nomeFerragem = normalizarTextoComparacao(ferragem.nome).replace(/\s+/g, " ").trim();
+    return nomeFerragem === nomeNormalizado
+      || nomeFerragem.includes(nomeNormalizado)
+      || nomeNormalizado.includes(nomeFerragem);
+  });
+
+  const escolhido = candidatos.find((item) => obterPrecoFerragem(item) > 0) || candidatos[0];
+
+  if (!escolhido) {
+    return { codigo: "-", nomeEncontrado: nomeAlvo, preco: 0 };
+  }
+
+  return {
+    codigo: escolhido.codigo || "-",
+    nomeEncontrado: escolhido.nome || nomeAlvo,
+    preco: obterPrecoFerragem(escolhido),
+  };
+};
+
+const resolverPerfilPorCodigoECor = (
+  perfisTabela: PerfilTabela[],
+  codigo: string,
+  corUsar?: string
+): { nome: string; preco: number; corEncontrada: string } => {
+  const codigoNormalizado = normalizarCodigo(codigo);
+  const corNormalizada = normalizarTextoComparacao(corUsar);
+
+  const candidatos = perfisTabela.filter((perfil) => {
+    const codigoPerfil = normalizarCodigo(perfil.codigo);
+    return codigoPerfil === codigoNormalizado || codigoPerfil.startsWith(codigoNormalizado);
+  });
+
+  if (candidatos.length === 0) {
+    return { nome: "", preco: 0, corEncontrada: corUsar || "Padrão" };
+  }
+
+  if (corNormalizada) {
+    const comCor = candidatos.find((perfil) => {
+      const preco = normalizarPrecoFerragem(perfil.preco);
+      return preco > 0 && atendeCor(perfil.cores, corNormalizada);
+    });
+
+    if (comCor) {
+      return {
+        nome: comCor.nome || "",
+        preco: normalizarPrecoFerragem(comCor.preco),
+        corEncontrada: comCor.cores || corUsar || "Padrão",
+      };
+    }
+  }
+
+  const semCor = candidatos.find((perfil) => {
+    const preco = normalizarPrecoFerragem(perfil.preco);
+    return preco > 0 && (!perfil.cores || !perfil.cores.trim());
+  });
+
+  if (semCor) {
+    return {
+      nome: semCor.nome || "",
+      preco: normalizarPrecoFerragem(semCor.preco),
+      corEncontrada: "Padrão",
+    };
+  }
+
+  const comPreco = candidatos.find((perfil) => normalizarPrecoFerragem(perfil.preco) > 0) || candidatos[0];
+
+  return {
+    nome: comPreco.nome || "",
+    preco: normalizarPrecoFerragem(comPreco.preco),
+    corEncontrada: comPreco.cores || corUsar || "Padrão",
+  };
+};
+
+const resolverKitPorNomeECor = (
+  kitsTabela: KitTabela[],
+  termoAlvo: string,
+  corUsar?: string
+): { nome: string; preco: number; corEncontrada: string } => {
+  const termoNormalizado = normalizarTextoComparacao(termoAlvo).replace(/\s+/g, " ").trim();
+  const termoBuscaAmpla = normalizarBuscaAmpla(termoAlvo);
+  const corNormalizada = normalizarTextoComparacao(corUsar);
+
+  const candidatos = kitsTabela.filter((kit) => {
+    const nomeKit = normalizarTextoComparacao(kit.nome).replace(/\s+/g, " ").trim();
+    const nomeBuscaAmpla = normalizarBuscaAmpla(kit.nome);
+    return nomeKit === termoNormalizado
+      || nomeKit.includes(termoNormalizado)
+      || termoNormalizado.includes(nomeKit)
+      || nomeBuscaAmpla === termoBuscaAmpla
+      || nomeBuscaAmpla.includes(termoBuscaAmpla)
+      || termoBuscaAmpla.includes(nomeBuscaAmpla);
+  });
+
+  if (candidatos.length === 0) {
+    return { nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
+  }
+
+  if (corNormalizada) {
+    const comCor = candidatos.find((kit) => {
+      const preco = normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco);
+      return preco > 0 && atendeCor(kit.cores, corNormalizada);
+    });
+
+    if (comCor) {
+      return {
+        nome: comCor.nome || termoAlvo,
+        preco: normalizarPrecoFerragem(comCor.preco_por_cor ?? comCor.preco),
+        corEncontrada: comCor.cores || corUsar || "Padrão",
+      };
+    }
+  }
+
+  const comPreco = candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) || candidatos[0];
+
+  return {
+    nome: comPreco.nome || termoAlvo,
+    preco: normalizarPrecoFerragem(comPreco.preco_por_cor ?? comPreco.preco),
+    corEncontrada: comPreco.cores || corUsar || "Padrão",
+  };
+};
+
+const obterFaixaKitSacada = (larguraVaoMm: number) => {
+  if (larguraVaoMm <= 3050) return "3,05";
+  if (larguraVaoMm <= 4050) return "4,05";
+  return "6,05";
 };
 
 export default function CalculoFechamentoSacadaPage() {
@@ -280,6 +437,7 @@ export default function CalculoFechamentoSacadaPage() {
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [perfisTabela, setPerfisTabela] = useState<PerfilTabela[]>([]);
   const [ferragensTabela, setFerragensTabela] = useState<FerragemTabela[]>([]);
+  const [kitsTabela, setKitsTabela] = useState<KitTabela[]>([]);
   const [buscaVidroInferior, setBuscaVidroInferior] = useState("");
   const [buscaVidroSuperior, setBuscaVidroSuperior] = useState("");
   const [vidroIdInferior, setVidroIdInferior] = useState("");
@@ -384,6 +542,7 @@ export default function CalculoFechamentoSacadaPage() {
           setVidros([]);
           setPerfisTabela([]);
           setFerragensTabela([]);
+          setKitsTabela([]);
           setCarregandoInsumos(false);
         }
         return;
@@ -391,10 +550,11 @@ export default function CalculoFechamentoSacadaPage() {
 
       setCarregandoInsumos(true);
 
-      const [resVidros, resPerfis, resFerragens, resClientes, resPrecos] = await Promise.all([
+      const [resVidros, resPerfis, resFerragens, resKits, resClientes, resPrecos] = await Promise.all([
         supabase.from("vidros").select("id, nome, espessura, tipo, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("perfis").select("codigo, nome, cores, preco").eq("empresa_id", empresaId).order("codigo", { ascending: true }),
-        supabase.from("ferragens").select("codigo, nome, cores, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("ferragens").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("kits").select("nome, largura, altura, categoria, cores, preco_por_cor, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
       ]);
@@ -403,7 +563,7 @@ export default function CalculoFechamentoSacadaPage() {
         return;
       }
 
-      if (resVidros.error || resPerfis.error || resFerragens.error) {
+      if (resVidros.error || resPerfis.error || resFerragens.error || resKits.error) {
         if (resVidros.error) {
           console.error("Erro ao carregar vidros do fechamento de sacada:", resVidros.error);
         }
@@ -413,9 +573,13 @@ export default function CalculoFechamentoSacadaPage() {
         if (resFerragens.error) {
           console.error("Erro ao carregar ferragens do fechamento de sacada:", resFerragens.error);
         }
+        if (resKits.error) {
+          console.error("Erro ao carregar kits do fechamento de sacada:", resKits.error);
+        }
         setVidros([]);
         setPerfisTabela([]);
         setFerragensTabela([]);
+        setKitsTabela([]);
         setCarregandoInsumos(false);
         return;
       }
@@ -425,11 +589,24 @@ export default function CalculoFechamentoSacadaPage() {
       setVidros((resVidros.data || []) as Vidro[]);
       setPerfisTabela((resPerfis.data || []) as PerfilTabela[]);
       setFerragensTabela(ferragensCarregadas);
+      setKitsTabela((resKits.data || []) as KitTabela[]);
       if (resClientes.data) setListaClientes(resClientes.data as ClienteSacada[]);
       if (resPrecos.data) setPrecosEspeciais(resPrecos.data as PrecoEspecial[]);
       setCarregandoInsumos(false);
 
       if (process.env.NODE_ENV !== "production") {
+        const acktsKts = ferragensCarregadas.filter((f) =>
+          f.codigo?.toUpperCase().includes("ACKTS") ||
+          f.codigo?.toUpperCase().includes("ESCA57") ||
+          f.codigo?.toUpperCase().includes("FECKTS")
+        );
+        console.table(
+          acktsKts.map((f) => ({ codigo: f.codigo, nome: f.nome, cores: f.cores, preco: f.preco, tipo_preco: typeof f.preco }))
+        );
+        if (acktsKts.length === 0) {
+          console.warn("[SACADA][ACKTS] Nenhum item ACKTS/ESCA57/FECKTS encontrado na tabela de ferragens!");
+        }
+
         const codigosAlvo = ["NYL", "TAM", "NYLON", "TAMPA"];
         const relacionadas = ferragensCarregadas.filter((f) => {
           const cod = normalizarCodigo(f.codigo);
@@ -615,48 +792,27 @@ export default function CalculoFechamentoSacadaPage() {
       quantidadeDivisoesLargura: quantidadeDivisoesSuperiorNumero,
       precoVidroM2: precoVidroM2Superior,
       vidroDescricao: montarDescricaoVidro(vidroSelecionadoSuperior),
+      isSacadaSuperior: true,
     }),
     [alturaSuperiorNumero, larguraNumero, quantidadeDivisoesSuperiorNumero, quantidadeNumero, precoVidroM2Superior, vidroSelecionadoSuperior]
   );
 
   const resultado = resultadoInferior;
 
-  const corPerfilSelecionada = Boolean(normalizarTextoComparacao(corPerfil));
-
   const perfisComPrecoTabela = useMemo(() => {
     return resultadoInferior.perfis.map((perfilResultado) => {
-      if (!corPerfilSelecionada) {
-        return {
-          ...perfilResultado,
-          corEncontrada: "",
-          precoBarra: 0,
-          valorTotal: 0,
-        };
-      }
-
-      const corSelecionada = normalizarTextoComparacao(corPerfil);
-      const perfilDaTabela = perfisTabela.find((perfilTabela) => {
-        const mesmoCodigo = normalizarTextoComparacao(perfilTabela.codigo) === normalizarTextoComparacao(perfilResultado.codigo);
-        if (!mesmoCodigo) {
-          return false;
-        }
-
-        return atendeCor(perfilTabela.cores, corSelecionada);
-      }) || perfisTabela.find((perfilTabela) =>
-        normalizarTextoComparacao(perfilTabela.codigo) === normalizarTextoComparacao(perfilResultado.codigo)
-      );
-
-      const precoBarra = Number(perfilDaTabela?.preco) || perfilResultado.precoBarra;
+      const perfilDaTabela = resolverPerfilPorCodigoECor(perfisTabela, perfilResultado.codigo, corPerfil);
+      const precoBarra = perfilDaTabela.preco || perfilResultado.precoBarra;
 
       return {
         ...perfilResultado,
-        nome: perfilDaTabela?.nome || perfilResultado.nome,
-        corEncontrada: perfilDaTabela?.cores || corPerfil,
+        nome: perfilDaTabela.nome || perfilResultado.nome,
+        corEncontrada: perfilDaTabela.corEncontrada || corPerfil,
         precoBarra,
         valorTotal: Number((precoBarra * perfilResultado.quantidadeBarras).toFixed(2)),
       };
     });
-  }, [corPerfil, corPerfilSelecionada, perfisTabela, resultadoInferior.perfis]);
+  }, [corPerfil, perfisTabela, resultadoInferior.perfis]);
 
 const acessoriosComPrecoTabela = useMemo(() => {
   const pontoDivisao = (quantidadeDivisoesInferiorNumero + 1) * quantidadeNumero;
@@ -704,6 +860,8 @@ const acessoriosComPrecoTabela = useMemo(() => {
         corPerfil,
         corUsar,
         registrosBanco: registros,
+        totalFerragensCarregadas: ferragensTabela.length,
+        primeiros5Codigos: ferragensTabela.slice(0, 5).map((f) => f.codigo),
       });
     }
 
@@ -725,6 +883,158 @@ const acessoriosComPrecoTabela = useMemo(() => {
   quantidadeNumero,
   resultadoInferior,
 ]);
+
+const acessoriosFechamentoSacadaTabela = useMemo(() => {
+  const faixaKit = obterFaixaKitSacada(larguraNumero);
+  const corPerfilNormalizada = normalizarTextoComparacao(corPerfil);
+  const sufixoCorKit = corPerfilNormalizada === "branco"
+    ? "BC"
+    : corPerfilNormalizada === "fosco"
+      ? "NF"
+      : "PT";
+
+  const nomeConjuntoAcessorios = `CONJ. ACESSORIOS KIT SACADA ${faixaKit}`;
+  const nomeKitSemRolamento = `KIT SACADA SEM ROLAMENTO ${faixaKit}X2,50`;
+  const nomeFitaVedacao = "FITA ADESIVA DE VEDAÇÃO 5X7 - CINZA (50MT)";
+  const nomeFechadura = "FECHADURA V/V PARA KIT SACADA";
+  const codigoFitaVedacao = corPerfilNormalizada === "preto" ? "ESCA57-PT" : "ESCA57-CZ";
+  const codigoFechadura = corPerfilNormalizada === "preto" ? "FECKTS-PT" : "FECKTS-BC";
+  const codigoConjuntoAcessorios = faixaKit === "3,05"
+    ? "ACKTS305"
+    : faixaKit === "4,05"
+      ? "ACKTS405"
+      : "ACKTS605";
+
+  const perimetroVidroSuperiorMm = (resultadoSuperior.larguraVidroMm * 2) + (resultadoSuperior.alturaVidroMm * 2);
+  const metragemFitaNecessaria = Number(((perimetroVidroSuperiorMm * resultadoSuperior.quantidadeTotalVidros) / 1000).toFixed(2));
+
+  const regras = [
+    {
+      nome: nomeFechadura,
+      quantidade: quantidadeNumero,
+    },
+    {
+      nome: nomeFitaVedacao,
+      quantidade: metragemFitaNecessaria,
+      pacote: 50,
+    },
+    {
+      nome: nomeConjuntoAcessorios,
+      quantidade: quantidadeNumero,
+    },
+    {
+      nome: nomeKitSemRolamento,
+      quantidade: quantidadeNumero,
+    },
+  ];
+
+  return regras.map(({ nome, quantidade, pacote }) => {
+    const ehFechadura = nome === nomeFechadura;
+    const ehFitaVedacao = nome === nomeFitaVedacao;
+    const ehConjuntoAcessorios = nome === nomeConjuntoAcessorios;
+    const ehKitSemRolamento = nome === nomeKitSemRolamento;
+    const ferragemPorNome = (ehKitSemRolamento || ehConjuntoAcessorios || ehFitaVedacao || ehFechadura) ? null : resolverFerragemPorNome(ferragensTabela, nome);
+    const ferragemFechadura = ehFechadura
+      ? (() => {
+          const codigoAlvo = normalizarCodigo(codigoFechadura);
+          const porCodigo = ferragensTabela.find((item) => normalizarCodigo(item.codigo) === codigoAlvo);
+          if (porCodigo) return { codigo: porCodigo.codigo, preco: obterPrecoFerragem(porCodigo) };
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFechadura);
+          return { codigo: codigoFechadura, preco: porNome.preco };
+        })()
+      : null;
+    const ferragemFita = ehFitaVedacao
+      ? (() => {
+          const codigoAlvo = normalizarCodigo(codigoFitaVedacao);
+          const porCodigo = ferragensTabela.find((item) => normalizarCodigo(item.codigo) === codigoAlvo);
+          if (porCodigo) return { codigo: porCodigo.codigo, preco: obterPrecoFerragem(porCodigo) };
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFitaVedacao);
+          return { codigo: codigoFitaVedacao, preco: porNome.preco };
+        })()
+      : null;
+    const ferragemConjunto = ehConjuntoAcessorios
+      ? (() => {
+          // 1º tenta pelo código com cor, 2º pelo nome parcial
+          const porCodigo = resolverFerragemPorCodigoECor(ferragensTabela, codigoConjuntoAcessorios, nome, corPerfil || "Preto");
+          if (porCodigo.preco > 0) return porCodigo;
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeConjuntoAcessorios);
+          return { preco: porNome.preco, corEncontrada: corPerfil || "Preto" };
+        })()
+      : null;
+    const kitSemRolamento = ehKitSemRolamento
+      ? resolverKitPorNomeECor(kitsTabela, nomeKitSemRolamento, corPerfil || "Preto")
+      : null;
+    const precoUnitario = ferragemFechadura?.preco ?? ferragemFita?.preco ?? ferragemConjunto?.preco ?? kitSemRolamento?.preco ?? ferragemPorNome?.preco ?? 0;
+    const quantidadeNecessaria = Number(quantidade) || 0;
+    const quantidadePacote = pacote
+      ? Number((Math.ceil(quantidadeNecessaria / pacote) * pacote).toFixed(2))
+      : undefined;
+
+    const quantidadeParaPreco = quantidadePacote ?? quantidadeNecessaria;
+
+    return {
+      nome,
+      codigo: ehFechadura
+        ? (ferragemFechadura?.codigo || codigoFechadura)
+        : ehFitaVedacao
+        ? (ferragemFita?.codigo || codigoFitaVedacao)
+        : ehConjuntoAcessorios
+        ? `${codigoConjuntoAcessorios}-${sufixoCorKit}`
+        : ehKitSemRolamento
+          ? `KTS4025-${sufixoCorKit}`
+          : (ferragemPorNome?.codigo || "-"),
+      corEncontrada: ehFechadura
+        ? (corPerfil || "Preto")
+        : ehFitaVedacao
+        ? (corPerfil || "Preto")
+        : ehConjuntoAcessorios
+        ? (ferragemConjunto?.corEncontrada || corPerfil || "Preto")
+        : ehKitSemRolamento
+          ? (kitSemRolamento?.corEncontrada || corPerfil || "Preto")
+          : "",
+      quantidade: quantidadeNecessaria,
+      quantidadePacote,
+      pacote,
+      precoUnitario,
+      valorTotal: Number((quantidadeParaPreco * precoUnitario).toFixed(2)),
+    };
+  });
+}, [corPerfil, ferragensTabela, kitsTabela, larguraNumero, quantidadeNumero, resultadoSuperior.alturaVidroMm, resultadoSuperior.larguraVidroMm, resultadoSuperior.quantidadeTotalVidros]);
+
+  // Log debug fechamento de sacada
+  useEffect(() => {
+    if (ferragensTabela.length > 0) {
+      console.group("[SACADA] Debug Fechamento de Sacada");
+      console.table(
+        acessoriosFechamentoSacadaTabela.map((item) => ({
+          nome: item.nome,
+          codigo: item.codigo,
+          cor: item.corEncontrada,
+          preco: item.precoUnitario,
+          qtd: item.quantidade,
+          total: item.valorTotal,
+          status: item.precoUnitario > 0 ? "✅" : "⚠️ ZERADO",
+        }))
+      );
+
+      const zeradosFechamento = acessoriosFechamentoSacadaTabela.filter((a) => a.precoUnitario === 0);
+      zeradosFechamento.forEach((a) => {
+        const codNorm = normalizarCodigo(a.codigo);
+        const candidatos = ferragensTabela
+          .filter((f) => normalizarCodigo(f.codigo).startsWith(codNorm.substring(0, 7)))
+          .map((f) => ({ codigo: f.codigo, cores: f.cores, preco: f.preco }));
+        console.warn(`[SACADA] ⚠️ "${a.codigo}" zerado. Prefixo buscado: "${codNorm.substring(0, 7)}". Candidatos encontrados:`, candidatos.length > 0 ? JSON.stringify(candidatos) : "NENHUM");
+        if (candidatos.length === 0) {
+          // mostra todos os codes que contêm ACKTS ou o termo relevante
+          const relevantes = ferragensTabela
+            .filter((f) => f.codigo?.toUpperCase().includes("ACKTS") || f.codigo?.toUpperCase().includes("KTS"))
+            .map((f) => ({ codigo: f.codigo, cores: f.cores, preco: f.preco }));
+          console.warn(`[SACADA] Registros com ACKTS/KTS no banco:`, relevantes.length > 0 ? relevantes : "NENHUM");
+        }
+      });
+      console.groupEnd();
+    }
+  }, [acessoriosFechamentoSacadaTabela, ferragensTabela]);
 
   // Log temporário para debug de acessórios
   useEffect(() => {
@@ -768,9 +1078,19 @@ const acessoriosComPrecoTabela = useMemo(() => {
     [acessoriosComPrecoTabela]
   );
 
+  const totalFechamentoSacadaCalculado = useMemo(
+    () => Number(acessoriosFechamentoSacadaTabela.reduce((acc, item) => acc + item.valorTotal, 0).toFixed(2)),
+    [acessoriosFechamentoSacadaTabela]
+  );
+
+  const totalAcessoriosGeralCalculado = useMemo(
+    () => Number((totalAcessoriosCalculado + totalFechamentoSacadaCalculado).toFixed(2)),
+    [totalAcessoriosCalculado, totalFechamentoSacadaCalculado]
+  );
+
   const totalGeralCalculado = useMemo(
-    () => Number((resultadoInferior.totalVidro + totalPerfisCalculado + totalAcessoriosCalculado).toFixed(2)),
-    [resultadoInferior.totalVidro, totalPerfisCalculado, totalAcessoriosCalculado]
+    () => Number((resultadoInferior.totalVidro + totalPerfisCalculado + totalAcessoriosGeralCalculado).toFixed(2)),
+    [resultadoInferior.totalVidro, totalPerfisCalculado, totalAcessoriosGeralCalculado]
   );
 
   const clientesFiltrados = useMemo(() => {
@@ -831,7 +1151,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
           vidroDescricaoInferior: montarDescricaoVidro(vidroSelecionadoInferior),
           vidroDescricaoSuperior: montarDescricaoVidro(vidroSelecionadoSuperior),
           perfis: perfisComPrecoTabela,
-          acessorios: acessoriosComPrecoTabela,
+          acessorios: [...acessoriosComPrecoTabela, ...acessoriosFechamentoSacadaTabela],
+          acessoriosGuardaCorpo: acessoriosComPrecoTabela,
+          acessoriosFechamentoSacadaSuperior: acessoriosFechamentoSacadaTabela,
         },
         valor_total: totalGeralCalculado,
         empresa_id: empresaId,
@@ -1006,9 +1328,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     areaTotal={resultadoInferior.areaTotalVidro}
                     totalVidro={resultadoInferior.totalVidro}
                     perfis={perfisComPrecoTabela}
-                    acessorios={acessoriosComPrecoTabela}
+                    acessorios={[...acessoriosComPrecoTabela, ...acessoriosFechamentoSacadaTabela]}
                     totalPerfis={totalPerfisCalculado}
-                    totalAcessorios={totalAcessoriosCalculado}
+                    totalAcessorios={totalAcessoriosGeralCalculado}
                     totalGeral={totalGeralCalculado}
                     larguraVidroMm={resultadoInferior.larguraVidroMm}
                     alturaVidroMm={resultadoInferior.alturaVidroMm}
@@ -1048,7 +1370,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   Fechamento Sacada
                 </div>
                 <h1 className="mt-4 text-3xl md:text-5xl font-black leading-none" style={{ color: theme.contentTextLightBg }}>
-                  Cálculo de orçamento fechamento de sacada com gradil de alumínio
+                  Cálculo de fechamento de sacada com gradil de alumínio
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
                   Informe as dimensoes em mm para os módulos inferior e superior, com divisões e vidros independentes. O sistema calcula cada módulo separado e soma no total.
@@ -1071,7 +1393,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Altura módulo inferior (mm)
+                    Altura sacada inferior (mm)
                   </span>
                   <input
                     value={alturaInferiorMm}
@@ -1084,7 +1406,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Altura módulo superior (mm)
+                    Altura fechamento superior (mm)
                   </span>
                   <input
                     value={alturaSuperiorMm}
@@ -1110,7 +1432,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Divisões por vão (inferior)
+                    Divisão sacada (inferior)
                   </span>
                   <input
                     value={quantidadeDivisoesInferior}
@@ -1123,7 +1445,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Divisões por vão (superior)
+                    Divisão sacada (superior)
                   </span>
                   <input
                     value={quantidadeDivisoesSuperior}
@@ -1155,7 +1477,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Vidro da tabela (inferior)
+                    Vidro (inferio)
                   </span>
                   <input
                     value={buscaVidroInferior}
@@ -1187,7 +1509,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Vidro da tabela (superior)
+                    Vidro (superior)
                   </span>
                   <input
                     value={buscaVidroSuperior}
@@ -1243,7 +1565,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
               {
                 titulo: "Total geral",
                 valor: formatarPreco(totalGeralCalculado),
-                detalhe: "Perfis, acessorios e vidro com precos da tabela",
+                detalhe: "Perfis, acessórios e vidro com preços da tabela",
                 icone: Calculator,
               },
             ].map((card) => (
@@ -1272,7 +1594,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
             <article className="rounded-4xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
               <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
                 <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
-                  Perfis de alumínio
+                  Perfis do guarda corpo
                 </h2>
                 <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
                   Barras calculadas com base em 6000 mm por barra.
@@ -1294,12 +1616,12 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   <tbody>
                     {perfisComPrecoTabela.map((perfil, index) => (
                       <tr key={`${perfil.codigo}-${perfil.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                        <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{perfil.nome}</td>
+                        <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(perfil.nome)}</td>
                         <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{perfil.codigo}</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
                         <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
-                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(perfil.precoBarra) : "-"}</td>
-                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(perfil.valorTotal) : "-"}</td>
+                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.precoBarra)}</td>
+                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.valorTotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1319,7 +1641,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
               <div className="border-t" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
                 <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
                   <h3 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>
-                    Acessorios
+                    Acessórios do guarda corpo
                   </h3>
                   <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
                     Valores localizados na tabela de ferragens conforme a cor selecionada.
@@ -1340,25 +1662,73 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     <tbody>
                       {acessoriosComPrecoTabela.map((acessorio, index) => (
                         <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                          <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
+                          <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(acessorio.nome)}</td>
                           <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
                             {acessorio.quantidadePacote
                               ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
                               : acessorio.quantidade}
                           </td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.precoUnitario) : "-"}</td>
-                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.valorTotal) : "-"}</td>
+                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.precoUnitario)}</td>
+                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.valorTotal)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
                         <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
-                          Total dos acessorios
+                          Total dos acessórios
                         </td>
                         <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
                           {formatarPreco(totalAcessoriosCalculado)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <div className="px-6 py-5 border-y" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h3 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>
+                    Fechamento de sacada
+                  </h3>
+                  <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                    Materiais da parte superior com preços vindos do cadastro de ferragens.
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-190 text-sm">
+                    <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                      <tr>
+                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Material</th>
+                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Codigo</th>
+                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Qtd</th>
+                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preco unit.</th>
+                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {acessoriosFechamentoSacadaTabela.map((item, index) => (
+                        <tr key={`${item.codigo}-${item.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                          <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(item.nome)}</td>
+                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{item.codigo}</td>
+                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
+                            {item.quantidadePacote
+                              ? <span>{formatarNumero(item.quantidadePacote)} <span className="text-[10px] opacity-60">(pct {item.pacote})</span></span>
+                              : formatarNumero(item.quantidade)}
+                          </td>
+                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.precoUnitario)}</td>
+                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.valorTotal)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                        <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                          Total fechamento de sacada
+                        </td>
+                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                          {formatarPreco(totalFechamentoSacadaCalculado)}
                         </td>
                       </tr>
                     </tfoot>
@@ -1584,7 +1954,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     ["Cor dos perfis", corPerfil],
                     ["Medida para calculo", `SUP: ${formatarNumero(resultadoSuperior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoSuperior.alturaVidroCalculoMm, 0)} mm | INF: ${formatarNumero(resultadoInferior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoInferior.alturaVidroCalculoMm, 0)} mm`],
                     ["Total dos perfis", formatarPreco(totalPerfisCalculado)],
-                    ["Total dos acessorios", formatarPreco(totalAcessoriosCalculado)],
+                    ["Total acessórios guarda corpo", formatarPreco(totalAcessoriosCalculado)],
+                    ["Total fechamento de sacada", formatarPreco(totalFechamentoSacadaCalculado)],
+                    ["Total dos acessórios", formatarPreco(totalAcessoriosGeralCalculado)],
                     ["Total geral", formatarPreco(totalGeralCalculado)],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-start justify-between gap-4">

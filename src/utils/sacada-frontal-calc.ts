@@ -5,6 +5,7 @@ export type SacadaFrontalInput = {
   quantidadeDivisoesLargura: number;
   precoVidroM2?: number;
   vidroDescricao?: string;
+  isSacadaSuperior?: boolean;
 };
 
 export type SacadaFrontalPerfilCodigo = "GR 84" | "GR 74" | "GR 77" | "GR 75";
@@ -71,14 +72,23 @@ export const calcularSacadaFrontal = ({
   quantidadeDivisoesLargura,
   precoVidroM2 = 0,
   vidroDescricao,
+  isSacadaSuperior = false,
 }: SacadaFrontalInput): SacadaFrontalResultado => {
   const larguraNormalizada = Math.max(larguraVaoMm, 0);
   const alturaNormalizada = Math.max(alturaVaoMm, 0);
   const quantidadeNormalizada = Math.max(Math.floor(quantidadeVaos || 0), 0);
   const divisaoNormalizada = Math.max(Math.floor(quantidadeDivisoesLargura || 0), 1);
 
-  const larguraVidroMm = larguraNormalizada / divisaoNormalizada;
-  const alturaVidroMm = Math.max(alturaNormalizada - DESCONTO_ALTURA_VIDRO_MM, 0);
+  // Cálculo da largura com desconto especial para sacada superior
+  let larguraVidroMm = larguraNormalizada / divisaoNormalizada;
+  if (isSacadaSuperior) {
+    const descontoTotal = 3 * divisaoNormalizada; // 3mm por vidro
+    larguraVidroMm = Math.max(larguraNormalizada - descontoTotal, 0) / divisaoNormalizada;
+  }
+
+  // Altura com desconto especial para sacada superior
+  const descontoAltura = isSacadaSuperior ? 200 : DESCONTO_ALTURA_VIDRO_MM;
+  const alturaVidroMm = Math.max(alturaNormalizada - descontoAltura, 0);
   const larguraVidroCalculoMm = arredondarMedida(larguraVidroMm);
   const alturaVidroCalculoMm = arredondarMedida(alturaVidroMm);
   const quantidadePontaletesPorVao = divisaoNormalizada + 1;

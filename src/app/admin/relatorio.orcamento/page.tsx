@@ -1,7 +1,7 @@
 //app/admin/relatorio.orcamento/page.tsx
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import type { CSSProperties } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
@@ -315,6 +315,33 @@ export default function RelatorioOrçamento() {
     const [dataInicio, setDataInicio] = useState("");
     const [dataFim, setDataFim] = useState("");
 
+    const parseDataInputLocal = (valor: string) => {
+        const [anoStr, mesStr, diaStr] = valor.split("-");
+        const ano = Number(anoStr);
+        const mes = Number(mesStr);
+        const dia = Number(diaStr);
+        if (!ano || !mes || !dia) return null;
+        const data = new Date(ano, mes - 1, dia);
+        return Number.isNaN(data.getTime()) ? null : data;
+    };
+
+    const aplicarPeriodoRapido = useCallback((dias: number) => {
+        const formatarData = (data: Date) => {
+            const ano = data.getFullYear();
+            const mes = String(data.getMonth() + 1).padStart(2, "0");
+            const dia = String(data.getDate()).padStart(2, "0");
+            return `${ano}-${mes}-${dia}`;
+        };
+
+        const fim = new Date();
+        fim.setHours(0, 0, 0, 0);
+        const inicio = new Date(fim);
+        inicio.setDate(fim.getDate() - (dias - 1));
+
+        setDataInicio(formatarData(inicio));
+        setDataFim(formatarData(fim));
+    }, []);
+
     useEffect(() => {
         const periodo = searchParams.get("periodo");
         const filtroInicial = searchParams.get("filtro") || "";
@@ -324,31 +351,38 @@ export default function RelatorioOrçamento() {
         }
 
         if (periodo === "30d") {
-            const fim = new Date();
-            const inicio = new Date();
-            inicio.setDate(fim.getDate() - 29);
-
-            setDataInicio(inicio.toISOString().slice(0, 10));
-            setDataFim(fim.toISOString().slice(0, 10));
+            aplicarPeriodoRapido(30);
         }
 
         if (periodo === "7d") {
-            const fim = new Date();
-            const inicio = new Date();
-            inicio.setDate(fim.getDate() - 6);
-
-            setDataInicio(inicio.toISOString().slice(0, 10));
-            setDataFim(fim.toISOString().slice(0, 10));
+            aplicarPeriodoRapido(7);
         }
-    }, [searchParams]);
+    }, [aplicarPeriodoRapido, searchParams]);
 
     // 2. Atualize o seu filtro
+    const inicioPeriodo = dataInicio ? parseDataInputLocal(dataInicio) : null;
+    const fimPeriodo = dataFim ? parseDataInputLocal(dataFim) : null;
+
+    const inicioPeriodoTs = inicioPeriodo ? inicioPeriodo.getTime() : null;
+    const fimPeriodoTs = fimPeriodo
+        ? new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), fimPeriodo.getDate(), 23, 59, 59, 999).getTime()
+        : null;
+
+    const periodoInicioFinal = inicioPeriodoTs != null && fimPeriodoTs != null
+        ? Math.min(inicioPeriodoTs, fimPeriodoTs)
+        : inicioPeriodoTs;
+
+    const periodoFimFinal = inicioPeriodoTs != null && fimPeriodoTs != null
+        ? Math.max(inicioPeriodoTs, fimPeriodoTs)
+        : fimPeriodoTs;
+
     const orcamentosFiltrados = orcamentos.filter(orc => {
         const termo = filtro.toLowerCase();
-        const dataOrc = new Date(orc.created_at).setHours(0, 0, 0, 0);
+        const dataOrcTs = new Date(orc.created_at).getTime();
+        if (Number.isNaN(dataOrcTs)) return false;
 
-        const dentroDoPeriodo = (!dataInicio || dataOrc >= new Date(dataInicio).getTime()) &&
-            (!dataFim || dataOrc <= new Date(dataFim).getTime());
+        const dentroDoPeriodo = (periodoInicioFinal == null || dataOrcTs >= periodoInicioFinal) &&
+            (periodoFimFinal == null || dataOrcTs <= periodoFimFinal);
 
         return (
             dentroDoPeriodo &&
@@ -424,43 +458,44 @@ export default function RelatorioOrçamento() {
                     handleSignOut={handleSignOut}
                 />
 
-                <main className="p-4 md:p-8 flex-1 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto">
+                <main className="p-4 md:p-8 xl:p-10 flex-1 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto space-y-8">
 
-                        {/* CABEÇALHO DE AÇÕES */}
-                        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
-                                        <ClipboardList size={24} />
+                        <section className="rounded-3xl border bg-white/90 p-5 shadow-[0_24px_60px_-50px_rgba(15,23,42,0.65)] backdrop-blur-sm md:p-6"
+                            style={{ borderColor: `${theme.contentTextLightBg}1A` }}>
+                            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                                <div>
+                                    <div className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em]"
+                                        style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
+                                        <ClipboardList size={14} /> Histórico
                                     </div>
-                                    <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>
+
+                                    <h1 className="text-2xl font-black tracking-tight md:text-3xl" style={{ color: theme.contentTextLightBg }}>
                                         Histórico de Orçamentos
                                     </h1>
-                                </div>
-                                <p className="text-gray-400 text-sm ml-11">
-                                    Gerenciamento de orçamentos e prazos de validade.
-                                </p>
-                            </div>
 
-                            <div className="flex flex-col sm:flex-row items-center gap-3">
-                                <div className="relative w-full sm:w-80 group">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1e3a5a] transition-colors" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Filtrar por cliente ou código..."
-                                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none text-sm transition-all focus:ring-4 focus:ring-black/5 shadow-sm"
-                                        value={filtro}
-                                        onChange={(e) => setFiltro(e.target.value)}
-                                    />
+                                    <p className="mt-2 text-sm font-medium text-gray-500">
+                                        Acompanhe os orçamentos criados, filtre por período e gerencie ações rápidas.
+                                    </p>
                                 </div>
 
-                                <button className="p-3 bg-white border border-gray-200 rounded-2xl text-gray-500 hover:bg-gray-50 transition-all shadow-sm">
-                                    <Filter size={20} />
-                                </button>
+                                <div className="w-full max-w-3xl space-y-3">
+                                    <div className="relative group">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-gray-600" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Filtrar por cliente, obra ou código"
+                                            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm outline-none shadow-sm transition-all focus:border-gray-300 focus:ring-4 focus:ring-black/5"
+                                            value={filtro}
+                                            onChange={(e) => setFiltro(e.target.value)}
+                                        />
+                                    </div>
+
+                                </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        </section>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
                                 {
                                     label: "Orçado Hoje",
@@ -481,16 +516,16 @@ export default function RelatorioOrçamento() {
                                     color: "#011427" // Verde (sugere sucesso/fechamento)
                                 },
                             ].map((item, idx) => (
-                                <div key={idx} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
+                                <div key={idx} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
                                     <div
-                                        className="p-4 rounded-2xl"
+                                        className="p-3.5 rounded-2xl"
                                         style={{ backgroundColor: `${item.color}15` }}
                                     >
-                                        <item.icon size={24} style={{ color: item.color }} />
+                                        <item.icon size={22} style={{ color: item.color }} />
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">{item.label}</span>
-                                        <span className="text-xl font-black text-slate-800">
+                                        <span className="text-lg md:text-xl font-black text-slate-800">
                                             {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </span>
                                     </div>
@@ -501,7 +536,7 @@ export default function RelatorioOrçamento() {
                         {/* TABELA ESTILO CARD */}
                         <div className="bg-white rounded-4xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
                             {selecionados.length > 0 && (
-                                <div className="px-6 pt-6">
+                                <div className="px-6 pt-6 pb-1">
                                     <button
                                         onClick={() => {
                                             setItemParaExcluir(null);
@@ -524,7 +559,7 @@ export default function RelatorioOrçamento() {
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                                        <tr className="bg-gray-50/65 border-b border-gray-100">
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400 font-black text-left">N° Orçamento</th>
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Cliente & Projeto</th>
                                             <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Criado</th>
@@ -540,6 +575,18 @@ export default function RelatorioOrçamento() {
                                                     <span className="text-sm font-medium text-gray-400">Sincronizando dados...</span>
                                                 </div>
                                             </td></tr>
+                                        ) : orcamentosFiltrados.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="p-16 text-center">
+                                                    <div className="mx-auto flex max-w-md flex-col items-center gap-3">
+                                                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                                            <Filter size={20} />
+                                                        </div>
+                                                        <p className="text-sm font-semibold text-gray-500">Nenhum orçamento encontrado para os filtros aplicados.</p>
+                                                        <p className="text-xs text-gray-400">Limpe a busca ou ajuste o período para ver mais resultados.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         ) : orcamentosFiltrados.map((orc) => {
                                             const dias = calcularDiasRestantes(orc.excluir_em);
                                             const isUrgent = dias <= 15;
