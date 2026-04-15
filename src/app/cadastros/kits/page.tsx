@@ -7,7 +7,7 @@ import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, P
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { KitsPDF } from "app/relatorios/kits/KitsPDF";
+import { KitsPDF } from "@/app/relatorios/kits/KitsPDF";
 import { useTheme } from "@/context/ThemeContext";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";

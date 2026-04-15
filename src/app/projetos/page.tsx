@@ -6,9 +6,8 @@ import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import { getOpcoesRestricaoTecnicaBox, GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho } from "@/utils/variacaoProjeto"
-import Sidebar from "@/components/Sidebar"
-import Header from "@/components/Header"
 import ThemeLoader from "@/components/ThemeLoader"
+import Header from "@/components/Header"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnica"
 import Image from "next/image"
@@ -842,9 +841,6 @@ export default function ProjetosPage() {
   const router = useRouter()
   const { theme } = useTheme()
   const { user, empresaId, nomeEmpresa, loading: checkingAuth } = useAuth()
-
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [sidebarExpandido, setSidebarExpandido] = useState(true)
 
   // ── Dados ──
   const [projetos, setProjetos] = useState<Projeto[]>([])
@@ -2170,17 +2166,9 @@ export default function ProjetosPage() {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       <ThemeLoader />
-      <Sidebar
-        showMobileMenu={showMobileMenu}
-        setShowMobileMenu={setShowMobileMenu}
-        nomeEmpresa={nomeEmpresa}
-        expandido={sidebarExpandido}
-        setExpandido={setSidebarExpandido}
-      />
 
       <div className="flex-1 flex flex-col w-full overflow-hidden">
         <Header
-          setShowMobileMenu={setShowMobileMenu}
           nomeEmpresa={nomeEmpresa}
           usuarioEmail={user?.email || ""}
           handleSignOut={handleSignOut}

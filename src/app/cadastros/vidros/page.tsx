@@ -8,7 +8,7 @@ import { Box, Star, Tag, DollarSign, Upload, Download, Edit2, Trash2,Square, Plu
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
-import { VidrosPDF } from "app/relatorios/vidros/VidrosPDF"
+import { VidrosPDF } from "@/app/relatorios/vidros/VidrosPDF"
 import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "@/components/Header";

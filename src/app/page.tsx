@@ -15,7 +15,6 @@ import {
   Clock3,
 } from "lucide-react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -67,8 +66,6 @@ const resumoInicial: DashboardResumo = {
 export default function Dashboard() {
   const { theme } = useTheme();
   const { user, perfilUsuario, nomeEmpresa, empresaId, loading, signOut } = useAuth();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [expandido, setExpandido] = useState(true);
   const [resumo, setResumo] = useState<DashboardResumo>(resumoInicial);
   const [carregandoResumo, setCarregandoResumo] = useState(false);
 
@@ -304,33 +301,13 @@ export default function Dashboard() {
 
   
   return (
-    <div className="flex min-h-screen transition-colors duration-500" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      
-<Sidebar 
-        showMobileMenu={showMobileMenu} 
-        setShowMobileMenu={setShowMobileMenu} 
-        nomeEmpresa={nomeEmpresa}
-        // 2. Você DEVE passar estas duas props:
-        expandido={expandido}
-        setExpandido={setExpandido} 
-      />
-
-      {/* Overlay para Mobile */}
-      {showMobileMenu && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm z-40 md:hidden"
-          style={{ backgroundColor: `${theme.menuBackgroundColor}52` }}
-          onClick={() => setShowMobileMenu(false)}
-        ></div>
-      )}
-
-      <div className="flex-1 flex flex-col w-full min-w-0">
+      <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: theme.screenBackgroundColor }}>
+        <div className="flex flex-col w-full min-w-0">
         <Header 
-            setShowMobileMenu={setShowMobileMenu}
             nomeEmpresa={nomeEmpresa}
             usuarioEmail={user.email} 
             handleSignOut={signOut}
-        />
+          />
         
         <main className="p-4 md:p-8 xl:p-10 flex-1 min-w-0">
           <div className="dashboard-reveal relative overflow-hidden rounded-4xl md:rounded-[2.5rem] p-6 md:p-8 xl:p-10 border shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)]"
