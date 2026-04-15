@@ -91,6 +91,7 @@ export default function Header({
 
   const closeMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const desktopNavRef = useRef<HTMLDivElement>(null);
   const displayedLogo = logoUrl ?? theme.logoLightUrl;
 
   const cancelCloseMenu = () => {
@@ -124,6 +125,10 @@ export default function Header({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
+
+      if (desktopNavRef.current && !desktopNavRef.current.contains(event.target as Node)) {
+        setOpenDesktopGroup(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -155,8 +160,8 @@ export default function Header({
             </div>
           ) : null}
 
-          <div className="block pl-2" onMouseEnter={cancelCloseMenu} onMouseLeave={scheduleCloseMenu}>
-            <nav className="flex items-center gap-2 overflow-x-auto">
+          <div className="block pl-2" onMouseEnter={cancelCloseMenu} onMouseLeave={scheduleCloseMenu} ref={desktopNavRef}>
+            <nav className="flex items-center gap-2">
               {HEADER_MENU_GROUPS.map((group) => {
                 const open = openDesktopGroup === group.group;
                 const routeActive = isGroupRouteActive(group);
@@ -197,14 +202,19 @@ export default function Header({
                       onClick={() => toggleDesktopGroup(group.group)}
                       onMouseDown={cancelCloseMenu}
                       onFocus={() => setOpenDesktopGroup(group.group)}
-                      className="whitespace-nowrap rounded-xl border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors"
+                      className="whitespace-nowrap rounded-xl border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors flex items-center gap-1.5"
                       style={{
                         color: open || routeActive ? theme.contentTextLightBg : `${theme.contentTextLightBg}A6`,
                         borderColor: open || routeActive ? `${theme.menuBackgroundColor}80` : `${theme.contentTextLightBg}26`,
                         backgroundColor: open || routeActive ? `${theme.menuBackgroundColor}2E` : `${theme.contentTextDarkBg}8A`,
                       }}
                     >
-                      {group.group}
+                      <span>{group.group}</span>
+                      <ChevronDown
+                        size={12}
+                        className={`transition-transform ${open ? "rotate-180" : ""}`}
+                        style={{ color: open || routeActive ? theme.contentTextLightBg : `${theme.contentTextLightBg}A6` }}
+                      />
                     </button>
 
                     {open && (

@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
-import Sidebar from "@/components/Sidebar"
 import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
@@ -120,10 +119,8 @@ export default function CalculoEspelhosPage() {
   const editId = searchParams.get("edit");
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId } = useAuth();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false); // Adicionado state do menu
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const carregadoRef = useRef(false);
   const draftRestauradoRef = useRef(false);
   // No topo, junto com os outros estados
@@ -633,21 +630,6 @@ export default function CalculoEspelhosPage() {
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      {/* Sidebar Container */}
-      <div
-        className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 z-120 h-screen`}
-        style={{ backgroundColor: theme.menuBackgroundColor }} // Garante que a cor do fundo da sidebar acompanhe
-      >
-        <Sidebar
-          showMobileMenu={showMobileMenu}
-          setShowMobileMenu={setShowMobileMenu}
-          nomeEmpresa="Nome da Sua Empresa"
-          expandido={sidebarExpandido}
-          setExpandido={setSidebarExpandido}
-        />
-      </div>
-
-
       {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col w-full min-w-0">
 
@@ -656,7 +638,6 @@ export default function CalculoEspelhosPage() {
           nomeEmpresa={nomeEmpresa}
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
-          setShowMobileMenu={() => { }}
         >
           <div className="flex items-center gap-6">
             <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">

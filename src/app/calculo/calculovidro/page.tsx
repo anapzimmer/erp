@@ -7,7 +7,6 @@ import { useTheme } from "@/context/ThemeContext"
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
-import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
 import * as XLSX from 'xlsx';
@@ -84,8 +83,6 @@ export default function RelatorioOrçamento() {
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
 
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [sidebarExpandido, setSidebarExpandido] = useState(true)
   const [isMounted, setIsMounted] = useState(false);
   const draftRestauradoRef = useRef(false);
 
@@ -826,18 +823,12 @@ useEffect(() => {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
-      {/* SIDEBAR - PADRÃO ORIGINAL */}
-      <div className={`${sidebarExpandido ? "w-64" : "w-20"} transition-all duration-300 hidden md:flex flex-col border-r border-gray-100 shrink-0 sticky top-0 z-120 h-screen`} style={{ backgroundColor: theme.menuBackgroundColor }}>
-        <Sidebar showMobileMenu={showMobileMenu} setShowMobileMenu={setShowMobileMenu} nomeEmpresa={nomeEmpresa} expandido={sidebarExpandido} setExpandido={setSidebarExpandido} />
-      </div>
-
       <div className="flex-1 flex flex-col w-full min-w-0">
 
         <Header
           nomeEmpresa={nomeEmpresa}
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
-          setShowMobileMenu={() => { }}
         >
           {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
           <div className="flex items-center gap-6">
