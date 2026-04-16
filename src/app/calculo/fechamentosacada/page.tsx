@@ -799,6 +799,10 @@ export default function CalculoFechamentoSacadaPage() {
 
   const resultado = resultadoInferior;
 
+  const medidasVidroPorVaoTexto = useMemo(() => {
+    return `INF ${formatarNumero(resultadoInferior.larguraVidroMm, 0)} x ${formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm\nSUP ${formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x ${formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm`;
+  }, [resultadoInferior.alturaVidroMm, resultadoInferior.larguraVidroMm, resultadoSuperior.alturaVidroMm, resultadoSuperior.larguraVidroMm]);
+
   const perfisComPrecoTabela = useMemo(() => {
     return resultadoInferior.perfis.map((perfilResultado) => {
       const perfilDaTabela = resolverPerfilPorCodigoECor(perfisTabela, perfilResultado.codigo, corPerfil);
@@ -969,8 +973,12 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     const quantidadePacote = pacote
       ? Number((Math.ceil(quantidadeNecessaria / pacote) * pacote).toFixed(2))
       : undefined;
-
-    const quantidadeParaPreco = quantidadePacote ?? quantidadeNecessaria;
+    const quantidadePacotesFita = ehFitaVedacao && pacote
+      ? Math.ceil(quantidadeNecessaria / pacote)
+      : undefined;
+    const quantidadeParaPreco = ehFitaVedacao
+      ? (quantidadePacotesFita ?? quantidadeNecessaria)
+      : (quantidadePacote ?? quantidadeNecessaria);
 
     return {
       nome,
@@ -993,7 +1001,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           ? (kitSemRolamento?.corEncontrada || corPerfil || "Preto")
           : "",
       quantidade: quantidadeNecessaria,
-      quantidadePacote,
+      quantidadePacote: ehFitaVedacao ? quantidadePacotesFita : quantidadePacote,
       pacote,
       precoUnitario,
       valorTotal: Number((quantidadeParaPreco * precoUnitario).toFixed(2)),
@@ -1088,9 +1096,19 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     [totalAcessoriosCalculado, totalFechamentoSacadaCalculado]
   );
 
+  const totalAreaVidroCalculado = useMemo(
+    () => Number((resultadoInferior.areaTotalVidro + resultadoSuperior.areaTotalVidro).toFixed(3)),
+    [resultadoInferior.areaTotalVidro, resultadoSuperior.areaTotalVidro]
+  );
+
+  const totalVidroCalculado = useMemo(
+    () => Number((resultadoInferior.totalVidro + resultadoSuperior.totalVidro).toFixed(2)),
+    [resultadoInferior.totalVidro, resultadoSuperior.totalVidro]
+  );
+
   const totalGeralCalculado = useMemo(
-    () => Number((resultadoInferior.totalVidro + totalPerfisCalculado + totalAcessoriosGeralCalculado).toFixed(2)),
-    [resultadoInferior.totalVidro, totalPerfisCalculado, totalAcessoriosGeralCalculado]
+    () => Number((totalVidroCalculado + totalPerfisCalculado + totalAcessoriosGeralCalculado).toFixed(2)),
+    [totalVidroCalculado, totalPerfisCalculado, totalAcessoriosGeralCalculado]
   );
 
   const clientesFiltrados = useMemo(() => {
@@ -1157,7 +1175,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
         },
         valor_total: totalGeralCalculado,
         empresa_id: empresaId,
-        metragem_total: resultadoInferior.areaTotalVidro,
+        metragem_total: totalAreaVidroCalculado,
         peso_total: 0,
         theme_color: theme.menuIconColor || "#1e3a5a",
       };
@@ -1316,6 +1334,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
+                    tituloDocumento="Orçamento Fechamento Sacada"
                     nomeCliente={nomeClienteSelecionado || "Não selecionado"}
                     nomeObra={obra || "Geral"}
                     larguraVaoMm={larguraNumero}
@@ -1325,13 +1344,23 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     corPerfil={corPerfil || "Não selecionada"}
                     vidroDescricao={`Inferior: ${montarDescricaoVidro(vidroSelecionadoInferior)} | Superior: ${montarDescricaoVidro(vidroSelecionadoSuperior)}`}
                     medidaVidro={`Inf: ${resultadoInferior.larguraVidroMm} x ${resultadoInferior.alturaVidroMm} mm | Sup: ${resultadoSuperior.larguraVidroMm} x ${resultadoSuperior.alturaVidroMm} mm`}
-                    areaTotal={resultadoInferior.areaTotalVidro}
-                    totalVidro={resultadoInferior.totalVidro}
+                    areaTotal={totalAreaVidroCalculado}
+                    totalVidro={totalVidroCalculado}
                     perfis={perfisComPrecoTabela}
                     acessorios={[...acessoriosComPrecoTabela, ...acessoriosFechamentoSacadaTabela]}
+                    acessoriosGuardaCorpo={acessoriosComPrecoTabela}
+                    acessoriosFechamentoSacada={acessoriosFechamentoSacadaTabela}
                     totalPerfis={totalPerfisCalculado}
                     totalAcessorios={totalAcessoriosGeralCalculado}
                     totalGeral={totalGeralCalculado}
+                    alturaInferiorMm={alturaInferiorNumero}
+                    alturaSuperiorMm={alturaSuperiorNumero}
+                    divisoesInferiorPorVao={quantidadeDivisoesInferiorNumero}
+                    divisoesSuperiorPorVao={quantidadeDivisoesSuperiorNumero}
+                    larguraVidroInferiorMm={resultadoInferior.larguraVidroMm}
+                    alturaVidroInferiorMm={resultadoInferior.alturaVidroMm}
+                    larguraVidroSuperiorMm={resultadoSuperior.larguraVidroMm}
+                    alturaVidroSuperiorMm={resultadoSuperior.alturaVidroMm}
                     larguraVidroMm={resultadoInferior.larguraVidroMm}
                     alturaVidroMm={resultadoInferior.alturaVidroMm}
                   />
@@ -1546,20 +1575,20 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             {[
               {
                 titulo: "Medida de cada vidro",
-                valor: `Inf: ${formatarNumero(resultadoInferior.larguraVidroMm, 0)} x ${formatarNumero(resultadoInferior.alturaVidroMm, 0)} | Sup: ${formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x ${formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm`,
+                valor: medidasVidroPorVaoTexto,
                 detalhe: `Inf: ${resultadoInferior.quantidadeVidrosPorVao} por vao | Sup: ${resultadoSuperior.quantidadeVidrosPorVao} por vao`,
                 icone: Ruler,
               },
               {
                 titulo: "Área total de vidro",
-                valor: `${formatarNumero(resultadoInferior.areaTotalVidro)} m²`,
-                detalhe: `Módulo inferior: ${montarDescricaoVidro(vidroSelecionadoInferior)}`,
+                valor: `${formatarNumero(totalAreaVidroCalculado)} m²`,
+                detalhe: `Sup: ${formatarNumero(resultadoSuperior.areaTotalVidro)} m² + Inf: ${formatarNumero(resultadoInferior.areaTotalVidro)} m²`,
                 icone: SquareStack,
               },
               {
                 titulo: "Total de vidro",
-                valor: formatarPreco(resultadoInferior.totalVidro),
-                detalhe: `Módulo inferior: ${formatarPreco(precoVidroM2Inferior)}/m2`,
+                valor: formatarPreco(totalVidroCalculado),
+                detalhe: `Sup: ${formatarPreco(precoVidroM2Superior)}/m2 | Inf: ${formatarPreco(precoVidroM2Inferior)}/m2`,
                 icone: Package2,
               },
               {
@@ -1575,7 +1604,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: `${theme.contentTextLightBg}70` }}>
                       {card.titulo}
                     </p>
-                    <p className="mt-3 text-2xl font-black leading-tight" style={{ color: theme.contentTextLightBg }}>
+                    <p className="mt-3 text-2xl font-black leading-tight whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>
                       {card.valor}
                     </p>
                     <p className="mt-2 text-sm" style={{ color: `${theme.contentTextLightBg}A3` }}>
@@ -1948,11 +1977,12 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 <div className="mt-5 space-y-4">
                   {[
                     ["Quantidade total de vidros", String(resultadoInferior.quantidadeTotalVidros + resultadoSuperior.quantidadeTotalVidros)],
-                    ["Pontaletes por vao", `SUP: ${resultadoSuperior.quantidadePontaletesPorVao} | INF: ${resultadoInferior.quantidadePontaletesPorVao}`],
-                    ["Área por peça", `SUP: ${formatarNumero(resultadoSuperior.areaVidroPorPeca)} m² | INF: ${formatarNumero(resultadoInferior.areaVidroPorPeca)} m²`],
-                    ["Vidro especificado", `SUP: ${montarDescricaoVidro(vidroSelecionadoSuperior)} | INF: ${montarDescricaoVidro(vidroSelecionadoInferior)}`],
+                    ["Pontaletes por vao", `SUP: ${resultadoSuperior.quantidadePontaletesPorVao}\nINF: ${resultadoInferior.quantidadePontaletesPorVao}`],
+                    ["Área por peça", `SUP: ${formatarNumero(resultadoSuperior.areaVidroPorPeca)} m²\nINF: ${formatarNumero(resultadoInferior.areaVidroPorPeca)} m²`],
+                    ["Vidro especificado", `SUP: ${montarDescricaoVidro(vidroSelecionadoSuperior)}\nINF: ${montarDescricaoVidro(vidroSelecionadoInferior)}`],
                     ["Cor dos perfis", corPerfil],
-                    ["Medida para calculo", `SUP: ${formatarNumero(resultadoSuperior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoSuperior.alturaVidroCalculoMm, 0)} mm | INF: ${formatarNumero(resultadoInferior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoInferior.alturaVidroCalculoMm, 0)} mm`],
+                    ["Medida para calculo", `SUP: ${formatarNumero(resultadoSuperior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoSuperior.alturaVidroCalculoMm, 0)} mm\nINF: ${formatarNumero(resultadoInferior.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultadoInferior.alturaVidroCalculoMm, 0)} mm`],
+                    ["Total de vidro (SUP + INF)", formatarPreco(totalVidroCalculado)],
                     ["Total dos perfis", formatarPreco(totalPerfisCalculado)],
                     ["Total acessórios guarda corpo", formatarPreco(totalAcessoriosCalculado)],
                     ["Total fechamento de sacada", formatarPreco(totalFechamentoSacadaCalculado)],
@@ -1961,7 +1991,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-start justify-between gap-4">
                       <span className="text-sm" style={{ color: `${theme.contentTextLightBg}8F` }}>{label}</span>
-                      <span className="text-sm font-bold text-right" style={{ color: theme.contentTextLightBg }}>{value}</span>
+                      <span className="text-sm font-bold text-right whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>{value}</span>
                     </div>
                   ))}
                 </div>
