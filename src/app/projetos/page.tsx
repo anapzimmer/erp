@@ -2094,7 +2094,23 @@ export default function ProjetosPage() {
         arquivo: opcao.arquivo,
       })),
     }))
-  const variacoesDesenho = variacoesManuais
+  const stemsDesenhosDisponiveis = useMemo(() => {
+    const stems = new Set<string>()
+
+    todosDesenhos.forEach((desenho) => {
+      const stem = String(desenho.arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").trim()
+      if (stem) stems.add(stem)
+    })
+
+    return stems
+  }, [todosDesenhos])
+
+  const variacoesAutomaticas = useMemo(() => {
+    if (!form.desenho) return []
+    return getVariacoesDesenho(form.desenho, stemsDesenhosDisponiveis)
+  }, [form.desenho, stemsDesenhosDisponiveis])
+
+  const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
   const getVariacoesCatalogoProjeto = (desenhoProjeto: string) =>
     variacoesCustom
       .filter((grupo) => variacaoCustomCompativelComDesenho(grupo, desenhoProjeto))
