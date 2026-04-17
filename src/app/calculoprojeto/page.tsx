@@ -1043,6 +1043,7 @@ export default function CalculoProjetoPage() {
   const [ferragensDB, setFerragensDB] = useState<FerragemItem[]>([])
   const [perfisDB, setPerfisDB] = useState<PerfilItem[]>([])
   const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
+  const [desenhosVersao, setDesenhosVersao] = useState<number>(Date.now())
   const [, setCarregando] = useState(true)
 
   // ── Seleções do usuário ──
@@ -1133,10 +1134,24 @@ export default function CalculoProjetoPage() {
         : []
 
       setDesenhosPasta(arquivos)
+      setDesenhosVersao(Date.now())
     } catch {
       // Mantem o ultimo catalogo conhecido quando ocorrer falha temporaria.
     }
   }, [])
+
+  const montarUrlDesenho = useCallback((arquivo?: string | null) => {
+    const nomeArquivo = String(arquivo || "").trim()
+    if (!nomeArquivo) return null
+
+    const nomeCodificado = nomeArquivo
+      .split("/")
+      .filter(Boolean)
+      .map((parte) => encodeURIComponent(parte))
+      .join("/")
+
+    return `/desenhos/${nomeCodificado}?v=${desenhosVersao}`
+  }, [desenhosVersao])
 
   useEffect(() => {
     if (!empresaId) return
@@ -1585,7 +1600,7 @@ export default function CalculoProjetoPage() {
     return brutos.flatMap(v => v ? String(v).split(",").map(s => s.trim()).filter(Boolean) : [null])
   }, [getDetalhe])
 
-  const getVariacoesDesenhoDisponiveis = (item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
+  const getVariacoesDesenhoDisponiveis = useCallback((item: ItemCalculoProjeto): VariacaoProjetoOpcao[] => {
     const projeto = getProjeto(item)
     if (!projeto?.desenho) return []
 
@@ -1613,23 +1628,45 @@ export default function CalculoProjetoPage() {
       const arquivoNormalizado = String(arquivo || "").trim()
       if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
       if (!variacaoCompativelComProjeto(arquivoNormalizado)) return
-      if (!mapa.has(arquivoNormalizado)) {
-        mapa.set(arquivoNormalizado, {
-          arquivo: arquivoNormalizado,
-          label: label && label.trim() ? label.trim() : formatarLabelVariacaoArquivo(arquivoNormalizado),
-        })
+      const labelNormalizado = label && label.trim() ? label.trim() : ""
+      const existente = mapa.get(arquivoNormalizado)
+
+      if (existente) {
+        if (labelNormalizado) {
+          mapa.set(arquivoNormalizado, {
+            ...existente,
+            label: labelNormalizado,
+          })
+        }
+        return
       }
+
+      mapa.set(arquivoNormalizado, {
+        arquivo: arquivoNormalizado,
+        label: labelNormalizado || formatarLabelVariacaoArquivo(arquivoNormalizado),
+      })
     }
 
     const adicionarVariacaoSemFiltro = (arquivo: string, label?: string) => {
       const arquivoNormalizado = String(arquivo || "").trim()
       if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
-      if (!mapa.has(arquivoNormalizado)) {
-        mapa.set(arquivoNormalizado, {
-          arquivo: arquivoNormalizado,
-          label: label && label.trim() ? label.trim() : formatarLabelVariacaoArquivo(arquivoNormalizado),
-        })
+      const labelNormalizado = label && label.trim() ? label.trim() : ""
+      const existente = mapa.get(arquivoNormalizado)
+
+      if (existente) {
+        if (labelNormalizado) {
+          mapa.set(arquivoNormalizado, {
+            ...existente,
+            label: labelNormalizado,
+          })
+        }
+        return
       }
+
+      mapa.set(arquivoNormalizado, {
+        arquivo: arquivoNormalizado,
+        label: labelNormalizado || formatarLabelVariacaoArquivo(arquivoNormalizado),
+      })
     }
 
     // Sempre inclui o desenho base do projeto.
@@ -1667,7 +1704,7 @@ export default function CalculoProjetoPage() {
       })
 
     return Array.from(mapa.values())
-  }
+  }, [desenhosDisponiveis, getProjeto, getRestricoesProjeto, variacoesCustom])
 
   const getGruposVariacaoTecnica = useCallback(
     (item: ItemCalculoProjeto) => getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item)),
@@ -1784,6 +1821,36 @@ export default function CalculoProjetoPage() {
       return houveMudanca ? atualizados : prev
     })
   }, [getGruposVariacaoTecnica])
+
+  useEffect(() => {
+    setItensCalculo((prev) => {
+      let houveMudanca = false
+
+      const atualizados = prev.map((item) => {
+        if (!item.projetoId || !item.variacaoDrawing) return item
+
+        const variacoesDisponiveis = getVariacoesDesenhoDisponiveis(item)
+        if (variacoesDisponiveis.length === 0) {
+          houveMudanca = true
+          return {
+            ...item,
+            variacaoDrawing: "",
+          }
+        }
+
+        const variacaoAindaValida = variacoesDisponiveis.some((opcao) => opcao.arquivo === item.variacaoDrawing)
+        if (variacaoAindaValida) return item
+
+        houveMudanca = true
+        return {
+          ...item,
+          variacaoDrawing: "",
+        }
+      })
+
+      return houveMudanca ? atualizados : prev
+    })
+  }, [desenhosDisponiveis, detalhesProjetos, getVariacoesDesenhoDisponiveis, projetos, variacoesCustom])
 
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
@@ -1949,7 +2016,7 @@ export default function CalculoProjetoPage() {
       return {
         itemId: itemResultado.itemId,
         projetoNome: itemResultado.projeto?.nome || "Projeto",
-        desenhoUrl: itemResultado.desenhoProjeto ? `/desenhos/${itemResultado.desenhoProjeto}` : null,
+        desenhoUrl: montarUrlDesenho(itemResultado.desenhoProjeto),
         variacaoLabel,
         ehPorta,
         especificacaoDesenho: desenhoAtivo
@@ -2019,7 +2086,7 @@ export default function CalculoProjetoPage() {
         })),
       }
     })
-  }, [ferragensDB, formatarResumoVariacaoSelecionada, nomesVariacaoPersonalizados, perfisDB, resultados])
+  }, [ferragensDB, formatarResumoVariacaoSelecionada, montarUrlDesenho, nomesVariacaoPersonalizados, perfisDB, resultados])
 
   const dadosOrcamentoComercial = useMemo(() => {
     const totalPerfisOriginalBarra = resultados.reduce((acc, resultadoProjeto) => {
@@ -2050,7 +2117,7 @@ export default function CalculoProjetoPage() {
       return {
         id: `orc-${resultadoProjeto.itemId}`,
         descricao: `${resultadoProjeto.projeto?.nome || "Projeto"}${variacaoProjeto ? ` (${variacaoProjeto})` : ""}`,
-        desenhoUrl: resultadoProjeto.desenhoProjeto ? `/desenhos/${resultadoProjeto.desenhoProjeto}` : undefined,
+        desenhoUrl: montarUrlDesenho(resultadoProjeto.desenhoProjeto) || undefined,
         tipo: resultadoProjeto.resultado.usouKit ? "Modo Kit" : "Modo Barra",
         especificacaoDesenho: resultadoProjeto.desenhoProjeto
           ? (nomesVariacaoPersonalizados[resultadoProjeto.desenhoProjeto]?.trim() || formatarLabelVariacaoArquivo(resultadoProjeto.desenhoProjeto))
@@ -2083,6 +2150,7 @@ export default function CalculoProjetoPage() {
     }
   }, [
     formatarResumoVariacaoSelecionada,
+    montarUrlDesenho,
     nomesVariacaoPersonalizados,
     otimizacaoGlobalPerfis.resumo.precoOtimizado,
     resultados,
@@ -2602,7 +2670,7 @@ export default function CalculoProjetoPage() {
                           className="relative w-24 h-24 rounded-2xl overflow-hidden border border-gray-100 shrink-0"
                           style={{ background: `linear-gradient(140deg, ${theme.menuBackgroundColor}0a, #f8fafc)` }}
                         >
-                          <Image src={`/desenhos/${desenhoPreview}`} alt={labelDesenhoPreview || projetoSel.nome} fill className="object-contain p-2" />
+                          <Image src={montarUrlDesenho(desenhoPreview) || "/desenhos/sem-imagem.png"} alt={labelDesenhoPreview || projetoSel.nome} fill className="object-contain p-2" />
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Item {index + 1}</p>
@@ -2895,16 +2963,6 @@ export default function CalculoProjetoPage() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Qual Tipologia Deste Projeto?</p>
                         {variacoesDesenho.length > 1 && (
                           <div className="flex flex-wrap gap-2 mb-3">
-                            <button
-                              type="button"
-                              onClick={() => atualizarItem(item.id, "variacaoDrawing", "")}
-                              className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
-                              style={!item.variacaoDrawing
-                                ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
-                                : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
-                            >
-                              Padrão do projeto
-                            </button>
                             {variacoesDesenho.map((variacao) => (
                               <button
                                 key={variacao.arquivo}

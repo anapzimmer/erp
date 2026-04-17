@@ -984,6 +984,7 @@ export default function ProjetosPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
   const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
+  const [desenhosVersao, setDesenhosVersao] = useState<number>(Date.now())
   const [atualizandoDesenhos, setAtualizandoDesenhos] = useState(false)
   const [buscaDesenhoPicker, setBuscaDesenhoPicker] = useState("")
   const [desenhoPreviewVariacao, setDesenhoPreviewVariacao] = useState("")
@@ -1064,12 +1065,26 @@ export default function ProjetosPage() {
         : []
 
       setDesenhosPasta(arquivos)
+      setDesenhosVersao(Date.now())
     } catch {
       // Mantem a lista atual quando a atualizacao falhar.
     } finally {
       setAtualizandoDesenhos(false)
     }
   }, [])
+
+  const montarUrlDesenho = useCallback((arquivo?: string | null) => {
+    const nomeArquivo = String(arquivo || "").trim()
+    if (!nomeArquivo) return null
+
+    const nomeCodificado = nomeArquivo
+      .split("/")
+      .filter(Boolean)
+      .map((parte) => encodeURIComponent(parte))
+      .join("/")
+
+    return `/desenhos/${nomeCodificado}?v=${desenhosVersao}`
+  }, [desenhosVersao])
 
   useEffect(() => {
     void carregarDesenhosPasta()
@@ -2491,7 +2506,7 @@ export default function ProjetosPage() {
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: `${theme.menuBackgroundColor}08` }} />
                     {projeto.desenho ? (
                       <Image
-                        src={`/desenhos/${projeto.desenho}`}
+                        src={montarUrlDesenho(projeto.desenho) || "/desenhos/sem-imagem.png"}
                         alt={projeto.nome}
                         fill
                         className="object-contain p-4 group-hover:scale-105 transition-transform"
@@ -2591,7 +2606,7 @@ export default function ProjetosPage() {
               <div className="flex items-center gap-3">
                 {form.desenho && (
                   <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/60 border border-white/40">
-                    <Image src={`/desenhos/${form.desenho}`} alt="" fill className="object-contain p-1" />
+                    <Image src={montarUrlDesenho(form.desenho) || "/desenhos/sem-imagem.png"} alt="" fill className="object-contain p-1" />
                   </div>
                 )}
                 <div>
@@ -2719,7 +2734,7 @@ export default function ProjetosPage() {
                     >
                       {form.desenho ? (
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-white border border-gray-100">
-                          <Image src={`/desenhos/${form.desenho}`} alt="" fill className="object-contain p-1" />
+                          <Image src={montarUrlDesenho(form.desenho) || "/desenhos/sem-imagem.png"} alt="" fill className="object-contain p-1" />
                         </div>
                       ) : (
                         <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
@@ -2811,7 +2826,7 @@ export default function ProjetosPage() {
                                 : {}}
                             >
                               <Image
-                                src={`/desenhos/${d.arquivo}`}
+                                src={montarUrlDesenho(d.arquivo) || "/desenhos/sem-imagem.png"}
                                 alt={d.label}
                                 fill
                                 className="object-contain p-1 bg-gray-50"
@@ -4077,7 +4092,7 @@ export default function ProjetosPage() {
                     disabled={salvando}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-60"
                   >
-                    <Plus size={14} /> Salvar como novo
+                    <Plus size={14} /> Duplicar projeto
                   </button>
                 )}
                 <button
@@ -4155,7 +4170,7 @@ export default function ProjetosPage() {
                       <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Desenho principal</p>
                       <div className="relative h-36 rounded-xl overflow-hidden bg-white border border-gray-100">
                         {visualizacaoProjeto.projeto.desenho ? (
-                          <Image src={`/desenhos/${visualizacaoProjeto.projeto.desenho}`} alt={visualizacaoProjeto.projeto.nome} fill className="object-contain p-2" />
+                          <Image src={montarUrlDesenho(visualizacaoProjeto.projeto.desenho) || "/desenhos/sem-imagem.png"} alt={visualizacaoProjeto.projeto.nome} fill className="object-contain p-2" />
                         ) : (
                           <div className="h-full flex items-center justify-center text-gray-300"><ImageIcon size={30} /></div>
                         )}
