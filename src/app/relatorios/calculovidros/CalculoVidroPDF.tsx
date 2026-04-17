@@ -16,6 +16,7 @@ interface ItemVidro {
     corVidro?: string;
     servicos?: string;
     observacaoRateio?: string;
+    observacaoPreco?: string;
     vao?: string;
     medidaReal: string;
     medidaCalc: string;
@@ -116,11 +117,11 @@ const styles = StyleSheet.create({
         objectFit: 'contain',
     },
 
-    colDesc: { width: '47%' },
-    colVao: { width: '17%', textAlign: 'center' },
-    colQtd: { width: '8%' , textAlign: 'center' },
-    colUnitario: { width: '13%', textAlign: 'right' },
-    colTotal: { width: '15%', textAlign: 'right' },
+    colDesc: { width: '39%' },
+    colQtd: { width: '9%', textAlign: 'center' },
+    colVao: { width: '18%', textAlign: 'center' },
+    colPrecoM2: { width: '14%', textAlign: 'center' },
+    colTotal: { width: '20%', textAlign: 'right' },
 
     summaryContainer: {
         marginTop: 30,
@@ -204,10 +205,10 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, styles.colDesc]}>Item / Material</Text>
-                        <Text style={[styles.tableColHeader, styles.colVao]}>Tamanho do Vão</Text>
-                        <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
-                        <Text style={[styles.tableColHeader, styles.colUnitario]}>Valor Unit.</Text>
+                        <Text style={[styles.tableColHeader, styles.colDesc]}>Vidro</Text>
+                        <Text style={[styles.tableColHeader, styles.colQtd]}>QTDE</Text>
+                        <Text style={[styles.tableColHeader, styles.colVao]}>Larg x Alt</Text>
+                        <Text style={[styles.tableColHeader, styles.colPrecoM2]}>Preco m²</Text>
                         <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
                     </View>
 
@@ -236,9 +237,9 @@ export function CalculoVidroPDF({
                                         {ehPerfilConsolidado(item) && (
                                             <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
                                         )}
-                                        {item.medidaReal && item.medidaReal !== '-' && (
+                                        {item.medidaCalc && item.medidaCalc !== '-' && (
                                             <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
-                                                Medida item: {item.medidaReal}
+                                                Medida de cálculo: {item.medidaCalc}
                                             </Text>
                                         )}
                                         {item.corVidro && item.corVidro !== '-' && (
@@ -256,6 +257,11 @@ export function CalculoVidroPDF({
                                         {item.observacaoRateio && (
                                             <Text style={{ fontSize: 6.5, color: '#7c8b9a', marginTop: 2 }}>
                                                 {item.observacaoRateio}
+                                            </Text>
+                                        )}
+                                        {item.observacaoPreco && (
+                                            <Text style={{ fontSize: 6.5, color: '#059669', marginTop: 2 }}>
+                                                {item.observacaoPreco}
                                             </Text>
                                         )}
                                     </View>
@@ -298,13 +304,13 @@ export function CalculoVidroPDF({
                                 )}
                             </View>
 
-                            {/* Medidas, Qtd e Preço */}
-                            <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaCalc || '-'}</Text>
+                            {/* Quantidade, Medidas e Preço */}
                             <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colUnitario, { color: contentColor }]}>
-                                {calcularValorUnitarioItem(item).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaReal || '-'}</Text>
+                            <Text style={[styles.tableCol, styles.colPrecoM2, { color: contentColor }]}>
+                                {Number(item.precoVidroM2 || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                             <Text style={[styles.tableCol, styles.colTotal, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

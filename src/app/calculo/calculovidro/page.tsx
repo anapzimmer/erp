@@ -31,12 +31,14 @@ interface ItemOrcamento {
   totalOriginal?: number;
   totalRateado?: boolean;
   observacaoRateio?: string;
+  observacaoPreco?: string;
 }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
+interface TabelaPreco { id: string | number; nome: string; }
 interface Servico { id: string | number; nome: string; preco: number; unidade?: string | null; }
 interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
-interface ItemNaoEncontrado { nomeExcel: string; l: number; a: number; qtd: number; }
+interface ItemNaoEncontrado { nomeExcel: string; nomeExcelNormalizado: string; l: number; a: number; qtd: number; }
 
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -74,6 +76,61 @@ const aplicarAcrescimoPorMedida = (precoBaseM2: number, larguraMm: number, altur
   return excedeuLimite ? precoBaseM2 * (1 + PERCENTUAL_ACRESCIMO_MEDIDA) : precoBaseM2;
 };
 
+const normalizarTextoComparacao = (valor: unknown) => {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+};
+
+const tokenizarTextoComparacao = (valor: unknown) => {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+};
+
+const normalizarNumeroPlanilha = (valor: unknown) => {
+  if (typeof valor === "number") return valor;
+  if (valor == null) return 0;
+
+  const textoOriginal = String(valor).trim();
+  if (!textoOriginal) return 0;
+
+  let texto = textoOriginal.replace(/\s/g, "");
+
+  if (texto.includes(",") && texto.includes(".")) {
+    texto = texto.replace(/\./g, "").replace(",", ".");
+  } else if (texto.includes(",")) {
+    texto = texto.replace(",", ".");
+  }
+
+  const numero = Number(texto.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numero) ? numero : 0;
+};
+
+const formatarEspessuraExibicao = (espessura: unknown) => {
+  const texto = String(espessura || "").trim();
+  if (!texto) return "";
+  return /mm$/i.test(texto) ? texto : `${texto}mm`;
+};
+
+const montarRotuloVidro = (vidro: Vidro) => {
+  const partes = [
+    String(vidro.nome || "").trim(),
+    formatarEspessuraExibicao(vidro.espessura),
+    String(vidro.tipo || "").trim(),
+  ].filter(Boolean);
+
+  return partes.join(" | ");
+};
+
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
@@ -88,6 +145,7 @@ export default function RelatorioOrçamento() {
 
   // Estados de Dados do Supabase
   const [listaClientes, setListaClientes] = useState<Cliente[]>([])
+  const [listaTabelas, setListaTabelas] = useState<TabelaPreco[]>([])
   const [listaVidros, setListaVidros] = useState<Vidro[]>([])
   const [listaServicos, setListaServicos] = useState<Servico[]>([])
   const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
@@ -120,6 +178,8 @@ export default function RelatorioOrçamento() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [itensNaoEncontrados, setItensNaoEncontrados] = useState<ItemNaoEncontrado[]>([]);
   const [mostrarModalAssociacao, setMostrarModalAssociacao] = useState(false);
+  const [filtroVidroAssociacao, setFiltroVidroAssociacao] = useState("");
+  const [indiceVidroAssociacaoAtivo, setIndiceVidroAssociacaoAtivo] = useState(0);
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
@@ -149,6 +209,119 @@ export default function RelatorioOrçamento() {
   const descricaoAlvoRateio = selecionados.length > 0
     ? `${selecionados.length} cálculo(s) selecionado(s)`
     : `todos os ${itens.length} cálculo(s)`;
+
+  const nomeAtualAssociacao = itensNaoEncontrados[0]?.nomeExcel || "";
+  const nomeAtualAssociacaoNormalizado = normalizarTextoComparacao(nomeAtualAssociacao);
+  const termoFiltroAssociacao = normalizarTextoComparacao(filtroVidroAssociacao);
+  const pontuarCorrespondenciaVidro = (v: Vidro) => {
+    const nomeVidro = String(v.nome || "");
+    const etiqueta = `${v.nome || ""} ${v.espessura || ""} ${v.tipo || ""}`;
+
+    const nomeVidroNormalizado = normalizarTextoComparacao(nomeVidro);
+    const etiquetaNormalizada = normalizarTextoComparacao(etiqueta);
+    const tokensExcel = tokenizarTextoComparacao(nomeAtualAssociacao);
+    const tokensVidro = new Set(tokenizarTextoComparacao(etiqueta));
+
+    let score = 0;
+
+    if (nomeAtualAssociacaoNormalizado) {
+      if (nomeVidroNormalizado === nomeAtualAssociacaoNormalizado) score += 200;
+      if (nomeVidroNormalizado.startsWith(nomeAtualAssociacaoNormalizado)) score += 120;
+      if (nomeAtualAssociacaoNormalizado.startsWith(nomeVidroNormalizado)) score += 90;
+      if (nomeVidroNormalizado.includes(nomeAtualAssociacaoNormalizado)) score += 80;
+      if (etiquetaNormalizada.includes(nomeAtualAssociacaoNormalizado)) score += 30;
+    }
+
+    if (termoFiltroAssociacao) {
+      if (etiquetaNormalizada.includes(termoFiltroAssociacao)) score += 40;
+      if (nomeVidroNormalizado.startsWith(termoFiltroAssociacao)) score += 20;
+    }
+
+    const tokensEmComum = tokensExcel.filter((token) => tokensVidro.has(token)).length;
+    score += tokensEmComum * 25;
+
+    return score;
+  };
+
+  const vidrosFiltradosAssociacao = listaVidros
+    .filter((v) => {
+      if (!termoFiltroAssociacao) return true;
+      const etiqueta = `${v.nome || ""} ${v.espessura || ""} ${v.tipo || ""}`;
+      return normalizarTextoComparacao(etiqueta).includes(termoFiltroAssociacao);
+    })
+    .map((v) => ({ vidro: v, score: pontuarCorrespondenciaVidro(v) }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.vidro.nome || "").localeCompare(String(b.vidro.nome || ""), "pt-BR");
+    })
+    .map((item) => item.vidro);
+
+  useEffect(() => {
+    if (!mostrarModalAssociacao || itensNaoEncontrados.length === 0) return;
+    setFiltroVidroAssociacao(itensNaoEncontrados[0].nomeExcel || "");
+    setIndiceVidroAssociacaoAtivo(0);
+  }, [mostrarModalAssociacao, itensNaoEncontrados]);
+
+  useEffect(() => {
+    if (vidrosFiltradosAssociacao.length === 0) {
+      setIndiceVidroAssociacaoAtivo(0);
+      return;
+    }
+
+    setIndiceVidroAssociacaoAtivo((prev) => Math.min(prev, vidrosFiltradosAssociacao.length - 1));
+  }, [vidrosFiltradosAssociacao]);
+
+  const obterRotuloVidroAssociacao = (v: Vidro) => {
+    return montarRotuloVidro(v) || "Sem descricao";
+  };
+
+  const obterGrupoPrecoIdCliente = () => {
+    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
+    // Prioriza o campo atualmente usado no cadastro de clientes.
+    return clienteObjeto?.grupo_preco_id || clienteObjeto?.tabela_id || null;
+  };
+
+  const obterNomeTabelaDoCliente = (grupoIdDoCliente: string | number | null) => {
+    if (!grupoIdDoCliente) return "Tabela padrao";
+    const tabela = listaTabelas.find((t) => String(t.id) === String(grupoIdDoCliente));
+    return tabela?.nome || "Tabela do cliente";
+  };
+
+  const obterContextoPrecoVidroPorCliente = (vidro: Vidro, larguraMm: number, alturaMm: number) => {
+    const grupoIdDoCliente = obterGrupoPrecoIdCliente();
+
+    const precoEspecial = precosEspeciais.find(p =>
+      String(p.vidro_id) === String(vidro.id) &&
+      String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
+    );
+
+    const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidro.preco);
+    const precoM2 = aplicarAcrescimoPorMedida(precoBaseM2, larguraMm, alturaMm);
+    const observacaoPreco = precoEspecial
+      ? `Preco especial aplicado: ${obterNomeTabelaDoCliente(grupoIdDoCliente)}`
+      : undefined;
+
+    return { precoM2, observacaoPreco };
+  };
+
+  const associarVidroNaoEncontrado = (vidro: Vidro) => {
+    if (itensNaoEncontrados.length === 0) return;
+
+    const nomeAtualNoExcel = itensNaoEncontrados[0].nomeExcelNormalizado;
+    const correspondentes = itensNaoEncontrados.filter(i => i.nomeExcelNormalizado === nomeAtualNoExcel);
+    const novosItens = correspondentes.map(c => gerarObjetoItem(vidro, c.l, c.a, c.qtd));
+
+    setItens(prev => [...prev, ...novosItens]);
+
+    const restantes = itensNaoEncontrados.filter(i => i.nomeExcelNormalizado !== nomeAtualNoExcel);
+    setItensNaoEncontrados(restantes);
+    setFiltroVidroAssociacao(restantes[0]?.nomeExcel || "");
+
+    if (restantes.length === 0) {
+      setMostrarModalAssociacao(false);
+      setFiltroVidroAssociacao("");
+    }
+  };
 
   const aplicarRateioValorSelecionados = () => {
     if (itens.length === 0) {
@@ -297,8 +470,9 @@ export default function RelatorioOrçamento() {
       if (checkingAuth || !empresaId) return;
 
       try {
-        const [resC, resV, resS, resP] = await Promise.all([
+        const [resC, resT, resV, resS, resP] = await Promise.all([
           supabase.from('clientes').select('*').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('tabelas').select('id, nome').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
           // Busca a tabela de vínculos de preços especiais
@@ -306,6 +480,7 @@ export default function RelatorioOrçamento() {
         ]);
 
         if (resC.data) setListaClientes(resC.data);
+        if (resT.data) setListaTabelas(resT.data);
         if (resV.data) {
           setListaVidros(resV.data);
           if (resV.data.length > 0) setVidroSelecionado(resV.data[0]);
@@ -447,16 +622,8 @@ useEffect(() => {
       return;
     }
 
-    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
-    const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
-
-    const precoEspecial = precosEspeciais.find(p =>
-      String(p.vidro_id) === String(vidroSelecionado.id) &&
-      String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
-    );
-
-    const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidroSelecionado.preco);
-    const precoVidroM2 = aplicarAcrescimoPorMedida(precoBaseM2, l, a);
+    const contextoPreco = obterContextoPrecoVidroPorCliente(vidroSelecionado, l, a);
+    const precoVidroM2 = contextoPreco.precoM2;
 
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
@@ -492,7 +659,7 @@ useEffect(() => {
 
     const novoItem = {
       id: editandoId || Date.now(),
-      descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''}`,
+      descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''} ${vidroSelecionado.tipo || ''}`.trim(),
       tipo: vidroSelecionado.tipo || "", // Garante que o tipo vá para o PDF
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
@@ -506,7 +673,8 @@ useEffect(() => {
       total: totalPorPeca * quantidade,
       totalOriginal: undefined,
       totalRateado: false,
-      observacaoRateio: undefined
+      observacaoRateio: undefined,
+      observacaoPreco: contextoPreco.observacaoPreco
     };
 
     if (editandoId) {
@@ -531,19 +699,11 @@ useEffect(() => {
     if (!novoVidro) return;
 
     // Pegamos o grupo do cliente para garantir o preço especial na troca
-    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
-    const grupoIdDoCliente = clienteObjeto?.tabela_id || clienteObjeto?.grupo_preco_id;
-
     setItens(prev => prev.map(item => {
       if (selecionados.includes(item.id)) {
-        // 1. Identificar o preço (Especial ou Padrão) para o NOVO vidro
-        const precoEspecial = precosEspeciais.find(p =>
-          String(p.vidro_id) === String(novoVidro.id) &&
-          String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
-        );
-        const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(novoVidro.preco);
         const [lReal, aReal] = item.medidaReal.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')) || 0);
-        const precoVidroM2 = aplicarAcrescimoPorMedida(precoBaseM2, lReal, aReal);
+        const contextoPreco = obterContextoPrecoVidroPorCliente(novoVidro, lReal, aReal);
+        const precoVidroM2 = contextoPreco.precoM2;
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
         // 3. Refazer o cálculo de área
@@ -556,13 +716,14 @@ useEffect(() => {
 
         return {
           ...item,
-          descricao: `${novoVidro.nome} ${novoVidro.espessura || ''}`,
+          descricao: `${novoVidro.nome} ${novoVidro.espessura || ''} ${novoVidro.tipo || ''}`.trim(),
           vidro_id: novoVidro.id,
           precoVidroM2,
           total: novoTotalUnitario * item.qtd,
           totalOriginal: undefined,
           totalRateado: false,
-          observacaoRateio: undefined
+          observacaoRateio: undefined,
+          observacaoPreco: contextoPreco.observacaoPreco
         };
       }
       return item;
@@ -693,6 +854,14 @@ useEffect(() => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!clienteId) {
+      setModalAvisoTitulo("Selecione o cliente");
+      setModalAvisoMensagem("Selecione um cliente antes de importar para aplicar a tabela de preço correta.");
+      setMostrarModalAviso(true);
+      if (e.target) e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataData = evt.target?.result;
@@ -710,26 +879,26 @@ useEffect(() => {
       data.forEach((linha) => {
         // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
         const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]) || "").trim();
+        const nomeExcelNormalizado = normalizarTextoComparacao(nomeExcel);
 
-        // Captura de medidas - seu arquivo usa "Largura" e "Altura"
-        const l = parseFloat(String(extrairValor(linha, ["largura", "larg", "l"]) || 0));
-        const a = parseFloat(String(extrairValor(linha, ["altura", "alt", "a"]) || 0));
+        // Captura de medidas - aceita largura/altura em colunas separadas ou medida unica (ex: 802x602)
+        const { l, a } = extrairMedidasDaLinha(linha);
 
         // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
         const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
-        const qtdRaw = String(rawQtd ?? "");
-        const qtd = qtdRaw && !isNaN(parseInt(qtdRaw, 10)) ? parseInt(qtdRaw, 10) : 1;
+        const qtdNumero = normalizarNumeroPlanilha(rawQtd);
+        const qtd = qtdNumero > 0 ? Math.round(qtdNumero) : 1;
 
-        if (!nomeExcel || !l || !a) return;
+        if (!nomeExcelNormalizado || l <= 0 || a <= 0) return;
 
         const vidroNoBanco = listaVidros.find(v =>
-          v.nome.toLowerCase().trim() === nomeExcel.toString().toLowerCase().trim()
+          normalizarTextoComparacao(v.nome) === nomeExcelNormalizado
         );
 
         if (vidroNoBanco) {
           novosItensProcessados.push(gerarObjetoItem(vidroNoBanco, l, a, qtd));
         } else {
-          pendentesParaAssociar.push({ nomeExcel, l, a, qtd });
+          pendentesParaAssociar.push({ nomeExcel, nomeExcelNormalizado, l, a, qtd });
         }
       });
 
@@ -755,12 +924,42 @@ useEffect(() => {
     const chaves = Object.keys(linha);
 
     const chaveEncontrada = chaves.find(chave => {
-      // Remove espaços e pontos para comparar (ex: "Qtde." vira "qtde")
-      const chaveLimpa = chave.toLowerCase().replace(/[.\s]/g, '').trim();
-      return variacoes.some(v => v.toLowerCase().replace(/[.\s]/g, '').trim() === chaveLimpa);
+      const chaveLimpa = normalizarTextoComparacao(chave);
+      return variacoes.some(v => {
+        const variacaoLimpa = normalizarTextoComparacao(v);
+
+        if (chaveLimpa === variacaoLimpa) return true;
+
+        // Evita colisao de abreviacoes curtas (ex: "a" casar com "largura").
+        if (variacaoLimpa.length <= 2) return false;
+
+        return chaveLimpa.includes(variacaoLimpa);
+      });
     });
 
     return chaveEncontrada ? linha[chaveEncontrada] : null;
+  };
+
+  const extrairMedidasDaLinha = (linha: Record<string, unknown>) => {
+    const largura = normalizarNumeroPlanilha(extrairValor(linha, ["largura", "larg"]));
+    const altura = normalizarNumeroPlanilha(extrairValor(linha, ["altura", "alt"]));
+
+    if (largura > 0 && altura > 0) {
+      return { l: largura, a: altura };
+    }
+
+    const medidaBruta = extrairValor(linha, ["medida", "medidas", "dimensao", "dimensão", "tamanho"]);
+    const textoMedida = String(medidaBruta || "").trim();
+
+    // Exemplos aceitos: 802x602, 802 x 602, 802*602
+    const match = textoMedida.match(/([\d.,]+)\s*[xX*]\s*([\d.,]+)/);
+    if (match) {
+      const lMedida = normalizarNumeroPlanilha(match[1]);
+      const aMedida = normalizarNumeroPlanilha(match[2]);
+      return { l: lMedida, a: aMedida };
+    }
+
+    return { l: largura, a: altura };
   };
 
   // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
@@ -774,12 +973,12 @@ useEffect(() => {
     const aReal = a;
 
     const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const precoBaseM2 = Number(vidro.preco);
-    const precoM2 = aplicarAcrescimoPorMedida(precoBaseM2, lReal, aReal);
+    const contextoPreco = obterContextoPrecoVidroPorCliente(vidro, lReal, aReal);
+    const precoM2 = contextoPreco.precoM2;
 
     return {
       id: Math.random(),
-      descricao: `${vidro.nome} ${vidro.espessura}`,
+      descricao: `${vidro.nome} ${vidro.espessura || ''} ${vidro.tipo || ''}`.trim(),
       // Guardamos as duas separadas para não haver confusão
       medidaReal: `${lReal} x ${aReal}`,
       medidaCalc: `${lCalc} x ${aCalc}`,
@@ -788,7 +987,8 @@ useEffect(() => {
       total: areaCobradaM2 * precoM2 * Number(qtd),
       totalOriginal: undefined,
       totalRateado: false,
-      observacaoRateio: undefined
+      observacaoRateio: undefined,
+      observacaoPreco: contextoPreco.observacaoPreco
     };
   };
 
@@ -1028,20 +1228,19 @@ useEffect(() => {
                     <option value="">Selecione o material...</option>
                     {listaVidros.map(v => (
                       <option key={v.id} value={v.id}>
-                        {/* Aqui montamos a exibição: Nome/Cor + Espessura + Tipo */}
-                        {v.nome} {v.cor ? `- ${v.cor}` : ''} {v.espessura ? `(${v.espessura})` : ''} {v.tipo ? `| ${v.tipo}` : ''}
+                        {montarRotuloVidro(v)}
                       </option>
                     ))}
                   </select>
                   {isMounted && vidroSelecionado && clienteId && (() => {
                     // 1. Localizamos o grupo do cliente
                     const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
-                    const grupoId = clienteAtual?.tabela_id || clienteAtual?.grupo_preco_id;
+                    const grupoId = clienteAtual?.grupo_preco_id || clienteAtual?.tabela_id;
 
                     // 2. Procuramos o preço especial
                     const especial = precosEspeciais.find(p =>
                       String(p.vidro_id) === String(vidroSelecionado.id) &&
-                      String(p.grupo_preco_id) === String(grupoId)
+                      String(p.grupo_preco_id || p.tabela_id) === String(grupoId)
                     );
 
                     return (
@@ -1267,6 +1466,12 @@ useEffect(() => {
                                 </div>
                               )}
 
+                              {item.observacaoPreco && (
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-emerald-600">
+                                  {item.observacaoPreco}
+                                </div>
+                              )}
+
                               {/* Serviço / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
@@ -1410,7 +1615,7 @@ useEffect(() => {
                               <option value="" className="text-gray-400">Trocar vidro...</option>
                               {listaVidros.map(v => (
                                 <option key={v.id} value={v.id} className="text-slate-700">
-                                  {v.nome} {v.espessura ? `| ${v.espessura}mm` : ''}
+                                  {montarRotuloVidro(v)}
                                 </option>
                               ))}
                             </select>
@@ -1579,42 +1784,73 @@ useEffect(() => {
                   <label className="text-[12px] text-[#1e3a5a]  tracking-widest">
                     Corresponder para:
                   </label>
-                  <select
-                    className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-200 outline-none text-sm  text-gray-700 focus:ring-2 focus:ring-[#1e3a5a]/20 transition-all cursor-pointer"
-                    onChange={(e) => {
-                      const vidroSelecionado = listaVidros.find(v => String(v.id) === e.target.value);
-                      if (!vidroSelecionado) return;
+                  <input
+                    type="text"
+                    value={filtroVidroAssociacao}
+                    onChange={(e) => setFiltroVidroAssociacao(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setIndiceVidroAssociacaoAtivo((prev) => Math.min(prev + 1, Math.max(vidrosFiltradosAssociacao.length - 1, 0)));
+                        return;
+                      }
 
-                      const nomeAtualNoExcel = itensNaoEncontrados[0].nomeExcel;
-                      const correspondentes = itensNaoEncontrados.filter(i => i.nomeExcel === nomeAtualNoExcel);
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setIndiceVidroAssociacaoAtivo((prev) => Math.max(prev - 1, 0));
+                        return;
+                      }
 
-                      const novosItens = correspondentes.map(c => gerarObjetoItem(vidroSelecionado, c.l, c.a, c.qtd));
-
-                      setItens(prev => [...prev, ...novosItens]);
-
-                      const restantes = itensNaoEncontrados.filter(i => i.nomeExcel !== nomeAtualNoExcel);
-                      setItensNaoEncontrados(restantes);
-
-                      if (restantes.length === 0) setMostrarModalAssociacao(false);
-                      e.target.value = ""; // Reseta o select para a próxima associação
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const vidroSelecionado = vidrosFiltradosAssociacao[indiceVidroAssociacaoAtivo];
+                        if (vidroSelecionado) associarVidroNaoEncontrado(vidroSelecionado);
+                      }
                     }}
-                  >
-                    <option value="">Selecione o material do banco...</option>
-                    {listaVidros.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.nome} {v.espessura ? ` ${v.espessura} - ${v.tipo}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Digite nome, espessura ou tipo para filtrar"
+                    className="w-full p-3 bg-white rounded-2xl border border-gray-200 outline-none text-sm text-gray-700 focus:ring-2 focus:ring-[#1e3a5a]/20 transition-all"
+                  />
+                  <p className="text-[11px] text-gray-400 uppercase tracking-wider">
+                    Lista filtrada ({vidrosFiltradosAssociacao.length}) - use setas e Enter
+                  </p>
+                  <div className="w-full max-h-56 overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50/70 p-1.5 space-y-1">
+                    {vidrosFiltradosAssociacao.map((v, index) => {
+                      const ativo = index === indiceVidroAssociacaoAtivo;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onMouseEnter={() => setIndiceVidroAssociacaoAtivo(index)}
+                          onClick={() => associarVidroNaoEncontrado(v)}
+                          className="w-full text-left px-3 py-2 rounded-xl text-sm transition-all"
+                          style={{
+                            backgroundColor: ativo ? "#e2e8f0" : "transparent",
+                            color: "#334155"
+                          }}
+                        >
+                          {obterRotuloVidroAssociacao(v)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {vidrosFiltradosAssociacao.length === 0 && (
+                    <p className="text-[11px] text-amber-600">
+                      Nenhum vidro encontrado com esse filtro.
+                    </p>
+                  )}
                 </div>
 
                 {/* Botão Pular (Agora na cor do tema) */}
                 <button
                   onClick={() => {
-                    const nomeAtual = itensNaoEncontrados[0].nomeExcel;
-                    const restantes = itensNaoEncontrados.filter(i => i.nomeExcel !== nomeAtual);
+                    const nomeAtual = itensNaoEncontrados[0].nomeExcelNormalizado;
+                    const restantes = itensNaoEncontrados.filter(i => i.nomeExcelNormalizado !== nomeAtual);
                     setItensNaoEncontrados(restantes);
-                    if (restantes.length === 0) setMostrarModalAssociacao(false);
+                    setFiltroVidroAssociacao(restantes[0]?.nomeExcel || "");
+                    if (restantes.length === 0) {
+                      setMostrarModalAssociacao(false);
+                      setFiltroVidroAssociacao("");
+                    }
                   }}
                   className="w-full py-4 text-[10px] font-black text-[#1e3a5a]/60 hover:text-[#1e3a5a] hover:bg-gray-50 rounded-2xl transition-all uppercase  border border-transparent hover:border-gray-100"
                 >
