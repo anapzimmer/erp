@@ -210,6 +210,11 @@ type ResultadoProjetoCalculado = {
   resultado: ResultadoCalculo
 }
 
+const projetoTemTrilhoConfigurado = (detalhe?: ProjetoDetalhe | null) => {
+  if (!detalhe) return false
+  return detalhe.folhas.some((folha) => String(folha.trilho_restrito || "").trim().length > 0)
+}
+
 type ItemPreviewOrcamento = {
   id: string
   descricao: string
@@ -363,6 +368,13 @@ type VariacaoProjetoOpcao = {
   label: string
 }
 
+type VariacaoCustomCalculo = {
+  id: string
+  label: string
+  escopo_familia?: string
+  opcoes: Array<{ label: string; arquivo: string }>
+}
+
 const PARES_TRINCO: Array<{ com: string; sem: string }> = [
   { com: "janela-c-trinco-2fls.png", sem: "janela-s-trinco-2fls.png" },
   { com: "janela-c-trinco-4fls.png", sem: "janela-s-trinco-4fls.png" },
@@ -444,7 +456,7 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
     return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
   }
 
-  if (/^(portagiro|portaforavao)-\d+fls(completo|completa)?$/i.test(stem)) {
+  if (/^(portagiro|portaforavao)-\d+fls(?:[a-z0-9]+)?(completo|completa)?$/i.test(stem)) {
     return stem.replace(/(completo|completa)$/i, "")
   }
 
@@ -1040,6 +1052,7 @@ export default function CalculoProjetoPage() {
   const [detalhesProjetos, setDetalhesProjetos] = useState<Record<string, ProjetoDetalhe>>({})
   const [projetosCarregando, setProjetosCarregando] = useState<string[]>([])
   const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
+  const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustomCalculo[]>([])
 
   // ── Resultado ──
   const [resultados, setResultados] = useState<ResultadoProjetoCalculado[]>([])
@@ -1109,32 +1122,46 @@ export default function CalculoProjetoPage() {
     if (empresaId) carregarTudo()
   }, [empresaId, carregarTudo])
 
+  const carregarDesenhosPasta = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/desenhos?t=${Date.now()}`, { cache: "no-store" })
+      if (!res.ok) return
+      const data = await res.json() as { arquivos?: unknown }
+
+      const arquivos = Array.isArray(data.arquivos)
+        ? data.arquivos.map((item) => String(item || "").trim()).filter(Boolean)
+        : []
+
+      setDesenhosPasta(arquivos)
+    } catch {
+      // Mantem o ultimo catalogo conhecido quando ocorrer falha temporaria.
+    }
+  }, [])
+
   useEffect(() => {
-    let cancelado = false
+    if (!empresaId) return
+    void carregarDesenhosPasta()
+  }, [empresaId, carregarDesenhosPasta])
 
-    const carregarDesenhosPasta = async () => {
-      try {
-        const res = await fetch("/api/desenhos", { cache: "no-store" })
-        if (!res.ok) return
-        const data = await res.json() as { arquivos?: unknown }
-        if (cancelado) return
+  useEffect(() => {
+    if (typeof window === "undefined" || !empresaId) return
 
-        const arquivos = Array.isArray(data.arquivos)
-          ? data.arquivos.map((item) => String(item || "").trim()).filter(Boolean)
-          : []
-
-        setDesenhosPasta(arquivos)
-      } catch {
-        if (!cancelado) setDesenhosPasta([])
-      }
+    const atualizar = () => {
+      void carregarDesenhosPasta()
     }
 
-    carregarDesenhosPasta()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") atualizar()
+    }
+
+    window.addEventListener("focus", atualizar)
+    document.addEventListener("visibilitychange", onVisibilityChange)
 
     return () => {
-      cancelado = true
+      window.removeEventListener("focus", atualizar)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
     }
-  }, [empresaId])
+  }, [empresaId, carregarDesenhosPasta])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -1156,6 +1183,42 @@ export default function CalculoProjetoPage() {
     const chave = `variacao-box:nomes:${empresaId}`
     window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
   }, [empresaId, nomesVariacaoPersonalizados])
+
+  useEffect(() => {
+    if (!empresaId || typeof window === "undefined") return
+    const chave = `projetos:variacoes-custom:${empresaId}`
+
+    try {
+      const bruto = window.localStorage.getItem(chave)
+      if (!bruto) {
+        setVariacoesCustom([])
+        return
+      }
+
+      const parsed = JSON.parse(bruto) as VariacaoCustomCalculo[]
+      if (!Array.isArray(parsed)) {
+        setVariacoesCustom([])
+        return
+      }
+
+      const saneadas = parsed
+        .filter((item) => item && typeof item.id === "string" && typeof item.label === "string" && Array.isArray(item.opcoes))
+        .map((item) => ({
+          id: item.id,
+          label: item.label,
+          escopo_familia: typeof item.escopo_familia === "string" ? item.escopo_familia : undefined,
+          opcoes: item.opcoes
+            .filter((op) => op && typeof op.label === "string" && typeof op.arquivo === "string")
+            .map((op) => ({ label: op.label.trim(), arquivo: op.arquivo.trim() }))
+            .filter((op) => !!op.arquivo),
+        }))
+        .filter((item) => item.opcoes.length >= 2)
+
+      setVariacoesCustom(saneadas)
+    } catch {
+      setVariacoesCustom([])
+    }
+  }, [empresaId])
 
   useEffect(() => {
     const chave = getChaveRascunho()
@@ -1527,10 +1590,81 @@ export default function CalculoProjetoPage() {
     if (!projeto?.desenho) return []
 
     const mapa = new Map<string, VariacaoProjetoOpcao>()
+    const desenhoBase = String(projeto.desenho || "").trim()
+    const familiaBase = obterChaveFamiliaVariacao(desenhoBase)
 
-    getVariacoesAutomaticasProjeto(projeto?.desenho, desenhosDisponiveis).forEach((variacao) => {
-      mapa.set(variacao.arquivo, variacao)
+    const variacaoCompativelComProjeto = (arquivoVariacao: string) => {
+      const arquivo = String(arquivoVariacao || "").trim()
+      if (!arquivo) return false
+      if (arquivo === desenhoBase) return true
+
+      const familiaVariacao = obterChaveFamiliaVariacao(arquivo)
+      if (familiaBase && familiaVariacao) return familiaBase === familiaVariacao
+
+      const stemBase = desenhoBase.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").toLowerCase()
+      const stemVariacao = arquivo.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").toLowerCase()
+      const prefixoBase = stemBase.split("-")[0]
+      const prefixoVariacao = stemVariacao.split("-")[0]
+
+      return !!prefixoBase && prefixoBase === prefixoVariacao
+    }
+
+    const adicionarVariacao = (arquivo: string, label?: string) => {
+      const arquivoNormalizado = String(arquivo || "").trim()
+      if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
+      if (!variacaoCompativelComProjeto(arquivoNormalizado)) return
+      if (!mapa.has(arquivoNormalizado)) {
+        mapa.set(arquivoNormalizado, {
+          arquivo: arquivoNormalizado,
+          label: label && label.trim() ? label.trim() : formatarLabelVariacaoArquivo(arquivoNormalizado),
+        })
+      }
+    }
+
+    const adicionarVariacaoSemFiltro = (arquivo: string, label?: string) => {
+      const arquivoNormalizado = String(arquivo || "").trim()
+      if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
+      if (!mapa.has(arquivoNormalizado)) {
+        mapa.set(arquivoNormalizado, {
+          arquivo: arquivoNormalizado,
+          label: label && label.trim() ? label.trim() : formatarLabelVariacaoArquivo(arquivoNormalizado),
+        })
+      }
+    }
+
+    // Sempre inclui o desenho base do projeto.
+    adicionarVariacao(projeto.desenho)
+
+    // Inclui variações automáticas da mesma família do desenho base.
+    getVariacoesAutomaticasProjeto(projeto.desenho, desenhosDisponiveis).forEach((variacao) => {
+      adicionarVariacao(variacao.arquivo, variacao.label)
     })
+
+    // Inclui variações personalizadas cadastradas no módulo de projetos.
+    variacoesCustom.forEach((grupo) => {
+      const escopo = String(grupo.escopo_familia || "").trim().toLowerCase()
+      const grupoNoEscopoAtual = !!escopo && !!familiaBase && escopo === familiaBase
+
+      if (escopo && !grupoNoEscopoAtual) return
+
+      grupo.opcoes.forEach((opcao) => {
+        if (!ehVariacaoDeDesenho(opcao.arquivo)) return
+
+        if (grupoNoEscopoAtual) {
+          // Grupo personalizado do próprio projeto: respeita exatamente as opções cadastradas.
+          adicionarVariacaoSemFiltro(opcao.arquivo, opcao.label)
+        } else {
+          adicionarVariacao(opcao.arquivo, opcao.label)
+        }
+      })
+    })
+
+    // Inclui apenas variações visuais realmente referenciadas no próprio projeto.
+    getRestricoesProjeto(item)
+      .filter((restricao): restricao is string => typeof restricao === "string" && restricao.trim().length > 0)
+      .forEach((restricao) => {
+        if (ehVariacaoDeDesenho(restricao)) adicionarVariacao(restricao)
+      })
 
     return Array.from(mapa.values())
   }
@@ -1550,8 +1684,7 @@ export default function CalculoProjetoPage() {
       altura: item.variacaoAltura,
       kit: item.variacaoKit,
     })
-    const textoProjeto = `${projeto.nome} ${projeto.categoria} ${projeto.desenho}`.toLowerCase()
-    const projetoEhPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+    const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
 
     const isAplicavel = (varRestrita: string | null | undefined) => {
       if (!varRestrita) return true
@@ -1994,8 +2127,7 @@ export default function CalculoProjetoPage() {
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
       })
-      const textoProjeto = `${projeto.nome} ${projeto.categoria} ${projeto.desenho}`.toLowerCase()
-      const projetoEhPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+      const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
 
       const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
 
@@ -2412,7 +2544,7 @@ export default function CalculoProjetoPage() {
                 // Detecção de características do projeto
                 const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
                 const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
-                const projetoEPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
+                const projetoEPorta = projetoTemTrilhoConfigurado(detalhe)
                 const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!

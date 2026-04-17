@@ -322,28 +322,30 @@ export function SacadaFrontalPDF({
         })()}
 
         {/* Perfis */}
-        <Text style={[styles.sectionTitle, { color: themeColor }]}>Perfis de Alumínio</Text>
-        <View wrap={false} style={styles.tableSection}>
-        <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-            <Text style={[styles.thCell, { width: "30%" }]} wrap={false}>Perfil</Text>
-            <Text style={[styles.thCell, { width: "14%", textAlign: "center" }]} wrap={false}>Código</Text>
-            <Text style={[styles.thCell, { width: "14%", textAlign: "right" }]} wrap={false}>Compr. (mm)</Text>
-            <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]} wrap={false}>Barras</Text>
-            <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]} wrap={false}>Preço/b.</Text>
-            <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]} wrap={false}>Total</Text>
-          </View>
-          {perfis.map((p, i) => (
-            <View key={`p-${i}`} style={[styles.tableRow, { backgroundColor: "#FFFFFF" }]}>
-              <Text style={[styles.tdCell, { width: "30%" }]}>{p.nome}</Text>
-              <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{p.codigo}</Text>
-              <Text style={[styles.tdCell, { width: "14%", textAlign: "right" }]}>{p.comprimentoTotal.toLocaleString("pt-BR")}</Text>
-              <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{p.quantidadeBarras}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.precoBarra)}</Text>
-              <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.valorTotal)}</Text>
+        <View wrap={false}>
+          <Text style={[styles.sectionTitle, { color: themeColor }]}>{temSecoesAcessoriosSeparadas ? "Perfis de Alumínio (Guarda Corpo)" : "Perfis de Alumínio"}</Text>
+          <View style={styles.tableSection}>
+          <View style={styles.table}>
+            <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
+              <Text style={[styles.thCell, { width: "30%" }]} wrap={false}>Perfil</Text>
+              <Text style={[styles.thCell, { width: "14%", textAlign: "center" }]} wrap={false}>Código</Text>
+              <Text style={[styles.thCell, { width: "14%", textAlign: "right" }]} wrap={false}>Compr. (mm)</Text>
+              <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]} wrap={false}>Barras</Text>
+              <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]} wrap={false}>Preço/b.</Text>
+              <Text style={[styles.thCell, { width: "16%", textAlign: "right" }]} wrap={false}>Total</Text>
             </View>
-          ))}
-        </View>
+            {perfis.map((p, i) => (
+              <View key={`p-${i}`} style={[styles.tableRow, { backgroundColor: "#FFFFFF" }]}>
+                <Text style={[styles.tdCell, { width: "30%" }]}>{p.nome}</Text>
+                <Text style={[styles.tdCell, { width: "14%", textAlign: "center" }]}>{p.codigo}</Text>
+                <Text style={[styles.tdCell, { width: "14%", textAlign: "right" }]}>{p.comprimentoTotal.toLocaleString("pt-BR")}</Text>
+                <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{p.quantidadeBarras}</Text>
+                <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.precoBarra)}</Text>
+                <Text style={[styles.tdCell, { width: "16%", textAlign: "right" }]}>{fmt(p.valorTotal)}</Text>
+              </View>
+            ))}
+          </View>
+          </View>
         </View>
 
         {/* Acessórios */}
@@ -373,7 +375,7 @@ export function SacadaFrontalPDF({
             </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: themeColor }]}>Fechamento de sacada</Text>
+            <Text style={[styles.sectionTitle, { color: themeColor }]}>Fechamento de sacada AL</Text>
             <View wrap={false} style={styles.tableSection}>
             <View style={styles.table}>
               <View style={[styles.tableHeader, { backgroundColor: themeColor }]}> 

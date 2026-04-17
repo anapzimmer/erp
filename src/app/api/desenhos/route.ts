@@ -3,6 +3,8 @@ import { readdir } from "node:fs/promises"
 import path from "node:path"
 
 export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 const EXT_REGEX = /\.(png|jpe?g|webp|gif|svg)$/i
 

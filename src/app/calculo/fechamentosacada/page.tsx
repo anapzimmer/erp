@@ -1334,7 +1334,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
-                    tituloDocumento="Orçamento Fechamento Sacada"
+                    tituloDocumento="Fechamento de sacada AL"
                     nomeCliente={nomeClienteSelecionado || "Não selecionado"}
                     nomeObra={obra || "Geral"}
                     larguraVaoMm={larguraNumero}

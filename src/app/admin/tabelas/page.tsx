@@ -327,21 +327,46 @@ const { error } = await supabase
 
   const aplicarReajuste = async () => {
     if (!tabelaSelecionada || !percentualReajuste) return
+
     const perc = parseFloat(percentualReajuste)
+    if (isNaN(perc)) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Informe um percentual válido para reajuste." })
+      return
+    }
+
     const fator = 1 + (perc / 100)
     setCarregando(true)
-    const { error } = await supabase.rpc('reajustar_precos_tabela', {
-      p_tabela_id: tabelaSelecionada.id,
-      p_fator: fator
-    })
-    if (error) {
-      setModalAvisoAberto({ aberto: true, mensagem: "Erro ao aplicar reajuste: " + error.message })
-    } else {
-      carregarItensTabela(tabelaSelecionada.id)
+
+    try {
+      const { data: itensAtuais, error: erroBusca } = await supabase
+        .from("vidro_precos_grupos")
+        .select("id, preco")
+        .eq("grupo_preco_id", tabelaSelecionada.id)
+
+      if (erroBusca) throw erroBusca
+
+      const atualizacoes = (itensAtuais || []).map((item) => {
+        const precoAtual = Number(item.preco) || 0
+        const novoPreco = Number((precoAtual * fator).toFixed(2))
+
+        return supabase
+          .from("vidro_precos_grupos")
+          .update({ preco: novoPreco })
+          .eq("id", item.id)
+      })
+
+      const resultados = await Promise.all(atualizacoes)
+      const erroAtualizacao = resultados.find((resultado) => resultado.error)
+      if (erroAtualizacao?.error) throw erroAtualizacao.error
+
+      await carregarItensTabela(tabelaSelecionada.id)
       setModalSucessoAberto({ aberto: true, mensagem: "Reajuste aplicado com sucesso." })
+    } catch (error: any) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Erro ao aplicar reajuste: " + (error?.message || "Erro desconhecido") })
+    } finally {
+      setCarregando(false)
+      setModalConfirmacao(null)
     }
-    setCarregando(false)
-    setModalConfirmacao(null)
   }
 
   const handleSignOut = async () => {

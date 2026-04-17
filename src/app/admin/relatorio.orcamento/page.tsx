@@ -943,8 +943,114 @@ export default function RelatorioOrçamento() {
                                                 />
                                             );
                                         }
+                                        // Fechamento de sacada
+                                        if (tipo === "fechamento_sacada") {
+                                            const sacadaData = itensRaw as Record<string, unknown>;
+                                            const largVao = Number(sacadaData.larguraVaoMm) || 0;
+                                            const altVao = Number(sacadaData.alturaVaoMm) || 0;
+                                            const altInferior = Number(sacadaData.alturaInferiorMm) || 0;
+                                            const altSuperior = Number(sacadaData.alturaSuperiorMm) || 0;
+                                            const qtdVaos = Number(sacadaData.quantidadeVaos) || 0;
+                                            const divInferior = Number(sacadaData.divisoesInferiorPorVao) || Number(sacadaData.divisoesPorVao) || 1;
+                                            const divSuperior = Number(sacadaData.divisoesSuperiorPorVao) || Number(sacadaData.divisoesPorVao) || 1;
+                                            const divGeral = Math.max(divInferior, divSuperior, Number(sacadaData.divisoesPorVao) || 1);
+
+                                            const resultadoInferior = calcularSacadaFrontal({
+                                                larguraVaoMm: largVao,
+                                                alturaVaoMm: altInferior || altVao,
+                                                quantidadeVaos: qtdVaos,
+                                                quantidadeDivisoesLargura: divInferior,
+                                            });
+                                            const resultadoSuperior = calcularSacadaFrontal({
+                                                larguraVaoMm: largVao,
+                                                alturaVaoMm: altSuperior || altVao,
+                                                quantidadeVaos: qtdVaos,
+                                                quantidadeDivisoesLargura: divSuperior,
+                                            });
+
+                                            const larguraVidroInferior = Number(sacadaData.larguraVidroInferiorMm) || resultadoInferior.larguraVidroMm;
+                                            const alturaVidroInferior = Number(sacadaData.alturaVidroInferiorMm) || resultadoInferior.alturaVidroMm;
+                                            const larguraVidroSuperior = Number(sacadaData.larguraVidroSuperiorMm) || resultadoSuperior.larguraVidroMm;
+                                            const alturaVidroSuperior = Number(sacadaData.alturaVidroSuperiorMm) || resultadoSuperior.alturaVidroMm;
+
+                                            const perfisRaw = Array.isArray(sacadaData.perfis) ? sacadaData.perfis as Array<Record<string, unknown>> : [];
+                                            const acessRaw = Array.isArray(sacadaData.acessorios) ? sacadaData.acessorios as Array<Record<string, unknown>> : [];
+                                            const acessGuardaRaw = Array.isArray(sacadaData.acessoriosGuardaCorpo)
+                                                ? sacadaData.acessoriosGuardaCorpo as Array<Record<string, unknown>>
+                                                : [];
+                                            const acessFechamentoRaw = Array.isArray(sacadaData.acessoriosFechamentoSacadaSuperior)
+                                                ? sacadaData.acessoriosFechamentoSacadaSuperior as Array<Record<string, unknown>>
+                                                : [];
+
+                                            const perfisArr: SacadaPerfisProp = perfisRaw.map((p) => ({
+                                                nome: String(p.nome || ""),
+                                                codigo: String(p.codigo || ""),
+                                                corEncontrada: String(p.corEncontrada || ""),
+                                                comprimentoTotal: Number(p.comprimentoTotal) || 0,
+                                                quantidadeBarras: Number(p.quantidadeBarras) || 0,
+                                                precoBarra: Number(p.precoBarra) || 0,
+                                                valorTotal: Number(p.valorTotal) || 0,
+                                            }));
+                                            const mapearAcessorios = (lista: Array<Record<string, unknown>>): SacadaAcessoriosProp => lista.map((a) => ({
+                                                nome: String(a.nome || ""),
+                                                codigo: String(a.codigo || ""),
+                                                corEncontrada: String(a.corEncontrada || ""),
+                                                quantidade: Number(a.quantidade) || 0,
+                                                quantidadePacote: Number(a.quantidadePacote) || undefined,
+                                                pacote: Number(a.pacote) || undefined,
+                                                precoUnitario: Number(a.precoUnitario) || 0,
+                                                valorTotal: Number(a.valorTotal) || 0,
+                                            }));
+                                            const acessArr = mapearAcessorios(acessRaw);
+                                            const acessGuarda = mapearAcessorios(acessGuardaRaw);
+                                            const acessFechamento = mapearAcessorios(acessFechamentoRaw);
+
+                                            const totalPerfis = perfisArr.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
+                                            const totalAcessorios = acessArr.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+                                            const totalGeral = Number(orcamentoParaVisualizar?.valor_total) || 0;
+                                            const totalVidro = Math.max(0, totalGeral - totalPerfis - totalAcessorios);
+                                            const areaTotal = Number(orcamentoParaVisualizar?.metragem_total) || Number(sacadaData.areaTotal) || (resultadoInferior.areaTotalVidro + resultadoSuperior.areaTotalVidro);
+
+                                            return (
+                                                <SacadaFrontalPDF
+                                                    nomeEmpresa={nomeEmpresa}
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    themeColor={theme.contentTextLightBg}
+                                                    tituloDocumento="Fechamento de sacada AL"
+                                                    nomeCliente={orcamentoParaVisualizar?.cliente_nome || ""}
+                                                    nomeObra={orcamentoParaVisualizar?.obra_referencia || "Geral"}
+                                                    larguraVaoMm={largVao}
+                                                    alturaVaoMm={altVao}
+                                                    quantidadeVaos={qtdVaos}
+                                                    divisoesPorVao={divGeral}
+                                                    corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
+                                                    vidroDescricao={String(sacadaData.vidroDescricao || "")}
+                                                    medidaVidro={String(sacadaData.medidaVidro || `Inf: ${larguraVidroInferior} x ${alturaVidroInferior} mm | Sup: ${larguraVidroSuperior} x ${alturaVidroSuperior} mm`)}
+                                                    areaTotal={areaTotal}
+                                                    totalVidro={totalVidro}
+                                                    perfis={perfisArr}
+                                                    acessorios={acessArr}
+                                                    acessoriosGuardaCorpo={acessGuarda}
+                                                    acessoriosFechamentoSacada={acessFechamento}
+                                                    totalPerfis={totalPerfis}
+                                                    totalAcessorios={totalAcessorios}
+                                                    totalGeral={totalGeral}
+                                                    alturaInferiorMm={altInferior}
+                                                    alturaSuperiorMm={altSuperior}
+                                                    divisoesInferiorPorVao={divInferior}
+                                                    divisoesSuperiorPorVao={divSuperior}
+                                                    larguraVidroInferiorMm={larguraVidroInferior}
+                                                    alturaVidroInferiorMm={alturaVidroInferior}
+                                                    larguraVidroSuperiorMm={larguraVidroSuperior}
+                                                    alturaVidroSuperiorMm={alturaVidroSuperior}
+                                                    larguraVidroMm={larguraVidroInferior}
+                                                    alturaVidroMm={alturaVidroInferior}
+                                                    numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
+                                                />
+                                            );
+                                        }
                                         // Sacada Frontal
-                                        if (ehSacadaVisualizar) {
+                                        if (tipo === "sacada_frontal" || ehSacadaVisualizar) {
                                             const sacadaData = itensRaw as Record<string, unknown>;
                                             const largVao = Number(sacadaData.larguraVaoMm) || 0;
                                             const altVao = Number(sacadaData.alturaVaoMm) || 0;
