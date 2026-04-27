@@ -13,7 +13,7 @@ import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnic
 import Image from "next/image"
 import {
   Plus, X, Trash2, Edit2, Package, Layers, Wrench,
-  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search, Eye,
+  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search,
 } from "lucide-react"
 
 const CORES_COMUNS = [
@@ -450,14 +450,6 @@ type ProjetoDetalheResponse = {
   >
 }
 
-type ProjetoVisualizacao = {
-  projeto: Projeto
-  folhas: ProjetoFolha[]
-  kits: ProjetoKit[]
-  ferragens: ProjetoFerragem[]
-  perfis: ProjetoPerfil[]
-}
-
 type ProjetoFolhaPersistencia = {
   projeto_id: string
   numero_folha: number
@@ -543,8 +535,6 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
     { label: "Porta Fora de Vão 2 Fls (Comp)", arquivo: "portaforavao-2flscompleto.png" },
     { label: "Porta de Giro 1 Folha", arquivo: "portagiro-1fls.png" },
     { label: "Porta de Giro 1 Folha (Comp)", arquivo: "portagiro-1flscompleto.png" },
-    { label: "Porta de Giro 1 Folha 1520 TA", arquivo: "portagiro-1fls1520ta.png" },
-    { label: "Porta de Giro 1 Folha 1520 TA (Comp)", arquivo: "portagiro-1fls1520tacompleto.png" },
     { label: "Porta de Giro 2 Folhas", arquivo: "portagiro-2fls.png" },
     { label: "Porta de Giro 2 Fls (Comp)", arquivo: "portagiro-2flscompleto.png" },
     { label: "Porta de Giro 4 Folhas", arquivo: "portagiro-4fls.png" },
@@ -638,7 +628,6 @@ type VariacaoGrupo = {
 type VariacaoCustom = {
   id: string
   label: string
-  escopo_familia?: string
   opcoes: Array<{ label: string; arquivo: string }>
 }
 
@@ -673,103 +662,6 @@ const formatarLabelArquivoDesenho = (arquivo: string) => {
 
   if (!nome) return arquivo
   return nome.charAt(0).toUpperCase() + nome.slice(1)
-}
-
-const normalizarArquivoVariacao = (arquivo: string) =>
-  String(arquivo || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
-
-const obterChaveFamiliaDesenho = (arquivo: string) => {
-  const stem = normalizarArquivoVariacao(arquivo)
-  if (!stem) return ""
-
-  return stem.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/i, "")
-}
-
-const variacaoCustomCompativelComDesenho = (variacao: VariacaoCustom, desenhoAtual: string) => {
-  if (!desenhoAtual) return true
-
-  const familiaAtual = obterChaveFamiliaDesenho(desenhoAtual)
-  if (!familiaAtual) return true
-
-  const escopo = String(variacao.escopo_familia || "").trim().toLowerCase()
-  if (escopo) return escopo === familiaAtual
-
-  return variacao.opcoes.some((opcao) => obterChaveFamiliaDesenho(opcao.arquivo) === familiaAtual)
-}
-
-const migrarVariacoesCustomPorFamilia = (lista: VariacaoCustom[]): VariacaoCustom[] => {
-  const resultado: VariacaoCustom[] = []
-
-  lista.forEach((item) => {
-    const opcoesSaneadas = item.opcoes
-      .filter((opcao) => opcao && typeof opcao.label === "string" && typeof opcao.arquivo === "string")
-      .map((opcao, idx) => ({
-        label: opcao.label.trim() || `Opção ${idx + 1}`,
-        arquivo: opcao.arquivo.trim(),
-      }))
-      .filter((opcao) => opcao.arquivo)
-
-    if (opcoesSaneadas.length < 2) return
-
-    const escopoOriginal = String(item.escopo_familia || "").trim().toLowerCase()
-    if (escopoOriginal) {
-      const opcoesEscopo = opcoesSaneadas.filter((opcao) => obterChaveFamiliaDesenho(opcao.arquivo) === escopoOriginal)
-      const opcoesFinais = opcoesEscopo.length >= 2 ? opcoesEscopo : opcoesSaneadas
-
-      resultado.push({
-        id: item.id,
-        label: item.label,
-        escopo_familia: escopoOriginal,
-        opcoes: opcoesFinais,
-      })
-      return
-    }
-
-    const gruposPorFamilia = new Map<string, Array<{ label: string; arquivo: string }>>()
-    opcoesSaneadas.forEach((opcao) => {
-      const familia = obterChaveFamiliaDesenho(opcao.arquivo)
-      if (!familia) return
-      const grupo = gruposPorFamilia.get(familia) || []
-      grupo.push(opcao)
-      gruposPorFamilia.set(familia, grupo)
-    })
-
-    const familiasValidas = Array.from(gruposPorFamilia.entries()).filter(([, opcoes]) => opcoes.length >= 2)
-
-    if (familiasValidas.length === 0) {
-      resultado.push({
-        id: item.id,
-        label: item.label,
-        opcoes: opcoesSaneadas,
-      })
-      return
-    }
-
-    if (familiasValidas.length === 1) {
-      const [familia, opcoes] = familiasValidas[0]
-      resultado.push({
-        id: item.id,
-        label: item.label,
-        escopo_familia: familia,
-        opcoes,
-      })
-      return
-    }
-
-    familiasValidas.forEach(([familia, opcoes]) => {
-      resultado.push({
-        id: `${item.id}:${familia}`,
-        label: item.label,
-        escopo_familia: familia,
-        opcoes,
-      })
-    })
-  })
-
-  return resultado
 }
 
 const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
@@ -961,9 +853,6 @@ export default function ProjetosPage() {
 
   // ── Modal formulário ──
   const [showModal, setShowModal] = useState(false)
-  const [showVisualizacaoModal, setShowVisualizacaoModal] = useState(false)
-  const [carregandoVisualizacao, setCarregandoVisualizacao] = useState(false)
-  const [visualizacaoProjeto, setVisualizacaoProjeto] = useState<ProjetoVisualizacao | null>(null)
   const [abaAtiva, setAbaAtiva] = useState<"geral" | "folhas" | "kits" | "ferragens" | "perfis">("geral")
   const [form, setForm] = useState<FormData>(FORM_VAZIO)
   const [buscaKitDisponivel, setBuscaKitDisponivel] = useState("")
@@ -984,10 +873,6 @@ export default function ProjetosPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
   const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
-  const [desenhosVersao, setDesenhosVersao] = useState<number>(Date.now())
-  const [atualizandoDesenhos, setAtualizandoDesenhos] = useState(false)
-  const [buscaDesenhoPicker, setBuscaDesenhoPicker] = useState("")
-  const [desenhoPreviewVariacao, setDesenhoPreviewVariacao] = useState("")
   const [editandoNomesDesenho, setEditandoNomesDesenho] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
   const [variacaoCustomSelecionadaId, setVariacaoCustomSelecionadaId] = useState<string | null>(null)
@@ -1055,45 +940,29 @@ export default function ProjetosPage() {
     }
   }, [empresaId])
 
-  const carregarDesenhosPasta = useCallback(async () => {
-    setAtualizandoDesenhos(true)
-    try {
-      const resposta = await fetch(`/api/desenhos?t=${Date.now()}`, { cache: "no-store" })
-      const payload = await resposta.json().catch(() => ({ arquivos: [] }))
-      const arquivos = Array.isArray(payload?.arquivos)
-        ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
-        : []
+  useEffect(() => {
+    let cancelado = false
 
-      setDesenhosPasta(arquivos)
-      setDesenhosVersao(Date.now())
-    } catch {
-      // Mantem a lista atual quando a atualizacao falhar.
-    } finally {
-      setAtualizandoDesenhos(false)
+    const carregarDesenhosPasta = async () => {
+      try {
+        const resposta = await fetch("/api/desenhos", { cache: "no-store" })
+        const payload = await resposta.json().catch(() => ({ arquivos: [] }))
+        const arquivos = Array.isArray(payload?.arquivos)
+          ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
+          : []
+
+        if (!cancelado) setDesenhosPasta(arquivos)
+      } catch {
+        if (!cancelado) setDesenhosPasta([])
+      }
+    }
+
+    carregarDesenhosPasta()
+
+    return () => {
+      cancelado = true
     }
   }, [])
-
-  const montarUrlDesenho = useCallback((arquivo?: string | null) => {
-    const nomeArquivo = String(arquivo || "").trim()
-    if (!nomeArquivo) return null
-
-    const nomeCodificado = nomeArquivo
-      .split("/")
-      .filter(Boolean)
-      .map((parte) => encodeURIComponent(parte))
-      .join("/")
-
-    return `/desenhos/${nomeCodificado}?v=${desenhosVersao}`
-  }, [desenhosVersao])
-
-  useEffect(() => {
-    void carregarDesenhosPasta()
-  }, [carregarDesenhosPasta])
-
-  useEffect(() => {
-    if (!showPicker) return
-    void carregarDesenhosPasta()
-  }, [showPicker, carregarDesenhosPasta])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -1128,12 +997,11 @@ export default function ProjetosPage() {
         .map((item) => ({
           id: item.id,
           label: item.label,
-          escopo_familia: typeof item.escopo_familia === "string" ? item.escopo_familia : undefined,
           opcoes: item.opcoes.filter((op) => op && typeof op.label === "string" && typeof op.arquivo === "string"),
         }))
         .filter((item) => item.opcoes.length >= 2)
 
-      setVariacoesCustom(migrarVariacoesCustomPorFamilia(saneadas))
+      setVariacoesCustom(saneadas)
     } catch {
       setVariacoesCustom([])
     }
@@ -1307,74 +1175,6 @@ export default function ProjetosPage() {
     setShowModal(true)
   }
 
-  const abrirVisualizacao = async (projeto: Projeto) => {
-    setShowVisualizacaoModal(true)
-    setCarregandoVisualizacao(true)
-
-    try {
-      const { data } = await supabase
-        .from("projetos")
-        .select("*, projetos_folhas(*), projetos_kits(*, kits(nome)), projetos_ferragens(*, ferragens(nome)), projetos_perfis(*, perfis(nome))")
-        .eq("id", projeto.id)
-        .single()
-
-      if (!data) {
-        setVisualizacaoProjeto(null)
-        return
-      }
-
-      const detalhe = data as ProjetoDetalheResponse
-
-      setVisualizacaoProjeto({
-        projeto,
-        folhas: (detalhe.projetos_folhas || []).map((folha) => {
-          const metaObservacao = extrairVariacaoDoTexto(folha.observacao)
-          return {
-            ...folha,
-            quantidade_folhas: extrairQuantidadeFolhaDoTexto(folha.observacao),
-            observacao: metaObservacao.textoLimpo,
-            variacao_restrita: metaObservacao.variacao ?? null,
-            trilho_restrito: extrairTrilhoDoTexto(folha.observacao),
-          }
-        }).sort((a, b) => a.numero_folha - b.numero_folha),
-        kits: (detalhe.projetos_kits || []).map((k) => {
-          const metaObservacao = extrairVariacaoDoTexto(k.observacao)
-          return {
-            ...k,
-            nome: k.kits?.nome || undefined,
-            observacao: metaObservacao.textoLimpo,
-            variacao_restrita: k.variacao_restrita ?? metaObservacao.variacao ?? null,
-          }
-        }),
-        ferragens: (detalhe.projetos_ferragens || []).map((f) => {
-          const metaObservacao = extrairVariacaoDoTexto(f.observacao)
-          return {
-            ...f,
-            nome: f.ferragens?.nome || undefined,
-            observacao: metaObservacao.textoLimpo,
-            variacao_restrita: f.variacao_restrita ?? metaObservacao.variacao ?? null,
-          }
-        }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
-        perfis: (detalhe.projetos_perfis || []).map((p) => ({
-          ...p,
-          perfil_id: String(p.perfil_id),
-          nome: perfisOriginaisDB.find((perfil) => String(perfil.id) === String(p.perfil_id))?.nome || p.perfis?.nome || undefined,
-          qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
-          qtd_altura: Number(p.qtd_altura ?? 0),
-          qtd_outros: Number(p.qtd_outros ?? 0),
-          tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
-          variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
-          espessura_vidro_restrita: extrairEspessuraVidroDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          condicao: extrairCondicaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          usar_no_kit: extrairUsarNoKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          altura_max_kit: extrairAlturaMaxKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-        })).sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
-      })
-    } finally {
-      setCarregandoVisualizacao(false)
-    }
-  }
-
   // ─── SALVAR ───────────────────────────────────────────────────────────────
   const carregarSnapshotRelacionamentos = async (projetoId: string): Promise<ProjetoRelacionamentosSnapshot> => {
     const [folhas, kits, ferragens, perfis] = await Promise.all([
@@ -1524,9 +1324,17 @@ export default function ProjetosPage() {
     }
   }
 
-  const salvar = async (forcarNovo = false) => {
+  const salvar = async () => {
     if (!form.nome.trim()) {
       setModalAviso({ titulo: "Atenção", mensagem: "O nome do projeto é obrigatório.", tipo: "aviso" })
+      return
+    }
+    if (!form.categoria.trim()) {
+      setModalAviso({ titulo: "Atenção", mensagem: "A categoria do projeto é obrigatória.", tipo: "aviso" })
+      return
+    }
+    if (!form.desenho) {
+      setModalAviso({ titulo: "Atenção", mensagem: "O desenho/modelo visual do projeto é obrigatório.", tipo: "aviso" })
       return
     }
     if (!empresaId) {
@@ -1535,11 +1343,10 @@ export default function ProjetosPage() {
     }
     setSalvando(true)
     try {
-      const editandoProjetoExistente = !!editandoId && !forcarNovo
-      let projetoId = editandoProjetoExistente ? editandoId : null
+      let projetoId = editandoId
       let snapshotAnterior: ProjetoRelacionamentosSnapshot | null = null
 
-      if (editandoProjetoExistente) {
+      if (editandoId) {
         snapshotAnterior = await carregarSnapshotRelacionamentos(editandoId)
 
         const { error: updateProjetoError } = await supabase.from("projetos").update({
@@ -1586,7 +1393,7 @@ export default function ProjetosPage() {
 
       setModalAviso({
         titulo: "Salvo!",
-        mensagem: `Projeto "${form.nome}" ${editandoProjetoExistente ? "atualizado" : "cadastrado"} com sucesso.`,
+        mensagem: `Projeto "${form.nome}" ${editandoId ? "atualizado" : "cadastrado"} com sucesso.`,
         tipo: "sucesso",
       })
       sessionStorage.removeItem(draftProjetoKey)
@@ -1599,10 +1406,6 @@ export default function ProjetosPage() {
     } finally {
       setSalvando(false)
     }
-  }
-
-  const salvarComoNovo = async () => {
-    await salvar(true)
   }
 
   const deletar = (projeto: Projeto) => {
@@ -2051,76 +1854,36 @@ export default function ProjetosPage() {
     }, {})
   }, [desenhosPasta])
 
-  const categoriasPickerDesenho = useMemo(() => {
-    const categoriasBase = Object.keys(catalogoDesenhos)
-    return categoriasBase.length > 0 ? ["Todos", ...categoriasBase] : []
-  }, [catalogoDesenhos])
-
-  const desenhosCategoriaAtual = useMemo(() => {
-    if (categoriaPicker === "Todos") return Object.values(catalogoDesenhos).flat()
-    return catalogoDesenhos[categoriaPicker] || []
-  }, [catalogoDesenhos, categoriaPicker])
-
-  const desenhosCategoriaFiltrados = useMemo(() => {
-    const termo = buscaDesenhoPicker.trim().toLowerCase()
-    if (!termo) return desenhosCategoriaAtual
-
-    return desenhosCategoriaAtual.filter((item) =>
-      item.label.toLowerCase().includes(termo) || item.arquivo.toLowerCase().includes(termo)
-    )
-  }, [desenhosCategoriaAtual, buscaDesenhoPicker])
-
   useEffect(() => {
-    const categorias = categoriasPickerDesenho
+    const categorias = Object.keys(catalogoDesenhos)
     if (categorias.length === 0) return
-    if (!categorias.includes(categoriaPicker)) {
+    if (!catalogoDesenhos[categoriaPicker]) {
       setCategoriaPicker(categorias[0])
     }
-  }, [categoriasPickerDesenho, categoriaPicker])
+  }, [catalogoDesenhos, categoriaPicker])
 
   const todosDesenhos = useMemo(() => Object.values(catalogoDesenhos).flat(), [catalogoDesenhos])
+  const stemsDesenhosDisponiveis = useMemo(
+    () => new Set(todosDesenhos.map((d) => d.arquivo.replace(/\.(png|jpe?g|webp|gif|svg)$/i, ""))),
+    [todosDesenhos]
+  )
   const desenhosPorArquivo = new Map(todosDesenhos.map((d) => [d.arquivo, d]))
   const desenhoAtual = todosDesenhos.find(d => d.arquivo === form.desenho)
-  const desenhoVariacaoAtual = todosDesenhos.find((d) => d.arquivo === desenhoPreviewVariacao)
-  const variacoesCustomCompativeis = variacoesCustom.filter((grupo) => variacaoCustomCompativelComDesenho(grupo, form.desenho))
-  const variacoesManuais = variacoesCustomCompativeis
-    .filter((grupo) => Array.isArray(grupo.opcoes) && grupo.opcoes.length > 0)
+  const variacoesAutomaticas = getVariacoesDesenho(form.desenho, stemsDesenhosDisponiveis)
+  const variacoesManuais = variacoesCustom
+    .filter((grupo) => grupo.opcoes.some((opcao) => opcao.arquivo === form.desenho))
     .map((grupo) => ({
       id: `custom-${grupo.id}`,
-      label: grupo.label,
-      opcoes: grupo.opcoes.map((opcao, opcaoIndex) => ({
-        key: `${grupo.id}-${opcaoIndex}-${opcao.arquivo}`,
+      label: `${grupo.label} (Personalizado)`,
+      opcoes: grupo.opcoes.map((opcao) => ({
+        key: `${grupo.id}-${opcao.arquivo}`,
         label: opcao.label,
         arquivo: opcao.arquivo,
       })),
     }))
-  const stemsDesenhosDisponiveis = useMemo(() => {
-    const stems = new Set<string>()
-
-    todosDesenhos.forEach((desenho) => {
-      const stem = String(desenho.arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").trim()
-      if (stem) stems.add(stem)
-    })
-
-    return stems
-  }, [todosDesenhos])
-
-  const variacoesAutomaticas = useMemo(() => {
-    if (!form.desenho) return []
-    return getVariacoesDesenho(form.desenho, stemsDesenhosDisponiveis)
-  }, [form.desenho, stemsDesenhosDisponiveis])
-
   const variacoesDesenho = [...variacoesAutomaticas, ...variacoesManuais]
-  const getVariacoesCatalogoProjeto = (desenhoProjeto: string) =>
-    variacoesCustom
-      .filter((grupo) => variacaoCustomCompativelComDesenho(grupo, desenhoProjeto))
-      .filter((grupo) => Array.isArray(grupo.opcoes) && grupo.opcoes.length > 0)
   const tipoProjetoVisual = detectarTipoProjetoVisual(form)
   const ultimoTipoProjetoRef = useRef<ProjetoVisualTipo | null>(null)
-
-  useEffect(() => {
-    setDesenhoPreviewVariacao(form.desenho || "")
-  }, [form.desenho])
 
   useEffect(() => {
     const tipoAnterior = ultimoTipoProjetoRef.current
@@ -2189,30 +1952,12 @@ export default function ProjetosPage() {
     return getEixoVariacaoProjeto(op.arquivo) === "kit"
   })
 
-  // Para ferragens, usa lista completa sem deduplicar por arquivo para exibir todas as variações cadastradas.
-  const variacaoOpcoesFerragemTodas = [
-    ...variacoesDesenho.flatMap((grupo) =>
-      grupo.opcoes.map((opcao) => ({
-        label: `${grupo.label}: ${opcao.label}`,
-        arquivo: opcao.arquivo,
-      }))
-    ),
-    ...opcoesRestricaoBox.map((opcao) => ({
-      label: opcao.label,
-      arquivo: opcao.arquivo,
-    })),
-  ]
-
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
-  const variacaoOpcoesFerragemKit = variacaoOpcoesFerragemTodas.filter(op =>
+  const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
     !ehVariacaoDeDesenho(op.arquivo) && getEixoVariacaoProjeto(op.arquivo) === "kit"
   )
-  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFerragemTodas.filter(op =>
+  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
-  )
-  const variacaoOpcoesFerragemCustom = variacaoOpcoesFerragemTodas.filter(op =>
-    !variacaoOpcoesFerragemKit.some((item) => item.arquivo === op.arquivo)
-    && !variacaoOpcoesFerragemBoxDesenho.some((item) => item.arquivo === op.arquivo)
   )
 
   const getNomeVariacao = (valor: string, fallback: string) => {
@@ -2225,7 +1970,7 @@ export default function ProjetosPage() {
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
   )
 
-  const variacoesCustomFiltradas = variacoesCustomCompativeis.filter((item) =>
+  const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
     item.label.toLowerCase().includes(buscaVariacaoCustom.toLowerCase().trim())
   )
 
@@ -2324,12 +2069,17 @@ export default function ProjetosPage() {
       return
     }
 
+    const arquivos = opcoesSaneadas.map((opcao) => opcao.arquivo)
+    const arquivosUnicos = new Set(arquivos)
+    if (arquivosUnicos.size < 2) {
+      setModalAviso({ titulo: "Atenção", mensagem: "As opções precisam apontar para desenhos diferentes.", tipo: "aviso" })
+      return
+    }
+
     const novaVariacaoId = variacaoCustomSelecionadaId || `${Date.now()}`
-    const familiaAtual = obterChaveFamiliaDesenho(form.desenho)
     const novaVariacao: VariacaoCustom = {
       id: novaVariacaoId,
       label: nome,
-      escopo_familia: familiaAtual || undefined,
       opcoes: opcoesSaneadas,
     }
 
@@ -2345,35 +2095,16 @@ export default function ProjetosPage() {
       titulo: "Sucesso",
       mensagem: variacaoCustomSelecionadaId
         ? "Variação personalizada atualizada."
-        : "Variação personalizada cadastrada e salva para projetos dessa família.",
+        : "Variação personalizada cadastrada e salva para próximos projetos.",
       tipo: "sucesso",
     })
   }
 
   const removerVariacaoManual = (id: string) => {
-    const idBase = String(id || "").split(":")[0]
-
-    const totalAntes = variacoesCustom.length
-    const proximo = variacoesCustom.filter((item) => {
-      const itemBase = String(item.id || "").split(":")[0]
-      return !(item.id === id || itemBase === idBase)
-    })
-
-    const removidas = totalAntes - proximo.length
-    setVariacoesCustom(proximo)
-
-    if (variacaoCustomSelecionadaId) {
-      const selecionadaBase = String(variacaoCustomSelecionadaId).split(":")[0]
-      if (selecionadaBase === idBase) iniciarNovaVariacaoManual()
+    setVariacoesCustom((prev) => prev.filter((item) => item.id !== id))
+    if (variacaoCustomSelecionadaId === id) {
+      iniciarNovaVariacaoManual()
     }
-
-    setModalAviso({
-      titulo: removidas > 0 ? "Sucesso" : "Atenção",
-      mensagem: removidas > 0
-        ? `Variação excluída (${removidas} registro(s)).`
-        : "Não foi encontrada variação para excluir.",
-      tipo: removidas > 0 ? "sucesso" : "aviso",
-    })
   }
 
   useEffect(() => {
@@ -2507,9 +2238,6 @@ export default function ProjetosPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {projetos.map(projeto => (
-                (() => {
-                  const variacoesProjeto = getVariacoesCatalogoProjeto(projeto.desenho)
-                  return (
                 <div
                   key={projeto.id}
                   className="group bg-white/90 backdrop-blur rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all"
@@ -2522,7 +2250,7 @@ export default function ProjetosPage() {
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: `${theme.menuBackgroundColor}08` }} />
                     {projeto.desenho ? (
                       <Image
-                        src={montarUrlDesenho(projeto.desenho) || "/desenhos/sem-imagem.png"}
+                        src={`/desenhos/${projeto.desenho}`}
                         alt={projeto.nome}
                         fill
                         className="object-contain p-4 group-hover:scale-105 transition-transform"
@@ -2541,38 +2269,7 @@ export default function ProjetosPage() {
                     <h3 className="font-black text-sm leading-tight truncate" style={{ color: theme.contentTextLightBg }}>
                       {projeto.nome}
                     </h3>
-                    <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-2.5">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-                        Catálogo do Projeto
-                      </p>
-                      <p className="text-[11px] font-bold text-gray-600 truncate">
-                        Desenho principal: {desenhosPorArquivo.get(projeto.desenho)?.label || projeto.desenho || "Não informado"}
-                      </p>
-                      {variacoesProjeto.length > 0 ? (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {variacoesProjeto.map((grupo) => (
-                            <span
-                              key={`catalogo-var-${projeto.id}-${grupo.id}`}
-                              className="px-2 py-1 rounded-lg text-[10px] font-black border border-violet-200 bg-violet-50 text-violet-700"
-                              title={`${grupo.label}: ${grupo.opcoes.map((op) => op.label).join(" / ")}`}
-                            >
-                              {grupo.label} ({grupo.opcoes.length})
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-1.5 text-[10px] text-gray-400 font-bold">
-                          Sem variações manuais cadastradas.
-                        </p>
-                      )}
-                    </div>
                     <div className="flex items-center gap-2 mt-4">
-                      <button
-                        onClick={() => abrirVisualizacao(projeto)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 transition-all"
-                      >
-                        <Eye size={13} /> Visualizar
-                      </button>
                       <button
                         onClick={() => abrirEdicao(projeto)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-all"
@@ -2589,8 +2286,6 @@ export default function ProjetosPage() {
                     </div>
                   </div>
                 </div>
-                  )
-                })()
               ))}
             </div>
           )}
@@ -2622,7 +2317,7 @@ export default function ProjetosPage() {
               <div className="flex items-center gap-3">
                 {form.desenho && (
                   <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/60 border border-white/40">
-                    <Image src={montarUrlDesenho(form.desenho) || "/desenhos/sem-imagem.png"} alt="" fill className="object-contain p-1" />
+                    <Image src={`/desenhos/${form.desenho}`} alt="" fill sizes="(max-width: 768px) 100vw, 48px" className="object-contain p-1" />
                   </div>
                 )}
                 <div>
@@ -2742,15 +2437,12 @@ export default function ProjetosPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowPicker(!showPicker)
-                        if (!showPicker) setBuscaDesenhoPicker("")
-                      }}
+                      onClick={() => setShowPicker(!showPicker)}
                       className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 flex items-center gap-3 hover:bg-gray-100 transition-all text-left"
                     >
                       {form.desenho ? (
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-white border border-gray-100">
-                          <Image src={montarUrlDesenho(form.desenho) || "/desenhos/sem-imagem.png"} alt="" fill className="object-contain p-1" />
+                          <Image src={`/desenhos/${form.desenho}`} alt="" fill sizes="(max-width: 768px) 100vw, 56px" className="object-contain p-1" />
                         </div>
                       ) : (
                         <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
@@ -2784,22 +2476,9 @@ export default function ProjetosPage() {
 
                     {showPicker && (
                       <div className="mt-2 border border-gray-100 rounded-2xl overflow-hidden shadow-lg bg-white">
-                        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-100">
-                          <p className="text-[11px] font-black uppercase tracking-wider text-gray-400">
-                            Catálogo de desenhos
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => void carregarDesenhosPasta()}
-                            disabled={atualizandoDesenhos}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-black border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 transition-all disabled:opacity-50"
-                          >
-                            {atualizandoDesenhos ? "Atualizando..." : "Atualizar catálogo"}
-                          </button>
-                        </div>
                         {/* Tabs categorias */}
                         <div className="flex gap-1 p-2 overflow-x-auto bg-gray-50 border-b border-gray-100">
-                          {categoriasPickerDesenho.map(cat => (
+                          {Object.keys(catalogoDesenhos).map(cat => (
                             <button
                               key={cat}
                               onClick={() => setCategoriaPicker(cat)}
@@ -2812,18 +2491,9 @@ export default function ProjetosPage() {
                             </button>
                           ))}
                         </div>
-                        <div className="p-2 border-b border-gray-100 bg-white">
-                          <input
-                            type="text"
-                            value={buscaDesenhoPicker}
-                            onChange={(e) => setBuscaDesenhoPicker(e.target.value)}
-                            placeholder="Buscar desenho por nome ou arquivo"
-                            className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold outline-none"
-                          />
-                        </div>
                         {/* Grade */}
                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 p-3 max-h-56 overflow-y-auto">
-                          {desenhosCategoriaFiltrados.map(d => (
+                          {(catalogoDesenhos[categoriaPicker] || []).map(d => (
                             <button
                               key={d.arquivo}
                               type="button"
@@ -2842,18 +2512,13 @@ export default function ProjetosPage() {
                                 : {}}
                             >
                               <Image
-                                src={montarUrlDesenho(d.arquivo) || "/desenhos/sem-imagem.png"}
+                                src={`/desenhos/${d.arquivo}`}
                                 alt={d.label}
                                 fill
                                 className="object-contain p-1 bg-gray-50"
                               />
                             </button>
                           ))}
-                          {desenhosCategoriaFiltrados.length === 0 && (
-                            <div className="col-span-4 sm:col-span-6 rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs font-bold text-gray-400">
-                              Nenhum desenho encontrado para esse filtro.
-                            </div>
-                          )}
                         </div>
                       </div>
                     )}
@@ -2863,7 +2528,7 @@ export default function ProjetosPage() {
                     <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          Variações manuais do projeto
+                          Variações do desenho
                         </p>
                         <button
                           type="button"
@@ -2884,13 +2549,13 @@ export default function ProjetosPage() {
                                 <button
                                   key={opcao.key}
                                   type="button"
-                                  onClick={() => setDesenhoPreviewVariacao(opcao.arquivo)}
+                                  onClick={() => setForm((prev) => ({ ...prev, desenho: opcao.arquivo }))}
                                   className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${
-                                    desenhoPreviewVariacao === opcao.arquivo
+                                    form.desenho === opcao.arquivo
                                       ? "text-white shadow-sm"
                                       : "border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100"
                                   }`}
-                                  style={desenhoPreviewVariacao === opcao.arquivo ? { backgroundColor: theme.menuBackgroundColor } : {}}
+                                  style={form.desenho === opcao.arquivo ? { backgroundColor: theme.menuBackgroundColor } : {}}
                                 >
                                   {getNomeVariacao(opcao.arquivo, opcao.label)}
                                 </button>
@@ -2898,23 +2563,6 @@ export default function ProjetosPage() {
                             </div>
                           </div>
                         ))}
-                      </div>
-
-                      <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <p className="text-[11px] text-gray-500 font-bold">
-                          Pré-visualização: {desenhoVariacaoAtual?.label || desenhoPreviewVariacao || "Nenhuma"}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!desenhoPreviewVariacao) return
-                            setForm((prev) => ({ ...prev, desenho: desenhoPreviewVariacao }))
-                          }}
-                          disabled={!desenhoPreviewVariacao || desenhoPreviewVariacao === form.desenho}
-                          className="px-3 py-1.5 rounded-lg text-[11px] font-black border border-gray-200 text-gray-700 bg-white hover:bg-gray-100 transition-all disabled:opacity-50"
-                        >
-                          Usar no desenho base
-                        </button>
                       </div>
 
                       {editandoNomesDesenho && (
@@ -2949,7 +2597,7 @@ export default function ProjetosPage() {
                       )}
 
                       <p className="text-[11px] text-gray-400 mt-3">
-                        O desenho principal não gera variações automáticas. Cadastre manualmente cada variação e seus desenhos.
+                        Ao trocar a variação, o projeto mantém todos os dados e altera apenas o desenho.
                       </p>
                     </div>
                   )}
@@ -3517,22 +3165,45 @@ export default function ProjetosPage() {
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
                               Tipo de kit (qual variação usa?)
                             </label>
-                            <select
-                              value={String(kit.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)[0] || ""}
-                              onChange={(e) => atualizarKit(idx, "variacao_restrita", e.target.value || null)}
-                              className="w-full p-2.5 rounded-xl bg-white border border-violet-200 text-sm font-bold outline-none"
-                              style={{ color: theme.contentTextLightBg }}
-                            >
-                              <option value="">Todas as variações</option>
-                              {variacaoOpcoesKit.map((op) => (
-                                <option key={`kit-var-${op.arquivo}`} value={op.arquivo}>
-                                  {getNomeVariacao(op.arquivo, op.label)}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              Se não selecionar, o kit aplica em todas as variações.
-                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => atualizarKit(idx, "variacao_restrita", null)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                style={{
+                                  backgroundColor: !kit.variacao_restrita ? "#f5f3ff" : "#f9fafb",
+                                  borderColor: !kit.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: !kit.variacao_restrita ? "#6d28d9" : "#9ca3af",
+                                }}
+                              >
+                                Todas as variações
+                              </button>
+                              {variacaoOpcoesKit.map(op => {
+                                const selecionados = (kit.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(op.arquivo)
+                                return (
+                                  <button
+                                    key={op.arquivo}
+                                    type="button"
+                                    onClick={() => {
+                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                      atualizarKit(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                      color: ativo ? "#6d28d9" : "#9ca3af",
+                                    }}
+                                  >
+                                    {getNomeVariacao(op.arquivo, op.label)}
+                                  </button>
+                                )
+                              })}
+                              {!kit.variacao_restrita && (
+                                <span className="text-[10px] text-gray-400 italic self-center">Aplica em todos os tipos</span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3737,54 +3408,82 @@ export default function ProjetosPage() {
                             <span className="text-sm font-bold text-gray-600">Aplicar no modo Barra</span>
                           </label>
                         </div>
-                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0 || variacaoOpcoesFerragemCustom.length > 0) && (
+                        <div className="sm:col-span-2 xl:col-span-4">
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Observação</label>
+                          <input
+                            type="text"
+                            value={f.observacao}
+                            onChange={e => atualizarFerragem(idx, "observacao", e.target.value)}
+                            placeholder="Ex: acessório obrigatório quando usar kit de porta 2 folhas"
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
+                          />
+                        </div>
+                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0) && (
                           <div className="sm:col-span-2 xl:col-span-4">
-                            <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Aplica em quais variações
+                            <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: "#7c3aed" }}>
+                              Aplicação por variação
                             </label>
-                            <div className="flex flex-wrap gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => atualizarFerragem(idx, "variacao_restrita", null)}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
-                                style={{
-                                  backgroundColor: !f.variacao_restrita ? "#f5f3ff" : "#f9fafb",
-                                  borderColor: !f.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
-                                  color: !f.variacao_restrita ? "#6d28d9" : "#9ca3af",
-                                }}
-                              >
-                                Todas as variações
-                              </button>
-
-                              {[...variacaoOpcoesFerragemKit, ...variacaoOpcoesFerragemBoxDesenho, ...variacaoOpcoesFerragemCustom].map((op, opIndex) => {
-                                const selecionados = (f.variacao_restrita || "").split(",").map((s) => s.trim()).filter(Boolean)
-                                const ativo = selecionados.includes(op.arquivo)
-
-                                return (
-                                  <button
-                                    key={`ferr-var-${op.arquivo}-${opIndex}`}
-                                    type="button"
-                                    onClick={() => {
-                                      const novos = ativo
-                                        ? selecionados.filter((valor) => valor !== op.arquivo)
-                                        : [...selecionados, op.arquivo]
-                                      atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? Array.from(new Set(novos)).join(",") : null)
-                                    }}
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
-                                    style={{
-                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
-                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
-                                      color: ativo ? "#6d28d9" : "#9ca3af",
-                                    }}
-                                  >
-                                    {getNomeVariacao(op.arquivo, op.label)}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              Você pode marcar mais de uma variação. Se nenhuma for marcada, a ferragem aplica em todas.
-                            </p>
+                            {variacaoOpcoesFerragemKit.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Kit</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {variacaoOpcoesFerragemKit.map(op => {
+                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                    const ativo = selecionados.includes(op.arquivo)
+                                    return (
+                                      <button
+                                        key={op.arquivo}
+                                        type="button"
+                                        onClick={() => {
+                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        style={{
+                                          backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                          borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                          color: ativo ? "#6d28d9" : "#9ca3af",
+                                        }}
+                                      >
+                                        {getNomeVariacao(op.arquivo, op.label)}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {variacaoOpcoesFerragemBoxDesenho.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Box / Desenho</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {variacaoOpcoesFerragemBoxDesenho.map(op => {
+                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                    const ativo = selecionados.includes(op.arquivo)
+                                    return (
+                                      <button
+                                        key={op.arquivo}
+                                        type="button"
+                                        onClick={() => {
+                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        style={{
+                                          backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                          borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                          color: ativo ? "#6d28d9" : "#9ca3af",
+                                        }}
+                                      >
+                                        {getNomeVariacao(op.arquivo, op.label)}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {!f.variacao_restrita && (
+                              <span className="text-[10px] text-gray-400 italic self-center">Nenhuma — aplica em todas</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -4057,22 +3756,45 @@ export default function ProjetosPage() {
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
                               Aplica em qual variação? (altura/desenho)
                             </label>
-                            <select
-                              value={String(p.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)[0] || ""}
-                              onChange={(e) => atualizarPerfil(idx, "variacao_restrita", e.target.value || null)}
-                              className="w-full p-2.5 rounded-xl bg-white border border-violet-200 text-sm font-bold outline-none"
-                              style={{ color: theme.contentTextLightBg }}
-                            >
-                              <option value="">Todas as variações</option>
-                              {variacaoOpcoesPerfil.map((op) => (
-                                <option key={`perfil-var-${op.arquivo}`} value={op.arquivo}>
-                                  {getNomeVariacao(op.arquivo, op.label)}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              Se não selecionar, o perfil aplica em todas as variações.
-                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => atualizarPerfil(idx, "variacao_restrita", null)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                style={{
+                                  backgroundColor: !p.variacao_restrita ? "#f5f3ff" : "#f9fafb",
+                                  borderColor: !p.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
+                                  color: !p.variacao_restrita ? "#6d28d9" : "#9ca3af",
+                                }}
+                              >
+                                Todas as variações
+                              </button>
+                              {variacaoOpcoesPerfil.map(op => {
+                                const selecionados = (p.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const ativo = selecionados.includes(op.arquivo)
+                                return (
+                                  <button
+                                    key={op.arquivo}
+                                    type="button"
+                                    onClick={() => {
+                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
+                                      atualizarPerfil(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    style={{
+                                      backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                      borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                      color: ativo ? "#6d28d9" : "#9ca3af",
+                                    }}
+                                  >
+                                    {op.label}
+                                  </button>
+                                )
+                              })}
+                              {!p.variacao_restrita && (
+                                <span className="text-[10px] text-gray-400 italic self-center">Aplica em todas</span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -4101,29 +3823,18 @@ export default function ProjetosPage() {
               >
                 Cancelar
               </button>
-              <div className="flex items-center gap-2">
-                {editandoId && (
-                  <button
-                    onClick={salvarComoNovo}
-                    disabled={salvando}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-black border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-60"
-                  >
-                    <Plus size={14} /> Duplicar projeto
-                  </button>
-                )}
-                <button
-                  onClick={() => void salvar()}
-                  disabled={salvando}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-black shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-60"
-                  style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-                >
-                  {salvando
-                    ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    : <Save size={15} />
-                  }
-                  {editandoId ? "Atualizar" : "Salvar Projeto"}
-                </button>
-              </div>
+              <button
+                onClick={salvar}
+                disabled={salvando}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-black shadow-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-60"
+                style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+              >
+                {salvando
+                  ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  : <Save size={15} />
+                }
+                {editandoId ? "Atualizar" : "Salvar Projeto"}
+              </button>
             </div>
           </div>
         </div>
@@ -4152,127 +3863,6 @@ export default function ProjetosPage() {
               >
                 Fechar e manter rascunho
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showVisualizacaoModal && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm">
-          <div className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-gray-100 flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50 shrink-0">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Visualização do Projeto</p>
-                <h3 className="text-lg font-black text-slate-800">{visualizacaoProjeto?.projeto.nome || "Projeto"}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowVisualizacaoModal(false)}
-                className="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:bg-gray-100 transition-all"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto space-y-4">
-              {carregandoVisualizacao ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2" style={{ borderColor: theme.menuBackgroundColor }} />
-                </div>
-              ) : visualizacaoProjeto ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-1 rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Desenho principal</p>
-                      <div className="relative h-36 rounded-xl overflow-hidden bg-white border border-gray-100">
-                        {visualizacaoProjeto.projeto.desenho ? (
-                          <Image src={montarUrlDesenho(visualizacaoProjeto.projeto.desenho) || "/desenhos/sem-imagem.png"} alt={visualizacaoProjeto.projeto.nome} fill className="object-contain p-2" />
-                        ) : (
-                          <div className="h-full flex items-center justify-center text-gray-300"><ImageIcon size={30} /></div>
-                        )}
-                      </div>
-                      <p className="text-[11px] font-bold text-gray-600 mt-2 truncate">
-                        {desenhosPorArquivo.get(visualizacaoProjeto.projeto.desenho)?.label || visualizacaoProjeto.projeto.desenho || "Não informado"}
-                      </p>
-                    </div>
-
-                    <div className="md:col-span-2 rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Variações manuais cadastradas</p>
-                      {getVariacoesCatalogoProjeto(visualizacaoProjeto.projeto.desenho).length > 0 ? (
-                        <div className="space-y-2">
-                          {getVariacoesCatalogoProjeto(visualizacaoProjeto.projeto.desenho).map((grupo) => (
-                            <div key={`vis-var-${visualizacaoProjeto.projeto.id}-${grupo.id}`} className="rounded-xl border border-violet-100 bg-violet-50 p-2">
-                              <p className="text-[11px] font-black text-violet-700">{grupo.label}</p>
-                              <p className="text-[11px] text-violet-900 mt-1">{grupo.opcoes.map((op) => op.label).join(" / ")}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs font-bold text-gray-400">Sem variações manuais cadastradas.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Folhas</p>
-                      <p className="text-lg font-black text-gray-700">{visualizacaoProjeto.folhas.length}</p>
-                    </div>
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Kits</p>
-                      <p className="text-lg font-black text-gray-700">{visualizacaoProjeto.kits.length}</p>
-                    </div>
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Ferragens</p>
-                      <p className="text-lg font-black text-gray-700">{visualizacaoProjeto.ferragens.length}</p>
-                    </div>
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Perfis</p>
-                      <p className="text-lg font-black text-gray-700">{visualizacaoProjeto.perfis.length}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Folhas</p>
-                      {visualizacaoProjeto.folhas.length > 0 ? visualizacaoProjeto.folhas.map((folha, idx) => (
-                        <p key={`vis-folha-${idx}`} className="text-xs text-gray-700 font-medium truncate">
-                          {folha.numero_folha}. {folha.tipo_folha} · {folha.formula_largura} / {folha.formula_altura}
-                        </p>
-                      )) : <p className="text-xs text-gray-400 font-bold">Sem folhas.</p>}
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Kits</p>
-                      {visualizacaoProjeto.kits.length > 0 ? visualizacaoProjeto.kits.map((kit, idx) => (
-                        <p key={`vis-kit-${idx}`} className="text-xs text-gray-700 font-medium truncate">
-                          {kit.nome || kit.kit_id} · Ref {Number(kit.largura_referencia || 0)} x {Number(kit.altura_referencia || 0)}
-                        </p>
-                      )) : <p className="text-xs text-gray-400 font-bold">Sem kits.</p>}
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Ferragens</p>
-                      {visualizacaoProjeto.ferragens.length > 0 ? visualizacaoProjeto.ferragens.map((ferragem, idx) => (
-                        <p key={`vis-ferr-${idx}`} className="text-xs text-gray-700 font-medium truncate">
-                          {ferragem.nome || ferragem.ferragem_id} · Qtd {Number(ferragem.quantidade || 0)}
-                        </p>
-                      )) : <p className="text-xs text-gray-400 font-bold">Sem ferragens.</p>}
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Perfis</p>
-                      {visualizacaoProjeto.perfis.length > 0 ? visualizacaoProjeto.perfis.map((perfil, idx) => (
-                        <p key={`vis-perfil-${idx}`} className="text-xs text-gray-700 font-medium truncate">
-                          {perfil.nome || perfil.perfil_id} · L {Number(perfil.qtd_largura || 0)} · A {Number(perfil.qtd_altura || 0)} · O {Number(perfil.qtd_outros || 0)}
-                        </p>
-                      )) : <p className="text-xs text-gray-400 font-bold">Sem perfis.</p>}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">Não foi possível carregar os dados do projeto.</p>
-              )}
             </div>
           </div>
         </div>
