@@ -5,7 +5,7 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.18.3",
