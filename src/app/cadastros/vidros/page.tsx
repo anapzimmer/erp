@@ -464,8 +464,8 @@ const logoLight = branding?.logo_light || null;
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}> <Square size={28} /> </div>
               <div>
-                <h1 className="text-2xl md:text-42 font-black" style={{ color: theme.menuBackgroundColor }}>Dashboard de Vidros</h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de vidros e preços.</p>
+                <h1 className="text-2xl md:text-4xl font-black" style={{ color: theme.menuBackgroundColor }}>Vidros</h1>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{vidrosFiltrados.length} de {vidros.length} vidros cadastrados.</p>
               </div>
             </div>
             {/* BOTÕES DE AÇÕES SUPERIORES */}
@@ -579,7 +579,15 @@ const logoLight = branding?.logo_light || null;
           </div>
 
           {/* TABELA */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Vidros cadastrados</h2>
+                <span>{vidrosFiltrados.length} de {vidros.length}</span>
+              </div>
+              <div className="cadastro-list-badge">Catálogo</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
               <thead style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
                 <tr>
@@ -607,6 +615,7 @@ const logoLight = branding?.logo_light || null;
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>

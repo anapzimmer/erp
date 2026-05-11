@@ -248,6 +248,10 @@ export default function AcabamentosPage() {
 
     if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
+    const acabamentosFiltrados = acabamentos.filter(s =>
+        s.nome.toLowerCase().includes(filtroNome.toLowerCase())
+    );
+
     return (
         <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
             <Sidebar
@@ -275,7 +279,7 @@ export default function AcabamentosPage() {
                             </div>
                             <div>
                                 <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: theme.primary }}>Acabamentos</h1>
-                                <p className="text-gray-500 text-sm font-medium">Gerencie opções de acabamento e serviços adicionais.</p>
+                                <p className="text-gray-500 text-sm font-medium">{acabamentosFiltrados.length} de {acabamentos.length} acabamentos cadastrados.</p>
                             </div>
                         </div>
                     </div>
@@ -319,6 +323,14 @@ export default function AcabamentosPage() {
                     </div>
 
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="cadastro-list-head">
+                            <div>
+                                <h2>Acabamentos cadastrados</h2>
+                                <span>{acabamentosFiltrados.length} de {acabamentos.length}</span>
+                            </div>
+                            <div className="cadastro-list-badge">Relação</div>
+                        </div>
+                        <div className="cadastro-table-wrap">
                         <table className="w-full text-sm text-left">
                             <thead style={{ backgroundColor: theme.primary, color: theme.secondary }}>
                                 <tr>
@@ -330,7 +342,7 @@ export default function AcabamentosPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {acabamentos.filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase())).map(s => {
+                                {acabamentosFiltrados.map(s => {
                                     let opcaoVisual = opcoesVisual.find(o => o.value === s.tipo_visual);
 
                                     // 2. Se não achar, tenta achar apenas a borda (ex: 'semi_oval')
@@ -399,6 +411,7 @@ export default function AcabamentosPage() {
                                 })}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </main>
             </div>

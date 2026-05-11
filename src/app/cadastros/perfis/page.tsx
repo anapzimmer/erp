@@ -520,8 +520,8 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 <Package size={28} />
               </div>
               <div>
-                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Dashboard de Perfis</h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu catálogo de perfis e preços.</p>
+                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Perfis</h1>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{perfisFiltrados.length} de {totalPerfis} perfis cadastrados.</p>
               </div>
             </div>
 
@@ -589,7 +589,15 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           </div>
 
           {/* TABELA */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Perfis cadastrados</h2>
+                <span>{perfisFiltrados.length} de {totalPerfis}</span>
+              </div>
+              <div className="cadastro-list-badge">Catálogo</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
@@ -624,6 +632,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>

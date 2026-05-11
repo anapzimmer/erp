@@ -440,6 +440,16 @@ export default function FerragensPage() {
     }
   };
 
+  const ferragensFiltradas = ferragens.filter(f => {
+    const termo = filtroNome.toLowerCase();
+    const matchesBusca =
+      f.nome.toLowerCase().includes(termo) ||
+      f.codigo.toLowerCase().includes(termo) ||
+      f.categoria.toLowerCase().includes(termo);
+    const matchesCor = f.cores.toLowerCase().includes(filtroCor.toLowerCase());
+    return matchesBusca && matchesCor;
+  });
+
   return (
     <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
     <Sidebar
@@ -475,11 +485,9 @@ export default function FerragensPage() {
               </div>
               <div>
                 <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
-                  Dashboard de Ferragens
+                  Ferragens
                 </h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">
-                  Gerencie seu catálogo de ferragens e preços.
-                </p>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{ferragensFiltradas.length} de {ferragens.length} ferragens cadastradas.</p>
               </div>
             </div>
 
@@ -595,7 +603,15 @@ export default function FerragensPage() {
           </div>
 
           {/* TABELA ATUALIZADA */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Ferragens cadastradas</h2>
+                <span>{ferragensFiltradas.length} de {ferragens.length}</span>
+              </div>
+              <div className="cadastro-list-badge">Catálogo</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
@@ -608,21 +624,7 @@ export default function FerragensPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {ferragens
-                  .filter(f => {
-                    const termo = filtroNome.toLowerCase();
-                    // Busca no Nome, no Código ou na Categoria
-                    const matchesBusca =
-                      f.nome.toLowerCase().includes(termo) ||
-                      f.codigo.toLowerCase().includes(termo) ||
-                      f.categoria.toLowerCase().includes(termo);
-
-                    // Filtro de Cor (separado)
-                    const matchesCor = f.cores.toLowerCase().includes(filtroCor.toLowerCase());
-
-                    return matchesBusca && matchesCor;
-                  })
-                  .map(f => (
+                {ferragensFiltradas.map(f => (
                     <tr key={f.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4 text-gray-500 font-medium">{f.codigo}</td>
                       <td className="p-4">
@@ -649,6 +651,7 @@ export default function FerragensPage() {
                   ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>

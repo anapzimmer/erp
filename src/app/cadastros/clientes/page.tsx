@@ -235,7 +235,7 @@ const carregarDados = useCallback(async () => {
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Clientes</h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie seu cadastro de clientes e rotas.</p>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{clientesFiltrados.length} de {clientes.length} clientes cadastrados.</p>
               </div>
             </div>
           </div>
@@ -259,6 +259,17 @@ const carregarDados = useCallback(async () => {
           {/* FILTROS E BOTAO NOVO */}
           <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
             <div className="flex flex-wrap gap-3">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar cliente..."
+                  value={buscaNome}
+                  onChange={e => setBuscaNome(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": theme.menuIconColor } as React.CSSProperties}
+                />
+              </div>
               <select value={filtroRota} onChange={e => setFiltroRota(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:ring-1" style={{ borderColor: theme.menuIconColor }}>
                 <option value="">Todas as rotas</option>
                 {rotasUnicas.map(r => <option key={r} value={r}>{r}</option>)}
@@ -275,7 +286,15 @@ const carregarDados = useCallback(async () => {
           </div>
 
           {/* TABELA */}
-          <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border" style={{ borderColor: alphaHex(theme.menuBackgroundColor, "29") }}>
+          <div className="bg-white rounded-2xl shadow-sm border" style={{ borderColor: alphaHex(theme.menuBackgroundColor, "29") }}>
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Clientes cadastrados</h2>
+                <span>{clientesFiltrados.length} de {clientes.length}</span>
+              </div>
+              <div className="cadastro-list-badge">Relação de clientes</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}>
                 <tr>
@@ -303,6 +322,7 @@ const carregarDados = useCallback(async () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>

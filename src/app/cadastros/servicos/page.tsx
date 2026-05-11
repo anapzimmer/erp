@@ -239,6 +239,10 @@ if (branding) {
     );
   };
 
+  const servicosFiltrados = servicos.filter(s =>
+    s.nome.toLowerCase().includes(filtroNome.toLowerCase())
+  );
+
   return (
     <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.bgLight }}>
       {/* SIDEBAR (USANDO TEMA) */}
@@ -267,7 +271,7 @@ if (branding) {
               </div>
               <div>
                 <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: theme.primary }}>Serviços</h1>
-                <p className="text-gray-500 text-sm font-medium">Gerencie mão de obra e instalação.</p>
+                <p className="text-gray-500 text-sm font-medium">{servicosFiltrados.length} de {servicos.length} serviços cadastrados.</p>
               </div>
             </div>
           </div>
@@ -315,6 +319,14 @@ if (branding) {
 
           {/* TABELA */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Serviços cadastrados</h2>
+                <span>{servicosFiltrados.length} de {servicos.length}</span>
+              </div>
+              <div className="cadastro-list-badge">Relação</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left">
               <thead style={{ backgroundColor: theme.primary, color: theme.secondary }}>
                 <tr>
@@ -325,7 +337,7 @@ if (branding) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {servicos.filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase())).map(s => (
+                {servicosFiltrados.map(s => (
                   <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-gray-500 font-medium">{s.nome}</td>
                     <td className="p-4">
@@ -345,6 +357,7 @@ if (branding) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>

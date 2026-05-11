@@ -513,11 +513,9 @@ export default function KitsPage() {
               </div>
               <div>
                 <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
-                  Dashboard de Kits
+                  Kits
                 </h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">
-                  Gerencie seu catálogo de kits e medidas.
-                </p>
+                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{kitsFiltrados.length} de {kits.length} kits cadastrados.</p>
               </div>
             </div>
             {/* AÇÕES PADRONIZADAS */}
@@ -651,7 +649,15 @@ export default function KitsPage() {
           </div>
 
           {/* TABELA */}
-          <div className="overflow-x-auto bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
+            <div className="cadastro-list-head">
+              <div>
+                <h2>Kits cadastrados</h2>
+                <span>{kitsFiltrados.length} de {kits.length}</span>
+              </div>
+              <div className="cadastro-list-badge">Catálogo</div>
+            </div>
+            <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse">
               <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
                 <tr>
@@ -690,6 +696,7 @@ export default function KitsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </main>
       </div>
