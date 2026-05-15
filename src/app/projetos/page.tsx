@@ -165,12 +165,6 @@ const reindexarMapaBusca = (mapa: Record<number, string>, indiceRemovido: number
   return atualizado
 }
 
-const perfilEhPreto = (perfil: { cores?: string | null; nome?: string | null }) => {
-  const cores = normalizarBuscaItem(perfil.cores)
-  const nome = normalizarBuscaItem(perfil.nome)
-  return cores.includes("preto") || nome.includes("preto")
-}
-
 const getChavePerfilProjeto = (perfil?: { codigo?: string | null; nome?: string | null }) => {
   const codigo = normalizarBuscaItem(perfil?.codigo)
   const nomeBase = limparNomeTecnico(perfil?.nome)
@@ -893,36 +887,100 @@ export default function ProjetosPage() {
   } | null>(null)
 
   const carregarTudo = useCallback(async () => {
-    if (!empresaId) return
+    if (!empresaId) {
+      setProjetos([])
+      setKitsDB([])
+      setFerragensOriginaisDB([])
+      setFerragensDB([])
+      setPerfisOriginaisDB([])
+      setPerfisDB([])
+      setCarregando(false)
+      return
+    }
 
     setCarregando(true)
-    const [resProjetos, resKits, resFerragens, resPerfis] = await Promise.all([
-      supabase.from("projetos").select("*").eq("empresa_id", empresaId).order("criado_em", { ascending: false }),
-      supabase.from("kits").select("id, nome, largura, altura, cores, categoria").eq("empresa_id", empresaId).order("nome"),
-      supabase.from("ferragens").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
-      supabase
-        .from("perfis")
-        .select("id, nome, codigo, cores, categoria")
-        .eq("empresa_id", empresaId)
-        .order("codigo", { ascending: true })
-        .order("nome", { ascending: true }),
-    ])
-    if (resProjetos.data) setProjetos(resProjetos.data)
-    if (resKits.data) {
-      const kitsCarregados = resKits.data as KitDBItem[]
-      setKitsDB(deduplicarKitsPorMedidaPreferindoPreto(kitsCarregados))
+
+    try {
+      const consultaProjetos = async () => {
+        const resposta = await supabase
+          .from("projetos")
+          .select("*")
+          .eq("empresa_id", empresaId)
+          .order("criado_em", { ascending: false })
+
+        if (!resposta.error) return resposta
+
+        // Compatibilidade para bases que ainda nao possuem a coluna criado_em.
+        if ((resposta.error.message || "").toLowerCase().includes("criado_em")) {
+          return supabase
+            .from("projetos")
+            .select("*")
+            .eq("empresa_id", empresaId)
+            .order("nome", { ascending: true })
+        }
+
+        return resposta
+      }
+
+      const [resProjetos, resKits, resFerragens, resPerfis] = await Promise.all([
+        consultaProjetos(),
+        supabase.from("kits").select("id, nome, largura, altura, cores, categoria").eq("empresa_id", empresaId).order("nome"),
+        supabase.from("ferragens").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
+        supabase
+          .from("perfis")
+          .select("id, nome, codigo, cores, categoria")
+          .eq("empresa_id", empresaId)
+          .order("codigo", { ascending: true })
+          .order("nome", { ascending: true }),
+      ])
+
+      if (resProjetos.error) {
+        setModalAviso({
+          titulo: "Erro ao carregar projetos",
+          mensagem: `Nao foi possivel listar os projetos: ${resProjetos.error.message}`,
+          tipo: "erro",
+        })
+      }
+      if (resKits.error) {
+        setModalAviso({
+          titulo: "Erro ao carregar kits",
+          mensagem: `Nao foi possivel listar os kits: ${resKits.error.message}`,
+          tipo: "erro",
+        })
+      }
+      if (resFerragens.error) {
+        setModalAviso({
+          titulo: "Erro ao carregar ferragens",
+          mensagem: `Nao foi possivel listar as ferragens: ${resFerragens.error.message}`,
+          tipo: "erro",
+        })
+      }
+      if (resPerfis.error) {
+        setModalAviso({
+          titulo: "Erro ao carregar perfis",
+          mensagem: `Nao foi possivel listar os perfis: ${resPerfis.error.message}`,
+          tipo: "erro",
+        })
+      }
+
+      if (resProjetos.data) setProjetos(resProjetos.data)
+      if (resKits.data) {
+        const kitsCarregados = resKits.data as KitDBItem[]
+        setKitsDB(deduplicarKitsPorMedidaPreferindoPreto(kitsCarregados))
+      }
+      if (resFerragens.data) {
+        const ferragensCarregadas = resFerragens.data as FerragemDBItem[]
+        setFerragensOriginaisDB(ferragensCarregadas)
+        setFerragensDB(deduplicarFerragensPorModelo(ferragensCarregadas))
+      }
+      if (resPerfis.data) {
+        const perfisCarregados = resPerfis.data as PerfilDBItem[]
+        setPerfisOriginaisDB(perfisCarregados)
+        setPerfisDB(deduplicarPerfisPreferindoPreto(perfisCarregados))
+      }
+    } finally {
+      setCarregando(false)
     }
-    if (resFerragens.data) {
-      const ferragensCarregadas = resFerragens.data as FerragemDBItem[]
-      setFerragensOriginaisDB(ferragensCarregadas)
-      setFerragensDB(deduplicarFerragensPorModelo(ferragensCarregadas))
-    }
-    if (resPerfis.data) {
-      const perfisCarregados = resPerfis.data as PerfilDBItem[]
-      setPerfisOriginaisDB(perfisCarregados)
-      setPerfisDB(deduplicarPerfisPreferindoPreto(perfisCarregados))
-    }
-    setCarregando(false)
   }, [empresaId])
 
   useEffect(() => {
@@ -975,7 +1033,12 @@ export default function ProjetosPage() {
 
   // ─── EFEITOS ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (empresaId) carregarTudo()
+    if (empresaId) {
+      carregarTudo()
+      return
+    }
+
+    setCarregando(false)
   }, [empresaId, carregarTudo])
 
   useEffect(() => {
