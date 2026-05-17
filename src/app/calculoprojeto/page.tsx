@@ -215,6 +215,28 @@ const projetoTemTrilhoConfigurado = (detalhe?: ProjetoDetalhe | null) => {
   return detalhe.folhas.some((folha) => String(folha.trilho_restrito || "").trim().length > 0)
 }
 
+const getTrilhosDisponiveisProjeto = (detalhe?: ProjetoDetalhe | null): TrilhoPorta[] => {
+  if (!detalhe) return []
+
+  const trilhos = new Set<TrilhoPorta>()
+  detalhe.folhas.forEach((folha) => {
+    String(folha.trilho_restrito || "")
+      .split(",")
+      .map((trilho) => trilho.trim())
+      .filter((trilho): trilho is TrilhoPorta => trilho === "aparente" || trilho === "interrompido" || trilho === "embutido")
+      .forEach((trilho) => trilhos.add(trilho))
+  })
+
+  const ordem: TrilhoPorta[] = ["aparente", "interrompido", "embutido"]
+  return ordem.filter((trilho) => trilhos.has(trilho))
+}
+
+const getTrilhoAtivoProjeto = (detalhe: ProjetoDetalhe, trilhoSelecionado: ItemCalculoProjeto["variacaoTrilho"]): TrilhoPorta | "" => {
+  const disponiveis = getTrilhosDisponiveisProjeto(detalhe)
+  if (trilhoSelecionado && disponiveis.includes(trilhoSelecionado)) return trilhoSelecionado
+  return disponiveis[0] || ""
+}
+
 type ItemPreviewOrcamento = {
   id: string
   descricao: string
@@ -542,6 +564,15 @@ const getVariacoesAutomaticasProjeto = (
 const normalizarNomeFerragem = (nome: string): string =>
   nome.replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase()
 
+const normalizarDescricaoMaterial = (valor?: string | null): string =>
+  String(valor || "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+
 const normalizarListaCores = (valor: string[] | string | null | undefined): string[] => {
   if (Array.isArray(valor)) {
     return valor.map((item) => String(item || "").trim()).filter(Boolean)
@@ -718,6 +749,7 @@ const calcularProjeto = (params: {
   variacaoTecnica: string
   variacaoTrilho: ItemCalculoProjeto["variacaoTrilho"]
   projetoEhPorta: boolean
+  projetoEBox: boolean
   kitsDB: KitItem[]
   ferragensDB: FerragemItem[]
   perfisDB: PerfilItem[]
@@ -726,7 +758,7 @@ const calcularProjeto = (params: {
   const {
     detalhe, largura, altura, largura2, altura2,
     vidroSelecionado, precoVidroM2, corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
-    variacaoTrilho, projetoEhPorta,
+    variacaoTrilho, projetoEhPorta, projetoEBox,
     kitsDB, ferragensDB, perfisDB, qtd,
   } = params
 
@@ -740,6 +772,7 @@ const calcularProjeto = (params: {
   const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
   const kitSelecionadoTecnico = String(variacaoTecnicaDecomposta.kit || "").trim()
   const kitComPerfilAte3000 = kitSelecionadoTecnico === "quadrado" || kitSelecionadoTecnico === "outro"
+  const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, variacaoTrilho) : ""
 
   // ── Calcular folhas de vidro ──────────────────────────────────────────────
   const isAplicavel = (varRestrita: string | null | undefined) => {
@@ -747,6 +780,23 @@ const calcularProjeto = (params: {
     const partes = String(varRestrita).split(",").map(s => s.trim()).filter(Boolean)
     if (partes.length === 0) return true
     return partes.some(parte => {
+      if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawing && parte === variacaoDrawing
+      const eixo = getEixoVariacaoProjeto(parte)
+      if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
+      if (correspondeVariacaoVisualTextual(parte, variacaoDrawing)) return true
+      return correspondeRestricaoTecnica(parte, variacaoTecnica)
+    })
+  }
+
+  const isFolhaAplicavel = (varRestrita: string | null | undefined) => {
+    if (!varRestrita) return true
+    const partes = String(varRestrita).split(",").map(s => s.trim()).filter(Boolean)
+    if (partes.length === 0) return true
+
+    return partes.some(parte => {
+      if (projetoEBox && parte === "padrao" && variacaoTecnicaDecomposta.altura === "teto") {
+        return true
+      }
       if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawing && parte === variacaoDrawing
       const eixo = getEixoVariacaoProjeto(parte)
       if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
@@ -766,12 +816,12 @@ const calcularProjeto = (params: {
   const folhasCalc: FolhaCalculada[] = detalhe.folhas
     .filter((f) => {
       if (variacaoDrawing && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
-      if (!isAplicavel(f.variacao_restrita)) return false
+      if (!isFolhaAplicavel(f.variacao_restrita)) return false
       if (!projetoEhPorta) return true
-      if (!variacaoTrilho) return true
+      if (!trilhoAtivo) return true
       if (!f.trilho_restrito) return true
       const trilhosPermitidos = f.trilho_restrito.split(",").map(t => t.trim())
-      return trilhosPermitidos.includes(variacaoTrilho)
+      return trilhosPermitidos.includes(trilhoAtivo)
     })
     .map(f => {
     const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
@@ -1549,11 +1599,22 @@ export default function CalculoProjetoPage() {
     const set = new Set<string>()
     for (const perfilProjeto of detalhe.perfis) {
       const db = perfisDB.find((perfil) => perfil.id === perfilProjeto.perfil_id)
-      normalizarListaCores(db?.cores).forEach((cor) => set.add(cor))
+      const descricaoBase = normalizarDescricaoMaterial(db?.nome)
+      perfisDB
+        .filter((perfil) => descricaoBase ? normalizarDescricaoMaterial(perfil.nome) === descricaoBase : perfil.id === perfilProjeto.perfil_id)
+        .forEach((perfil) => normalizarListaCores(perfil.cores).forEach((cor) => set.add(cor)))
     }
     for (const kitProjeto of detalhe.kits) {
       const db = kitsDB.find((kit) => kit.id === kitProjeto.kit_id)
-      normalizarListaCores(db?.cores).forEach((cor) => set.add(cor))
+      const descricaoBase = normalizarDescricaoMaterial(db?.nome)
+      kitsDB
+        .filter((kit) => {
+          if (!descricaoBase) return kit.id === kitProjeto.kit_id
+          return normalizarDescricaoMaterial(kit.nome) === descricaoBase &&
+            Number(kit.largura || 0) === Number(db?.largura || 0) &&
+            Number(kit.altura || 0) === Number(db?.altura || 0)
+        })
+        .forEach((kit) => normalizarListaCores(kit.cores).forEach((cor) => set.add(cor)))
     }
     // Inclui cores das próprias ferragens vinculadas (e suas variantes irmãs)
     for (const ferragemProjeto of detalhe.ferragens) {
@@ -1721,13 +1782,17 @@ export default function CalculoProjetoPage() {
       altura: item.variacaoAltura,
       kit: item.variacaoKit,
     })
+    const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
     const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
+    const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
+    const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
 
-    const isAplicavel = (varRestrita: string | null | undefined) => {
+    const isFolhaAplicavel = (varRestrita: string | null | undefined) => {
       if (!varRestrita) return true
       const partes = String(varRestrita).split(",").map((s) => s.trim()).filter(Boolean)
       if (partes.length === 0) return true
       return partes.some((parte) => {
+        if (projetoEBox && parte === "padrao" && variacaoTecnicaDecomposta.altura === "teto") return true
         if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawingAtiva && parte === variacaoDrawingAtiva
         const eixo = getEixoVariacaoProjeto(parte)
         if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
@@ -1746,12 +1811,12 @@ export default function CalculoProjetoPage() {
 
     return detalhe.folhas.filter((f) => {
       if (variacaoDrawingAtiva && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
-      if (!isAplicavel(f.variacao_restrita)) return false
+      if (!isFolhaAplicavel(f.variacao_restrita)) return false
       if (!projetoEhPorta) return true
-      if (!item.variacaoTrilho) return true
+      if (!trilhoAtivo) return true
       if (!f.trilho_restrito) return true
       const trilhosPermitidos = String(f.trilho_restrito).split(",").map((t) => t.trim())
-      return trilhosPermitidos.includes(item.variacaoTrilho)
+      return trilhosPermitidos.includes(trilhoAtivo)
     }).reduce((total, folha) => total + Math.max(1, Number(folha.quantidade_folhas || 1)), 0)
   }
 
@@ -2196,6 +2261,8 @@ export default function CalculoProjetoPage() {
         kit: item.variacaoKit,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
+      const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
+      const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
 
       const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
 
@@ -2211,8 +2278,9 @@ export default function CalculoProjetoPage() {
         modoCalculo: item.modoCalculo,
         variacaoDrawing: variacaoDrawingAtiva,
         variacaoTecnica,
-        variacaoTrilho: item.variacaoTrilho,
+        variacaoTrilho: trilhoAtivo,
         projetoEhPorta,
+        projetoEBox,
         kitsDB,
         ferragensDB,
         perfisDB,
@@ -2227,7 +2295,7 @@ export default function CalculoProjetoPage() {
           : projeto.desenho || "").trim() || null,
         variacaoDrawing: variacaoDrawingAtiva,
         variacaoTecnica,
-        variacaoTrilho: item.variacaoTrilho,
+        variacaoTrilho: trilhoAtivo,
         vidro,
         qtdProjeto: Math.max(1, Number(item.qtd || 1)),
         larguraProjeto: Number(item.largura),
@@ -2613,6 +2681,8 @@ export default function CalculoProjetoPage() {
                 const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
                 const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
                 const projetoEPorta = projetoTemTrilhoConfigurado(detalhe)
+                const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
+                const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
                 const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!
@@ -2827,30 +2897,29 @@ export default function CalculoProjetoPage() {
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Tipo de Trilho (Portas)</p>
                         <div className="flex flex-wrap gap-2">
-                          {([
-                            { key: "", label: "Todos" },
-                            { key: "aparente", label: "Aparente" },
-                            { key: "interrompido", label: "Interrompido" },
-                            { key: "embutido", label: "Embutido" },
-                          ] as const).map((opcao) => (
+                          {trilhosDisponiveis.map((trilho) => {
+                            const labels: Record<TrilhoPorta, string> = {
+                              aparente: "Aparente",
+                              interrompido: "Interrompido",
+                              embutido: "Embutido",
+                            }
+                            return (
                             <button
-                              key={opcao.key || "todos"}
+                              key={trilho}
                               type="button"
-                              onClick={() => {
-                                const novoValor = item.variacaoTrilho === opcao.key ? "" : opcao.key
-                                atualizarItem(item.id, "variacaoTrilho", novoValor)
-                              }}
+                              onClick={() => atualizarItem(item.id, "variacaoTrilho", trilho)}
                               className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
-                              style={item.variacaoTrilho === opcao.key
+                              style={trilhoAtivo === trilho
                                 ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
                                 : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
                             >
-                              {opcao.label}
+                              {labels[trilho]}
                             </button>
-                          ))}
+                            )
+                          })}
                         </div>
                         <p className="text-[11px] text-gray-400">
-                          Essa escolha filtra apenas as folhas de porta configuradas com esse tipo de trilho no cadastro.
+                          Essa escolha filtra as folhas da porta por um tipo de trilho. Sem clique manual, o primeiro trilho configurado fica ativo.
                         </p>
                       </div>
                     )}

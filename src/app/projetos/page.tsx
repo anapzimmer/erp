@@ -13,7 +13,7 @@ import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnic
 import Image from "next/image"
 import {
   Plus, X, Trash2, Edit2, Package, Layers, Wrench,
-  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search,
+  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search, Copy,
 } from "lucide-react"
 
 const CORES_COMUNS = [
@@ -126,7 +126,7 @@ const normalizarBuscaItem = (valor?: string | null) =>
   String(valor || "").toLowerCase().trim()
 
 const formatarRotuloItemTecnico = <T extends { codigo?: string | null; nome?: string | null }>(item: T) =>
-  item.codigo ? `${item.codigo} - ${item.nome || ""}` : String(item.nome || "")
+  item.codigo ? `${item.codigo} - ${limparNomeTecnico(item.nome) || item.nome || ""}` : (limparNomeTecnico(item.nome) || String(item.nome || ""))
 
 const formatarRotuloFerragem = (item: { codigo?: string | null; nome?: string | null }) => {
   const nomeBase = limparNomeTecnico(item.nome) || String(item.nome || "")
@@ -148,7 +148,7 @@ const filtrarItensTecnicosPorBusca = <T extends { codigo?: string | null; nome?:
   if (!termo) return itens
 
   return itens.filter((item) => {
-    const campos = [item.codigo, item.nome, item.categoria]
+    const campos = [item.codigo, item.nome, limparNomeTecnico(item.nome), item.categoria]
     return campos.some((campo) => normalizarBuscaItem(campo).includes(termo))
   })
 }
@@ -166,9 +166,9 @@ const reindexarMapaBusca = (mapa: Record<number, string>, indiceRemovido: number
 }
 
 const getChavePerfilProjeto = (perfil?: { codigo?: string | null; nome?: string | null }) => {
-  const codigo = normalizarBuscaItem(perfil?.codigo)
   const nomeBase = limparNomeTecnico(perfil?.nome)
-  return codigo || nomeBase
+  const codigo = normalizarBuscaItem(perfil?.codigo)
+  return nomeBase || codigo
 }
 
 const deduplicarPerfisPreferindoPreto = <T extends { codigo?: string | null; nome?: string | null; cores?: string | null }>(lista: T[]) => {
@@ -279,6 +279,13 @@ const limparTextoComVariacao = (valor?: string | null) =>
     .join("\n")
     .trim()
 
+const limparTextoSemTokens = (valor: string | null | undefined, tokens: string[]) =>
+  String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !tokens.some((token) => linha.includes(token)))
+    .join("\n")
+    .trim()
+
 const limparTextoComCond = (valor?: string | null) =>
   String(valor || "")
     .split(/\r?\n/)
@@ -337,7 +344,7 @@ const extrairVariacaoDoTexto = (valor?: string | null) => {
 }
 
 const aplicarVariacaoNoTexto = (valor: string | null | undefined, variacao: string | null | undefined) => {
-  const textoBase = limparTextoComVariacao(valor)
+  const textoBase = limparTextoSemTokens(valor, [VARIACAO_TOKEN])
   if (!variacao) return textoBase
   return [textoBase, `${VARIACAO_TOKEN}${variacao}`].filter(Boolean).join("\n")
 }
@@ -368,7 +375,7 @@ const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
 }
 
 const aplicarTrilhoNoTexto = (valor: string | null | undefined, trilhos: string | null | undefined) => {
-  const textoBase = limparTextoComVariacao(valor)
+  const textoBase = limparTextoSemTokens(valor, [TRILHO_TOKEN])
   if (!trilhos) return textoBase
   return [textoBase, `${TRILHO_TOKEN}${trilhos}`].filter(Boolean).join("\n")
 }
@@ -1482,6 +1489,50 @@ export default function ProjetosPage() {
     })
   }
 
+  const copiarProjeto = async (projeto: Projeto) => {
+    if (!empresaId) {
+      setModalAviso({ titulo: "Atencao", mensagem: "Empresa nao identificada para copiar o projeto.", tipo: "aviso" })
+      return
+    }
+
+    let novoProjetoId: string | null = null
+
+    try {
+      const snapshot = await carregarSnapshotRelacionamentos(projeto.id)
+      const { data, error } = await supabase.from("projetos").insert([{
+        nome: `${projeto.nome} - Copia`,
+        categoria: projeto.categoria,
+        desenho: projeto.desenho,
+        empresa_id: empresaId,
+      }]).select("id").single()
+
+      if (error) throw new Error(getMensagemErroSupabase(error, "Erro ao criar copia do projeto"))
+      novoProjetoId = String(data.id)
+      const projetoIdCopiado = novoProjetoId
+
+      await persistirRelacionamentosProjeto({
+        folhas: snapshot.folhas.map((folha) => ({ ...folha, projeto_id: projetoIdCopiado })),
+        kits: snapshot.kits.map((kit) => ({ ...kit, projeto_id: projetoIdCopiado })),
+        ferragens: snapshot.ferragens.map((ferragem) => ({ ...ferragem, projeto_id: projetoIdCopiado })),
+        perfis: snapshot.perfis.map((perfil) => ({ ...perfil, projeto_id: projetoIdCopiado })),
+      })
+
+      setModalAviso({
+        titulo: "Projeto copiado",
+        mensagem: `Projeto "${projeto.nome}" copiado com sucesso.`,
+        tipo: "sucesso",
+      })
+      carregarTudo()
+    } catch (err: unknown) {
+      if (novoProjetoId) {
+        await supabase.from("projetos").delete().eq("id", novoProjetoId)
+      }
+
+      const mensagem = err instanceof Error ? err.message : "Erro inesperado ao copiar projeto."
+      setModalAviso({ titulo: "Erro ao copiar", mensagem, tipo: "erro" })
+    }
+  }
+
   const fecharModalSemConfirmacao = () => {
     setShowModal(false)
     setShowCloseDraftModal(false)
@@ -2339,6 +2390,13 @@ export default function ProjetosPage() {
                         style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
                       >
                         <Edit2 size={13} /> Editar
+                      </button>
+                      <button
+                        onClick={() => copiarProjeto(projeto)}
+                        className="p-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
+                        title="Copiar projeto"
+                      >
+                        <Copy size={14} />
                       </button>
                       <button
                         onClick={() => deletar(projeto)}
