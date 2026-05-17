@@ -1,4 +1,4 @@
-export type EixoVariacaoProjeto = "altura" | "kit"
+export type EixoVariacaoProjeto = "altura" | "kit" | "fechadura"
 
 type OpcaoEixoVariacao = {
   value: string
@@ -27,6 +27,14 @@ export const GRUPOS_VARIACAO_BOX: GrupoEixoVariacaoProjeto[] = [
       { value: "tradicional", label: "Tradicional" },
       { value: "quadrado", label: "Quadrado" },
       { value: "outro", label: "Evidence" },
+    ],
+  },
+  {
+    key: "fechadura",
+    label: "Fechadura",
+    options: [
+      { value: "1520", label: "1520" },
+      { value: "1520ta", label: "1520TA" },
     ],
   },
 ]
@@ -137,15 +145,19 @@ export const isValorEixoAltura = (valor?: string | null): boolean => {
 }
 
 export const getOpcoesRestricaoTecnicaBox = () => {
-  const simples = GRUPOS_VARIACAO_BOX.flatMap((grupo) =>
+  const gruposBox = GRUPOS_VARIACAO_BOX.filter((grupo) => grupo.key === "altura" || grupo.key === "kit")
+  const alturaGrupo = gruposBox.find((grupo) => grupo.key === "altura")
+  const kitGrupo = gruposBox.find((grupo) => grupo.key === "kit")
+
+  const simples = gruposBox.flatMap((grupo) =>
     grupo.options.map((opcao) => ({
       valor: opcao.value,
       label: `${grupo.label}: ${opcao.label}`,
     }))
   )
 
-  const combinadas = GRUPOS_VARIACAO_BOX[0].options.flatMap((altura) =>
-    GRUPOS_VARIACAO_BOX[1].options.map((kit) => ({
+  const combinadas = !alturaGrupo || !kitGrupo ? [] : alturaGrupo.options.flatMap((altura) =>
+    kitGrupo.options.map((kit) => ({
       valor: `${altura.value}|${kit.value}`,
       label: `${altura.label} · ${kit.label}`,
     }))

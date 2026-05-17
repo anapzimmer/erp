@@ -13,7 +13,7 @@ import { CalculoVidroPDF } from "@/app/relatorios/calculovidros/CalculoVidroPDF"
 import { RelatorioObraPDF } from "../relatorios/calculovidros/RelatorioObraPDF"
 import { TemperaPDF } from "../relatorios/calculovidros/TemperaPDF"
 import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnica"
-import { correspondeRestricaoTecnica, decomporVariacaoTecnica, ehVariacaoDeDesenho, formatarVariacaoTecnica, getEixoVariacaoProjeto, getGruposVariacaoTecnicaDisponiveis, GRUPOS_VARIACAO_BOX, montarVariacaoTecnica } from "@/utils/variacaoProjeto"
+import { correspondeRestricaoTecnica, decomporVariacaoTecnica, ehVariacaoDeDesenho, formatarVariacaoTecnica, getEixoVariacaoProjeto, getGruposVariacaoTecnicaDisponiveis, GRUPOS_VARIACAO_BOX, montarVariacaoTecnica, type EixoVariacaoProjeto } from "@/utils/variacaoProjeto"
 import Image from "next/image"
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer"
 import {
@@ -190,7 +190,22 @@ type ItemCalculoProjeto = {
   variacaoDrawing: string
   variacaoAltura: string
   variacaoKit: string
+  variacaoFechadura: string
   variacaoTrilho: TrilhoPorta | ""
+}
+
+const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura"> = {
+  altura: "variacaoAltura",
+  kit: "variacaoKit",
+  fechadura: "variacaoFechadura",
+}
+
+const inferirFechaduraPeloDesenho = (arquivo?: string | null): string => {
+  const nome = String(arquivo || "").trim().toLowerCase()
+  if (!/^portagiro-/.test(nome)) return ""
+  if (nome.includes("1520ta")) return "1520ta"
+  if (nome.includes("1520")) return "1520"
+  return ""
 }
 
 type ResultadoProjetoCalculado = {
@@ -478,11 +493,25 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
     return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
   }
 
-  if (/^(portagiro|portaforavao)-\d+fls(?:[a-z0-9]+)?(completo|completa)?$/i.test(stem)) {
-    return stem.replace(/(completo|completa)$/i, "")
+  const portaGiroMatch = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
+  if (portaGiroMatch) {
+    return `${portaGiroMatch[1].toLowerCase()}-${portaGiroMatch[2].toLowerCase()}`
   }
 
   return null
+}
+
+const normalizarArquivoDesenho = (valor: string, arquivosDisponiveis: string[] = []) => {
+  const arquivo = String(valor || "").trim()
+  if (!arquivo) return ""
+  if (/\.(png|jpe?g|webp|gif|svg)$/i.test(arquivo)) return arquivo
+
+  const normalizado = arquivo.toLowerCase()
+  const encontrado = arquivosDisponiveis.find((item) =>
+    item.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").toLowerCase() === normalizado
+  )
+
+  return encontrado || `${arquivo}.png`
 }
 
 const getVariacoesAutomaticasProjeto = (
@@ -602,6 +631,7 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   variacaoDrawing: "",
   variacaoAltura: "",
   variacaoKit: "",
+  variacaoFechadura: "",
   variacaoTrilho: "",
 })
 
@@ -622,6 +652,7 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.variacaoDrawing === "string"
     && typeof candidato.variacaoAltura === "string"
     && typeof candidato.variacaoKit === "string"
+    && typeof candidato.variacaoFechadura === "string"
     && (typeof candidato.variacaoTrilho === "string" || typeof candidato.variacaoTrilho === "undefined")
 }
 
@@ -650,6 +681,7 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         variacaoDrawing: typeof candidato.variacaoDrawing === "string" ? candidato.variacaoDrawing : "",
         variacaoAltura: typeof candidato.variacaoAltura === "string" ? candidato.variacaoAltura : (variacaoTecnicaDecomposta.altura || ""),
         variacaoKit: typeof candidato.variacaoKit === "string" ? candidato.variacaoKit : (variacaoTecnicaDecomposta.kit || ""),
+        variacaoFechadura: typeof candidato.variacaoFechadura === "string" ? candidato.variacaoFechadura : (variacaoTecnicaDecomposta.fechadura || ""),
         variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
       }
     })
@@ -1479,7 +1511,18 @@ export default function CalculoProjetoPage() {
           variacaoDrawing: "",
           variacaoAltura: "",
           variacaoKit: "",
+          variacaoFechadura: "",
           variacaoTrilho: "",
+        }
+      }
+
+      if (campo === "variacaoDrawing") {
+        const arquivo = String(valor || "")
+        const fechaduraInferida = inferirFechaduraPeloDesenho(arquivo)
+        return {
+          ...item,
+          variacaoDrawing: arquivo,
+          ...(fechaduraInferida ? { variacaoFechadura: fechaduraInferida } : {}),
         }
       }
 
@@ -1522,6 +1565,7 @@ export default function CalculoProjetoPage() {
       const variacaoTecnicaSelecionada = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
+        fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
       })
 
       const isAplicavel = (variacaoRestrita?: string | null) => {
@@ -1686,7 +1730,7 @@ export default function CalculoProjetoPage() {
     }
 
     const adicionarVariacao = (arquivo: string, label?: string) => {
-      const arquivoNormalizado = String(arquivo || "").trim()
+      const arquivoNormalizado = normalizarArquivoDesenho(arquivo, desenhosDisponiveis)
       if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
       if (!variacaoCompativelComProjeto(arquivoNormalizado)) return
       const labelNormalizado = label && label.trim() ? label.trim() : ""
@@ -1709,7 +1753,7 @@ export default function CalculoProjetoPage() {
     }
 
     const adicionarVariacaoSemFiltro = (arquivo: string, label?: string) => {
-      const arquivoNormalizado = String(arquivo || "").trim()
+      const arquivoNormalizado = normalizarArquivoDesenho(arquivo, desenhosDisponiveis)
       if (!arquivoNormalizado || !ehVariacaoDeDesenho(arquivoNormalizado)) return
       const labelNormalizado = label && label.trim() ? label.trim() : ""
       const existente = mapa.get(arquivoNormalizado)
@@ -1746,13 +1790,14 @@ export default function CalculoProjetoPage() {
       if (escopo && !grupoNoEscopoAtual) return
 
       grupo.opcoes.forEach((opcao) => {
-        if (!ehVariacaoDeDesenho(opcao.arquivo)) return
+        const arquivoOpcao = normalizarArquivoDesenho(opcao.arquivo, desenhosDisponiveis)
+        if (!ehVariacaoDeDesenho(arquivoOpcao)) return
 
         if (grupoNoEscopoAtual) {
           // Grupo personalizado do próprio projeto: respeita exatamente as opções cadastradas.
-          adicionarVariacaoSemFiltro(opcao.arquivo, opcao.label)
+          adicionarVariacaoSemFiltro(arquivoOpcao, opcao.label)
         } else {
-          adicionarVariacao(opcao.arquivo, opcao.label)
+          adicionarVariacao(arquivoOpcao, opcao.label)
         }
       })
     })
@@ -1778,9 +1823,11 @@ export default function CalculoProjetoPage() {
     if (!detalhe || !projeto) return 0
 
     const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
+    const fechaduraInferida = inferirFechaduraPeloDesenho(variacaoDrawingAtiva)
     const variacaoTecnica = montarVariacaoTecnica({
       altura: item.variacaoAltura,
       kit: item.variacaoKit,
+      fechadura: fechaduraInferida || item.variacaoFechadura,
     })
     const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
     const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
@@ -1845,19 +1892,20 @@ export default function CalculoProjetoPage() {
       const atualizados = prev.map((item) => {
         const grupos = getGruposVariacaoTecnica(item)
         if (grupos.length === 0) {
-          if (!item.variacaoAltura && !item.variacaoKit) return item
+          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura) return item
           houveMudanca = true
           return {
             ...item,
             variacaoAltura: "",
             variacaoKit: "",
+            variacaoFechadura: "",
           }
         }
 
         let proximo = item
 
         grupos.forEach((grupo) => {
-          const campo = grupo.key === "altura" ? "variacaoAltura" : "variacaoKit"
+          const campo = CAMPO_VARIACAO_TECNICA[grupo.key]
           const valorAtual = proximo[campo]
           const valorEhValido = grupo.options.some((opcao) => opcao.value === valorAtual)
 
@@ -1878,6 +1926,11 @@ export default function CalculoProjetoPage() {
         if (!grupos.some((grupo) => grupo.key === "kit") && proximo.variacaoKit) {
           houveMudanca = true
           proximo = { ...proximo, variacaoKit: "" }
+        }
+
+        if (!grupos.some((grupo) => grupo.key === "fechadura") && proximo.variacaoFechadura) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoFechadura: "" }
         }
 
         return proximo
@@ -2136,7 +2189,7 @@ export default function CalculoProjetoPage() {
             unidade: "un",
             total: (db?.preco || ferragem.precoUnit || 0) * ferragem.qtd * itemResultado.qtdProjeto,
           }
-        }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+        }).sort((a, b) => compareFerragensByNome(`${a.codigo || ""} ${a.nome}`, `${b.codigo || ""} ${b.nome}`)),
         otimizacao: itemResultado.resultado.cortes.map((corte) => ({
           id: `${itemResultado.itemId}-${corte.perfilNome}-${corte.comprimentoBarra}`,
           perfilCodigo: perfisDB.find((perfil) => perfil.nome === corte.perfilNome)?.codigo || "-",
@@ -2256,15 +2309,15 @@ export default function CalculoProjetoPage() {
       }
 
       const precoVidroM2Aplicado = getPrecoVidroM2(item)
+      const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
       const variacaoTecnica = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
+        fechadura: inferirFechaduraPeloDesenho(variacaoDrawingAtiva) || item.variacaoFechadura,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
       const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
       const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
-
-      const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
 
       const resultado = calcularProjeto({
         detalhe,
@@ -2666,6 +2719,7 @@ export default function CalculoProjetoPage() {
                 const variacaoTecnicaSelecionada = montarVariacaoTecnica({
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
+                  fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
                 })
                 const getNomeVariacao = (value: string, fallback: string) => {
                   const custom = nomesVariacaoPersonalizados[value]
@@ -2995,7 +3049,7 @@ export default function CalculoProjetoPage() {
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Variação Técnica</p>
                         {gruposVariacaoTecnica.filter(g => !(projetoEBox && (g.key === "kit" || g.key === "altura"))).map((grupo) => {
-                          const campo = grupo.key === "altura" ? "variacaoAltura" : "variacaoKit"
+                          const campo = CAMPO_VARIACAO_TECNICA[grupo.key]
                           const valorSelecionado = item[campo]
 
                           return (

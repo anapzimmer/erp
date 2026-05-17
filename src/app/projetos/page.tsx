@@ -96,7 +96,7 @@ type FormData = {
   perfis: ProjetoPerfil[]
 }
 
-type ProjetoVisualTipo = "aberturas" | "portas" | "janelas" | "box" | "generico"
+type ProjetoVisualTipo = "aberturas" | "portas" | "porta_giro" | "janelas" | "box" | "generico"
 
 type KitDBItem = {
   id: string
@@ -536,6 +536,8 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
     { label: "Porta Fora de Vão 2 Fls (Comp)", arquivo: "portaforavao-2flscompleto.png" },
     { label: "Porta de Giro 1 Folha", arquivo: "portagiro-1fls.png" },
     { label: "Porta de Giro 1 Folha (Comp)", arquivo: "portagiro-1flscompleto.png" },
+    { label: "Porta de Giro 1 Folha 1520TA", arquivo: "portagiro-1fls1520ta.png" },
+    { label: "Porta de Giro 1 Folha 1520TA (Comp)", arquivo: "portagiro-1fls1520tacompleto.png" },
     { label: "Porta de Giro 2 Folhas", arquivo: "portagiro-2fls.png" },
     { label: "Porta de Giro 2 Fls (Comp)", arquivo: "portagiro-2flscompleto.png" },
     { label: "Porta de Giro 4 Folhas", arquivo: "portagiro-4fls.png" },
@@ -654,6 +656,19 @@ const escapeRegExp = (valor: string) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\
 
 const criarArquivo = (stem: string) => `${stem}.png`
 
+const normalizarArquivoDesenho = (valor: string, arquivosDisponiveis: string[] = []) => {
+  const arquivo = String(valor || "").trim()
+  if (!arquivo) return ""
+  if (/\.(png|jpe?g|webp|gif|svg)$/i.test(arquivo)) return arquivo
+
+  const normalizado = arquivo.toLowerCase()
+  const encontrado = arquivosDisponiveis.find((item) =>
+    item.replace(/\.(png|jpe?g|webp|gif|svg)$/i, "").toLowerCase() === normalizado
+  )
+
+  return encontrado || `${arquivo}.png`
+}
+
 const formatarLabelArquivoDesenho = (arquivo: string) => {
   const nome = String(arquivo || "")
     .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
@@ -693,6 +708,19 @@ const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
   return { key: stem, label: nome.toUpperCase(), arquivo: criarArquivo(stem) }
 }
 
+const getChaveFamiliaPortaGiro = (stem: string): string | null => {
+  const match = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
+  if (!match) return null
+  return `${match[1].toLowerCase()}-${match[2].toLowerCase()}`
+}
+
+const criarOpcaoPortaGiro = (stem: string): VariacaoOpcao => {
+  const tem1520Ta = /1520ta/i.test(stem)
+  const completo = /completo|completa/i.test(stem)
+  const partes = [tem1520Ta ? "1520TA" : "1520", completo ? "Completo" : ""].filter(Boolean)
+  return { key: stem, label: partes.join(" "), arquivo: criarArquivo(stem) }
+}
+
 const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string> = STEMS_DESENHOS): VariacaoGrupo[] => {
   if (!arquivoAtual) return []
 
@@ -723,6 +751,22 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
           { key: "ci", label: "CI", arquivo: criarArquivo(stemCI) },
           { key: "cs", label: "CS", arquivo: criarArquivo(stemCS) },
         ],
+      })
+    }
+  }
+
+  const familiaPortaGiro = getChaveFamiliaPortaGiro(stemAtual)
+  if (familiaPortaGiro) {
+    const opcoes = Array.from(stemsDisponiveis)
+      .filter((stem) => getChaveFamiliaPortaGiro(stem) === familiaPortaGiro)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"))
+      .map((stem) => criarOpcaoPortaGiro(stem))
+
+    if (opcoes.length >= 2) {
+      variacoes.push({
+        id: "fechadura",
+        label: "Fechadura",
+        opcoes,
       })
     }
   }
@@ -781,13 +825,14 @@ const detectarTipoProjetoVisual = (dados: Pick<FormData, "nome" | "categoria" | 
 
   if (/abertur/.test(textoProjeto)) return "aberturas"
   if (/janela|maxim|basculante/.test(textoProjeto)) return "janelas"
-  if (/porta|deslizante|pma|giro|pivotante/.test(textoProjeto)) return "portas"
+  if (/porta\s*de\s*giro|portagiro|giro/.test(textoProjeto)) return "porta_giro"
+  if (/porta|deslizante|pma|pivotante/.test(textoProjeto)) return "portas"
   if (/box/.test(textoProjeto)) return "box"
   return "generico"
 }
 
 const getEspessuraPadraoKitPorTipo = (tipo: ProjetoVisualTipo) => {
-  if (tipo === "portas") return "10mm"
+  if (tipo === "portas" || tipo === "porta_giro") return "10mm"
   if (tipo === "janelas") return "8mm"
   return "8mm"
 }
@@ -808,6 +853,15 @@ const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pi
       formula_largura: "L / 2 - 12",
       formula_altura: "A - 45",
       observacao: "Porta deslizante com compensação de trilho e transpasse.",
+    }
+  }
+
+  if (tipo === "porta_giro") {
+    return {
+      tipo_folha: "Movel",
+      formula_largura: "L",
+      formula_altura: "A - 10",
+      observacao: "Porta de giro sem trilho. Variacao por fechadura 1520/1520TA.",
     }
   }
 
@@ -2029,6 +2083,7 @@ export default function ProjetosPage() {
   }, [tipoProjetoVisual])
 
   const projetoEhPorta = tipoProjetoVisual === "portas"
+  const projetoEhPortaGiro = tipoProjetoVisual === "porta_giro"
   const projetoUsaPresetVariacaoBox =
     tipoProjetoVisual === "box" ||
     normalizarBuscaItem(`${form.nome} ${form.categoria} ${desenhoAtual?.label || ""}`).includes("box")
@@ -2038,6 +2093,14 @@ export default function ProjetosPage() {
         arquivo: opcao.valor,
         corBg: (["#eef2ff", "#fef3c7", "#ecfdf5", "#fdf2f8", "#fff7ed"] as const)[indice % 5],
         corText: (["#4338ca", "#d97706", "#059669", "#db2777", "#ea580c"] as const)[indice % 5],
+      }))
+    : []
+  const opcoesRestricaoGiro = projetoEhPortaGiro
+    ? (GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "fechadura")?.options || []).map((opcao, indice) => ({
+        label: `Fechadura: ${opcao.label}`,
+        arquivo: opcao.value,
+        corBg: (["#f0fdf4", "#ecfeff"] as const)[indice % 2],
+        corText: (["#15803d", "#0e7490"] as const)[indice % 2],
       }))
     : []
 
@@ -2053,6 +2116,7 @@ export default function ProjetosPage() {
         }))
       ),
       ...opcoesRestricaoBox,
+      ...opcoesRestricaoGiro,
     ].map((opcao) => [opcao.arquivo, opcao] as const)
   ).values())
   const temOpcoesRestricao = variacaoOpcoesFlat.length > 0
@@ -2068,7 +2132,7 @@ export default function ProjetosPage() {
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
   const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
-    !ehVariacaoDeDesenho(op.arquivo) && getEixoVariacaoProjeto(op.arquivo) === "kit"
+    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
   const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
@@ -2166,10 +2230,11 @@ export default function ProjetosPage() {
     }
 
     const nome = novaVariacaoNome.trim()
+    const arquivosDisponiveis = todosDesenhos.map((desenho) => desenho.arquivo)
     const opcoesSaneadas = novaVariacaoOpcoes
       .map((opcao, idx) => ({
         label: opcao.label.trim() || `Opção ${idx + 1}`,
-        arquivo: opcao.arquivo.trim(),
+        arquivo: normalizarArquivoDesenho(opcao.arquivo, arquivosDisponiveis),
       }))
       .filter((opcao) => opcao.arquivo)
 
@@ -3546,7 +3611,7 @@ export default function ProjetosPage() {
                             </label>
                             {variacaoOpcoesFerragemKit.length > 0 && (
                               <div className="mb-2">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Kit</p>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Variacao tecnica</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {variacaoOpcoesFerragemKit.map(op => {
                                     const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)

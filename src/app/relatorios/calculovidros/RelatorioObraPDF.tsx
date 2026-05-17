@@ -361,7 +361,7 @@ export function RelatorioObraPDF({
       return mapa
     }, new Map<string, { codigo: string | null; nome: string; qtd: number }>()).values()
   ).sort((a, b) => {
-    const ordemLogica = compareFerragensByNome(a.nome, b.nome)
+    const ordemLogica = compareFerragensByNome(`${a.codigo || ""} ${a.nome}`, `${b.codigo || ""} ${b.nome}`)
     if (ordemLogica !== 0) return ordemLogica
 
     const codigoA = a.codigo || ""

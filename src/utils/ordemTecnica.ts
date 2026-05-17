@@ -17,11 +17,19 @@ const ORDEM_PERFIS_LOGICA = [
 ]
 
 const ORDEM_FERRAGENS_LOGICA = [
+  ["1101a", "1101 a"],
+  ["1201a", "1201 a"],
+  ["1103a", "1103 a"],
+  ["1013a", "1013 a"],
+  ["placa da 1520", "placa 1520"],
+  ["cilindro da 1520", "cilindro 1520"],
+  ["contra da 1520", "contra 1520", "contra-fechadura 1520", "contra fechadura 1520"],
+  ["macaneta", "maçaneta"],
+  ["puxador", "puxadores"],
   ["roldana"],
   ["kit batente", "batente"],
   ["fecho", "fechadura", "fechaduras"],
-  ["puxador", "puxadores"],
-  ["porta cadeado", "porta cadeado", "porta-cadeado", "porta cadeados", "porta-cadeados"],
+  ["porta cadeado", "porta-cadeado", "porta cadeados", "porta-cadeados"],
   ["trinco castanha", "trinco", "castanha"],
 ]
 
@@ -44,10 +52,15 @@ export const getPesoPerfilLogico = (nomePerfil?: string | null): number => {
 
 export const getPesoFerragemLogica = (nomeFerragem?: string | null): number => {
   const nome = normalizarTexto(nomeFerragem)
+  const nomeCompacto = nome.replace(/[^a-z0-9]/g, "")
 
   for (let i = 0; i < ORDEM_FERRAGENS_LOGICA.length; i += 1) {
     const grupo = ORDEM_FERRAGENS_LOGICA[i]
-    if (grupo.some((termo) => nome.includes(termo))) return i
+    if (grupo.some((termo) => {
+      const termoNormalizado = normalizarTexto(termo)
+      const termoCompacto = termoNormalizado.replace(/[^a-z0-9]/g, "")
+      return nome.includes(termoNormalizado) || (!!termoCompacto && nomeCompacto.includes(termoCompacto))
+    })) return i
   }
 
   return ORDEM_FERRAGENS_LOGICA.length
