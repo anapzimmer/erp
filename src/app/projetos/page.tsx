@@ -153,18 +153,6 @@ const filtrarItensTecnicosPorBusca = <T extends { codigo?: string | null; nome?:
   })
 }
 
-const reindexarMapaBusca = (mapa: Record<number, string>, indiceRemovido: number) => {
-  const atualizado: Record<number, string> = {}
-
-  Object.entries(mapa).forEach(([chave, valor]) => {
-    const indice = Number(chave)
-    if (Number.isNaN(indice) || indice === indiceRemovido) return
-    atualizado[indice > indiceRemovido ? indice - 1 : indice] = valor
-  })
-
-  return atualizado
-}
-
 const getChavePerfilProjeto = (perfil?: { codigo?: string | null; nome?: string | null }) => {
   const nomeBase = limparNomeTecnico(perfil?.nome)
   const codigo = normalizarBuscaItem(perfil?.codigo)
@@ -394,6 +382,18 @@ const contarFolhasMovimentacao = (valor: string): number | null => {
   if (!mistas) return null
 
   return Number(mistas[1]) + Number(mistas[2])
+}
+
+const ehOpcaoMovimentacaoPmaPermitida = (valor: string) => {
+  const texto = String(valor || "").toLowerCase()
+  return /^(\d+)_moveis$/.test(texto) || /^1_fixas?_(\d+)_moveis$/.test(texto)
+}
+
+const formatarLabelMovimentacaoPma = (valor: string, fallback: string) => {
+  const texto = String(valor || "").toLowerCase()
+  if (/^(\d+)_moveis$/.test(texto)) return "Todas móveis"
+  if (/^1_fixas?_(\d+)_moveis$/.test(texto)) return "1 fixa e correm as outras"
+  return fallback
 }
 
 const aplicarTrilhoNoTexto = (valor: string | null | undefined, trilhos: string | null | undefined) => {
@@ -902,19 +902,19 @@ const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pi
 
   if (tipo === "porta_giro") {
     return {
-      tipo_folha: "Movel",
+      tipo_folha: "Móvel",
       formula_largura: "L",
       formula_altura: "A - 10",
-      observacao: "Porta de giro sem trilho. Variacao por fechadura 1520/1520TA.",
+      observacao: "Porta de giro sem trilho. Variação por fechadura 1520/1520TA.",
     }
   }
 
   if (tipo === "pma") {
     return {
-      tipo_folha: "Movel",
+      tipo_folha: "Móvel",
       formula_largura: "L / 2",
       formula_altura: "A - 30",
-      observacao: "Mao Amiga (PMA). Ajuste a formula conforme a quantidade de folhas do projeto.",
+      observacao: "Mão Amiga (PMA). Ajuste a fórmula conforme a quantidade de folhas do projeto.",
     }
   }
 
@@ -969,8 +969,6 @@ export default function ProjetosPage() {
   const [ferragensSelecionadasParaAdicionar, setFerragensSelecionadasParaAdicionar] = useState<string[]>([])
   const [buscaPerfilDisponivel, setBuscaPerfilDisponivel] = useState("")
   const [perfisSelecionadosParaAdicionar, setPerfisSelecionadosParaAdicionar] = useState<string[]>([])
-  const [buscaFerragemPorLinha, setBuscaFerragemPorLinha] = useState<Record<number, string>>({})
-  const [buscaPerfilPorLinha, setBuscaPerfilPorLinha] = useState<Record<number, string>>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
@@ -1649,8 +1647,6 @@ export default function ProjetosPage() {
     setFerragensSelecionadasParaAdicionar([])
     setBuscaPerfilDisponivel("")
     setPerfisSelecionadosParaAdicionar([])
-    setBuscaFerragemPorLinha({})
-    setBuscaPerfilPorLinha({})
     setEditandoId(null)
     setAbaAtiva("geral")
     setShowPicker(false)
@@ -1833,9 +1829,6 @@ export default function ProjetosPage() {
     return getCatalogoFerragensParaLinha(ferragemAtualId, ferragemAtualNome)
   }
 
-  const getFerragensFiltradas = (indice: number, ferragemAtualId?: string) =>
-    filtrarItensTecnicosPorBusca(getFerragensDisponiveis(ferragemAtualId), buscaFerragemPorLinha[indice] || "")
-
   const alternarSelecaoFerragemParaAdicionar = (ferragemId: string) => {
     setFerragensSelecionadasParaAdicionar((prev) =>
       prev.includes(ferragemId)
@@ -1916,7 +1909,6 @@ export default function ProjetosPage() {
   }
   const removerFerragem = (i: number) => {
     setForm(prev => ({ ...prev, ferragens: prev.ferragens.filter((_, idx) => idx !== i) }))
-    setBuscaFerragemPorLinha((prev) => reindexarMapaBusca(prev, i))
   }
 
   // ─── HELPERS PERFIS ──────────────────────────────────────────────────────
@@ -1938,16 +1930,8 @@ export default function ProjetosPage() {
     return [perfilFallback, ...perfisDB]
   }
 
-  const getPerfisDisponiveis = (perfilAtualId?: string, perfilAtualNome?: string) => {
-    const selecionados = form.perfis.map(item => String(item.perfil_id))
-    return getCatalogoPerfisParaLinha(perfilAtualId, perfilAtualNome).filter((item) => {
-      const id = String(item.id)
-      return id === String(perfilAtualId || "") || !selecionados.includes(id)
-    })
-  }
-
-  const getPerfisFiltrados = (indice: number, perfilAtualId?: string, perfilAtualNome?: string) =>
-    filtrarItensTecnicosPorBusca(getPerfisDisponiveis(perfilAtualId, perfilAtualNome), buscaPerfilPorLinha[indice] || "")
+  const getPerfisDisponiveis = (perfilAtualId?: string, perfilAtualNome?: string) =>
+    getCatalogoPerfisParaLinha(perfilAtualId, perfilAtualNome)
 
   const alternarSelecaoPerfilParaAdicionar = (perfilId: string) => {
     setPerfisSelecionadosParaAdicionar((prev) =>
@@ -2037,7 +2021,6 @@ export default function ProjetosPage() {
   }
   const removerPerfil = (i: number) => {
     setForm(prev => ({ ...prev, perfis: prev.perfis.filter((_, idx) => idx !== i) }))
-    setBuscaPerfilPorLinha((prev) => reindexarMapaBusca(prev, i))
   }
 
   const handleSignOut = async () => {
@@ -2159,11 +2142,16 @@ export default function ProjetosPage() {
         .flatMap((grupo, grupoIndice) =>
           grupo.options
             .filter((opcao) => {
+              if (grupo.key === "movimentacao" && !ehOpcaoMovimentacaoPmaPermitida(opcao.value)) return false
               if (grupo.key !== "movimentacao" || !quantidadeFolhasPma) return true
               return contarFolhasMovimentacao(opcao.value) === quantidadeFolhasPma
             })
             .map((opcao, indice) => ({
-              label: `${grupo.label}: ${opcao.label}`,
+              label: `${grupo.label}: ${
+                grupo.key === "movimentacao"
+                  ? formatarLabelMovimentacaoPma(opcao.value, opcao.label)
+                  : opcao.label
+              }`,
               arquivo: opcao.value,
               corBg: (["#eff6ff", "#f0fdf4", "#f5f3ff", "#fff7ed"] as const)[(grupoIndice + indice) % 4],
               corText: (["#1d4ed8", "#15803d", "#6d28d9", "#ea580c"] as const)[(grupoIndice + indice) % 4],
@@ -3525,7 +3513,7 @@ export default function ProjetosPage() {
                           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input
                             type="text"
-                            placeholder="Digite para filtrar ferragens por codigo, nome ou categoria"
+                            placeholder="Buscar ferragem por código, nome ou categoria"
                             value={buscaFerragemDisponivel}
                             onChange={e => setBuscaFerragemDisponivel(e.target.value)}
                             className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
@@ -3533,25 +3521,25 @@ export default function ProjetosPage() {
                           />
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={selecionarOuLimparTodasFerragensFiltradas}
-                            disabled={ferragensDisponiveisFiltradas.length === 0}
-                            className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
-                          >
-                            {ferragensDisponiveisFiltradas.length > 0 && ferragensDisponiveisFiltradas.every((item) => ferragensSelecionadasParaAdicionar.includes(String(item.id)))
-                              ? "Limpar filtradas"
-                              : "Selecionar filtradas"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={adicionarFerragensSelecionadas}
-                            disabled={ferragensSelecionadasParaAdicionar.length === 0}
-                            className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
-                            style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-                          >
-                            Adicionar selecionadas ({ferragensSelecionadasParaAdicionar.length})
-                          </button>
+                        <button
+                          type="button"
+                          onClick={selecionarOuLimparTodasFerragensFiltradas}
+                          disabled={ferragensDisponiveisFiltradas.length === 0}
+                          className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
+                        >
+                          {ferragensDisponiveisFiltradas.length > 0 && ferragensDisponiveisFiltradas.every((item) => ferragensSelecionadasParaAdicionar.includes(String(item.id)))
+                            ? "Limpar seleção"
+                            : "Selecionar todas"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={adicionarFerragensSelecionadas}
+                          disabled={ferragensSelecionadasParaAdicionar.length === 0}
+                          className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
+                          style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                        >
+                          Adicionar selecionadas ({ferragensSelecionadasParaAdicionar.length})
+                        </button>
                         </div>
                       </div>
 
@@ -3605,16 +3593,6 @@ export default function ProjetosPage() {
                     >
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Buscar ferragem</label>
-                          <input
-                            type="text"
-                            value={buscaFerragemPorLinha[idx] || ""}
-                            onChange={e => setBuscaFerragemPorLinha(prev => ({ ...prev, [idx]: e.target.value }))}
-                            placeholder="Digite código, nome ou categoria"
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
-                          />
-                        </div>
-                        <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Ferragem</label>
                           <select
                             value={f.ferragem_id}
@@ -3622,10 +3600,10 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getFerragensFiltradas(idx, String(f.ferragem_id)).length === 0 && (
+                            {getFerragensDisponiveis(String(f.ferragem_id)).length === 0 && (
                               <option value={f.ferragem_id}>Nenhuma ferragem encontrada</option>
                             )}
-                            {getFerragensFiltradas(idx, String(f.ferragem_id)).map((fer) => (
+                            {getFerragensDisponiveis(String(f.ferragem_id)).map((fer) => (
                               <option key={fer.id} value={fer.id}>
                                 {formatarRotuloFerragem(fer)}
                               </option>
@@ -3663,16 +3641,6 @@ export default function ProjetosPage() {
                             />
                             <span className="text-sm font-bold text-gray-600">Aplicar no modo Barra</span>
                           </label>
-                        </div>
-                        <div className="sm:col-span-2 xl:col-span-4">
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Observação</label>
-                          <input
-                            type="text"
-                            value={f.observacao}
-                            onChange={e => atualizarFerragem(idx, "observacao", e.target.value)}
-                            placeholder="Ex: acessório obrigatório quando usar kit de porta 2 folhas"
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
-                          />
                         </div>
                         {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0) && (
                           <div className="sm:col-span-2 xl:col-span-4">
@@ -3795,7 +3763,7 @@ export default function ProjetosPage() {
                           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                           <input
                             type="text"
-                            placeholder="Digite para filtrar perfis por codigo, nome ou categoria"
+                            placeholder="Buscar perfil por código, nome ou categoria"
                             value={buscaPerfilDisponivel}
                             onChange={e => setBuscaPerfilDisponivel(e.target.value)}
                             className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none"
@@ -3803,25 +3771,25 @@ export default function ProjetosPage() {
                           />
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={selecionarOuLimparTodosPerfisFiltrados}
-                            disabled={perfisDisponiveisFiltrados.length === 0}
-                            className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
-                          >
-                            {perfisDisponiveisFiltrados.length > 0 && perfisDisponiveisFiltrados.every((item) => perfisSelecionadosParaAdicionar.includes(String(item.id)))
-                              ? "Limpar filtrados"
-                              : "Selecionar filtrados"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={adicionarPerfisSelecionados}
-                            disabled={perfisSelecionadosParaAdicionar.length === 0}
-                            className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
-                            style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
-                          >
-                            Adicionar selecionados ({perfisSelecionadosParaAdicionar.length})
-                          </button>
+                        <button
+                          type="button"
+                          onClick={selecionarOuLimparTodosPerfisFiltrados}
+                          disabled={perfisDisponiveisFiltrados.length === 0}
+                          className="px-3 py-2 rounded-xl text-xs font-black border border-gray-200 bg-white text-gray-600 disabled:opacity-40"
+                        >
+                          {perfisDisponiveisFiltrados.length > 0 && perfisDisponiveisFiltrados.every((item) => perfisSelecionadosParaAdicionar.includes(String(item.id)))
+                            ? "Limpar seleção"
+                            : "Selecionar todos"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={adicionarPerfisSelecionados}
+                          disabled={perfisSelecionadosParaAdicionar.length === 0}
+                          className="px-3 py-2 rounded-xl text-xs font-black shadow-sm disabled:opacity-40"
+                          style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
+                        >
+                          Adicionar selecionados ({perfisSelecionadosParaAdicionar.length})
+                        </button>
                         </div>
                       </div>
 
@@ -3873,17 +3841,7 @@ export default function ProjetosPage() {
                       className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
                       style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Buscar perfil</label>
-                          <input
-                            type="text"
-                            value={buscaPerfilPorLinha[idx] || ""}
-                            onChange={e => setBuscaPerfilPorLinha(prev => ({ ...prev, [idx]: e.target.value }))}
-                            placeholder="Digite código, nome ou categoria"
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none"
-                          />
-                        </div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
@@ -3892,10 +3850,10 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
-                            {getPerfisFiltrados(idx, String(p.perfil_id), p.nome).length === 0 && (
+                            {getPerfisDisponiveis(String(p.perfil_id), p.nome).length === 0 && (
                               <option value={p.perfil_id}>Nenhum perfil encontrado</option>
                             )}
-                            {getPerfisFiltrados(idx, String(p.perfil_id), p.nome).map((per) => (
+                            {getPerfisDisponiveis(String(p.perfil_id), p.nome).map((per) => (
                               <option key={per.id} value={per.id}>
                                 {formatarRotuloItemTecnico(per)}
                               </option>
@@ -3933,12 +3891,12 @@ export default function ProjetosPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Forma de Venda</label>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Modo de Fornecimento</label>
                           <div className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-500">
                             Em Barra
                           </div>
                         </div>
-                        <div className="sm:col-span-2 xl:col-span-2">
+                        <div className="sm:col-span-2 xl:col-span-3">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0891b2" }}>
                             Condição de aplicação
                           </label>
@@ -3958,9 +3916,9 @@ export default function ProjetosPage() {
                             <p className="text-[10px] text-cyan-600 mt-0.5 font-bold">Só entra no cálculo quando: {p.condicao}</p>
                           )}
                         </div>
-                        <div className="sm:col-span-2 xl:col-span-1">
+                        <div className="sm:col-span-2 xl:col-span-3">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0f766e" }}>
-                            Calcular Junto no Kit
+                            Incluir este perfil no cálculo de Kit
                           </label>
                           <button
                             type="button"
@@ -3972,8 +3930,9 @@ export default function ProjetosPage() {
                               color: p.usar_no_kit ? "#047857" : "#6b7280",
                             }}
                           >
-                            {p.usar_no_kit ? "Sim - incluir também no modo Kit" : "Não - só no modo Barra"}
+                            {p.usar_no_kit ? "Sim - inclui no Kit e na Barra" : "Não - incluir apenas na Barra"}
                           </button>
+                          <p className="text-[10px] text-gray-400 mt-1">Ative quando este perfil também deve compor o orçamento em modo Kit.</p>
                         </div>
                         <div className="sm:col-span-2 xl:col-span-2">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#b45309" }}>
