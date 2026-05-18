@@ -191,13 +191,15 @@ type ItemCalculoProjeto = {
   variacaoAltura: string
   variacaoKit: string
   variacaoFechadura: string
+  variacaoAplicacao: string
   variacaoTrilho: TrilhoPorta | ""
 }
 
-const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura"> = {
+const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura" | "variacaoAplicacao"> = {
   altura: "variacaoAltura",
   kit: "variacaoKit",
   fechadura: "variacaoFechadura",
+  aplicacao: "variacaoAplicacao",
 }
 
 const inferirFechaduraPeloDesenho = (arquivo?: string | null): string => {
@@ -472,6 +474,59 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
   return drawingArquivoNorm.includes(restricaoNorm) || drawingLabelNorm.includes(restricaoNorm)
 }
 
+const correspondeRestricaoProjeto = (
+  restricao: string | null | undefined,
+  variacaoDrawing: string | null | undefined,
+  variacaoTecnica: string | null | undefined,
+  opcoes?: { permitirBoxPadraoTeto?: boolean }
+) => {
+  if (!restricao) return true
+
+  const partes = String(restricao).split(",").map((s) => s.trim()).filter(Boolean)
+  if (partes.length === 0) return true
+
+  const selecaoTecnica = decomporVariacaoTecnica(variacaoTecnica)
+  const valoresPorEixo = new Map<EixoVariacaoProjeto, Set<string>>()
+  const partesVisuais: string[] = []
+  const partesLegadas: string[] = []
+
+  partes.forEach((parte) => {
+    if (ehVariacaoDeDesenho(parte)) {
+      partesVisuais.push(parte)
+      return
+    }
+
+    const tecnica = decomporVariacaoTecnica(parte)
+    const eixos = Object.entries(tecnica) as Array<[EixoVariacaoProjeto, string]>
+
+    if (eixos.length > 0) {
+      eixos.forEach(([eixo, valor]) => {
+        if (!valoresPorEixo.has(eixo)) valoresPorEixo.set(eixo, new Set())
+        valoresPorEixo.get(eixo)?.add(valor)
+      })
+      return
+    }
+
+    partesLegadas.push(parte)
+  })
+
+  const visualOk = partesVisuais.length === 0 || partesVisuais.some((parte) =>
+    parte === variacaoDrawing || correspondeVariacaoVisualTextual(parte, variacaoDrawing)
+  )
+
+  const tecnicoOk = Array.from(valoresPorEixo.entries()).every(([eixo, valores]) => {
+    const selecionado = selecaoTecnica[eixo]
+    if (selecionado && valores.has(selecionado)) return true
+    return !!(opcoes?.permitirBoxPadraoTeto && eixo === "altura" && selecionado === "teto" && valores.has("padrao"))
+  })
+
+  const legadoOk = partesLegadas.length === 0 || partesLegadas.some((parte) =>
+    correspondeVariacaoVisualTextual(parte, variacaoDrawing) || correspondeRestricaoTecnica(parte, variacaoTecnica)
+  )
+
+  return visualOk && tecnicoOk && legadoOk
+}
+
 const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
   const stem = String(arquivo || "").replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
 
@@ -632,6 +687,7 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   variacaoAltura: "",
   variacaoKit: "",
   variacaoFechadura: "",
+  variacaoAplicacao: "",
   variacaoTrilho: "",
 })
 
@@ -653,6 +709,7 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.variacaoAltura === "string"
     && typeof candidato.variacaoKit === "string"
     && typeof candidato.variacaoFechadura === "string"
+    && typeof candidato.variacaoAplicacao === "string"
     && (typeof candidato.variacaoTrilho === "string" || typeof candidato.variacaoTrilho === "undefined")
 }
 
@@ -682,6 +739,7 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         variacaoAltura: typeof candidato.variacaoAltura === "string" ? candidato.variacaoAltura : (variacaoTecnicaDecomposta.altura || ""),
         variacaoKit: typeof candidato.variacaoKit === "string" ? candidato.variacaoKit : (variacaoTecnicaDecomposta.kit || ""),
         variacaoFechadura: typeof candidato.variacaoFechadura === "string" ? candidato.variacaoFechadura : (variacaoTecnicaDecomposta.fechadura || ""),
+        variacaoAplicacao: typeof candidato.variacaoAplicacao === "string" ? candidato.variacaoAplicacao : (variacaoTecnicaDecomposta.aplicacao || ""),
         variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
       }
     })
@@ -808,32 +866,12 @@ const calcularProjeto = (params: {
 
   // ── Calcular folhas de vidro ──────────────────────────────────────────────
   const isAplicavel = (varRestrita: string | null | undefined) => {
-    if (!varRestrita) return true
-    const partes = String(varRestrita).split(",").map(s => s.trim()).filter(Boolean)
-    if (partes.length === 0) return true
-    return partes.some(parte => {
-      if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawing && parte === variacaoDrawing
-      const eixo = getEixoVariacaoProjeto(parte)
-      if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
-      if (correspondeVariacaoVisualTextual(parte, variacaoDrawing)) return true
-      return correspondeRestricaoTecnica(parte, variacaoTecnica)
-    })
+    return correspondeRestricaoProjeto(varRestrita, variacaoDrawing, variacaoTecnica)
   }
 
   const isFolhaAplicavel = (varRestrita: string | null | undefined) => {
-    if (!varRestrita) return true
-    const partes = String(varRestrita).split(",").map(s => s.trim()).filter(Boolean)
-    if (partes.length === 0) return true
-
-    return partes.some(parte => {
-      if (projetoEBox && parte === "padrao" && variacaoTecnicaDecomposta.altura === "teto") {
-        return true
-      }
-      if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawing && parte === variacaoDrawing
-      const eixo = getEixoVariacaoProjeto(parte)
-      if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
-      if (correspondeVariacaoVisualTextual(parte, variacaoDrawing)) return true
-      return correspondeRestricaoTecnica(parte, variacaoTecnica)
+    return correspondeRestricaoProjeto(varRestrita, variacaoDrawing, variacaoTecnica, {
+      permitirBoxPadraoTeto: projetoEBox && variacaoTecnicaDecomposta.altura === "teto",
     })
   }
 
@@ -1512,6 +1550,7 @@ export default function CalculoProjetoPage() {
           variacaoAltura: "",
           variacaoKit: "",
           variacaoFechadura: "",
+          variacaoAplicacao: "",
           variacaoTrilho: "",
         }
       }
@@ -1566,19 +1605,11 @@ export default function CalculoProjetoPage() {
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
+        aplicacao: item.variacaoAplicacao,
       })
 
       const isAplicavel = (variacaoRestrita?: string | null) => {
-        if (!variacaoRestrita) return true
-        const partes = String(variacaoRestrita).split(",").map(s => s.trim()).filter(Boolean)
-        if (partes.length === 0) return true
-        return partes.some(parte => {
-          if (ehVariacaoDeDesenho(parte)) return !!item.variacaoDrawing && parte === item.variacaoDrawing
-          const eixo = getEixoVariacaoProjeto(parte)
-          if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnicaSelecionada)
-          if (correspondeVariacaoVisualTextual(parte, item.variacaoDrawing)) return true
-          return correspondeRestricaoTecnica(parte, variacaoTecnicaSelecionada)
-        })
+        return correspondeRestricaoProjeto(variacaoRestrita, item.variacaoDrawing, variacaoTecnicaSelecionada)
       }
 
       const kitsAplicaveis = detalhe.kits.filter((kit) => isAplicavel(kit.variacao_restrita))
@@ -1828,6 +1859,7 @@ export default function CalculoProjetoPage() {
       altura: item.variacaoAltura,
       kit: item.variacaoKit,
       fechadura: fechaduraInferida || item.variacaoFechadura,
+      aplicacao: item.variacaoAplicacao,
     })
     const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
     const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
@@ -1835,16 +1867,8 @@ export default function CalculoProjetoPage() {
     const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
 
     const isFolhaAplicavel = (varRestrita: string | null | undefined) => {
-      if (!varRestrita) return true
-      const partes = String(varRestrita).split(",").map((s) => s.trim()).filter(Boolean)
-      if (partes.length === 0) return true
-      return partes.some((parte) => {
-        if (projetoEBox && parte === "padrao" && variacaoTecnicaDecomposta.altura === "teto") return true
-        if (ehVariacaoDeDesenho(parte)) return !!variacaoDrawingAtiva && parte === variacaoDrawingAtiva
-        const eixo = getEixoVariacaoProjeto(parte)
-        if (eixo || parte.includes("|")) return correspondeRestricaoTecnica(parte, variacaoTecnica)
-        if (correspondeVariacaoVisualTextual(parte, variacaoDrawingAtiva)) return true
-        return correspondeRestricaoTecnica(parte, variacaoTecnica)
+      return correspondeRestricaoProjeto(varRestrita, variacaoDrawingAtiva, variacaoTecnica, {
+        permitirBoxPadraoTeto: projetoEBox && variacaoTecnicaDecomposta.altura === "teto",
       })
     }
 
@@ -1892,13 +1916,14 @@ export default function CalculoProjetoPage() {
       const atualizados = prev.map((item) => {
         const grupos = getGruposVariacaoTecnica(item)
         if (grupos.length === 0) {
-          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura) return item
+          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao) return item
           houveMudanca = true
           return {
             ...item,
             variacaoAltura: "",
             variacaoKit: "",
             variacaoFechadura: "",
+            variacaoAplicacao: "",
           }
         }
 
@@ -1931,6 +1956,11 @@ export default function CalculoProjetoPage() {
         if (!grupos.some((grupo) => grupo.key === "fechadura") && proximo.variacaoFechadura) {
           houveMudanca = true
           proximo = { ...proximo, variacaoFechadura: "" }
+        }
+
+        if (!grupos.some((grupo) => grupo.key === "aplicacao") && proximo.variacaoAplicacao) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoAplicacao: "" }
         }
 
         return proximo
@@ -2314,6 +2344,7 @@ export default function CalculoProjetoPage() {
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(variacaoDrawingAtiva) || item.variacaoFechadura,
+        aplicacao: item.variacaoAplicacao,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
       const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
@@ -2720,6 +2751,7 @@ export default function CalculoProjetoPage() {
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
                   fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
+                  aplicacao: item.variacaoAplicacao,
                 })
                 const getNomeVariacao = (value: string, fallback: string) => {
                   const custom = nomesVariacaoPersonalizados[value]

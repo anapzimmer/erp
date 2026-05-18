@@ -96,7 +96,7 @@ type FormData = {
   perfis: ProjetoPerfil[]
 }
 
-type ProjetoVisualTipo = "aberturas" | "portas" | "porta_giro" | "janelas" | "box" | "generico"
+type ProjetoVisualTipo = "aberturas" | "portas" | "porta_giro" | "pma" | "janelas" | "box" | "generico"
 
 type KitDBItem = {
   id: string
@@ -579,7 +579,7 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
     { label: "Desl. 6 Fls CI Completo", arquivo: "deslizante-6fls-ci-completo.png" },
     { label: "Desl. 6 Fls CI Simples", arquivo: "deslizante-6fls-ci-simples.png" },
   ],
-  "PMA": [
+  "Mão Amiga (PMA)": [
     { label: "PMA 2 Fls Completo", arquivo: "pma-2fs-completo.png" },
     { label: "PMA 2 Fls Simples", arquivo: "pma-2fs-simples.png" },
     { label: "PMA 3 Fls Completo", arquivo: "pma-3fs-completo.png" },
@@ -590,6 +590,16 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
     { label: "PMA 5 Fls Simples", arquivo: "pma-5fs-simples.png" },
     { label: "PMA 6 Fls Completo", arquivo: "pma-6fs-completo.png" },
     { label: "PMA 6 Fls Simples", arquivo: "pma-6fs-simples.png" },
+    { label: "PMA 12 Fls Completo", arquivo: "pma-12fs-completo.png" },
+    { label: "PMA 12 Fls Simples", arquivo: "pma-12fs-simples.png" },
+    { label: "PMA 13 Fls Completo", arquivo: "pma-13fs-completo.png" },
+    { label: "PMA 13 Fls Simples", arquivo: "pma-13fs-simples.png" },
+    { label: "PMA 14 Fls Completo", arquivo: "pma-14fs-completo.png" },
+    { label: "PMA 14 Fls Simples", arquivo: "pma-14fs-simples.png" },
+    { label: "PMA 15 Fls Completo", arquivo: "pma-15fs-completo.png" },
+    { label: "PMA 15 Fls Simples", arquivo: "pma-15fs-simples.png" },
+    { label: "PMA 24 Fls Completo", arquivo: "pma-24fs-completo.png" },
+    { label: "PMA 24 Fls Simples", arquivo: "pma-24fs-simples.png" },
   ],
   "Fixo": [
     { label: "Fixo 1 Folha", arquivo: "fixo-1folha.png" },
@@ -821,18 +831,29 @@ const FORM_VAZIO: FormData = {
 }
 
 const detectarTipoProjetoVisual = (dados: Pick<FormData, "nome" | "categoria" | "desenho">): ProjetoVisualTipo => {
-  const textoProjeto = `${dados.nome} ${dados.categoria} ${dados.desenho}`.toLowerCase()
+  const textoCadastro = `${dados.nome} ${dados.categoria}`.toLowerCase()
+  const textoDesenho = String(dados.desenho || "").toLowerCase()
+  const textoProjeto = `${textoCadastro} ${textoDesenho}`.toLowerCase()
+
+  if (/m[aã]o\s*amiga|pma/.test(textoCadastro)) return "pma"
+  if (/abertur/.test(textoCadastro)) return "aberturas"
+  if (/janela|maxim|basculante/.test(textoCadastro)) return "janelas"
+  if (/porta\s*de\s*giro|portagiro|giro/.test(textoCadastro)) return "porta_giro"
+  if (/porta|deslizante|pivotante/.test(textoCadastro)) return "portas"
+  if (/box/.test(textoCadastro)) return "box"
 
   if (/abertur/.test(textoProjeto)) return "aberturas"
   if (/janela|maxim|basculante/.test(textoProjeto)) return "janelas"
   if (/porta\s*de\s*giro|portagiro|giro/.test(textoProjeto)) return "porta_giro"
-  if (/porta|deslizante|pma|pivotante/.test(textoProjeto)) return "portas"
+  if (/m[aã]o\s*amiga|pma/.test(textoProjeto)) return "pma"
+  if (/porta|deslizante|pivotante/.test(textoProjeto)) return "portas"
   if (/box/.test(textoProjeto)) return "box"
   return "generico"
 }
 
 const getEspessuraPadraoKitPorTipo = (tipo: ProjetoVisualTipo) => {
   if (tipo === "portas" || tipo === "porta_giro") return "10mm"
+  if (tipo === "pma") return "8mm"
   if (tipo === "janelas") return "8mm"
   return "8mm"
 }
@@ -862,6 +883,15 @@ const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pi
       formula_largura: "L",
       formula_altura: "A - 10",
       observacao: "Porta de giro sem trilho. Variacao por fechadura 1520/1520TA.",
+    }
+  }
+
+  if (tipo === "pma") {
+    return {
+      tipo_folha: "Movel",
+      formula_largura: "L / 2",
+      formula_altura: "A - 30",
+      observacao: "Mao Amiga (PMA). Ajuste a formula conforme a quantidade de folhas do projeto.",
     }
   }
 
@@ -2084,6 +2114,7 @@ export default function ProjetosPage() {
 
   const projetoEhPorta = tipoProjetoVisual === "portas"
   const projetoEhPortaGiro = tipoProjetoVisual === "porta_giro"
+  const projetoEhPma = tipoProjetoVisual === "pma"
   const projetoUsaPresetVariacaoBox =
     tipoProjetoVisual === "box" ||
     normalizarBuscaItem(`${form.nome} ${form.categoria} ${desenhoAtual?.label || ""}`).includes("box")
@@ -2103,6 +2134,14 @@ export default function ProjetosPage() {
         corText: (["#15803d", "#0e7490"] as const)[indice % 2],
       }))
     : []
+  const opcoesRestricaoPma = projetoEhPma
+    ? (GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "aplicacao")?.options || []).map((opcao, indice) => ({
+        label: `Aplicacao: ${opcao.label}`,
+        arquivo: opcao.value,
+        corBg: (["#eff6ff", "#f0fdf4"] as const)[indice % 2],
+        corText: (["#1d4ed8", "#15803d"] as const)[indice % 2],
+      }))
+    : []
 
   // Opções planas de variação para usar nos selects de cada item (ferragem/kit/perfil)
   const variacaoOpcoesFlat = Array.from(new Map(
@@ -2117,22 +2156,25 @@ export default function ProjetosPage() {
       ),
       ...opcoesRestricaoBox,
       ...opcoesRestricaoGiro,
+      ...opcoesRestricaoPma,
     ].map((opcao) => [opcao.arquivo, opcao] as const)
   ).values())
   const temOpcoesRestricao = variacaoOpcoesFlat.length > 0
 
   // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
-  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op => isValorEixoAltura(op.arquivo))
+  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op =>
+    isValorEixoAltura(op.arquivo) || getEixoVariacaoProjeto(op.arquivo) === "aplicacao"
+  )
 
   // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
   const variacaoOpcoesKit = variacaoOpcoesFlat.filter(op => {
     if (ehVariacaoDeDesenho(op.arquivo)) return true
-    return getEixoVariacaoProjeto(op.arquivo) === "kit"
+    return ["kit", "aplicacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   })
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
   const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
-    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
   const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
@@ -2145,7 +2187,7 @@ export default function ProjetosPage() {
 
   // Para perfis: variações visuais + altura, sem eixo de kit
   const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter(op =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || getEixoVariacaoProjeto(op.arquivo) === "aplicacao"
   )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
@@ -3119,7 +3161,7 @@ export default function ProjetosPage() {
                         {variacaoOpcoesFolha.length > 0 && (
                           <div className="md:col-span-2">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Tipo de Box
+                              Aplicacao / variacao tecnica
                             </label>
                             <div className="flex flex-wrap gap-1.5">
                               {variacaoOpcoesFolha.map(op => {
