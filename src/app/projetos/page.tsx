@@ -374,6 +374,28 @@ const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 1
 }
 
+const detectarQuantidadeFolhasProjeto = (dados: Pick<FormData, "nome" | "categoria" | "desenho">): number | null => {
+  const texto = `${dados.nome} ${dados.categoria} ${dados.desenho}`.toLowerCase()
+  const match =
+    texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i) ||
+    texto.match(/\b(\d+)\s*(?:folhas?|fls?|fs)\b/i)
+
+  if (!match) return null
+  const quantidade = Number(match[1])
+  return Number.isFinite(quantidade) && quantidade > 0 ? quantidade : null
+}
+
+const contarFolhasMovimentacao = (valor: string): number | null => {
+  const texto = String(valor || "").toLowerCase()
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) return Number(todasMoveis[1])
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (!mistas) return null
+
+  return Number(mistas[1]) + Number(mistas[2])
+}
+
 const aplicarTrilhoNoTexto = (valor: string | null | undefined, trilhos: string | null | undefined) => {
   const textoBase = limparTextoSemTokens(valor, [TRILHO_TOKEN])
   if (!trilhos) return textoBase
@@ -477,6 +499,7 @@ type ProjetoFerragemPersistencia = {
   usar_no_kit: boolean
   usar_no_perfil: boolean
   observacao: string
+  variacao_restrita: string | null
 }
 
 type ProjetoPerfilPersistencia = {
@@ -1334,7 +1357,7 @@ export default function ProjetosPage() {
     const [folhas, kits, ferragens, perfis] = await Promise.all([
       supabase.from("projetos_folhas").select("projeto_id, numero_folha, tipo_folha, formula_largura, formula_altura, observacao").eq("projeto_id", projetoId),
       supabase.from("projetos_kits").select("projeto_id, kit_id, espessura_vidro, largura_referencia, altura_referencia, tolerancia_mm, observacao").eq("projeto_id", projetoId),
-      supabase.from("projetos_ferragens").select("projeto_id, ferragem_id, quantidade, usar_no_kit, usar_no_perfil, observacao").eq("projeto_id", projetoId),
+      supabase.from("projetos_ferragens").select("projeto_id, ferragem_id, quantidade, usar_no_kit, usar_no_perfil, observacao, variacao_restrita").eq("projeto_id", projetoId),
       supabase.from("projetos_perfis").select("projeto_id, perfil_id, qtd_largura, qtd_altura, qtd_outros, tipo_fornecimento").eq("projeto_id", projetoId),
     ])
 
@@ -1411,23 +1434,22 @@ export default function ProjetosPage() {
       })
     })
 
-    const ferragensPorId = new Map<string, ProjetoFerragemPersistencia>()
-    form.ferragens.forEach((ferragem) => {
-      const ferragemId = limparTextoSimples(ferragem.ferragem_id)
-      if (!ferragemId) return
+    const ferragens = form.ferragens
+      .map((ferragem) => {
+        const ferragemId = limparTextoSimples(ferragem.ferragem_id)
+        if (!ferragemId) return null
 
-      const existente = ferragensPorId.get(ferragemId)
-      const quantidadeAtual = Math.max(1, normalizarNumero(ferragem.quantidade, 1))
-
-      ferragensPorId.set(ferragemId, {
-        projeto_id: projetoId,
-        ferragem_id: ferragemId,
-        quantidade: existente ? somarSeDuplicado(existente.quantidade, quantidadeAtual) : quantidadeAtual,
-        usar_no_kit: Boolean(existente?.usar_no_kit || ferragem.usar_no_kit),
-        usar_no_perfil: Boolean(existente?.usar_no_perfil || ferragem.usar_no_perfil),
-        observacao: aplicarVariacaoNoTexto(limparTextoSimples(ferragem.observacao), ferragem.variacao_restrita),
+        return {
+          projeto_id: projetoId,
+          ferragem_id: ferragemId,
+          quantidade: Math.max(1, normalizarNumero(ferragem.quantidade, 1)),
+          usar_no_kit: Boolean(ferragem.usar_no_kit),
+          usar_no_perfil: Boolean(ferragem.usar_no_perfil),
+          observacao: aplicarVariacaoNoTexto(limparTextoSimples(ferragem.observacao), ferragem.variacao_restrita),
+          variacao_restrita: ferragem.variacao_restrita ?? null,
+        }
       })
-    })
+      .filter((ferragem): ferragem is ProjetoFerragemPersistencia => ferragem !== null)
 
     const perfisPorId = new Map<string, ProjetoPerfilPersistencia>()
     form.perfis.forEach((perfil) => {
@@ -1473,7 +1495,7 @@ export default function ProjetosPage() {
     return {
       folhas,
       kits: Array.from(kitsPorId.values()),
-      ferragens: Array.from(ferragensPorId.values()),
+      ferragens,
       perfis: Array.from(perfisPorId.values()),
     }
   }
@@ -1807,12 +1829,8 @@ export default function ProjetosPage() {
   }
 
   const getFerragensDisponiveis = (ferragemAtualId?: string) => {
-    const selecionadas = form.ferragens.map(item => String(item.ferragem_id))
     const ferragemAtualNome = form.ferragens.find((item) => String(item.ferragem_id) === String(ferragemAtualId || ""))?.nome
-    return getCatalogoFerragensParaLinha(ferragemAtualId, ferragemAtualNome).filter((item) => {
-      const id = String(item.id)
-      return id === String(ferragemAtualId || "") || !selecionadas.includes(id)
-    })
+    return getCatalogoFerragensParaLinha(ferragemAtualId, ferragemAtualNome)
   }
 
   const getFerragensFiltradas = (indice: number, ferragemAtualId?: string) =>
@@ -2115,6 +2133,7 @@ export default function ProjetosPage() {
   const projetoEhPorta = tipoProjetoVisual === "portas"
   const projetoEhPortaGiro = tipoProjetoVisual === "porta_giro"
   const projetoEhPma = tipoProjetoVisual === "pma"
+  const quantidadeFolhasPma = projetoEhPma ? detectarQuantidadeFolhasProjeto(form) : null
   const projetoUsaPresetVariacaoBox =
     tipoProjetoVisual === "box" ||
     normalizarBuscaItem(`${form.nome} ${form.categoria} ${desenhoAtual?.label || ""}`).includes("box")
@@ -2135,12 +2154,21 @@ export default function ProjetosPage() {
       }))
     : []
   const opcoesRestricaoPma = projetoEhPma
-    ? (GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "aplicacao")?.options || []).map((opcao, indice) => ({
-        label: `Aplicacao: ${opcao.label}`,
-        arquivo: opcao.value,
-        corBg: (["#eff6ff", "#f0fdf4"] as const)[indice % 2],
-        corText: (["#1d4ed8", "#15803d"] as const)[indice % 2],
-      }))
+    ? GRUPOS_VARIACAO_BOX
+        .filter((grupo) => grupo.key === "aplicacao" || grupo.key === "movimentacao")
+        .flatMap((grupo, grupoIndice) =>
+          grupo.options
+            .filter((opcao) => {
+              if (grupo.key !== "movimentacao" || !quantidadeFolhasPma) return true
+              return contarFolhasMovimentacao(opcao.value) === quantidadeFolhasPma
+            })
+            .map((opcao, indice) => ({
+              label: `${grupo.label}: ${opcao.label}`,
+              arquivo: opcao.value,
+              corBg: (["#eff6ff", "#f0fdf4", "#f5f3ff", "#fff7ed"] as const)[(grupoIndice + indice) % 4],
+              corText: (["#1d4ed8", "#15803d", "#6d28d9", "#ea580c"] as const)[(grupoIndice + indice) % 4],
+            }))
+        )
     : []
 
   // Opções planas de variação para usar nos selects de cada item (ferragem/kit/perfil)
@@ -2163,18 +2191,18 @@ export default function ProjetosPage() {
 
   // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
   const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op =>
-    isValorEixoAltura(op.arquivo) || getEixoVariacaoProjeto(op.arquivo) === "aplicacao"
+    isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
 
   // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
   const variacaoOpcoesKit = variacaoOpcoesFlat.filter(op => {
     if (ehVariacaoDeDesenho(op.arquivo)) return true
-    return ["kit", "aplicacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    return ["kit", "aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   })
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
   const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
-    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
   const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
@@ -2187,7 +2215,7 @@ export default function ProjetosPage() {
 
   // Para perfis: variações visuais + altura, sem eixo de kit
   const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter(op =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || getEixoVariacaoProjeto(op.arquivo) === "aplicacao"
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>

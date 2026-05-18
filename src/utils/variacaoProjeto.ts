@@ -1,4 +1,4 @@
-export type EixoVariacaoProjeto = "altura" | "kit" | "fechadura" | "aplicacao"
+export type EixoVariacaoProjeto = "altura" | "kit" | "fechadura" | "aplicacao" | "movimentacao"
 
 type OpcaoEixoVariacao = {
   value: string
@@ -43,6 +43,22 @@ export const GRUPOS_VARIACAO_BOX: GrupoEixoVariacaoProjeto[] = [
     options: [
       { value: "porta", label: "Porta" },
       { value: "janela", label: "Janela" },
+    ],
+  },
+  {
+    key: "movimentacao",
+    label: "Movimentacao",
+    options: [
+      { value: "3_moveis", label: "3 moveis" },
+      { value: "1_fixa_2_moveis", label: "1 fixa + 2 moveis" },
+      { value: "4_moveis", label: "4 moveis" },
+      { value: "1_fixa_3_moveis", label: "1 fixa + 3 moveis" },
+      { value: "2_fixas_2_moveis", label: "2 fixas + 2 moveis" },
+      { value: "5_moveis", label: "5 moveis" },
+      { value: "1_fixa_4_moveis", label: "1 fixa + 4 moveis" },
+      { value: "6_moveis", label: "6 moveis" },
+      { value: "1_fixa_5_moveis", label: "1 fixa + 5 moveis" },
+      { value: "2_fixas_4_moveis", label: "2 fixas + 4 moveis" },
     ],
   },
 ]

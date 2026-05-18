@@ -192,14 +192,16 @@ type ItemCalculoProjeto = {
   variacaoKit: string
   variacaoFechadura: string
   variacaoAplicacao: string
+  variacaoMovimentacao: string
   variacaoTrilho: TrilhoPorta | ""
 }
 
-const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura" | "variacaoAplicacao"> = {
+const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura" | "variacaoAplicacao" | "variacaoMovimentacao"> = {
   altura: "variacaoAltura",
   kit: "variacaoKit",
   fechadura: "variacaoFechadura",
   aplicacao: "variacaoAplicacao",
+  movimentacao: "variacaoMovimentacao",
 }
 
 const inferirFechaduraPeloDesenho = (arquivo?: string | null): string => {
@@ -359,11 +361,22 @@ const extrairQuantidadeFolhasDoNome = (valor?: string | null): number | null => 
   const texto = String(valor || "").toLowerCase()
   if (!texto) return null
 
-  const match = texto.match(/(\d+)\s*(?:fls?|folhas?)/i) || texto.match(/(\d+)fls?/i)
+  const match = texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i) || texto.match(/(\d+)\s*(?:fls?|folhas?|fs)/i) || texto.match(/(\d+)fls?/i)
   if (!match) return null
 
   const numero = Number(match[1])
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : null
+}
+
+const contarFolhasMovimentacao = (valor: string): number | null => {
+  const texto = String(valor || "").toLowerCase()
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) return Number(todasMoveis[1])
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (!mistas) return null
+
+  return Number(mistas[1]) + Number(mistas[2])
 }
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
@@ -688,6 +701,7 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   variacaoKit: "",
   variacaoFechadura: "",
   variacaoAplicacao: "",
+  variacaoMovimentacao: "",
   variacaoTrilho: "",
 })
 
@@ -710,6 +724,7 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.variacaoKit === "string"
     && typeof candidato.variacaoFechadura === "string"
     && typeof candidato.variacaoAplicacao === "string"
+    && typeof candidato.variacaoMovimentacao === "string"
     && (typeof candidato.variacaoTrilho === "string" || typeof candidato.variacaoTrilho === "undefined")
 }
 
@@ -740,6 +755,7 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         variacaoKit: typeof candidato.variacaoKit === "string" ? candidato.variacaoKit : (variacaoTecnicaDecomposta.kit || ""),
         variacaoFechadura: typeof candidato.variacaoFechadura === "string" ? candidato.variacaoFechadura : (variacaoTecnicaDecomposta.fechadura || ""),
         variacaoAplicacao: typeof candidato.variacaoAplicacao === "string" ? candidato.variacaoAplicacao : (variacaoTecnicaDecomposta.aplicacao || ""),
+        variacaoMovimentacao: typeof candidato.variacaoMovimentacao === "string" ? candidato.variacaoMovimentacao : (variacaoTecnicaDecomposta.movimentacao || ""),
         variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
       }
     })
@@ -1551,6 +1567,7 @@ export default function CalculoProjetoPage() {
           variacaoKit: "",
           variacaoFechadura: "",
           variacaoAplicacao: "",
+          variacaoMovimentacao: "",
           variacaoTrilho: "",
         }
       }
@@ -1606,6 +1623,7 @@ export default function CalculoProjetoPage() {
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
+        movimentacao: item.variacaoMovimentacao,
       })
 
       const isAplicavel = (variacaoRestrita?: string | null) => {
@@ -1844,8 +1862,37 @@ export default function CalculoProjetoPage() {
   }, [desenhosDisponiveis, getProjeto, getRestricoesProjeto, variacoesCustom])
 
   const getGruposVariacaoTecnica = useCallback(
-    (item: ItemCalculoProjeto) => getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item)),
-    [getRestricoesProjeto]
+    (item: ItemCalculoProjeto) => {
+      const grupos = getGruposVariacaoTecnicaDisponiveis(getRestricoesProjeto(item))
+      const projeto = getProjeto(item)
+      const textoProjeto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`.toLowerCase()
+      const projetoPma = /m[aã]o\s*amiga|pma/.test(textoProjeto)
+      const quantidadeFolhas = projetoPma ? extrairQuantidadeFolhasDoNome(textoProjeto) : null
+      const grupoMovimentacao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "movimentacao")
+
+      if (!projetoPma || !quantidadeFolhas || !grupoMovimentacao) return grupos
+
+      const opcoesMovimentacao = grupoMovimentacao.options.filter((opcao) =>
+        contarFolhasMovimentacao(opcao.value) === quantidadeFolhas
+      )
+      if (opcoesMovimentacao.length === 0) return grupos
+
+      const gruposSemMovimentacao = grupos.filter((grupo) => grupo.key !== "movimentacao")
+      const grupoExistente = grupos.find((grupo) => grupo.key === "movimentacao")
+      const valores = new Set([
+        ...(grupoExistente?.options || []).map((opcao) => opcao.value),
+        ...opcoesMovimentacao.map((opcao) => opcao.value),
+      ])
+
+      return [
+        ...gruposSemMovimentacao,
+        {
+          ...grupoMovimentacao,
+          options: grupoMovimentacao.options.filter((opcao) => valores.has(opcao.value)),
+        },
+      ]
+    },
+    [getProjeto, getRestricoesProjeto]
   )
 
   const getQuantidadeFolhasAplicaveis = (item: ItemCalculoProjeto): number => {
@@ -1860,6 +1907,7 @@ export default function CalculoProjetoPage() {
       kit: item.variacaoKit,
       fechadura: fechaduraInferida || item.variacaoFechadura,
       aplicacao: item.variacaoAplicacao,
+      movimentacao: item.variacaoMovimentacao,
     })
     const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
     const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
@@ -1916,7 +1964,7 @@ export default function CalculoProjetoPage() {
       const atualizados = prev.map((item) => {
         const grupos = getGruposVariacaoTecnica(item)
         if (grupos.length === 0) {
-          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao) return item
+          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao && !item.variacaoMovimentacao) return item
           houveMudanca = true
           return {
             ...item,
@@ -1924,6 +1972,7 @@ export default function CalculoProjetoPage() {
             variacaoKit: "",
             variacaoFechadura: "",
             variacaoAplicacao: "",
+            variacaoMovimentacao: "",
           }
         }
 
@@ -1961,6 +2010,11 @@ export default function CalculoProjetoPage() {
         if (!grupos.some((grupo) => grupo.key === "aplicacao") && proximo.variacaoAplicacao) {
           houveMudanca = true
           proximo = { ...proximo, variacaoAplicacao: "" }
+        }
+
+        if (!grupos.some((grupo) => grupo.key === "movimentacao") && proximo.variacaoMovimentacao) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoMovimentacao: "" }
         }
 
         return proximo
@@ -2345,6 +2399,7 @@ export default function CalculoProjetoPage() {
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(variacaoDrawingAtiva) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
+        movimentacao: item.variacaoMovimentacao,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
       const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
@@ -2752,6 +2807,7 @@ export default function CalculoProjetoPage() {
                   kit: item.variacaoKit,
                   fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
                   aplicacao: item.variacaoAplicacao,
+                  movimentacao: item.variacaoMovimentacao,
                 })
                 const getNomeVariacao = (value: string, fallback: string) => {
                   const custom = nomesVariacaoPersonalizados[value]
