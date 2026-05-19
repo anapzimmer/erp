@@ -689,9 +689,12 @@ export default function RelatorioOrçamento() {
                                                                     const ehFechamentoSacada = tipoItem === "fechamento_sacada";
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
                                                                     const ehCalculoprojeto = tipoItem === "calculoprojeto";
+                                                                    const ehMaoAmiga = tipoItem === "mao_amiga";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehFechamentoSacada
                                                                         ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehMaoAmiga
+                                                                        ? `/calculo/maoamiga?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehEspelho
@@ -1049,13 +1052,14 @@ export default function RelatorioOrçamento() {
                                                 />
                                             );
                                         }
-                                        // Sacada Frontal
-                                        if (tipo === "sacada_frontal" || ehSacadaVisualizar) {
+                                        // Sacada Frontal / Mão Amiga
+                                        if (tipo === "sacada_frontal" || tipo === "mao_amiga" || ehSacadaVisualizar) {
                                             const sacadaData = itensRaw as Record<string, unknown>;
+                                            const ehMaoAmigaPreview = tipo === "mao_amiga";
                                             const largVao = Number(sacadaData.larguraVaoMm) || 0;
                                             const altVao = Number(sacadaData.alturaVaoMm) || 0;
                                             const qtdVaos = Number(sacadaData.quantidadeVaos) || 0;
-                                            const divVao = Number(sacadaData.divisoesPorVao) || 1;
+                                            const divVao = Number(sacadaData.quantidadeFolhas) || Number(sacadaData.divisoesPorVao) || 1;
                                             const sacResult = calcularSacadaFrontal({
                                                 larguraVaoMm: largVao,
                                                 alturaVaoMm: altVao,
@@ -1089,6 +1093,7 @@ export default function RelatorioOrçamento() {
                                             const totalVidro = Math.max(0, totalGeral - totalPerfis - totalAcessorios);
                                             return (
                                                 <SacadaFrontalPDF
+                                                    tituloDocumento={ehMaoAmigaPreview ? "Orçamento Mão Amiga" : undefined}
                                                     nomeEmpresa={nomeEmpresa}
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     themeColor={theme.contentTextLightBg}
