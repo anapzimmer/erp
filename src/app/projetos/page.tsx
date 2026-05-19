@@ -2138,7 +2138,7 @@ export default function ProjetosPage() {
     : []
   const opcoesRestricaoPma = projetoEhPma
     ? GRUPOS_VARIACAO_BOX
-        .filter((grupo) => grupo.key === "aplicacao" || grupo.key === "movimentacao")
+        .filter((grupo) => grupo.key === "aplicacao" || grupo.key === "movimentacao" || grupo.key === "versao")
         .flatMap((grupo, grupoIndice) =>
           grupo.options
             .filter((opcao) => {
@@ -2179,18 +2179,18 @@ export default function ProjetosPage() {
 
   // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
   const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op =>
-    isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
 
   // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
   const variacaoOpcoesKit = variacaoOpcoesFlat.filter(op => {
     if (ehVariacaoDeDesenho(op.arquivo)) return true
-    return ["kit", "aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    return ["kit", "aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   })
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
   const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
-    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
   const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
     ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
@@ -2203,7 +2203,7 @@ export default function ProjetosPage() {
 
   // Para perfis: variações visuais + altura, sem eixo de kit
   const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter(op =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
   )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>

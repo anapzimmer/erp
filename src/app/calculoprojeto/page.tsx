@@ -193,15 +193,17 @@ type ItemCalculoProjeto = {
   variacaoFechadura: string
   variacaoAplicacao: string
   variacaoMovimentacao: string
+  variacaoVersao: string
   variacaoTrilho: TrilhoPorta | ""
 }
 
-const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura" | "variacaoAplicacao" | "variacaoMovimentacao"> = {
+const CAMPO_VARIACAO_TECNICA: Record<EixoVariacaoProjeto, "variacaoAltura" | "variacaoKit" | "variacaoFechadura" | "variacaoAplicacao" | "variacaoMovimentacao" | "variacaoVersao"> = {
   altura: "variacaoAltura",
   kit: "variacaoKit",
   fechadura: "variacaoFechadura",
   aplicacao: "variacaoAplicacao",
   movimentacao: "variacaoMovimentacao",
+  versao: "variacaoVersao",
 }
 
 const inferirFechaduraPeloDesenho = (arquivo?: string | null): string => {
@@ -362,7 +364,18 @@ const extrairQuantidadeFolhasDoNome = (valor?: string | null): number | null => 
   const texto = String(valor || "").toLowerCase()
   if (!texto) return null
 
-  const match = texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i) || texto.match(/(\d+)\s*(?:fls?|folhas?|fs)/i) || texto.match(/(\d+)fls?/i)
+  const pmaMatch = texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i)
+  if (pmaMatch) {
+    const codigo = pmaMatch[1]
+    if (codigo.length > 1) {
+      const total = codigo.split("").reduce((soma, parte) => soma + Number(parte || 0), 0)
+      return total > 0 ? total : null
+    }
+    const numeroPma = Number(codigo)
+    return Number.isFinite(numeroPma) && numeroPma > 0 ? Math.round(numeroPma) : null
+  }
+
+  const match = texto.match(/(\d+)\s*(?:fls?|folhas?|fs)/i) || texto.match(/(\d+)fls?/i)
   if (!match) return null
 
   const numero = Number(match[1])
@@ -378,6 +391,11 @@ const contarFolhasMovimentacao = (valor: string): number | null => {
   if (!mistas) return null
 
   return Number(mistas[1]) + Number(mistas[2])
+}
+
+const ehOpcaoMovimentacaoPmaPermitida = (valor: string) => {
+  const texto = String(valor || "").toLowerCase()
+  return /^(\d+)_moveis$/.test(texto) || /^1_fixas?_(\d+)_moveis$/.test(texto)
 }
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
@@ -555,7 +573,7 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
   }
 
   if (/^pma-\d+fs-(simples\d*|completo\d*|completa\d*)$/i.test(stem)) {
-    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+    return null
   }
 
   if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*))?$/i.test(stem)) {
@@ -581,6 +599,53 @@ const normalizarArquivoDesenho = (valor: string, arquivosDisponiveis: string[] =
   )
 
   return encontrado || `${arquivo}.png`
+}
+
+const projetoEhPma = (projeto?: Projeto | null) => {
+  const texto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  return /\b(pma|mao\s*amiga)\b/.test(texto)
+}
+
+const getStemDesenhoPmaPorMovimentacao = (movimentacao?: string | null): string | null => {
+  const texto = String(movimentacao || "").trim().toLowerCase()
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) return `pma-${Number(todasMoveis[1])}fs`
+
+  const umaFixa = texto.match(/^1_fixas?_(\d+)_moveis$/)
+  if (umaFixa) return `pma-1${Number(umaFixa[1])}fs`
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (mistas) return `pma-${Number(mistas[1])}${Number(mistas[2])}fs`
+
+  return null
+}
+
+const getSufixoDesenhoPmaPorVersao = (versao?: string | null): "simples" | "completo" | null => {
+  const texto = String(versao || "").trim().toLowerCase()
+  if (texto === "pma_simples" || texto === "simples") return "simples"
+  if (texto === "pma_completa" || texto === "pma_completo" || texto === "completa" || texto === "completo") return "completo"
+  return null
+}
+
+const resolverDesenhoPmaSelecionado = (
+  projeto: Projeto | null,
+  item: Pick<ItemCalculoProjeto, "variacaoMovimentacao" | "variacaoVersao">,
+  desenhosDisponiveis: string[]
+): string => {
+  if (!projetoEhPma(projeto)) return ""
+
+  const stem = getStemDesenhoPmaPorMovimentacao(item.variacaoMovimentacao)
+  const sufixo = getSufixoDesenhoPmaPorVersao(item.variacaoVersao)
+  if (!stem || !sufixo) return ""
+
+  const arquivo = normalizarArquivoDesenho(`${stem}-${sufixo}`, desenhosDisponiveis)
+  const existe = desenhosDisponiveis.some((disponivel) => disponivel.toLowerCase() === arquivo.toLowerCase())
+
+  return existe ? arquivo : ""
 }
 
 const getVariacoesAutomaticasProjeto = (
@@ -703,6 +768,7 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   variacaoFechadura: "",
   variacaoAplicacao: "",
   variacaoMovimentacao: "",
+  variacaoVersao: "",
   variacaoTrilho: "",
 })
 
@@ -726,6 +792,7 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.variacaoFechadura === "string"
     && typeof candidato.variacaoAplicacao === "string"
     && typeof candidato.variacaoMovimentacao === "string"
+    && (typeof candidato.variacaoVersao === "string" || typeof candidato.variacaoVersao === "undefined")
     && (typeof candidato.variacaoTrilho === "string" || typeof candidato.variacaoTrilho === "undefined")
 }
 
@@ -757,6 +824,7 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         variacaoFechadura: typeof candidato.variacaoFechadura === "string" ? candidato.variacaoFechadura : (variacaoTecnicaDecomposta.fechadura || ""),
         variacaoAplicacao: typeof candidato.variacaoAplicacao === "string" ? candidato.variacaoAplicacao : (variacaoTecnicaDecomposta.aplicacao || ""),
         variacaoMovimentacao: typeof candidato.variacaoMovimentacao === "string" ? candidato.variacaoMovimentacao : (variacaoTecnicaDecomposta.movimentacao || ""),
+        variacaoVersao: typeof candidato.variacaoVersao === "string" ? candidato.variacaoVersao : (variacaoTecnicaDecomposta.versao || ""),
         variacaoTrilho: typeof candidato.variacaoTrilho === "string" ? (candidato.variacaoTrilho as ItemCalculoProjeto["variacaoTrilho"]) : "",
       }
     })
@@ -1569,6 +1637,7 @@ export default function CalculoProjetoPage() {
           variacaoFechadura: "",
           variacaoAplicacao: "",
           variacaoMovimentacao: "",
+          variacaoVersao: "",
           variacaoTrilho: "",
         }
       }
@@ -1625,6 +1694,7 @@ export default function CalculoProjetoPage() {
         fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
         movimentacao: item.variacaoMovimentacao,
+        versao: item.variacaoVersao,
       })
 
       const isAplicavel = (variacaoRestrita?: string | null) => {
@@ -1870,27 +1940,37 @@ export default function CalculoProjetoPage() {
       const projetoPma = /m[aã]o\s*amiga|pma/.test(textoProjeto)
       const quantidadeFolhas = projetoPma ? extrairQuantidadeFolhasDoNome(textoProjeto) : null
       const grupoMovimentacao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "movimentacao")
+      const grupoVersao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "versao")
 
-      if (!projetoPma || !quantidadeFolhas || !grupoMovimentacao) return grupos
+      if (!projetoPma) return grupos
 
-      const opcoesMovimentacao = grupoMovimentacao.options.filter((opcao) =>
-        contarFolhasMovimentacao(opcao.value) === quantidadeFolhas
-      )
-      if (opcoesMovimentacao.length === 0) return grupos
+      const opcoesMovimentacao = grupoMovimentacao?.options.filter((opcao) =>
+        ehOpcaoMovimentacaoPmaPermitida(opcao.value)
+          && (!quantidadeFolhas || contarFolhasMovimentacao(opcao.value) === quantidadeFolhas)
+      ) || []
 
-      const gruposSemMovimentacao = grupos.filter((grupo) => grupo.key !== "movimentacao")
-      const grupoExistente = grupos.find((grupo) => grupo.key === "movimentacao")
-      const valores = new Set([
-        ...(grupoExistente?.options || []).map((opcao) => opcao.value),
+      const gruposSemPma = grupos.filter((grupo) => grupo.key !== "movimentacao" && grupo.key !== "versao")
+      const grupoMovimentacaoExistente = grupos.find((grupo) => grupo.key === "movimentacao")
+      const valoresMovimentacao = new Set([
+        ...(grupoMovimentacaoExistente?.options || []).map((opcao) => opcao.value),
         ...opcoesMovimentacao.map((opcao) => opcao.value),
+      ])
+      const grupoVersaoExistente = grupos.find((grupo) => grupo.key === "versao")
+      const valoresVersao = new Set([
+        ...(grupoVersaoExistente?.options || []).map((opcao) => opcao.value),
+        ...(grupoVersao?.options || []).map((opcao) => opcao.value),
       ])
 
       return [
-        ...gruposSemMovimentacao,
-        {
+        ...gruposSemPma,
+        ...(grupoMovimentacao && opcoesMovimentacao.length > 0 ? [{
           ...grupoMovimentacao,
-          options: grupoMovimentacao.options.filter((opcao) => valores.has(opcao.value)),
-        },
+          options: grupoMovimentacao.options.filter((opcao) => valoresMovimentacao.has(opcao.value)),
+        }] : []),
+        ...(grupoVersao ? [{
+          ...grupoVersao,
+          options: grupoVersao.options.filter((opcao) => valoresVersao.has(opcao.value)),
+        }] : []),
       ]
     },
     [getProjeto, getRestricoesProjeto]
@@ -1901,7 +1981,8 @@ export default function CalculoProjetoPage() {
     const projeto = getProjeto(item)
     if (!detalhe || !projeto) return 0
 
-    const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
+    const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
+    const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
     const fechaduraInferida = inferirFechaduraPeloDesenho(variacaoDrawingAtiva)
     const variacaoTecnica = montarVariacaoTecnica({
       altura: item.variacaoAltura,
@@ -1909,6 +1990,7 @@ export default function CalculoProjetoPage() {
       fechadura: fechaduraInferida || item.variacaoFechadura,
       aplicacao: item.variacaoAplicacao,
       movimentacao: item.variacaoMovimentacao,
+      versao: item.variacaoVersao,
     })
     const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
     const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
@@ -1965,7 +2047,7 @@ export default function CalculoProjetoPage() {
       const atualizados = prev.map((item) => {
         const grupos = getGruposVariacaoTecnica(item)
         if (grupos.length === 0) {
-          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao && !item.variacaoMovimentacao) return item
+          if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao && !item.variacaoMovimentacao && !item.variacaoVersao) return item
           houveMudanca = true
           return {
             ...item,
@@ -1974,6 +2056,7 @@ export default function CalculoProjetoPage() {
             variacaoFechadura: "",
             variacaoAplicacao: "",
             variacaoMovimentacao: "",
+            variacaoVersao: "",
           }
         }
 
@@ -2016,6 +2099,11 @@ export default function CalculoProjetoPage() {
         if (!grupos.some((grupo) => grupo.key === "movimentacao") && proximo.variacaoMovimentacao) {
           houveMudanca = true
           proximo = { ...proximo, variacaoMovimentacao: "" }
+        }
+
+        if (!grupos.some((grupo) => grupo.key === "versao") && proximo.variacaoVersao) {
+          houveMudanca = true
+          proximo = { ...proximo, variacaoVersao: "" }
         }
 
         return proximo
@@ -2399,13 +2487,15 @@ export default function CalculoProjetoPage() {
       }
 
       const precoVidroM2Aplicado = getPrecoVidroM2(item)
-      const variacaoDrawingAtiva = String(item.variacaoDrawing || projeto.desenho || "").trim()
+      const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
+      const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
       const variacaoTecnica = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(variacaoDrawingAtiva) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
         movimentacao: item.variacaoMovimentacao,
+        versao: item.variacaoVersao,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
       const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
@@ -2808,20 +2898,22 @@ export default function CalculoProjetoPage() {
                 const coresMaterial = getCoresMaterial(item)
                 const variacoesDesenho = getVariacoesDesenhoDisponiveis(item)
                 const gruposVariacaoTecnica = getGruposVariacaoTecnica(item)
+                const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projetoSel, item, desenhosDisponiveis)
+                const desenhoPreview = (desenhoPmaSelecionado || (item.variacaoDrawing && ehVariacaoDeDesenho(item.variacaoDrawing)
+                  ? item.variacaoDrawing
+                  : projetoSel?.desenho || "")).trim()
                 const variacaoTecnicaSelecionada = montarVariacaoTecnica({
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
-                  fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
+                  fechadura: inferirFechaduraPeloDesenho(desenhoPreview) || item.variacaoFechadura,
                   aplicacao: item.variacaoAplicacao,
                   movimentacao: item.variacaoMovimentacao,
+                  versao: item.variacaoVersao,
                 })
                 const getNomeVariacao = (value: string, fallback: string) => {
                   const custom = nomesVariacaoPersonalizados[value]
                   return custom && custom.trim() ? custom : fallback
                 }
-                const desenhoPreview = (item.variacaoDrawing && ehVariacaoDeDesenho(item.variacaoDrawing)
-                  ? item.variacaoDrawing
-                  : projetoSel?.desenho || "").trim()
                 const labelDesenhoPreview = desenhoPreview
                   ? getNomeVariacao(desenhoPreview, formatarLabelVariacaoArquivo(desenhoPreview))
                   : ""
