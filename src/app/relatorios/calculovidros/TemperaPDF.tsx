@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   larguraInfo: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 8,
+    marginTop: 8,
   },
   medidaItem: {
     flexDirection: "row",
@@ -177,13 +177,6 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
                   <View style={styles.desenhoArea}>
                     <View style={styles.desenhoLinha}>
                       <View style={styles.desenhoPrincipal}>
-                        <View style={styles.larguraInfo}>
-                          <View style={styles.medidaItem}>
-                            <Text style={styles.medidaLabel}>Largura:</Text>
-                            <Text style={styles.medidaValor}>{larguraMed}</Text>
-                          </View>
-                        </View>
-
                         <View style={styles.desenhoComAltura}>
                           <View style={styles.desenhoWrap}>
                             {item.desenhoUrl ? <PdfImage src={item.desenhoUrl} style={styles.desenho} /> : null}
@@ -193,6 +186,13 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
                               <Text style={styles.medidaLabel}>Altura:</Text>
                               <Text style={styles.medidaValor}>{alturaMed}</Text>
                             </View>
+                          </View>
+                        </View>
+
+                        <View style={styles.larguraInfo}>
+                          <View style={styles.medidaItem}>
+                            <Text style={styles.medidaLabel}>Largura:</Text>
+                            <Text style={styles.medidaValor}>{larguraMed}</Text>
                           </View>
                         </View>
                       </View>

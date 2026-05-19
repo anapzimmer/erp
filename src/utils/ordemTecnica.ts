@@ -11,10 +11,26 @@ const ORDEM_PERFIS_LOGICA = [
   "inferior",
   "clic",
   "perfil u",
-  "u",
   "transpasse",
   "cadeirinha",
+  "outro perfil u",
+  "tubo",
+  "cantoneira",
 ]
+
+const ehPerfilU = (nome: string): boolean => {
+  const compacto = nome.replace(/[^a-z0-9]/g, "")
+  return (
+    /\bperfil\W*u\b/.test(nome) ||
+    /\bu\W*perfil\b/.test(nome) ||
+    compacto.includes("perfilu") ||
+    compacto.includes("ubaguete") ||
+    nome.includes("baguete")
+  )
+}
+
+const temCodigoPerfil = (nome: string, codigo: string): boolean =>
+  nome.replace(/[^a-z0-9]/g, "").includes(codigo.toLowerCase())
 
 const ORDEM_FERRAGENS_LOGICA = [
   ["1101a", "1101 a"],
@@ -39,8 +55,13 @@ export const getPesoPerfilLogico = (nomePerfil?: string | null): number => {
   for (let i = 0; i < ORDEM_PERFIS_LOGICA.length; i += 1) {
     const termo = ORDEM_PERFIS_LOGICA[i]
 
-    if (termo === "u") {
-      if (/\b(u|u\s*perfil|perfil\s*u)\b/.test(nome)) return i
+    if (termo === "perfil u") {
+      if (ehPerfilU(nome) && (temCodigoPerfil(nome, "vt10") || temCodigoPerfil(nome, "vt66"))) return i
+      continue
+    }
+
+    if (termo === "outro perfil u") {
+      if (ehPerfilU(nome)) return i
       continue
     }
 

@@ -21,6 +21,7 @@ interface ItemVidro {
     medidaReal: string;
     medidaCalc: string;
     qtd: number;
+    quantidadePecas?: number;
     total: number;
     valorServicoUn?: number;
     planoCorte?: Array<{
@@ -102,6 +103,7 @@ const styles = StyleSheet.create({
     rowPerfilConsolidado: { backgroundColor: '#F8FAFC' },
     tituloCabecalhoProjeto: { fontSize: 8.5, fontWeight: 'bold' },
     seloConsolidado: { marginTop: 3, fontSize: 6.5, color: '#64748B' },
+    vidroDestaque: { fontSize: 7.2, color: '#1C415B', marginTop: 3, fontWeight: 'bold' },
     descricaoComDesenho: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
     descricaoTexto: { flex: 1 },
     desenhoThumbBox: {
@@ -117,10 +119,9 @@ const styles = StyleSheet.create({
         objectFit: 'contain',
     },
 
-    colDesc: { width: '39%' },
-    colQtd: { width: '9%', textAlign: 'center' },
-    colVao: { width: '18%', textAlign: 'center' },
-    colPrecoM2: { width: '14%', textAlign: 'center' },
+    colDesc: { width: '48%' },
+    colQtd: { width: '10%', textAlign: 'center' },
+    colVao: { width: '22%', textAlign: 'center' },
     colTotal: { width: '20%', textAlign: 'right' },
 
     summaryContainer: {
@@ -155,7 +156,6 @@ export function CalculoVidroPDF({
     textColor,
     nomeCliente,
     nomeObra,
-    pesoTotal,
     metragemTotal,
     valorTotal,
     totalPecas,
@@ -165,16 +165,11 @@ export function CalculoVidroPDF({
     const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
     const comprimentoBarraItem = (item: ItemVidro) => parseInt(String(item.medidaReal || '').replace(/\D/g, ''), 10) || 0;
-    const calcularValorUnitarioItem = (item: ItemVidro) => {
-        if (typeof item.valorUnitario === 'number' && !Number.isNaN(item.valorUnitario)) {
-            return item.valorUnitario;
-        }
-
-        const quantidade = Number(item.qtd || 0);
-        if (!quantidade) return Number(item.total || 0);
-
-        return Number(item.total || 0) / quantidade;
-    };
+    const quantidadePecasTotal = itens.reduce((total, item) => {
+        const quantidadeVaos = Math.max(0, Number(item.qtd || 0));
+        const pecasPorVao = Math.max(0, Number(item.quantidadePecas ?? 1));
+        return total + (quantidadeVaos * pecasPorVao);
+    }, 0);
 
     return (
         <Document>
@@ -205,10 +200,9 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, styles.colDesc]}>Vidro</Text>
-                        <Text style={[styles.tableColHeader, styles.colQtd]}>QTDE</Text>
+                        <Text style={[styles.tableColHeader, styles.colDesc]}>Projeto</Text>
+                        <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd. Vaos</Text>
                         <Text style={[styles.tableColHeader, styles.colVao]}>Larg x Alt</Text>
-                        <Text style={[styles.tableColHeader, styles.colPrecoM2]}>Preco m²</Text>
                         <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
                     </View>
 
@@ -237,13 +231,8 @@ export function CalculoVidroPDF({
                                         {ehPerfilConsolidado(item) && (
                                             <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
                                         )}
-                                        {item.medidaCalc && item.medidaCalc !== '-' && (
-                                            <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
-                                                Medida de cálculo: {item.medidaCalc}
-                                            </Text>
-                                        )}
                                         {item.corVidro && item.corVidro !== '-' && (
-                                            <Text style={{ fontSize: 6.5, color: '#64748B', marginTop: 2 }}>
+                                            <Text style={[styles.vidroDestaque, { color: contentColor }]}>
                                                 Cor do vidro: {item.corVidro}
                                             </Text>
                                         )}
@@ -309,9 +298,6 @@ export function CalculoVidroPDF({
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
                             <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaReal || '-'}</Text>
-                            <Text style={[styles.tableCol, styles.colPrecoM2, { color: contentColor }]}>
-                                {Number(item.precoVidroM2 || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                            </Text>
                             <Text style={[styles.tableCol, styles.colTotal, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
@@ -323,16 +309,16 @@ export function CalculoVidroPDF({
                 <View style={styles.summaryContainer}>
                     <View style={styles.summaryGroup}>
                         <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Total Peças</Text>
+                            <Text style={styles.summaryLabel}>Qtd. Vãos</Text>
                             <Text style={[styles.summaryValue, { color: contentColor }]}>{totalPecas} un</Text>
+                        </View>
+                        <View style={styles.summaryItem}>
+                            <Text style={styles.summaryLabel}>Qtd. Peças</Text>
+                            <Text style={[styles.summaryValue, { color: contentColor }]}>{quantidadePecasTotal} un</Text>
                         </View>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Metragem</Text>
                             <Text style={[styles.summaryValue, { color: contentColor }]}>{metragemTotal.toFixed(3)} m²</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Peso Total</Text>
-                            <Text style={[styles.summaryValue, { color: contentColor }]}>{pesoTotal.toFixed(3)} kg</Text>
                         </View>
                     </View>
 

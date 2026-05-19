@@ -30,6 +30,86 @@ const extrairMedidasVao = (vao?: string | null) => {
   }
 }
 
+const normalizarPerfil = (codigo?: string | null, nome?: string | null) =>
+  `${codigo || ""} ${nome || ""}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+
+const ehPerfilU = (texto: string) => {
+  const compacto = texto.replace(/[^a-z0-9]/g, "")
+  return (
+    /\bperfil\W*u\b/.test(texto) ||
+    /\bu\W*perfil\b/.test(texto) ||
+    compacto.includes("perfilu") ||
+    compacto.includes("ubaguete") ||
+    texto.includes("baguete")
+  )
+}
+
+const temCodigoPerfil = (texto: string, codigo: string) =>
+  texto.replace(/[^a-z0-9]/g, "").includes(codigo.toLowerCase())
+
+const getPesoEspessuraPerfil = (codigo?: string | null, nome?: string | null) => {
+  const texto = normalizarPerfil(codigo, nome).replace(",", ".")
+  if (/(^|\D)10\s*mm?\b/.test(texto) || texto.includes("10mm")) return 0
+  if (/(^|\D)0?8\s*mm?\b/.test(texto) || texto.includes("08mm") || texto.includes("8mm")) return 1
+  if (ehPerfilU(texto) && temCodigoPerfil(texto, "vt10")) return 0
+  if (ehPerfilU(texto) && temCodigoPerfil(texto, "vt66")) return 1
+  return 2
+}
+
+const ordemTipoPerfil = [
+  "superior",
+  "capa",
+  "inferior",
+  "clic",
+  "click",
+  "perfil u",
+  "transpasse",
+  "cadeirinha",
+  "outro perfil u",
+  "tubo",
+  "cantoneira",
+]
+
+const getPesoTipoPerfil = (codigo?: string | null, nome?: string | null, espessura = 2) => {
+  const texto = normalizarPerfil(codigo, nome)
+  if (ehPerfilU(texto)) {
+    if (espessura === 0 && temCodigoPerfil(texto, "vt10")) return ordemTipoPerfil.indexOf("perfil u")
+    if (espessura === 1 && temCodigoPerfil(texto, "vt66")) return ordemTipoPerfil.indexOf("perfil u")
+    if (espessura === 2 && (temCodigoPerfil(texto, "vt10") || temCodigoPerfil(texto, "vt66"))) return ordemTipoPerfil.indexOf("perfil u")
+    return ordemTipoPerfil.indexOf("outro perfil u")
+  }
+
+  if (texto.includes("baguete")) {
+    return ordemTipoPerfil.indexOf("perfil u")
+  }
+
+  const index = ordemTipoPerfil.findIndex((termo) => texto.includes(termo))
+  return index >= 0 ? index : ordemTipoPerfil.length
+}
+
+const formatarPerfil = (codigo?: string | null, nome?: string | null) => {
+  const codigoLimpo = codigo?.trim()
+  return codigoLimpo ? `${codigoLimpo} | ${nome || "-"}` : nome || "-"
+}
+
+const ordenarPerfisRelatorio = <
+  T extends { perfilCodigo?: string | null; perfilNome: string },
+>(a: T, b: T) => {
+  const pesoA = getPesoEspessuraPerfil(a.perfilCodigo, a.perfilNome)
+  const pesoB = getPesoEspessuraPerfil(b.perfilCodigo, b.perfilNome)
+  if (pesoA !== pesoB) return pesoA - pesoB
+
+  const tipoA = getPesoTipoPerfil(a.perfilCodigo, a.perfilNome, pesoA)
+  const tipoB = getPesoTipoPerfil(b.perfilCodigo, b.perfilNome, pesoB)
+  if (tipoA !== tipoB) return tipoA - tipoB
+
+  return formatarPerfil(a.perfilCodigo, a.perfilNome).localeCompare(
+    formatarPerfil(b.perfilCodigo, b.perfilNome),
+    "pt-BR",
+    { numeric: true }
+  )
+}
+
 type RelatorioObraItem = {
   itemId: string
   projetoNome: string
@@ -188,6 +268,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 6.5, textTransform: "uppercase", color: "#94A3B8", marginBottom: 3, fontWeight: "bold" },
   infoValue: { fontSize: 9.5, color: "#0F172A", fontWeight: "bold" },
   sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: "#334155", marginBottom: 8 },
+  sectionLead: { fontSize: 8, color: "#64748B", marginTop: -4, marginBottom: 10 },
   resumoGrid: { flexDirection: "row", gap: 8, marginBottom: 14 },
   resumoBox: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#E2E8F0" },
   resumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
@@ -242,6 +323,7 @@ const styles = StyleSheet.create({
   },
   cotaContainer: {
     marginTop: 6,
+    marginBottom: 12,
     padding: 6,
   },
   desenhoArea: {
@@ -261,7 +343,7 @@ const styles = StyleSheet.create({
   larguraInfo: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 8,
+    marginTop: 12,
   },
   desenhoComAltura: {
     flexDirection: "row",
@@ -303,6 +385,22 @@ const styles = StyleSheet.create({
   blocoSubtitulo: { fontSize: 7.2, color: "#64748B", marginBottom: 6 },
   linha: { fontSize: 7.5, color: "#475569", marginBottom: 3 },
   destaque: { fontWeight: "bold", color: "#0F172A" },
+  table: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, overflow: "hidden" },
+  tableHeader: { flexDirection: "row", backgroundColor: "#F1F5F9", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
+  tableRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0" },
+  tableRowLast: { flexDirection: "row" },
+  tableCellHeader: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 6.6, color: "#475569", fontWeight: "bold", textTransform: "uppercase" },
+  tableCell: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 7.2, color: "#334155" },
+  cellGrow: { flex: 1.4 },
+  cellSmall: { flex: 0.65 },
+  cellMedium: { flex: 0.9 },
+  materialGrid: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  materialCol: { flex: 1 },
+  materialRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0", paddingVertical: 4 },
+  materialName: { flex: 1, fontSize: 7.3, color: "#334155" },
+  materialQty: { fontSize: 7.3, color: "#0F172A", fontWeight: "bold" },
+  noteBox: { borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", padding: 8, marginBottom: 10 },
+  noteText: { fontSize: 7.2, color: "#64748B", lineHeight: 1.35 },
   barraLista: { marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
   barraLinha: { fontSize: 7.2, color: "#475569", marginBottom: 5 },
   otimResumoGrid: { flexDirection: "row", gap: 6, marginBottom: 10 },
@@ -340,6 +438,7 @@ export function RelatorioObraPDF({
   otimizacaoGlobal,
 }: RelatorioObraPDFProps) {
   const paginasMateriais = chunkArray(relatorioObra, 3)
+  const otimizacaoGlobalOrdenada = [...otimizacaoGlobal].sort(ordenarPerfisRelatorio)
   const ferragensGlobal = Array.from(
     relatorioObra.reduce((mapa, obra) => {
       obra.ferragens.forEach((ferragem) => {
@@ -372,9 +471,12 @@ export function RelatorioObraPDF({
 
   const resumo = {
     projetos: relatorioObra.length,
-    folhas: relatorioObra.reduce((acc, obra) => acc + obra.folhas.length, 0),
+    folhas: relatorioObra.reduce(
+      (acc, obra) => acc + obra.folhas.reduce((total, folha) => total + (folha.quantidadeFolhas * obra.quantidade), 0),
+      0
+    ),
     ferragens: relatorioObra.reduce((acc, obra) => acc + obra.ferragens.reduce((total, item) => total + item.qtd, 0), 0),
-    perfis: otimizacaoGlobal.reduce((acc, grupo) => acc + grupo.qtdBarrasOtimizada, 0),
+    perfis: otimizacaoGlobalOrdenada.reduce((acc, grupo) => acc + grupo.qtdBarrasOtimizada, 0),
   }
   const indicesProjetos = new Map(relatorioObra.map((obra, index) => [obra.itemId, index + 1]))
   const projetosKit = relatorioObra.filter((obra) => obra.modoCalculo === "Kit")
@@ -463,7 +565,7 @@ export function RelatorioObraPDF({
         />
       </Page>
 
-      {relatorioObra.map((obra, paginaIndex) => (
+      {relatorioObra.map((obra) => (
         <Page key={`relatorio-vidros-${obra.itemId}`} size="A4" style={styles.page}>
           <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
             <View style={styles.headerLeft}>
@@ -496,13 +598,6 @@ export function RelatorioObraPDF({
               <View style={styles.desenhoArea}>
                 <View style={styles.desenhoLinha}>
                   <View style={styles.desenhoPrincipal}>
-                    <View style={styles.larguraInfo}>
-                      <View style={styles.medidaItem}>
-                        <Text style={styles.medidaLabel}>Largura:</Text>
-                        <Text style={styles.medidaValor}>{extrairMedidasVao(obra.vao).largura}</Text>
-                      </View>
-                    </View>
-
                     <View style={styles.desenhoComAltura}>
                       <View style={styles.desenhoMiniaturaBox}>
                         {obra.desenhoUrl ? <Image src={obra.desenhoUrl} style={styles.desenhoMiniatura} /> : null}
@@ -514,6 +609,13 @@ export function RelatorioObraPDF({
                         </View>
                       </View>
                     </View>
+
+                    <View style={styles.larguraInfo}>
+                      <View style={styles.medidaItem}>
+                        <Text style={styles.medidaLabel}>Largura:</Text>
+                        <Text style={styles.medidaValor}>{extrairMedidasVao(obra.vao).largura}</Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -523,7 +625,8 @@ export function RelatorioObraPDF({
               <Text style={styles.blocoTitulo}>Folhas do Item</Text>
               {obra.folhas.map((folha) => (
                 <Text key={folha.id} style={styles.linha}>
-                  <Text style={styles.destaque}>{folha.titulo}:</Text> {folha.medida} | qtd. {folha.quantidadeFolhas * obra.quantidade} | {folha.area.toFixed(3)} m²
+                  <Text style={styles.destaque}>{folha.titulo}:</Text> {folha.medida} | qtd. por unidade {folha.quantidadeFolhas}
+                  {obra.quantidade > 1 ? ` | total ${folha.quantidadeFolhas * obra.quantidade}` : ""} | {folha.area.toFixed(3)} m²
                 </Text>
               ))}
             </View>
@@ -549,9 +652,10 @@ export function RelatorioObraPDF({
             {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
 
-          <Text style={styles.sectionTitle}>Fechamento Global e Depois Detalhe Individual</Text>
-          {paginaIndex === 0 && otimizacaoGlobal.length > 0 && (() => {
-            const resumoOtim = otimizacaoGlobal.reduce(
+          <Text style={styles.sectionTitle}>Mapa de Materiais da Obra</Text>
+          <Text style={styles.sectionLead}>Totais globais primeiro; detalhes por item logo abaixo para conferencia.</Text>
+          {paginaIndex === 0 && otimizacaoGlobalOrdenada.length > 0 && (() => {
+            const resumoOtim = otimizacaoGlobalOrdenada.reduce(
               (acc, item) => ({
                 barrasOriginais: acc.barrasOriginais + item.qtdBarrasOriginal,
                 barrasOtimizadas: acc.barrasOtimizadas + item.qtdBarrasOtimizada,
@@ -590,18 +694,18 @@ export function RelatorioObraPDF({
                   ))}
                 </View>
 
-                {otimizacaoGlobal.map((item) => (
+                {otimizacaoGlobalOrdenada.map((item) => (
                   <View key={item.id} style={styles.otimCard} wrap={false}>
                     <View style={styles.otimCardHeader}>
                       <View style={styles.otimCardLeft}>
-                        <Text style={styles.otimCardTitle}>{item.projetoNome} · {item.perfilNome}</Text>
+                        <Text style={styles.otimCardTitle}>{formatarPerfil(item.perfilCodigo, item.perfilNome)}</Text>
                         <Text style={styles.otimCardMeta}>
-                          Cor: {item.corMaterial} · Barra: {item.comprimentoBarra} mm{item.cortes ? ` · ${item.cortes.length} corte(s)` : ""}
+                          Item: {item.projetoNome} · Cor: {item.corMaterial} · Barra: {item.comprimentoBarra} mm{item.cortes ? ` · ${item.cortes.length} corte(s)` : ""}
                         </Text>
                       </View>
                       <View style={styles.otimCardRight}>
-                        <Text style={styles.otimCardPreco}>{fmtMoeda(item.precoOtimizado)}</Text>
-                        <Text style={styles.otimCardMeta}>{item.qtdBarrasOriginal} individual · {item.qtdBarrasOtimizada} consolidada(s)</Text>
+                        <Text style={styles.otimCardPreco}>{item.qtdBarrasOtimizada} barra(s)</Text>
+                        <Text style={styles.otimCardMeta}>{fmtMoeda(item.precoOtimizado)} · {item.qtdBarrasOriginal} individual</Text>
                       </View>
                     </View>
 
@@ -651,13 +755,20 @@ export function RelatorioObraPDF({
             <View style={styles.bloco}>
               <Text style={styles.blocoTitulo}>Global - Fechamento de Ferragens</Text>
               <Text style={styles.blocoSubtitulo}>Quantidade total somada da obra inteira, sem separar por item.</Text>
-              {ferragensGlobal.map((ferragem) => (
-                <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={styles.blocoSemMargem}>
-                  <Text style={styles.linha}>
-                    <Text style={styles.destaque}>{ferragem.codigo ? `${ferragem.codigo} | ` : ""}{ferragem.nome}:</Text> {ferragem.qtd} un
-                  </Text>
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableCellHeader, styles.cellSmall]}>Cod.</Text>
+                  <Text style={[styles.tableCellHeader, styles.cellGrow]}>Ferragem</Text>
+                  <Text style={[styles.tableCellHeader, styles.cellSmall]}>Qtd.</Text>
                 </View>
-              ))}
+                {ferragensGlobal.map((ferragem, index) => (
+                  <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={index === ferragensGlobal.length - 1 ? styles.tableRowLast : styles.tableRow}>
+                    <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
+                    <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
+                    <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
@@ -687,21 +798,32 @@ export function RelatorioObraPDF({
 
                 <View style={styles.bloco}>
                   <Text style={styles.blocoTitulo}>Ferragens</Text>
-                  {obra.ferragens.length > 0 ? obra.ferragens.map((ferragem) => (
-                    <Text key={ferragem.id} style={styles.linha}>
-                      <Text style={styles.destaque}>{ferragem.codigo ? `${ferragem.codigo} | ` : ""}{ferragem.nome}:</Text> {ferragem.qtd} un
-                    </Text>
-                  )) : (
+                  {obra.ferragens.length > 0 ? (
+                    <View style={styles.table}>
+                      <View style={styles.tableHeader}>
+                        <Text style={[styles.tableCellHeader, styles.cellSmall]}>Cod.</Text>
+                        <Text style={[styles.tableCellHeader, styles.cellGrow]}>Ferragem</Text>
+                        <Text style={[styles.tableCellHeader, styles.cellSmall]}>Qtd.</Text>
+                      </View>
+                      {obra.ferragens.map((ferragem, index) => (
+                        <View key={ferragem.id} style={index === obra.ferragens.length - 1 ? styles.tableRowLast : styles.tableRow}>
+                          <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
+                          <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
+                          <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
                     <Text style={styles.linha}>Sem ferragens aplicadas.</Text>
                   )}
                 </View>
 
                 <View style={styles.blocoSemMargem}>
                   <Text style={styles.blocoTitulo}>Otimização por Item</Text>
-                  {obra.otimizacao.length > 0 ? obra.otimizacao.map((item) => (
+                  {obra.otimizacao.length > 0 ? [...obra.otimizacao].sort(ordenarPerfisRelatorio).map((item) => (
                     <View key={item.id} style={styles.blocoSemMargem}>
                       <Text style={styles.linha}>
-                        <Text style={styles.destaque}>{item.perfilCodigo || "-"} | {item.perfilNome}:</Text> {item.qtdBarras} barra(s) de {item.comprimentoBarra} mm | aproveitamento {item.aproveitamento}% | desperdício {item.desperdicioMm} mm
+                        <Text style={styles.destaque}>{formatarPerfil(item.perfilCodigo, item.perfilNome)}:</Text> <Text style={styles.destaque}>{item.qtdBarras} barra(s)</Text> de {item.comprimentoBarra} mm | aproveitamento {item.aproveitamento}% | desperdício {item.desperdicioMm} mm
                       </Text>
                       {Array.isArray(item.barras) && item.barras.length > 0 && (
                         <View style={styles.barraLista}>

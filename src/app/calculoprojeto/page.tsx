@@ -266,6 +266,7 @@ type ItemPreviewOrcamento = {
   medidaReal: string
   medidaCalc: string
   qtd: number
+  quantidadePecas?: number
   total: number
   acabamento?: string
   servicos?: string
@@ -2201,7 +2202,7 @@ export default function CalculoProjetoPage() {
         barras: grupo.barras,
       }))
       .sort((a, b) => {
-        return comparePerfisByNome(a.perfilNome, b.perfilNome)
+        return comparePerfisByNome(`${a.perfilCodigo} ${a.perfilNome}`, `${b.perfilCodigo} ${b.perfilNome}`)
       })
   }, [otimizacaoGlobalPerfis.grupos, perfisDB])
 
@@ -2310,6 +2311,10 @@ export default function CalculoProjetoPage() {
       const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
       const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
       const variacaoProjeto = formatarResumoVariacaoSelecionada(resultadoProjeto.variacaoDrawing, resultadoProjeto.variacaoTecnica)
+      const quantidadePecasProjeto = resultadoProjeto.resultado.folhas.reduce(
+        (total, folha) => total + Math.max(1, Number(folha.quantidadeFolhas || 1)),
+        0
+      )
       const totalProjeto =
         resultadoProjeto.resultado.totalVidro +
         resultadoProjeto.resultado.precoKit +
@@ -2328,6 +2333,7 @@ export default function CalculoProjetoPage() {
         medidaReal: vaoProjeto,
         medidaCalc: vaoProjeto,
         qtd: resultadoProjeto.qtdProjeto,
+        quantidadePecas: quantidadePecasProjeto,
         total: totalProjeto,
         acabamento: resultadoProjeto.corMaterial || undefined,
         vao: vaoProjeto,
@@ -3458,7 +3464,9 @@ export default function CalculoProjetoPage() {
                       <div className="space-y-4">
                         {[...otimizacaoGlobalPerfis.grupos]
                           .sort((a, b) => {
-                            const ordemPerfis = comparePerfisByNome(a.perfilNome, b.perfilNome)
+                            const codigoA = perfisDB.find((perfil) => perfil.nome === a.perfilNome)?.codigo || ""
+                            const codigoB = perfisDB.find((perfil) => perfil.nome === b.perfilNome)?.codigo || ""
+                            const ordemPerfis = comparePerfisByNome(`${codigoA} ${a.perfilNome}`, `${codigoB} ${b.perfilNome}`)
                             if (ordemPerfis !== 0) return ordemPerfis
                             const nomeComp = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
                             if (nomeComp !== 0) return nomeComp
