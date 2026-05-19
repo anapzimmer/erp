@@ -495,6 +495,43 @@ const normalizarTextoComparacao = (valor?: string | null) =>
     .replace(/\s+/g, " ")
     .trim()
 
+const normalizarRestricaoMovimentacaoPma = (valor?: string | null): string | null => {
+  const texto = normalizarTextoComparacao(valor)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (!texto) return null
+
+  const todasMoveis = texto.match(/^(\d+)\s*moveis$/)
+  if (todasMoveis) return `${Number(todasMoveis[1])}_moveis`
+
+  const mistasComMoveis = texto.match(/^(\d+)\s*fix[ao]s?\s*(?:e\s*)?(?:corre(?:m)?\s*)?(\d+)\s*moveis$/)
+  if (mistasComMoveis) {
+    const fixas = Number(mistasComMoveis[1])
+    const moveis = Number(mistasComMoveis[2])
+    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+  }
+
+  const mistasSemMoveis = texto.match(/^(\d+)\s*fix[ao]s?\s*e\s*corre(?:m)?\s*(\d+)$/)
+  if (mistasSemMoveis) {
+    const fixas = Number(mistasSemMoveis[1])
+    const moveis = Number(mistasSemMoveis[2])
+    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+  }
+
+  const codigoPma = texto.match(/^pma\s*(\d+)\s*fs$/)
+  if (codigoPma) {
+    const codigo = String(codigoPma[1])
+    if (codigo.length === 1) return `${Number(codigo)}_moveis`
+    const fixas = Number(codigo[0])
+    const moveis = Number(codigo.slice(1))
+    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+  }
+
+  return null
+}
+
 const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean => {
   const restricaoNorm = normalizarTextoComparacao(restricao)
   const drawingArquivoNorm = normalizarTextoComparacao(variacaoDrawing)
@@ -549,12 +586,14 @@ const correspondeRestricaoProjeto = (
   const partesLegadas: string[] = []
 
   partes.forEach((parte) => {
-    if (ehVariacaoDeDesenho(parte)) {
-      partesVisuais.push(parte)
+    const parteCanonica = normalizarRestricaoMovimentacaoPma(parte) || parte
+
+    if (ehVariacaoDeDesenho(parteCanonica)) {
+      partesVisuais.push(parteCanonica)
       return
     }
 
-    const tecnica = decomporVariacaoTecnica(parte)
+    const tecnica = decomporVariacaoTecnica(parteCanonica)
     const eixos = Object.entries(tecnica) as Array<[EixoVariacaoProjeto, string]>
 
     if (eixos.length > 0) {
@@ -565,7 +604,7 @@ const correspondeRestricaoProjeto = (
       return
     }
 
-    partesLegadas.push(parte)
+    partesLegadas.push(parteCanonica)
   })
 
   const visualOk = partesVisuais.length === 0 || partesVisuais.some((parte) =>
@@ -1094,7 +1133,7 @@ const calcularProjeto = (params: {
   // ── Ferragens ─────────────────────────────────────────────────────────────
   const ferragensResult: ResultadoCalculo["ferragens"] = detalhe.ferragens
     .filter(f => isAplicavel(f.variacao_restrita))
-    .filter(f => modoCalculo === "kit" ? (f.usar_no_kit || Boolean(f.variacao_restrita)) : f.usar_no_perfil)
+    .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
     .map(f => {
       const base = ferragensDB.find(x => x.id === f.ferragem_id)
       const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
@@ -1653,9 +1692,12 @@ export default function CalculoProjetoPage() {
       if (item.id !== id) return item
 
       if (campo === "projetoId") {
+        const projetoSelecionado = projetos.find((projeto) => projeto.id === String(valor)) || null
+        const modoInicial = projetoEhPma(projetoSelecionado) ? "barra" : "kit"
         return {
           ...item,
           projetoId: String(valor),
+          modoCalculo: modoInicial,
           corMaterial: "",
           variacaoDrawing: "",
           variacaoAltura: "",
@@ -2515,6 +2557,7 @@ export default function CalculoProjetoPage() {
       const precoVidroM2Aplicado = getPrecoVidroM2(item)
       const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
       const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
+      const modoCalculoEfetivo: "kit" | "barra" = projetoEhPma(projeto) ? "barra" : item.modoCalculo
       const variacaoTecnica = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
@@ -2536,7 +2579,7 @@ export default function CalculoProjetoPage() {
         vidroSelecionado: vidro,
         precoVidroM2: precoVidroM2Aplicado,
         corMaterial: item.corMaterial,
-        modoCalculo: item.modoCalculo,
+        modoCalculo: modoCalculoEfetivo,
         variacaoDrawing: variacaoDrawingAtiva,
         variacaoTecnica,
         variacaoTrilho: trilhoAtivo,
@@ -2946,6 +2989,7 @@ export default function CalculoProjetoPage() {
                 // Detecção de características do projeto
                 const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
                 const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
+                const projetoEPma = projetoEhPma(projetoSel)
                 const projetoEPorta = projetoTemTrilhoConfigurado(detalhe)
                 const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
                 const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
@@ -3147,9 +3191,15 @@ export default function CalculoProjetoPage() {
                           <button
                             key={key}
                             type="button"
-                            onClick={() => atualizarItem(item.id, "modoCalculo", key)}
+                            onClick={() => {
+                              if (projetoEPma && key === "kit") return
+                              atualizarItem(item.id, "modoCalculo", key)
+                            }}
+                            disabled={projetoEPma && key === "kit"}
                             className="flex-1 flex items-center justify-center gap-2 p-3 rounded-2xl text-xs font-black border-2 transition-all"
-                            style={item.modoCalculo === key
+                            style={(projetoEPma && key === "kit")
+                              ? { backgroundColor: "#f3f4f6", color: "#9ca3af", borderColor: "#e5e7eb", cursor: "not-allowed", opacity: 0.7 }
+                              : item.modoCalculo === key
                               ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
                               : { backgroundColor: "#f9fafb", color: "#6b7280", borderColor: "#e5e7eb" }}
                           >
@@ -3157,6 +3207,9 @@ export default function CalculoProjetoPage() {
                           </button>
                         ))}
                       </div>
+                      {projetoEPma && (
+                        <p className="text-[11px] text-amber-600 mt-2 font-semibold">Mão Amiga utiliza cálculo por barra.</p>
+                      )}
                     </div>
 
                     {projetoEPorta && (
