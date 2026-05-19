@@ -506,6 +506,29 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
   return drawingArquivoNorm.includes(restricaoNorm) || drawingLabelNorm.includes(restricaoNorm)
 }
 
+const inferirVariacaoTecnicaPmaPeloDesenho = (
+  variacaoDrawing?: string | null
+): Partial<Record<EixoVariacaoProjeto, string>> => {
+  const stem = String(variacaoDrawing || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const match = stem.match(/^pma-(\d+)fs-(simples|completo|completa)$/i)
+  if (!match) return {}
+
+  const codigoMovimentacao = match[1]
+  const versao = match[2]
+  const qtdFixas = Number(codigoMovimentacao[0])
+  const movimentacao = codigoMovimentacao.length === 1
+    ? `${Number(codigoMovimentacao)}_moveis`
+    : `${qtdFixas}_${qtdFixas === 1 ? "fixa" : "fixas"}_${Number(codigoMovimentacao.slice(1))}_moveis`
+
+  return {
+    movimentacao,
+    versao: versao === "simples" ? "pma_simples" : "pma_completa",
+  }
+}
+
 const correspondeRestricaoProjeto = (
   restricao: string | null | undefined,
   variacaoDrawing: string | null | undefined,
@@ -517,7 +540,10 @@ const correspondeRestricaoProjeto = (
   const partes = String(restricao).split(",").map((s) => s.trim()).filter(Boolean)
   if (partes.length === 0) return true
 
-  const selecaoTecnica = decomporVariacaoTecnica(variacaoTecnica)
+  const selecaoTecnica = {
+    ...inferirVariacaoTecnicaPmaPeloDesenho(variacaoDrawing),
+    ...decomporVariacaoTecnica(variacaoTecnica),
+  }
   const valoresPorEixo = new Map<EixoVariacaoProjeto, Set<string>>()
   const partesVisuais: string[] = []
   const partesLegadas: string[] = []
