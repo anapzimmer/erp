@@ -77,6 +77,7 @@ type ProjetoPerfil = {
   perfil_id: string
   nome?: string
   qtd_largura: number
+  formula_largura?: string | null
   qtd_altura: number
   qtd_outros: number
   tipo_fornecimento: string
@@ -259,6 +260,7 @@ const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
 const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const TRILHO_TOKEN = "__TRILHO__="
 const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
+const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -316,6 +318,16 @@ const extrairEspessuraVidroDoTexto = (valor?: string | null): string | null => {
 
   const espessura = linha ? linha.slice(ESPESSURA_VIDRO_TOKEN.length).trim() : ""
   return espessura || null
+}
+
+const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_LARGURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
 }
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
@@ -453,6 +465,18 @@ const aplicarEspessuraVidroNoTexto = (valor: string | null | undefined, espessur
   const espessuraFinal = String(espessura || "").trim()
   if (!espessuraFinal) return textoBase
   return [textoBase, `${ESPESSURA_VIDRO_TOKEN}${espessuraFinal}`].filter(Boolean).join("\n")
+}
+
+const aplicarFormulaLarguraNoTexto = (valor: string | null | undefined, formula: string | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(FORMULA_LARGURA_TOKEN))
+    .join("\n")
+    .trim()
+
+  const formulaFinal = String(formula || "").trim()
+  if (!formulaFinal) return textoBase
+  return [textoBase, `${FORMULA_LARGURA_TOKEN}${formulaFinal}`].filter(Boolean).join("\n")
 }
 
 type ProjetoDetalheResponse = {
@@ -1355,6 +1379,7 @@ export default function ProjetosPage() {
           perfil_id: String(p.perfil_id),
           nome: perfisOriginaisDB.find((perfil) => String(perfil.id) === String(p.perfil_id))?.nome || p.perfis?.nome || undefined,
           qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
+          formula_largura: extrairFormulaLarguraDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
           qtd_altura: Number(p.qtd_altura ?? 0),
           qtd_outros: Number(p.qtd_outros ?? 0),
           tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
@@ -1478,6 +1503,7 @@ export default function ProjetosPage() {
       const chavePerfil = [
         perfilId,
         String(perfil.variacao_restrita || "").trim(),
+        String(perfil.formula_largura || "").trim(),
         String(perfil.espessura_vidro_restrita || "").trim(),
         String(perfil.condicao || "").trim(),
         Boolean(perfil.usar_no_kit) ? "1" : "0",
@@ -1496,9 +1522,12 @@ export default function ProjetosPage() {
           aplicarAlturaMaxKitNoTexto(
             aplicarUsarNoKitNoTexto(
               aplicarCondicaoNoTexto(
-                aplicarVariacaoNoTexto(
-                  limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
-                  perfil.variacao_restrita ?? null
+                aplicarFormulaLarguraNoTexto(
+                  aplicarVariacaoNoTexto(
+                    limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
+                    perfil.variacao_restrita ?? null
+                  ),
+                  perfil.formula_largura ?? null
                 ),
                 perfil.condicao ?? null
               ),
@@ -1993,6 +2022,7 @@ export default function ProjetosPage() {
           perfil_id: String(perfil.id),
           nome: perfil.nome,
           qtd_largura: 0,
+          formula_largura: null,
           qtd_altura: 0,
           qtd_outros: 0,
           tipo_fornecimento: "barra",
@@ -2017,6 +2047,7 @@ export default function ProjetosPage() {
         perfil_id: p.id,
         nome: p.nome,
         qtd_largura: 0,
+        formula_largura: null,
         qtd_altura: 0,
         qtd_outros: 0,
         tipo_fornecimento: "barra",
@@ -3898,7 +3929,7 @@ export default function ProjetosPage() {
                       className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
                       style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-3">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
@@ -3924,6 +3955,16 @@ export default function ProjetosPage() {
                             min={0}
                             value={p.qtd_largura}
                             onChange={e => atualizarPerfil(idx, "qtd_largura", Number(e.target.value))}
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula Largura</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: L/3"
+                            value={p.formula_largura || ""}
+                            onChange={e => atualizarPerfil(idx, "formula_largura", e.target.value.trim() || null)}
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>

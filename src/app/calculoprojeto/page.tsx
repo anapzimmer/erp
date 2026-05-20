@@ -77,6 +77,7 @@ type ProjetoDetalhe = {
   perfis: Array<{
     perfil_id: string
     qtd_largura: number
+    formula_largura?: string | null
     qtd_altura: number
     qtd_outros: number
     variacao_restrita: string | null
@@ -170,6 +171,17 @@ type ResultadoCalculo = {
   corKit?: string
   precoKit: number
   ferragens: Array<{ nome: string; qtd: number; precoUnit: number; total: number }>
+  debugFerragens: Array<{
+    ferragemId: string
+    nome: string
+    restricao: string
+    passouRestricao: boolean
+    passouModo: boolean
+    usarNoKit: boolean
+    usarNoPerfil: boolean
+    modoCalculo: "kit" | "barra"
+    motivoBloqueio: string
+  }>
   precoFerragens: number
   cortes: CorteOtimizado[]
   precoPerfis: number
@@ -303,6 +315,7 @@ const COND_TOKEN = "__COND__="
 const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
 const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
+const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
 const TRILHO_TOKEN = "__TRILHO__="
 const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
 
@@ -349,6 +362,16 @@ const extrairEspessuraVidroDoTexto = (valor?: string | null): string | null => {
   return espessura || null
 }
 
+const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_LARGURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
 const extrairNumeroEspessura = (valor?: string | null): number | null => {
   const texto = String(valor || "").trim().replace(",", ".")
   if (!texto) return null
@@ -380,22 +403,6 @@ const extrairQuantidadeFolhasDoNome = (valor?: string | null): number | null => 
 
   const numero = Number(match[1])
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : null
-}
-
-const contarFolhasMovimentacao = (valor: string): number | null => {
-  const texto = String(valor || "").toLowerCase()
-  const todasMoveis = texto.match(/^(\d+)_moveis$/)
-  if (todasMoveis) return Number(todasMoveis[1])
-
-  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
-  if (!mistas) return null
-
-  return Number(mistas[1]) + Number(mistas[2])
-}
-
-const ehOpcaoMovimentacaoPmaPermitida = (valor: string) => {
-  const texto = String(valor || "").toLowerCase()
-  return /^(\d+)_moveis$/.test(texto) || /^1_fixas?_(\d+)_moveis$/.test(texto)
 }
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
@@ -495,6 +502,30 @@ const normalizarTextoComparacao = (valor?: string | null) =>
     .replace(/\s+/g, " ")
     .trim()
 
+const parseCodigoMovimentacaoPma = (codigoFonte?: string | null): string | null => {
+  const codigo = String(codigoFonte || "").replace(/\D/g, "")
+  if (!codigo) return null
+
+  if (codigo.length === 1) {
+    const moveis = Number(codigo)
+    return Number.isFinite(moveis) && moveis > 0 ? `${moveis}_moveis` : null
+  }
+
+  if (codigo.startsWith("0")) {
+    const moveis = Number(codigo.replace(/^0+/, ""))
+    return Number.isFinite(moveis) && moveis > 0 ? `${moveis}_moveis` : null
+  }
+
+  const fixas = Number(codigo[0])
+  const moveis = Number(codigo.slice(1))
+
+  if (Number.isFinite(fixas) && Number.isFinite(moveis) && fixas > 0 && moveis > 0) {
+    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+  }
+
+  return null
+}
+
 const normalizarRestricaoMovimentacaoPma = (valor?: string | null): string | null => {
   const texto = normalizarTextoComparacao(valor)
     .replace(/[^a-z0-9\s]/g, " ")
@@ -503,7 +534,7 @@ const normalizarRestricaoMovimentacaoPma = (valor?: string | null): string | nul
 
   if (!texto) return null
 
-  const todasMoveis = texto.match(/^(\d+)\s*moveis$/)
+  const todasMoveis = texto.match(/^(\d+)\s*(?:folhas?|fls?|fs)?\s*mov(?:eis)?$/)
   if (todasMoveis) return `${Number(todasMoveis[1])}_moveis`
 
   const mistasComMoveis = texto.match(/^(\d+)\s*fix[ao]s?\s*(?:e\s*)?(?:corre(?:m)?\s*)?(\d+)\s*moveis$/)
@@ -522,20 +553,32 @@ const normalizarRestricaoMovimentacaoPma = (valor?: string | null): string | nul
 
   const codigoPma = texto.match(/^pma\s*(\d+)\s*fs$/)
   if (codigoPma) {
-    const codigo = String(codigoPma[1])
-    if (codigo.length === 1) return `${Number(codigo)}_moveis`
-    const fixas = Number(codigo[0])
-    const moveis = Number(codigo.slice(1))
-    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+    return parseCodigoMovimentacaoPma(codigoPma[1])
   }
 
   return null
+}
+
+const extrairVersaoDesenhoPma = (valor?: string | null): "simples" | "completo" | null => {
+  const stem = String(valor || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const match = stem.match(/^pma-\d+fs-(simples\d*|completo\d*|completa\d*)$/i)
+  if (!match) return null
+  return /^simples/i.test(match[1]) ? "simples" : "completo"
 }
 
 const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean => {
   const restricaoNorm = normalizarTextoComparacao(restricao)
   const drawingArquivoNorm = normalizarTextoComparacao(variacaoDrawing)
   const drawingLabelNorm = normalizarTextoComparacao(variacaoDrawing ? formatarLabelVariacaoArquivo(variacaoDrawing) : "")
+
+  const versaoRestricaoPma = extrairVersaoDesenhoPma(restricao)
+  const versaoDrawingPma = extrairVersaoDesenhoPma(variacaoDrawing)
+  if (versaoRestricaoPma && versaoDrawingPma) {
+    return versaoRestricaoPma === versaoDrawingPma
+  }
 
   if (!restricaoNorm || !drawingArquivoNorm) return false
   if (restricaoNorm === drawingArquivoNorm) return true
@@ -555,10 +598,9 @@ const inferirVariacaoTecnicaPmaPeloDesenho = (
 
   const codigoMovimentacao = match[1]
   const versao = match[2]
-  const qtdFixas = Number(codigoMovimentacao[0])
-  const movimentacao = codigoMovimentacao.length === 1
-    ? `${Number(codigoMovimentacao)}_moveis`
-    : `${qtdFixas}_${qtdFixas === 1 ? "fixa" : "fixas"}_${Number(codigoMovimentacao.slice(1))}_moveis`
+  const movimentacao = parseCodigoMovimentacaoPma(codigoMovimentacao)
+
+  if (!movimentacao) return {}
 
   return {
     movimentacao,
@@ -675,6 +717,44 @@ const projetoEhPma = (projeto?: Projeto | null) => {
   return /\b(pma|mao\s*amiga)\b/.test(texto)
 }
 
+const inferirMovimentacaoPmaProjeto = (projeto?: Projeto | null): string => {
+  if (!projetoEhPma(projeto)) return ""
+
+  const textoProjeto = normalizarTextoComparacao(`${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`)
+  const desenhoStem = String(projeto?.desenho || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+
+  const desenhoPma = desenhoStem.match(/^pma-(\d+)fs-/i)
+  if (desenhoPma) {
+    const movimentacao = parseCodigoMovimentacaoPma(desenhoPma[1])
+    if (movimentacao) return movimentacao
+  }
+
+  const mistaComNumero = textoProjeto.match(/(\d+)\s*fix[ao]s?.*?(\d+)\s*mov/)
+  if (mistaComNumero) {
+    const fixas = Number(mistaComNumero[1])
+    const moveis = Number(mistaComNumero[2])
+    if (Number.isFinite(fixas) && Number.isFinite(moveis) && fixas > 0 && moveis > 0) {
+      return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+    }
+  }
+
+  if (/1\s*fix[ao]/.test(textoProjeto) && /(outros|outras|restante)/.test(textoProjeto)) {
+    const totalFolhas = extrairQuantidadeFolhasDoNome(`${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`)
+    if (totalFolhas && totalFolhas > 1) return `1_fixa_${totalFolhas - 1}_moveis`
+  }
+
+  const todasMoveis = textoProjeto.match(/(\d+)\s*(?:folhas?|fls?)\s*mov/) || textoProjeto.match(/(\d+)\s*mov(?:eis)?/)
+  if (todasMoveis) {
+    const quantidade = Number(todasMoveis[1])
+    if (Number.isFinite(quantidade) && quantidade > 0) return `${quantidade}_moveis`
+  }
+
+  return ""
+}
+
 const getStemDesenhoPmaPorMovimentacao = (movimentacao?: string | null): string | null => {
   const texto = String(movimentacao || "").trim().toLowerCase()
   const todasMoveis = texto.match(/^(\d+)_moveis$/)
@@ -698,12 +778,17 @@ const getSufixoDesenhoPmaPorVersao = (versao?: string | null): "simples" | "comp
 
 const resolverDesenhoPmaSelecionado = (
   projeto: Projeto | null,
-  item: Pick<ItemCalculoProjeto, "variacaoMovimentacao" | "variacaoVersao">,
+  item: Pick<ItemCalculoProjeto, "variacaoMovimentacao" | "variacaoVersao" | "variacaoDrawing">,
   desenhosDisponiveis: string[]
 ): string => {
   if (!projetoEhPma(projeto)) return ""
 
-  const stem = getStemDesenhoPmaPorMovimentacao(item.variacaoMovimentacao)
+  const movimentacaoEfetiva =
+    item.variacaoMovimentacao
+    || inferirMovimentacaoPmaProjeto(projeto)
+    || inferirVariacaoTecnicaPmaPeloDesenho(item.variacaoDrawing || projeto?.desenho).movimentacao
+    || ""
+  const stem = getStemDesenhoPmaPorMovimentacao(movimentacaoEfetiva)
   const sufixo = getSufixoDesenhoPmaPorVersao(item.variacaoVersao)
   if (!stem || !sufixo) return ""
 
@@ -1219,41 +1304,75 @@ const calcularProjeto = (params: {
   }
 
   // ── Ferragens ─────────────────────────────────────────────────────────────
-  const ferragensResult: ResultadoCalculo["ferragens"] = detalhe.ferragens
-    .filter(f => isAplicavel(f.variacao_restrita))
-    .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
-    .map(f => {
-      const base = ferragensDB.find(x => x.id === f.ferragem_id)
-      const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
-      const corAlvo = corMaterial.trim().toLowerCase()
-      const codigoBase = base?.codigo?.trim().toLowerCase()
-      const nomeNorm = base ? normalizarNomeFerragem(base.nome) : null
-      // 1ª tentativa: mesmo código + cor selecionada
-      // 2ª tentativa: mesmo nome normalizado + cor selecionada
-      const variante = corAlvo
-        ? (
-            ferragensDB.find(x =>
-              x.id !== base?.id &&
-              !!codigoBase &&
-              (x.codigo || "").trim().toLowerCase() === codigoBase &&
-              (x.cores || "").trim().toLowerCase() === corAlvo
-            ) ||
-            ferragensDB.find(x =>
-              x.id !== base?.id &&
-              !!nomeNorm &&
-              normalizarNomeFerragem(x.nome) === nomeNorm &&
-              (x.cores || "").trim().toLowerCase() === corAlvo
-            )
+  const ferragensDiagnostico = detalhe.ferragens.map((f) => {
+    const passouRestricao = isAplicavel(f.variacao_restrita)
+    const passouModo = modoCalculo === "kit" ? Boolean(f.usar_no_kit) : Boolean(f.usar_no_perfil)
+    const motivoBloqueio = !passouRestricao
+      ? "restricao_nao_corresponde"
+      : !passouModo
+      ? (modoCalculo === "kit" ? "usar_no_kit_false" : "usar_no_perfil_false")
+      : "ok"
+
+    const base = ferragensDB.find(x => x.id === f.ferragem_id)
+    const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
+    const corAlvo = corMaterial.trim().toLowerCase()
+    const codigoBase = base?.codigo?.trim().toLowerCase()
+    const nomeNorm = base ? normalizarNomeFerragem(base.nome) : null
+    const variante = corAlvo
+      ? (
+          ferragensDB.find(x =>
+            x.id !== base?.id &&
+            !!codigoBase &&
+            (x.codigo || "").trim().toLowerCase() === codigoBase &&
+            (x.cores || "").trim().toLowerCase() === corAlvo
+          ) ||
+          ferragensDB.find(x =>
+            x.id !== base?.id &&
+            !!nomeNorm &&
+            normalizarNomeFerragem(x.nome) === nomeNorm &&
+            (x.cores || "").trim().toLowerCase() === corAlvo
           )
-        : null
-      const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
-      const nome = limparCorNomeMaterial(db?.nome || nomeBase)
-      const precoUnit = db?.preco || 0
+        )
+      : null
+    const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
+    const nome = limparCorNomeMaterial(db?.nome || nomeBase)
+    const precoUnit = db?.preco || 0
+
+    return {
+      ferragemId: f.ferragem_id,
+      nome,
+      restricao: String(f.variacao_restrita || ""),
+      passouRestricao,
+      passouModo,
+      usarNoKit: Boolean(f.usar_no_kit),
+      usarNoPerfil: Boolean(f.usar_no_perfil),
+      modoCalculo,
+      motivoBloqueio,
+      quantidade: f.quantidade,
+      precoUnit,
+    }
+  })
+
+  const debugFerragens: ResultadoCalculo["debugFerragens"] = ferragensDiagnostico.map((f) => ({
+    ferragemId: f.ferragemId,
+    nome: f.nome,
+    restricao: f.restricao,
+    passouRestricao: f.passouRestricao,
+    passouModo: f.passouModo,
+    usarNoKit: f.usarNoKit,
+    usarNoPerfil: f.usarNoPerfil,
+    modoCalculo: f.modoCalculo,
+    motivoBloqueio: f.motivoBloqueio,
+  }))
+
+  const ferragensResult: ResultadoCalculo["ferragens"] = ferragensDiagnostico
+    .filter((f) => f.passouRestricao && f.passouModo)
+    .map((f) => {
       return {
-        nome,
+        nome: f.nome,
         qtd: f.quantidade,
-        precoUnit,
-        total: f.quantidade * precoUnit * qtd,
+        precoUnit: f.precoUnit,
+        total: f.quantidade * f.precoUnit * qtd,
       }
     })
     .sort((a, b) => compareFerragensByNome(a.nome, b.nome))
@@ -1329,12 +1448,17 @@ const calcularProjeto = (params: {
       const comprimentoBarra = 6000
       const precoBarra = db?.preco || 0
 
-      // Monta lista de cortes: qtd_largura peças de L, qtd_altura peças de A, qtd_outros de (L+A)/2
-      const qtdCortesLargura = largura > 0 ? Math.max(0, pProj.qtd_largura * qtd) : 0
+      // Monta lista de cortes: qtd_largura peças de L (ou fórmula), qtd_altura peças de A, qtd_outros de (L+A)/2
+      const medidaLargura = (() => {
+        const formula = String(pProj.formula_largura || "").trim()
+        if (!formula) return largura
+        return Math.round(Math.max(avaliarFormula(formula, vars), 0))
+      })()
+      const qtdCortesLargura = medidaLargura > 0 ? Math.max(0, pProj.qtd_largura * qtd) : 0
       const qtdCortesAltura = altura > 0 ? Math.max(0, pProj.qtd_altura * qtd) : 0
       const qtdCortesOutros = (largura + altura) > 0 ? Math.max(0, pProj.qtd_outros * qtd) : 0
       const listaCortes: number[] = [
-        ...Array(qtdCortesLargura).fill(largura),
+        ...Array(qtdCortesLargura).fill(medidaLargura),
         ...Array(qtdCortesAltura).fill(altura),
         ...Array(qtdCortesOutros).fill(Math.round((largura + altura) / 2)),
       ].filter(c => c > 0)
@@ -1374,6 +1498,7 @@ const calcularProjeto = (params: {
     corKit: corMaterial,
     precoKit,
     ferragens: ferragensResult,
+    debugFerragens,
     precoFerragens,
     cortes: cortesResult,
     precoPerfis,
@@ -1746,6 +1871,7 @@ export default function CalculoProjetoPage() {
             return {
               ...perfil,
               variacao_restrita: perfil.variacao_restrita ?? meta.variacao ?? null,
+              formula_largura: extrairFormulaLarguraDoTexto(perfil.tipo_fornecimento),
               espessura_vidro_restrita: extrairEspessuraVidroDoTexto(perfil.tipo_fornecimento),
               condicao: extrairCondicaoDoTexto(perfil.tipo_fornecimento),
               usar_no_kit: extrairUsarNoKitDoTexto(perfil.tipo_fornecimento),
@@ -1867,17 +1993,59 @@ export default function CalculoProjetoPage() {
   )
   const getVidro = (item: ItemCalculoProjeto) => vidrosDB.find((vidro) => vidro.id === item.vidroId) || null
 
+  const inferirMovimentacaoPmaItem = useCallback((item: ItemCalculoProjeto): string => {
+    const projeto = getProjeto(item)
+    if (!projetoEhPma(projeto)) return item.variacaoMovimentacao || ""
+
+    if (item.variacaoMovimentacao) return item.variacaoMovimentacao
+
+    const porProjeto = inferirMovimentacaoPmaProjeto(projeto)
+    if (porProjeto) return porProjeto
+
+    const detalhe = getDetalhe(item)
+    if (detalhe) {
+      const restricoes = [
+        ...detalhe.folhas.map((f) => f.variacao_restrita),
+        ...detalhe.kits.map((k) => k.variacao_restrita),
+        ...detalhe.ferragens.map((f) => f.variacao_restrita),
+        ...detalhe.perfis.map((p) => p.variacao_restrita),
+      ]
+      const movimentacoes = new Set<string>()
+
+      restricoes.forEach((restricao) => {
+        String(restricao || "")
+          .split(",")
+          .map((parte) => parte.trim())
+          .filter(Boolean)
+          .forEach((parte) => {
+            const parteCanonica = normalizarRestricaoMovimentacaoPma(parte) || parte
+            const tecnica = decomporVariacaoTecnica(parteCanonica)
+            if (tecnica.movimentacao) movimentacoes.add(tecnica.movimentacao)
+          })
+      })
+
+      if (movimentacoes.size === 1) return Array.from(movimentacoes)[0]
+    }
+
+    const porDesenho = inferirVariacaoTecnicaPmaPeloDesenho(item.variacaoDrawing || projeto?.desenho).movimentacao
+    return porDesenho || ""
+  }, [getDetalhe, getProjeto])
+
   const projetosSemKitNoCalculo = useMemo(() => {
     return itensCalculo.flatMap((item, index) => {
       const detalhe = getDetalhe(item)
       if (!detalhe || item.modoCalculo !== "kit") return []
+      const projeto = getProjeto(item)
+      const movimentacaoPmaEfetiva = projetoEhPma(projeto)
+        ? inferirMovimentacaoPmaItem(item)
+        : item.variacaoMovimentacao
 
       const variacaoTecnicaSelecionada = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(item.variacaoDrawing) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
-        movimentacao: item.variacaoMovimentacao,
+        movimentacao: movimentacaoPmaEfetiva,
         versao: item.variacaoVersao,
       })
 
@@ -1895,7 +2063,7 @@ export default function CalculoProjetoPage() {
         motivo: "sem kit cadastrado",
       }]
     })
-  }, [getDetalhe, getProjeto, itensCalculo])
+  }, [getDetalhe, getProjeto, inferirMovimentacaoPmaItem, itensCalculo])
 
   const confirmarProjetoSemKitNoCalculo = useCallback((acao: () => void) => {
     if (projetosSemKitNoCalculo.length === 0) {
@@ -2122,22 +2290,15 @@ export default function CalculoProjetoPage() {
       const projeto = getProjeto(item)
       const textoProjeto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`.toLowerCase()
       const projetoPma = /m[aã]o\s*amiga|pma/.test(textoProjeto)
-      const quantidadeFolhas = projetoPma ? extrairQuantidadeFolhasDoNome(textoProjeto) : null
-      const grupoMovimentacao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "movimentacao")
+      const grupoAplicacao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "aplicacao")
       const grupoVersao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "versao")
 
       if (!projetoPma) return grupos
 
-      const opcoesMovimentacao = grupoMovimentacao?.options.filter((opcao) =>
-        ehOpcaoMovimentacaoPmaPermitida(opcao.value)
-          && (!quantidadeFolhas || contarFolhasMovimentacao(opcao.value) === quantidadeFolhas)
-      ) || []
-
-      const gruposSemPma = grupos.filter((grupo) => grupo.key !== "movimentacao" && grupo.key !== "versao")
-      const grupoMovimentacaoExistente = grupos.find((grupo) => grupo.key === "movimentacao")
-      const valoresMovimentacao = new Set([
-        ...(grupoMovimentacaoExistente?.options || []).map((opcao) => opcao.value),
-        ...opcoesMovimentacao.map((opcao) => opcao.value),
+      const grupoAplicacaoExistente = grupos.find((grupo) => grupo.key === "aplicacao")
+      const valoresAplicacao = new Set([
+        ...(grupoAplicacaoExistente?.options || []).map((opcao) => opcao.value),
+        ...(grupoAplicacao?.options || []).map((opcao) => opcao.value),
       ])
       const grupoVersaoExistente = grupos.find((grupo) => grupo.key === "versao")
       const valoresVersao = new Set([
@@ -2146,10 +2307,9 @@ export default function CalculoProjetoPage() {
       ])
 
       return [
-        ...gruposSemPma,
-        ...(grupoMovimentacao && opcoesMovimentacao.length > 0 ? [{
-          ...grupoMovimentacao,
-          options: grupoMovimentacao.options.filter((opcao) => valoresMovimentacao.has(opcao.value)),
+        ...(grupoAplicacao ? [{
+          ...grupoAplicacao,
+          options: grupoAplicacao.options.filter((opcao) => valoresAplicacao.has(opcao.value)),
         }] : []),
         ...(grupoVersao ? [{
           ...grupoVersao,
@@ -2168,12 +2328,15 @@ export default function CalculoProjetoPage() {
     const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
     const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
     const fechaduraInferida = inferirFechaduraPeloDesenho(variacaoDrawingAtiva)
+    const movimentacaoPmaEfetiva = projetoEhPma(projeto)
+      ? inferirMovimentacaoPmaItem(item)
+      : item.variacaoMovimentacao
     const variacaoTecnica = montarVariacaoTecnica({
       altura: item.variacaoAltura,
       kit: item.variacaoKit,
       fechadura: fechaduraInferida || item.variacaoFechadura,
       aplicacao: item.variacaoAplicacao,
-      movimentacao: item.variacaoMovimentacao,
+      movimentacao: movimentacaoPmaEfetiva,
       versao: item.variacaoVersao,
     })
     const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
@@ -2351,6 +2514,28 @@ export default function CalculoProjetoPage() {
       return houveMudanca ? atualizados : prev
     })
   }, [desenhosDisponiveis, detalhesProjetos, getProjeto, getVariacoesDesenhoDisponiveis, projetos, variacoesCustom])
+
+  useEffect(() => {
+    setItensCalculo((prev) => {
+      let houveMudanca = false
+
+      const atualizados = prev.map((item) => {
+        const projeto = getProjeto(item)
+        if (!projetoEhPma(projeto)) return item
+
+        const movimentacaoInferida = inferirMovimentacaoPmaItem(item)
+        if (!movimentacaoInferida || item.variacaoMovimentacao === movimentacaoInferida) return item
+
+        houveMudanca = true
+        return {
+          ...item,
+          variacaoMovimentacao: movimentacaoInferida,
+        }
+      })
+
+      return houveMudanca ? atualizados : prev
+    })
+  }, [getProjeto, inferirMovimentacaoPmaItem])
 
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
@@ -2704,7 +2889,7 @@ export default function CalculoProjetoPage() {
         kit: item.variacaoKit,
         fechadura: inferirFechaduraPeloDesenho(variacaoDrawingAtiva) || item.variacaoFechadura,
         aplicacao: item.variacaoAplicacao,
-        movimentacao: item.variacaoMovimentacao,
+        movimentacao: projetoEhPma(projeto) ? inferirMovimentacaoPmaItem(item) : item.variacaoMovimentacao,
         versao: item.variacaoVersao,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
@@ -2731,6 +2916,18 @@ export default function CalculoProjetoPage() {
         perfisDB,
         qtd: Math.max(1, Number(item.qtd || 1)),
       })
+
+      if (projetoEhPma(projeto) && typeof window !== "undefined") {
+        const debugBloqueadas = resultado.debugFerragens.filter((f) => !f.passouRestricao || !f.passouModo)
+        console.groupCollapsed(`[DEBUG PMA] ${projeto.nome} | item ${index + 1}`)
+        console.log("variacaoDrawingAtiva", variacaoDrawingAtiva)
+        console.log("variacaoTecnica", variacaoTecnica)
+        console.log("ferragens totais", resultado.debugFerragens.length)
+        console.log("ferragens aplicadas", resultado.ferragens.length)
+        console.log("ferragens bloqueadas", debugBloqueadas.length)
+        console.table(resultado.debugFerragens)
+        console.groupEnd()
+      }
 
       novosResultados.push({
         itemId: item.id,
@@ -3118,12 +3315,13 @@ export default function CalculoProjetoPage() {
                 const desenhoPreview = (desenhoPmaSelecionado || (item.variacaoDrawing && ehVariacaoDeDesenho(item.variacaoDrawing)
                   ? item.variacaoDrawing
                   : projetoSel?.desenho || "")).trim()
+                const projetoEPma = projetoEhPma(projetoSel)
                 const variacaoTecnicaSelecionada = montarVariacaoTecnica({
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
                   fechadura: inferirFechaduraPeloDesenho(desenhoPreview) || item.variacaoFechadura,
                   aplicacao: item.variacaoAplicacao,
-                  movimentacao: item.variacaoMovimentacao,
+                  movimentacao: projetoEPma ? inferirMovimentacaoPmaItem(item) : item.variacaoMovimentacao,
                   versao: item.variacaoVersao,
                 })
                 const getNomeVariacao = (value: string, fallback: string) => {
@@ -3136,7 +3334,6 @@ export default function CalculoProjetoPage() {
                 // Detecção de características do projeto
                 const textoProjeto = `${projetoSel?.nome || ""} ${projetoSel?.categoria || ""} ${projetoSel?.desenho || ""}`.toLowerCase()
                 const projetoEBox = !!(projetoSel && textoProjeto.includes("box"))
-                const projetoEPma = projetoEhPma(projetoSel)
                 const projetoEPorta = projetoTemTrilhoConfigurado(detalhe)
                 const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
                 const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
@@ -3158,6 +3355,9 @@ export default function CalculoProjetoPage() {
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
                 const mostrarVariacoesDesenho = variacoesDesenho.length > 1 && !projetoEPma
+                const resultadoItem = resultados.find((r) => r.itemId === item.id)
+                const debugFerragensItem = resultadoItem?.resultado.debugFerragens || []
+                const ferragensBloqueadas = debugFerragensItem.filter((f) => !f.passouRestricao || !f.passouModo)
                 return (
                   <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -3520,6 +3720,28 @@ export default function CalculoProjetoPage() {
                         </p>
 
                       </div>
+                    )}
+
+                    {projetoEPma && debugFerragensItem.length > 0 && (
+                      <details className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <summary className="cursor-pointer text-xs font-black uppercase tracking-wider text-amber-700">
+                          Debug PMA Ferragens: {resultadoItem?.resultado.ferragens.length || 0} aplicadas, {ferragensBloqueadas.length} bloqueadas
+                        </summary>
+                        <div className="mt-3 space-y-2 text-xs text-amber-900">
+                          <p><strong>Variação técnica usada:</strong> {resultadoItem?.variacaoTecnica || "(vazia)"}</p>
+                          <p><strong>Desenho ativo:</strong> {resultadoItem?.variacaoDrawing || "(vazio)"}</p>
+                          <div className="space-y-1">
+                            {debugFerragensItem.map((f) => (
+                              <div key={`${item.id}-${f.ferragemId}-${f.nome}`} className="rounded-lg border border-amber-200 bg-white px-2 py-1">
+                                <p className="font-semibold">{f.nome}</p>
+                                <p>Restrição: {f.restricao || "(sem restrição)"}</p>
+                                <p>Status: {f.passouRestricao && f.passouModo ? "aplicada" : `bloqueada (${f.motivoBloqueio})`}</p>
+                                <p>Modo: {f.modoCalculo} | usar_no_kit: {String(f.usarNoKit)} | usar_no_perfil: {String(f.usarNoPerfil)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </details>
                     )}
                   </div>
                 )
