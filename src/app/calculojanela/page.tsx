@@ -63,9 +63,17 @@
     }, [])
 
     // Filtros para as buscas
+    const normalizarCor = (valor?: string | null) =>
+        String(valor || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "")
+    const adicionalAtendeCor = (item: AdicionalDB) => {
+        const cor = normalizarCor(corKit === "Escolher cor perfil" ? "" : corKit)
+        if (!cor) return true
+        const cores = String(item.cores || "").split(/[;,/|]/).map(normalizarCor).filter(Boolean)
+        return cores.includes(cor) || normalizarCor(item.nome).includes(cor)
+    }
     const clientesFiltrados = clientes.filter(c => c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()));
     const vidrosFiltrados = vidros.filter(v => v.nome?.toLowerCase().includes(buscaVidro.toLowerCase()));
-    const adicionaisFiltrados = adicionaisDB.filter(a => 
+    const adicionaisFiltrados = adicionaisDB.filter(a => adicionalAtendeCor(a)).filter(a =>
         a.nome?.toLowerCase().includes(buscaAdicional.toLowerCase()) || 
         a.codigo?.toLowerCase().includes(buscaAdicional.toLowerCase())
     ).slice(0, 8);
@@ -322,7 +330,12 @@
           <select
             className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
             value={corKit}
-            onChange={e => setCorKit(e.target.value)}
+            onChange={e => {
+              setCorKit(e.target.value)
+              setBuscaAdicional("")
+              setValorUnitAdicional("0,00")
+              setAdicionaisPendentes([])
+            }}
           >
             <option>Escolher cor perfil</option>
             <option>Branco</option>

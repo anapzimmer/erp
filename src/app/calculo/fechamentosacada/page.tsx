@@ -252,6 +252,8 @@ const resolverFerragemPorCodigoECor = (
     if (comSufixo && obterPrecoFerragem(comSufixo) > 0) {
       return { preco: obterPrecoFerragem(comSufixo), corEncontrada: corUsar };
     }
+
+    return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
   // 3️⃣ tentar entrada sem cor (padrão) — código exato sem sufixo de cor
@@ -275,9 +277,11 @@ const resolverFerragemPorCodigoECor = (
 
 const resolverFerragemPorNome = (
   ferragensTabela: FerragemTabela[],
-  nomeAlvo: string
+  nomeAlvo: string,
+  corUsar?: string
 ): { codigo: string; nomeEncontrado: string; preco: number } => {
   const nomeNormalizado = normalizarTextoComparacao(nomeAlvo).replace(/\s+/g, " ").trim();
+  const corNormalizada = normalizarTextoComparacao(corUsar);
 
   const candidatos = ferragensTabela.filter((ferragem) => {
     const nomeFerragem = normalizarTextoComparacao(ferragem.nome).replace(/\s+/g, " ").trim();
@@ -286,7 +290,10 @@ const resolverFerragemPorNome = (
       || nomeNormalizado.includes(nomeFerragem);
   });
 
-  const escolhido = candidatos.find((item) => obterPrecoFerragem(item) > 0) || candidatos[0];
+  const candidatosDaCor = corNormalizada
+    ? candidatos.filter((item) => atendeCor(item.cores, corNormalizada))
+    : candidatos;
+  const escolhido = candidatosDaCor.find((item) => obterPrecoFerragem(item) > 0) || (!corNormalizada ? candidatos[0] : undefined);
 
   if (!escolhido) {
     return { codigo: "-", nomeEncontrado: nomeAlvo, preco: 0 };
@@ -329,6 +336,8 @@ const resolverPerfilPorCodigoECor = (
         corEncontrada: comCor.cores || corUsar || "Padrão",
       };
     }
+
+    return { nome: "", preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
   const semCor = candidatos.find((perfil) => {
@@ -390,6 +399,8 @@ const resolverKitPorNomeECor = (
         corEncontrada: comCor.cores || corUsar || "Padrão",
       };
     }
+
+    return { nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
   const comPreco = candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) || candidatos[0];
@@ -937,13 +948,13 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     const ehFitaVedacao = nome === nomeFitaVedacao;
     const ehConjuntoAcessorios = nome === nomeConjuntoAcessorios;
     const ehKitSemRolamento = nome === nomeKitSemRolamento;
-    const ferragemPorNome = (ehKitSemRolamento || ehConjuntoAcessorios || ehFitaVedacao || ehFechadura) ? null : resolverFerragemPorNome(ferragensTabela, nome);
+    const ferragemPorNome = (ehKitSemRolamento || ehConjuntoAcessorios || ehFitaVedacao || ehFechadura) ? null : resolverFerragemPorNome(ferragensTabela, nome, corPerfil);
     const ferragemFechadura = ehFechadura
       ? (() => {
           const codigoAlvo = normalizarCodigo(codigoFechadura);
           const porCodigo = ferragensTabela.find((item) => normalizarCodigo(item.codigo) === codigoAlvo);
           if (porCodigo) return { codigo: porCodigo.codigo, preco: obterPrecoFerragem(porCodigo) };
-          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFechadura);
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFechadura, corPerfil || "Preto");
           return { codigo: codigoFechadura, preco: porNome.preco };
         })()
       : null;
@@ -952,7 +963,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           const codigoAlvo = normalizarCodigo(codigoFitaVedacao);
           const porCodigo = ferragensTabela.find((item) => normalizarCodigo(item.codigo) === codigoAlvo);
           if (porCodigo) return { codigo: porCodigo.codigo, preco: obterPrecoFerragem(porCodigo) };
-          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFitaVedacao);
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeFitaVedacao, corPerfil || "Preto");
           return { codigo: codigoFitaVedacao, preco: porNome.preco };
         })()
       : null;
@@ -961,7 +972,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           // 1º tenta pelo código com cor, 2º pelo nome parcial
           const porCodigo = resolverFerragemPorCodigoECor(ferragensTabela, codigoConjuntoAcessorios, nome, corPerfil || "Preto");
           if (porCodigo.preco > 0) return porCodigo;
-          const porNome = resolverFerragemPorNome(ferragensTabela, nomeConjuntoAcessorios);
+          const porNome = resolverFerragemPorNome(ferragensTabela, nomeConjuntoAcessorios, corPerfil || "Preto");
           return { preco: porNome.preco, corEncontrada: corPerfil || "Preto" };
         })()
       : null;

@@ -790,7 +790,28 @@ const getVariacoesAutomaticasProjeto = (
 
 // Remove cor entre parênteses no final do nome, ex: "Roldana 1125a (amarela)" → "roldana 1125a"
 const normalizarNomeFerragem = (nome: string): string =>
-  nome.replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase()
+  limparCorNomeMaterial(nome).toLowerCase()
+
+const limparCorNomeMaterial = (valor?: string | null): string => {
+  const texto = String(valor || "")
+    .replace(/\(([^)]*)\)/g, "")
+    .replace(/\b(branco|branca|preto|preta|bronze|inox|fosco|polido|anodizado|natural|dourado|cinza|grafite|champagne|cromado|prata)\b/gi, "")
+    .replace(/\s*[-–—|/]\s*$/g, "")
+    .replace(/^\s*[-–—|/]\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  return texto || String(valor || "").trim()
+}
+
+const normalizarCodigoModeloMaterial = (valor?: string | null): string =>
+  String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_ ]?(bc|pt|bz|br|bronze|branco|preto|fosco|prata|cr|cz)$/i, "")
+    .replace(/[^a-z0-9]/g, "")
 
 const normalizarDescricaoMaterial = (valor?: string | null): string =>
   String(valor || "")
@@ -814,6 +835,73 @@ const normalizarListaCores = (valor: string[] | string | null | undefined): stri
   }
 
   return []
+}
+
+const normalizarCorComparacao = (valor?: string | null): string =>
+  String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "")
+
+const itemAtendeCorMaterial = (
+  item: { cores?: string[] | string | null; nome?: string | null } | null | undefined,
+  corMaterial?: string | null
+) => {
+  const cor = normalizarCorComparacao(corMaterial)
+  if (!cor) return true
+
+  const cores = normalizarListaCores(item?.cores)
+    .map((valor) => normalizarCorComparacao(valor))
+    .filter(Boolean)
+
+  if (cores.includes(cor)) return true
+  return normalizarCorComparacao(item?.nome).includes(cor)
+}
+
+const resolverFerragemComCor = (
+  base: FerragemItem | null | undefined,
+  ferragensDB: FerragemItem[],
+  corMaterial?: string | null
+): FerragemItem | null => {
+  const cor = normalizarCorComparacao(corMaterial)
+  if (!base) return null
+  if (!cor) return base
+  if (itemAtendeCorMaterial(base, corMaterial)) return base
+
+  const codigoBase = normalizarCodigoModeloMaterial(base.codigo)
+  const nomeNorm = normalizarNomeFerragem(base.nome)
+  return ferragensDB.find((item) =>
+    item.id !== base.id &&
+    itemAtendeCorMaterial(item, corMaterial) &&
+    (
+      (!!codigoBase && normalizarCodigoModeloMaterial(item.codigo) === codigoBase) ||
+      normalizarNomeFerragem(item.nome) === nomeNorm
+    )
+  ) || null
+}
+
+const resolverPerfilComCor = (
+  base: PerfilItem | null | undefined,
+  perfisDB: PerfilItem[],
+  corMaterial?: string | null
+): PerfilItem | null => {
+  const cor = normalizarCorComparacao(corMaterial)
+  if (!base) return null
+  if (!cor) return base
+  if (itemAtendeCorMaterial(base, corMaterial)) return base
+
+  const codigoBase = normalizarCodigoModeloMaterial(base.codigo)
+  const nomeNorm = normalizarDescricaoMaterial(base.nome)
+  return perfisDB.find((item) =>
+    item.id !== base.id &&
+    itemAtendeCorMaterial(item, corMaterial) &&
+    (
+      (!!codigoBase && normalizarCodigoModeloMaterial(item.codigo) === codigoBase) ||
+      normalizarDescricaoMaterial(item.nome) === nomeNorm
+    )
+  ) || null
 }
 
 const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
@@ -1158,8 +1246,8 @@ const calcularProjeto = (params: {
             )
           )
         : null
-      const db = variante || base
-      const nome = db?.nome || nomeBase
+      const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
+      const nome = limparCorNomeMaterial(db?.nome || nomeBase)
       const precoUnit = db?.preco || 0
       return {
         nome,
@@ -1234,11 +1322,12 @@ const calcularProjeto = (params: {
       })
 
     for (const pProj of perfisAplicaveis) {
-      const db = perfisDB.find(x => x.id === pProj.perfil_id)
-      if (!db) continue
+      const base = perfisDB.find(x => x.id === pProj.perfil_id)
+      const db = resolverPerfilComCor(base, perfisDB, corMaterial)
+      if (!base) continue
 
       const comprimentoBarra = 6000
-      const precoBarra = db.preco || 0
+      const precoBarra = db?.preco || 0
 
       // Monta lista de cortes: qtd_largura peças de L, qtd_altura peças de A, qtd_outros de (L+A)/2
       const qtdCortesLargura = largura > 0 ? Math.max(0, pProj.qtd_largura * qtd) : 0
@@ -1256,7 +1345,7 @@ const calcularProjeto = (params: {
       const precoTotalPerfil = otim.qtdBarras * precoBarra
 
       cortesResult.push({
-        perfilNome: db.nome,
+        perfilNome: db?.nome || base.nome,
         comprimentoBarra,
         qtdBarras: otim.qtdBarras,
         cortes: otim.cortes,
@@ -1350,8 +1439,9 @@ export default function CalculoProjetoPage() {
 
   const getChaveRascunho = useCallback(() => {
     if (!empresaId) return null
+    if (editId) return `calculoprojeto:edicao:${empresaId}:${editId}:${user?.id || "anon"}`
     return `calculoprojeto:rascunho:${empresaId}:${user?.id || "anon"}`
-  }, [empresaId, user?.id])
+  }, [editId, empresaId, user?.id])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -1557,6 +1647,11 @@ export default function CalculoProjetoPage() {
               obraReferencia?: string
               itensCalculo?: unknown
             }
+            escolhas?: {
+              clienteId?: string
+              obraReferencia?: string
+              itensCalculo?: unknown
+            }
           }
         : null
 
@@ -1565,11 +1660,30 @@ export default function CalculoProjetoPage() {
         return
       }
 
-      setNumeroOrcamentoEdicao(data.numero_formatado || null)
-      setObraReferencia(payload.draft?.obraReferencia || data.obra_referencia || "")
-      setItensCalculo(normalizarItensCalculo(payload.draft?.itensCalculo))
+      let draftSalvo = payload.draft || payload.escolhas
+      const chaveRascunhoEdicao = getChaveRascunho()
+      if (chaveRascunhoEdicao && typeof window !== "undefined") {
+        try {
+          const brutoLocal = window.localStorage.getItem(chaveRascunhoEdicao)
+          const rascunhoLocal = brutoLocal ? JSON.parse(brutoLocal) as {
+            clienteId?: string
+            obraReferencia?: string
+            itensCalculo?: unknown
+            editId?: string | null
+          } : null
 
-      const clienteDraft = payload.draft?.clienteId
+          if (rascunhoLocal?.editId === editId && Array.isArray(rascunhoLocal.itensCalculo)) {
+            draftSalvo = rascunhoLocal
+          }
+        } catch {
+          window.localStorage.removeItem(chaveRascunhoEdicao)
+        }
+      }
+      setNumeroOrcamentoEdicao(data.numero_formatado || null)
+      setObraReferencia(draftSalvo?.obraReferencia || data.obra_referencia || "")
+      setItensCalculo(normalizarItensCalculo(draftSalvo?.itensCalculo))
+
+      const clienteDraft = draftSalvo?.clienteId
       if (clienteDraft && clientesDB.some((c) => c.id === clienteDraft)) {
         setClienteId(clienteDraft)
       } else {
@@ -1583,7 +1697,7 @@ export default function CalculoProjetoPage() {
     }
 
     carregarOrcamentoEdicao()
-  }, [clientesDB, editId, empresaId])
+  }, [clientesDB, editId, empresaId, getChaveRascunho])
 
   // ── Cliente selecionado ───────────────────────────────────────────────────
   const clienteSel = clientesDB.find(c => c.id === clienteId) || null
@@ -1659,12 +1773,14 @@ export default function CalculoProjetoPage() {
 
   useEffect(() => {
     const chave = getChaveRascunho()
-    if (!chave || !rascunhoRestauradoRef.current || typeof window === "undefined" || editId) return
+    if (!chave || !rascunhoRestauradoRef.current || typeof window === "undefined") return
 
     const payload = {
       clienteId,
       obraReferencia,
       itensCalculo,
+      editId: editId || null,
+      atualizadoEm: new Date().toISOString(),
     }
 
     window.localStorage.setItem(chave, JSON.stringify(payload))
@@ -2113,6 +2229,8 @@ export default function CalculoProjetoPage() {
       let houveMudanca = false
 
       const atualizados = prev.map((item) => {
+        if (item.projetoId && !getDetalhe(item)) return item
+
         const grupos = getGruposVariacaoTecnica(item)
         if (grupos.length === 0) {
           if (!item.variacaoAltura && !item.variacaoKit && !item.variacaoFechadura && !item.variacaoAplicacao && !item.variacaoMovimentacao && !item.variacaoVersao) return item
@@ -2179,13 +2297,36 @@ export default function CalculoProjetoPage() {
 
       return houveMudanca ? atualizados : prev
     })
-  }, [getGruposVariacaoTecnica])
+  }, [getDetalhe, getGruposVariacaoTecnica])
 
   useEffect(() => {
     setItensCalculo((prev) => {
       let houveMudanca = false
 
       const atualizados = prev.map((item) => {
+        const projeto = getProjeto(item)
+        if (!projetoEhPma(projeto)) return item
+
+        const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
+        if (!desenhoPmaSelecionado || item.variacaoDrawing === desenhoPmaSelecionado) return item
+
+        houveMudanca = true
+        return {
+          ...item,
+          variacaoDrawing: desenhoPmaSelecionado,
+        }
+      })
+
+      return houveMudanca ? atualizados : prev
+    })
+  }, [desenhosDisponiveis, getProjeto])
+
+  useEffect(() => {
+    setItensCalculo((prev) => {
+      let houveMudanca = false
+
+      const atualizados = prev.map((item) => {
+        if (projetoEhPma(getProjeto(item))) return item
         if (!item.projetoId || !item.variacaoDrawing) return item
 
         const variacoesDisponiveis = getVariacoesDesenhoDisponiveis(item)
@@ -2209,7 +2350,7 @@ export default function CalculoProjetoPage() {
 
       return houveMudanca ? atualizados : prev
     })
-  }, [desenhosDisponiveis, detalhesProjetos, getVariacoesDesenhoDisponiveis, projetos, variacoesCustom])
+  }, [desenhosDisponiveis, detalhesProjetos, getProjeto, getVariacoesDesenhoDisponiveis, projetos, variacoesCustom])
 
   const totaisGerais = useMemo(() => {
     return resultados.reduce((acc, item) => {
@@ -2421,10 +2562,10 @@ export default function CalculoProjetoPage() {
                 )
               )
             : null
-          const db = variante || baseByNome
+          const db = resolverFerragemComCor(baseByNome, ferragensDB, itemResultado.corMaterial) || (itemResultado.corMaterial ? null : variante || baseByNome)
           return {
             id: `${itemResultado.itemId}-ferragem-${index}`,
-            nome: db?.nome || ferragem.nome,
+            nome: limparCorNomeMaterial(db?.nome || ferragem.nome),
             codigo: db?.codigo || null,
             qtd: ferragem.qtd * itemResultado.qtdProjeto,
             unidade: "un",
@@ -2688,6 +2829,12 @@ export default function CalculoProjetoPage() {
           clienteId,
           obraReferencia,
           itensCalculo,
+        },
+        escolhas: {
+          clienteId,
+          obraReferencia,
+          itensCalculo: itensCalculo.map((item) => ({ ...item })),
+          salvoEm: new Date().toISOString(),
         },
       }
 
@@ -3010,6 +3157,7 @@ export default function CalculoProjetoPage() {
                 const usandoPrecoEspecialVidro = getUsandoPrecoEspecial(item)
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
+                const mostrarVariacoesDesenho = variacoesDesenho.length > 1 && !projetoEPma
                 return (
                   <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -3346,7 +3494,7 @@ export default function CalculoProjetoPage() {
                       </div>
                     )}
 
-                    {variacoesDesenho.length > 1 && (
+                    {mostrarVariacoesDesenho && (
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Qual Tipologia Deste Projeto?</p>
                         {variacoesDesenho.length > 1 && (

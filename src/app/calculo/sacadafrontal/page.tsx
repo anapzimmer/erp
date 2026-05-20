@@ -225,6 +225,8 @@ const resolverFerragemPorCodigoECor = (
     if (comSufixo && normalizarPrecoFerragem(comSufixo.preco) > 0) {
       return { preco: normalizarPrecoFerragem(comSufixo.preco), corEncontrada: corUsar };
     }
+
+    return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
   // 3️⃣ tentar entrada sem cor (padrão) — código exato sem sufixo de cor
@@ -560,11 +562,9 @@ export default function CalculoSacadaFrontalPage() {
         }
 
         return atendeCor(perfilTabela.cores, corSelecionada);
-      }) || perfisTabela.find((perfilTabela) =>
-        normalizarTextoComparacao(perfilTabela.codigo) === normalizarTextoComparacao(perfilResultado.codigo)
-      );
+      });
 
-      const precoBarra = Number(perfilDaTabela?.preco) || perfilResultado.precoBarra;
+      const precoBarra = Number(perfilDaTabela?.preco) || 0;
 
       return {
         ...perfilResultado,

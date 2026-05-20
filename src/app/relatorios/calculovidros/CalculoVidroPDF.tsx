@@ -214,7 +214,7 @@ export function CalculoVidroPDF({
                                 : ehPerfilConsolidado(item)
                                     ? styles.rowPerfilConsolidado
                                     : { backgroundColor: getPdfZebraRowBackground(index) }
-                        ]}> 
+                        ]} wrap={false}> 
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc]}>

@@ -169,7 +169,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                     const dw = 440;
                     const dh = dw * (sh / sw);
                     return (
-                        <View style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>
+                        <View wrap={false} style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>
                             <Text style={{ fontSize: 9, fontWeight: "bold", color: props.themeColor, marginBottom: 5, alignSelf: "flex-start" }}>Vista Frontal</Text>
                             <Svg viewBox={`0 0 ${sw} ${sh}`} style={{ width: dw, height: dh }}>
                                 <Rect x={x0} y={y0} width={cw} height={rh} fill="#d8d8d8" />

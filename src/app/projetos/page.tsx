@@ -13,7 +13,7 @@ import { compareFerragensByNome, comparePerfisByNome } from "@/utils/ordemTecnic
 import Image from "next/image"
 import {
   Plus, X, Trash2, Edit2, Package, Layers, Wrench,
-  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search, Copy,
+  Save, Grid3x3, FolderOpen, ImageIcon, AlignLeft, Search, Copy, RefreshCw,
 } from "lucide-react"
 
 const CORES_COMUNS = [
@@ -713,6 +713,23 @@ const formatarLabelArquivoDesenho = (arquivo: string) => {
   return nome.charAt(0).toUpperCase() + nome.slice(1)
 }
 
+const detectarCategoriaArquivoDesenho = (arquivo: string) => {
+  const stem = String(arquivo || "")
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+    .toLowerCase()
+
+  if (!stem) return "Pasta"
+  if (stem.startsWith("porta")) return "Portas"
+  if (stem.startsWith("janela")) return "Janelas"
+  if (stem.startsWith("box")) return "Box Banheiro"
+  if (stem.startsWith("deslizante")) return "Deslizante"
+  if (stem.startsWith("pma") || stem.includes("maoamiga")) return "Mão Amiga (PMA)"
+  if (stem.startsWith("fixo")) return "Fixo"
+  if (stem.startsWith("basculate") || stem.startsWith("max") || stem.startsWith("pivotante")) return "Outros"
+
+  return "Pasta"
+}
+
 const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
   const nome = stem.split("-").pop() || ""
   const numeroMatch = nome.match(/(\d+)$/)
@@ -742,12 +759,18 @@ const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
 }
 
 const getChaveFamiliaPortaGiro = (stem: string): string | null => {
-  const match = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
+  const match = stem.match(/^(portagirodob|portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
   if (!match) return null
   return `${match[1].toLowerCase()}-${match[2].toLowerCase()}`
 }
 
 const criarOpcaoPortaGiro = (stem: string): VariacaoOpcao => {
+  if (/^portagirodob-/i.test(stem)) {
+    const tem1520Ta = /1520ta/i.test(stem)
+    const label = tem1520Ta ? "1520TA + puxador" : "1520 + puxador"
+    return { key: stem, label, arquivo: criarArquivo(stem) }
+  }
+
   const tem1520Ta = /1520ta/i.test(stem)
   const completo = /completo|completa/i.test(stem)
   const partes = [tem1520Ta ? "1520TA" : "1520", completo ? "Completo" : ""].filter(Boolean)
@@ -979,6 +1002,7 @@ export default function ProjetosPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
   const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
+  const [atualizandoDesenhos, setAtualizandoDesenhos] = useState(false)
   const [editandoNomesDesenho, setEditandoNomesDesenho] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
   const [variacaoCustomSelecionadaId, setVariacaoCustomSelecionadaId] = useState<string | null>(null)
@@ -1110,29 +1134,26 @@ export default function ProjetosPage() {
     }
   }, [empresaId])
 
-  useEffect(() => {
-    let cancelado = false
+  const carregarDesenhosPasta = useCallback(async () => {
+    setAtualizandoDesenhos(true)
+    try {
+      const resposta = await fetch("/api/desenhos", { cache: "no-store" })
+      const payload = await resposta.json().catch(() => ({ arquivos: [] }))
+      const arquivos = Array.isArray(payload?.arquivos)
+        ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
+        : []
 
-    const carregarDesenhosPasta = async () => {
-      try {
-        const resposta = await fetch("/api/desenhos", { cache: "no-store" })
-        const payload = await resposta.json().catch(() => ({ arquivos: [] }))
-        const arquivos = Array.isArray(payload?.arquivos)
-          ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
-          : []
-
-        if (!cancelado) setDesenhosPasta(arquivos)
-      } catch {
-        if (!cancelado) setDesenhosPasta([])
-      }
-    }
-
-    carregarDesenhosPasta()
-
-    return () => {
-      cancelado = true
+      setDesenhosPasta(arquivos)
+    } catch {
+      setDesenhosPasta([])
+    } finally {
+      setAtualizandoDesenhos(false)
     }
   }, [])
+
+  useEffect(() => {
+    carregarDesenhosPasta()
+  }, [carregarDesenhosPasta])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -1866,7 +1887,7 @@ export default function ProjetosPage() {
         ...prev.ferragens,
         ...ferragensSelecionadas.map((ferragem) => ({
           ferragem_id: String(ferragem.id),
-          nome: ferragem.nome,
+          nome: limparNomeTecnico(ferragem.nome) || ferragem.nome,
           quantidade: 1,
           usar_no_kit: false,
           usar_no_perfil: false,
@@ -1886,7 +1907,7 @@ export default function ProjetosPage() {
       ...prev,
       ferragens: [...prev.ferragens, {
         ferragem_id: f.id,
-        nome: f.nome,
+        nome: limparNomeTecnico(f.nome) || f.nome,
         quantidade: 1,
         usar_no_kit: false,
         usar_no_perfil: false,
@@ -1900,7 +1921,7 @@ export default function ProjetosPage() {
       const arr = [...prev.ferragens]
       if (campo === "ferragem_id") {
         const found = ferragensOriginaisDB.find((x) => String(x.id) === String(val)) || ferragensDB.find((x) => String(x.id) === String(val))
-        arr[i] = { ...arr[i], ferragem_id: String(val), nome: found?.nome || "" }
+        arr[i] = { ...arr[i], ferragem_id: String(val), nome: limparNomeTecnico(found?.nome) || found?.nome || "" }
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
@@ -2030,6 +2051,16 @@ export default function ProjetosPage() {
 
   const catalogoDesenhos = useMemo(() => {
     const mapa = new Map<string, { label: string; arquivo: string; categoria: string }>()
+    const ordemCategorias = [
+      "Portas",
+      "Janelas",
+      "Box Banheiro",
+      "Deslizante",
+      "Mão Amiga (PMA)",
+      "Fixo",
+      "Outros",
+      "Pasta",
+    ]
 
     Object.entries(DESENHOS).forEach(([categoria, itens]) => {
       itens.forEach((item) => {
@@ -2042,13 +2073,27 @@ export default function ProjetosPage() {
       mapa.set(arquivo, {
         arquivo,
         label: formatarLabelArquivoDesenho(arquivo),
-        categoria: "Pasta",
+        categoria: detectarCategoriaArquivoDesenho(arquivo),
       })
     })
 
-    return Array.from(mapa.values()).reduce<Record<string, { label: string; arquivo: string }[]>>((acc, item) => {
+    const agrupado = Array.from(mapa.values()).reduce<Record<string, { label: string; arquivo: string }[]>>((acc, item) => {
       if (!acc[item.categoria]) acc[item.categoria] = []
       acc[item.categoria].push({ label: item.label, arquivo: item.arquivo })
+      return acc
+    }, {})
+
+    Object.values(agrupado).forEach((itens) => {
+      itens.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
+    })
+
+    const categoriasOrdenadas = [
+      ...ordemCategorias.filter((categoria) => categoria in agrupado),
+      ...Object.keys(agrupado).filter((categoria) => !ordemCategorias.includes(categoria)).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    ]
+
+    return categoriasOrdenadas.reduce<Record<string, { label: string; arquivo: string }[]>>((acc, categoria) => {
+      acc[categoria] = agrupado[categoria]
       return acc
     }, {})
   }, [desenhosPasta])
@@ -2720,6 +2765,18 @@ export default function ProjetosPage() {
 
                     {showPicker && (
                       <div className="mt-2 border border-gray-100 rounded-2xl overflow-hidden shadow-lg bg-white">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-white">
+                          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Catálogo de desenhos</p>
+                          <button
+                            type="button"
+                            onClick={carregarDesenhosPasta}
+                            disabled={atualizandoDesenhos}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-[11px] font-black text-gray-500 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            <RefreshCw size={12} className={atualizandoDesenhos ? "animate-spin" : ""} />
+                            {atualizandoDesenhos ? "Atualizando..." : "Atualizar"}
+                          </button>
+                        </div>
                         {/* Tabs categorias */}
                         <div className="flex gap-1 p-2 overflow-x-auto bg-gray-50 border-b border-gray-100">
                           {Object.keys(catalogoDesenhos).map(cat => (

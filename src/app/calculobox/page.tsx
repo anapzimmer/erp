@@ -170,16 +170,33 @@ export default function CalculoVidros() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const normalizarCor = (valor?: string | null) =>
+    String(valor || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "")
+
+  const itemAtendeCorSelecionada = (item: { cores?: string | null; nome?: string | null }) => {
+    const cor = normalizarCor(corSel)
+    if (!cor) return true
+    const cores = String(item.cores || "")
+      .split(/[;,/|]/)
+      .map((valor) => normalizarCor(valor))
+      .filter(Boolean)
+    return cores.includes(cor) || normalizarCor(item.nome).includes(cor)
+  }
 
   // Lista combinada para busca de adicionais
   const listaAdicionais = [
-    ...ferragens.map(f => ({
+    ...ferragens.filter(itemAtendeCorSelecionada).map(f => ({
       ...f,
       origin: 'ferragem',
       label: `${f.codigo || ''} - ${f.nome}`,
       search: `${f.codigo || ''} ${f.nome}`.toLowerCase()
     })),
-    ...perfis.map(p => ({
+    ...perfis.filter(itemAtendeCorSelecionada).map(p => ({
       ...p,
       origin: 'perfil',
       label: `${p.codigo || ''} - ${p.nome}`,
@@ -1168,7 +1185,13 @@ export default function CalculoVidros() {
                     </div>
                   )}
                 </div>
-                <select className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" value={corSel} onChange={e => setCorSel(e.target.value)}>
+                <select className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" value={corSel} onChange={e => {
+                  setCorSel(e.target.value)
+                  setAdicionalSel(null)
+                  setBuscaAdicional("")
+                  setValorAdicional("")
+                  setAdicionaisSelecionados([])
+                }}>
                   <option value="Branco">Branco</option><option value="Preto">Preto</option><option value="Fosco">Fosco</option>
                 </select>
               </div>
