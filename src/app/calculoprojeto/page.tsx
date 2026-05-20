@@ -171,17 +171,6 @@ type ResultadoCalculo = {
   corKit?: string
   precoKit: number
   ferragens: Array<{ nome: string; qtd: number; precoUnit: number; total: number }>
-  debugFerragens: Array<{
-    ferragemId: string
-    nome: string
-    restricao: string
-    passouRestricao: boolean
-    passouModo: boolean
-    usarNoKit: boolean
-    usarNoPerfil: boolean
-    modoCalculo: "kit" | "barra"
-    motivoBloqueio: string
-  }>
   precoFerragens: number
   cortes: CorteOtimizado[]
   precoPerfis: number
@@ -1304,75 +1293,39 @@ const calcularProjeto = (params: {
   }
 
   // ── Ferragens ─────────────────────────────────────────────────────────────
-  const ferragensDiagnostico = detalhe.ferragens.map((f) => {
-    const passouRestricao = isAplicavel(f.variacao_restrita)
-    const passouModo = modoCalculo === "kit" ? Boolean(f.usar_no_kit) : Boolean(f.usar_no_perfil)
-    const motivoBloqueio = !passouRestricao
-      ? "restricao_nao_corresponde"
-      : !passouModo
-      ? (modoCalculo === "kit" ? "usar_no_kit_false" : "usar_no_perfil_false")
-      : "ok"
-
-    const base = ferragensDB.find(x => x.id === f.ferragem_id)
-    const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
-    const corAlvo = corMaterial.trim().toLowerCase()
-    const codigoBase = base?.codigo?.trim().toLowerCase()
-    const nomeNorm = base ? normalizarNomeFerragem(base.nome) : null
-    const variante = corAlvo
-      ? (
-          ferragensDB.find(x =>
-            x.id !== base?.id &&
-            !!codigoBase &&
-            (x.codigo || "").trim().toLowerCase() === codigoBase &&
-            (x.cores || "").trim().toLowerCase() === corAlvo
-          ) ||
-          ferragensDB.find(x =>
-            x.id !== base?.id &&
-            !!nomeNorm &&
-            normalizarNomeFerragem(x.nome) === nomeNorm &&
-            (x.cores || "").trim().toLowerCase() === corAlvo
+  const ferragensResult: ResultadoCalculo["ferragens"] = detalhe.ferragens
+    .filter(f => isAplicavel(f.variacao_restrita))
+    .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
+    .map(f => {
+      const base = ferragensDB.find(x => x.id === f.ferragem_id)
+      const nomeBase = base?.nome || f.ferragens?.nome || "Ferragem"
+      const corAlvo = corMaterial.trim().toLowerCase()
+      const codigoBase = base?.codigo?.trim().toLowerCase()
+      const nomeNorm = base ? normalizarNomeFerragem(base.nome) : null
+      const variante = corAlvo
+        ? (
+            ferragensDB.find(x =>
+              x.id !== base?.id &&
+              !!codigoBase &&
+              (x.codigo || "").trim().toLowerCase() === codigoBase &&
+              (x.cores || "").trim().toLowerCase() === corAlvo
+            ) ||
+            ferragensDB.find(x =>
+              x.id !== base?.id &&
+              !!nomeNorm &&
+              normalizarNomeFerragem(x.nome) === nomeNorm &&
+              (x.cores || "").trim().toLowerCase() === corAlvo
+            )
           )
-        )
-      : null
-    const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
-    const nome = limparCorNomeMaterial(db?.nome || nomeBase)
-    const precoUnit = db?.preco || 0
-
-    return {
-      ferragemId: f.ferragem_id,
-      nome,
-      restricao: String(f.variacao_restrita || ""),
-      passouRestricao,
-      passouModo,
-      usarNoKit: Boolean(f.usar_no_kit),
-      usarNoPerfil: Boolean(f.usar_no_perfil),
-      modoCalculo,
-      motivoBloqueio,
-      quantidade: f.quantidade,
-      precoUnit,
-    }
-  })
-
-  const debugFerragens: ResultadoCalculo["debugFerragens"] = ferragensDiagnostico.map((f) => ({
-    ferragemId: f.ferragemId,
-    nome: f.nome,
-    restricao: f.restricao,
-    passouRestricao: f.passouRestricao,
-    passouModo: f.passouModo,
-    usarNoKit: f.usarNoKit,
-    usarNoPerfil: f.usarNoPerfil,
-    modoCalculo: f.modoCalculo,
-    motivoBloqueio: f.motivoBloqueio,
-  }))
-
-  const ferragensResult: ResultadoCalculo["ferragens"] = ferragensDiagnostico
-    .filter((f) => f.passouRestricao && f.passouModo)
-    .map((f) => {
+        : null
+      const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
+      const nome = limparCorNomeMaterial(db?.nome || nomeBase)
+      const precoUnit = db?.preco || 0
       return {
-        nome: f.nome,
+        nome,
         qtd: f.quantidade,
-        precoUnit: f.precoUnit,
-        total: f.quantidade * f.precoUnit * qtd,
+        precoUnit,
+        total: f.quantidade * precoUnit * qtd,
       }
     })
     .sort((a, b) => compareFerragensByNome(a.nome, b.nome))
@@ -1498,7 +1451,6 @@ const calcularProjeto = (params: {
     corKit: corMaterial,
     precoKit,
     ferragens: ferragensResult,
-    debugFerragens,
     precoFerragens,
     cortes: cortesResult,
     precoPerfis,
@@ -2917,18 +2869,6 @@ export default function CalculoProjetoPage() {
         qtd: Math.max(1, Number(item.qtd || 1)),
       })
 
-      if (projetoEhPma(projeto) && typeof window !== "undefined") {
-        const debugBloqueadas = resultado.debugFerragens.filter((f) => !f.passouRestricao || !f.passouModo)
-        console.groupCollapsed(`[DEBUG PMA] ${projeto.nome} | item ${index + 1}`)
-        console.log("variacaoDrawingAtiva", variacaoDrawingAtiva)
-        console.log("variacaoTecnica", variacaoTecnica)
-        console.log("ferragens totais", resultado.debugFerragens.length)
-        console.log("ferragens aplicadas", resultado.ferragens.length)
-        console.log("ferragens bloqueadas", debugBloqueadas.length)
-        console.table(resultado.debugFerragens)
-        console.groupEnd()
-      }
-
       novosResultados.push({
         itemId: item.id,
         projeto,
@@ -3355,9 +3295,6 @@ export default function CalculoProjetoPage() {
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
                 const mostrarVariacoesDesenho = variacoesDesenho.length > 1 && !projetoEPma
-                const resultadoItem = resultados.find((r) => r.itemId === item.id)
-                const debugFerragensItem = resultadoItem?.resultado.debugFerragens || []
-                const ferragensBloqueadas = debugFerragensItem.filter((f) => !f.passouRestricao || !f.passouModo)
                 return (
                   <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -3722,27 +3659,6 @@ export default function CalculoProjetoPage() {
                       </div>
                     )}
 
-                    {projetoEPma && debugFerragensItem.length > 0 && (
-                      <details className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                        <summary className="cursor-pointer text-xs font-black uppercase tracking-wider text-amber-700">
-                          Debug PMA Ferragens: {resultadoItem?.resultado.ferragens.length || 0} aplicadas, {ferragensBloqueadas.length} bloqueadas
-                        </summary>
-                        <div className="mt-3 space-y-2 text-xs text-amber-900">
-                          <p><strong>Variação técnica usada:</strong> {resultadoItem?.variacaoTecnica || "(vazia)"}</p>
-                          <p><strong>Desenho ativo:</strong> {resultadoItem?.variacaoDrawing || "(vazio)"}</p>
-                          <div className="space-y-1">
-                            {debugFerragensItem.map((f) => (
-                              <div key={`${item.id}-${f.ferragemId}-${f.nome}`} className="rounded-lg border border-amber-200 bg-white px-2 py-1">
-                                <p className="font-semibold">{f.nome}</p>
-                                <p>Restrição: {f.restricao || "(sem restrição)"}</p>
-                                <p>Status: {f.passouRestricao && f.passouModo ? "aplicada" : `bloqueada (${f.motivoBloqueio})`}</p>
-                                <p>Modo: {f.modoCalculo} | usar_no_kit: {String(f.usarNoKit)} | usar_no_perfil: {String(f.usarNoPerfil)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </details>
-                    )}
                   </div>
                 )
               })}
