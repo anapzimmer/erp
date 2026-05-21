@@ -171,7 +171,7 @@ type ResultadoCalculo = {
   kit?: KitItem | null
   corKit?: string
   precoKit: number
-  ferragens: Array<{ nome: string; qtd: number; precoUnit: number; total: number }>
+  ferragens: Array<{ nome: string; codigo?: string | null; qtd: number; precoUnit: number; total: number }>
   precoFerragens: number
   cortes: CorteOtimizado[]
   precoPerfis: number
@@ -636,6 +636,47 @@ const contarFolhasMovimentacaoPma = (valor: string): number | null => {
   return Number(mistas[1]) + Number(mistas[2])
 }
 
+const extrairPartesMovimentacaoPma = (valor?: string | null) => {
+  const texto = String(valor || "").toLowerCase()
+
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) {
+    const total = Number(todasMoveis[1])
+    return Number.isFinite(total) && total > 0
+      ? { total, todasMoveis: true as const, fixas: 0, moveis: total }
+      : null
+  }
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (!mistas) return null
+
+  const fixas = Number(mistas[1])
+  const moveis = Number(mistas[2])
+  const total = fixas + moveis
+
+  if (!Number.isFinite(fixas) || !Number.isFinite(moveis) || fixas <= 0 || moveis <= 0 || total <= 0) return null
+  return { total, todasMoveis: false as const, fixas, moveis }
+}
+
+const movimentacoesPmaEquivalentes = (a?: string | null, b?: string | null) => {
+  const valorA = String(a || "").toLowerCase().trim()
+  const valorB = String(b || "").toLowerCase().trim()
+  if (!valorA || !valorB) return false
+  if (valorA === valorB) return true
+
+  const partesA = extrairPartesMovimentacaoPma(valorA)
+  const partesB = extrairPartesMovimentacaoPma(valorB)
+  if (!partesA || !partesB) return false
+
+  if (partesA.todasMoveis || partesB.todasMoveis) {
+    return partesA.todasMoveis && partesB.todasMoveis && partesA.total === partesB.total
+  }
+
+  // Regra PMA: combinacoes com folhas fixas são equivalentes quando o total de folhas é o mesmo
+  // (ex.: 1_fixa_3_moveis ~= 2_fixas_2_moveis)
+  return partesA.total === partesB.total
+}
+
 const detectarQuantidadeFolhasPmaProjeto = (projeto?: Projeto | null): number | null => {
   const desenhoStem = String(projeto?.desenho || "")
     .trim()
@@ -713,6 +754,11 @@ const correspondeRestricaoProjeto = (
   const tecnicoOk = Array.from(valoresPorEixo.entries()).every(([eixo, valores]) => {
     const selecionado = selecaoTecnica[eixo]
     if (selecionado && valores.has(selecionado)) return true
+    if (eixo === "movimentacao" && selecionado) {
+      for (const valor of valores) {
+        if (movimentacoesPmaEquivalentes(valor, selecionado)) return true
+      }
+    }
     return !!(opcoes?.permitirBoxPadraoTeto && eixo === "altura" && selecionado === "teto" && valores.has("padrao"))
   })
 
@@ -1393,6 +1439,7 @@ const calcularProjeto = (params: {
       const precoUnit = db?.preco || 0
       return {
         nome,
+        codigo: db?.codigo || null,
         qtd: f.quantidade,
         precoUnit,
         total: f.quantidade * precoUnit * qtd,
@@ -2791,10 +2838,11 @@ export default function CalculoProjetoPage() {
               )
             : null
           const db = resolverFerragemComCor(baseByNome, ferragensDB, itemResultado.corMaterial) || (itemResultado.corMaterial ? null : variante || baseByNome)
+          const codigoFerragem = ferragem.codigo || db?.codigo || baseByNome?.codigo || null
           return {
             id: `${itemResultado.itemId}-ferragem-${index}`,
             nome: limparCorNomeMaterial(db?.nome || ferragem.nome),
-            codigo: db?.codigo || null,
+            codigo: codigoFerragem,
             qtd: ferragem.qtd * itemResultado.qtdProjeto,
             unidade: "un",
             total: (db?.preco || ferragem.precoUnit || 0) * ferragem.qtd * itemResultado.qtdProjeto,
