@@ -66,6 +66,7 @@ export const GRUPOS_VARIACAO_BOX: GrupoEixoVariacaoProjeto[] = [
     label: "Versao PMA",
     options: [
       { value: "pma_simples", label: "Simples" },
+      { value: "pma_kit_pia", label: "Kit Pia" },
       { value: "pma_completa", label: "Completa" },
     ],
   },

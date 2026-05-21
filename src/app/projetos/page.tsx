@@ -374,11 +374,64 @@ const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 1
 }
 
+const parseCodigoMovimentacaoPmaProjeto = (codigoFonte?: string | null): string | null => {
+  const codigo = String(codigoFonte || "").replace(/\D/g, "")
+  if (!codigo) return null
+
+  if (codigo.length === 1) {
+    const moveis = Number(codigo)
+    return Number.isFinite(moveis) && moveis > 0 ? `${moveis}_moveis` : null
+  }
+
+  if (codigo.startsWith("0")) {
+    const moveis = Number(codigo.replace(/^0+/, ""))
+    return Number.isFinite(moveis) && moveis > 0 ? `${moveis}_moveis` : null
+  }
+
+  const fixas = Number(codigo[0])
+  const moveis = Number(codigo.slice(1))
+
+  if (Number.isFinite(fixas) && Number.isFinite(moveis) && fixas > 0 && moveis > 0) {
+    return `${fixas}_${fixas === 1 ? "fixa" : "fixas"}_${moveis}_moveis`
+  }
+
+  return null
+}
+
+const contarFolhasMovimentacaoPma = (valor: string): number | null => {
+  const texto = String(valor || "").toLowerCase()
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) return Number(todasMoveis[1])
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (!mistas) return null
+
+  return Number(mistas[1]) + Number(mistas[2])
+}
+
 const detectarQuantidadeFolhasProjeto = (dados: Pick<FormData, "nome" | "categoria" | "desenho">): number | null => {
+  const desenhoStem = String(dados.desenho || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const matchDesenhoPma = desenhoStem.match(/^pma-(\d+)fs(?:-|$)/i)
+
+  if (matchDesenhoPma) {
+    const movimentacao = parseCodigoMovimentacaoPmaProjeto(matchDesenhoPma[1])
+    const quantidadePorCodigo = movimentacao ? contarFolhasMovimentacaoPma(movimentacao) : null
+    if (quantidadePorCodigo && quantidadePorCodigo > 0) return quantidadePorCodigo
+  }
+
   const texto = `${dados.nome} ${dados.categoria} ${dados.desenho}`.toLowerCase()
-  const match =
-    texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i) ||
-    texto.match(/\b(\d+)\s*(?:folhas?|fls?|fs)\b/i)
+  const matchPmaTexto = texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i)
+
+  if (matchPmaTexto) {
+    const movimentacao = parseCodigoMovimentacaoPmaProjeto(matchPmaTexto[1])
+    const quantidadePorCodigo = movimentacao ? contarFolhasMovimentacaoPma(movimentacao) : null
+    if (quantidadePorCodigo && quantidadePorCodigo > 0) return quantidadePorCodigo
+  }
+
+  const match = texto.match(/\b(\d+)\s*(?:folhas?|fls?|fs)\b/i)
 
   if (!match) return null
   const quantidade = Number(match[1])
@@ -629,6 +682,7 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
   "Mão Amiga (PMA)": [
     { label: "PMA 2 Fls Completo", arquivo: "pma-2fs-completo.png" },
     { label: "PMA 2 Fls Simples", arquivo: "pma-2fs-simples.png" },
+    { label: "PMA 2 Fls Kit Pia", arquivo: "pma-2fs-kitpia.png" },
     { label: "PMA 3 Fls Completo", arquivo: "pma-3fs-completo.png" },
     { label: "PMA 3 Fls Simples", arquivo: "pma-3fs-simples.png" },
     { label: "PMA 4 Fls Completo", arquivo: "pma-4fs-completo.png" },
@@ -779,6 +833,11 @@ const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
     return { key: stem, label: `Completo${sufixo}`, arquivo: criarArquivo(stem) }
   }
 
+  if (base === "kitpia") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Kit Pia${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
   return { key: stem, label: nome.toUpperCase(), arquivo: criarArquivo(stem) }
 }
 
@@ -851,7 +910,7 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
     }
   }
 
-  const baseFamilia = stemAtual.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*)$/, "")
+  const baseFamilia = stemAtual.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*|kitpia\d*)$/, "")
   const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-(.+)$`)
   const stemsFamilia = Array.from(stemsDisponiveis).filter((stem) => regexFamilia.test(stem))
 
@@ -865,9 +924,10 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
           if (/^simples\d*$/i.test(nome)) return 0
           if (/^puxador\d*$/i.test(nome)) return 1
           if (/^comtrinco\d*$/i.test(nome)) return 2
-          if (nome === "completo" || nome === "completa") return 3
-          if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 4
-          return 5
+          if (/^kitpia\d*$/i.test(nome)) return 3
+          if (nome === "completo" || nome === "completa") return 4
+          if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 5
+          return 6
         }
 
         const rankA = rank(aNome)
@@ -1026,6 +1086,7 @@ export default function ProjetosPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [categoriaPicker, setCategoriaPicker] = useState("Portas")
   const [desenhosPasta, setDesenhosPasta] = useState<string[]>([])
+  const [desenhosVersao, setDesenhosVersao] = useState<number>(Date.now())
   const [atualizandoDesenhos, setAtualizandoDesenhos] = useState(false)
   const [editandoNomesDesenho, setEditandoNomesDesenho] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustom[]>([])
@@ -1161,19 +1222,33 @@ export default function ProjetosPage() {
   const carregarDesenhosPasta = useCallback(async () => {
     setAtualizandoDesenhos(true)
     try {
-      const resposta = await fetch("/api/desenhos", { cache: "no-store" })
+      const resposta = await fetch(`/api/desenhos?t=${Date.now()}`, { cache: "no-store" })
       const payload = await resposta.json().catch(() => ({ arquivos: [] }))
       const arquivos = Array.isArray(payload?.arquivos)
         ? payload.arquivos.map((arquivo: unknown) => String(arquivo || "").trim()).filter(Boolean)
         : []
 
       setDesenhosPasta(arquivos)
+      setDesenhosVersao(Date.now())
     } catch {
       setDesenhosPasta([])
     } finally {
       setAtualizandoDesenhos(false)
     }
   }, [])
+
+  const montarUrlDesenho = useCallback((arquivo?: string | null) => {
+    const nomeArquivo = String(arquivo || "").trim()
+    if (!nomeArquivo) return ""
+
+    const nomeCodificado = nomeArquivo
+      .split("/")
+      .filter(Boolean)
+      .map((parte) => encodeURIComponent(parte))
+      .join("/")
+
+    return `/desenhos/${nomeCodificado}?v=${desenhosVersao}`
+  }, [desenhosVersao])
 
   useEffect(() => {
     carregarDesenhosPasta()
@@ -2219,6 +2294,7 @@ export default function ProjetosPage() {
           grupo.options
             .filter((opcao) => {
               if (grupo.key === "movimentacao" && !ehOpcaoMovimentacaoPmaPermitida(opcao.value)) return false
+              if (grupo.key === "versao" && opcao.value === "pma_kit_pia") return quantidadeFolhasPma === 2
               if (grupo.key !== "movimentacao" || !quantidadeFolhasPma) return true
               return contarFolhasMovimentacao(opcao.value) === quantidadeFolhasPma
             })
@@ -2563,7 +2639,7 @@ export default function ProjetosPage() {
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: `${theme.menuBackgroundColor}08` }} />
                     {projeto.desenho ? (
                       <Image
-                        src={`/desenhos/${projeto.desenho}`}
+                        src={montarUrlDesenho(projeto.desenho)}
                         alt={projeto.nome}
                         fill
                         className="object-contain p-4 group-hover:scale-105 transition-transform"
@@ -2637,7 +2713,7 @@ export default function ProjetosPage() {
               <div className="flex items-center gap-3">
                 {form.desenho && (
                   <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/60 border border-white/40">
-                    <Image src={`/desenhos/${form.desenho}`} alt="" fill sizes="(max-width: 768px) 100vw, 48px" className="object-contain p-1" />
+                    <Image src={montarUrlDesenho(form.desenho)} alt="" fill sizes="(max-width: 768px) 100vw, 48px" className="object-contain p-1" />
                   </div>
                 )}
                 <div>
@@ -2762,7 +2838,7 @@ export default function ProjetosPage() {
                     >
                       {form.desenho ? (
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-white border border-gray-100">
-                          <Image src={`/desenhos/${form.desenho}`} alt="" fill sizes="(max-width: 768px) 100vw, 56px" className="object-contain p-1" />
+                          <Image src={montarUrlDesenho(form.desenho)} alt="" fill sizes="(max-width: 768px) 100vw, 56px" className="object-contain p-1" />
                         </div>
                       ) : (
                         <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shrink-0">
@@ -2844,7 +2920,7 @@ export default function ProjetosPage() {
                                 : {}}
                             >
                               <Image
-                                src={`/desenhos/${d.arquivo}`}
+                                src={montarUrlDesenho(d.arquivo)}
                                 alt={d.label}
                                 fill
                                 className="object-contain p-1 bg-gray-50"

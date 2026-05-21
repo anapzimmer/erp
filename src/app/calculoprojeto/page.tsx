@@ -147,6 +147,7 @@ type BarraOtimizada = {
 }
 
 type CorteOtimizado = {
+  perfilCodigo: string
   perfilNome: string
   comprimentoBarra: number
   qtdBarras: number
@@ -282,6 +283,8 @@ type ItemPreviewOrcamento = {
 type OtimizacaoGlobalPerfil = {
   projetoId: string
   projetoNome: string
+  projetoEhPma: boolean
+  perfilCodigo: string
   perfilNome: string
   corMaterial: string
   comprimentoBarra: number
@@ -297,6 +300,25 @@ type OtimizacaoGlobalPerfil = {
   precoOtimizado: number
   aproveitamento: number
   desperdicioMm: number
+}
+
+const ORDEM_CODIGOS_PMA = ["vt68", "vt268", "vt39", "v239", "vt239", "vt10", "vt66", "vt390", "vt380"]
+const RANK_CODIGO_PMA = new Map(ORDEM_CODIGOS_PMA.map((codigo, indice) => [codigo, indice]))
+
+const normalizarCodigoPerfilPma = (codigo?: string | null) =>
+  String(codigo || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim()
+
+const compararCodigoPerfilPma = (codigoA?: string | null, codigoB?: string | null) => {
+  const rankA = RANK_CODIGO_PMA.get(normalizarCodigoPerfilPma(codigoA))
+  const rankB = RANK_CODIGO_PMA.get(normalizarCodigoPerfilPma(codigoB))
+
+  if (rankA === undefined && rankB === undefined) return 0
+  if (rankA === undefined) return 1
+  if (rankB === undefined) return -1
+  return rankA - rankB
 }
 
 const VARIACAO_TOKEN = "__VARIACAO__="
@@ -473,6 +495,10 @@ const formatarLabelVariacaoArquivo = (arquivo: string) => {
     const numero = nome.match(/(\d+)$/)?.[1]
     return numero ? `Simples ${numero}` : "Simples"
   }
+  if (/-kitpia\d*$/i.test(nome)) {
+    const numero = nome.match(/(\d+)$/)?.[1]
+    return numero ? `Kit Pia ${numero}` : "Kit Pia"
+  }
   if (/-complet[oa]\d*$/i.test(nome)) {
     const numero = nome.match(/(\d+)$/)?.[1]
     return numero ? `Completo ${numero}` : "Completo"
@@ -548,14 +574,16 @@ const normalizarRestricaoMovimentacaoPma = (valor?: string | null): string | nul
   return null
 }
 
-const extrairVersaoDesenhoPma = (valor?: string | null): "simples" | "completo" | null => {
+const extrairVersaoDesenhoPma = (valor?: string | null): "simples" | "completo" | "kitpia" | null => {
   const stem = String(valor || "")
     .trim()
     .toLowerCase()
     .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
-  const match = stem.match(/^pma-\d+fs-(simples\d*|completo\d*|completa\d*)$/i)
+  const match = stem.match(/^pma-\d+fs-(simples\d*|completo\d*|completa\d*|kitpia)$/i)
   if (!match) return null
-  return /^simples/i.test(match[1]) ? "simples" : "completo"
+  if (/^simples/i.test(match[1])) return "simples"
+  if (/^kitpia$/i.test(match[1])) return "kitpia"
+  return "completo"
 }
 
 const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean => {
@@ -582,7 +610,7 @@ const inferirVariacaoTecnicaPmaPeloDesenho = (
     .trim()
     .toLowerCase()
     .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
-  const match = stem.match(/^pma-(\d+)fs-(simples|completo|completa)$/i)
+  const match = stem.match(/^pma-(\d+)fs-(simples|completo|completa|kitpia)$/i)
   if (!match) return {}
 
   const codigoMovimentacao = match[1]
@@ -593,8 +621,48 @@ const inferirVariacaoTecnicaPmaPeloDesenho = (
 
   return {
     movimentacao,
-    versao: versao === "simples" ? "pma_simples" : "pma_completa",
+    versao: versao === "simples" ? "pma_simples" : versao === "kitpia" ? "pma_kit_pia" : "pma_completa",
   }
+}
+
+const contarFolhasMovimentacaoPma = (valor: string): number | null => {
+  const texto = String(valor || "").toLowerCase()
+  const todasMoveis = texto.match(/^(\d+)_moveis$/)
+  if (todasMoveis) return Number(todasMoveis[1])
+
+  const mistas = texto.match(/^(\d+)_fixas?_(\d+)_moveis$/)
+  if (!mistas) return null
+
+  return Number(mistas[1]) + Number(mistas[2])
+}
+
+const detectarQuantidadeFolhasPmaProjeto = (projeto?: Projeto | null): number | null => {
+  const desenhoStem = String(projeto?.desenho || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const matchDesenhoPma = desenhoStem.match(/^pma-(\d+)fs(?:-|$)/i)
+
+  if (matchDesenhoPma) {
+    const movimentacao = parseCodigoMovimentacaoPma(matchDesenhoPma[1])
+    const quantidadePorCodigo = movimentacao ? contarFolhasMovimentacaoPma(movimentacao) : null
+    if (quantidadePorCodigo && quantidadePorCodigo > 0) return quantidadePorCodigo
+  }
+
+  const texto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`.toLowerCase()
+  const matchPmaTexto = texto.match(/\bpma[-_\s]*(\d+)\s*fs\b/i)
+
+  if (matchPmaTexto) {
+    const movimentacao = parseCodigoMovimentacaoPma(matchPmaTexto[1])
+    const quantidadePorCodigo = movimentacao ? contarFolhasMovimentacaoPma(movimentacao) : null
+    if (quantidadePorCodigo && quantidadePorCodigo > 0) return quantidadePorCodigo
+  }
+
+  const match = texto.match(/\b(\d+)\s*(?:folhas?|fls?|fs)\b/i)
+
+  if (!match) return null
+  const quantidade = Number(match[1])
+  return Number.isFinite(quantidade) && quantidade > 0 ? quantidade : null
 }
 
 const correspondeRestricaoProjeto = (
@@ -668,7 +736,7 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
     return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
   }
 
-  if (/^pma-\d+fs-(simples\d*|completo\d*|completa\d*)$/i.test(stem)) {
+  if (/^pma-\d+fs-(simples\d*|completo\d*|completa\d*|kitpia\d*)$/i.test(stem)) {
     return null
   }
 
@@ -758,9 +826,10 @@ const getStemDesenhoPmaPorMovimentacao = (movimentacao?: string | null): string 
   return null
 }
 
-const getSufixoDesenhoPmaPorVersao = (versao?: string | null): "simples" | "completo" | null => {
+const getSufixoDesenhoPmaPorVersao = (versao?: string | null): "simples" | "completo" | "kitpia" | null => {
   const texto = String(versao || "").trim().toLowerCase()
   if (texto === "pma_simples" || texto === "simples") return "simples"
+  if (texto === "pma_kit_pia" || texto === "kit_pia" || texto === "kitpia" || texto === "kit-pia") return "kitpia"
   if (texto === "pma_completa" || texto === "pma_completo" || texto === "completa" || texto === "completo") return "completo"
   return null
 }
@@ -841,9 +910,10 @@ const getVariacoesAutomaticasProjeto = (
           if (/^simples\d*$/i.test(nomeVersao)) return 0
           if (/^puxador\d*$/i.test(nomeVersao)) return 1
           if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
-          if (/^completo$|^completa$/i.test(nomeVersao)) return 3
-          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 4
-          return 5
+          if (/^kitpia\d*$/i.test(nomeVersao)) return 3
+          if (/^completo$|^completa$/i.test(nomeVersao)) return 4
+          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 5
+          return 6
         }
 
         const rankA = rank(aNome)
@@ -1422,6 +1492,7 @@ const calcularProjeto = (params: {
       const precoTotalPerfil = otim.qtdBarras * precoBarra
 
       cortesResult.push({
+        perfilCodigo: db?.codigo || base.codigo || "-",
         perfilNome: db?.nome || base.nome,
         comprimentoBarra,
         qtdBarras: otim.qtdBarras,
@@ -2242,6 +2313,7 @@ export default function CalculoProjetoPage() {
       const projeto = getProjeto(item)
       const textoProjeto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`.toLowerCase()
       const projetoPma = /m[aã]o\s*amiga|pma/.test(textoProjeto)
+      const quantidadeFolhasPma = projetoPma ? detectarQuantidadeFolhasPmaProjeto(projeto) : null
       const grupoAplicacao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "aplicacao")
       const grupoVersao = GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "versao")
 
@@ -2265,7 +2337,11 @@ export default function CalculoProjetoPage() {
         }] : []),
         ...(grupoVersao ? [{
           ...grupoVersao,
-          options: grupoVersao.options.filter((opcao) => valoresVersao.has(opcao.value)),
+          options: grupoVersao.options.filter((opcao) => {
+            if (!valoresVersao.has(opcao.value)) return false
+            if (opcao.value !== "pma_kit_pia") return true
+            return quantidadeFolhasPma === 2
+          }),
         }] : []),
       ]
     },
@@ -2509,8 +2585,10 @@ export default function CalculoProjetoPage() {
       itemResultado.resultado.cortes.forEach((corte) => {
         const projetoId = itemResultado.projeto?.id || itemResultado.itemId
         const projetoNome = itemResultado.projeto?.nome || "Projeto"
+        const projetoEhPmaAtual = projetoEhPma(itemResultado.projeto)
         const corMaterial = itemResultado.corMaterial || "Sem cor definida"
         const chave = [
+          corte.perfilCodigo,
           corte.perfilNome,
           corMaterial,
           corte.comprimentoBarra,
@@ -2520,6 +2598,7 @@ export default function CalculoProjetoPage() {
         const existente = grupos.get(chave)
         if (existente) {
           existente.cortes.push(...corte.cortes)
+          existente.projetoEhPma = existente.projetoEhPma || projetoEhPmaAtual
           existente.qtdCortesLargura += corte.qtdCortesLargura
           existente.qtdCortesAltura += corte.qtdCortesAltura
           existente.qtdCortesOutros += corte.qtdCortesOutros
@@ -2537,6 +2616,8 @@ export default function CalculoProjetoPage() {
         grupos.set(chave, {
           projetoId,
           projetoNome,
+          projetoEhPma: projetoEhPmaAtual,
+          perfilCodigo: corte.perfilCodigo,
           perfilNome: corte.perfilNome,
           corMaterial,
           comprimentoBarra: corte.comprimentoBarra,
@@ -2570,7 +2651,12 @@ export default function CalculoProjetoPage() {
         }
       })
       .sort((a, b) => {
-        const perfil = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
+        if (a.projetoEhPma && b.projetoEhPma) {
+          const ordemPma = compararCodigoPerfilPma(a.perfilCodigo, b.perfilCodigo)
+          if (ordemPma !== 0) return ordemPma
+        }
+
+        const perfil = comparePerfisByNome(`${a.perfilCodigo} ${a.perfilNome}`, `${b.perfilCodigo} ${b.perfilNome}`)
         if (perfil !== 0) return perfil
         const cor = a.corMaterial.localeCompare(b.corMaterial, "pt-BR")
         if (cor !== 0) return cor
@@ -2619,8 +2705,9 @@ export default function CalculoProjetoPage() {
       .map((grupo) => ({
         id: `${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-${grupo.comprimentoBarra}`,
         projetoNome: grupo.projetoNome,
+        projetoEhPma: grupo.projetoEhPma,
         perfilNome: grupo.perfilNome,
-        perfilCodigo: perfisDB.find((p) => p.nome === grupo.perfilNome)?.codigo || "-",
+        perfilCodigo: grupo.perfilCodigo,
         corMaterial: grupo.corMaterial,
         comprimentoBarra: grupo.comprimentoBarra,
         qtdBarrasOriginal: grupo.qtdBarrasOriginal,
@@ -2636,9 +2723,13 @@ export default function CalculoProjetoPage() {
         barras: grupo.barras,
       }))
       .sort((a, b) => {
+        if (a.projetoEhPma && b.projetoEhPma) {
+          const ordemPma = compararCodigoPerfilPma(a.perfilCodigo, b.perfilCodigo)
+          if (ordemPma !== 0) return ordemPma
+        }
         return comparePerfisByNome(`${a.perfilCodigo} ${a.perfilNome}`, `${b.perfilCodigo} ${b.perfilNome}`)
       })
-  }, [otimizacaoGlobalPerfis.grupos, perfisDB])
+  }, [otimizacaoGlobalPerfis.grupos])
 
 
   const relatorioObra = useMemo(() => {
@@ -2711,7 +2802,7 @@ export default function CalculoProjetoPage() {
         }).sort((a, b) => compareFerragensByNome(`${a.codigo || ""} ${a.nome}`, `${b.codigo || ""} ${b.nome}`)),
         otimizacao: itemResultado.resultado.cortes.map((corte) => ({
           id: `${itemResultado.itemId}-${corte.perfilNome}-${corte.comprimentoBarra}`,
-          perfilCodigo: perfisDB.find((perfil) => perfil.nome === corte.perfilNome)?.codigo || "-",
+          perfilCodigo: corte.perfilCodigo,
           perfilNome: corte.perfilNome,
           comprimentoBarra: corte.comprimentoBarra,
           qtdBarras: corte.qtdBarras,
@@ -2723,7 +2814,7 @@ export default function CalculoProjetoPage() {
         })),
       }
     })
-  }, [ferragensDB, formatarResumoVariacaoSelecionada, montarUrlDesenho, nomesVariacaoPersonalizados, perfisDB, resultados])
+  }, [ferragensDB, formatarResumoVariacaoSelecionada, montarUrlDesenho, nomesVariacaoPersonalizados, resultados])
 
   const dadosOrcamentoComercial = useMemo(() => {
     const totalPerfisOriginalBarra = resultados.reduce((acc, resultadoProjeto) => {
@@ -3921,9 +4012,12 @@ export default function CalculoProjetoPage() {
                       <div className="space-y-4">
                         {[...otimizacaoGlobalPerfis.grupos]
                           .sort((a, b) => {
-                            const codigoA = perfisDB.find((perfil) => perfil.nome === a.perfilNome)?.codigo || ""
-                            const codigoB = perfisDB.find((perfil) => perfil.nome === b.perfilNome)?.codigo || ""
-                            const ordemPerfis = comparePerfisByNome(`${codigoA} ${a.perfilNome}`, `${codigoB} ${b.perfilNome}`)
+                            if (a.projetoEhPma && b.projetoEhPma) {
+                              const ordemPma = compararCodigoPerfilPma(a.perfilCodigo, b.perfilCodigo)
+                              if (ordemPma !== 0) return ordemPma
+                            }
+
+                            const ordemPerfis = comparePerfisByNome(`${a.perfilCodigo} ${a.perfilNome}`, `${b.perfilCodigo} ${b.perfilNome}`)
                             if (ordemPerfis !== 0) return ordemPerfis
                             const nomeComp = a.perfilNome.localeCompare(b.perfilNome, "pt-BR")
                             if (nomeComp !== 0) return nomeComp
@@ -3933,16 +4027,22 @@ export default function CalculoProjetoPage() {
                           <div key={`${grupo.projetoId}-${grupo.perfilNome}-${grupo.corMaterial}-${index}`} className="rounded-2xl border border-gray-100 overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100 gap-4">
                               <div>
-                                <p className="text-sm font-black text-gray-700">{grupo.projetoNome} · {grupo.perfilNome}</p>
+                                <p className="text-sm font-black text-gray-700">{grupo.projetoNome}</p>
                                 <p className="text-xs text-gray-400">
-                                  Cor: {grupo.corMaterial} · Barra: {grupo.comprimentoBarra} mm · {grupo.cortes.length} corte(s)
+                                  <span className="font-black text-gray-700">Perfil: {grupo.perfilCodigo} - {grupo.perfilNome}</span> · Cor: {grupo.corMaterial} · Barra: {grupo.comprimentoBarra} mm · {grupo.cortes.length} corte(s)
                                 </p>
                               </div>
-                              <div className="text-right">
+                              <div className="text-right flex flex-col items-end gap-1">
                                 <p className="text-sm font-black text-gray-700">{fmt(grupo.precoOtimizado)}</p>
                                 <p className="text-xs font-bold text-gray-400">
                                   {grupo.qtdBarrasOriginal} barra(s) individual · {grupo.qtdBarrasOtimizada} consolidada(s)
                                 </p>
+                                <span
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black"
+                                  style={{ backgroundColor: `${theme.menuBackgroundColor}22`, color: theme.menuBackgroundColor }}
+                                >
+                                  {grupo.qtdBarrasOtimizada} barra(s)
+                                </span>
                               </div>
                             </div>
                             <div className="px-4 py-3 space-y-2">
