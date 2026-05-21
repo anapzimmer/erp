@@ -1080,6 +1080,7 @@ export default function ProjetosPage() {
   const [salvando, setSalvando] = useState(false)
   const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
   const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
+  const [nomesVariacaoHidratados, setNomesVariacaoHidratados] = useState(false)
   const [editandoNomesVariacao, setEditandoNomesVariacao] = useState(false)
 
   // ── Picker de desenho ──
@@ -1205,17 +1206,25 @@ export default function ProjetosPage() {
   }, [empresaId])
 
   useEffect(() => {
-    if (!empresaId || typeof window === "undefined") return
+    if (!empresaId || typeof window === "undefined") {
+      setNomesVariacaoHidratados(false)
+      return
+    }
+
+    setNomesVariacaoHidratados(false)
     const chave = `variacao-box:nomes:${empresaId}`
     try {
       const bruto = window.localStorage.getItem(chave)
-      if (!bruto) return
-      const dados = JSON.parse(bruto)
-      if (dados && typeof dados === "object") {
-        setNomesVariacaoPersonalizados(dados as Record<string, string>)
+      if (bruto) {
+        const dados = JSON.parse(bruto)
+        if (dados && typeof dados === "object") {
+          setNomesVariacaoPersonalizados(dados as Record<string, string>)
+        }
       }
     } catch {
       // ignora inconsistencias de armazenamento local
+    } finally {
+      setNomesVariacaoHidratados(true)
     }
   }, [empresaId])
 
@@ -1255,10 +1264,10 @@ export default function ProjetosPage() {
   }, [carregarDesenhosPasta])
 
   useEffect(() => {
-    if (!empresaId || typeof window === "undefined") return
+    if (!empresaId || typeof window === "undefined" || !nomesVariacaoHidratados) return
     const chave = `variacao-box:nomes:${empresaId}`
     window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
-  }, [empresaId, nomesVariacaoPersonalizados])
+  }, [empresaId, nomesVariacaoPersonalizados, nomesVariacaoHidratados])
 
   const storageVariacoesKey = `projetos:variacoes-custom:${empresaId || "global"}`
   const draftProjetoKey = `projetos:draft:${empresaId || "sem_empresa"}:${editandoId || "novo"}`
