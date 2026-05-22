@@ -70,6 +70,8 @@ type ProjetoFerragem = {
   usar_no_kit: boolean
   usar_no_perfil: boolean
   observacao: string
+  posicao?: string | null
+  versao_deslizante?: "simples" | "completo" | null
   variacao_restrita?: string | null
 }
 type ProjetoPerfil = {
@@ -84,6 +86,8 @@ type ProjetoPerfil = {
   variacao_restrita?: string | null
   espessura_vidro_restrita?: string | null
   condicao?: string | null
+  posicao?: string | null
+  versao_deslizante?: "simples" | "completo" | null
   usar_no_kit?: boolean
   altura_max_kit?: number | null
 }
@@ -261,6 +265,26 @@ const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const TRILHO_TOKEN = "__TRILHO__="
 const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
+const POSICAO_TOKEN = "__POSICAO__="
+const VERSAO_DESLIZANTE_TOKEN = "__VERSAO_DESLIZANTE__="
+
+const POSICOES_DESLIZANTE_FERRAGEM = [
+  "todos",
+  "carrinho simples",
+  "carrinho duplo",
+] as const
+
+const POSICOES_DESLIZANTE_PERFIL = [
+  "todos",
+  "carrinho simples",
+  "carrinho duplo",
+] as const
+
+const VERSAO_DESLIZANTE_OPCOES = [
+  { value: "", label: "Todas" },
+  { value: "simples", label: "Simples" },
+  { value: "completo", label: "Completo" },
+] as const
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -328,6 +352,30 @@ const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
 
   const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
   return formula || null
+}
+
+const extrairPosicaoDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(POSICAO_TOKEN))
+
+  const posicao = linha ? linha.slice(POSICAO_TOKEN.length).trim() : ""
+  return posicao || null
+}
+
+const extrairVersaoDeslizanteDoTexto = (valor?: string | null): "simples" | "completo" | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(VERSAO_DESLIZANTE_TOKEN))
+
+  const versao = (linha ? linha.slice(VERSAO_DESLIZANTE_TOKEN.length).trim().toLowerCase() : "") as
+    | "simples"
+    | "completo"
+    | ""
+
+  return versao === "simples" || versao === "completo" ? versao : null
 }
 
 const extrairVariacaoDoTexto = (valor?: string | null) => {
@@ -530,6 +578,32 @@ const aplicarFormulaLarguraNoTexto = (valor: string | null | undefined, formula:
   const formulaFinal = String(formula || "").trim()
   if (!formulaFinal) return textoBase
   return [textoBase, `${FORMULA_LARGURA_TOKEN}${formulaFinal}`].filter(Boolean).join("\n")
+}
+
+const aplicarPosicaoNoTexto = (valor: string | null | undefined, posicao: string | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(POSICAO_TOKEN))
+    .join("\n")
+    .trim()
+
+  const posicaoFinal = String(posicao || "").trim()
+  if (!posicaoFinal) return textoBase
+  return [textoBase, `${POSICAO_TOKEN}${posicaoFinal}`].filter(Boolean).join("\n")
+}
+
+const aplicarVersaoDeslizanteNoTexto = (
+  valor: string | null | undefined,
+  versao: "simples" | "completo" | null | undefined
+) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(VERSAO_DESLIZANTE_TOKEN))
+    .join("\n")
+    .trim()
+
+  if (!versao) return textoBase
+  return [textoBase, `${VERSAO_DESLIZANTE_TOKEN}${versao}`].filter(Boolean).join("\n")
 }
 
 type ProjetoDetalheResponse = {
@@ -881,22 +955,36 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
   const matchDeslizanteSistema = stemAtual.match(/^deslizante-(\d+)fls-(ci|cs)(?:-(simples\d*|completo\d*|completa\d*))?$/i)
   if (matchDeslizanteSistema) {
     const quantidadeFls = matchDeslizanteSistema[1]
+    const sistemaAtual = matchDeslizanteSistema[2].toLowerCase() as "ci" | "cs"
     const versaoAtual = (matchDeslizanteSistema[3] || "").toLowerCase()
     const stemsDeslizanteMesmaFamilia = Array.from(stemsDisponiveis).filter((stem) =>
       new RegExp(`^deslizante-${quantidadeFls}fls-(ci|cs)(-(simples\\d*|completo\\d*|completa\\d*))?$`, "i").test(stem)
     )
 
+    const espelharSistemaStem = (stem: string, sistema: "ci" | "cs") => {
+      if (sistema === "ci") return stem.replace(/-cs(?=-|$)/i, "-ci")
+      return stem.replace(/-ci(?=-|$)/i, "-cs")
+    }
+
+    const stemEspelhadoAtual = espelharSistemaStem(stemAtual, sistemaAtual === "ci" ? "cs" : "ci")
+
     const selecionarArquivoSistema = (sistema: "ci" | "cs") => {
       const candidatos = stemsDeslizanteMesmaFamilia.filter((stem) =>
         new RegExp(`^deslizante-${quantidadeFls}fls-${sistema}(-(simples\\d*|completo\\d*|completa\\d*))?$`, "i").test(stem)
       )
-      if (candidatos.length === 0) return null
+
+      const stemEspelhadoParaSistema = espelharSistemaStem(
+        sistemaAtual === sistema ? stemAtual : stemEspelhadoAtual,
+        sistema
+      )
+
+      if (candidatos.length === 0) return criarArquivo(stemEspelhadoParaSistema)
 
       const comMesmaVersao = versaoAtual
         ? candidatos.find((stem) => new RegExp(`-${escapeRegExp(versaoAtual)}$`, "i").test(stem))
         : candidatos.find((stem) => !/-(simples\d*|completo\d*|completa\d*)$/i.test(stem))
 
-      return criarArquivo(comMesmaVersao || candidatos[0])
+      return criarArquivo(comMesmaVersao || candidatos[0] || stemEspelhadoParaSistema)
     }
 
     const arquivoCi = selecionarArquivoSistema("ci")
@@ -1470,28 +1558,35 @@ export default function ProjetosPage() {
       }),
       ferragens: (detalhe.projetos_ferragens || []).map((f) => {
         const metaObservacao = extrairVariacaoDoTexto(f.observacao)
+        const posicao = extrairPosicaoDoTexto(f.observacao)
+        const versaoDeslizante = extrairVersaoDeslizanteDoTexto(f.observacao)
         return {
           ...f,
           nome: f.ferragens?.nome || undefined,
-          observacao: metaObservacao.textoLimpo,
+          observacao: limparTextoSemTokens(metaObservacao.textoLimpo, [POSICAO_TOKEN, VERSAO_DESLIZANTE_TOKEN]),
+          posicao,
+          versao_deslizante: versaoDeslizante,
           variacao_restrita: f.variacao_restrita ?? metaObservacao.variacao ?? null,
         }
       }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
       perfis: (detalhe.projetos_perfis || []).map((p) => {
+        const tipoFornecimentoComTokens = (p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra"
         return {
           ...p,
           perfil_id: String(p.perfil_id),
           nome: perfisOriginaisDB.find((perfil) => String(perfil.id) === String(p.perfil_id))?.nome || p.perfis?.nome || undefined,
           qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
-          formula_largura: extrairFormulaLarguraDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
+          formula_largura: extrairFormulaLarguraDoTexto(tipoFornecimentoComTokens),
           qtd_altura: Number(p.qtd_altura ?? 0),
           qtd_outros: Number(p.qtd_outros ?? 0),
-          tipo_fornecimento: extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").textoLimpo || "barra",
-          variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra").variacao ?? null,
-          espessura_vidro_restrita: extrairEspessuraVidroDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          condicao: extrairCondicaoDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          usar_no_kit: extrairUsarNoKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
-          altura_max_kit: extrairAlturaMaxKitDoTexto((p as { tipo_fornecimento?: string | null }).tipo_fornecimento),
+          tipo_fornecimento: extrairVariacaoDoTexto(tipoFornecimentoComTokens).textoLimpo || "barra",
+          variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto(tipoFornecimentoComTokens).variacao ?? null,
+          espessura_vidro_restrita: extrairEspessuraVidroDoTexto(tipoFornecimentoComTokens),
+          condicao: extrairCondicaoDoTexto(tipoFornecimentoComTokens),
+          usar_no_kit: extrairUsarNoKitDoTexto(tipoFornecimentoComTokens),
+          altura_max_kit: extrairAlturaMaxKitDoTexto(tipoFornecimentoComTokens),
+          posicao: extrairPosicaoDoTexto(tipoFornecimentoComTokens),
+          versao_deslizante: extrairVersaoDeslizanteDoTexto(tipoFornecimentoComTokens),
         }
       }).sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
     })
@@ -1593,7 +1688,13 @@ export default function ProjetosPage() {
           quantidade: Math.max(1, normalizarNumero(ferragem.quantidade, 1)),
           usar_no_kit: Boolean(ferragem.usar_no_kit),
           usar_no_perfil: Boolean(ferragem.usar_no_perfil),
-          observacao: aplicarVariacaoNoTexto(limparTextoSimples(ferragem.observacao), ferragem.variacao_restrita),
+          observacao: aplicarPosicaoNoTexto(
+            aplicarVersaoDeslizanteNoTexto(
+              aplicarVariacaoNoTexto(limparTextoSimples(ferragem.observacao), ferragem.variacao_restrita),
+              ferragem.versao_deslizante ?? null
+            ),
+            ferragem.posicao ?? null
+          ),
           variacao_restrita: ferragem.variacao_restrita ?? null,
         }
       })
@@ -1610,6 +1711,8 @@ export default function ProjetosPage() {
         String(perfil.formula_largura || "").trim(),
         String(perfil.espessura_vidro_restrita || "").trim(),
         String(perfil.condicao || "").trim(),
+        String(perfil.posicao || "").trim(),
+        String(perfil.versao_deslizante || "").trim(),
         Boolean(perfil.usar_no_kit) ? "1" : "0",
         perfil.altura_max_kit ?? "",
       ].join("|")
@@ -1625,15 +1728,21 @@ export default function ProjetosPage() {
         tipo_fornecimento: aplicarEspessuraVidroNoTexto(
           aplicarAlturaMaxKitNoTexto(
             aplicarUsarNoKitNoTexto(
-              aplicarCondicaoNoTexto(
-                aplicarFormulaLarguraNoTexto(
-                  aplicarVariacaoNoTexto(
-                    limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
-                    perfil.variacao_restrita ?? null
+              aplicarPosicaoNoTexto(
+                aplicarVersaoDeslizanteNoTexto(
+                  aplicarCondicaoNoTexto(
+                    aplicarFormulaLarguraNoTexto(
+                      aplicarVariacaoNoTexto(
+                        limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
+                        perfil.variacao_restrita ?? null
+                      ),
+                      perfil.formula_largura ?? null
+                    ),
+                    perfil.condicao ?? null
                   ),
-                  perfil.formula_largura ?? null
+                  perfil.versao_deslizante ?? null
                 ),
-                perfil.condicao ?? null
+                perfil.posicao ?? null
               ),
               Boolean(perfil.usar_no_kit)
             ),
@@ -1652,6 +1761,8 @@ export default function ProjetosPage() {
     }
   }
 
+  const projetoEhDeslizante = /deslizante/.test(normalizarBuscaItem(`${form.desenho} ${form.nome} ${form.categoria}`))
+
   const salvar = async () => {
     if (!form.nome.trim()) {
       setModalAviso({ titulo: "Atenção", mensagem: "O nome do projeto é obrigatório.", tipo: "aviso" })
@@ -1669,20 +1780,25 @@ export default function ProjetosPage() {
       setModalAviso({ titulo: "Atenção", mensagem: "Empresa não identificada para salvar o projeto.", tipo: "aviso" })
       return
     }
+
     setSalvando(true)
+    const snapshot = editandoId ? await carregarSnapshotRelacionamentos(editandoId) : null
+
     try {
-      let projetoId = editandoId
-      let snapshotAnterior: ProjetoRelacionamentosSnapshot | null = null
+      let projetoId: string
 
       if (editandoId) {
-        snapshotAnterior = await carregarSnapshotRelacionamentos(editandoId)
+        projetoId = editandoId
+        const { error } = await supabase
+          .from("projetos")
+          .update({
+            nome: form.nome.trim(),
+            categoria: form.categoria.trim(),
+            desenho: form.desenho,
+          })
+          .eq("id", editandoId)
 
-        const { error: updateProjetoError } = await supabase.from("projetos").update({
-          nome: form.nome.trim(),
-          categoria: form.categoria,
-          desenho: form.desenho,
-        }).eq("id", editandoId)
-        if (updateProjetoError) throw new Error(getMensagemErroSupabase(updateProjetoError, "Erro ao atualizar projeto"))
+        if (error) throw new Error(getMensagemErroSupabase(error, "Erro ao atualizar projeto"))
 
         const deleteResults = await Promise.all([
           supabase.from("projetos_folhas").delete().eq("projeto_id", editandoId),
@@ -1690,105 +1806,118 @@ export default function ProjetosPage() {
           supabase.from("projetos_ferragens").delete().eq("projeto_id", editandoId),
           supabase.from("projetos_perfis").delete().eq("projeto_id", editandoId),
         ])
-        const deleteErrors = deleteResults
-          .map((result) => result.error)
-          .filter(Boolean)
-
+        const deleteErrors = deleteResults.map((result) => result.error).filter(Boolean)
         if (deleteErrors.length > 0) {
-          throw new Error(getMensagemErroSupabase(deleteErrors[0], "Erro ao limpar itens antigos do projeto"))
+          throw new Error(getMensagemErroSupabase(deleteErrors[0], "Erro ao limpar relacionamentos antigos do projeto"))
         }
       } else {
-        const { data, error } = await supabase.from("projetos").insert([{
-          nome: form.nome.trim(),
-          categoria: form.categoria,
-          desenho: form.desenho,
-          empresa_id: empresaId,
-        }]).select("id").single()
-        if (error) throw error
+        const { data, error } = await supabase
+          .from("projetos")
+          .insert([{ nome: form.nome.trim(), categoria: form.categoria.trim(), desenho: form.desenho, empresa_id: empresaId }])
+          .select("id")
+          .single()
+
+        if (error || !data) throw new Error(getMensagemErroSupabase(error, "Erro ao criar projeto"))
         projetoId = data.id
       }
 
-      const payloadNormalizado = normalizarPayloadProjeto(String(projetoId))
+      const payload = normalizarPayloadProjeto(projetoId)
+      await persistirRelacionamentosProjeto(payload)
 
-      try {
-        await persistirRelacionamentosProjeto(payloadNormalizado)
-      } catch (errorRelacionamentos) {
-        if (editandoId && snapshotAnterior) {
-          await restaurarSnapshotRelacionamentos(snapshotAnterior)
+      setModalAviso({ titulo: "Sucesso", mensagem: editandoId ? "Projeto atualizado com sucesso." : "Projeto criado com sucesso.", tipo: "sucesso" })
+      setShowModal(false)
+      setForm(FORM_VAZIO)
+      setEditandoId(null)
+      setAbaAtiva("geral")
+      sessionStorage.removeItem(draftProjetoKey)
+      carregarProjetos()
+    } catch (err) {
+      if (snapshot && editandoId) {
+        try {
+          await restaurarSnapshotRelacionamentos(snapshot)
+        } catch {
+          // ignora erro secundario de rollback
         }
-        throw errorRelacionamentos
       }
 
       setModalAviso({
-        titulo: "Salvo!",
-        mensagem: `Projeto "${form.nome}" ${editandoId ? "atualizado" : "cadastrado"} com sucesso.`,
-        tipo: "sucesso",
+        titulo: "Erro",
+        mensagem: err instanceof Error ? err.message : "Não foi possível salvar o projeto.",
+        tipo: "erro",
       })
-      sessionStorage.removeItem(draftProjetoKey)
-      draftRestauradoRef.current = null
-      fecharModalSemConfirmacao()
-      carregarTudo()
-    } catch (err: unknown) {
-      const mensagem = err instanceof Error ? err.message : "Erro inesperado."
-      setModalAviso({ titulo: "Erro ao salvar", mensagem, tipo: "erro" })
     } finally {
       setSalvando(false)
+    }
+  }
+
+  const carregarProjetos = () => {
+    carregarTudo()
+  }
+
+  const copiarProjeto = async (projeto: Projeto) => {
+    if (!empresaId) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Empresa não identificada para copiar o projeto.", tipo: "aviso" })
+      return
+    }
+
+    try {
+      const snapshot = await carregarSnapshotRelacionamentos(projeto.id)
+      const { data: novoProjeto, error: erroProjeto } = await supabase
+        .from("projetos")
+        .insert([
+          {
+            nome: `${projeto.nome} (copia)`,
+            categoria: projeto.categoria,
+            desenho: projeto.desenho,
+            empresa_id: empresaId,
+          },
+        ])
+        .select("id")
+        .single()
+
+      if (erroProjeto || !novoProjeto) {
+        throw new Error(getMensagemErroSupabase(erroProjeto, "Erro ao copiar projeto"))
+      }
+
+      await persistirRelacionamentosProjeto({
+        folhas: snapshot.folhas.map((folha) => ({ ...folha, projeto_id: novoProjeto.id })),
+        kits: snapshot.kits.map((kit) => ({ ...kit, projeto_id: novoProjeto.id })),
+        ferragens: snapshot.ferragens.map((ferragem) => ({ ...ferragem, projeto_id: novoProjeto.id })),
+        perfis: snapshot.perfis.map((perfil) => ({ ...perfil, projeto_id: novoProjeto.id })),
+      })
+
+      setModalAviso({ titulo: "Sucesso", mensagem: "Projeto copiado com sucesso.", tipo: "sucesso" })
+      carregarProjetos()
+    } catch (error) {
+      setModalAviso({
+        titulo: "Erro",
+        mensagem: error instanceof Error ? error.message : "Não foi possível copiar o projeto.",
+        tipo: "erro",
+      })
     }
   }
 
   const deletar = (projeto: Projeto) => {
     setModalAviso({
       titulo: "Excluir projeto",
-      mensagem: `Deseja excluir permanentemente "${projeto.nome}"?\nTodos os dados associados (folhas, ferragens, perfis) serão removidos.`,
+      mensagem: `Deseja excluir o projeto \"${projeto.nome}\"? Esta ação não pode ser desfeita.`,
+      tipo: "aviso",
       confirmar: async () => {
-        await supabase.from("projetos").delete().eq("id", projeto.id)
-        carregarTudo()
+        try {
+          const { error } = await supabase.from("projetos").delete().eq("id", projeto.id)
+          if (error) throw new Error(getMensagemErroSupabase(error, "Erro ao excluir projeto"))
+
+          setModalAviso({ titulo: "Sucesso", mensagem: "Projeto excluído com sucesso.", tipo: "sucesso" })
+          carregarProjetos()
+        } catch (err) {
+          setModalAviso({
+            titulo: "Erro",
+            mensagem: err instanceof Error ? err.message : "Não foi possível excluir o projeto.",
+            tipo: "erro",
+          })
+        }
       },
     })
-  }
-
-  const copiarProjeto = async (projeto: Projeto) => {
-    if (!empresaId) {
-      setModalAviso({ titulo: "Atencao", mensagem: "Empresa nao identificada para copiar o projeto.", tipo: "aviso" })
-      return
-    }
-
-    let novoProjetoId: string | null = null
-
-    try {
-      const snapshot = await carregarSnapshotRelacionamentos(projeto.id)
-      const { data, error } = await supabase.from("projetos").insert([{
-        nome: `${projeto.nome} - Copia`,
-        categoria: projeto.categoria,
-        desenho: projeto.desenho,
-        empresa_id: empresaId,
-      }]).select("id").single()
-
-      if (error) throw new Error(getMensagemErroSupabase(error, "Erro ao criar copia do projeto"))
-      novoProjetoId = String(data.id)
-      const projetoIdCopiado = novoProjetoId
-
-      await persistirRelacionamentosProjeto({
-        folhas: snapshot.folhas.map((folha) => ({ ...folha, projeto_id: projetoIdCopiado })),
-        kits: snapshot.kits.map((kit) => ({ ...kit, projeto_id: projetoIdCopiado })),
-        ferragens: snapshot.ferragens.map((ferragem) => ({ ...ferragem, projeto_id: projetoIdCopiado })),
-        perfis: snapshot.perfis.map((perfil) => ({ ...perfil, projeto_id: projetoIdCopiado })),
-      })
-
-      setModalAviso({
-        titulo: "Projeto copiado",
-        mensagem: `Projeto "${projeto.nome}" copiado com sucesso.`,
-        tipo: "sucesso",
-      })
-      carregarTudo()
-    } catch (err: unknown) {
-      if (novoProjetoId) {
-        await supabase.from("projetos").delete().eq("id", novoProjetoId)
-      }
-
-      const mensagem = err instanceof Error ? err.message : "Erro inesperado ao copiar projeto."
-      setModalAviso({ titulo: "Erro ao copiar", mensagem, tipo: "erro" })
-    }
   }
 
   const fecharModalSemConfirmacao = () => {
@@ -2025,6 +2154,8 @@ export default function ProjetosPage() {
           usar_no_kit: false,
           usar_no_perfil: false,
           observacao: "",
+          posicao: null,
+          versao_deslizante: null,
           variacao_restrita: null,
         })),
       ].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
@@ -2045,6 +2176,8 @@ export default function ProjetosPage() {
         usar_no_kit: false,
         usar_no_perfil: false,
         observacao: "",
+        posicao: null,
+        versao_deslizante: null,
         variacao_restrita: null,
       }].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
     }))
@@ -2133,6 +2266,8 @@ export default function ProjetosPage() {
           variacao_restrita: null,
           espessura_vidro_restrita: null,
           condicao: null,
+          posicao: null,
+          versao_deslizante: null,
           usar_no_kit: false,
           altura_max_kit: null,
         })),
@@ -2158,6 +2293,8 @@ export default function ProjetosPage() {
         variacao_restrita: null,
         espessura_vidro_restrita: null,
         condicao: null,
+        posicao: null,
+        versao_deslizante: null,
         usar_no_kit: false,
         altura_max_kit: null,
       }].sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
@@ -3530,8 +3667,8 @@ export default function ProjetosPage() {
                       className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
                       style={kit.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        <div>
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Kit</label>
                           <select
                             value={kit.kit_id}
@@ -3784,8 +3921,8 @@ export default function ProjetosPage() {
                       className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
                       style={f.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Ferragem</label>
                           <select
                             value={f.ferragem_id}
@@ -3821,7 +3958,7 @@ export default function ProjetosPage() {
                               onChange={e => atualizarFerragem(idx, "usar_no_kit", e.target.checked)}
                               className="h-4 w-4"
                             />
-                            <span className="text-sm font-bold text-gray-600">Aplicar no modo Kit</span>
+                            <span className="text-sm font-bold text-gray-600">Kit</span>
                           </label>
                         </div>
                         <div className="flex items-end">
@@ -3832,14 +3969,45 @@ export default function ProjetosPage() {
                               onChange={e => atualizarFerragem(idx, "usar_no_perfil", e.target.checked)}
                               className="h-4 w-4"
                             />
-                            <span className="text-sm font-bold text-gray-600">Aplicar no modo Barra</span>
+                            <span className="text-sm font-bold text-gray-600">Barra</span>
                           </label>
                         </div>
-                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0) && (
-                          <div className="sm:col-span-2 xl:col-span-4">
+                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0 || projetoEhDeslizante) && (
+                          <div className="sm:col-span-2 xl:col-span-6">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: "#7c3aed" }}>
                               Aplicação por variação
                             </label>
+                            {projetoEhDeslizante && (
+                              <div className="mb-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Onde vai</p>
+                                  <select
+                                    value={f.posicao || ""}
+                                    onChange={e => atualizarFerragem(idx, "posicao", e.target.value || null)}
+                                    className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                                    style={{ color: theme.contentTextLightBg }}
+                                  >
+                                    <option value="">Nao informado</option>
+                                    {POSICOES_DESLIZANTE_FERRAGEM.map((opcao) => (
+                                      <option key={opcao} value={opcao}>{opcao}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Versão</p>
+                                  <select
+                                    value={f.versao_deslizante || ""}
+                                    onChange={e => atualizarFerragem(idx, "versao_deslizante", (e.target.value || null) as ProjetoFerragem["versao_deslizante"])}
+                                    className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                                    style={{ color: theme.contentTextLightBg }}
+                                  >
+                                    {VERSAO_DESLIZANTE_OPCOES.map((opcao) => (
+                                      <option key={opcao.value || "todas"} value={opcao.value}>{opcao.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            )}
                             {variacaoOpcoesFerragemKit.length > 0 && (
                               <div className="mb-2">
                                 <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Variacao tecnica</p>
@@ -4034,8 +4202,8 @@ export default function ProjetosPage() {
                       className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
                       style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-3">
-                        <div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-9 gap-3">
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
                             value={p.perfil_id}
@@ -4121,7 +4289,7 @@ export default function ProjetosPage() {
                         </div>
                         <div className="sm:col-span-2 xl:col-span-3">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0f766e" }}>
-                            Incluir este perfil no cálculo de Kit
+                            Modo
                           </label>
                           <button
                             type="button"
@@ -4133,9 +4301,9 @@ export default function ProjetosPage() {
                               color: p.usar_no_kit ? "#047857" : "#6b7280",
                             }}
                           >
-                            {p.usar_no_kit ? "Sim - inclui no Kit e na Barra" : "Não - incluir apenas na Barra"}
+                            {p.usar_no_kit ? "Kit + Barra" : "Barra"}
                           </button>
-                          <p className="text-[10px] text-gray-400 mt-1">Ative quando este perfil também deve compor o orçamento em modo Kit.</p>
+                          <p className="text-[10px] text-gray-400 mt-1">Ative para considerar no Kit. Barra sempre permanece.</p>
                         </div>
                         <div className="sm:col-span-2 xl:col-span-2">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#b45309" }}>
@@ -4169,11 +4337,42 @@ export default function ProjetosPage() {
                             <p className="text-[10px] text-gray-400 mt-1">Sem filtro de espessura. O perfil vale para qualquer espessura.</p>
                           )}
                         </div>
-                        {variacaoOpcoesPerfil.length > 0 && (
+                        {(variacaoOpcoesPerfil.length > 0 || projetoEhDeslizante) && (
                           <div className="sm:col-span-2 xl:col-span-5">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
                               Aplica em qual variação? (altura/desenho)
                             </label>
+                            {projetoEhDeslizante && (
+                              <div className="mb-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Onde vai</p>
+                                  <select
+                                    value={p.posicao || ""}
+                                    onChange={e => atualizarPerfil(idx, "posicao", e.target.value || null)}
+                                    className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                                    style={{ color: theme.contentTextLightBg }}
+                                  >
+                                    <option value="">Nao informado</option>
+                                    {POSICOES_DESLIZANTE_PERFIL.map((opcao) => (
+                                      <option key={opcao} value={opcao}>{opcao}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Versão</p>
+                                  <select
+                                    value={p.versao_deslizante || ""}
+                                    onChange={e => atualizarPerfil(idx, "versao_deslizante", (e.target.value || null) as ProjetoPerfil["versao_deslizante"])}
+                                    className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                                    style={{ color: theme.contentTextLightBg }}
+                                  >
+                                    {VERSAO_DESLIZANTE_OPCOES.map((opcao) => (
+                                      <option key={opcao.value || "todas"} value={opcao.value}>{opcao.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            )}
                             <div className="flex flex-wrap gap-1.5">
                               <button
                                 type="button"
