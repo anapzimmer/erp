@@ -887,8 +887,8 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
         id: "sistema",
         label: "Sistema",
         opcoes: [
-          { key: "ci", label: "CI", arquivo: criarArquivo(stemCI) },
-          { key: "cs", label: "CS", arquivo: criarArquivo(stemCS) },
+          { key: "ci", label: "Carrinho Inteiro", arquivo: criarArquivo(stemCI) },
+          { key: "cs", label: "Carrinho Simples", arquivo: criarArquivo(stemCS) },
         ],
       })
     }

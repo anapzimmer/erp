@@ -481,8 +481,15 @@ const formatarLabelVariacaoArquivo = (arquivo: string) => {
     return arquivo === parTrinco.com ? "Com trinco" : "Sem trinco"
   }
 
-  if (/-ci(?:-|$)/i.test(nome)) return "CI"
-  if (/-cs(?:-|$)/i.test(nome)) return "CS"
+  if (/-ci(?:-|$)/i.test(nome) || /-cs(?:-|$)/i.test(nome)) {
+    const sistema = /-ci(?:-|$)/i.test(nome) ? "Carrinho Inteiro" : "Carrinho Simples"
+    const versao = /-(completo\d*|completa\d*)$/i.test(nome)
+      ? "Completo"
+      : /-simples\d*$/i.test(nome)
+        ? "Simples"
+        : ""
+    return versao ? `${sistema} - ${versao}` : sistema
+  }
   if (/-puxador\d*$/i.test(nome)) {
     const numero = nome.match(/(\d+)$/)?.[1]
     return numero ? `Puxador ${numero}` : "Puxador"
@@ -939,8 +946,8 @@ const getVariacoesAutomaticasProjeto = (
   if (/-ci(?:-|$)/i.test(arquivoAtual) || /-cs(?:-|$)/i.test(arquivoAtual)) {
     const arquivoCI = arquivoAtual.replace(/-cs(?=-|$)/gi, "-ci")
     const arquivoCS = arquivoAtual.replace(/-ci(?=-|$)/gi, "-cs")
-    adicionarVariacao(arquivoCI, "CI")
-    adicionarVariacao(arquivoCS, "CS")
+    adicionarVariacao(arquivoCI, "Carrinho Inteiro")
+    adicionarVariacao(arquivoCS, "Carrinho Simples")
   }
 
   const chaveFamiliaAtual = obterChaveFamiliaVariacao(arquivoAtual)
@@ -3571,6 +3578,60 @@ export default function CalculoProjetoPage() {
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
                 const mostrarVariacoesDesenho = variacoesDesenho.length > 1 && !projetoEPma
+                const opcoesDeslizante = variacoesDesenho
+                  .map((variacao) => {
+                    const stem = variacao.arquivo.replace(/\.png$/i, "")
+                    const match = stem.match(/^deslizante-\d+fls-(ci|cs)(?:-(simples\d*|completo\d*|completa\d*))?$/i)
+                    if (!match) return null
+
+                    const sistema = match[1].toLowerCase() === "ci" ? "inteiro" : "simples"
+                    const versaoRaw = String(match[2] || "").toLowerCase()
+                    const versao = versaoRaw.startsWith("completa") || versaoRaw.startsWith("completo")
+                      ? "completo"
+                      : versaoRaw.startsWith("simples")
+                        ? "simples"
+                        : "padrao"
+
+                    return {
+                      arquivo: variacao.arquivo,
+                      sistema,
+                      sistemaLabel: sistema === "inteiro" ? "Carrinho Inteiro" : "Carrinho Simples",
+                      versao,
+                      versaoLabel: versao === "completo" ? "Completo" : versao === "simples" ? "Simples" : "Padrão",
+                    }
+                  })
+                  .filter((itemOpcao): itemOpcao is {
+                    arquivo: string
+                    sistema: "inteiro" | "simples"
+                    sistemaLabel: string
+                    versao: "simples" | "completo" | "padrao"
+                    versaoLabel: string
+                  } => itemOpcao !== null)
+                const deslizanteComSelecaoEixos = opcoesDeslizante.length > 0
+                const sistemasDeslizante = Array.from(new Set(opcoesDeslizante.map((opcao) => opcao.sistema)))
+                const versoesDeslizante = Array.from(new Set(opcoesDeslizante.map((opcao) => opcao.versao)))
+                const opcaoSelecionadaDeslizante =
+                  opcoesDeslizante.find((opcao) => opcao.arquivo === item.variacaoDrawing)
+                  || opcoesDeslizante.find((opcao) => opcao.arquivo === desenhoPreview)
+                  || null
+
+                const selecionarVariacaoDeslizante = (
+                  sistemaAlvo?: "inteiro" | "simples",
+                  versaoAlvo?: "simples" | "completo" | "padrao"
+                ) => {
+                  if (!opcoesDeslizante.length) return
+
+                  const sistemaEfetivo = sistemaAlvo || opcaoSelecionadaDeslizante?.sistema || opcoesDeslizante[0].sistema
+                  const versaoEfetiva = versaoAlvo || opcaoSelecionadaDeslizante?.versao || opcoesDeslizante[0].versao
+
+                  const opcaoAlvo =
+                    opcoesDeslizante.find((opcao) => opcao.sistema === sistemaEfetivo && opcao.versao === versaoEfetiva)
+                    || opcoesDeslizante.find((opcao) => opcao.sistema === sistemaEfetivo)
+                    || opcoesDeslizante.find((opcao) => opcao.versao === versaoEfetiva)
+                    || opcoesDeslizante[0]
+
+                  atualizarItem(item.id, "variacaoDrawing", opcaoAlvo.arquivo)
+                }
                 return (
                   <div id={`projeto-card-${item.id}`} key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/60 p-6 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -3637,57 +3698,81 @@ export default function CalculoProjetoPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LA *</label>
-                        <input
-                          type="number" min={0} placeholder="Ex: 1200"
-                          value={item.largura}
-                          onChange={(e) => atualizarItem(item.id, "largura", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                          style={{ color: theme.contentTextLightBg }}
-                        />
-                      </div>
+                    <div className={mostrarLargura2 ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-3"}>
                       {mostrarLargura2 ? (
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LB</label>
-                          <input
-                            type="number" min={0} placeholder="Canto/Lado B"
-                            value={item.largura2}
-                            onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
-                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                          />
-                        </div>
+                        <>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LA *</label>
+                            <input
+                              type="number" min={0} placeholder="Ex: 1200"
+                              value={item.largura}
+                              onChange={(e) => atualizarItem(item.id, "largura", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LB</label>
+                            <input
+                              type="number" min={0} placeholder="Canto/Lado B"
+                              value={item.largura2}
+                              onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura (A) *</label>
+                            <input
+                              type="number" min={0} placeholder="Ex: 1500"
+                              value={item.altura}
+                              onChange={(e) => atualizarItem(item.id, "altura", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
+                            <input
+                              type="number" min={1} placeholder="1"
+                              value={item.qtd}
+                              onChange={(e) => atualizarItem(item.id, "qtd", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                            />
+                          </div>
+                        </>
                       ) : (
-                        <div aria-hidden className="invisible">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LB</label>
-                          <input
-                            type="number" min={0}
-                            value=""
-                            readOnly
-                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                          />
-                        </div>
+                        <>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LA *</label>
+                            <input
+                              type="number" min={0} placeholder="Ex: 1200"
+                              value={item.largura}
+                              onChange={(e) => atualizarItem(item.id, "largura", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura (A) *</label>
+                            <input
+                              type="number" min={0} placeholder="Ex: 1500"
+                              value={item.altura}
+                              onChange={(e) => atualizarItem(item.id, "altura", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
+                            <input
+                              type="number" min={1} placeholder="1"
+                              value={item.qtd}
+                              onChange={(e) => atualizarItem(item.id, "qtd", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                            />
+                          </div>
+                        </>
                       )}
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura (A) *</label>
-                        <input
-                          type="number" min={0} placeholder="Ex: 1500"
-                          value={item.altura}
-                          onChange={(e) => atualizarItem(item.id, "altura", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                          style={{ color: theme.contentTextLightBg }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
-                        <input
-                          type="number" min={1} placeholder="1"
-                          value={item.qtd}
-                          onChange={(e) => atualizarItem(item.id, "qtd", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                        />
-                      </div>
                       {usaAB && (
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
@@ -3920,7 +4005,61 @@ export default function CalculoProjetoPage() {
                     {mostrarVariacoesDesenho && (
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Qual Tipologia Deste Projeto?</p>
-                        {variacoesDesenho.length > 1 && (
+                        {deslizanteComSelecaoEixos ? (
+                          <div className="space-y-3 mb-3">
+                            {sistemasDeslizante.length > 1 && (
+                              <div>
+                                <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2">Sistema</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {sistemasDeslizante.map((sistema) => {
+                                    const opcaoSistema = opcoesDeslizante.find((opcao) => opcao.sistema === sistema)
+                                    if (!opcaoSistema) return null
+                                    const ativo = opcaoSelecionadaDeslizante?.sistema === sistema
+                                    return (
+                                      <button
+                                        key={`sistema-${sistema}`}
+                                        type="button"
+                                        onClick={() => selecionarVariacaoDeslizante(sistema)}
+                                        className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                                        style={ativo
+                                          ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                                          : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
+                                      >
+                                        {opcaoSistema.sistemaLabel}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {versoesDeslizante.length > 1 && (
+                              <div>
+                                <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2">Versão</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {versoesDeslizante.map((versao) => {
+                                    const opcaoVersao = opcoesDeslizante.find((opcao) => opcao.versao === versao)
+                                    if (!opcaoVersao) return null
+                                    const ativo = opcaoSelecionadaDeslizante?.versao === versao
+                                    return (
+                                      <button
+                                        key={`versao-${versao}`}
+                                        type="button"
+                                        onClick={() => selecionarVariacaoDeslizante(undefined, versao)}
+                                        className="px-3 py-2 rounded-xl text-xs font-black border-2 transition-all"
+                                        style={ativo
+                                          ? { backgroundColor: "#374151", color: "#fff", borderColor: "#374151" }
+                                          : { backgroundColor: "#f3f4f6", color: "#6b7280", borderColor: "#d1d5db" }}
+                                      >
+                                        {opcaoVersao.versaoLabel}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : variacoesDesenho.length > 1 ? (
                           <div className="flex flex-wrap gap-2 mb-3">
                             {variacoesDesenho.map((variacao) => (
                               <button
@@ -3937,7 +4076,7 @@ export default function CalculoProjetoPage() {
                               </button>
                             ))}
                           </div>
-                        )}
+                        ) : null}
                         <p className="text-[11px] text-gray-400">
                           Ao escolher uma opção, o desenho acima muda para acompanhar o modelo selecionado.
                         </p>
