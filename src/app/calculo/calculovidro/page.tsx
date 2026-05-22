@@ -37,6 +37,9 @@ interface Vidro { id: number | string; nome: string; espessura?: string | number
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
 interface TabelaPreco { id: string | number; nome: string; }
 interface Servico { id: string | number; nome: string; preco: number; unidade?: string | null; }
+interface KitCatalogo { id: string | number; nome: string; preco?: number | string | null; preco_por_cor?: number | string | null; }
+interface PerfilCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; }
+interface FerragemCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; }
 interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
 interface ItemNaoEncontrado { nomeExcel: string; nomeExcelNormalizado: string; l: number; a: number; qtd: number; }
 
@@ -148,6 +151,9 @@ export default function RelatorioOrçamento() {
   const [listaTabelas, setListaTabelas] = useState<TabelaPreco[]>([])
   const [listaVidros, setListaVidros] = useState<Vidro[]>([])
   const [listaServicos, setListaServicos] = useState<Servico[]>([])
+  const [listaKits, setListaKits] = useState<KitCatalogo[]>([])
+  const [listaPerfis, setListaPerfis] = useState<PerfilCatalogo[]>([])
+  const [listaFerragens, setListaFerragens] = useState<FerragemCatalogo[]>([])
   const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
 
   // Estados do Orçamento
@@ -160,6 +166,10 @@ export default function RelatorioOrçamento() {
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null)
   const [itens, setItens] = useState<ItemOrcamento[]>([])
   const [quantidadeServico, setQuantidadeServico] = useState(1);
+  const [tipoAdicionalSelecionado, setTipoAdicionalSelecionado] = useState<"kit" | "perfil" | "ferragem">("kit")
+  const [adicionalSelecionadoId, setAdicionalSelecionadoId] = useState("")
+  const [quantidadeAdicional, setQuantidadeAdicional] = useState(1)
+  const [valorUnitarioAdicional, setValorUnitarioAdicional] = useState("")
 
   // Edição de Modal
   const [editandoId, setEditandoId] = useState<string | number | null>(null);
@@ -323,6 +333,85 @@ export default function RelatorioOrçamento() {
     }
   };
 
+  const itensAdicionaisDisponiveis = tipoAdicionalSelecionado === "kit"
+    ? listaKits
+    : tipoAdicionalSelecionado === "perfil"
+      ? listaPerfis
+      : listaFerragens;
+
+  const obterPrecoPadraoAdicional = (item: KitCatalogo | PerfilCatalogo | FerragemCatalogo) => {
+    const precoPrincipal = normalizarNumeroPlanilha((item as { preco?: unknown }).preco);
+    if (precoPrincipal > 0) return precoPrincipal;
+
+    const precoAlternativo = normalizarNumeroPlanilha((item as { preco_por_cor?: unknown }).preco_por_cor);
+    return precoAlternativo > 0 ? precoAlternativo : 0;
+  };
+
+  const adicionarAdicional = () => {
+    const itemSelecionado = itensAdicionaisDisponiveis.find((item) => String(item.id) === String(adicionalSelecionadoId));
+    const quantidadeValida = Number(quantidadeAdicional);
+    const valorUnitario = parseValorDigitado(valorUnitarioAdicional);
+
+    if (!itemSelecionado) {
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Selecione um kit, perfil ou ferragem para adicionar.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    if (!quantidadeValida || quantidadeValida <= 0) {
+      setModalAvisoTitulo("Quantidade inválida");
+      setModalAvisoMensagem("Informe uma quantidade maior que zero para o adicional.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    if (valorUnitario < 0) {
+      setModalAvisoTitulo("Valor inválido");
+      setModalAvisoMensagem("O valor unitário não pode ser negativo.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    const tipoLabel = tipoAdicionalSelecionado === "kit"
+      ? "Kit"
+      : tipoAdicionalSelecionado === "perfil"
+        ? "Perfil"
+        : "Ferragem";
+    const codigo = "codigo" in itemSelecionado ? String(itemSelecionado.codigo || "").trim() : "";
+    const descricaoBase = `${codigo ? `${codigo} - ` : ""}${itemSelecionado.nome}`.trim();
+
+    const novoItem: ItemOrcamento = {
+      id: Date.now() + Math.random(),
+      descricao: `${tipoLabel}: ${descricaoBase}`,
+      tipo: "adicional",
+      medidaReal: "0 x 0 mm",
+      medidaCalc: "0 x 0 mm",
+      qtd: quantidadeValida,
+      total: valorUnitario * quantidadeValida,
+      servico: "Item adicional",
+      servicos: "Item adicional",
+      valorServicoUn: valorUnitario,
+      acabamento: tipoLabel,
+    };
+
+    setItens((prev) => [...prev, novoItem]);
+    setAdicionalSelecionadoId("");
+    setQuantidadeAdicional(1);
+    setValorUnitarioAdicional("");
+  };
+
+  useEffect(() => {
+    const itemSelecionado = itensAdicionaisDisponiveis.find((item) => String(item.id) === String(adicionalSelecionadoId));
+    if (!itemSelecionado) {
+      setValorUnitarioAdicional("");
+      return;
+    }
+
+    const preco = obterPrecoPadraoAdicional(itemSelecionado);
+    setValorUnitarioAdicional(preco > 0 ? preco.toFixed(2).replace(".", ",") : "");
+  }, [adicionalSelecionadoId, tipoAdicionalSelecionado, itensAdicionaisDisponiveis]);
+
   const aplicarRateioValorSelecionados = () => {
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
@@ -470,13 +559,16 @@ export default function RelatorioOrçamento() {
       if (checkingAuth || !empresaId) return;
 
       try {
-        const [resC, resT, resV, resS, resP] = await Promise.all([
+        const [resC, resT, resV, resS, resP, resK, resPerfis, resFerragens] = await Promise.all([
           supabase.from('clientes').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('tabelas').select('id, nome').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
           // Busca a tabela de vínculos de preços especiais
-          supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId)
+          supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId),
+          supabase.from('kits').select('id, nome, preco, preco_por_cor').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('perfis').select('id, codigo, nome, preco').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('ferragens').select('id, codigo, nome, preco').eq('empresa_id', empresaId).order('nome')
         ]);
 
         if (resC.data) setListaClientes(resC.data);
@@ -487,6 +579,9 @@ export default function RelatorioOrçamento() {
         }
         if (resS.data) setListaServicos(resS.data);
         if (resP.data) setPrecosEspeciais(resP.data); // Salva os preços especiais aqui
+        if (resK.data) setListaKits(resK.data);
+        if (resPerfis.data) setListaPerfis(resPerfis.data);
+        if (resFerragens.data) setListaFerragens(resFerragens.data);
 
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -1355,6 +1450,74 @@ useEffect(() => {
                     </div>
                   </div>
                 )}
+
+                <div className="mt-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Plus size={14} className="text-[#1e3a5a]" />
+                    <span className="text-[10px] font-bold text-[#1e3a5a] uppercase tracking-wider">
+                      Adicionar kit, perfil ou ferragem
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select
+                      value={tipoAdicionalSelecionado}
+                      onChange={(e) => {
+                        setTipoAdicionalSelecionado(e.target.value as "kit" | "perfil" | "ferragem");
+                        setAdicionalSelecionadoId("");
+                      }}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                    >
+                      <option value="kit">Kits</option>
+                      <option value="perfil">Perfis</option>
+                      <option value="ferragem">Ferragens</option>
+                    </select>
+
+                    <select
+                      value={adicionalSelecionadoId}
+                      onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                    >
+                      <option value="">Selecione para adicionar...</option>
+                      {itensAdicionaisDisponiveis.map((item) => {
+                        const codigo = "codigo" in item ? String(item.codigo || "").trim() : "";
+                        const precoItem = obterPrecoPadraoAdicional(item);
+                        return (
+                          <option key={item.id} value={item.id}>
+                            {`${codigo ? `${codigo} - ` : ""}${item.nome}${precoItem > 0 ? ` | ${formatarMoeda(precoItem)}` : ""}`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={quantidadeAdicional}
+                      onChange={(e) => setQuantidadeAdicional(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      placeholder="Qtd"
+                    />
+                    <input
+                      type="text"
+                      value={valorUnitarioAdicional}
+                      onChange={(e) => setValorUnitarioAdicional(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      placeholder="Valor unitário"
+                    />
+                  </div>
+
+                  <button
+                    onClick={adicionarAdicional}
+                    className="w-full py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    <span>Adicionar adicional</span>
+                  </button>
+                </div>
+
                 <div className="flex justify-center w-full pt-4">
                   <button
                     onClick={() => {

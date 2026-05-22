@@ -827,6 +827,15 @@ const projetoEhPma = (projeto?: Projeto | null) => {
   return /\b(pma|mao\s*amiga)\b/.test(texto)
 }
 
+const projetoEhDeslizante = (projeto?: Projeto | null) => {
+  const texto = `${projeto?.nome || ""} ${projeto?.categoria || ""} ${projeto?.desenho || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  return /\bdeslizante\b/.test(texto)
+}
+
 const inferirMovimentacaoPmaProjeto = (projeto?: Projeto | null): string => {
   if (!projetoEhPma(projeto)) return ""
 
@@ -2147,7 +2156,8 @@ export default function CalculoProjetoPage() {
 
       if (campo === "projetoId") {
         const projetoSelecionado = projetos.find((projeto) => projeto.id === String(valor)) || null
-        const modoInicial = projetoEhPma(projetoSelecionado) ? "barra" : "kit"
+        const modoForcadoBarra = projetoEhPma(projetoSelecionado) || projetoEhDeslizante(projetoSelecionado)
+        const modoInicial = modoForcadoBarra ? "barra" : "kit"
         return {
           ...item,
           projetoId: String(valor),
@@ -2161,6 +2171,14 @@ export default function CalculoProjetoPage() {
           variacaoMovimentacao: "",
           variacaoVersao: "",
           variacaoTrilho: "",
+        }
+      }
+
+      if (campo === "modoCalculo") {
+        const projetoSelecionado = getProjeto(item)
+        const modoForcadoBarra = projetoEhPma(projetoSelecionado) || projetoEhDeslizante(projetoSelecionado)
+        if (modoForcadoBarra && valor === "kit") {
+          return { ...item, modoCalculo: "barra" as const }
         }
       }
 
@@ -2705,6 +2723,23 @@ export default function CalculoProjetoPage() {
     setItensCalculo((prev) => {
       let houveMudanca = false
 
+      const atualizados: ItemCalculoProjeto[] = prev.map((item): ItemCalculoProjeto => {
+        const projeto = getProjeto(item)
+        const modoForcadoBarra = projetoEhPma(projeto) || projetoEhDeslizante(projeto)
+        if (!modoForcadoBarra || item.modoCalculo === "barra") return item
+
+        houveMudanca = true
+        return { ...item, modoCalculo: "barra" }
+      })
+
+      return houveMudanca ? atualizados : prev
+    })
+  }, [getProjeto])
+
+  useEffect(() => {
+    setItensCalculo((prev) => {
+      let houveMudanca = false
+
       const atualizados = prev.map((item) => {
         if (projetoEhPma(getProjeto(item))) return item
         if (!item.projetoId || !item.variacaoDrawing) return item
@@ -3116,7 +3151,7 @@ export default function CalculoProjetoPage() {
       const precoVidroM2Aplicado = getPrecoVidroM2(item)
       const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
       const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
-      const modoCalculoEfetivo: "kit" | "barra" = projetoEhPma(projeto) ? "barra" : item.modoCalculo
+      const modoCalculoEfetivo: "kit" | "barra" = (projetoEhPma(projeto) || projetoEhDeslizante(projeto)) ? "barra" : item.modoCalculo
       const variacaoTecnica = montarVariacaoTecnica({
         altura: item.variacaoAltura,
         kit: item.variacaoKit,
@@ -3537,6 +3572,7 @@ export default function CalculoProjetoPage() {
                   ? item.variacaoDrawing
                   : projetoSel?.desenho || "")).trim()
                 const projetoEPma = projetoEhPma(projetoSel)
+                const projetoEDeslizante = projetoEhDeslizante(projetoSel)
                 const variacaoTecnicaSelecionada = montarVariacaoTecnica({
                   altura: item.variacaoAltura,
                   kit: item.variacaoKit,
@@ -3577,8 +3613,19 @@ export default function CalculoProjetoPage() {
                 const usandoPrecoEspecialVidro = getUsandoPrecoEspecial(item)
                 const precoVidroM2Aplicado = getPrecoVidroM2(item)
                 const carregandoDetalhe = item.projetoId ? projetosCarregando.includes(item.projetoId) : false
-                const mostrarVariacoesDesenho = variacoesDesenho.length > 1 && !projetoEPma
-                const opcoesDeslizante = variacoesDesenho
+                const stemDesenhoAtivo = (desenhoPreview || projetoSel?.desenho || "").replace(/\.png$/i, "").toLowerCase()
+                const matchDeslizanteAtivo = stemDesenhoAtivo.match(/^deslizante-(\d+)fls-/i)
+                const arquivosDeslizanteFamilia = matchDeslizanteAtivo
+                  ? Array.from(new Set([
+                      ...desenhosDisponiveis.filter((arquivo) =>
+                        new RegExp(`^deslizante-${matchDeslizanteAtivo[1]}fls-(ci|cs)(-(simples\\d*|completo\\d*|completa\\d*))?\\.png$`, "i").test(arquivo)
+                      ),
+                      ...variacoesDesenho.map((variacao) => variacao.arquivo),
+                    ]))
+                  : variacoesDesenho.map((variacao) => variacao.arquivo)
+
+                const opcoesDeslizante = arquivosDeslizanteFamilia
+                  .map((arquivo) => ({ arquivo, label: formatarLabelVariacaoArquivo(arquivo) }))
                   .map((variacao) => {
                     const stem = variacao.arquivo.replace(/\.png$/i, "")
                     const match = stem.match(/^deslizante-\d+fls-(ci|cs)(?:-(simples\d*|completo\d*|completa\d*))?$/i)
@@ -3608,6 +3655,7 @@ export default function CalculoProjetoPage() {
                     versaoLabel: string
                   } => itemOpcao !== null)
                 const deslizanteComSelecaoEixos = opcoesDeslizante.length > 0
+                const mostrarVariacoesDesenho = (variacoesDesenho.length > 1 || deslizanteComSelecaoEixos) && !projetoEPma
                 const sistemasDeslizante = Array.from(new Set(opcoesDeslizante.map((opcao) => opcao.sistema)))
                 const versoesDeslizante = Array.from(new Set(opcoesDeslizante.map((opcao) => opcao.versao)))
                 const opcaoSelecionadaDeslizante =
@@ -3848,12 +3896,12 @@ export default function CalculoProjetoPage() {
                             key={key}
                             type="button"
                             onClick={() => {
-                              if (projetoEPma && key === "kit") return
+                              if ((projetoEPma || projetoEDeslizante) && key === "kit") return
                               atualizarItem(item.id, "modoCalculo", key)
                             }}
-                            disabled={projetoEPma && key === "kit"}
+                            disabled={(projetoEPma || projetoEDeslizante) && key === "kit"}
                             className="flex-1 flex items-center justify-center gap-2 p-3 rounded-2xl text-xs font-black border-2 transition-all"
-                            style={(projetoEPma && key === "kit")
+                            style={((projetoEPma || projetoEDeslizante) && key === "kit")
                               ? { backgroundColor: "#f3f4f6", color: "#9ca3af", borderColor: "#e5e7eb", cursor: "not-allowed", opacity: 0.7 }
                               : item.modoCalculo === key
                               ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
@@ -3863,8 +3911,10 @@ export default function CalculoProjetoPage() {
                           </button>
                         ))}
                       </div>
-                      {projetoEPma && (
-                        <p className="text-[11px] text-amber-600 mt-2 font-semibold">Mão Amiga utiliza cálculo por barra.</p>
+                      {(projetoEPma || projetoEDeslizante) && (
+                        <p className="text-[11px] text-amber-600 mt-2 font-semibold">
+                          {projetoEPma ? "Mão Amiga utiliza cálculo por barra." : "Deslizante utiliza cálculo por barra."}
+                        </p>
                       )}
                     </div>
 

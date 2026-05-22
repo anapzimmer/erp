@@ -878,17 +878,37 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
     })
   }
 
-  if (/-ci(?:-|$)/.test(stemAtual) || /-cs(?:-|$)/.test(stemAtual)) {
-    const stemCI = stemAtual.replace(/-cs(?=-|$)/g, "-ci")
-    const stemCS = stemAtual.replace(/-ci(?=-|$)/g, "-cs")
+  const matchDeslizanteSistema = stemAtual.match(/^deslizante-(\d+)fls-(ci|cs)(?:-(simples\d*|completo\d*|completa\d*))?$/i)
+  if (matchDeslizanteSistema) {
+    const quantidadeFls = matchDeslizanteSistema[1]
+    const versaoAtual = (matchDeslizanteSistema[3] || "").toLowerCase()
+    const stemsDeslizanteMesmaFamilia = Array.from(stemsDisponiveis).filter((stem) =>
+      new RegExp(`^deslizante-${quantidadeFls}fls-(ci|cs)(-(simples\\d*|completo\\d*|completa\\d*))?$`, "i").test(stem)
+    )
 
-    if (stemsDisponiveis.has(stemCI) && stemsDisponiveis.has(stemCS)) {
+    const selecionarArquivoSistema = (sistema: "ci" | "cs") => {
+      const candidatos = stemsDeslizanteMesmaFamilia.filter((stem) =>
+        new RegExp(`^deslizante-${quantidadeFls}fls-${sistema}(-(simples\\d*|completo\\d*|completa\\d*))?$`, "i").test(stem)
+      )
+      if (candidatos.length === 0) return null
+
+      const comMesmaVersao = versaoAtual
+        ? candidatos.find((stem) => new RegExp(`-${escapeRegExp(versaoAtual)}$`, "i").test(stem))
+        : candidatos.find((stem) => !/-(simples\d*|completo\d*|completa\d*)$/i.test(stem))
+
+      return criarArquivo(comMesmaVersao || candidatos[0])
+    }
+
+    const arquivoCi = selecionarArquivoSistema("ci")
+    const arquivoCs = selecionarArquivoSistema("cs")
+
+    if (arquivoCi && arquivoCs) {
       variacoes.push({
         id: "sistema",
         label: "Sistema",
         opcoes: [
-          { key: "ci", label: "Carrinho Inteiro", arquivo: criarArquivo(stemCI) },
-          { key: "cs", label: "Carrinho Simples", arquivo: criarArquivo(stemCS) },
+          { key: "ci", label: "Carrinho Inteiro", arquivo: arquivoCi },
+          { key: "cs", label: "Carrinho Simples", arquivo: arquivoCs },
         ],
       })
     }
