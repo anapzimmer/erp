@@ -1012,6 +1012,19 @@ const normalizarDescricaoMaterial = (valor?: string | null): string =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
 
+const identificarFamiliaFerragem = (codigo?: string | null, nome?: string | null): string => {
+  const codigoNorm = normalizarCodigoModeloMaterial(codigo)
+  const nomeNorm = normalizarNomeFerragem(nome || "")
+  const texto = `${codigoNorm} ${nomeNorm}`
+  const ehCilindro = texto.includes("cilindro") || texto.includes("cil")
+
+  if (!ehCilindro) return ""
+  if (texto.includes("3530")) return "cilindro-3530"
+  if (texto.includes("1520ta")) return "cilindro-1520ta"
+  if (texto.includes("1520")) return "cilindro-1520"
+  return ""
+}
+
 const normalizarListaCores = (valor: string[] | string | null | undefined): string[] => {
   if (Array.isArray(valor)) {
     return valor.map((item) => String(item || "").trim()).filter(Boolean)
@@ -1058,18 +1071,50 @@ const resolverFerragemComCor = (
   const cor = normalizarCorComparacao(corMaterial)
   if (!base) return null
   if (!cor) return base
-  if (itemAtendeCorMaterial(base, corMaterial)) return base
-
   const codigoBase = normalizarCodigoModeloMaterial(base.codigo)
   const nomeNorm = normalizarNomeFerragem(base.nome)
-  return ferragensDB.find((item) =>
+  const familiaBase = identificarFamiliaFerragem(base.codigo, base.nome)
+  const ehMesmoModelo = (item: FerragemItem) => {
+    const codigoItem = normalizarCodigoModeloMaterial(item.codigo)
+    const familiaItem = identificarFamiliaFerragem(item.codigo, item.nome)
+    const permitePrefixoCodigo = !!familiaBase
+    const codigoCompativel = !!codigoBase && (
+      codigoItem === codigoBase ||
+      (permitePrefixoCodigo && (codigoBase.length >= 6 || codigoItem.length >= 6) &&
+        (codigoItem.startsWith(codigoBase) || codigoBase.startsWith(codigoItem)))
+    )
+
+    const nomeCompativel = normalizarNomeFerragem(item.nome) === nomeNorm
+    const familiaCompativel = !!familiaBase && familiaBase === familiaItem
+
+    return codigoCompativel || nomeCompativel || familiaCompativel
+  }
+
+  const varianteComCor = ferragensDB.find((item) =>
     item.id !== base.id &&
     itemAtendeCorMaterial(item, corMaterial) &&
-    (
-      (!!codigoBase && normalizarCodigoModeloMaterial(item.codigo) === codigoBase) ||
-      normalizarNomeFerragem(item.nome) === nomeNorm
-    )
+    ehMesmoModelo(item)
   ) || null
+
+  if (varianteComCor) return varianteComCor
+
+  const varianteComPreco = ferragensDB.find((item) =>
+    item.id !== base.id &&
+    ehMesmoModelo(item) &&
+    Number(item.preco || 0) > 0
+  ) || null
+
+  if (varianteComPreco) return varianteComPreco
+
+  const coresBase = normalizarListaCores(base.cores)
+    .map((valor) => normalizarCorComparacao(valor))
+    .filter(Boolean)
+  if (coresBase.length === 0) return base
+  if (itemAtendeCorMaterial(base, corMaterial)) return base
+
+  // Fallback final: usa o item base do modelo mesmo sem bater a cor,
+  // para não zerar ferragens com preço padrão independente de acabamento.
+  return base
 }
 
 const resolverPerfilComCor = (
@@ -1281,12 +1326,13 @@ const calcularProjeto = (params: {
   } = params
 
   // Variáveis disponíveis para fórmulas
-  const vars: Record<string, number> = {
+  const varsBase: Record<string, number> = {
     L: largura, A: altura,
     L1: largura, L2: largura2 || largura,
     A1: altura, A2: altura2 || altura,
     AB: altura2 || altura,
   }
+  const vars = varsBase
   const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
   const kitSelecionadoTecnico = String(variacaoTecnicaDecomposta.kit || "").trim()
   const kitComPerfilAte3000 = kitSelecionadoTecnico === "quadrado" || kitSelecionadoTecnico === "outro"
@@ -1311,6 +1357,15 @@ const calcularProjeto = (params: {
     return partes.some((parte) => ehVariacaoDeDesenho(parte))
   })
 
+  const projetoCantoComLadosIndependentes = largura2 > 0 && detalhe.folhas.every((folha) => {
+    const formula = `${folha.formula_largura || ""} ${folha.formula_altura || ""}`
+    return !/\bL2\b|\bA2\b|\bAB\b/i.test(formula)
+  })
+
+  const largurasParaCalculoFolhas = projetoCantoComLadosIndependentes
+    ? [largura, largura2].filter((valor) => valor > 0)
+    : [largura]
+
   const folhasCalc: FolhaCalculada[] = detalhe.folhas
     .filter((f) => {
       if (variacaoDrawing && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
@@ -1321,27 +1376,34 @@ const calcularProjeto = (params: {
       const trilhosPermitidos = f.trilho_restrito.split(",").map(t => t.trim())
       return trilhosPermitidos.includes(trilhoAtivo)
     })
-    .map(f => {
-    const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
-    const w = Math.max(avaliarFormula(f.formula_largura, vars), 0)
-    const h = Math.max(avaliarFormula(f.formula_altura, vars), 0)
-    const wR = arred50(w)
-    const hR = arred50(h)
-    const area = Math.max((wR * hR) / 1_000_000, 0.25)
-    return {
-      numero: f.numero_folha,
-      quantidadeFolhas,
-      tipo: f.tipo_folha,
-      largura: Math.round(w),
-      altura: Math.round(h),
-      larguraArredondada: wR,
-      alturaArredondada: hR,
-      area,
-      vidro: vidroSelecionado,
-      precoM2Utilizado: precoVidroM2,
-      precoVidro: area * precoVidroM2 * qtd * quantidadeFolhas,
-    }
-  })
+    .flatMap((f) => {
+      const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
+      return largurasParaCalculoFolhas.map((larguraLado) => {
+        const vars = {
+          ...varsBase,
+          L: larguraLado,
+          L1: larguraLado,
+        }
+        const w = Math.max(avaliarFormula(f.formula_largura, vars), 0)
+        const h = Math.max(avaliarFormula(f.formula_altura, vars), 0)
+        const wR = arred50(w)
+        const hR = arred50(h)
+        const area = Math.max((wR * hR) / 1_000_000, 0.25)
+        return {
+          numero: f.numero_folha,
+          quantidadeFolhas,
+          tipo: f.tipo_folha,
+          largura: Math.round(w),
+          altura: Math.round(h),
+          larguraArredondada: wR,
+          alturaArredondada: hR,
+          area,
+          vidro: vidroSelecionado,
+          precoM2Utilizado: precoVidroM2,
+          precoVidro: area * precoVidroM2 * qtd * quantidadeFolhas,
+        }
+      })
+    })
 
   const totalVidro = folhasCalc.reduce((s, f) => s + f.precoVidro, 0)
 
@@ -1391,12 +1453,23 @@ const calcularProjeto = (params: {
       return candidatos.length > 0 ? candidatos : kitsPreferenciais
     })()
 
+    const ehMedicaoCanto = largura2 > 0
+    const larguraComparacaoKit = ehMedicaoCanto ? (largura + largura2) : largura
+    const alturaComparacaoKit = Math.max(altura, altura2 || 0)
+
+    const kitsCompativeisMedida = kitsPriorizadosPorFolhas.filter((kitProj) =>
+      kitProj.largura_referencia >= larguraComparacaoKit &&
+      kitProj.altura_referencia >= alturaComparacaoKit
+    )
+
+    const baseBuscaKit = kitsCompativeisMedida
+
     // Escolhe pelo menor delta (distância euclidiana entre L×A e largura_referencia×altura_referencia)
     let menorDelta = Infinity
-    for (const kitProj of kitsPriorizadosPorFolhas) {
+    for (const kitProj of baseBuscaKit) {
       const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
       if (!dbKit) continue
-      const delta = Math.abs(largura - kitProj.largura_referencia) + Math.abs(altura - kitProj.altura_referencia)
+      const delta = Math.abs(larguraComparacaoKit - kitProj.largura_referencia) + Math.abs(alturaComparacaoKit - kitProj.altura_referencia)
       if (delta < menorDelta) {
         menorDelta = delta
         kitSelecionado = dbKit
@@ -1434,15 +1507,77 @@ const calcularProjeto = (params: {
             )
           )
         : null
-      const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || (corMaterial ? null : variante || base)
+      const db = resolverFerragemComCor(base, ferragensDB, corMaterial) || variante || base
       const nome = limparCorNomeMaterial(db?.nome || nomeBase)
       const precoUnit = db?.preco || 0
+      const total = f.quantidade * precoUnit * qtd
+
+      const textoDebug = `${base?.codigo || ""} ${nomeBase}`.toLowerCase()
+      const ehCasoMonitorado = /3530|1520|cilindro|arouc/.test(textoDebug)
+      if (typeof window !== "undefined" && (precoUnit <= 0 || ehCasoMonitorado)) {
+        const codigoBaseNorm = normalizarCodigoModeloMaterial(base?.codigo)
+        const nomeBaseNorm = normalizarNomeFerragem(nomeBase)
+        const candidatosMesmoModelo = ferragensDB
+          .filter((item) => {
+            if (!base) return false
+            const codigoItemNorm = normalizarCodigoModeloMaterial(item.codigo)
+            const codigoCompativel = !!codigoBaseNorm && (
+              codigoItemNorm === codigoBaseNorm ||
+              ((codigoBaseNorm.length >= 6 || codigoItemNorm.length >= 6) &&
+                (codigoItemNorm.startsWith(codigoBaseNorm) || codigoBaseNorm.startsWith(codigoItemNorm)))
+            )
+            return codigoCompativel || normalizarNomeFerragem(item.nome) === nomeBaseNorm
+          })
+          .map((item) => ({
+            id: item.id,
+            codigo: item.codigo || null,
+            nome: item.nome,
+            preco: item.preco || 0,
+            cores: item.cores || null,
+          }))
+
+        console.warn("[calculoprojeto:ferragem-debug]", {
+          motivo: !base ? "base_nao_encontrada" : !db ? "sem_item_resolvido" : precoUnit <= 0 ? "preco_zero_item_resolvido" : "caso_monitorado",
+          ferragemProjeto: {
+            ferragem_id: f.ferragem_id,
+            quantidade: f.quantidade,
+          },
+          corMaterial,
+          base: base
+            ? {
+              id: base.id,
+              codigo: base.codigo || null,
+              nome: base.nome,
+              preco: base.preco || 0,
+              cores: base.cores || null,
+            }
+            : null,
+          resolvida: db
+            ? {
+              id: db.id,
+              codigo: db.codigo || null,
+              nome: db.nome,
+              preco: db.preco || 0,
+              cores: db.cores || null,
+            }
+            : null,
+          candidatosMesmoModelo,
+          resultado: {
+            nome,
+            precoUnit,
+            qtdFerragem: f.quantidade,
+            qtdProjeto: qtd,
+            total,
+          },
+        })
+      }
+
       return {
         nome,
         codigo: db?.codigo || null,
         qtd: f.quantidade,
         precoUnit,
-        total: f.quantidade * precoUnit * qtd,
+        total,
       }
     })
     .sort((a, b) => compareFerragensByNome(a.nome, b.nome))
@@ -2804,8 +2939,8 @@ export default function CalculoProjetoPage() {
         corMaterial: itemResultado.corMaterial || "Sem cor definida",
         modoCalculo: itemResultado.resultado.usouKit ? "Kit" : "Barra",
         subtotal: itemResultado.resultado.totalGeral,
-        folhas: itemResultado.resultado.folhas.map((folha) => ({
-          id: `${itemResultado.itemId}-folha-${folha.numero}`,
+        folhas: itemResultado.resultado.folhas.map((folha, folhaIndex) => ({
+          id: `${itemResultado.itemId}-folha-${folha.numero}-${folhaIndex}`,
           titulo: `Folha ${folha.numero} ${folha.tipo}`,
           quantidadeFolhas: folha.quantidadeFolhas,
           medida: `${folha.largura} x ${folha.altura} mm`,
@@ -2837,7 +2972,7 @@ export default function CalculoProjetoPage() {
                 )
               )
             : null
-          const db = resolverFerragemComCor(baseByNome, ferragensDB, itemResultado.corMaterial) || (itemResultado.corMaterial ? null : variante || baseByNome)
+          const db = resolverFerragemComCor(baseByNome, ferragensDB, itemResultado.corMaterial) || variante || baseByNome
           const codigoFerragem = ferragem.codigo || db?.codigo || baseByNome?.codigo || null
           return {
             id: `${itemResultado.itemId}-ferragem-${index}`,
@@ -3416,8 +3551,10 @@ export default function CalculoProjetoPage() {
                 const projetoEPorta = projetoTemTrilhoConfigurado(detalhe)
                 const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
                 const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
+                const projetoECanto = textoProjeto.includes("canto")
                 const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const mostrarLargura2 = usaL2 || projetoECanto
                 const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!
                 const kitTypesDosProjeto = (() => {
                   if (!detalhe || !projetoEBox) return []
@@ -3502,7 +3639,7 @@ export default function CalculoProjetoPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Largura (L) *</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LA *</label>
                         <input
                           type="number" min={0} placeholder="Ex: 1200"
                           value={item.largura}
@@ -3511,6 +3648,27 @@ export default function CalculoProjetoPage() {
                           style={{ color: theme.contentTextLightBg }}
                         />
                       </div>
+                      {mostrarLargura2 ? (
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LB</label>
+                          <input
+                            type="number" min={0} placeholder="Canto/Lado B"
+                            value={item.largura2}
+                            onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
+                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                          />
+                        </div>
+                      ) : (
+                        <div aria-hidden className="invisible">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">LB</label>
+                          <input
+                            type="number" min={0}
+                            value=""
+                            readOnly
+                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura (A) *</label>
                         <input
@@ -3521,17 +3679,15 @@ export default function CalculoProjetoPage() {
                           style={{ color: theme.contentTextLightBg }}
                         />
                       </div>
-                      {usaL2 && (
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Largura 2 (L2)</label>
-                          <input
-                            type="number" min={0} placeholder="Canto/Lado B"
-                            value={item.largura2}
-                            onChange={(e) => atualizarItem(item.id, "largura2", e.target.value)}
-                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                          />
-                        </div>
-                      )}
+                      <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
+                        <input
+                          type="number" min={1} placeholder="1"
+                          value={item.qtd}
+                          onChange={(e) => atualizarItem(item.id, "qtd", e.target.value)}
+                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                        />
+                      </div>
                       {usaAB && (
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
@@ -3543,15 +3699,6 @@ export default function CalculoProjetoPage() {
                           />
                         </div>
                       )}
-                      <div className="col-span-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Quantidade do Item</label>
-                        <input
-                          type="number" min={1} placeholder="1"
-                          value={item.qtd}
-                          onChange={(e) => atualizarItem(item.id, "qtd", e.target.value)}
-                          className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                        />
-                      </div>
                     </div>
 
                     <div>
@@ -4009,9 +4156,12 @@ export default function CalculoProjetoPage() {
                                   <div className="mt-3 space-y-1">
                                     {obra.ferragens.map((ferragem) => (
                                       <p key={ferragem.id} className="text-xs text-gray-600">
-                                        {(ferragem.codigo ? `${ferragem.codigo} | ` : "") + ferragem.nome}: {ferragem.qtd} un
+                                        {(ferragem.codigo ? `${ferragem.codigo} | ` : "") + ferragem.nome}: {ferragem.qtd} un · {fmt(ferragem.total)}
                                       </p>
                                     ))}
+                                    <p className="text-xs font-black text-gray-700 pt-1 border-t border-gray-200">
+                                      Subtotal ferragens: {fmt(obra.ferragens.reduce((acc, ferragem) => acc + ferragem.total, 0))}
+                                    </p>
                                   </div>
                                 )}
                               </div>
@@ -4020,6 +4170,17 @@ export default function CalculoProjetoPage() {
                           </div>
                         </div>
                       ))}
+                      {relatorioObra.length > 0 && (
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between gap-3">
+                          <p className="text-xs font-black uppercase tracking-widest text-gray-500">Total Geral de Ferragens</p>
+                          <p className="text-lg font-black text-gray-800">
+                            {fmt(relatorioObra.reduce(
+                              (totalObra, obra) => totalObra + obra.ferragens.reduce((totalFerragens, ferragem) => totalFerragens + ferragem.total, 0),
+                              0
+                            ))}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   )}

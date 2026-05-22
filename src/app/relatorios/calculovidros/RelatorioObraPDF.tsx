@@ -449,6 +449,7 @@ export function RelatorioObraPDF({
 
         if (existente) {
           existente.qtd += ferragem.qtd
+          existente.total += ferragem.total
           return
         }
 
@@ -456,11 +457,12 @@ export function RelatorioObraPDF({
           codigo: ferragem.codigo || null,
           nome: ferragem.nome,
           qtd: ferragem.qtd,
+          total: ferragem.total,
         })
       })
 
       return mapa
-    }, new Map<string, { codigo: string | null; nome: string; qtd: number }>()).values()
+    }, new Map<string, { codigo: string | null; nome: string; qtd: number; total: number }>()).values()
   ).sort((a, b) => {
     const ordemLogica = compareFerragensByNome(`${a.codigo || ""} ${a.nome}`, `${b.codigo || ""} ${b.nome}`)
     if (ordemLogica !== 0) return ordemLogica
@@ -480,6 +482,7 @@ export function RelatorioObraPDF({
     ferragens: relatorioObra.reduce((acc, obra) => acc + obra.ferragens.reduce((total, item) => total + item.qtd, 0), 0),
     perfis: otimizacaoGlobalOrdenada.reduce((acc, grupo) => acc + grupo.qtdBarrasOtimizada, 0),
   }
+  const totalFerragensGlobal = ferragensGlobal.reduce((acc, ferragem) => acc + ferragem.total, 0)
   const indicesProjetos = new Map(relatorioObra.map((obra, index) => [obra.itemId, index + 1]))
   const projetosKit = relatorioObra.filter((obra) => obra.modoCalculo === "Kit")
   const projetosBarra = relatorioObra.filter((obra) => obra.modoCalculo === "Barra")
@@ -762,15 +765,18 @@ export function RelatorioObraPDF({
                   <Text style={[styles.tableCellHeader, styles.cellSmall]}>Cod.</Text>
                   <Text style={[styles.tableCellHeader, styles.cellGrow]}>Ferragem</Text>
                   <Text style={[styles.tableCellHeader, styles.cellSmall]}>Qtd.</Text>
+                  <Text style={[styles.tableCellHeader, styles.cellMedium]}>Valor</Text>
                 </View>
                 {ferragensGlobal.map((ferragem, index) => (
                   <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={index === ferragensGlobal.length - 1 ? styles.tableRowLast : styles.tableRow}>
                     <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
                     <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
                     <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
+                    <Text style={[styles.tableCell, styles.cellMedium]}>{fmtMoeda(ferragem.total)}</Text>
                   </View>
                 ))}
               </View>
+              <Text style={[styles.linha, { marginTop: 6 }]}>Total geral de ferragens: <Text style={styles.destaque}>{fmtMoeda(totalFerragensGlobal)}</Text></Text>
             </View>
           )}
 
@@ -941,20 +947,25 @@ export function RelatorioObraPDF({
                 <View style={styles.bloco}>
                   <Text style={styles.blocoTitulo}>Ferragens</Text>
                   {obra.ferragens.length > 0 ? (
-                    <View style={styles.table}>
-                      <View style={styles.tableHeader}>
-                        <Text style={[styles.tableCellHeader, styles.cellSmall]}>Cod.</Text>
-                        <Text style={[styles.tableCellHeader, styles.cellGrow]}>Ferragem</Text>
-                        <Text style={[styles.tableCellHeader, styles.cellSmall]}>Qtd.</Text>
-                      </View>
-                      {obra.ferragens.map((ferragem, index) => (
-                        <View key={ferragem.id} style={index === obra.ferragens.length - 1 ? styles.tableRowLast : styles.tableRow}>
-                          <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
-                          <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
-                          <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
+                    <>
+                      <View style={styles.table}>
+                        <View style={styles.tableHeader}>
+                          <Text style={[styles.tableCellHeader, styles.cellSmall]}>Cod.</Text>
+                          <Text style={[styles.tableCellHeader, styles.cellGrow]}>Ferragem</Text>
+                          <Text style={[styles.tableCellHeader, styles.cellSmall]}>Qtd.</Text>
+                          <Text style={[styles.tableCellHeader, styles.cellMedium]}>Valor</Text>
                         </View>
-                      ))}
-                    </View>
+                        {obra.ferragens.map((ferragem, index) => (
+                          <View key={ferragem.id} style={index === obra.ferragens.length - 1 ? styles.tableRowLast : styles.tableRow}>
+                            <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
+                            <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
+                            <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
+                            <Text style={[styles.tableCell, styles.cellMedium]}>{fmtMoeda(ferragem.total)}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <Text style={[styles.linha, { marginTop: 6 }]}>Subtotal ferragens: <Text style={styles.destaque}>{fmtMoeda(obra.ferragens.reduce((acc, ferragem) => acc + ferragem.total, 0))}</Text></Text>
+                    </>
                   ) : (
                     <Text style={styles.linha}>Sem ferragens aplicadas.</Text>
                   )}
