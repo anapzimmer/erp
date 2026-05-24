@@ -72,6 +72,8 @@ type ProjetoDetalhe = {
     usar_no_perfil: boolean
     observacao: string
     variacao_restrita: string | null
+    posicao?: string | null
+    versao_deslizante?: "simples" | "completo" | null
     ferragens?: { nome?: string | null } | null
   }>
   perfis: Array<{
@@ -85,6 +87,8 @@ type ProjetoDetalhe = {
     condicao?: string | null
     usar_no_kit?: boolean
     altura_max_kit?: number | null
+    posicao?: string | null
+    versao_deslizante?: "simples" | "completo" | null
     perfis?: { nome?: string | null } | null
   }>
 }
@@ -151,6 +155,8 @@ type CorteOtimizado = {
   perfilNome: string
   comprimentoBarra: number
   qtdBarras: number
+  unidadeCalculo?: "barra" | "metro"
+  metragemTotal?: number
   cortes: number[]
   qtdCortesLargura: number
   qtdCortesAltura: number
@@ -289,6 +295,8 @@ type OtimizacaoGlobalPerfil = {
   corMaterial: string
   comprimentoBarra: number
   precoBarra: number
+  unidadeCalculo?: "barra" | "metro"
+  metragemTotal?: number
   cortes: number[]
   qtdCortesLargura: number
   qtdCortesAltura: number
@@ -329,6 +337,8 @@ const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
 const TRILHO_TOKEN = "__TRILHO__="
 const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
+const POSICAO_TOKEN = "__POSICAO__="
+const VERSAO_DESLIZANTE_TOKEN = "__VERSAO_DESLIZANTE__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -381,6 +391,27 @@ const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
 
   const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
   return formula || null
+}
+
+const extrairPosicaoDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(POSICAO_TOKEN))
+
+  const posicao = linha ? linha.slice(POSICAO_TOKEN.length).trim() : ""
+  return posicao || null
+}
+
+const extrairVersaoDeslizanteDoTexto = (valor?: string | null): "simples" | "completo" | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(VERSAO_DESLIZANTE_TOKEN))
+
+  const versao = linha ? linha.slice(VERSAO_DESLIZANTE_TOKEN.length).trim().toLowerCase() : ""
+  if (versao === "simples" || versao === "completo") return versao
+  return null
 }
 
 const extrairNumeroEspessura = (valor?: string | null): number | null => {
@@ -607,6 +638,8 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
   if (!restricaoNorm || !drawingArquivoNorm) return false
   if (restricaoNorm === drawingArquivoNorm) return true
   if (restricaoNorm === drawingLabelNorm) return true
+  const deslizanteOk = correspondeVariacaoDeslizanteTextual(restricao, variacaoDrawing)
+  if (deslizanteOk !== null) return deslizanteOk
   return drawingArquivoNorm.includes(restricaoNorm) || drawingLabelNorm.includes(restricaoNorm)
 }
 
@@ -836,6 +869,95 @@ const projetoEhDeslizante = (projeto?: Projeto | null) => {
   return /\bdeslizante\b/.test(texto)
 }
 
+const extrairSelecaoDeslizanteDoDesenho = (variacaoDrawing?: string | null) => {
+  const stem = String(variacaoDrawing || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const match = stem.match(/^deslizante-\d+fls-(ci|cs)(?:-(simples\d*|completo\d*|completa\d*))?$/i)
+  if (!match) return { sistema: null as "ci" | "cs" | null, versao: null as "simples" | "completo" | null }
+
+  const versaoRaw = String(match[2] || "").toLowerCase()
+  const versao = versaoRaw.startsWith("simples")
+    ? "simples"
+    : versaoRaw.startsWith("completo") || versaoRaw.startsWith("completa")
+      ? "completo"
+      : null
+
+  return {
+    sistema: match[1].toLowerCase() as "ci" | "cs",
+    versao,
+  }
+}
+
+const extrairSelecaoDeslizanteTexto = (valor?: string | null) => {
+  const normalizado = normalizarTextoComparacao(valor)
+  const stem = String(valor || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+  const arquivo = extrairSelecaoDeslizanteDoDesenho(stem)
+
+  const sistema = arquivo.sistema
+    || (/\bci\b|carrinho\s*inteiro|carrinho\s*duplo/.test(normalizado)
+      ? "ci"
+      : /\bcs\b|carrinho\s*simples/.test(normalizado)
+        ? "cs"
+        : null)
+  const versao = arquivo.versao
+    || (/\bsimples\d*\b/.test(normalizado)
+      ? "simples"
+      : /\bcomplet[oa]\d*\b/.test(normalizado)
+        ? "completo"
+        : null)
+
+  return { sistema, versao }
+}
+
+const correspondeVariacaoDeslizanteTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean | null => {
+  const selecaoDrawing = extrairSelecaoDeslizanteTexto(variacaoDrawing)
+  if (!selecaoDrawing.sistema && !selecaoDrawing.versao) return null
+
+  const selecaoRestricao = extrairSelecaoDeslizanteTexto(restricao)
+  if (!selecaoRestricao.sistema && !selecaoRestricao.versao) return null
+
+  if (selecaoRestricao.sistema && selecaoDrawing.sistema && selecaoRestricao.sistema !== selecaoDrawing.sistema) return false
+  if (selecaoRestricao.versao && selecaoDrawing.versao && selecaoRestricao.versao !== selecaoDrawing.versao) return false
+  return true
+}
+
+const correspondeConfigDeslizante = (
+  item: { posicao?: string | null; versao_deslizante?: "simples" | "completo" | null },
+  variacaoDrawing?: string | null
+) => {
+  const selecao = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
+  const versaoRestrita = item.versao_deslizante || null
+  if (versaoRestrita && selecao.versao && versaoRestrita !== selecao.versao) return false
+
+  const posicao = String(item.posicao || "").trim().toLowerCase()
+  if (!posicao || posicao === "todos" || !selecao.sistema) return true
+  if (selecao.sistema === "cs") return posicao.includes("simples")
+  return posicao.includes("duplo") || posicao.includes("inteiro")
+}
+
+const deduplicarFolhasDeslizante = (folhas: FolhaCalculada[], variacaoDrawing?: string | null) => {
+  const selecao = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
+  const desenhoDeslizante = normalizarTextoComparacao(variacaoDrawing).startsWith("deslizante")
+    || Boolean(selecao.sistema || selecao.versao)
+  if (!desenhoDeslizante || folhas.length <= 1) return folhas
+
+  const porTipoQuantidade = new Map<string, FolhaCalculada>()
+  folhas.forEach((folha) => {
+    const chave = `${normalizarTextoComparacao(folha.tipo)}|${folha.quantidadeFolhas}`
+    const atual = porTipoQuantidade.get(chave)
+    if (!atual || folha.largura > atual.largura || (folha.largura === atual.largura && folha.area > atual.area)) {
+      porTipoQuantidade.set(chave, folha)
+    }
+  })
+
+  return Array.from(porTipoQuantidade.values()).sort((a, b) => a.numero - b.numero)
+}
+
 const inferirMovimentacaoPmaProjeto = (projeto?: Projeto | null): string => {
   if (!projetoEhPma(projeto)) return ""
 
@@ -1028,6 +1150,31 @@ const normalizarDescricaoMaterial = (valor?: string | null): string =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
 
+const extrairComprimentoBarraPerfil = (perfil?: { codigo?: string | null; nome?: string | null } | null): number | null => {
+  const texto = normalizarTextoComparacao(`${perfil?.codigo || ""} ${perfil?.nome || ""}`)
+  if (/(^|\D)7000(\D|$)|\b7\s*(m|mt|mts|metros?)\b/.test(texto)) return 7000
+  if (/(^|\D)6000(\D|$)|\b6\s*(m|mt|mts|metros?)\b/.test(texto)) return 6000
+  return null
+}
+
+const identificarTipoPerfilLinear = (perfil?: { codigo?: string | null; nome?: string | null } | null): string => {
+  const texto = normalizarTextoComparacao(`${perfil?.codigo || ""} ${perfil?.nome || ""}`)
+  if (/\bsuperior\b/.test(texto)) return "superior"
+  if (/\binferior\b/.test(texto)) return "inferior"
+  if (/\bcapa\b/.test(texto)) return "capa"
+  if (/\bclic\b|\bclick\b/.test(texto)) return "clic"
+  if (/\bperfil\s*u\b|\bvt10\b|\bvt66\b/.test(texto)) return "perfil-u"
+  if (/\btranspasse\b/.test(texto)) return "transpasse"
+  if (/\bcadeirinha\b/.test(texto)) return "cadeirinha"
+  return ""
+}
+
+const perfilEhPorMetro = (perfil?: { codigo?: string | null; nome?: string | null } | null): boolean => {
+  const codigo = normalizarCodigoModeloMaterial(perfil?.codigo)
+  const texto = normalizarTextoComparacao(`${perfil?.codigo || ""} ${perfil?.nome || ""}`)
+  return codigo === "3000" || /\b3000\b/.test(texto) || /\b(por\s*metro|metro\s*linear|m\s*linear)\b/.test(texto)
+}
+
 const identificarFamiliaFerragem = (codigo?: string | null, nome?: string | null): string => {
   const codigoNorm = normalizarCodigoModeloMaterial(codigo)
   const nomeNorm = normalizarNomeFerragem(nome || "")
@@ -1145,9 +1292,13 @@ const resolverPerfilComCor = (
 
   const codigoBase = normalizarCodigoModeloMaterial(base.codigo)
   const nomeNorm = normalizarDescricaoMaterial(base.nome)
+  const comprimentoBase = extrairComprimentoBarraPerfil(base)
+  const tipoBase = identificarTipoPerfilLinear(base)
   return perfisDB.find((item) =>
     item.id !== base.id &&
     itemAtendeCorMaterial(item, corMaterial) &&
+    (!comprimentoBase || extrairComprimentoBarraPerfil(item) === comprimentoBase) &&
+    (!tipoBase || !identificarTipoPerfilLinear(item) || identificarTipoPerfilLinear(item) === tipoBase) &&
     (
       (!!codigoBase && normalizarCodigoModeloMaterial(item.codigo) === codigoBase) ||
       normalizarDescricaoMaterial(item.nome) === nomeNorm
@@ -1238,13 +1389,113 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
 }
 
 // ─── ENGINE: AVALIAR CONDIÇÃO (ex: "A > 1900") ───────────────────────────────
+const removerParentesesExternos = (valor: string): string => {
+  let texto = valor.trim()
+  let mudou = true
+
+  while (mudou && texto.startsWith("(") && texto.endsWith(")")) {
+    mudou = false
+    let nivel = 0
+    let envolveTudo = true
+
+    for (let i = 0; i < texto.length; i += 1) {
+      if (texto[i] === "(") nivel += 1
+      if (texto[i] === ")") nivel -= 1
+      if (nivel === 0 && i < texto.length - 1) {
+        envolveTudo = false
+        break
+      }
+      if (nivel < 0) {
+        envolveTudo = false
+        break
+      }
+    }
+
+    if (envolveTudo && nivel === 0) {
+      texto = texto.slice(1, -1).trim()
+      mudou = true
+    }
+  }
+
+  return texto
+}
+
+const dividirCondicaoNoNivelPrincipal = (textoOriginal: string, tipo: "e" | "ou"): string[] => {
+  const texto = removerParentesesExternos(textoOriginal)
+  const partes: string[] = []
+  let inicio = 0
+  let nivel = 0
+  let i = 0
+  const operadorSimbolo = tipo === "e" ? "&&" : "||"
+  const operadorPalavra = tipo === "e" ? /^(e|and)\b/i : /^(ou|or)\b/i
+
+  while (i < texto.length) {
+    const char = texto[i]
+    if (char === "(") {
+      nivel += 1
+      i += 1
+      continue
+    }
+    if (char === ")") {
+      nivel = Math.max(0, nivel - 1)
+      i += 1
+      continue
+    }
+
+    if (nivel === 0) {
+      if (texto.slice(i, i + 2) === operadorSimbolo) {
+        partes.push(texto.slice(inicio, i).trim())
+        i += 2
+        inicio = i
+        continue
+      }
+
+      const antes = i === 0 ? " " : texto[i - 1]
+      const matchPalavra = texto.slice(i).match(operadorPalavra)
+      if (matchPalavra && !/[a-z0-9_]/i.test(antes)) {
+        partes.push(texto.slice(inicio, i).trim())
+        i += matchPalavra[0].length
+        inicio = i
+        continue
+      }
+    }
+
+    i += 1
+  }
+
+  partes.push(texto.slice(inicio).trim())
+  return partes.filter(Boolean)
+}
+
+const avaliarExpressaoCondicao = (formula: string, vars: Record<string, number>): number => {
+  try {
+    let expr = removerParentesesExternos(formula)
+    Object.entries(vars)
+      .sort((a, b) => b[0].length - a[0].length)
+      .forEach(([k, v]) => {
+        expr = expr.replace(new RegExp(`\\b${k}\\b`, "gi"), String(v))
+      })
+    const resultado = Number(new Function(`return (${expr})`)())
+    return Number.isFinite(resultado) ? resultado : NaN
+  } catch {
+    return NaN
+  }
+}
+
 const avaliarCondicao = (cond: string | null | undefined, vars: Record<string, number>): boolean => {
   if (!cond) return true
-  const match = cond.trim().match(/^(.+?)(>=|<=|!=|>|<|==|=)(.+)$/)
-  if (!match) return true
-  const left = avaliarFormula(match[1].trim(), vars)
-  const right = avaliarFormula(match[3].trim(), vars)
-  if (isNaN(left) || isNaN(right)) return true
+  const texto = removerParentesesExternos(cond.trim())
+  const partesOu = dividirCondicaoNoNivelPrincipal(texto, "ou")
+  if (partesOu.length > 1) return partesOu.some((parte) => avaliarCondicao(parte, vars))
+
+  const partesE = dividirCondicaoNoNivelPrincipal(texto, "e")
+  if (partesE.length > 1) return partesE.every((parte) => avaliarCondicao(parte, vars))
+
+  const match = texto.match(/^(.+?)(>=|<=|!=|>|<|==|=)(.+)$/)
+  if (!match) return false
+  const left = avaliarExpressaoCondicao(match[1].trim(), vars)
+  const right = avaliarExpressaoCondicao(match[3].trim(), vars)
+  if (isNaN(left) || isNaN(right)) return false
   switch (match[2]) {
     case ">":  return left > right
     case "<":  return left < right
@@ -1314,6 +1565,10 @@ const otimizarBarras = (
 }
 
 // ─── ENGINE: CALCULAR PROJETO COMPLETO ───────────────────────────────────────
+const inferirComprimentoBarraPerfil = (perfil?: { codigo?: string | null; nome?: string | null } | null) => {
+  return extrairComprimentoBarraPerfil(perfil) || 6000
+}
+
 const calcularProjeto = (params: {
   detalhe: ProjetoDetalhe
   largura: number
@@ -1382,7 +1637,7 @@ const calcularProjeto = (params: {
     ? [largura, largura2].filter((valor) => valor > 0)
     : [largura]
 
-  const folhasCalc: FolhaCalculada[] = detalhe.folhas
+  const folhasCalcBrutas: FolhaCalculada[] = detalhe.folhas
     .filter((f) => {
       if (variacaoDrawing && temFolhaComRestricaoVisual && !f.variacao_restrita) return false
       if (!isFolhaAplicavel(f.variacao_restrita)) return false
@@ -1420,6 +1675,8 @@ const calcularProjeto = (params: {
         }
       })
     })
+
+  const folhasCalc = deduplicarFolhasDeslizante(folhasCalcBrutas, variacaoDrawing)
 
   const totalVidro = folhasCalc.reduce((s, f) => s + f.precoVidro, 0)
 
@@ -1500,6 +1757,7 @@ const calcularProjeto = (params: {
   // ── Ferragens ─────────────────────────────────────────────────────────────
   const ferragensResult: ResultadoCalculo["ferragens"] = detalhe.ferragens
     .filter(f => isAplicavel(f.variacao_restrita))
+    .filter(f => correspondeConfigDeslizante(f, variacaoDrawing))
     .filter(f => modoCalculo === "kit" ? f.usar_no_kit : f.usar_no_perfil)
     .map(f => {
       const base = ferragensDB.find(x => x.id === f.ferragem_id)
@@ -1644,6 +1902,7 @@ const calcularProjeto = (params: {
 
         if (!podeNoModoAtual) return false
         if (!isAplicavel(p.variacao_restrita)) return false
+        if (!correspondeConfigDeslizante(p, variacaoDrawing)) return false
         if (espessuraPerfil) {
           if (espessuraPerfilNumero !== null && espessuraAtualNumero !== null) {
             if (Math.abs(espessuraPerfilNumero - espessuraAtualNumero) > 0.001) return false
@@ -1661,13 +1920,28 @@ const calcularProjeto = (params: {
         return comparePerfisByNome(nomeA, nomeB)
       })
 
+    const gruposPerfis = new Map<string, {
+      perfilCodigo: string
+      perfilNome: string
+      comprimentoBarra: number
+      precoBarra: number
+      unidadeCalculo: "barra" | "metro"
+      cortes: number[]
+      qtdCortesLargura: number
+      qtdCortesAltura: number
+      qtdCortesOutros: number
+    }>()
+
     for (const pProj of perfisAplicaveis) {
       const base = perfisDB.find(x => x.id === pProj.perfil_id)
       const db = resolverPerfilComCor(base, perfisDB, corMaterial)
       if (!base) continue
 
-      const comprimentoBarra = 6000
+      const comprimentoBarra = inferirComprimentoBarraPerfil(db || base)
       const precoBarra = db?.preco || 0
+      const perfilCodigo = db?.codigo || base.codigo || "-"
+      const perfilNome = db?.nome || base.nome
+      const unidadeCalculo = perfilEhPorMetro(db || base) ? "metro" : "barra"
 
       // Monta lista de cortes: qtd_largura peças de L (ou fórmula), qtd_altura peças de A, qtd_outros de (L+A)/2
       const medidaLargura = (() => {
@@ -1686,27 +1960,77 @@ const calcularProjeto = (params: {
 
       if (!listaCortes.length) continue
 
-      const otim = otimizarBarras(listaCortes, comprimentoBarra)
-      const precoTotalPerfil = otim.qtdBarras * precoBarra
+      const chaveGrupo = [perfilCodigo, perfilNome, comprimentoBarra, precoBarra, unidadeCalculo].join("|")
+      const grupoExistente = gruposPerfis.get(chaveGrupo)
+      if (grupoExistente) {
+        grupoExistente.cortes.push(...listaCortes)
+        grupoExistente.qtdCortesLargura += qtdCortesLargura
+        grupoExistente.qtdCortesAltura += qtdCortesAltura
+        grupoExistente.qtdCortesOutros += qtdCortesOutros
+        continue
+      }
 
-      cortesResult.push({
-        perfilCodigo: db?.codigo || base.codigo || "-",
-        perfilNome: db?.nome || base.nome,
+      gruposPerfis.set(chaveGrupo, {
+        perfilCodigo,
+        perfilNome,
         comprimentoBarra,
-        qtdBarras: otim.qtdBarras,
-        cortes: otim.cortes,
+        precoBarra,
+        unidadeCalculo,
+        cortes: [...listaCortes],
         qtdCortesLargura,
         qtdCortesAltura,
         qtdCortesOutros,
+      })
+    }
+
+    gruposPerfis.forEach((grupo) => {
+      if (grupo.unidadeCalculo === "metro") {
+        const metragemTotal = grupo.cortes.reduce((total, corte) => total + corte, 0) / 1000
+        const precoTotalPerfil = metragemTotal * grupo.precoBarra
+
+        cortesResult.push({
+          perfilCodigo: grupo.perfilCodigo,
+          perfilNome: grupo.perfilNome,
+          comprimentoBarra: 1000,
+          qtdBarras: Number(metragemTotal.toFixed(3)),
+          unidadeCalculo: "metro",
+          metragemTotal,
+          cortes: [...grupo.cortes].sort((a, b) => b - a),
+          qtdCortesLargura: grupo.qtdCortesLargura,
+          qtdCortesAltura: grupo.qtdCortesAltura,
+          qtdCortesOutros: grupo.qtdCortesOutros,
+          barras: [],
+          aproveitamento: 100,
+          desperdicioMm: 0,
+          precoBarra: grupo.precoBarra,
+          precoTotal: precoTotalPerfil,
+        })
+
+        precoPerfis += precoTotalPerfil
+        return
+      }
+
+      const otim = otimizarBarras(grupo.cortes, grupo.comprimentoBarra)
+      const precoTotalPerfil = otim.qtdBarras * grupo.precoBarra
+
+      cortesResult.push({
+        perfilCodigo: grupo.perfilCodigo,
+        perfilNome: grupo.perfilNome,
+        comprimentoBarra: grupo.comprimentoBarra,
+        qtdBarras: otim.qtdBarras,
+        cortes: otim.cortes,
+        qtdCortesLargura: grupo.qtdCortesLargura,
+        qtdCortesAltura: grupo.qtdCortesAltura,
+        qtdCortesOutros: grupo.qtdCortesOutros,
         barras: otim.barras,
         aproveitamento: otim.aproveitamento,
         desperdicioMm: otim.desperdicioMm,
-        precoBarra,
+        precoBarra: grupo.precoBarra,
         precoTotal: precoTotalPerfil,
       })
 
       precoPerfis += precoTotalPerfil
-    }
+    })
   }
 
   const totalGeral = totalVidro + precoKit + precoFerragens + precoPerfis
@@ -2085,6 +2409,8 @@ export default function CalculoProjetoPage() {
               ...ferragem,
               observacao: meta.textoLimpo,
               variacao_restrita: ferragem.variacao_restrita ?? meta.variacao ?? null,
+              posicao: extrairPosicaoDoTexto(ferragem.observacao),
+              versao_deslizante: extrairVersaoDeslizanteDoTexto(ferragem.observacao),
             }
           }),
           perfis: (data.projetos_perfis || []).map((perfil: { tipo_fornecimento?: string | null; variacao_restrita?: string | null }) => {
@@ -2097,6 +2423,8 @@ export default function CalculoProjetoPage() {
               condicao: extrairCondicaoDoTexto(perfil.tipo_fornecimento),
               usar_no_kit: extrairUsarNoKitDoTexto(perfil.tipo_fornecimento),
               altura_max_kit: extrairAlturaMaxKitDoTexto(perfil.tipo_fornecimento),
+              posicao: extrairPosicaoDoTexto(perfil.tipo_fornecimento),
+              versao_deslizante: extrairVersaoDeslizanteDoTexto(perfil.tipo_fornecimento),
             }
           }),
         },
@@ -2817,6 +3145,7 @@ export default function CalculoProjetoPage() {
           corMaterial,
           corte.comprimentoBarra,
           corte.precoBarra,
+          corte.unidadeCalculo || "barra",
         ].join("|")
 
         const existente = grupos.get(chave)
@@ -2827,6 +3156,7 @@ export default function CalculoProjetoPage() {
           existente.qtdCortesAltura += corte.qtdCortesAltura
           existente.qtdCortesOutros += corte.qtdCortesOutros
           existente.qtdBarrasOriginal += corte.qtdBarras
+          existente.metragemTotal = (existente.metragemTotal || 0) + (corte.metragemTotal || 0)
           existente.precoOriginal += corte.precoTotal
           if (!existente.projetoNome.split(" | ").includes(projetoNome)) {
             existente.projetoNome = `${existente.projetoNome} | ${projetoNome}`
@@ -2846,6 +3176,8 @@ export default function CalculoProjetoPage() {
           corMaterial,
           comprimentoBarra: corte.comprimentoBarra,
           precoBarra: corte.precoBarra,
+          unidadeCalculo: corte.unidadeCalculo || "barra",
+          metragemTotal: corte.metragemTotal || 0,
           cortes: [...corte.cortes],
           qtdCortesLargura: corte.qtdCortesLargura,
           qtdCortesAltura: corte.qtdCortesAltura,
@@ -2863,6 +3195,20 @@ export default function CalculoProjetoPage() {
 
     const gruposOtimizados = Array.from(grupos.values())
       .map((grupo) => {
+        if (grupo.unidadeCalculo === "metro") {
+          const metragemTotal = grupo.metragemTotal || (grupo.cortes.reduce((total, corte) => total + corte, 0) / 1000)
+          return {
+            ...grupo,
+            cortes: [...grupo.cortes].sort((a, b) => b - a),
+            barras: [],
+            qtdBarrasOtimizada: Number(metragemTotal.toFixed(3)),
+            precoOtimizado: metragemTotal * grupo.precoBarra,
+            aproveitamento: 100,
+            desperdicioMm: 0,
+            metragemTotal,
+          }
+        }
+
         const otim = otimizarBarras(grupo.cortes, grupo.comprimentoBarra)
         return {
           ...grupo,
@@ -2888,12 +3234,18 @@ export default function CalculoProjetoPage() {
       })
 
     const resumo = gruposOtimizados.reduce((acc, grupo) => {
+      if (grupo.unidadeCalculo === "metro") {
+        acc.metroLinear += grupo.metragemTotal || grupo.qtdBarrasOtimizada || 0
+        acc.precoMetro += grupo.precoOtimizado
+        return acc
+      }
+
       acc.barrasOriginais += grupo.qtdBarrasOriginal
       acc.barrasOtimizadas += grupo.qtdBarrasOtimizada
       acc.precoOriginal += grupo.precoOriginal
       acc.precoOtimizado += grupo.precoOtimizado
       return acc
-    }, { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0 })
+    }, { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0, metroLinear: 0, precoMetro: 0 })
 
     return {
       grupos: gruposOtimizados,
@@ -2905,7 +3257,7 @@ export default function CalculoProjetoPage() {
 
   const totaisCalculados = useMemo(() => {
     const totalPerfis = otimizacaoGlobalPerfis.grupos.length > 0
-      ? otimizacaoGlobalPerfis.resumo.precoOtimizado
+      ? otimizacaoGlobalPerfis.resumo.precoOtimizado + otimizacaoGlobalPerfis.resumo.precoMetro
       : totaisGerais.totalPerfisOriginal
 
     return {
@@ -2934,6 +3286,8 @@ export default function CalculoProjetoPage() {
         perfilCodigo: grupo.perfilCodigo,
         corMaterial: grupo.corMaterial,
         comprimentoBarra: grupo.comprimentoBarra,
+        unidadeCalculo: grupo.unidadeCalculo,
+        metragemTotal: grupo.metragemTotal,
         qtdBarrasOriginal: grupo.qtdBarrasOriginal,
         qtdBarrasOtimizada: grupo.qtdBarrasOtimizada,
         aproveitamento: grupo.aproveitamento,
@@ -3030,6 +3384,8 @@ export default function CalculoProjetoPage() {
           perfilCodigo: corte.perfilCodigo,
           perfilNome: corte.perfilNome,
           comprimentoBarra: corte.comprimentoBarra,
+          unidadeCalculo: corte.unidadeCalculo,
+          metragemTotal: corte.metragemTotal,
           qtdBarras: corte.qtdBarras,
           cortes: corte.cortes,
           aproveitamento: corte.aproveitamento,
@@ -3046,8 +3402,9 @@ export default function CalculoProjetoPage() {
       return acc + resultadoProjeto.resultado.precoPerfis
     }, 0)
 
+    const totalPerfisOtimizadoGlobal = otimizacaoGlobalPerfis.resumo.precoOtimizado + otimizacaoGlobalPerfis.resumo.precoMetro
     const fatorOtimGlobalPerfis = totalPerfisOriginalBarra > 0
-      ? (otimizacaoGlobalPerfis.resumo.precoOtimizado / totalPerfisOriginalBarra)
+      ? (totalPerfisOtimizadoGlobal / totalPerfisOriginalBarra)
       : 1
 
     const totalPerfisPorProjeto = resultados.reduce<Record<string, number>>((acc, resultadoProjeto) => {
@@ -3110,6 +3467,7 @@ export default function CalculoProjetoPage() {
     formatarResumoVariacaoSelecionada,
     montarUrlDesenho,
     nomesVariacaoPersonalizados,
+    otimizacaoGlobalPerfis.resumo.precoMetro,
     otimizacaoGlobalPerfis.resumo.precoOtimizado,
     resultados,
   ])
@@ -4397,8 +4755,14 @@ export default function CalculoProjetoPage() {
                         {[
                           { label: "Barras Individuais", valor: String(otimizacaoGlobalPerfis.resumo.barrasOriginais) },
                           { label: "Barras Consolidadas", valor: String(otimizacaoGlobalPerfis.resumo.barrasOtimizadas) },
+                          ...(otimizacaoGlobalPerfis.resumo.metroLinear > 0
+                            ? [{ label: "Metro Linear", valor: `${otimizacaoGlobalPerfis.resumo.metroLinear.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` }]
+                            : []),
                           { label: "Valor Individual", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOriginal) },
                           { label: "Valor Consolidado", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOtimizado) },
+                          ...(otimizacaoGlobalPerfis.resumo.precoMetro > 0
+                            ? [{ label: "Valor Metro Linear", valor: fmt(otimizacaoGlobalPerfis.resumo.precoMetro) }]
+                            : []),
                         ].map(({ label, valor }) => (
                           <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
@@ -4427,26 +4791,30 @@ export default function CalculoProjetoPage() {
                               <div>
                                 <p className="text-sm font-black text-gray-700">{grupo.projetoNome}</p>
                                 <p className="text-xs text-gray-400">
-                                  <span className="font-black text-gray-700">Perfil: {grupo.perfilCodigo} - {grupo.perfilNome}</span> · Cor: {grupo.corMaterial} · Barra: {grupo.comprimentoBarra} mm · {grupo.cortes.length} corte(s)
+                                  <span className="font-black text-gray-700">Perfil: {grupo.perfilCodigo} - {grupo.perfilNome}</span> · Cor: {grupo.corMaterial} · {grupo.unidadeCalculo === "metro" ? "Unidade: metro linear" : `Barra: ${grupo.comprimentoBarra} mm`} · {grupo.cortes.length} corte(s)
                                 </p>
                               </div>
                               <div className="text-right flex flex-col items-end gap-1">
                                 <p className="text-sm font-black text-gray-700">{fmt(grupo.precoOtimizado)}</p>
                                 <p className="text-xs font-bold text-gray-400">
-                                  {grupo.qtdBarrasOriginal} barra(s) individual · {grupo.qtdBarrasOtimizada} consolidada(s)
+                                  {grupo.unidadeCalculo === "metro"
+                                    ? `${(grupo.metragemTotal || grupo.qtdBarrasOtimizada).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m linear`
+                                    : `${grupo.qtdBarrasOriginal} barra(s) individual · ${grupo.qtdBarrasOtimizada} consolidada(s)`}
                                 </p>
                                 <span
                                   className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black"
                                   style={{ backgroundColor: `${theme.menuBackgroundColor}22`, color: theme.menuBackgroundColor }}
                                 >
-                                  {grupo.qtdBarrasOtimizada} barra(s)
+                                  {grupo.unidadeCalculo === "metro"
+                                    ? `${(grupo.metragemTotal || grupo.qtdBarrasOtimizada).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m`
+                                    : `${grupo.qtdBarrasOtimizada} barra(s)`}
                                 </span>
                               </div>
                             </div>
                             <div className="px-4 py-3 space-y-2">
                               <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Aproveitamento {grupo.aproveitamento}%</span>
-                                <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Desperdício {grupo.desperdicioMm} mm</span>
+                                {grupo.unidadeCalculo !== "metro" && <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Aproveitamento {grupo.aproveitamento}%</span>}
+                                {grupo.unidadeCalculo !== "metro" && <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Desperdício {grupo.desperdicioMm} mm</span>}
                                 <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">Economia {fmt(Math.max(0, grupo.precoOriginal - grupo.precoOtimizado))}</span>
                               </div>
                               <p className="text-[11px] text-gray-500">
@@ -4456,12 +4824,18 @@ export default function CalculoProjetoPage() {
                                 Origem dos cortes: Largura {grupo.qtdCortesLargura} · Altura {grupo.qtdCortesAltura} · Outros {grupo.qtdCortesOutros}
                               </p>
                               <div className="text-[11px] text-gray-500 space-y-1">
-                                <p>Barras consolidadas:</p>
-                                {grupo.barras.map((barra) => (
-                                  <p key={barra.numero}>
-                                    #{barra.numero}: {barra.cortes.join(" · ")} mm
-                                  </p>
-                                ))}
+                                {grupo.unidadeCalculo === "metro" ? (
+                                  <p>Metragem linear: {(grupo.metragemTotal || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m</p>
+                                ) : (
+                                  <>
+                                    <p>Barras consolidadas:</p>
+                                    {grupo.barras.map((barra) => (
+                                      <p key={barra.numero}>
+                                        #{barra.numero}: {barra.cortes.join(" · ")} mm
+                                      </p>
+                                    ))}
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

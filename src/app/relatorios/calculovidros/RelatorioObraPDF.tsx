@@ -170,6 +170,8 @@ type OtimizacaoGlobalItem = {
   perfilCodigo?: string
   corMaterial: string
   comprimentoBarra: number
+  unidadeCalculo?: "barra" | "metro"
+  metragemTotal?: number
   qtdBarrasOriginal: number
   qtdBarrasOtimizada: number
   aproveitamento: number
@@ -661,13 +663,19 @@ export function RelatorioObraPDF({
           <Text style={styles.sectionLead}>Totais consolidados da obra inteira antes dos detalhes individuais.</Text>
           {otimizacaoGlobalOrdenada.length > 0 && (() => {
             const resumoOtim = otimizacaoGlobalOrdenada.reduce(
-              (acc, item) => ({
-                barrasOriginais: acc.barrasOriginais + item.qtdBarrasOriginal,
-                barrasOtimizadas: acc.barrasOtimizadas + item.qtdBarrasOtimizada,
-                precoOriginal: acc.precoOriginal + (item.precoOriginal ?? 0),
-                precoOtimizado: acc.precoOtimizado + item.precoOtimizado,
-              }),
-              { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0 }
+              (acc, item) => {
+                if (item.unidadeCalculo === "metro") {
+                  acc.metroLinear += item.metragemTotal || item.qtdBarrasOtimizada || 0
+                  acc.precoMetro += item.precoOtimizado
+                  return acc
+                }
+                acc.barrasOriginais += item.qtdBarrasOriginal
+                acc.barrasOtimizadas += item.qtdBarrasOtimizada
+                acc.precoOriginal += item.precoOriginal ?? 0
+                acc.precoOtimizado += item.precoOtimizado
+                return acc
+              },
+              { barrasOriginais: 0, barrasOtimizadas: 0, precoOriginal: 0, precoOtimizado: 0, metroLinear: 0, precoMetro: 0 }
             )
             const economiaValor = Math.max(0, resumoOtim.precoOriginal - resumoOtim.precoOtimizado)
             return (
@@ -689,8 +697,10 @@ export function RelatorioObraPDF({
                   {[
                     { label: "Barras Individuais", valor: String(resumoOtim.barrasOriginais) },
                     { label: "Barras Consolidadas", valor: String(resumoOtim.barrasOtimizadas) },
+                    ...(resumoOtim.metroLinear > 0 ? [{ label: "Metro Linear", valor: `${resumoOtim.metroLinear.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` }] : []),
                     { label: "Valor Individual", valor: fmtMoeda(resumoOtim.precoOriginal) },
                     { label: "Valor Consolidado", valor: fmtMoeda(resumoOtim.precoOtimizado) },
+                    ...(resumoOtim.precoMetro > 0 ? [{ label: "Valor Metro Linear", valor: fmtMoeda(resumoOtim.precoMetro) }] : []),
                   ].map(({ label, valor }) => (
                     <View key={label} style={styles.otimResumoBox}>
                       <Text style={styles.otimResumoLabel}>{label}</Text>
@@ -705,23 +715,23 @@ export function RelatorioObraPDF({
                       <View style={styles.otimCardLeft}>
                         <Text style={styles.otimCardTitle}>{formatarPerfil(item.perfilCodigo, item.perfilNome)}</Text>
                         <Text style={styles.otimCardMeta}>
-                          Item: {item.projetoNome} · Cor: {item.corMaterial} · Barra: {item.comprimentoBarra} mm{item.cortes ? ` · ${item.cortes.length} corte(s)` : ""}
+                          Item: {item.projetoNome} - Cor: {item.corMaterial} - {item.unidadeCalculo === "metro" ? "Unidade: metro linear" : `Barra: ${item.comprimentoBarra} mm`}{item.cortes ? ` - ${item.cortes.length} corte(s)` : ""}
                         </Text>
                       </View>
                       <View style={styles.otimCardRight}>
-                        <Text style={styles.otimCardPreco}>{item.qtdBarrasOtimizada} barra(s)</Text>
-                        <Text style={styles.otimCardMeta}>{fmtMoeda(item.precoOtimizado)} · {item.qtdBarrasOriginal} individual</Text>
+                        <Text style={styles.otimCardPreco}>{item.unidadeCalculo === "metro" ? `${(item.metragemTotal || item.qtdBarrasOtimizada).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` : `${item.qtdBarrasOtimizada} barra(s)`}</Text>
+                        <Text style={styles.otimCardMeta}>{fmtMoeda(item.precoOtimizado)}{item.unidadeCalculo === "metro" ? " - metro linear" : ` - ${item.qtdBarrasOriginal} individual`}</Text>
                       </View>
                     </View>
 
                     <View style={styles.otimCardBody}>
                       <View style={styles.otimChipsRow}>
-                        <View style={styles.otimChip}>
+                        {item.unidadeCalculo !== "metro" && <View style={styles.otimChip}>
                           <Text style={styles.otimChipText}>Aproveitamento {item.aproveitamento}%</Text>
-                        </View>
-                        <View style={styles.otimChip}>
+                        </View>}
+                        {item.unidadeCalculo !== "metro" && <View style={styles.otimChip}>
                           <Text style={styles.otimChipText}>Desperdício {item.desperdicioMm} mm</Text>
-                        </View>
+                        </View>}
                         {item.precoOriginal !== undefined && item.precoOriginal > item.precoOtimizado && (
                           <View style={styles.otimChip}>
                             <Text style={styles.otimChipText}>Economia {fmtMoeda(Math.max(0, item.precoOriginal - item.precoOtimizado))}</Text>
@@ -852,7 +862,7 @@ export function RelatorioObraPDF({
                         </Text>
                       </View>
                       <View style={styles.otimCardRight}>
-                        <Text style={styles.otimCardPreco}>{item.qtdBarrasOtimizada} barra(s)</Text>
+                        <Text style={styles.otimCardPreco}>{item.unidadeCalculo === "metro" ? `${(item.metragemTotal || item.qtdBarrasOtimizada).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` : `${item.qtdBarrasOtimizada} barra(s)`}</Text>
                         <Text style={styles.otimCardMeta}>{fmtMoeda(item.precoOtimizado)} · {item.qtdBarrasOriginal} individual</Text>
                       </View>
                     </View>

@@ -138,6 +138,12 @@ const formatarRotuloFerragem = (item: { codigo?: string | null; nome?: string | 
   return item.codigo ? `${item.codigo} - ${nomeBase}` : nomeBase
 }
 
+const ordenarPerfisTecnicos = <T extends { codigo?: string | null; nome?: string | null }>(lista: T[]) =>
+  [...lista].sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b)))
+
+const ordenarFerragensTecnicas = <T extends { codigo?: string | null; nome?: string | null }>(lista: T[]) =>
+  [...lista].sort((a, b) => compareFerragensByNome(formatarRotuloFerragem(a), formatarRotuloFerragem(b)))
+
 const formatarRotuloKit = (item: KitDBItem) => {
   const nomeBase = limparNomeTecnico(item.nome) || item.nome
   const largura = Number(item.largura || 0)
@@ -186,7 +192,7 @@ const deduplicarPerfisPreferindoPreto = <T extends { codigo?: string | null; nom
     }
   }
 
-  return Array.from(mapa.values()).sort((a, b) => comparePerfisByNome(a.nome, b.nome))
+  return ordenarPerfisTecnicos(Array.from(mapa.values()))
 }
 
 const ferragemEhBranca = (ferragem?: { cores?: string | null; nome?: string | null }) => {
@@ -230,7 +236,7 @@ const deduplicarFerragensPorModelo = <T extends { id?: string | number; codigo?:
     }
   }
 
-  return Array.from(mapa.values()).sort((a, b) => compareFerragensByNome(a.nome, b.nome))
+  return ordenarFerragensTecnicas(Array.from(mapa.values()))
 }
 
 const kitEhPreto = (kit: { cores?: string | null; nome?: string | null }) => {
@@ -1568,7 +1574,7 @@ export default function ProjetosPage() {
           versao_deslizante: versaoDeslizante,
           variacao_restrita: f.variacao_restrita ?? metaObservacao.variacao ?? null,
         }
-      }).sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+      }).sort((a, b) => compareFerragensByNome(formatarRotuloFerragem(a), formatarRotuloFerragem(b))),
       perfis: (detalhe.projetos_perfis || []).map((p) => {
         const tipoFornecimentoComTokens = (p as { tipo_fornecimento?: string | null }).tipo_fornecimento || "barra"
         return {
@@ -1588,7 +1594,7 @@ export default function ProjetosPage() {
           posicao: extrairPosicaoDoTexto(tipoFornecimentoComTokens),
           versao_deslizante: extrairVersaoDeslizanteDoTexto(tipoFornecimentoComTokens),
         }
-      }).sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
+      }).sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))),
     })
     setEditandoId(projeto.id)
     setAbaAtiva("geral")
@@ -2093,7 +2099,7 @@ export default function ProjetosPage() {
     const ferragemAtual = ferragensOriginaisDB.find((item) => String(item.id) === String(ferragemAtualId || ""))
     if (ferragemAtual) {
       if (ferragensDB.some((item) => String(item.id) === String(ferragemAtual.id))) return ferragensDB
-      return [ferragemAtual, ...ferragensDB]
+      return ordenarFerragensTecnicas([ferragemAtual, ...ferragensDB])
     }
 
     if (!ferragemAtualId || !ferragemAtualNome) return ferragensDB
@@ -2104,7 +2110,7 @@ export default function ProjetosPage() {
     }
 
     if (ferragensDB.some((item) => String(item.id) === String(ferragemFallback.id))) return ferragensDB
-    return [ferragemFallback, ...ferragensDB]
+    return ordenarFerragensTecnicas([ferragemFallback, ...ferragensDB])
   }
 
   const getFerragensDisponiveis = (ferragemAtualId?: string) => {
@@ -2120,7 +2126,9 @@ export default function ProjetosPage() {
     )
   }
 
-  const ferragensDisponiveisFiltradas = filtrarItensTecnicosPorBusca(getFerragensDisponiveis(), buscaFerragemDisponivel)
+  const ferragensDisponiveisFiltradas = ordenarFerragensTecnicas(
+    filtrarItensTecnicosPorBusca(getFerragensDisponiveis(), buscaFerragemDisponivel)
+  )
 
   const selecionarOuLimparTodasFerragensFiltradas = () => {
     const idsFiltrados = ferragensDisponiveisFiltradas.map((ferragem) => String(ferragem.id))
@@ -2158,7 +2166,7 @@ export default function ProjetosPage() {
           versao_deslizante: null,
           variacao_restrita: null,
         })),
-      ].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+      ].sort((a, b) => compareFerragensByNome(formatarRotuloFerragem(a), formatarRotuloFerragem(b))),
     }))
     setFerragensSelecionadasParaAdicionar([])
   }
@@ -2179,7 +2187,7 @@ export default function ProjetosPage() {
         posicao: null,
         versao_deslizante: null,
         variacao_restrita: null,
-      }].sort((a, b) => compareFerragensByNome(a.nome, b.nome)),
+      }].sort((a, b) => compareFerragensByNome(formatarRotuloFerragem(a), formatarRotuloFerragem(b))),
     }))
   }
   const atualizarFerragem = <K extends keyof ProjetoFerragem>(i: number, campo: K, val: ProjetoFerragem[K]) => {
@@ -2191,7 +2199,7 @@ export default function ProjetosPage() {
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
-      return { ...prev, ferragens: arr }
+      return { ...prev, ferragens: arr.sort((a, b) => compareFerragensByNome(formatarRotuloFerragem(a), formatarRotuloFerragem(b))) }
     })
   }
   const removerFerragem = (i: number) => {
@@ -2203,7 +2211,7 @@ export default function ProjetosPage() {
     const perfilAtual = perfisOriginaisDB.find((item) => String(item.id) === String(perfilAtualId || ""))
     if (perfilAtual) {
       if (perfisDB.some((item) => String(item.id) === String(perfilAtual.id))) return perfisDB
-      return [perfilAtual, ...perfisDB]
+      return ordenarPerfisTecnicos([perfilAtual, ...perfisDB])
     }
 
     if (!perfilAtualId || !perfilAtualNome) return perfisDB
@@ -2214,7 +2222,7 @@ export default function ProjetosPage() {
     }
 
     if (perfisDB.some((item) => String(item.id) === String(perfilFallback.id))) return perfisDB
-    return [perfilFallback, ...perfisDB]
+    return ordenarPerfisTecnicos([perfilFallback, ...perfisDB])
   }
 
   const getPerfisDisponiveis = (perfilAtualId?: string, perfilAtualNome?: string) =>
@@ -2228,7 +2236,9 @@ export default function ProjetosPage() {
     )
   }
 
-  const perfisDisponiveisFiltrados = filtrarItensTecnicosPorBusca(getPerfisDisponiveis(), buscaPerfilDisponivel)
+  const perfisDisponiveisFiltrados = ordenarPerfisTecnicos(
+    filtrarItensTecnicosPorBusca(getPerfisDisponiveis(), buscaPerfilDisponivel)
+  )
 
   const selecionarOuLimparTodosPerfisFiltrados = () => {
     const idsFiltrados = perfisDisponiveisFiltrados.map((perfil) => String(perfil.id))
@@ -2271,7 +2281,7 @@ export default function ProjetosPage() {
           usar_no_kit: false,
           altura_max_kit: null,
         })),
-      ].sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
+      ].sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))),
     }))
     setPerfisSelecionadosParaAdicionar([])
   }
@@ -2297,7 +2307,7 @@ export default function ProjetosPage() {
         versao_deslizante: null,
         usar_no_kit: false,
         altura_max_kit: null,
-      }].sort((a, b) => comparePerfisByNome(a.nome, b.nome)),
+      }].sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))),
     }))
   }
   const atualizarPerfil = <K extends keyof ProjetoPerfil>(i: number, campo: K, val: ProjetoPerfil[K]) => {
@@ -2309,7 +2319,7 @@ export default function ProjetosPage() {
       } else {
         arr[i] = { ...arr[i], [campo]: val }
       }
-      return { ...prev, perfis: arr }
+      return { ...prev, perfis: arr.sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))) }
     })
   }
   const removerPerfil = (i: number) => {
@@ -3619,7 +3629,7 @@ export default function ProjetosPage() {
                         </div>
                       </div>
 
-                      <div className="max-h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2 space-y-2">
+                      <div className="max-h-80 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-3 space-y-2">
                         {kitsDisponiveisFiltrados.length === 0 ? (
                           <div className="px-3 py-8 text-center text-xs font-bold text-gray-300">
                             Nenhum kit encontrado para este filtro.
@@ -3631,7 +3641,7 @@ export default function ProjetosPage() {
                           return (
                             <label
                               key={kitId}
-                              className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all"
+                              className="flex items-start gap-3 rounded-xl border p-3.5 cursor-pointer transition-all"
                               style={selecionado
                                 ? { backgroundColor: `${theme.menuBackgroundColor}12`, borderColor: `${theme.menuBackgroundColor}40` }
                                 : { backgroundColor: "#ffffff", borderColor: "#e5e7eb" }}
@@ -3643,7 +3653,7 @@ export default function ProjetosPage() {
                                 className="mt-0.5 h-4 w-4 rounded border-gray-300"
                               />
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-black truncate" style={{ color: theme.contentTextLightBg }}>
+                                <p className="text-sm font-black whitespace-normal break-words leading-snug" style={{ color: theme.contentTextLightBg }}>
                                   {item.nome}
                                 </p>
                                 <p className="text-[11px] text-gray-500 font-medium mt-0.5">
@@ -4199,16 +4209,16 @@ export default function ProjetosPage() {
                   {form.perfis.map((p, idx) => (
                     <div
                       key={idx}
-                      className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start gap-3"
+                      className="relative bg-gray-50 rounded-2xl p-4 border border-gray-100"
                       style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-9 gap-3">
-                        <div className="xl:col-span-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 pr-12">
+                        <div className="sm:col-span-2 xl:col-span-5">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
                             value={p.perfil_id}
                             onChange={e => atualizarPerfil(idx, "perfil_id", e.target.value)}
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                            className="w-full min-h-[46px] p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
                             {getPerfisDisponiveis(String(p.perfil_id), p.nome).length === 0 && (
@@ -4221,7 +4231,7 @@ export default function ProjetosPage() {
                             ))}
                           </select>
                         </div>
-                        <div>
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Qtd Largura</label>
                           <input
                             type="number"
@@ -4231,7 +4241,7 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
-                        <div>
+                        <div className="xl:col-span-3">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula Largura</label>
                           <input
                             type="text"
@@ -4241,7 +4251,7 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
-                        <div>
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Qtd Altura</label>
                           <input
                             type="number"
@@ -4251,23 +4261,7 @@ export default function ProjetosPage() {
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Qtd Outros</label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={p.qtd_outros}
-                            onChange={e => atualizarPerfil(idx, "qtd_outros", Number(e.target.value))}
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Modo de Fornecimento</label>
-                          <div className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-500">
-                            Em Barra
-                          </div>
-                        </div>
-                        <div className="sm:col-span-2 xl:col-span-3">
+                        <div className="sm:col-span-2 xl:col-span-5">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0891b2" }}>
                             Condição de aplicação
                           </label>
@@ -4305,7 +4299,7 @@ export default function ProjetosPage() {
                           </button>
                           <p className="text-[10px] text-gray-400 mt-1">Ative para considerar no Kit. Barra sempre permanece.</p>
                         </div>
-                        <div className="sm:col-span-2 xl:col-span-2">
+                        <div className="sm:col-span-2 xl:col-span-4">
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#b45309" }}>
                             Espessura do vidro para este perfil
                           </label>
@@ -4338,7 +4332,7 @@ export default function ProjetosPage() {
                           )}
                         </div>
                         {(variacaoOpcoesPerfil.length > 0 || projetoEhDeslizante) && (
-                          <div className="sm:col-span-2 xl:col-span-5">
+                          <div className="sm:col-span-2 xl:col-span-12">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
                               Aplica em qual variação? (altura/desenho)
                             </label>
@@ -4417,7 +4411,7 @@ export default function ProjetosPage() {
                       </div>
                       <button
                         onClick={() => removerPerfil(idx)}
-                        className="mt-6 p-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-all shrink-0"
+                        className="absolute right-4 top-4 p-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-all"
                       >
                         <Trash2 size={13} />
                       </button>
