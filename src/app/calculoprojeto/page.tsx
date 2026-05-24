@@ -63,6 +63,8 @@ type ProjetoDetalhe = {
     tolerancia_mm: number
     observacao: string
     variacao_restrita: string | null
+    formula_largura_calculo?: string | null
+    formula_altura_calculo?: string | null
     kits?: { nome?: string | null } | null
   }>
   ferragens: Array<{
@@ -339,6 +341,8 @@ const TRILHO_TOKEN = "__TRILHO__="
 const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
 const POSICAO_TOKEN = "__POSICAO__="
 const VERSAO_DESLIZANTE_TOKEN = "__VERSAO_DESLIZANTE__="
+const FORMULA_KIT_LARGURA_TOKEN = "__FORM_KIT_LARG__="
+const FORMULA_KIT_ALTURA_TOKEN = "__FORM_KIT_ALT__="
 
 const limparTextoComVariacao = (valor?: string | null) =>
   String(valor || "")
@@ -390,6 +394,26 @@ const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
     .find((l) => l.startsWith(FORMULA_LARGURA_TOKEN))
 
   const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
+const extrairFormulaKitLarguraDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_KIT_LARGURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_KIT_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
+const extrairFormulaKitAlturaDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_KIT_ALTURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_KIT_ALTURA_TOKEN.length).trim() : ""
   return formula || null
 }
 
@@ -624,6 +648,37 @@ const extrairVersaoDesenhoPma = (valor?: string | null): "simples" | "completo" 
   return "completo"
 }
 
+const extrairVariacaoPortaGiroOuForaDoVao = (valor?: string | null) => {
+  const bruto = String(valor || "")
+  const stem = bruto
+    .trim()
+    .toLowerCase()
+    .replace(/\.(png|jpe?g|webp|gif|svg)$/i, "")
+
+  const match = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
+  if (match) {
+    const versao = /(?:completo|completa)$/.test(stem) ? "completo" : "padrao"
+
+    return {
+      familia: "porta-giro-fora-do-vao",
+      folhas: match[2].toLowerCase(),
+      versao,
+    }
+  }
+
+  const texto = normalizarTextoComparacao(bruto)
+  const matchTexto = texto.match(/^(porta\s*giro|porta\s*fora\s*(?:de\s*)?vao)\s*(\d+)\s*fls?/) 
+  if (!matchTexto) return null
+
+  const versao = /\bcomplet[oa]\b/.test(texto) ? "completo" : "padrao"
+
+  return {
+    familia: "porta-giro-fora-do-vao",
+    folhas: `${Number(matchTexto[2])}fls`,
+    versao,
+  }
+}
+
 const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDrawing?: string | null): boolean => {
   const restricaoNorm = normalizarTextoComparacao(restricao)
   const drawingArquivoNorm = normalizarTextoComparacao(variacaoDrawing)
@@ -633,6 +688,14 @@ const correspondeVariacaoVisualTextual = (restricao?: string | null, variacaoDra
   const versaoDrawingPma = extrairVersaoDesenhoPma(variacaoDrawing)
   if (versaoRestricaoPma && versaoDrawingPma) {
     return versaoRestricaoPma === versaoDrawingPma
+  }
+
+  const variacaoPortaRestricao = extrairVariacaoPortaGiroOuForaDoVao(restricao)
+  const variacaoPortaDrawing = extrairVariacaoPortaGiroOuForaDoVao(variacaoDrawing)
+  if (variacaoPortaRestricao && variacaoPortaDrawing) {
+    return variacaoPortaRestricao.familia === variacaoPortaDrawing.familia
+      && variacaoPortaRestricao.folhas === variacaoPortaDrawing.folhas
+      && variacaoPortaRestricao.versao === variacaoPortaDrawing.versao
   }
 
   if (!restricaoNorm || !drawingArquivoNorm) return false
@@ -1626,6 +1689,7 @@ const calcularProjeto = (params: {
   variacaoTrilho: ItemCalculoProjeto["variacaoTrilho"]
   projetoEhPorta: boolean
   projetoEBox: boolean
+  projetoEhCanto: boolean
   kitsDB: KitItem[]
   ferragensDB: FerragemItem[]
   perfisDB: PerfilItem[]
@@ -1634,7 +1698,7 @@ const calcularProjeto = (params: {
   const {
     detalhe, largura, altura, largura2, altura2,
     vidroSelecionado, precoVidroM2, corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
-    variacaoTrilho, projetoEhPorta, projetoEBox,
+    variacaoTrilho, projetoEhPorta, projetoEBox, projetoEhCanto,
     kitsDB, ferragensDB, perfisDB, qtd,
   } = params
 
@@ -1670,7 +1734,7 @@ const calcularProjeto = (params: {
     return partes.some((parte) => ehVariacaoDeDesenho(parte))
   })
 
-  const projetoCantoComLadosIndependentes = largura2 > 0 && detalhe.folhas.every((folha) => {
+  const projetoCantoComLadosIndependentes = projetoEhCanto && largura2 > 0 && detalhe.folhas.every((folha) => {
     const formula = `${folha.formula_largura || ""} ${folha.formula_altura || ""}`
     return !/\bL2\b|\bA2\b|\bAB\b/i.test(formula)
   })
@@ -1772,10 +1836,20 @@ const calcularProjeto = (params: {
     const larguraComparacaoKit = ehMedicaoCanto ? (largura + largura2) : largura
     const alturaComparacaoKit = Math.max(altura, altura2 || 0)
 
-    const kitsCompativeisMedida = kitsPriorizadosPorFolhas.filter((kitProj) =>
-      kitProj.largura_referencia >= larguraComparacaoKit &&
-      kitProj.altura_referencia >= alturaComparacaoKit
-    )
+    const getMedidaComparacaoKit = (kitProj: ProjetoDetalhe["kits"][number]) => {
+      const larguraFormula = String(kitProj.formula_largura_calculo || "").trim()
+      const alturaFormula = String(kitProj.formula_altura_calculo || "").trim()
+      return {
+        largura: larguraFormula ? Math.max(avaliarFormula(larguraFormula, vars), 0) : larguraComparacaoKit,
+        altura: alturaFormula ? Math.max(avaliarFormula(alturaFormula, vars), 0) : alturaComparacaoKit,
+      }
+    }
+
+    const kitsCompativeisMedida = kitsPriorizadosPorFolhas.filter((kitProj) => {
+      const medidaKit = getMedidaComparacaoKit(kitProj)
+      return kitProj.largura_referencia >= medidaKit.largura &&
+        kitProj.altura_referencia >= medidaKit.altura
+    })
 
     const baseBuscaKit = kitsCompativeisMedida
 
@@ -1784,7 +1858,8 @@ const calcularProjeto = (params: {
     for (const kitProj of baseBuscaKit) {
       const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
       if (!dbKit) continue
-      const delta = Math.abs(larguraComparacaoKit - kitProj.largura_referencia) + Math.abs(alturaComparacaoKit - kitProj.altura_referencia)
+      const medidaKit = getMedidaComparacaoKit(kitProj)
+      const delta = Math.abs(medidaKit.largura - kitProj.largura_referencia) + Math.abs(medidaKit.altura - kitProj.altura_referencia)
       if (delta < menorDelta) {
         menorDelta = delta
         kitSelecionado = dbKit
@@ -2452,6 +2527,8 @@ export default function CalculoProjetoPage() {
               ...kit,
               observacao: meta.textoLimpo,
               variacao_restrita: kit.variacao_restrita ?? meta.variacao ?? null,
+              formula_largura_calculo: extrairFormulaKitLarguraDoTexto(kit.observacao),
+              formula_altura_calculo: extrairFormulaKitAlturaDoTexto(kit.observacao),
             }
           }),
           ferragens: (data.projetos_ferragens || []).map((ferragem: { observacao?: string | null; variacao_restrita?: string | null }) => {
@@ -3574,6 +3651,7 @@ export default function CalculoProjetoPage() {
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
       const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
+      const projetoEhCanto = normalizarTextoComparacao(`${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`).includes("canto")
       const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
 
       const resultado = calcularProjeto({
@@ -3591,6 +3669,7 @@ export default function CalculoProjetoPage() {
         variacaoTrilho: trilhoAtivo,
         projetoEhPorta,
         projetoEBox,
+        projetoEhCanto,
         kitsDB,
         ferragensDB,
         perfisDB,

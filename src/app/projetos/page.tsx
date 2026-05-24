@@ -58,6 +58,8 @@ type ProjetoKit = {
   espessura_vidro: string
   largura_referencia: number
   altura_referencia: number
+  formula_largura_calculo?: string | null
+  formula_altura_calculo?: string | null
   tolerancia_mm: number
   observacao: string
   variacao_restrita?: string | null
@@ -404,6 +406,8 @@ const aplicarVariacaoNoTexto = (valor: string | null | undefined, variacao: stri
 }
 
 const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
+const FORMULA_KIT_LARGURA_TOKEN = "__FORM_KIT_LARG__="
+const FORMULA_KIT_ALTURA_TOKEN = "__FORM_KIT_ALT__="
 
 const extrairTrilhoDoTexto = (valor?: string | null): string | null => {
   const linhaTrilho = String(valor || "")
@@ -426,6 +430,26 @@ const extrairQuantidadeFolhaDoTexto = (valor?: string | null): number => {
 
   const numero = linhaQtd ? Number(linhaQtd.slice(QTD_FOLHA_TOKEN.length).trim()) : 1
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 1
+}
+
+const extrairFormulaKitLarguraDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_KIT_LARGURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_KIT_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
+const extrairFormulaKitAlturaDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_KIT_ALTURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_KIT_ALTURA_TOKEN.length).trim() : ""
+  return formula || null
 }
 
 const parseCodigoMovimentacaoPmaProjeto = (codigoFonte?: string | null): string | null => {
@@ -531,6 +555,18 @@ const aplicarQuantidadeFolhaNoTexto = (valor: string | null | undefined, quantid
   const qtd = Number(quantidade)
   const quantidadeFinal = Number.isFinite(qtd) && qtd > 0 ? Math.round(qtd) : 1
   return [textoBase, `${QTD_FOLHA_TOKEN}${quantidadeFinal}`].filter(Boolean).join("\n")
+}
+
+const aplicarFormulaKitLarguraNoTexto = (valor: string | null | undefined, formula: string | null | undefined) => {
+  const textoBase = limparTextoSemTokens(valor, [FORMULA_KIT_LARGURA_TOKEN])
+  if (!formula) return textoBase
+  return [textoBase, `${FORMULA_KIT_LARGURA_TOKEN}${formula.trim()}`].filter(Boolean).join("\n")
+}
+
+const aplicarFormulaKitAlturaNoTexto = (valor: string | null | undefined, formula: string | null | undefined) => {
+  const textoBase = limparTextoSemTokens(valor, [FORMULA_KIT_ALTURA_TOKEN])
+  if (!formula) return textoBase
+  return [textoBase, `${FORMULA_KIT_ALTURA_TOKEN}${formula.trim()}`].filter(Boolean).join("\n")
 }
 
 const aplicarCondicaoNoTexto = (valor: string | null | undefined, condicao: string | null | undefined) => {
@@ -1558,7 +1594,9 @@ export default function ProjetosPage() {
         return {
           ...k,
           nome: k.kits?.nome || undefined,
-          observacao: metaObservacao.textoLimpo,
+          observacao: limparTextoSemTokens(metaObservacao.textoLimpo, [FORMULA_KIT_LARGURA_TOKEN, FORMULA_KIT_ALTURA_TOKEN]),
+          formula_largura_calculo: extrairFormulaKitLarguraDoTexto(k.observacao),
+          formula_altura_calculo: extrairFormulaKitAlturaDoTexto(k.observacao),
           variacao_restrita: k.variacao_restrita ?? metaObservacao.variacao ?? null,
         }
       }),
@@ -1679,7 +1717,13 @@ export default function ProjetosPage() {
         largura_referencia: normalizarNumero(kit.largura_referencia),
         altura_referencia: normalizarNumero(kit.altura_referencia),
         tolerancia_mm: normalizarNumero(kit.tolerancia_mm, 50),
-        observacao: aplicarVariacaoNoTexto(limparTextoSimples(kit.observacao), kit.variacao_restrita),
+        observacao: aplicarFormulaKitAlturaNoTexto(
+          aplicarFormulaKitLarguraNoTexto(
+            aplicarVariacaoNoTexto(limparTextoSimples(kit.observacao), kit.variacao_restrita),
+            kit.formula_largura_calculo ?? null
+          ),
+          kit.formula_altura_calculo ?? null
+        ),
       })
     })
 
@@ -2016,6 +2060,8 @@ export default function ProjetosPage() {
     espessura_vidro: getEspessuraPadraoKitPorTipo(tipoProjeto),
     largura_referencia: Number(kit.largura) || 0,
     altura_referencia: Number(kit.altura) || 0,
+    formula_largura_calculo: null,
+    formula_altura_calculo: null,
     tolerancia_mm: 50,
     observacao: "",
     variacao_restrita: null,
@@ -3731,6 +3777,26 @@ export default function ProjetosPage() {
                             min={0}
                             value={kit.altura_referencia}
                             onChange={e => atualizarKit(idx, "altura_referencia", Number(e.target.value))}
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula largura calculo</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: L * 2"
+                            value={kit.formula_largura_calculo || ""}
+                            onChange={e => atualizarKit(idx, "formula_largura_calculo", e.target.value.trim() || null)}
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula altura calculo</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: A"
+                            value={kit.formula_altura_calculo || ""}
+                            onChange={e => atualizarKit(idx, "formula_altura_calculo", e.target.value.trim() || null)}
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
