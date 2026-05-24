@@ -1175,6 +1175,48 @@ const perfilEhPorMetro = (perfil?: { codigo?: string | null; nome?: string | nul
   return codigo === "3000" || /\b3000\b/.test(texto) || /\b(por\s*metro|metro\s*linear|m\s*linear)\b/.test(texto)
 }
 
+const limparRestricaoQuantidadeFolhas = (restricao?: string | null): string | null => {
+  const partes = String(restricao || "")
+    .split(",")
+    .map((parte) => parte.trim())
+    .filter(Boolean)
+    .filter((parte) => {
+      const texto = normalizarTextoComparacao(parte)
+      if (/^\d+\s*(folhas?|fls?|fs)(?:\s*mov(?:eis)?)?$/.test(texto)) return false
+      if (/^deslizante\s+\d+\s*(folhas?|fls?|fs)$/.test(texto)) return false
+      return true
+    })
+
+  return partes.length > 0 ? partes.join(",") : null
+}
+
+const correspondeRestricaoVisualSemQuantidadeFolhas = (
+  restricao?: string | null,
+  variacaoDrawing?: string | null
+) => {
+  const selecaoRestricao = extrairSelecaoDeslizanteTexto(restricao)
+  const selecaoDrawing = extrairSelecaoDeslizanteTexto(variacaoDrawing)
+  if (!selecaoRestricao.sistema && !selecaoRestricao.versao) return null
+  if (!selecaoDrawing.sistema && !selecaoDrawing.versao) return null
+  if (selecaoRestricao.sistema && selecaoDrawing.sistema && selecaoRestricao.sistema !== selecaoDrawing.sistema) return false
+  if (selecaoRestricao.versao && selecaoDrawing.versao && selecaoRestricao.versao !== selecaoDrawing.versao) return false
+  return true
+}
+
+const correspondeRestricaoPerfilPorMetro = (
+  restricao: string | null | undefined,
+  variacaoDrawing: string | null | undefined,
+  variacaoTecnica: string | null | undefined
+) => {
+  const selecao = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
+  if (!selecao.sistema && !selecao.versao) return correspondeRestricaoProjeto(restricao, variacaoDrawing, variacaoTecnica)
+  const restricaoSemQuantidade = limparRestricaoQuantidadeFolhas(restricao)
+  const deslizanteOk = correspondeRestricaoVisualSemQuantidadeFolhas(restricaoSemQuantidade || restricao, variacaoDrawing)
+  if (deslizanteOk === false) return false
+  if (deslizanteOk === true) return true
+  return correspondeRestricaoProjeto(restricaoSemQuantidade, variacaoDrawing, variacaoTecnica)
+}
+
 const identificarFamiliaFerragem = (codigo?: string | null, nome?: string | null): string => {
   const codigoNorm = normalizarCodigoModeloMaterial(codigo)
   const nomeNorm = normalizarNomeFerragem(nome || "")
@@ -1884,6 +1926,10 @@ const calcularProjeto = (params: {
         const espessuraAtual = String(vidroSelecionado?.espessura || "").trim().toLowerCase()
         const espessuraPerfilNumero = extrairNumeroEspessura(espessuraPerfil)
         const espessuraAtualNumero = extrairNumeroEspessura(espessuraAtual)
+        const perfilBase = perfisDB.find((perfil) => perfil.id === p.perfil_id)
+        const perfilPorMetro = perfilEhPorMetro(perfilBase || p.perfis)
+        const selecaoDeslizanteAtual = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
+        const perfilPorMetroDeslizante = perfilPorMetro && Boolean(selecaoDeslizanteAtual.sistema || selecaoDeslizanteAtual.versao)
         const condicaoExiste = Boolean(String(p.condicao || "").trim())
         const possuiRestricaoKit = String(p.variacao_restrita || "")
           .split(",")
@@ -1901,7 +1947,12 @@ const calcularProjeto = (params: {
           incluiPorRegraKit
 
         if (!podeNoModoAtual) return false
-        if (!isAplicavel(p.variacao_restrita)) return false
+        if (perfilPorMetroDeslizante) {
+          return true
+        }
+        if (perfilPorMetro) {
+          if (!correspondeRestricaoPerfilPorMetro(p.variacao_restrita, variacaoDrawing, variacaoTecnica)) return false
+        } else if (!isAplicavel(p.variacao_restrita)) return false
         if (!correspondeConfigDeslizante(p, variacaoDrawing)) return false
         if (espessuraPerfil) {
           if (espessuraPerfilNumero !== null && espessuraAtualNumero !== null) {
@@ -3318,6 +3369,9 @@ export default function CalculoProjetoPage() {
       const textoProjeto = `${itemResultado.projeto?.nome || ""} ${itemResultado.projeto?.categoria || ""} ${itemResultado.projeto?.desenho || ""}`.toLowerCase()
       const ehPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
       const desenhoAtivo = itemResultado.desenhoProjeto || itemResultado.variacaoDrawing || itemResultado.projeto?.desenho || ""
+      const totalPerfisMetroLinear = itemResultado.resultado.cortes
+        .filter((corte) => corte.unidadeCalculo === "metro")
+        .reduce((total, corte) => total + corte.precoTotal, 0)
 
       return {
         itemId: itemResultado.itemId,
@@ -3334,7 +3388,7 @@ export default function CalculoProjetoPage() {
         vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
         corMaterial: itemResultado.corMaterial || "Sem cor definida",
         modoCalculo: itemResultado.resultado.usouKit ? "Kit" : "Barra",
-        subtotal: itemResultado.resultado.totalGeral,
+        subtotal: Math.max(0, itemResultado.resultado.totalGeral - totalPerfisMetroLinear),
         folhas: itemResultado.resultado.folhas.map((folha, folhaIndex) => ({
           id: `${itemResultado.itemId}-folha-${folha.numero}-${folhaIndex}`,
           titulo: `Folha ${folha.numero} ${folha.tipo}`,
@@ -4749,26 +4803,6 @@ export default function CalculoProjetoPage() {
                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Economia Potencial</p>
                           <p className="text-2xl font-black" style={{ color: theme.menuBackgroundColor }}>{fmt(otimizacaoGlobalPerfis.economiaValor)}</p>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[
-                          { label: "Barras Individuais", valor: String(otimizacaoGlobalPerfis.resumo.barrasOriginais) },
-                          { label: "Barras Consolidadas", valor: String(otimizacaoGlobalPerfis.resumo.barrasOtimizadas) },
-                          ...(otimizacaoGlobalPerfis.resumo.metroLinear > 0
-                            ? [{ label: "Metro Linear", valor: `${otimizacaoGlobalPerfis.resumo.metroLinear.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` }]
-                            : []),
-                          { label: "Valor Individual", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOriginal) },
-                          { label: "Valor Consolidado", valor: fmt(otimizacaoGlobalPerfis.resumo.precoOtimizado) },
-                          ...(otimizacaoGlobalPerfis.resumo.precoMetro > 0
-                            ? [{ label: "Valor Metro Linear", valor: fmt(otimizacaoGlobalPerfis.resumo.precoMetro) }]
-                            : []),
-                        ].map(({ label, valor }) => (
-                          <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-                            <p className="text-lg font-black text-gray-700">{valor}</p>
-                          </div>
-                        ))}
                       </div>
 
                       <div className="space-y-4">

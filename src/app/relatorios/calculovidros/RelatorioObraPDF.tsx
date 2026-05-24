@@ -482,7 +482,10 @@ export function RelatorioObraPDF({
       0
     ),
     ferragens: relatorioObra.reduce((acc, obra) => acc + obra.ferragens.reduce((total, item) => total + item.qtd, 0), 0),
-    perfis: otimizacaoGlobalOrdenada.reduce((acc, grupo) => acc + grupo.qtdBarrasOtimizada, 0),
+    perfis: otimizacaoGlobalOrdenada.reduce((acc, grupo) => {
+      if (grupo.unidadeCalculo === "metro") return acc
+      return acc + grupo.qtdBarrasOtimizada
+    }, 0),
   }
   const totalFerragensGlobal = ferragensGlobal.reduce((acc, ferragem) => acc + ferragem.total, 0)
   const indicesProjetos = new Map(relatorioObra.map((obra, index) => [obra.itemId, index + 1]))
@@ -691,22 +694,6 @@ export function RelatorioObraPDF({
                       <Text style={{ fontSize: 11, fontWeight: "bold", color: themeColor }}>{fmtMoeda(economiaValor)}</Text>
                     </View>
                   )}
-                </View>
-
-                <View style={styles.otimResumoGrid}>
-                  {[
-                    { label: "Barras Individuais", valor: String(resumoOtim.barrasOriginais) },
-                    { label: "Barras Consolidadas", valor: String(resumoOtim.barrasOtimizadas) },
-                    ...(resumoOtim.metroLinear > 0 ? [{ label: "Metro Linear", valor: `${resumoOtim.metroLinear.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} m` }] : []),
-                    { label: "Valor Individual", valor: fmtMoeda(resumoOtim.precoOriginal) },
-                    { label: "Valor Consolidado", valor: fmtMoeda(resumoOtim.precoOtimizado) },
-                    ...(resumoOtim.precoMetro > 0 ? [{ label: "Valor Metro Linear", valor: fmtMoeda(resumoOtim.precoMetro) }] : []),
-                  ].map(({ label, valor }) => (
-                    <View key={label} style={styles.otimResumoBox}>
-                      <Text style={styles.otimResumoLabel}>{label}</Text>
-                      <Text style={styles.otimResumoValor}>{valor}</Text>
-                    </View>
-                  ))}
                 </View>
 
                 {otimizacaoGlobalOrdenada.map((item) => (
