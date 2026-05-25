@@ -889,8 +889,8 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
     return null
   }
 
-  if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*))?$/i.test(stem)) {
-    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+  if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*|puxador\d*|comtrinco\d*|trinco\d*|puxadoretrinco\d*|trincoechave\d*))?$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|completo\d*|completa\d*|puxador\d*|comtrinco\d*|trinco\d*|puxadoretrinco\d*|trincoechave\d*)$/i, "")
   }
 
   const portaGiroMatch = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
@@ -1157,10 +1157,13 @@ const getVariacoesAutomaticasProjeto = (
           if (/^simples\d*$/i.test(nomeVersao)) return 0
           if (/^puxador\d*$/i.test(nomeVersao)) return 1
           if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
-          if (/^kitpia\d*$/i.test(nomeVersao)) return 3
-          if (/^completo$|^completa$/i.test(nomeVersao)) return 4
-          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 5
-          return 6
+          if (/^trinco\d*$/i.test(nomeVersao)) return 3
+          if (/^puxadoretrinco\d*$/i.test(nomeVersao)) return 4
+          if (/^trincoechave\d*$/i.test(nomeVersao)) return 5
+          if (/^kitpia\d*$/i.test(nomeVersao)) return 6
+          if (/^completo$|^completa$/i.test(nomeVersao)) return 7
+          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 8
+          return 9
         }
 
         const rankA = rank(aNome)

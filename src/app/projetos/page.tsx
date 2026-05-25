@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
-import { getOpcoesRestricaoTecnicaBox, GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho } from "@/utils/variacaoProjeto"
+import { getOpcoesRestricaoTecnicaBox, GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho, formatarVariacaoTecnica, decomporVariacaoTecnica } from "@/utils/variacaoProjeto"
 import ThemeLoader from "@/components/ThemeLoader"
 import Header from "@/components/Header"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
@@ -949,6 +949,21 @@ const criarOpcaoVersao = (stem: string): VariacaoOpcao => {
     return { key: stem, label: `Com trinco${sufixo}`, arquivo: criarArquivo(stem) }
   }
 
+  if (base === "trinco") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Trinco${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
+  if (base === "trincoechave") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Trinco e chave${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
+  if (base === "puxadoretrinco") {
+    const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
+    return { key: stem, label: `Puxador e trinco${sufixo}`, arquivo: criarArquivo(stem) }
+  }
+
   if (base === "completo" || base === "completa") {
     const sufixo = numeroMatch ? ` ${numeroMatch[1]}` : ""
     return { key: stem, label: `Completo${sufixo}`, arquivo: criarArquivo(stem) }
@@ -1065,7 +1080,7 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
     }
   }
 
-  const baseFamilia = stemAtual.replace(/-(simples\d*|puxador\d*|comtrinco\d*|completo\d*|completa\d*|kitpia\d*)$/, "")
+  const baseFamilia = stemAtual.replace(/-(simples\d*|puxador\d*|comtrinco\d*|trinco\d*|trincoechave\d*|puxadoretrinco\d*|completo\d*|completa\d*|kitpia\d*)$/, "")
   const regexFamilia = new RegExp(`^${escapeRegExp(baseFamilia)}-(.+)$`)
   const stemsFamilia = Array.from(stemsDisponiveis).filter((stem) => regexFamilia.test(stem))
 
@@ -1079,10 +1094,13 @@ const getVariacoesDesenho = (arquivoAtual: string, stemsDisponiveis: Set<string>
           if (/^simples\d*$/i.test(nome)) return 0
           if (/^puxador\d*$/i.test(nome)) return 1
           if (/^comtrinco\d*$/i.test(nome)) return 2
-          if (/^kitpia\d*$/i.test(nome)) return 3
-          if (nome === "completo" || nome === "completa") return 4
-          if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 5
-          return 6
+          if (/^trinco\d*$/i.test(nome)) return 3
+          if (/^puxadoretrinco\d*$/i.test(nome)) return 4
+          if (/^trincoechave\d*$/i.test(nome)) return 5
+          if (/^kitpia\d*$/i.test(nome)) return 6
+          if (nome === "completo" || nome === "completa") return 7
+          if (/^completo\d+$/.test(nome) || /^completa\d+$/.test(nome)) return 8
+          return 9
         }
 
         const rankA = rank(aNome)
@@ -2545,6 +2563,25 @@ export default function ProjetosPage() {
         )
     : []
 
+  const variacoesRestritasJaUsadas = Array.from(new Set(
+    [
+      ...form.folhas.map((f) => f.variacao_restrita),
+      ...form.kits.map((k) => k.variacao_restrita),
+      ...form.ferragens.map((f) => f.variacao_restrita),
+      ...form.perfis.map((p) => p.variacao_restrita),
+    ]
+      .flatMap((valor) => String(valor || "").split(","))
+      .map((valor) => valor.trim())
+      .filter(Boolean)
+  )).map((valor) => ({
+    arquivo: valor,
+    label: ehVariacaoDeDesenho(valor)
+      ? `Desenho: ${desenhosPorArquivo.get(valor)?.label || formatarLabelArquivoDesenho(valor)}`
+      : formatarVariacaoTecnica(valor) || valor,
+    corBg: "#f3f4f6",
+    corText: "#4b5563",
+  }))
+
   // Opções planas de variação para usar nos selects de cada item (ferragem/kit/perfil)
   const variacaoOpcoesFlat = Array.from(new Map(
     [
@@ -2559,27 +2596,35 @@ export default function ProjetosPage() {
       ...opcoesRestricaoBox,
       ...opcoesRestricaoGiro,
       ...opcoesRestricaoPma,
+      ...variacoesRestritasJaUsadas,
     ].map((opcao) => [opcao.arquivo, opcao] as const)
   ).values())
   const temOpcoesRestricao = variacaoOpcoesFlat.length > 0
 
+  const contemAlgumEixoVariacao = (valor: string, eixos: string[]) => {
+    const decomposicao = decomporVariacaoTecnica(valor)
+    if (eixos.some((eixo) => Boolean(decomposicao[eixo as keyof typeof decomposicao]))) return true
+    const eixoUnico = getEixoVariacaoProjeto(valor)
+    return eixoUnico ? eixos.includes(eixoUnico) : false
+  }
+
   // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
-  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter(op =>
-    isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter((op) =>
+    isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
   )
 
   // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
-  const variacaoOpcoesKit = variacaoOpcoesFlat.filter(op => {
+  const variacaoOpcoesKit = variacaoOpcoesFlat.filter((op) => {
     if (ehVariacaoDeDesenho(op.arquivo)) return true
-    return ["kit", "aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+    return contemAlgumEixoVariacao(op.arquivo, ["kit", "aplicacao", "movimentacao", "versao"])
   })
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
-  const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter(op =>
-    !ehVariacaoDeDesenho(op.arquivo) && ["kit", "fechadura", "aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+  const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter((op) =>
+    !ehVariacaoDeDesenho(op.arquivo) && contemAlgumEixoVariacao(op.arquivo, ["kit", "fechadura", "aplicacao", "movimentacao", "versao"])
   )
-  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter(op =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo)
+  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter((op) =>
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura"])
   )
 
   const getNomeVariacao = (valor: string, fallback: string) => {
@@ -2588,8 +2633,8 @@ export default function ProjetosPage() {
   }
 
   // Para perfis: variações visuais + altura, sem eixo de kit
-  const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter(op =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || ["aplicacao", "movimentacao", "versao"].includes(String(getEixoVariacaoProjeto(op.arquivo) || ""))
+  const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter((op) =>
+    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
   )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
