@@ -841,7 +841,7 @@ const DESENHOS: Record<string, { label: string; arquivo: string }[]> = {
   ],
 }
 
-const TIPOS_FOLHA = ["Fixo", "Móvel", "Basculante", "Pivotante", "Maxim-Ar"]
+const TIPOS_FOLHA = ["Fixo", "Móvel", "Basculante", "Pivotante", "Maxim-Ar", "Bandeira"]
 const TRILHO_PORTA_OPCOES: Array<{ value: TrilhoPorta; label: string }> = [
   { value: "aparente", label: "Trilho Aparente" },
   { value: "interrompido", label: "Trilho Interrompido" },
@@ -1158,7 +1158,7 @@ const getPresetFolhaPorTipo = (tipo: ProjetoVisualTipo, numeroFolha: number): Pi
       tipo_folha: numeroFolha % 2 === 0 ? "Móvel" : "Fixo",
       formula_largura: "L / 2 - 12",
       formula_altura: "A - 45",
-      observacao: "Porta deslizante com compensação de trilho e transpasse.",
+      observacao: "Porta deslizante com compensação de trilho e transpasse. Exemplo de bandeira: A - AP.",
     }
   }
 
@@ -1823,6 +1823,7 @@ export default function ProjetosPage() {
   }
 
   const projetoEhDeslizante = /deslizante/.test(normalizarBuscaItem(`${form.desenho} ${form.nome} ${form.categoria}`))
+  const projetoEhBandeira = /bandeira|band[oô]/.test(normalizarBuscaItem(`${form.desenho} ${form.nome} ${form.categoria}`))
 
   const salvar = async () => {
     if (!form.nome.trim()) {
@@ -3443,7 +3444,8 @@ export default function ProjetosPage() {
                         <p><strong>A1</strong> = Altura lado A</p>
                         <p><strong>A2</strong> = Altura lado B</p>
                         <p><strong>AB</strong> = Altura porta até bandeira</p>
-                        <p className="pt-1">Exemplos: L / 2 - 5, A - 20, AB - 10</p>
+                        <p><strong>AP</strong> = Altura da porta</p>
+                        <p className="pt-1">Exemplos: L / 2 - 5, A - 20, AB - 10, A - AP</p>
                       </div>
                     </div>
                     <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
@@ -3526,7 +3528,7 @@ export default function ProjetosPage() {
                           </label>
                           <input
                             type="text"
-                            placeholder="Ex: A - 10"
+                            placeholder={projetoEhBandeira ? "Ex: A - AP" : "Ex: A - 10"}
                             value={folha.formula_altura}
                             onChange={e => atualizarFolha(idx, "formula_altura", e.target.value)}
                             className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-mono outline-none"
@@ -3710,7 +3712,7 @@ export default function ProjetosPage() {
                                 className="mt-0.5 h-4 w-4 rounded border-gray-300"
                               />
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-black whitespace-normal break-words leading-snug" style={{ color: theme.contentTextLightBg }}>
+                                <p className="text-sm font-black whitespace-normal wrap-break-word leading-snug" style={{ color: theme.contentTextLightBg }}>
                                   {item.nome}
                                 </p>
                                 <p className="text-[11px] text-gray-500 font-medium mt-0.5">
@@ -4295,7 +4297,7 @@ export default function ProjetosPage() {
                           <select
                             value={p.perfil_id}
                             onChange={e => atualizarPerfil(idx, "perfil_id", e.target.value)}
-                            className="w-full min-h-[46px] p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                             style={{ color: theme.contentTextLightBg }}
                           >
                             {getPerfisDisponiveis(String(p.perfil_id), p.nome).length === 0 && (

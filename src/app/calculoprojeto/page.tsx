@@ -1709,6 +1709,7 @@ const calcularProjeto = (params: {
     L1: largura, L2: largura2 || largura,
     A1: altura, A2: altura2 || altura,
     AB: altura2 || altura,
+    AP: altura2 || altura,
   }
   const vars = varsBase
   const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
@@ -4087,8 +4088,11 @@ export default function CalculoProjetoPage() {
                 const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
                 const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
                 const projetoECanto = textoProjeto.includes("canto")
+                const projetoEBandeira = textoProjeto.includes("bandeira") || textoProjeto.includes("bandô") || textoProjeto.includes("bando")
                 const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const usaAP = !!(detalhe?.folhas.some(f => /\bAP\b/i.test(f.formula_largura + " " + f.formula_altura)))
                 const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const usarAlturaPorta = usaAB || usaAP || projetoEBandeira
                 const mostrarLargura2 = usaL2 || projetoECanto
                 const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!
                 const kitTypesDosProjeto = (() => {
@@ -4313,15 +4317,16 @@ export default function CalculoProjetoPage() {
                           </div>
                         </>
                       )}
-                      {usaAB && (
+                      {usarAlturaPorta && (
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura da Porta (AP)</label>
                           <input
-                            type="number" min={0} placeholder="Bandeira/A2"
+                            type="number" min={0} placeholder="Ex: 2100"
                             value={item.altura2}
                             onChange={(e) => atualizarItem(item.id, "altura2", e.target.value)}
                             className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
                           />
+                          <p className="text-[10px] text-gray-400 mt-1">Use em fórmulas de bandeira: A - AP (AB e A2 continuam válidas).</p>
                         </div>
                       )}
                     </div>
