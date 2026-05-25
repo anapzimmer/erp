@@ -118,6 +118,7 @@ type FerragemDBItem = {
   id: string
   nome: string
   codigo?: string | null
+  cores?: string | null
   categoria?: string | null
 }
 
@@ -205,8 +206,12 @@ const ferragemEhBranca = (ferragem?: { cores?: string | null; nome?: string | nu
 
 const getChaveFerragemProjeto = (ferragem?: { codigo?: string | null; nome?: string | null }) => {
   const nomeBase = limparNomeTecnico(ferragem?.nome)
-  const codigo = normalizarBuscaItem(ferragem?.codigo)
-  return nomeBase || codigo
+  const codigo = normalizarBuscaItem(ferragem?.codigo).replace(/\s+/g, "")
+
+  // Para ferragens, o código já carrega o modelo/cor (ex.: 3530DP-BC).
+  // Mantém 1 item por código exato e evita misturar modelos distintos.
+  if (codigo) return codigo
+  return nomeBase
 }
 
 const deduplicarFerragensPorModelo = <T extends { id?: string | number; codigo?: string | null; nome?: string | null; cores?: string | null }>(lista: T[]) => {
@@ -1297,7 +1302,13 @@ export default function ProjetosPage() {
       const [resProjetos, resKits, resFerragens, resPerfis] = await Promise.all([
         consultaProjetos(),
         supabase.from("kits").select("id, nome, largura, altura, cores, categoria").eq("empresa_id", empresaId).order("nome"),
-        supabase.from("ferragens").select("id, nome, codigo, categoria").eq("empresa_id", empresaId).order("nome"),
+        supabase
+          .from("ferragens")
+          .select("id, nome, codigo, cores, categoria")
+          .eq("empresa_id", empresaId)
+          .order("codigo", { ascending: true })
+          .order("nome", { ascending: true })
+          .range(0, 4999),
         supabase
           .from("perfis")
           .select("id, nome, codigo, cores, categoria")

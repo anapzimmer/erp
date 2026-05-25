@@ -1346,14 +1346,15 @@ const resolverFerragemComCor = (
     const codigoItem = normalizarCodigoModeloMaterial(item.codigo)
     const familiaItem = identificarFamiliaFerragem(item.codigo, item.nome)
     const permitePrefixoCodigo = !!familiaBase
+    const itemTemCodigo = Boolean(codigoItem)
     const codigoCompativel = !!codigoBase && (
       codigoItem === codigoBase ||
       (permitePrefixoCodigo && (codigoBase.length >= 6 || codigoItem.length >= 6) &&
         (codigoItem.startsWith(codigoBase) || codigoBase.startsWith(codigoItem)))
     )
 
-    const nomeCompativel = normalizarNomeFerragem(item.nome) === nomeNorm
-    const familiaCompativel = !!familiaBase && familiaBase === familiaItem
+    const nomeCompativel = !codigoBase && !itemTemCodigo && normalizarNomeFerragem(item.nome) === nomeNorm
+    const familiaCompativel = !!familiaBase && familiaBase === familiaItem && (!codigoBase || !itemTemCodigo)
 
     return codigoCompativel || nomeCompativel || familiaCompativel
   }
