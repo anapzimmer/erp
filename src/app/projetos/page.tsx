@@ -1273,6 +1273,8 @@ export default function ProjetosPage() {
   const [ferragensSelecionadasParaAdicionar, setFerragensSelecionadasParaAdicionar] = useState<string[]>([])
   const [buscaPerfilDisponivel, setBuscaPerfilDisponivel] = useState("")
   const [perfisSelecionadosParaAdicionar, setPerfisSelecionadosParaAdicionar] = useState<string[]>([])
+  const [formulaTuboLarguraLote, setFormulaTuboLarguraLote] = useState("")
+  const [formulaTuboAlturaLote, setFormulaTuboAlturaLote] = useState("")
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [showCloseDraftModal, setShowCloseDraftModal] = useState(false)
@@ -2333,6 +2335,53 @@ export default function ProjetosPage() {
   const getPerfisDisponiveis = (perfilAtualId?: string, perfilAtualNome?: string) =>
     getCatalogoPerfisParaLinha(perfilAtualId, perfilAtualNome)
 
+  const perfilProjetoEhTubo = useCallback((perfilProjeto: ProjetoPerfil) => {
+    const perfilCatalogo =
+      perfisOriginaisDB.find((item) => String(item.id) === String(perfilProjeto.perfil_id)) ||
+      perfisDB.find((item) => String(item.id) === String(perfilProjeto.perfil_id))
+
+    const texto = normalizarBuscaItem(`${perfilCatalogo?.codigo || ""} ${perfilCatalogo?.nome || perfilProjeto.nome || ""}`)
+    return texto.includes("tubo") || /\btub\b/.test(texto)
+  }, [perfisDB, perfisOriginaisDB])
+
+  const existePerfilTuboNoProjeto = useMemo(
+    () => form.perfis.some((perfil) => perfilProjetoEhTubo(perfil)),
+    [form.perfis, perfilProjetoEhTubo]
+  )
+
+  const aplicarFormulaTubosEmLote = () => {
+    const formulaLargura = formulaTuboLarguraLote.trim()
+    const formulaAltura = formulaTuboAlturaLote.trim()
+
+    if (!formulaLargura && !formulaAltura) {
+      setModalAviso({
+        titulo: "Nada para aplicar",
+        mensagem: "Informe ao menos uma fórmula (largura ou altura) para aplicar nos tubos.",
+        tipo: "aviso",
+      })
+      return
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      perfis: prev.perfis.map((perfil) => {
+        if (!perfilProjetoEhTubo(perfil)) return perfil
+
+        return {
+          ...perfil,
+          formula_largura: formulaLargura ? formulaLargura : perfil.formula_largura,
+          formula_altura: formulaAltura ? formulaAltura : perfil.formula_altura,
+        }
+      }),
+    }))
+
+    setModalAviso({
+      titulo: "Fórmula aplicada",
+      mensagem: "As fórmulas foram aplicadas nos perfis de tubo deste projeto.",
+      tipo: "sucesso",
+    })
+  }
+
   const alternarSelecaoPerfilParaAdicionar = (perfilId: string) => {
     setPerfisSelecionadosParaAdicionar((prev) =>
       prev.includes(perfilId)
@@ -2859,6 +2908,14 @@ export default function ProjetosPage() {
       <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2" style={{ borderColor: theme.menuBackgroundColor }} />
     </div>
   )
+
+  const projetoTemBandeira = form.folhas.some((folha) => {
+    const tipoNormalizado = String(folha.tipo_folha || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+    return tipoNormalizado.includes("bandeira") || tipoNormalizado.includes("bando")
+  })
 
   // ─── ABAS DO MODAL ────────────────────────────────────────────────────────
   const ABAS = [
@@ -4276,6 +4333,40 @@ export default function ProjetosPage() {
                     </div>
                   )}
 
+                  {existePerfilTuboNoProjeto && (
+                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3 space-y-2">
+                      <p className="text-[10px] font-black text-cyan-600 uppercase tracking-widest">Aplicar Fórmula nos Tubos</p>
+                      <p className="text-xs text-cyan-900 font-medium">
+                        Este painel aparece somente quando houver perfil de tubo no projeto. Preencha e aplique em todos os tubos de uma vez.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Fórmula Largura (ex: L - 20)"
+                          value={formulaTuboLarguraLote}
+                          onChange={(e) => setFormulaTuboLarguraLote(e.target.value)}
+                          className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-cyan-200 text-sm font-bold outline-none"
+                          style={{ color: theme.contentTextLightBg }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Fórmula Altura (ex: AP - 20)"
+                          value={formulaTuboAlturaLote}
+                          onChange={(e) => setFormulaTuboAlturaLote(e.target.value)}
+                          className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-cyan-200 text-sm font-bold outline-none"
+                          style={{ color: theme.contentTextLightBg }}
+                        />
+                        <button
+                          type="button"
+                          onClick={aplicarFormulaTubosEmLote}
+                          className="min-h-11.5 px-3 py-2 rounded-xl text-xs font-black border border-cyan-300 bg-cyan-100 text-cyan-800 hover:bg-cyan-200 transition-all"
+                        >
+                          Aplicar em todos os tubos
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {!perfisDB.length && (
                     <div className="p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs font-bold">
                       Nenhum perfil cadastrado. Acesse Cadastros → Perfis primeiro.
@@ -4430,6 +4521,20 @@ export default function ProjetosPage() {
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#0891b2" }}>
                             Condição de aplicação
                           </label>
+                          {projetoTemBandeira && (
+                            <button
+                              type="button"
+                              onClick={() => atualizarPerfil(idx, "condicao", "A > AP")}
+                              className="mb-1.5 min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
+                              style={{
+                                backgroundColor: "#ecfeff",
+                                borderColor: "#06b6d4",
+                                color: "#0e7490",
+                              }}
+                            >
+                              Somente bandeira (A &gt; AP)
+                            </button>
+                          )}
                           <input
                             type="text"
                             placeholder="Ex: AP >= 1800  |  A - AP >= 300  |  L >= 1200 (vazio = sempre)"

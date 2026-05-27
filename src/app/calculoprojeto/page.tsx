@@ -1706,6 +1706,35 @@ const inferirComprimentoBarraPerfil = (perfil?: { codigo?: string | null; nome?:
   return extrairComprimentoBarraPerfil(perfil) || 6000
 }
 
+const perfilEhTuboNoCalculo = (perfil?: { codigo?: string | null; nome?: string | null } | null) => {
+  const texto = normalizarTextoComparacao(`${perfil?.codigo || ""} ${perfil?.nome || ""}`)
+  return texto.includes("tubo") || /\btub\b/.test(texto)
+}
+
+const perfilCorrespondeTuboSelecionado = (
+  perfil: { codigo?: string | null; nome?: string | null } | null | undefined,
+  tuboSelecionado: string
+) => {
+  const alvoTexto = normalizarTextoComparacao(tuboSelecionado)
+  if (!alvoTexto) return true
+
+  const codigoPerfil = String(perfil?.codigo || "").trim()
+  const nomePerfil = String(perfil?.nome || "").trim()
+  const codigoNormalizado = normalizarTextoComparacao(codigoPerfil)
+  const nomeNormalizado = normalizarTextoComparacao(nomePerfil)
+  const rotuloPerfil = normalizarTextoComparacao([codigoPerfil, nomePerfil].filter(Boolean).join(" - "))
+
+  if (codigoNormalizado && (alvoTexto === codigoNormalizado || alvoTexto.startsWith(`${codigoNormalizado} -`) || alvoTexto.includes(` ${codigoNormalizado} `))) {
+    return true
+  }
+
+  if (nomeNormalizado && (alvoTexto === nomeNormalizado || alvoTexto.endsWith(`- ${nomeNormalizado}`) || alvoTexto.includes(nomeNormalizado))) {
+    return true
+  }
+
+  return Boolean(rotuloPerfil && (rotuloPerfil === alvoTexto || rotuloPerfil.includes(alvoTexto) || alvoTexto.includes(rotuloPerfil)))
+}
+
 const calcularProjeto = (params: {
   detalhe: ProjetoDetalhe
   largura: number
@@ -1718,6 +1747,7 @@ const calcularProjeto = (params: {
   precoVidroM2: number
   precoVidroM2Porta?: number
   precoVidroM2Bandeira?: number
+  tuboBandeiraSelecionado?: string
   corMaterial: string
   modoCalculo: "kit" | "barra"
   variacaoDrawing: string
@@ -1739,6 +1769,7 @@ const calcularProjeto = (params: {
     precoVidroM2,
     precoVidroM2Porta,
     precoVidroM2Bandeira,
+    tuboBandeiraSelecionado,
     corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
     variacaoTrilho, projetoEhPorta, projetoEBox, projetoEhCanto,
     kitsDB, ferragensDB, perfisDB, qtd,
@@ -2053,6 +2084,11 @@ const calcularProjeto = (params: {
         const espessuraPerfilNumero = extrairNumeroEspessura(espessuraPerfil)
         const espessuraAtualNumero = extrairNumeroEspessura(espessuraAtual)
         const perfilBase = perfisDB.find((perfil) => perfil.id === p.perfil_id)
+        const perfilRef = perfilBase || p.perfis
+        const filtroTuboAtivo = String(tuboBandeiraSelecionado || "").trim()
+        if (filtroTuboAtivo && perfilEhTuboNoCalculo(perfilRef) && !perfilCorrespondeTuboSelecionado(perfilRef, filtroTuboAtivo)) {
+          return false
+        }
         const perfilPorMetro = perfilEhPorMetro(perfilBase || p.perfis)
         const selecaoDeslizanteAtual = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
         const perfilPorMetroDeslizante = perfilPorMetro && Boolean(selecaoDeslizanteAtual.sistema || selecaoDeslizanteAtual.versao)
@@ -3821,6 +3857,7 @@ export default function CalculoProjetoPage() {
         precoVidroM2: precoVidroM2Aplicado,
         precoVidroM2Porta: projetoEBandeira ? getPrecoVidroM2PorId(item.vidroPortaId || item.vidroId) : precoVidroM2Aplicado,
         precoVidroM2Bandeira: projetoEBandeira ? getPrecoVidroM2PorId(item.vidroBandeiraId || item.vidroId) : precoVidroM2Aplicado,
+        tuboBandeiraSelecionado: projetoEBandeira ? String(item.tuboBandeira || "").trim() : "",
         corMaterial: item.corMaterial,
         modoCalculo: modoCalculoEfetivo,
         variacaoDrawing: variacaoDrawingAtiva,
