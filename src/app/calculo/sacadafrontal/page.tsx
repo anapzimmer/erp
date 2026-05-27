@@ -93,7 +93,7 @@ const corCompativel = (coresBanco?: string | null, corSelecionada?: string) => {
 
   const lista = coresBanco
     .toLowerCase()
-    .split(",")
+    .split(/[;,/|]+/)
     .map((cor) => normalizarTextoComparacao(cor).replace(/\s+/g, ""))
     .filter(Boolean);
 
@@ -555,16 +555,17 @@ export default function CalculoSacadaFrontalPage() {
       }
 
       const corSelecionada = normalizarTextoComparacao(corPerfil);
-      const perfilDaTabela = perfisTabela.find((perfilTabela) => {
-        const mesmoCodigo = normalizarTextoComparacao(perfilTabela.codigo) === normalizarTextoComparacao(perfilResultado.codigo);
-        if (!mesmoCodigo) {
-          return false;
-        }
+      const codigoResultado = normalizarCodigo(perfilResultado.codigo);
+      const candidatosMesmoCodigo = perfisTabela.filter(
+        (perfilTabela) => normalizarCodigo(perfilTabela.codigo) === codigoResultado
+      );
 
-        return atendeCor(perfilTabela.cores, corSelecionada);
-      });
+      const perfilDaTabela =
+        candidatosMesmoCodigo.find((perfilTabela) => atendeCor(perfilTabela.cores, corSelecionada)) ||
+        candidatosMesmoCodigo.find((perfilTabela) => normalizarPrecoFerragem(perfilTabela.preco) > 0) ||
+        candidatosMesmoCodigo[0];
 
-      const precoBarra = Number(perfilDaTabela?.preco) || 0;
+      const precoBarra = normalizarPrecoFerragem(perfilDaTabela?.preco);
 
       return {
         ...perfilResultado,
