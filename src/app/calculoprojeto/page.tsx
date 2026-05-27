@@ -2939,6 +2939,29 @@ export default function CalculoProjetoPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
   }, [desenhosDisponiveisCadastro, desenhosPasta])
 
+  const tubosBandeiraDisponiveis = useMemo(() => {
+    const opcoes = new Map<string, string>()
+
+    for (const perfil of perfisDB) {
+      const codigo = String(perfil.codigo || "").trim()
+      const nome = String(perfil.nome || "").trim()
+      const textoNormalizado = normalizarTextoComparacao(`${codigo} ${nome}`)
+
+      if (!textoNormalizado) continue
+      if (!textoNormalizado.includes("tubo") && !textoNormalizado.includes("tub")) continue
+
+      const rotulo = [codigo, nome].filter(Boolean).join(" - ").trim() || nome || codigo
+      if (!rotulo) continue
+
+      const chave = normalizarTextoComparacao(rotulo)
+      if (!opcoes.has(chave)) {
+        opcoes.set(chave, rotulo)
+      }
+    }
+
+    return Array.from(opcoes.values()).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [perfisDB])
+
   const getRestricoesProjeto = useCallback((item: ItemCalculoProjeto) => {
     const detalhe = getDetalhe(item)
     const brutos = [
@@ -4505,13 +4528,20 @@ export default function CalculoProjetoPage() {
                           </div>
                           <div>
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Tubo da Bandeira *</label>
-                            <input
-                              type="text"
-                              placeholder="Ex: 20x20"
+                            <select
                               value={item.tuboBandeira}
                               onChange={(e) => atualizarItem(item.id, "tuboBandeira", e.target.value)}
                               className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                            />
+                              style={{ color: theme.contentTextLightBg }}
+                            >
+                              <option value="">— Selecione o tubo da bandeira —</option>
+                              {item.tuboBandeira && !tubosBandeiraDisponiveis.includes(item.tuboBandeira) && (
+                                <option value={item.tuboBandeira}>{item.tuboBandeira}</option>
+                              )}
+                              {tubosBandeiraDisponiveis.map((tubo) => (
+                                <option key={tubo} value={tubo}>{tubo}</option>
+                              ))}
+                            </select>
                           </div>
                         </div>
 
