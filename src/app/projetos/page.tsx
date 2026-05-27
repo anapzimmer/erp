@@ -83,6 +83,7 @@ type ProjetoPerfil = {
   qtd_largura: number
   formula_largura?: string | null
   qtd_altura: number
+  formula_altura?: string | null
   qtd_outros: number
   tipo_fornecimento: string
   variacao_restrita?: string | null
@@ -278,6 +279,7 @@ const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const TRILHO_TOKEN = "__TRILHO__="
 const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
+const FORMULA_ALTURA_TOKEN = "__FORM_ALT__="
 const POSICAO_TOKEN = "__POSICAO__="
 const VERSAO_DESLIZANTE_TOKEN = "__VERSAO_DESLIZANTE__="
 
@@ -364,6 +366,16 @@ const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
     .find((l) => l.startsWith(FORMULA_LARGURA_TOKEN))
 
   const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
+const extrairFormulaAlturaDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_ALTURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_ALTURA_TOKEN.length).trim() : ""
   return formula || null
 }
 
@@ -625,6 +637,18 @@ const aplicarFormulaLarguraNoTexto = (valor: string | null | undefined, formula:
   const formulaFinal = String(formula || "").trim()
   if (!formulaFinal) return textoBase
   return [textoBase, `${FORMULA_LARGURA_TOKEN}${formulaFinal}`].filter(Boolean).join("\n")
+}
+
+const aplicarFormulaAlturaNoTexto = (valor: string | null | undefined, formula: string | null | undefined) => {
+  const textoBase = String(valor || "")
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(FORMULA_ALTURA_TOKEN))
+    .join("\n")
+    .trim()
+
+  const formulaFinal = String(formula || "").trim()
+  if (!formulaFinal) return textoBase
+  return [textoBase, `${FORMULA_ALTURA_TOKEN}${formulaFinal}`].filter(Boolean).join("\n")
 }
 
 const aplicarPosicaoNoTexto = (valor: string | null | undefined, posicao: string | null | undefined) => {
@@ -1651,6 +1675,7 @@ export default function ProjetosPage() {
           qtd_largura: Number(p.qtd_largura ?? p.quantidade ?? 0),
           formula_largura: extrairFormulaLarguraDoTexto(tipoFornecimentoComTokens),
           qtd_altura: Number(p.qtd_altura ?? 0),
+          formula_altura: extrairFormulaAlturaDoTexto(tipoFornecimentoComTokens),
           qtd_outros: Number(p.qtd_outros ?? 0),
           tipo_fornecimento: extrairVariacaoDoTexto(tipoFornecimentoComTokens).textoLimpo || "barra",
           variacao_restrita: p.variacao_restrita ?? extrairVariacaoDoTexto(tipoFornecimentoComTokens).variacao ?? null,
@@ -1788,6 +1813,7 @@ export default function ProjetosPage() {
         perfilId,
         String(perfil.variacao_restrita || "").trim(),
         String(perfil.formula_largura || "").trim(),
+        String(perfil.formula_altura || "").trim(),
         String(perfil.espessura_vidro_restrita || "").trim(),
         String(perfil.condicao || "").trim(),
         String(perfil.posicao || "").trim(),
@@ -1810,12 +1836,15 @@ export default function ProjetosPage() {
               aplicarPosicaoNoTexto(
                 aplicarVersaoDeslizanteNoTexto(
                   aplicarCondicaoNoTexto(
-                    aplicarFormulaLarguraNoTexto(
-                      aplicarVariacaoNoTexto(
-                        limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
-                        perfil.variacao_restrita ?? null
+                    aplicarFormulaAlturaNoTexto(
+                      aplicarFormulaLarguraNoTexto(
+                        aplicarVariacaoNoTexto(
+                          limparTextoSimples(perfil.tipo_fornecimento) || existente?.tipo_fornecimento || "barra",
+                          perfil.variacao_restrita ?? null
+                        ),
+                        perfil.formula_largura ?? null
                       ),
-                      perfil.formula_largura ?? null
+                      perfil.formula_altura ?? null
                     ),
                     perfil.condicao ?? null
                   ),
@@ -2347,6 +2376,7 @@ export default function ProjetosPage() {
           qtd_largura: 0,
           formula_largura: null,
           qtd_altura: 0,
+          formula_altura: null,
           qtd_outros: 0,
           tipo_fornecimento: "barra",
           variacao_restrita: null,
@@ -2374,6 +2404,7 @@ export default function ProjetosPage() {
         qtd_largura: 0,
         formula_largura: null,
         qtd_altura: 0,
+        formula_altura: null,
         qtd_outros: 0,
         tipo_fornecimento: "barra",
         variacao_restrita: null,
@@ -3027,7 +3058,7 @@ export default function ProjetosPage() {
                   <button
                     type="button"
                     onClick={() => setEditandoNomesVariacao((v) => !v)}
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all"
+                    className="min-h-9 px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all inline-flex items-center justify-center"
                     style={{ borderColor: "#d1d5db", color: "#4b5563", backgroundColor: "#fff" }}
                   >
                     {editandoNomesVariacao ? "Ocultar edição" : "Editar nomes"}
@@ -3220,7 +3251,7 @@ export default function ProjetosPage() {
                         <button
                           type="button"
                           onClick={() => setEditandoNomesDesenho((v) => !v)}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all"
+                          className="min-h-9 px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all inline-flex items-center justify-center"
                           style={{ borderColor: "#d1d5db", color: "#4b5563", backgroundColor: "#fff" }}
                         >
                           {editandoNomesDesenho ? "Ocultar nomes" : "Editar nomes"}
@@ -3362,7 +3393,7 @@ export default function ProjetosPage() {
                                 <button
                                   type="button"
                                   onClick={() => duplicarOpcaoNovaVariacao(opcao.id)}
-                                  className="px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all text-[10px] font-black"
+                                  className="min-h-9 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all text-[10px] font-black inline-flex items-center justify-center"
                                   title="Duplicar opção"
                                 >
                                   Duplicar
@@ -3517,7 +3548,7 @@ export default function ProjetosPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => aplicarPresetEmFolha(idx)}
-                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 transition-all"
+                            className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 transition-all inline-flex items-center justify-center"
                           >
                             Aplicar Preset
                           </button>
@@ -3598,7 +3629,7 @@ export default function ProjetosPage() {
                                         : [...selecionados, opcao.value]
                                       atualizarFolha(idx, "trilho_restrito", novosTrilhos.length > 0 ? novosTrilhos.join(",") : null)
                                     }}
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
                                       backgroundColor: ativo ? "#f3f4f6" : "#fafbfc",
                                       borderColor: ativo ? "#374151" : "#e5e7eb",
@@ -3635,7 +3666,7 @@ export default function ProjetosPage() {
                                       const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
                                       atualizarFolha(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
                                     }}
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
                                       backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
                                       borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
@@ -3877,7 +3908,7 @@ export default function ProjetosPage() {
                               <button
                                 type="button"
                                 onClick={() => atualizarKit(idx, "variacao_restrita", null)}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                 style={{
                                   backgroundColor: !kit.variacao_restrita ? "#f5f3ff" : "#f9fafb",
                                   borderColor: !kit.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
@@ -3897,7 +3928,7 @@ export default function ProjetosPage() {
                                       const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
                                       atualizarKit(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
                                     }}
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
                                       backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
                                       borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
@@ -4157,7 +4188,7 @@ export default function ProjetosPage() {
                                           const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
                                           atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                         style={{
                                           backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
                                           borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
@@ -4186,7 +4217,7 @@ export default function ProjetosPage() {
                                           const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
                                           atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                        className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                         style={{
                                           backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
                                           borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
@@ -4337,7 +4368,7 @@ export default function ProjetosPage() {
                       style={p.variacao_restrita ? { borderLeftColor: "#8b5cf6", borderLeftWidth: "4px" } : {}}
                     >
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 pr-12">
-                        <div className="sm:col-span-2 xl:col-span-5">
+                        <div className="sm:col-span-2 xl:col-span-4">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Perfil</label>
                           <select
                             value={p.perfil_id}
@@ -4362,17 +4393,17 @@ export default function ProjetosPage() {
                             min={0}
                             value={p.qtd_largura}
                             onChange={e => atualizarPerfil(idx, "qtd_largura", Number(e.target.value))}
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
-                        <div className="xl:col-span-3">
+                        <div className="xl:col-span-2">
                           <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula Largura</label>
                           <input
                             type="text"
                             placeholder="Ex: L/3"
                             value={p.formula_largura || ""}
                             onChange={e => atualizarPerfil(idx, "formula_largura", e.target.value.trim() || null)}
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
                         <div className="xl:col-span-2">
@@ -4382,7 +4413,17 @@ export default function ProjetosPage() {
                             min={0}
                             value={p.qtd_altura}
                             onChange={e => atualizarPerfil(idx, "qtd_altura", Number(e.target.value))}
-                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div className="xl:col-span-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Formula Altura</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: AP  |  A - AP"
+                            value={p.formula_altura || ""}
+                            onChange={e => atualizarPerfil(idx, "formula_altura", e.target.value.trim() || null)}
+                            className="w-full min-h-11.5 p-2.5 rounded-xl bg-white border border-gray-200 text-sm font-bold outline-none"
                           />
                         </div>
                         <div className="sm:col-span-2 xl:col-span-5">
@@ -4391,10 +4432,10 @@ export default function ProjetosPage() {
                           </label>
                           <input
                             type="text"
-                            placeholder="Ex: A > 1900  |  L >= 1200  |  A >= 1800 (vazio = sempre)"
+                            placeholder="Ex: AP >= 1800  |  A - AP >= 300  |  L >= 1200 (vazio = sempre)"
                             value={p.condicao || ""}
                             onChange={e => atualizarPerfil(idx, "condicao", e.target.value.trim() || null)}
-                            className="w-full p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl text-xs font-bold outline-none border transition-all"
                             style={{
                               backgroundColor: p.condicao ? "#ecfeff" : "#ffffff",
                               borderColor: p.condicao ? "#06b6d4" : "#e5e7eb",
@@ -4412,7 +4453,7 @@ export default function ProjetosPage() {
                           <button
                             type="button"
                             onClick={() => atualizarPerfil(idx, "usar_no_kit", !p.usar_no_kit)}
-                            className="w-full p-2.5 rounded-xl text-xs font-black border transition-all"
+                            className="w-full min-h-11.5 p-2.5 rounded-xl text-xs font-black border transition-all flex items-center justify-center"
                             style={{
                               backgroundColor: p.usar_no_kit ? "#ecfdf5" : "#ffffff",
                               borderColor: p.usar_no_kit ? "#10b981" : "#e5e7eb",
@@ -4427,7 +4468,7 @@ export default function ProjetosPage() {
                           <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#b45309" }}>
                             Espessura do vidro para este perfil
                           </label>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                             {[
                               { valor: null, label: "Todas" },
                               { valor: "8mm", label: "8mm" },
@@ -4439,7 +4480,7 @@ export default function ProjetosPage() {
                                   key={opcao.label}
                                   type="button"
                                   onClick={() => atualizarPerfil(idx, "espessura_vidro_restrita", opcao.valor)}
-                                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                  className="w-full min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                   style={{
                                     backgroundColor: ativo ? "#fff7ed" : "#f9fafb",
                                     borderColor: ativo ? "#f59e0b" : "#e5e7eb",
@@ -4495,7 +4536,7 @@ export default function ProjetosPage() {
                               <button
                                 type="button"
                                 onClick={() => atualizarPerfil(idx, "variacao_restrita", null)}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                 style={{
                                   backgroundColor: !p.variacao_restrita ? "#f5f3ff" : "#f9fafb",
                                   borderColor: !p.variacao_restrita ? "#8b5cf6" : "#e5e7eb",
@@ -4515,7 +4556,7 @@ export default function ProjetosPage() {
                                       const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
                                       atualizarPerfil(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
                                     }}
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border"
+                                    className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
                                       backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
                                       borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
@@ -4620,3 +4661,4 @@ export default function ProjetosPage() {
     </div>
   )
 }
+

@@ -123,6 +123,9 @@ type RelatorioObraItem = {
   quantidade: number
   vao: string
   vidro: string
+  vidroPorta?: string | null
+  vidroBandeira?: string | null
+  tuboBandeira?: string | null
   corMaterial: string
   modoCalculo: string
   subtotal: number
@@ -590,10 +593,19 @@ export function RelatorioObraPDF({
           <View style={styles.desenhoPaginaBloco}>
             <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
             <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
+            {obra.vidroPorta && (
+              <Text style={styles.cardMeta}>Vidro da porta: {obra.vidroPorta}</Text>
+            )}
+            {obra.vidroBandeira && (
+              <Text style={styles.cardMeta}>Vidro da bandeira: {obra.vidroBandeira}</Text>
+            )}
             <Text style={styles.cardMeta}>
               Material {obra.corMaterial} · Modo {obra.modoCalculo}
               {obra.variacaoLabel ? ` · Variação ${obra.variacaoLabel}` : ""}
             </Text>
+            {obra.tuboBandeira && (
+              <Text style={styles.cardMeta}>Tubo da bandeira: {obra.tuboBandeira}</Text>
+            )}
             {obra.ehPorta && obra.especificacaoDesenho && (
               <Text style={styles.cardMeta}>Especificação do desenho: {obra.especificacaoDesenho}</Text>
             )}
@@ -929,6 +941,17 @@ export function RelatorioObraPDF({
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
                 <Text style={styles.cardMeta}>Individual deste item · Modo {obra.modoCalculo} · Cor {obra.corMaterial} · Quantidade {obra.quantidade}</Text>
+                {obra.vidroPorta ? (
+                  <Text style={styles.cardMeta}>Vidro da porta: {obra.vidroPorta}</Text>
+                ) : (
+                  <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
+                )}
+                {obra.vidroBandeira && (
+                  <Text style={styles.cardMeta}>Vidro da bandeira: {obra.vidroBandeira}</Text>
+                )}
+                {obra.tuboBandeira && (
+                  <Text style={styles.cardMeta}>Tubo da bandeira: {obra.tuboBandeira}</Text>
+                )}
               </View>
 
               <View style={styles.cardBody}>
