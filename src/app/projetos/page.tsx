@@ -2478,6 +2478,53 @@ export default function ProjetosPage() {
       return { ...prev, perfis: arr.sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))) }
     })
   }
+
+  const aplicarPresetSomenteBandeiraPerfil = (i: number) => {
+    setForm((prev) => {
+      const arr = [...prev.perfis]
+      const atual = arr[i]
+      if (!atual) return prev
+
+      const formulaLarguraAtual = String(atual.formula_largura || "").trim()
+      const formulaAlturaAtual = String(atual.formula_altura || "").trim()
+
+      arr[i] = {
+        ...atual,
+        condicao: "A > AP",
+        formula_largura: formulaLarguraAtual || "L",
+        formula_altura: formulaAlturaAtual || "A - AP",
+      }
+
+      return {
+        ...prev,
+        perfis: arr.sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))),
+      }
+    })
+  }
+
+  const aplicarPresetSomentePortaPerfil = (i: number) => {
+    setForm((prev) => {
+      const arr = [...prev.perfis]
+      const atual = arr[i]
+      if (!atual) return prev
+
+      const formulaLarguraAtual = String(atual.formula_largura || "").trim()
+      const formulaAlturaAtual = String(atual.formula_altura || "").trim()
+
+      arr[i] = {
+        ...atual,
+        condicao: "A >= AP",
+        formula_largura: formulaLarguraAtual || "L",
+        formula_altura: formulaAlturaAtual || "AP",
+      }
+
+      return {
+        ...prev,
+        perfis: arr.sort((a, b) => comparePerfisByNome(formatarRotuloItemTecnico(a), formatarRotuloItemTecnico(b))),
+      }
+    })
+  }
+
   const removerPerfil = (i: number) => {
     setForm(prev => ({ ...prev, perfis: prev.perfis.filter((_, idx) => idx !== i) }))
   }
@@ -4522,18 +4569,37 @@ export default function ProjetosPage() {
                             Condição de aplicação
                           </label>
                           {projetoTemBandeira && (
-                            <button
-                              type="button"
-                              onClick={() => atualizarPerfil(idx, "condicao", "A > AP")}
-                              className="mb-1.5 min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
-                              style={{
-                                backgroundColor: "#ecfeff",
-                                borderColor: "#06b6d4",
-                                color: "#0e7490",
-                              }}
-                            >
-                              Somente bandeira (A &gt; AP)
-                            </button>
+                            <div className="mb-1.5 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => aplicarPresetSomenteBandeiraPerfil(idx)}
+                                  className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
+                                  style={{
+                                    backgroundColor: "#ecfeff",
+                                    borderColor: "#06b6d4",
+                                    color: "#0e7490",
+                                  }}
+                                >
+                                  Somente bandeira (A &gt; AP)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => aplicarPresetSomentePortaPerfil(idx)}
+                                  className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
+                                  style={{
+                                    backgroundColor: "#eef2ff",
+                                    borderColor: "#6366f1",
+                                    color: "#3730a3",
+                                  }}
+                                >
+                                  Somente porta (A &gt;= AP)
+                                </button>
+                              </div>
+                              <p className="text-[10px] font-bold text-cyan-700">
+                                Dica: use <strong>bandeira</strong> para peças que entram só no vão superior (A &gt; AP) e <strong>porta</strong> para peças da folha principal (A &gt;= AP).
+                              </p>
+                            </div>
                           )}
                           <input
                             type="text"

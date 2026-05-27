@@ -1735,6 +1735,51 @@ const perfilCorrespondeTuboSelecionado = (
   return Boolean(rotuloPerfil && (rotuloPerfil === alvoTexto || rotuloPerfil.includes(alvoTexto) || alvoTexto.includes(rotuloPerfil)))
 }
 
+const perfilEhSomenteBandeira = (perfilProjeto: {
+  formula_largura?: string | null
+  formula_altura?: string | null
+  condicao?: string | null
+}) => {
+  const condicao = String(perfilProjeto.condicao || "").replace(/\s+/g, "").toUpperCase()
+  const formula = `${perfilProjeto.formula_largura || ""} ${perfilProjeto.formula_altura || ""}`.replace(/\s+/g, "").toUpperCase()
+
+  // Marcadores explícitos de bandeira (perfil entra quando A > AP).
+  const condicaoBandeira =
+    condicao.includes("A>AP") ||
+    condicao.includes("AP<A") ||
+    condicao.includes("A-AP>0") ||
+    condicao.includes("AB>0")
+
+  // Marcadores explícitos de porta (não deve usar espessura da bandeira).
+  const condicaoPorta =
+    condicao.includes("A<=AP") ||
+    condicao.includes("A<AP") ||
+    condicao.includes("AP>=A") ||
+    condicao.includes("AP>A") ||
+    condicao.includes("A-AP<=0")
+
+  if (condicaoPorta) return false
+  if (condicaoBandeira) return true
+
+  // Sem condição explícita, considera bandeira quando a fórmula depende do vão da bandeira.
+  return formula.includes("A-AP") || formula.includes("AB")
+}
+
+const avaliarCondicaoPerfilComCompat = (condicao: string | null | undefined, vars: Record<string, number>) => {
+  const textoOriginal = String(condicao || "").trim()
+  if (!textoOriginal) return true
+
+  const textoNormalizado = textoOriginal.replace(/\s+/g, "").toUpperCase()
+
+  // Compatibilidade retroativa: preset antigo de porta foi salvo como A<=AP.
+  // Trata como regra de porta ativa (A>=AP), mantendo AP obrigatório.
+  if (textoNormalizado === "A<=AP") {
+    return Number(vars.AP || 0) > 0 && Number(vars.A || 0) >= Number(vars.AP || 0)
+  }
+
+  return avaliarCondicao(textoOriginal, vars)
+}
+
 const calcularProjeto = (params: {
   detalhe: ProjetoDetalhe
   largura: number
@@ -2080,7 +2125,8 @@ const calcularProjeto = (params: {
     const perfisAplicaveis = detalhe.perfis
       .filter((p) => {
         const espessuraPerfil = String(p.espessura_vidro_restrita || "").trim().toLowerCase()
-        const espessuraAtual = String(vidroPortaAtivo?.espessura || "").trim().toLowerCase()
+        const vidroReferenciaEspessura = perfilEhSomenteBandeira(p) && vidroBandeiraAtivo ? vidroBandeiraAtivo : vidroPortaAtivo
+        const espessuraAtual = String(vidroReferenciaEspessura?.espessura || "").trim().toLowerCase()
         const espessuraPerfilNumero = extrairNumeroEspessura(espessuraPerfil)
         const espessuraAtualNumero = extrairNumeroEspessura(espessuraAtual)
         const perfilBase = perfisDB.find((perfil) => perfil.id === p.perfil_id)
@@ -2125,7 +2171,7 @@ const calcularProjeto = (params: {
             if (!espAtualLimpa || (!espPerfilLimpa.includes(espAtualLimpa) && !espAtualLimpa.includes(espPerfilLimpa))) return false
           }
         }
-        return !condicaoExiste || avaliarCondicao(p.condicao, vars)
+        return !condicaoExiste || avaliarCondicaoPerfilComCompat(p.condicao, vars)
       })
       .sort((a, b) => {
         const nomeA = perfisDB.find((perfil) => perfil.id === a.perfil_id)?.nome || a.perfis?.nome || ""
@@ -2300,6 +2346,7 @@ export default function CalculoProjetoPage() {
   const [detalhesProjetos, setDetalhesProjetos] = useState<Record<string, ProjetoDetalhe>>({})
   const [projetosCarregando, setProjetosCarregando] = useState<string[]>([])
   const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
+  const [nomesVariacaoHidratados, setNomesVariacaoHidratados] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustomCalculo[]>([])
 
   // ── Resultado ──
@@ -2428,6 +2475,8 @@ export default function CalculoProjetoPage() {
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
+
+    setNomesVariacaoHidratados(false)
     const chave = `variacao-box:nomes:${empresaId}`
     try {
       const bruto = window.localStorage.getItem(chave)
@@ -2438,14 +2487,16 @@ export default function CalculoProjetoPage() {
       }
     } catch {
       // ignora inconsistencias de armazenamento local
+    } finally {
+      setNomesVariacaoHidratados(true)
     }
   }, [empresaId])
 
   useEffect(() => {
-    if (!empresaId || typeof window === "undefined") return
+    if (!empresaId || typeof window === "undefined" || !nomesVariacaoHidratados) return
     const chave = `variacao-box:nomes:${empresaId}`
     window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
-  }, [empresaId, nomesVariacaoPersonalizados])
+  }, [empresaId, nomesVariacaoPersonalizados, nomesVariacaoHidratados])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -2754,9 +2805,24 @@ export default function CalculoProjetoPage() {
   }
 
   const adicionarProjetoNaFila = () => {
-    const novoProjeto = criarItemCalculoProjeto()
-    projetoPendenteScrollRef.current = novoProjeto.id
-    setItensCalculo((prev) => [...prev, novoProjeto])
+    setItensCalculo((prev) => {
+      const ultimoItem = prev[prev.length - 1]
+
+      const novoProjeto = ultimoItem
+        ? {
+            ...ultimoItem,
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            largura: "",
+            altura: "",
+            largura2: "",
+            altura2: "",
+            qtd: "",
+          }
+        : criarItemCalculoProjeto()
+
+      projetoPendenteScrollRef.current = novoProjeto.id
+      return [...prev, novoProjeto]
+    })
     setResultados([])
   }
 
