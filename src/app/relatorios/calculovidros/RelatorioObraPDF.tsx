@@ -123,6 +123,9 @@ type RelatorioObraItem = {
   quantidade: number
   vao: string
   vidro: string
+  vidroPorta?: string | null
+  vidroBandeira?: string | null
+  tuboBandeira?: string | null
   corMaterial: string
   modoCalculo: string
   subtotal: number
@@ -271,8 +274,9 @@ const styles = StyleSheet.create({
   infoBox: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 8, padding: 10, borderLeftWidth: 3 },
   infoLabel: { fontSize: 6.5, textTransform: "uppercase", color: "#94A3B8", marginBottom: 3, fontWeight: "bold" },
   infoValue: { fontSize: 9.5, color: "#0F172A", fontWeight: "bold" },
-  sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: "#334155", marginBottom: 8 },
-  sectionLead: { fontSize: 8, color: "#64748B", marginTop: -4, marginBottom: 10 },
+  sectionHeaderBlock: { marginBottom: 10 },
+  sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: "#334155", marginBottom: 4 },
+  sectionLead: { fontSize: 8, color: "#64748B", marginTop: 0, marginBottom: 0 },
   resumoGrid: { flexDirection: "row", gap: 8, marginBottom: 14 },
   resumoBox: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#E2E8F0" },
   resumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
   cardHeader: { padding: 10, backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
   cardHeaderTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
   cardTitle: { fontSize: 10.5, fontWeight: "bold", color: "#0F172A" },
-  cardMeta: { fontSize: 7.5, color: "#64748B", marginTop: 3 },
+  cardMeta: { fontSize: 7.5, lineHeight: 1.35, color: "#64748B", marginTop: 3 },
   cardBody: { padding: 10 },
   row: { flexDirection: "row", gap: 10 },
   col: { flex: 1 },
@@ -387,26 +391,26 @@ const styles = StyleSheet.create({
   desenhoTexto: { flex: 1 },
   blocoTitulo: { fontSize: 8.5, fontWeight: "bold", color: "#334155", marginBottom: 5 },
   blocoSubtitulo: { fontSize: 7.2, color: "#64748B", marginBottom: 6 },
-  linha: { fontSize: 7.5, color: "#475569", marginBottom: 3 },
+  linha: { fontSize: 7.5, lineHeight: 1.35, color: "#475569", marginBottom: 3 },
   destaque: { fontWeight: "bold", color: "#0F172A" },
   table: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, overflow: "hidden" },
   tableHeader: { flexDirection: "row", backgroundColor: "#F1F5F9", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0" },
-  tableRowLast: { flexDirection: "row" },
+  tableRow: { flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0" },
+  tableRowLast: { flexDirection: "row", alignItems: "center" },
   tableCellHeader: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 6.6, color: "#475569", fontWeight: "bold", textTransform: "uppercase" },
-  tableCell: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 7.2, color: "#334155" },
+  tableCell: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 7.2, lineHeight: 1.35, color: "#334155" },
   cellGrow: { flex: 1.4 },
   cellSmall: { flex: 0.65 },
   cellMedium: { flex: 0.9 },
   materialGrid: { flexDirection: "row", gap: 8, marginBottom: 10 },
   materialCol: { flex: 1 },
   materialRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0", paddingVertical: 4 },
-  materialName: { flex: 1, fontSize: 7.3, color: "#334155" },
-  materialQty: { fontSize: 7.3, color: "#0F172A", fontWeight: "bold" },
+  materialName: { flex: 1, fontSize: 7.3, lineHeight: 1.35, color: "#334155" },
+  materialQty: { fontSize: 7.3, lineHeight: 1.35, color: "#0F172A", fontWeight: "bold" },
   noteBox: { borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", padding: 8, marginBottom: 10 },
   noteText: { fontSize: 7.2, color: "#64748B", lineHeight: 1.35 },
   barraLista: { marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
-  barraLinha: { fontSize: 7.2, color: "#475569", marginBottom: 5 },
+  barraLinha: { fontSize: 7.2, lineHeight: 1.35, color: "#475569", marginBottom: 5 },
   otimResumoGrid: { flexDirection: "row", gap: 6, marginBottom: 10 },
   otimResumoBox: { flex: 1, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, backgroundColor: "#F8FAFC", padding: 8 },
   otimResumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", fontWeight: "bold", marginBottom: 3 },
@@ -422,9 +426,9 @@ const styles = StyleSheet.create({
   otimChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 6 },
   otimChip: { backgroundColor: "#F1F5F9", borderRadius: 6, paddingVertical: 3, paddingHorizontal: 6 },
   otimChipText: { fontSize: 7, color: "#475569", fontWeight: "bold" },
-  otimBodyLinha: { fontSize: 7.5, color: "#64748B", marginBottom: 4 },
+  otimBodyLinha: { fontSize: 7.5, lineHeight: 1.35, color: "#64748B", marginBottom: 4 },
   otimBarraLista: { marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
-  otimBarraLinha: { fontSize: 7, color: "#475569", marginBottom: 3 },
+  otimBarraLinha: { fontSize: 7, lineHeight: 1.35, color: "#475569", marginBottom: 3 },
   footer: {
     position: "absolute", bottom: 18, left: 32, right: 32,
     textAlign: "center", fontSize: 8, color: "#94A3B8",
@@ -590,10 +594,19 @@ export function RelatorioObraPDF({
           <View style={styles.desenhoPaginaBloco}>
             <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
             <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
+            {obra.vidroPorta && (
+              <Text style={styles.cardMeta}>Vidro da porta: {obra.vidroPorta}</Text>
+            )}
+            {obra.vidroBandeira && (
+              <Text style={styles.cardMeta}>Vidro da bandeira: {obra.vidroBandeira}</Text>
+            )}
             <Text style={styles.cardMeta}>
               Material {obra.corMaterial} · Modo {obra.modoCalculo}
               {obra.variacaoLabel ? ` · Variação ${obra.variacaoLabel}` : ""}
             </Text>
+            {obra.tuboBandeira && (
+              <Text style={styles.cardMeta}>Tubo da bandeira: {obra.tuboBandeira}</Text>
+            )}
             {obra.ehPorta && obra.especificacaoDesenho && (
               <Text style={styles.cardMeta}>Especificação do desenho: {obra.especificacaoDesenho}</Text>
             )}
@@ -662,8 +675,10 @@ export function RelatorioObraPDF({
             {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
 
-          <Text style={styles.sectionTitle}>Mapa de Materiais da Obra</Text>
-          <Text style={styles.sectionLead}>Totais consolidados da obra inteira antes dos detalhes individuais.</Text>
+          <View style={styles.sectionHeaderBlock} wrap={false}>
+            <Text style={styles.sectionTitle}>Mapa de Materiais da Obra</Text>
+            <Text style={styles.sectionLead}>Totais consolidados da obra inteira antes dos detalhes individuais.</Text>
+          </View>
           {otimizacaoGlobalOrdenada.length > 0 && (() => {
             const resumoOtim = otimizacaoGlobalOrdenada.reduce(
               (acc, item) => {
@@ -738,9 +753,9 @@ export function RelatorioObraPDF({
 
                       {Array.isArray(item.barras) && item.barras.length > 0 && (
                         <View style={styles.otimBarraLista}>
-                          <Text style={[styles.otimBarraLinha, { fontWeight: "bold", marginBottom: 4 }]}>Barras consolidadas:</Text>
+                          <Text style={[styles.otimBarraLinha, { fontWeight: "bold", marginBottom: 4 }]} wrap={false}>Barras consolidadas:</Text>
                           {item.barras.map((barra) => (
-                            <Text key={`${item.id}-barra-${barra.numero}`} style={styles.otimBarraLinha}>
+                            <Text key={`${item.id}-barra-${barra.numero}`} style={styles.otimBarraLinha} wrap={false}>
                               #{barra.numero}: {barra.cortes.join(" · ")} mm · usado {barra.usadoMm} mm · sobra {barra.sobraMm} mm
                             </Text>
                           ))}
@@ -765,7 +780,7 @@ export function RelatorioObraPDF({
                   <Text style={[styles.tableCellHeader, styles.cellMedium]}>Valor</Text>
                 </View>
                 {ferragensGlobal.map((ferragem, index) => (
-                  <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={index === ferragensGlobal.length - 1 ? styles.tableRowLast : styles.tableRow}>
+                  <View key={`${ferragem.codigo || "sem-codigo"}-${ferragem.nome}`} style={index === ferragensGlobal.length - 1 ? styles.tableRowLast : styles.tableRow} wrap={false}>
                     <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
                     <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
                     <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
@@ -797,8 +812,10 @@ export function RelatorioObraPDF({
             {logoUrl && <Image src={logoUrl} style={styles.logo} />}
           </View>
 
-          <Text style={styles.sectionTitle}>Itens Separados</Text>
-          <Text style={styles.sectionLead}>Detalhe individual de cada item, separado dos totais globais para preservar a leitura da pagina.</Text>
+          <View style={styles.sectionHeaderBlock} wrap={false}>
+            <Text style={styles.sectionTitle}>Itens Separados</Text>
+            <Text style={styles.sectionLead}>Detalhe individual de cada item, separado dos totais globais para preservar a leitura da pagina.</Text>
+          </View>
           {false && paginaIndex === 0 && otimizacaoGlobalOrdenada.length > 0 && (() => {
             const resumoOtim = otimizacaoGlobalOrdenada.reduce(
               (acc, item) => ({
@@ -918,17 +935,28 @@ export function RelatorioObraPDF({
           )}
 
           {paginaIndex === 0 && (
-            <View style={styles.blocoSemContorno}>
+            <View style={styles.blocoSemContorno} wrap={false}>
               <Text style={styles.blocoTitulo}>Individual - Itens Separados</Text>
               <Text style={styles.blocoSubtitulo}>A partir daqui, cada bloco mostra apenas o detalhe daquele item.</Text>
             </View>
           )}
 
           {pagina.map((obra) => (
-            <View key={`${obra.itemId}-estrutura`} style={styles.card} wrap={false}>
+            <View key={`${obra.itemId}-estrutura`} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
                 <Text style={styles.cardMeta}>Individual deste item · Modo {obra.modoCalculo} · Cor {obra.corMaterial} · Quantidade {obra.quantidade}</Text>
+                {obra.vidroPorta ? (
+                  <Text style={styles.cardMeta}>Vidro da porta: {obra.vidroPorta}</Text>
+                ) : (
+                  <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
+                )}
+                {obra.vidroBandeira && (
+                  <Text style={styles.cardMeta}>Vidro da bandeira: {obra.vidroBandeira}</Text>
+                )}
+                {obra.tuboBandeira && (
+                  <Text style={styles.cardMeta}>Tubo da bandeira: {obra.tuboBandeira}</Text>
+                )}
               </View>
 
               <View style={styles.cardBody}>
@@ -953,7 +981,7 @@ export function RelatorioObraPDF({
                           <Text style={[styles.tableCellHeader, styles.cellMedium]}>Valor</Text>
                         </View>
                         {obra.ferragens.map((ferragem, index) => (
-                          <View key={ferragem.id} style={index === obra.ferragens.length - 1 ? styles.tableRowLast : styles.tableRow}>
+                          <View key={ferragem.id} style={index === obra.ferragens.length - 1 ? styles.tableRowLast : styles.tableRow} wrap={false}>
                             <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.codigo || "-"}</Text>
                             <Text style={[styles.tableCell, styles.cellGrow]}>{ferragem.nome}</Text>
                             <Text style={[styles.tableCell, styles.cellSmall]}>{ferragem.qtd} un</Text>
@@ -972,13 +1000,13 @@ export function RelatorioObraPDF({
                   <Text style={styles.blocoTitulo}>Otimização por Item</Text>
                   {obra.otimizacao.length > 0 ? [...obra.otimizacao].sort(ordenarPerfisRelatorio).map((item) => (
                     <View key={item.id} style={styles.blocoSemMargem}>
-                      <Text style={styles.linha}>
+                      <Text style={styles.linha} wrap={false}>
                         <Text style={styles.destaque}>{formatarPerfil(item.perfilCodigo, item.perfilNome)}:</Text> <Text style={styles.destaque}>{item.qtdBarras} barra(s)</Text> de {item.comprimentoBarra} mm | aproveitamento {item.aproveitamento}% | desperdício {item.desperdicioMm} mm
                       </Text>
                       {Array.isArray(item.barras) && item.barras.length > 0 && (
                         <View style={styles.barraLista}>
                           {item.barras.map((barra) => (
-                            <Text key={`${item.id}-barra-${barra.numero}`} style={styles.barraLinha}>
+                            <Text key={`${item.id}-barra-${barra.numero}`} style={styles.barraLinha} wrap={false}>
                               Barra {barra.numero}: cortes {barra.cortes.join(" · ")} mm | usado {barra.usadoMm} mm | sobra {barra.sobraMm} mm
                             </Text>
                           ))}

@@ -38,8 +38,8 @@ interface Cliente { id: string | number; nome: string; tabela_id?: string | numb
 interface TabelaPreco { id: string | number; nome: string; }
 interface Servico { id: string | number; nome: string; preco: number; unidade?: string | null; }
 interface KitCatalogo { id: string | number; nome: string; preco?: number | string | null; preco_por_cor?: number | string | null; }
-interface PerfilCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; }
-interface FerragemCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; }
+interface PerfilCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
+interface FerragemCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
 interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
 interface ItemNaoEncontrado { nomeExcel: string; nomeExcelNormalizado: string; l: number; a: number; qtd: number; }
 
@@ -170,6 +170,8 @@ export default function RelatorioOrçamento() {
   const [adicionalSelecionadoId, setAdicionalSelecionadoId] = useState("")
   const [quantidadeAdicional, setQuantidadeAdicional] = useState(1)
   const [valorUnitarioAdicional, setValorUnitarioAdicional] = useState("")
+  const [filtroCorAdicional, setFiltroCorAdicional] = useState("")
+  const [buscaAdicional, setBuscaAdicional] = useState("")
 
   // Edição de Modal
   const [editandoId, setEditandoId] = useState<string | number | null>(null);
@@ -338,6 +340,44 @@ export default function RelatorioOrçamento() {
     : tipoAdicionalSelecionado === "perfil"
       ? listaPerfis
       : listaFerragens;
+
+  const normalizarTextoFiltroAdicional = (valor: string) =>
+    String(valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+  const extrairListaCores = (valor: unknown) =>
+    String(valor || "")
+      .split(/[;,/|]+/)
+      .map((parte) => normalizarTextoFiltroAdicional(parte))
+      .filter(Boolean);
+
+  const termoCorAdicional = normalizarTextoFiltroAdicional(filtroCorAdicional);
+  const termoBuscaAdicional = normalizarTextoFiltroAdicional(buscaAdicional);
+
+  const adicionaisFiltrados = itensAdicionaisDisponiveis.filter((item) => {
+    const itemComCor = item as { cores?: string | null; codigo?: string | null; nome?: string | null };
+
+    if ((tipoAdicionalSelecionado === "perfil" || tipoAdicionalSelecionado === "ferragem") && termoCorAdicional) {
+      const cores = extrairListaCores(itemComCor.cores);
+      const nomeNormalizado = normalizarTextoFiltroAdicional(itemComCor.nome || "");
+      const corCompativel =
+        cores.some((cor) => cor.includes(termoCorAdicional) || termoCorAdicional.includes(cor)) ||
+        nomeNormalizado.includes(termoCorAdicional);
+
+      if (!corCompativel) return false;
+    }
+
+    if (!termoBuscaAdicional) return true;
+
+    const codigoNormalizado = normalizarTextoFiltroAdicional(itemComCor.codigo || "");
+    const nomeNormalizado = normalizarTextoFiltroAdicional(itemComCor.nome || "");
+    const buscaComposta = `${codigoNormalizado} ${nomeNormalizado}`.trim();
+
+    return buscaComposta.includes(termoBuscaAdicional);
+  });
 
   const obterPrecoPadraoAdicional = (item: KitCatalogo | PerfilCatalogo | FerragemCatalogo) => {
     const precoPrincipal = normalizarNumeroPlanilha((item as { preco?: unknown }).preco);
@@ -567,8 +607,8 @@ export default function RelatorioOrçamento() {
           // Busca a tabela de vínculos de preços especiais
           supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId),
           supabase.from('kits').select('id, nome, preco, preco_por_cor').eq('empresa_id', empresaId).order('nome'),
-          supabase.from('perfis').select('id, codigo, nome, preco').eq('empresa_id', empresaId).order('nome'),
-          supabase.from('ferragens').select('id, codigo, nome, preco').eq('empresa_id', empresaId).order('nome')
+          supabase.from('perfis').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('ferragens').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome')
         ]);
 
         if (resC.data) setListaClientes(resC.data);
@@ -1473,21 +1513,45 @@ useEffect(() => {
                       <option value="ferragem">Ferragens</option>
                     </select>
 
+                    <input
+                      type="text"
+                      value={filtroCorAdicional}
+                      onChange={(e) => setFiltroCorAdicional(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      placeholder="Cor (perfil/ferragem)"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      value={buscaAdicional}
+                      onChange={(e) => setBuscaAdicional(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      placeholder="Buscar por código ou nome"
+                    />
+
                     <select
                       value={adicionalSelecionadoId}
                       onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
                       className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
                     >
                       <option value="">Selecione para adicionar...</option>
-                      {itensAdicionaisDisponiveis.map((item) => {
+                      {adicionaisFiltrados.map((item) => {
                         const codigo = "codigo" in item ? String(item.codigo || "").trim() : "";
+                        const corItem = "cores" in item ? String(item.cores || "").trim() : "";
                         const precoItem = obterPrecoPadraoAdicional(item);
                         return (
                           <option key={item.id} value={item.id}>
-                            {`${codigo ? `${codigo} - ` : ""}${item.nome}${precoItem > 0 ? ` | ${formatarMoeda(precoItem)}` : ""}`}
+                            {`${codigo ? `${codigo} - ` : ""}${item.nome}${corItem ? ` (${corItem})` : ""}${precoItem > 0 ? ` | ${formatarMoeda(precoItem)}` : ""}`}
                           </option>
                         );
                       })}
+                      {adicionaisFiltrados.length === 0 && (
+                        <option value="" disabled>
+                          Nenhum item encontrado com os filtros
+                        </option>
+                      )}
                     </select>
                   </div>
 

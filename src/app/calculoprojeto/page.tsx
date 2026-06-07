@@ -83,6 +83,7 @@ type ProjetoDetalhe = {
     qtd_largura: number
     formula_largura?: string | null
     qtd_altura: number
+    formula_altura?: string | null
     qtd_outros: number
     variacao_restrita: string | null
     espessura_vidro_restrita?: string | null
@@ -195,6 +196,9 @@ type ItemCalculoProjeto = {
   altura2: string
   qtd: string
   vidroId: string
+  vidroPortaId: string
+  vidroBandeiraId: string
+  tuboBandeira: string
   corMaterial: string
   modoCalculo: "kit" | "barra"
   variacaoDrawing: string
@@ -337,6 +341,7 @@ const USAR_KIT_TOKEN = "__USAR_NO_KIT__="
 const ALTURA_MAX_KIT_TOKEN = "__ALTURA_MAX_KIT__="
 const ESPESSURA_VIDRO_TOKEN = "__ESP_VIDRO__="
 const FORMULA_LARGURA_TOKEN = "__FORM_LARG__="
+const FORMULA_ALTURA_TOKEN = "__FORM_ALT__="
 const TRILHO_TOKEN = "__TRILHO__="
 const QTD_FOLHA_TOKEN = "__QTD_FOLHA__="
 const POSICAO_TOKEN = "__POSICAO__="
@@ -394,6 +399,16 @@ const extrairFormulaLarguraDoTexto = (valor?: string | null): string | null => {
     .find((l) => l.startsWith(FORMULA_LARGURA_TOKEN))
 
   const formula = linha ? linha.slice(FORMULA_LARGURA_TOKEN.length).trim() : ""
+  return formula || null
+}
+
+const extrairFormulaAlturaDoTexto = (valor?: string | null): string | null => {
+  const linha = String(valor || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(FORMULA_ALTURA_TOKEN))
+
+  const formula = linha ? linha.slice(FORMULA_ALTURA_TOKEN.length).trim() : ""
   return formula || null
 }
 
@@ -889,8 +904,8 @@ const obterChaveFamiliaVariacao = (arquivo: string): string | null => {
     return null
   }
 
-  if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*))?$/i.test(stem)) {
-    return stem.replace(/-(simples\d*|completo\d*|completa\d*)$/i, "")
+  if (/^portaband\d+fls(-(simples\d*|completo\d*|completa\d*|puxador\d*|comtrinco\d*|trinco\d*|puxadoretrinco\d*|trincoechave\d*))?$/i.test(stem)) {
+    return stem.replace(/-(simples\d*|completo\d*|completa\d*|puxador\d*|comtrinco\d*|trinco\d*|puxadoretrinco\d*|trincoechave\d*)$/i, "")
   }
 
   const portaGiroMatch = stem.match(/^(portagiro|portaforavao)-(\d+fls)(?:1520ta|1520)?(?:completo|completa)?$/i)
@@ -1157,10 +1172,13 @@ const getVariacoesAutomaticasProjeto = (
           if (/^simples\d*$/i.test(nomeVersao)) return 0
           if (/^puxador\d*$/i.test(nomeVersao)) return 1
           if (/^comtrinco\d*$/i.test(nomeVersao)) return 2
-          if (/^kitpia\d*$/i.test(nomeVersao)) return 3
-          if (/^completo$|^completa$/i.test(nomeVersao)) return 4
-          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 5
-          return 6
+          if (/^trinco\d*$/i.test(nomeVersao)) return 3
+          if (/^puxadoretrinco\d*$/i.test(nomeVersao)) return 4
+          if (/^trincoechave\d*$/i.test(nomeVersao)) return 5
+          if (/^kitpia\d*$/i.test(nomeVersao)) return 6
+          if (/^completo$|^completa$/i.test(nomeVersao)) return 7
+          if (/^completo\d+$|^completa\d+$/i.test(nomeVersao)) return 8
+          return 9
         }
 
         const rankA = rank(aNome)
@@ -1421,6 +1439,9 @@ const criarItemCalculoProjeto = (): ItemCalculoProjeto => ({
   altura2: "",
   qtd: "1",
   vidroId: "",
+  vidroPortaId: "",
+  vidroBandeiraId: "",
+  tuboBandeira: "",
   corMaterial: "",
   modoCalculo: "kit",
   variacaoDrawing: "",
@@ -1445,6 +1466,9 @@ const validarItemCalculoProjeto = (item: unknown): item is ItemCalculoProjeto =>
     && typeof candidato.altura2 === "string"
     && typeof candidato.qtd === "string"
     && typeof candidato.vidroId === "string"
+    && typeof candidato.vidroPortaId === "string"
+    && typeof candidato.vidroBandeiraId === "string"
+    && typeof candidato.tuboBandeira === "string"
     && typeof candidato.corMaterial === "string"
     && (candidato.modoCalculo === "kit" || candidato.modoCalculo === "barra")
     && typeof candidato.variacaoDrawing === "string"
@@ -1477,6 +1501,13 @@ const normalizarItensCalculo = (itens: unknown): ItemCalculoProjeto[] => {
         altura2: typeof candidato.altura2 === "string" ? candidato.altura2 : "",
         qtd: typeof candidato.qtd === "string" ? candidato.qtd : "1",
         vidroId: typeof candidato.vidroId === "string" ? candidato.vidroId : "",
+        vidroPortaId: typeof candidato.vidroPortaId === "string"
+          ? candidato.vidroPortaId
+          : (typeof candidato.vidroId === "string" ? candidato.vidroId : ""),
+        vidroBandeiraId: typeof candidato.vidroBandeiraId === "string"
+          ? candidato.vidroBandeiraId
+          : (typeof candidato.vidroId === "string" ? candidato.vidroId : ""),
+        tuboBandeira: typeof candidato.tuboBandeira === "string" ? candidato.tuboBandeira : "",
         corMaterial: typeof candidato.corMaterial === "string" ? candidato.corMaterial : "",
         modoCalculo: candidato.modoCalculo === "barra" ? "barra" : "kit",
         variacaoDrawing: typeof candidato.variacaoDrawing === "string" ? candidato.variacaoDrawing : "",
@@ -1675,6 +1706,80 @@ const inferirComprimentoBarraPerfil = (perfil?: { codigo?: string | null; nome?:
   return extrairComprimentoBarraPerfil(perfil) || 6000
 }
 
+const perfilEhTuboNoCalculo = (perfil?: { codigo?: string | null; nome?: string | null } | null) => {
+  const texto = normalizarTextoComparacao(`${perfil?.codigo || ""} ${perfil?.nome || ""}`)
+  return texto.includes("tubo") || /\btub\b/.test(texto)
+}
+
+const perfilCorrespondeTuboSelecionado = (
+  perfil: { codigo?: string | null; nome?: string | null } | null | undefined,
+  tuboSelecionado: string
+) => {
+  const alvoTexto = normalizarTextoComparacao(tuboSelecionado)
+  if (!alvoTexto) return true
+
+  const codigoPerfil = String(perfil?.codigo || "").trim()
+  const nomePerfil = String(perfil?.nome || "").trim()
+  const codigoNormalizado = normalizarTextoComparacao(codigoPerfil)
+  const nomeNormalizado = normalizarTextoComparacao(nomePerfil)
+  const rotuloPerfil = normalizarTextoComparacao([codigoPerfil, nomePerfil].filter(Boolean).join(" - "))
+
+  if (codigoNormalizado && (alvoTexto === codigoNormalizado || alvoTexto.startsWith(`${codigoNormalizado} -`) || alvoTexto.includes(` ${codigoNormalizado} `))) {
+    return true
+  }
+
+  if (nomeNormalizado && (alvoTexto === nomeNormalizado || alvoTexto.endsWith(`- ${nomeNormalizado}`) || alvoTexto.includes(nomeNormalizado))) {
+    return true
+  }
+
+  return Boolean(rotuloPerfil && (rotuloPerfil === alvoTexto || rotuloPerfil.includes(alvoTexto) || alvoTexto.includes(rotuloPerfil)))
+}
+
+const perfilEhSomenteBandeira = (perfilProjeto: {
+  formula_largura?: string | null
+  formula_altura?: string | null
+  condicao?: string | null
+}) => {
+  const condicao = String(perfilProjeto.condicao || "").replace(/\s+/g, "").toUpperCase()
+  const formula = `${perfilProjeto.formula_largura || ""} ${perfilProjeto.formula_altura || ""}`.replace(/\s+/g, "").toUpperCase()
+
+  // Marcadores explícitos de bandeira (perfil entra quando A > AP).
+  const condicaoBandeira =
+    condicao.includes("A>AP") ||
+    condicao.includes("AP<A") ||
+    condicao.includes("A-AP>0") ||
+    condicao.includes("AB>0")
+
+  // Marcadores explícitos de porta (não deve usar espessura da bandeira).
+  const condicaoPorta =
+    condicao.includes("A<=AP") ||
+    condicao.includes("A<AP") ||
+    condicao.includes("AP>=A") ||
+    condicao.includes("AP>A") ||
+    condicao.includes("A-AP<=0")
+
+  if (condicaoPorta) return false
+  if (condicaoBandeira) return true
+
+  // Sem condição explícita, considera bandeira quando a fórmula depende do vão da bandeira.
+  return formula.includes("A-AP") || formula.includes("AB")
+}
+
+const avaliarCondicaoPerfilComCompat = (condicao: string | null | undefined, vars: Record<string, number>) => {
+  const textoOriginal = String(condicao || "").trim()
+  if (!textoOriginal) return true
+
+  const textoNormalizado = textoOriginal.replace(/\s+/g, "").toUpperCase()
+
+  // Compatibilidade retroativa: preset antigo de porta foi salvo como A<=AP.
+  // Trata como regra de porta ativa (A>=AP), mantendo AP obrigatório.
+  if (textoNormalizado === "A<=AP") {
+    return Number(vars.AP || 0) > 0 && Number(vars.A || 0) >= Number(vars.AP || 0)
+  }
+
+  return avaliarCondicao(textoOriginal, vars)
+}
+
 const calcularProjeto = (params: {
   detalhe: ProjetoDetalhe
   largura: number
@@ -1682,7 +1787,12 @@ const calcularProjeto = (params: {
   largura2: number
   altura2: number
   vidroSelecionado: VidroItem | null
+  vidroSelecionadoPorta?: VidroItem | null
+  vidroSelecionadoBandeira?: VidroItem | null
   precoVidroM2: number
+  precoVidroM2Porta?: number
+  precoVidroM2Bandeira?: number
+  tuboBandeiraSelecionado?: string
   corMaterial: string
   modoCalculo: "kit" | "barra"
   variacaoDrawing: string
@@ -1698,10 +1808,22 @@ const calcularProjeto = (params: {
 }): ResultadoCalculo => {
   const {
     detalhe, largura, altura, largura2, altura2,
-    vidroSelecionado, precoVidroM2, corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
+    vidroSelecionado,
+    vidroSelecionadoPorta,
+    vidroSelecionadoBandeira,
+    precoVidroM2,
+    precoVidroM2Porta,
+    precoVidroM2Bandeira,
+    tuboBandeiraSelecionado,
+    corMaterial, modoCalculo, variacaoDrawing, variacaoTecnica,
     variacaoTrilho, projetoEhPorta, projetoEBox, projetoEhCanto,
     kitsDB, ferragensDB, perfisDB, qtd,
   } = params
+
+  const vidroPortaAtivo = vidroSelecionadoPorta || vidroSelecionado
+  const vidroBandeiraAtivo = vidroSelecionadoBandeira || vidroPortaAtivo
+  const precoPortaAtivo = typeof precoVidroM2Porta === "number" ? precoVidroM2Porta : precoVidroM2
+  const precoBandeiraAtivo = typeof precoVidroM2Bandeira === "number" ? precoVidroM2Bandeira : precoPortaAtivo
 
   // Variáveis disponíveis para fórmulas
   const varsBase: Record<string, number> = {
@@ -1709,6 +1831,7 @@ const calcularProjeto = (params: {
     L1: largura, L2: largura2 || largura,
     A1: altura, A2: altura2 || altura,
     AB: altura2 || altura,
+    AP: altura2 || altura,
   }
   const vars = varsBase
   const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
@@ -1774,6 +1897,9 @@ const calcularProjeto = (params: {
     })
     .flatMap((f) => {
       const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
+      const folhaEhBandeira = /bandeira|band[oô]/i.test(String(f.tipo_folha || ""))
+      const vidroFolha = folhaEhBandeira ? vidroBandeiraAtivo : vidroPortaAtivo
+      const precoM2Folha = folhaEhBandeira ? precoBandeiraAtivo : precoPortaAtivo
       return largurasParaCalculoFolhas.map((larguraLado) => {
         const vars = {
           ...varsBase,
@@ -1794,9 +1920,9 @@ const calcularProjeto = (params: {
           larguraArredondada: wR,
           alturaArredondada: hR,
           area,
-          vidro: vidroSelecionado,
-          precoM2Utilizado: precoVidroM2,
-          precoVidro: area * precoVidroM2 * qtd * quantidadeFolhas,
+          vidro: vidroFolha,
+          precoM2Utilizado: precoM2Folha,
+          precoVidro: area * precoM2Folha * qtd * quantidadeFolhas,
         }
       })
     })
@@ -1812,7 +1938,7 @@ const calcularProjeto = (params: {
   if (modoCalculo === "kit") {
     // kits do projeto filtrados pela variação e espessura do vidro
     const kitsAplicaveis = detalhe.kits.filter(k => isAplicavel(k.variacao_restrita))
-    const espessura = vidroSelecionado?.espessura || ""
+    const espessura = vidroPortaAtivo?.espessura || ""
     const quantidadeFolhasProjeto = detalhe.folhas.reduce((total, folha) => total + Math.max(1, Number(folha.quantidade_folhas || 1)), 0)
 
     // Filtra por espessura (se contém o texto da espessura do vidro)
@@ -2017,10 +2143,16 @@ const calcularProjeto = (params: {
     const perfisAplicaveis = detalhe.perfis
       .filter((p) => {
         const espessuraPerfil = String(p.espessura_vidro_restrita || "").trim().toLowerCase()
-        const espessuraAtual = String(vidroSelecionado?.espessura || "").trim().toLowerCase()
+        const vidroReferenciaEspessura = perfilEhSomenteBandeira(p) && vidroBandeiraAtivo ? vidroBandeiraAtivo : vidroPortaAtivo
+        const espessuraAtual = String(vidroReferenciaEspessura?.espessura || "").trim().toLowerCase()
         const espessuraPerfilNumero = extrairNumeroEspessura(espessuraPerfil)
         const espessuraAtualNumero = extrairNumeroEspessura(espessuraAtual)
         const perfilBase = perfisDB.find((perfil) => perfil.id === p.perfil_id)
+        const perfilRef = perfilBase || p.perfis
+        const filtroTuboAtivo = String(tuboBandeiraSelecionado || "").trim()
+        if (filtroTuboAtivo && perfilEhTuboNoCalculo(perfilRef) && !perfilCorrespondeTuboSelecionado(perfilRef, filtroTuboAtivo)) {
+          return false
+        }
         const perfilPorMetro = perfilEhPorMetro(perfilBase || p.perfis)
         const selecaoDeslizanteAtual = extrairSelecaoDeslizanteDoDesenho(variacaoDrawing)
         const perfilPorMetroDeslizante = perfilPorMetro && Boolean(selecaoDeslizanteAtual.sistema || selecaoDeslizanteAtual.versao)
@@ -2057,7 +2189,7 @@ const calcularProjeto = (params: {
             if (!espAtualLimpa || (!espPerfilLimpa.includes(espAtualLimpa) && !espAtualLimpa.includes(espPerfilLimpa))) return false
           }
         }
-        return !condicaoExiste || avaliarCondicao(p.condicao, vars)
+        return !condicaoExiste || avaliarCondicaoPerfilComCompat(p.condicao, vars)
       })
       .sort((a, b) => {
         const nomeA = perfisDB.find((perfil) => perfil.id === a.perfil_id)?.nome || a.perfis?.nome || ""
@@ -2088,18 +2220,23 @@ const calcularProjeto = (params: {
       const perfilNome = db?.nome || base.nome
       const unidadeCalculo = perfilEhPorMetro(db || base) ? "metro" : "barra"
 
-      // Monta lista de cortes: qtd_largura peças de L (ou fórmula), qtd_altura peças de A, qtd_outros de (L+A)/2
+      // Monta lista de cortes: qtd_largura peças de L (ou fórmula), qtd_altura peças de A (ou fórmula), qtd_outros de (L+A)/2
       const medidaLargura = (() => {
         const formula = String(pProj.formula_largura || "").trim()
         if (!formula) return largura
         return Math.round(Math.max(avaliarFormula(formula, vars), 0))
       })()
+      const medidaAltura = (() => {
+        const formula = String(pProj.formula_altura || "").trim()
+        if (!formula) return altura
+        return Math.round(Math.max(avaliarFormula(formula, vars), 0))
+      })()
       const qtdCortesLargura = medidaLargura > 0 ? Math.max(0, pProj.qtd_largura * qtd) : 0
-      const qtdCortesAltura = altura > 0 ? Math.max(0, pProj.qtd_altura * qtd) : 0
+      const qtdCortesAltura = medidaAltura > 0 ? Math.max(0, pProj.qtd_altura * qtd) : 0
       const qtdCortesOutros = (largura + altura) > 0 ? Math.max(0, pProj.qtd_outros * qtd) : 0
       const listaCortes: number[] = [
         ...Array(qtdCortesLargura).fill(medidaLargura),
-        ...Array(qtdCortesAltura).fill(altura),
+        ...Array(qtdCortesAltura).fill(medidaAltura),
         ...Array(qtdCortesOutros).fill(Math.round((largura + altura) / 2)),
       ].filter(c => c > 0)
 
@@ -2227,6 +2364,7 @@ export default function CalculoProjetoPage() {
   const [detalhesProjetos, setDetalhesProjetos] = useState<Record<string, ProjetoDetalhe>>({})
   const [projetosCarregando, setProjetosCarregando] = useState<string[]>([])
   const [nomesVariacaoPersonalizados, setNomesVariacaoPersonalizados] = useState<Record<string, string>>({})
+  const [nomesVariacaoHidratados, setNomesVariacaoHidratados] = useState(false)
   const [variacoesCustom, setVariacoesCustom] = useState<VariacaoCustomCalculo[]>([])
 
   // ── Resultado ──
@@ -2355,6 +2493,8 @@ export default function CalculoProjetoPage() {
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
+
+    setNomesVariacaoHidratados(false)
     const chave = `variacao-box:nomes:${empresaId}`
     try {
       const bruto = window.localStorage.getItem(chave)
@@ -2365,14 +2505,16 @@ export default function CalculoProjetoPage() {
       }
     } catch {
       // ignora inconsistencias de armazenamento local
+    } finally {
+      setNomesVariacaoHidratados(true)
     }
   }, [empresaId])
 
   useEffect(() => {
-    if (!empresaId || typeof window === "undefined") return
+    if (!empresaId || typeof window === "undefined" || !nomesVariacaoHidratados) return
     const chave = `variacao-box:nomes:${empresaId}`
     window.localStorage.setItem(chave, JSON.stringify(nomesVariacaoPersonalizados))
-  }, [empresaId, nomesVariacaoPersonalizados])
+  }, [empresaId, nomesVariacaoPersonalizados, nomesVariacaoHidratados])
 
   useEffect(() => {
     if (!empresaId || typeof window === "undefined") return
@@ -2566,6 +2708,7 @@ export default function CalculoProjetoPage() {
               ...perfil,
               variacao_restrita: perfil.variacao_restrita ?? meta.variacao ?? null,
               formula_largura: extrairFormulaLarguraDoTexto(perfil.tipo_fornecimento),
+              formula_altura: extrairFormulaAlturaDoTexto(perfil.tipo_fornecimento),
               espessura_vidro_restrita: extrairEspessuraVidroDoTexto(perfil.tipo_fornecimento),
               condicao: extrairCondicaoDoTexto(perfil.tipo_fornecimento),
               usar_no_kit: extrairUsarNoKitDoTexto(perfil.tipo_fornecimento),
@@ -2646,6 +2789,9 @@ export default function CalculoProjetoPage() {
           variacaoMovimentacao: "",
           variacaoVersao: "",
           variacaoTrilho: "",
+          vidroPortaId: "",
+          vidroBandeiraId: "",
+          tuboBandeira: "",
         }
       }
 
@@ -2677,9 +2823,24 @@ export default function CalculoProjetoPage() {
   }
 
   const adicionarProjetoNaFila = () => {
-    const novoProjeto = criarItemCalculoProjeto()
-    projetoPendenteScrollRef.current = novoProjeto.id
-    setItensCalculo((prev) => [...prev, novoProjeto])
+    setItensCalculo((prev) => {
+      const ultimoItem = prev[prev.length - 1]
+
+      const novoProjeto = ultimoItem
+        ? {
+            ...ultimoItem,
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            largura: "",
+            altura: "",
+            largura2: "",
+            altura2: "",
+            qtd: "",
+          }
+        : criarItemCalculoProjeto()
+
+      projetoPendenteScrollRef.current = novoProjeto.id
+      return [...prev, novoProjeto]
+    })
     setResultados([])
   }
 
@@ -2696,7 +2857,11 @@ export default function CalculoProjetoPage() {
     (item: ItemCalculoProjeto) => (item.projetoId ? detalhesProjetos[item.projetoId] || null : null),
     [detalhesProjetos]
   )
-  const getVidro = (item: ItemCalculoProjeto) => vidrosDB.find((vidro) => vidro.id === item.vidroId) || null
+  const getVidroPorId = (vidroId?: string | null) =>
+    vidrosDB.find((vidro) => String(vidro.id) === String(vidroId || "")) || null
+
+  const getVidro = (item: ItemCalculoProjeto) =>
+    getVidroPorId(item.vidroPortaId || item.vidroId)
 
   const inferirMovimentacaoPmaItem = useCallback((item: ItemCalculoProjeto): string => {
     const projeto = getProjeto(item)
@@ -2803,8 +2968,31 @@ export default function CalculoProjetoPage() {
     return Number(especial?.preco ?? vidroSel.preco ?? 0)
   }
 
+  const getPrecoVidroM2PorId = (vidroId?: string | null) => {
+    const vidroSel = getVidroPorId(vidroId)
+    if (!vidroSel) return 0
+    if (!clienteSel?.grupo_preco_id) return Number(vidroSel.preco || 0)
+
+    const especial = precosEspeciais.find((preco) =>
+      String(preco.grupo_preco_id) === String(clienteSel.grupo_preco_id) &&
+      String(preco.vidro_id) === String(vidroSel.id)
+    )
+
+    return Number(especial?.preco ?? vidroSel.preco ?? 0)
+  }
+
   const getUsandoPrecoEspecial = (item: ItemCalculoProjeto) => {
     const vidroSel = getVidro(item)
+    if (!vidroSel || !clienteSel?.grupo_preco_id) return false
+
+    return precosEspeciais.some((preco) =>
+      String(preco.grupo_preco_id) === String(clienteSel.grupo_preco_id) &&
+      String(preco.vidro_id) === String(vidroSel.id)
+    )
+  }
+
+  const getUsandoPrecoEspecialPorId = (vidroId?: string | null) => {
+    const vidroSel = getVidroPorId(vidroId)
     if (!vidroSel || !clienteSel?.grupo_preco_id) return false
 
     return precosEspeciais.some((preco) =>
@@ -2870,6 +3058,29 @@ export default function CalculoProjetoPage() {
     desenhosPasta.forEach((arquivo) => set.add(arquivo))
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"))
   }, [desenhosDisponiveisCadastro, desenhosPasta])
+
+  const tubosBandeiraDisponiveis = useMemo(() => {
+    const opcoes = new Map<string, string>()
+
+    for (const perfil of perfisDB) {
+      const codigo = String(perfil.codigo || "").trim()
+      const nome = String(perfil.nome || "").trim()
+      const textoNormalizado = normalizarTextoComparacao(`${codigo} ${nome}`)
+
+      if (!textoNormalizado) continue
+      if (!textoNormalizado.includes("tubo") && !textoNormalizado.includes("tub")) continue
+
+      const rotulo = [codigo, nome].filter(Boolean).join(" - ").trim() || nome || codigo
+      if (!rotulo) continue
+
+      const chave = normalizarTextoComparacao(rotulo)
+      if (!opcoes.has(chave)) {
+        opcoes.set(chave, rotulo)
+      }
+    }
+
+    return Array.from(opcoes.values()).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [perfisDB])
 
   const getRestricoesProjeto = useCallback((item: ItemCalculoProjeto) => {
     const detalhe = getDetalhe(item)
@@ -3458,13 +3669,21 @@ export default function CalculoProjetoPage() {
 
 
   const relatorioObra = useMemo(() => {
+    const mapaItens = new Map(itensCalculo.map((item) => [item.id, item]))
+
     return resultados.map((itemResultado) => {
+      const itemOriginal = mapaItens.get(itemResultado.itemId)
       const nomesPerfis = Array.from(new Set(itemResultado.resultado.cortes.map((corte) => corte.perfilNome)))
         .sort((a, b) => comparePerfisByNome(a, b))
       const variacaoLabel = formatarResumoVariacaoSelecionada(itemResultado.variacaoDrawing, itemResultado.variacaoTecnica) || null
       const textoProjeto = `${itemResultado.projeto?.nome || ""} ${itemResultado.projeto?.categoria || ""} ${itemResultado.projeto?.desenho || ""}`.toLowerCase()
       const ehPorta = /porta|deslizante|pma|giro|pivotante|maxim|basculante/.test(textoProjeto)
       const desenhoAtivo = itemResultado.desenhoProjeto || itemResultado.variacaoDrawing || itemResultado.projeto?.desenho || ""
+      const folhasPorta = itemResultado.resultado.folhas.filter((folha) => !/bandeira|band[oô]/i.test(String(folha.tipo || "")))
+      const folhasBandeira = itemResultado.resultado.folhas.filter((folha) => /bandeira|band[oô]/i.test(String(folha.tipo || "")))
+      const labelVidro = (folha?: FolhaCalculada) => [folha?.vidro?.nome, folha?.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido"
+      const vidroPorta = labelVidro(folhasPorta[0] || itemResultado.resultado.folhas[0])
+      const vidroBandeira = folhasBandeira.length > 0 ? labelVidro(folhasBandeira[0]) : null
       const totalPerfisMetroLinear = itemResultado.resultado.cortes
         .filter((corte) => corte.unidadeCalculo === "metro")
         .reduce((total, corte) => total + corte.precoTotal, 0)
@@ -3481,7 +3700,10 @@ export default function CalculoProjetoPage() {
         trilhoLabel: itemResultado.variacaoTrilho ? formatarLabelTrilho(itemResultado.variacaoTrilho) : null,
         quantidade: itemResultado.qtdProjeto,
         vao: `${itemResultado.larguraProjeto} x ${itemResultado.alturaProjeto} mm`,
-        vidro: [itemResultado.vidro?.nome, itemResultado.vidro?.espessura].filter(Boolean).join(" · ") || "Vidro não definido",
+        vidro: vidroBandeira ? `Porta: ${vidroPorta} · Bandeira: ${vidroBandeira}` : vidroPorta,
+        vidroPorta,
+        vidroBandeira,
+        tuboBandeira: itemOriginal?.tuboBandeira?.trim() || null,
         corMaterial: itemResultado.corMaterial || "Sem cor definida",
         modoCalculo: itemResultado.resultado.usouKit ? "Kit" : "Barra",
         subtotal: Math.max(0, itemResultado.resultado.totalGeral - totalPerfisMetroLinear),
@@ -3545,9 +3767,11 @@ export default function CalculoProjetoPage() {
         })),
       }
     })
-  }, [ferragensDB, formatarResumoVariacaoSelecionada, montarUrlDesenho, nomesVariacaoPersonalizados, resultados])
+  }, [ferragensDB, formatarResumoVariacaoSelecionada, itensCalculo, montarUrlDesenho, nomesVariacaoPersonalizados, resultados])
 
   const dadosOrcamentoComercial = useMemo(() => {
+    const mapaItens = new Map(itensCalculo.map((item) => [item.id, item]))
+
     const totalPerfisOriginalBarra = resultados.reduce((acc, resultadoProjeto) => {
       return acc + resultadoProjeto.resultado.precoPerfis
     }, 0)
@@ -3565,8 +3789,14 @@ export default function CalculoProjetoPage() {
 
     const itens: ItemPreviewOrcamento[] = resultados.map((resultadoProjeto) => {
       const projetoId = resultadoProjeto.projeto?.id || resultadoProjeto.itemId
+      const itemOriginal = mapaItens.get(resultadoProjeto.itemId)
       const vaoProjeto = `${resultadoProjeto.larguraProjeto}x${resultadoProjeto.alturaProjeto} mm`
-      const corVidroProjeto = [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
+      const folhasPorta = resultadoProjeto.resultado.folhas.filter((folha) => !/bandeira|band[oô]/i.test(String(folha.tipo || "")))
+      const folhasBandeira = resultadoProjeto.resultado.folhas.filter((folha) => /bandeira|band[oô]/i.test(String(folha.tipo || "")))
+      const labelVidro = (folha?: FolhaCalculada) => [folha?.vidro?.nome, folha?.vidro?.espessura].filter(Boolean).join(" · ") || "-"
+      const corVidroProjeto = folhasBandeira.length > 0
+        ? `Porta: ${labelVidro(folhasPorta[0] || resultadoProjeto.resultado.folhas[0])} · Bandeira: ${labelVidro(folhasBandeira[0])}`
+        : [resultadoProjeto.vidro?.nome, resultadoProjeto.vidro?.espessura].filter(Boolean).join(" · ") || "-"
       const variacaoProjeto = formatarResumoVariacaoSelecionada(resultadoProjeto.variacaoDrawing, resultadoProjeto.variacaoTecnica)
       const quantidadePecasProjeto = resultadoProjeto.resultado.folhas.reduce(
         (total, folha) => total + Math.max(1, Number(folha.quantidadeFolhas || 1)),
@@ -3601,7 +3831,8 @@ export default function CalculoProjetoPage() {
             ? "Estrutura calculada por kit"
             : "Estrutura calculada por barra com otimização global",
           resultadoProjeto.usandoPrecoEspecialVidro ? "Preço especial de vidro aplicado" : "Preço padrão de vidro",
-        ].join(" · "),
+          itemOriginal?.tuboBandeira?.trim() ? `Tubo: ${itemOriginal.tuboBandeira.trim()}` : "",
+        ].filter(Boolean).join(" · "),
       }
     })
 
@@ -3615,6 +3846,7 @@ export default function CalculoProjetoPage() {
     }
   }, [
     formatarResumoVariacaoSelecionada,
+    itensCalculo,
     montarUrlDesenho,
     nomesVariacaoPersonalizados,
     otimizacaoGlobalPerfis.resumo.precoMetro,
@@ -3651,12 +3883,36 @@ export default function CalculoProjetoPage() {
         return
       }
 
-      if (!item.vidroId || !vidro) {
+      const textoProjeto = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase()
+      const projetoEBandeira = textoProjeto.includes("bandeira") || textoProjeto.includes("bandô") || textoProjeto.includes("bando")
+      const vidroPorta = getVidroPorId(item.vidroPortaId || item.vidroId)
+      const vidroBandeira = getVidroPorId(item.vidroBandeiraId || item.vidroId)
+
+      if (!projetoEBandeira && (!item.vidroId || !vidro)) {
         setModalAviso({ titulo: "Atenção", mensagem: `Selecione o vidro do projeto ${projeto.nome}.`, tipo: "aviso" })
         return
       }
 
-      const precoVidroM2Aplicado = getPrecoVidroM2(item)
+      if (projetoEBandeira) {
+        if (!item.vidroPortaId || !vidroPorta) {
+          setModalAviso({ titulo: "Atenção", mensagem: `Selecione o vidro da porta para ${projeto.nome}.`, tipo: "aviso" })
+          return
+        }
+
+        if (!item.vidroBandeiraId || !vidroBandeira) {
+          setModalAviso({ titulo: "Atenção", mensagem: `Selecione o vidro da bandeira para ${projeto.nome}.`, tipo: "aviso" })
+          return
+        }
+
+        if (!String(item.tuboBandeira || "").trim()) {
+          setModalAviso({ titulo: "Atenção", mensagem: `Informe o tubo da bandeira para ${projeto.nome}.`, tipo: "aviso" })
+          return
+        }
+      }
+
+      const precoVidroM2Aplicado = projetoEBandeira
+        ? getPrecoVidroM2PorId(item.vidroPortaId || item.vidroId)
+        : getPrecoVidroM2(item)
       const desenhoPmaSelecionado = resolverDesenhoPmaSelecionado(projeto, item, desenhosDisponiveis)
       const variacaoDrawingAtiva = String(desenhoPmaSelecionado || item.variacaoDrawing || projeto.desenho || "").trim()
       const modoCalculoEfetivo: "kit" | "barra" = (projetoEhPma(projeto) || projetoEhDeslizante(projeto)) ? "barra" : item.modoCalculo
@@ -3669,7 +3925,7 @@ export default function CalculoProjetoPage() {
         versao: item.variacaoVersao,
       })
       const projetoEhPorta = projetoTemTrilhoConfigurado(detalhe)
-      const projetoEBox = `${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`.toLowerCase().includes("box")
+      const projetoEBox = textoProjeto.includes("box")
       const projetoEhCanto = normalizarTextoComparacao(`${projeto.nome || ""} ${projeto.categoria || ""} ${projeto.desenho || ""}`).includes("canto")
       const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
 
@@ -3679,8 +3935,13 @@ export default function CalculoProjetoPage() {
         altura: Number(item.altura),
         largura2: Number(item.largura2 || 0),
         altura2: Number(item.altura2 || 0),
-        vidroSelecionado: vidro,
+        vidroSelecionado: projetoEBandeira ? vidroPorta : vidro,
+        vidroSelecionadoPorta: projetoEBandeira ? vidroPorta : vidro,
+        vidroSelecionadoBandeira: projetoEBandeira ? vidroBandeira : vidro,
         precoVidroM2: precoVidroM2Aplicado,
+        precoVidroM2Porta: projetoEBandeira ? getPrecoVidroM2PorId(item.vidroPortaId || item.vidroId) : precoVidroM2Aplicado,
+        precoVidroM2Bandeira: projetoEBandeira ? getPrecoVidroM2PorId(item.vidroBandeiraId || item.vidroId) : precoVidroM2Aplicado,
+        tuboBandeiraSelecionado: projetoEBandeira ? String(item.tuboBandeira || "").trim() : "",
         corMaterial: item.corMaterial,
         modoCalculo: modoCalculoEfetivo,
         variacaoDrawing: variacaoDrawingAtiva,
@@ -3704,7 +3965,7 @@ export default function CalculoProjetoPage() {
         variacaoDrawing: variacaoDrawingAtiva,
         variacaoTecnica,
         variacaoTrilho: trilhoAtivo,
-        vidro,
+        vidro: projetoEBandeira ? vidroPorta : vidro,
         qtdProjeto: Math.max(1, Number(item.qtd || 1)),
         larguraProjeto: Number(item.largura),
         alturaProjeto: Number(item.altura),
@@ -4105,8 +4366,14 @@ export default function CalculoProjetoPage() {
                 const trilhosDisponiveis = getTrilhosDisponiveisProjeto(detalhe)
                 const trilhoAtivo = detalhe ? getTrilhoAtivoProjeto(detalhe, item.variacaoTrilho) : ""
                 const projetoECanto = textoProjeto.includes("canto")
+                const projetoEBandeira = textoProjeto.includes("bandeira") || textoProjeto.includes("bandô") || textoProjeto.includes("bando")
                 const usaL2 = !!(detalhe?.folhas.some(f => /\bL2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const usaAP = !!(
+                  detalhe?.folhas.some(f => /\bAP\b/i.test(f.formula_largura + " " + f.formula_altura))
+                  || detalhe?.perfis.some(p => /\bAP\b/i.test(`${p.formula_largura || ""} ${p.formula_altura || ""}`))
+                )
                 const usaAB = !!(detalhe?.folhas.some(f => /\bAB\b|\bA2\b/i.test(f.formula_largura + " " + f.formula_altura)))
+                const usarAlturaPorta = usaAB || usaAP || projetoEBandeira
                 const mostrarLargura2 = usaL2 || projetoECanto
                 const kitAxisGroup = GRUPOS_VARIACAO_BOX.find(g => g.key === "kit")!
                 const kitTypesDosProjeto = (() => {
@@ -4331,45 +4598,134 @@ export default function CalculoProjetoPage() {
                           </div>
                         </>
                       )}
-                      {usaAB && (
+                      {usarAlturaPorta && (
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Alt. Bandeira (AB)</label>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Altura da Porta (AP)</label>
                           <input
-                            type="number" min={0} placeholder="Bandeira/A2"
+                            type="number" min={0} placeholder="Ex: 2100"
                             value={item.altura2}
                             onChange={(e) => atualizarItem(item.id, "altura2", e.target.value)}
                             className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
                           />
+                          <p className="text-[10px] text-gray-400 mt-1">Use em fórmulas de bandeira: A - AP (AB e A2 continuam válidas).</p>
                         </div>
                       )}
                     </div>
 
-                    <div>
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Vidro do Cadastro *</label>
-                      <select
-                        value={item.vidroId}
-                        onChange={(e) => atualizarItem(item.id, "vidroId", e.target.value)}
-                        className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
-                        style={{ color: theme.contentTextLightBg }}
-                      >
-                        <option value="">— Selecione o vidro —</option>
-                        {vidrosDB.map((vidro) => (
-                          <option key={vidro.id} value={vidro.id}>{vidro.nome} {vidro.espessura ? `· ${vidro.espessura}` : ""}{vidro.tipo ? ` · ${vidro.tipo}` : ""}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {projetoEBandeira ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Vidro da Porta *</label>
+                            <select
+                              value={item.vidroPortaId}
+                              onChange={(e) => {
+                                const novoVidroPorta = e.target.value
+                                atualizarItem(item.id, "vidroPortaId", novoVidroPorta)
+                                atualizarItem(item.id, "vidroId", novoVidroPorta)
+                              }}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            >
+                              <option value="">— Selecione o vidro da porta —</option>
+                              {vidrosDB.map((vidro) => (
+                                <option key={vidro.id} value={vidro.id}>{vidro.nome} {vidro.espessura ? `· ${vidro.espessura}` : ""}{vidro.tipo ? ` · ${vidro.tipo}` : ""}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Vidro da Bandeira *</label>
+                            <select
+                              value={item.vidroBandeiraId}
+                              onChange={(e) => atualizarItem(item.id, "vidroBandeiraId", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            >
+                              <option value="">— Selecione o vidro da bandeira —</option>
+                              {vidrosDB.map((vidro) => (
+                                <option key={vidro.id} value={vidro.id}>{vidro.nome} {vidro.espessura ? `· ${vidro.espessura}` : ""}{vidro.tipo ? ` · ${vidro.tipo}` : ""}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Tubo da Bandeira *</label>
+                            <select
+                              value={item.tuboBandeira}
+                              onChange={(e) => atualizarItem(item.id, "tuboBandeira", e.target.value)}
+                              className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                              style={{ color: theme.contentTextLightBg }}
+                            >
+                              <option value="">— Selecione o tubo da bandeira —</option>
+                              {item.tuboBandeira && !tubosBandeiraDisponiveis.includes(item.tuboBandeira) && (
+                                <option value={item.tuboBandeira}>{item.tuboBandeira}</option>
+                              )}
+                              {tubosBandeiraDisponiveis.map((tubo) => (
+                                <option key={tubo} value={tubo}>{tubo}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
 
-                    {vidroSel && (
-                      <div className="rounded-2xl border p-3 text-xs font-medium"
-                        style={{
-                          backgroundColor: usandoPrecoEspecialVidro ? "#ecfdf5" : "#f8fafc",
-                          borderColor: usandoPrecoEspecialVidro ? "#a7f3d0" : "#e5e7eb",
-                          color: usandoPrecoEspecialVidro ? "#047857" : "#64748b",
-                        }}
-                      >
-                        <strong>Preço do vidro aplicado:</strong> {fmt(precoVidroM2Aplicado)}/m²
-                        {usandoPrecoEspecialVidro ? " via tabela do cliente." : " via cadastro padrão do vidro."}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {item.vidroPortaId && (
+                            <div className="rounded-2xl border p-3 text-xs font-medium"
+                              style={{
+                                backgroundColor: getUsandoPrecoEspecialPorId(item.vidroPortaId) ? "#ecfdf5" : "#f8fafc",
+                                borderColor: getUsandoPrecoEspecialPorId(item.vidroPortaId) ? "#a7f3d0" : "#e5e7eb",
+                                color: getUsandoPrecoEspecialPorId(item.vidroPortaId) ? "#047857" : "#64748b",
+                              }}
+                            >
+                              <strong>Porta:</strong> {fmt(getPrecoVidroM2PorId(item.vidroPortaId))}/m²
+                            </div>
+                          )}
+                          {item.vidroBandeiraId && (
+                            <div className="rounded-2xl border p-3 text-xs font-medium"
+                              style={{
+                                backgroundColor: getUsandoPrecoEspecialPorId(item.vidroBandeiraId) ? "#ecfdf5" : "#f8fafc",
+                                borderColor: getUsandoPrecoEspecialPorId(item.vidroBandeiraId) ? "#a7f3d0" : "#e5e7eb",
+                                color: getUsandoPrecoEspecialPorId(item.vidroBandeiraId) ? "#047857" : "#64748b",
+                              }}
+                            >
+                              <strong>Bandeira:</strong> {fmt(getPrecoVidroM2PorId(item.vidroBandeiraId))}/m²
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 block">Vidro do Cadastro *</label>
+                          <select
+                            value={item.vidroId}
+                            onChange={(e) => {
+                              const novoVidro = e.target.value
+                              atualizarItem(item.id, "vidroId", novoVidro)
+                              atualizarItem(item.id, "vidroPortaId", novoVidro)
+                              atualizarItem(item.id, "vidroBandeiraId", novoVidro)
+                            }}
+                            className="w-full p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                            style={{ color: theme.contentTextLightBg }}
+                          >
+                            <option value="">— Selecione o vidro —</option>
+                            {vidrosDB.map((vidro) => (
+                              <option key={vidro.id} value={vidro.id}>{vidro.nome} {vidro.espessura ? `· ${vidro.espessura}` : ""}{vidro.tipo ? ` · ${vidro.tipo}` : ""}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {vidroSel && (
+                          <div className="rounded-2xl border p-3 text-xs font-medium"
+                            style={{
+                              backgroundColor: usandoPrecoEspecialVidro ? "#ecfdf5" : "#f8fafc",
+                              borderColor: usandoPrecoEspecialVidro ? "#a7f3d0" : "#e5e7eb",
+                              color: usandoPrecoEspecialVidro ? "#047857" : "#64748b",
+                            }}
+                          >
+                            <strong>Preço do vidro aplicado:</strong> {fmt(precoVidroM2Aplicado)}/m²
+                            {usandoPrecoEspecialVidro ? " via tabela do cliente." : " via cadastro padrão do vidro."}
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div>
