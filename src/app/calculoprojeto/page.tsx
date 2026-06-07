@@ -1722,10 +1722,28 @@ const calcularProjeto = (params: {
   }
 
   const isFolhaAplicavel = (varRestrita: string | null | undefined) => {
+    if (projetoEBox && variacaoTecnicaDecomposta.altura === "teto" && temFolhaBoxTetoExata) {
+      if (!varRestrita) return false
+      return correspondeRestricaoProjeto(varRestrita, variacaoDrawing, variacaoTecnica)
+    }
+
     return correspondeRestricaoProjeto(varRestrita, variacaoDrawing, variacaoTecnica, {
       permitirBoxPadraoTeto: projetoEBox && variacaoTecnicaDecomposta.altura === "teto",
     })
   }
+
+  const restricaoTemAlturaBox = (valor: string | null | undefined, alturaBox: string) => {
+    return String(valor || "")
+      .split(",")
+      .map((parte) => parte.trim())
+      .filter(Boolean)
+      .some((parte) => decomporVariacaoTecnica(parte).altura === alturaBox)
+  }
+
+  const temFolhaBoxTetoExata = projetoEBox && variacaoTecnicaDecomposta.altura === "teto" && detalhe.folhas.some((folha) =>
+    restricaoTemAlturaBox(folha.variacao_restrita, "teto") &&
+    correspondeRestricaoProjeto(folha.variacao_restrita, variacaoDrawing, variacaoTecnica)
+  )
 
   const temFolhaComRestricaoVisual = detalhe.folhas.some((f) => {
     const partes = String(f.variacao_restrita || "")
