@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
-import { getOpcoesRestricaoTecnicaBox, GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho, formatarVariacaoTecnica, decomporVariacaoTecnica } from "@/utils/variacaoProjeto"
+import { GRUPOS_VARIACAO_BOX, isValorEixoAltura, getEixoVariacaoProjeto, ehVariacaoDeDesenho, formatarVariacaoTecnica, decomporVariacaoTecnica, type EixoVariacaoProjeto } from "@/utils/variacaoProjeto"
 import ThemeLoader from "@/components/ThemeLoader"
 import Header from "@/components/Header"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
@@ -2651,12 +2651,14 @@ export default function ProjetosPage() {
     tipoProjetoVisual === "box" ||
     normalizarBuscaItem(`${form.nome} ${form.categoria} ${desenhoAtual?.label || ""}`).includes("box")
   const opcoesRestricaoBox = projetoUsaPresetVariacaoBox
-    ? getOpcoesRestricaoTecnicaBox().map((opcao, indice) => ({
-        label: opcao.label,
-        arquivo: opcao.valor,
+    ? GRUPOS_VARIACAO_BOX
+        .filter((grupo) => grupo.key === "altura" || grupo.key === "kit")
+        .flatMap((grupo, grupoIndice) => grupo.options.map((opcao, indice) => ({
+        label: `${grupo.label}: ${opcao.label}`,
+        arquivo: opcao.value,
         corBg: (["#eef2ff", "#fef3c7", "#ecfdf5", "#fdf2f8", "#fff7ed"] as const)[indice % 5],
-        corText: (["#4338ca", "#d97706", "#059669", "#db2777", "#ea580c"] as const)[indice % 5],
-      }))
+        corText: (["#4338ca", "#d97706", "#059669", "#db2777", "#ea580c"] as const)[(grupoIndice + indice) % 5],
+      })))
     : []
   const opcoesRestricaoGiro = projetoEhPortaGiro
     ? (GRUPOS_VARIACAO_BOX.find((grupo) => grupo.key === "fechadura")?.options || []).map((opcao, indice) => ({
@@ -2735,24 +2737,50 @@ export default function ProjetosPage() {
     return eixoUnico ? eixos.includes(eixoUnico) : false
   }
 
+  const filtrarOpcoesSimplesPorEixos = (eixos: EixoVariacaoProjeto[], incluirDesenho = false) =>
+    variacaoOpcoesFlat.filter((op) => {
+      if (ehVariacaoDeDesenho(op.arquivo)) return incluirDesenho
+      const eixoUnico = getEixoVariacaoProjeto(op.arquivo)
+      return eixoUnico ? eixos.includes(eixoUnico) : false
+    })
+
+  const getSelecionadosVariacao = (valor?: string | null) =>
+    String(valor || "").split(",").map((item) => item.trim()).filter(Boolean)
+
+  const alternarRestricaoVariacao = (valorAtual: string | null | undefined, valorOpcao: string) => {
+    const selecionados = getSelecionadosVariacao(valorAtual)
+    const ativo = selecionados.includes(valorOpcao)
+    const novos = ativo ? selecionados.filter((valor) => valor !== valorOpcao) : [...selecionados, valorOpcao]
+    return novos.length > 0 ? novos.join(",") : null
+  }
+
   // Para folhas: apenas as opções de altura (Tradicional / Até o teto)
-  const variacaoOpcoesFolha = variacaoOpcoesFlat.filter((op) =>
-    isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
-  )
+  const variacaoOpcoesFolha = projetoUsaPresetVariacaoBox
+    ? filtrarOpcoesSimplesPorEixos(["altura"])
+    : variacaoOpcoesFlat.filter((op) =>
+        isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
+      )
 
   // Para kits: apenas opções do eixo "kit" (Tradicional/Quadrado/Outro) — sem altura, sem combinados
-  const variacaoOpcoesKit = variacaoOpcoesFlat.filter((op) => {
-    if (ehVariacaoDeDesenho(op.arquivo)) return true
-    return contemAlgumEixoVariacao(op.arquivo, ["kit", "aplicacao", "movimentacao", "versao"])
-  })
+  const variacaoOpcoesKit = projetoUsaPresetVariacaoBox
+    ? filtrarOpcoesSimplesPorEixos(["kit"])
+    : variacaoOpcoesFlat.filter((op) => {
+        if (ehVariacaoDeDesenho(op.arquivo)) return true
+        return contemAlgumEixoVariacao(op.arquivo, ["kit", "aplicacao", "movimentacao", "versao"])
+      })
 
   // Para ferragens: separa por eixo para reduzir confusão de aplicação
-  const variacaoOpcoesFerragemKit = variacaoOpcoesFlat.filter((op) =>
-    !ehVariacaoDeDesenho(op.arquivo) && contemAlgumEixoVariacao(op.arquivo, ["kit", "fechadura", "aplicacao", "movimentacao", "versao"])
-  )
-  const variacaoOpcoesFerragemBoxDesenho = variacaoOpcoesFlat.filter((op) =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura"])
-  )
+  const variacaoOpcoesFerragemBoxAltura = projetoUsaPresetVariacaoBox ? filtrarOpcoesSimplesPorEixos(["altura"]) : []
+  const variacaoOpcoesFerragemKit = projetoUsaPresetVariacaoBox
+    ? filtrarOpcoesSimplesPorEixos(["kit"])
+    : variacaoOpcoesFlat.filter((op) =>
+        !ehVariacaoDeDesenho(op.arquivo) && contemAlgumEixoVariacao(op.arquivo, ["kit", "fechadura", "aplicacao", "movimentacao", "versao"])
+      )
+  const variacaoOpcoesFerragemBoxDesenho = projetoUsaPresetVariacaoBox
+    ? variacaoOpcoesFlat.filter((op) => ehVariacaoDeDesenho(op.arquivo))
+    : variacaoOpcoesFlat.filter((op) =>
+        ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura"])
+      )
 
   const getNomeVariacao = (valor: string, fallback: string) => {
     const custom = nomesVariacaoPersonalizados[valor]
@@ -2760,9 +2788,11 @@ export default function ProjetosPage() {
   }
 
   // Para perfis: variações visuais + altura, sem eixo de kit
-  const variacaoOpcoesPerfil = variacaoOpcoesFlat.filter((op) =>
-    ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
-  )
+  const variacaoOpcoesPerfil = projetoUsaPresetVariacaoBox
+    ? filtrarOpcoesSimplesPorEixos(["altura", "kit"], true)
+    : variacaoOpcoesFlat.filter((op) =>
+        ehVariacaoDeDesenho(op.arquivo) || isValorEixoAltura(op.arquivo) || contemAlgumEixoVariacao(op.arquivo, ["altura", "aplicacao", "movimentacao", "versao"])
+      )
 
   const variacoesCustomFiltradas = variacoesCustom.filter((item) =>
     item.label.toLowerCase().includes(buscaVariacaoCustom.toLowerCase().trim())
@@ -3760,15 +3790,14 @@ export default function ProjetosPage() {
                             </label>
                             <div className="flex flex-wrap gap-1.5">
                               {variacaoOpcoesFolha.map(op => {
-                                const selecionados = (folha.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const selecionados = getSelecionadosVariacao(folha.variacao_restrita)
                                 const ativo = selecionados.includes(op.arquivo)
                                 return (
                                   <button
                                     key={op.arquivo}
                                     type="button"
                                     onClick={() => {
-                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
-                                      atualizarFolha(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                      atualizarFolha(idx, "variacao_restrita", alternarRestricaoVariacao(folha.variacao_restrita, op.arquivo))
                                     }}
                                     className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
@@ -4022,15 +4051,14 @@ export default function ProjetosPage() {
                                 Todas as variações
                               </button>
                               {variacaoOpcoesKit.map(op => {
-                                const selecionados = (kit.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const selecionados = getSelecionadosVariacao(kit.variacao_restrita)
                                 const ativo = selecionados.includes(op.arquivo)
                                 return (
                                   <button
                                     key={op.arquivo}
                                     type="button"
                                     onClick={() => {
-                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
-                                      atualizarKit(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                      atualizarKit(idx, "variacao_restrita", alternarRestricaoVariacao(kit.variacao_restrita, op.arquivo))
                                     }}
                                     className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{
@@ -4241,7 +4269,7 @@ export default function ProjetosPage() {
                             <span className="text-sm font-bold text-gray-600">Barra</span>
                           </label>
                         </div>
-                        {(variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0 || projetoEhDeslizante) && (
+                        {(variacaoOpcoesFerragemBoxAltura.length > 0 || variacaoOpcoesFerragemKit.length > 0 || variacaoOpcoesFerragemBoxDesenho.length > 0 || projetoEhDeslizante) && (
                           <div className="sm:col-span-2 xl:col-span-6">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: "#7c3aed" }}>
                               Aplicação por variação
@@ -4277,20 +4305,47 @@ export default function ProjetosPage() {
                                 </div>
                               </div>
                             )}
-                            {variacaoOpcoesFerragemKit.length > 0 && (
+                            {variacaoOpcoesFerragemBoxAltura.length > 0 && (
                               <div className="mb-2">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Variacao tecnica</p>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Box</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {variacaoOpcoesFerragemKit.map(op => {
-                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                  {variacaoOpcoesFerragemBoxAltura.map(op => {
+                                    const selecionados = getSelecionadosVariacao(f.variacao_restrita)
                                     const ativo = selecionados.includes(op.arquivo)
                                     return (
                                       <button
                                         key={op.arquivo}
                                         type="button"
                                         onClick={() => {
-                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
-                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                          atualizarFerragem(idx, "variacao_restrita", alternarRestricaoVariacao(f.variacao_restrita, op.arquivo))
+                                        }}
+                                        className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
+                                        style={{
+                                          backgroundColor: ativo ? "#f5f3ff" : "#f9fafb",
+                                          borderColor: ativo ? "#8b5cf6" : "#e5e7eb",
+                                          color: ativo ? "#6d28d9" : "#9ca3af",
+                                        }}
+                                      >
+                                        {getNomeVariacao(op.arquivo, op.label)}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {variacaoOpcoesFerragemKit.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Kit</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {variacaoOpcoesFerragemKit.map(op => {
+                                    const selecionados = getSelecionadosVariacao(f.variacao_restrita)
+                                    const ativo = selecionados.includes(op.arquivo)
+                                    return (
+                                      <button
+                                        key={op.arquivo}
+                                        type="button"
+                                        onClick={() => {
+                                          atualizarFerragem(idx, "variacao_restrita", alternarRestricaoVariacao(f.variacao_restrita, op.arquivo))
                                         }}
                                         className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                         style={{
@@ -4308,18 +4363,17 @@ export default function ProjetosPage() {
                             )}
                             {variacaoOpcoesFerragemBoxDesenho.length > 0 && (
                               <div>
-                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Tipo de Box / Desenho</p>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-violet-400 mb-1">Desenho</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {variacaoOpcoesFerragemBoxDesenho.map(op => {
-                                    const selecionados = (f.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                    const selecionados = getSelecionadosVariacao(f.variacao_restrita)
                                     const ativo = selecionados.includes(op.arquivo)
                                     return (
                                       <button
                                         key={op.arquivo}
                                         type="button"
                                         onClick={() => {
-                                          const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
-                                          atualizarFerragem(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                          atualizarFerragem(idx, "variacao_restrita", alternarRestricaoVariacao(f.variacao_restrita, op.arquivo))
                                         }}
                                         className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                         style={{
@@ -4670,7 +4724,7 @@ export default function ProjetosPage() {
                         {(variacaoOpcoesPerfil.length > 0 || projetoEhDeslizante) && (
                           <div className="sm:col-span-2 xl:col-span-12">
                             <label className="text-[10px] font-black uppercase tracking-wider mb-1 block" style={{ color: "#7c3aed" }}>
-                              Aplica em qual variação? (altura/desenho)
+                              Aplica em qual variação?
                             </label>
                             {projetoEhDeslizante && (
                               <div className="mb-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -4717,15 +4771,14 @@ export default function ProjetosPage() {
                                 Todas as variações
                               </button>
                               {variacaoOpcoesPerfil.map(op => {
-                                const selecionados = (p.variacao_restrita || "").split(",").map(s => s.trim()).filter(Boolean)
+                                const selecionados = getSelecionadosVariacao(p.variacao_restrita)
                                 const ativo = selecionados.includes(op.arquivo)
                                 return (
                                   <button
                                     key={op.arquivo}
                                     type="button"
                                     onClick={() => {
-                                      const novos = ativo ? selecionados.filter(v => v !== op.arquivo) : [...selecionados, op.arquivo]
-                                      atualizarPerfil(idx, "variacao_restrita", novos.length > 0 ? novos.join(",") : null)
+                                      atualizarPerfil(idx, "variacao_restrita", alternarRestricaoVariacao(p.variacao_restrita, op.arquivo))
                                     }}
                                     className="min-h-9 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border inline-flex items-center justify-center"
                                     style={{

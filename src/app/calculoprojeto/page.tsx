@@ -594,6 +594,19 @@ const normalizarTextoComparacao = (valor?: string | null) =>
     .replace(/\s+/g, " ")
     .trim()
 
+const kitEhCanto = (kit?: { nome?: string | null; categoria?: string | null } | null) => {
+  const texto = normalizarTextoComparacao(`${kit?.nome || ""} ${kit?.categoria || ""}`)
+  if (!texto) return false
+  if (/\bcanto\b/.test(texto)) return true
+  return /\bc\s*\d{1,4}\b/.test(texto)
+}
+
+const kitEhReto = (kit?: { nome?: string | null; categoria?: string | null } | null) => {
+  const texto = normalizarTextoComparacao(`${kit?.nome || ""} ${kit?.categoria || ""}`)
+  if (!texto) return false
+  return /\breto\b/.test(texto) || /\bf\s*\d{1,4}\b/.test(texto) || (!kitEhCanto(kit) && /\b\d{2,4}\b/.test(texto))
+}
+
 const parseCodigoMovimentacaoPma = (codigoFonte?: string | null): string | null => {
   const codigo = String(codigoFonte || "").replace(/\D/g, "")
   if (!codigo) return null
@@ -1835,8 +1848,6 @@ const calcularProjeto = (params: {
   }
   const vars = varsBase
   const variacaoTecnicaDecomposta = decomporVariacaoTecnica(variacaoTecnica)
-  const kitSelecionadoTecnico = String(variacaoTecnicaDecomposta.kit || "").trim()
-  const kitComPerfilAte3000 = kitSelecionadoTecnico === "quadrado" || kitSelecionadoTecnico === "outro"
   const trilhoAtivo = projetoEhPorta ? getTrilhoAtivoProjeto(detalhe, variacaoTrilho) : ""
 
   // ── Calcular folhas de vidro ──────────────────────────────────────────────
@@ -1933,6 +1944,9 @@ const calcularProjeto = (params: {
 
   // ── Kit: encontrar o mais próximo ─────────────────────────────────────────
   let kitSelecionado: KitItem | null = null
+  let kitProjetoSelecionado: ProjetoDetalhe["kits"][number] | null = null
+  let alturaReferenciaKitSelecionado = 0
+  let alturaComparacaoKitSelecionado = Math.max(altura, altura2 || 0)
   let precoKit = 0
 
   if (modoCalculo === "kit") {
@@ -1965,7 +1979,8 @@ const calcularProjeto = (params: {
           return decomposta.kit === kitSelecionadoTecnicoAtual && correspondeRestricaoTecnica(parte, variacaoTecnica)
         })
       })
-      return candidatos.length > 0 ? candidatos : kitsFiltrados
+      if (candidatos.length > 0) return candidatos
+      return projetoEBox ? [] : kitsFiltrados
     })()
 
     const kitsPriorizadosPorFolhas = (() => {
@@ -1977,7 +1992,7 @@ const calcularProjeto = (params: {
       return candidatos.length > 0 ? candidatos : kitsPreferenciais
     })()
 
-    const ehMedicaoCanto = largura2 > 0
+    const ehMedicaoCanto = projetoEhCanto && largura2 > 0
     const larguraComparacaoKit = ehMedicaoCanto ? (largura + largura2) : largura
     const alturaComparacaoKit = Math.max(altura, altura2 || 0)
 
@@ -1996,19 +2011,141 @@ const calcularProjeto = (params: {
         kitProj.altura_referencia >= medidaKit.altura
     })
 
-    const baseBuscaKit = kitsCompativeisMedida
+    const kitsCompativeisLargura = kitsPriorizadosPorFolhas.filter((kitProj) => {
+      const medidaKit = getMedidaComparacaoKit(kitProj)
+      return kitProj.largura_referencia >= medidaKit.largura
+    })
+
+    const baseBuscaKitMedida = kitsCompativeisMedida.length > 0
+      ? kitsCompativeisMedida
+      : kitsCompativeisLargura.length > 0
+        ? kitsCompativeisLargura
+        : kitsPriorizadosPorFolhas
 
     // Escolhe pelo menor delta (distância euclidiana entre L×A e largura_referencia×altura_referencia)
-    let menorDelta = Infinity
+    const kitsPreferidosPorFormato = baseBuscaKitMedida.filter((kitProj) => {
+      const dbKit = kitsDB.find((kit) => kit.id === kitProj.kit_id)
+      return projetoEhCanto ? kitEhCanto(dbKit) : kitEhReto(dbKit)
+    })
+
+    const baseBuscaKit = projetoEBox
+      ? kitsPreferidosPorFormato
+      : kitsPreferidosPorFormato.length > 0
+        ? kitsPreferidosPorFormato
+        : baseBuscaKitMedida
+    const calcularScoreKit = (kitProj: ProjetoDetalhe["kits"][number]) => {
+      const medidaKit = getMedidaComparacaoKit(kitProj)
+      const sobraLargura = Number(kitProj.largura_referencia || 0) - medidaKit.largura
+      const sobraAltura = Number(kitProj.altura_referencia || 0) - medidaKit.altura
+      return {
+        larguraInsuficiente: sobraLargura < 0 ? 1 : 0,
+        sobraLargura: sobraLargura >= 0 ? sobraLargura : Math.abs(sobraLargura),
+        alturaInsuficiente: sobraAltura < 0 ? 1 : 0,
+        sobraAltura: sobraAltura >= 0 ? sobraAltura : Math.abs(sobraAltura),
+        areaReferencia: Number(kitProj.largura_referencia || 0) * Number(kitProj.altura_referencia || 0),
+        medidaKit,
+      }
+    }
+    let melhorScore: ReturnType<typeof calcularScoreKit> | null = null
+    const debugKits = baseBuscaKit.map((kitProj) => {
+      const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
+      const score = calcularScoreKit(kitProj)
+      return {
+        kit_id: kitProj.kit_id,
+        nome: dbKit?.nome || kitProj.kits?.nome || "-",
+        categoria: dbKit?.categoria || null,
+        variacao_restrita: kitProj.variacao_restrita || null,
+        largura_referencia: Number(kitProj.largura_referencia || 0),
+        altura_referencia: Number(kitProj.altura_referencia || 0),
+        medida_comparacao: score.medidaKit,
+        eh_canto: kitEhCanto(dbKit),
+        eh_reto: kitEhReto(dbKit),
+        score: {
+          larguraInsuficiente: score.larguraInsuficiente,
+          sobraLargura: score.sobraLargura,
+          alturaInsuficiente: score.alturaInsuficiente,
+          sobraAltura: score.sobraAltura,
+          areaReferencia: score.areaReferencia,
+        },
+      }
+    })
+
     for (const kitProj of baseBuscaKit) {
       const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
       if (!dbKit) continue
-      const medidaKit = getMedidaComparacaoKit(kitProj)
-      const delta = Math.abs(medidaKit.largura - kitProj.largura_referencia) + Math.abs(medidaKit.altura - kitProj.altura_referencia)
-      if (delta < menorDelta) {
-        menorDelta = delta
+      const score = calcularScoreKit(kitProj)
+      const ehMelhor =
+        !melhorScore ||
+        score.larguraInsuficiente < melhorScore.larguraInsuficiente ||
+        (score.larguraInsuficiente === melhorScore.larguraInsuficiente && score.sobraLargura < melhorScore.sobraLargura) ||
+        (score.larguraInsuficiente === melhorScore.larguraInsuficiente && score.sobraLargura === melhorScore.sobraLargura && score.alturaInsuficiente < melhorScore.alturaInsuficiente) ||
+        (score.larguraInsuficiente === melhorScore.larguraInsuficiente && score.sobraLargura === melhorScore.sobraLargura && score.alturaInsuficiente === melhorScore.alturaInsuficiente && score.sobraAltura < melhorScore.sobraAltura) ||
+        (score.larguraInsuficiente === melhorScore.larguraInsuficiente && score.sobraLargura === melhorScore.sobraLargura && score.alturaInsuficiente === melhorScore.alturaInsuficiente && score.sobraAltura === melhorScore.sobraAltura && score.areaReferencia < melhorScore.areaReferencia)
+      if (ehMelhor) {
+        melhorScore = score
         kitSelecionado = dbKit
+        kitProjetoSelecionado = kitProj
+        alturaReferenciaKitSelecionado = Number(kitProj.altura_referencia || 0)
+        alturaComparacaoKitSelecionado = score.medidaKit.altura
       }
+    }
+
+    if (typeof window !== "undefined") {
+      const debugPayload = {
+        modoCalculo,
+        projetoEBox,
+        projetoEhCanto,
+        variacaoTecnica,
+        variacaoTecnicaDecomposta,
+        kitSelecionadoTecnicoAtual,
+        largura,
+        altura,
+        largura2,
+        altura2,
+        larguraComparacaoKit,
+        alturaComparacaoKit,
+        quantidadeFolhasProjeto,
+        totais: {
+          kitsAplicaveis: kitsAplicaveis.length,
+          kitsFiltrados: kitsFiltrados.length,
+          kitsPreferenciais: kitsPreferenciais.length,
+          kitsPriorizadosPorFolhas: kitsPriorizadosPorFolhas.length,
+          kitsCompativeisMedida: kitsCompativeisMedida.length,
+          kitsCompativeisLargura: kitsCompativeisLargura.length,
+          baseBuscaKitMedida: baseBuscaKitMedida.length,
+          kitsPreferidosPorFormato: kitsPreferidosPorFormato.length,
+          baseBuscaKit: baseBuscaKit.length,
+        },
+        listas: {
+          kitsAplicaveis: kitsAplicaveis.map((kitProj) => {
+            const dbKit = kitsDB.find(k => k.id === kitProj.kit_id)
+            return {
+              nome: dbKit?.nome || kitProj.kits?.nome || "-",
+              variacao_restrita: kitProj.variacao_restrita || null,
+              largura_referencia: Number(kitProj.largura_referencia || 0),
+              altura_referencia: Number(kitProj.altura_referencia || 0),
+            }
+          }),
+          baseBuscaKit: debugKits,
+        },
+        escolhido: kitSelecionado
+          ? {
+              id: kitSelecionado.id,
+              nome: kitSelecionado.nome,
+              preco: kitSelecionado.preco || 0,
+              projetoKit: kitProjetoSelecionado
+                ? {
+                    variacao_restrita: kitProjetoSelecionado.variacao_restrita || null,
+                    largura_referencia: Number(kitProjetoSelecionado.largura_referencia || 0),
+                    altura_referencia: Number(kitProjetoSelecionado.altura_referencia || 0),
+                  }
+                : null,
+              score: melhorScore,
+            }
+          : null,
+      }
+      console.warn("[calculoprojeto:kit-debug]", debugPayload)
+      console.warn("[calculoprojeto:kit-debug-json]", JSON.stringify(debugPayload, null, 2))
     }
 
     if (kitSelecionado) {
@@ -2123,6 +2260,12 @@ const calcularProjeto = (params: {
   // ── Perfis: calcular cortes para posterior consolidação por projeto ───────
   const cortesResult: CorteOtimizado[] = []
   let precoPerfis = 0
+  const precisaPerfilExtraBoxPorKit =
+    modoCalculo === "kit" &&
+    projetoEBox &&
+    Boolean(kitProjetoSelecionado) &&
+    alturaReferenciaKitSelecionado > 0 &&
+    alturaReferenciaKitSelecionado < alturaComparacaoKitSelecionado
 
   const calcularPerfisNesteModo =
     modoCalculo === "barra" ||
@@ -2135,7 +2278,7 @@ const calcularProjeto = (params: {
           if (ehVariacaoDeDesenho(parte)) return false
           return Boolean(decomporVariacaoTecnica(parte).kit)
         })
-      const incluiPorRegraKit = modoCalculo === "kit" && kitComPerfilAte3000 && altura <= 3000 && possuiRestricaoKit
+      const incluiPorRegraKit = precisaPerfilExtraBoxPorKit && possuiRestricaoKit
       return incluiPorRegraKit || Boolean(p.usar_no_kit) || Boolean(String(p.condicao || "").trim())
     })
 
@@ -2165,7 +2308,7 @@ const calcularProjeto = (params: {
             if (ehVariacaoDeDesenho(parte)) return false
             return Boolean(decomporVariacaoTecnica(parte).kit)
           })
-        const incluiPorRegraKit = modoCalculo === "kit" && kitComPerfilAte3000 && altura <= 3000 && possuiRestricaoKit
+        const incluiPorRegraKit = precisaPerfilExtraBoxPorKit && possuiRestricaoKit
         const podeNoModoAtual =
           modoCalculo === "barra" ||
           Boolean(p.usar_no_kit) ||
