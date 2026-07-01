@@ -1115,8 +1115,8 @@ useEffect(() => {
       id: Math.random(),
       descricao: `${vidro.nome} ${vidro.espessura || ''} ${vidro.tipo || ''}`.trim(),
       // Guardamos as duas separadas para não haver confusão
-      medidaReal: `${lReal} x ${aReal}`,
-      medidaCalc: `${lCalc} x ${aCalc}`,
+      medidaReal: `${lReal} x ${aReal} mm`,
+      medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: Number(qtd),
       precoVidroM2: precoM2,
       total: areaCobradaM2 * precoM2 * Number(qtd),

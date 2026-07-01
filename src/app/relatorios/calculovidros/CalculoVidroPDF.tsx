@@ -45,6 +45,7 @@ interface CalculoVidroPDFProps {
     valorTotal: number;
     totalPecas: number;
     numeroOrcamento?: string;
+    exibirColunaPrecoM2Un?: boolean;
 }
 
 const styles = StyleSheet.create({
@@ -119,10 +120,11 @@ const styles = StyleSheet.create({
         objectFit: 'contain',
     },
 
-    colDesc: { width: '48%' },
-    colQtd: { width: '10%', textAlign: 'center' },
-    colVao: { width: '22%', textAlign: 'center' },
-    colTotal: { width: '20%', textAlign: 'right' },
+    colDesc: { width: '44%' },
+    colQtd: { width: '9%', textAlign: 'center' },
+    colVao: { width: '17%', textAlign: 'center' },
+    colPrecoUnitario: { width: '14%', textAlign: 'right' },
+    colTotal: { width: '16%', textAlign: 'right' },
 
     summaryContainer: {
         marginTop: 30,
@@ -160,16 +162,59 @@ export function CalculoVidroPDF({
     valorTotal,
     totalPecas,
     numeroOrcamento,
+    exibirColunaPrecoM2Un,
 }: CalculoVidroPDFProps) {
     const contentColor = textColor || themeColor;
     const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
+    const mostrarColunaPrecoM2Un =
+        typeof exibirColunaPrecoM2Un === 'boolean'
+            ? exibirColunaPrecoM2Un
+            : !itens.some(ehCabecalhoProjeto);
     const comprimentoBarraItem = (item: ItemVidro) => parseInt(String(item.medidaReal || '').replace(/\D/g, ''), 10) || 0;
     const quantidadePecasTotal = itens.reduce((total, item) => {
         const quantidadeVaos = Math.max(0, Number(item.qtd || 0));
         const pecasPorVao = Math.max(0, Number(item.quantidadePecas ?? 1));
         return total + (quantidadeVaos * pecasPorVao);
     }, 0);
+    const formatarPrecoColuna = (item: ItemVidro) => {
+        const precoM2 = Number(item.precoVidroM2 ?? 0);
+        if (precoM2 > 0) {
+            return `${precoM2.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²`;
+        }
+
+        const precoUn = Number(item.valorUnitario ?? item.valorServicoUn ?? 0);
+        if (precoUn > 0) {
+            return `${precoUn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un`;
+        }
+
+        return '-';
+    };
+
+    const formatarMedidaExibicao = (valor?: string) => {
+        const texto = String(valor || '').trim();
+        if (!texto) return '-';
+        return texto.replace(/\s*mm\b/gi, '').trim();
+    };
+
+    const ehItemAvulso = (item: ItemVidro) => {
+        const descricao = String(item.descricao || '').trim().toLowerCase();
+        const tipo = String(item.tipo || '').trim().toLowerCase();
+        const servico = String(item.servicos || '').trim().toLowerCase();
+
+        return (
+            tipo === 'adicional' ||
+            servico === 'item adicional' ||
+            /^kit\s*:/.test(descricao) ||
+            /^perfil\s*:/.test(descricao) ||
+            /^ferragem\s*:/.test(descricao)
+        );
+    };
+
+    const colDescStyle = mostrarColunaPrecoM2Un ? styles.colDesc : [styles.colDesc, { width: '48%' }];
+    const colQtdStyle = mostrarColunaPrecoM2Un ? styles.colQtd : [styles.colQtd, { width: '10%' }];
+    const colVaoStyle = mostrarColunaPrecoM2Un ? styles.colVao : [styles.colVao, { width: '22%' }];
+    const colTotalStyle = mostrarColunaPrecoM2Un ? styles.colTotal : [styles.colTotal, { width: '20%' }];
 
     return (
         <Document>
@@ -200,10 +245,13 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, styles.colDesc]}>Projeto</Text>
-                        <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd. Vaos</Text>
-                        <Text style={[styles.tableColHeader, styles.colVao]}>Larg x Alt</Text>
-                        <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
+                        <Text style={[styles.tableColHeader, colDescStyle]}>Projeto</Text>
+                        <Text style={[styles.tableColHeader, colQtdStyle]}>Qtd. Vaos</Text>
+                        <Text style={[styles.tableColHeader, colVaoStyle]}>Larg x Alt</Text>
+                        {mostrarColunaPrecoM2Un && (
+                            <Text style={[styles.tableColHeader, styles.colPrecoUnitario]}>Preco m² / Un</Text>
+                        )}
+                        <Text style={[styles.tableColHeader, colTotalStyle]}>Total</Text>
                     </View>
 
                     {itens.map((item, index) => (
@@ -217,7 +265,7 @@ export function CalculoVidroPDF({
                         ]} wrap={false}> 
 
                             {/* Descrição e Serviços */}
-                            <View style={[styles.tableCol, styles.colDesc]}>
+                            <View style={[styles.tableCol, colDescStyle]}>
                                 <View style={styles.descricaoComDesenho}>
                                     {item.desenhoUrl && (
                                         <View style={styles.desenhoThumbBox}>
@@ -294,11 +342,18 @@ export function CalculoVidroPDF({
                             </View>
 
                             {/* Quantidade, Medidas e Preço */}
-                            <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>
+                            <Text style={[styles.tableCol, colQtdStyle, { color: contentColor }]}>
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, styles.colVao, { color: contentColor }]}>{item.vao || item.medidaReal || '-'}</Text>
-                            <Text style={[styles.tableCol, styles.colTotal, { color: contentColor }]}>
+                            <Text style={[styles.tableCol, colVaoStyle, { color: contentColor }]}>
+                                {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
+                            </Text>
+                            {mostrarColunaPrecoM2Un && (
+                                <Text style={[styles.tableCol, styles.colPrecoUnitario, { color: contentColor }]}>
+                                    {formatarPrecoColuna(item)}
+                                </Text>
+                            )}
+                            <Text style={[styles.tableCol, colTotalStyle, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                         </View>
