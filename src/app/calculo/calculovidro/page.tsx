@@ -134,6 +134,18 @@ const montarRotuloVidro = (vidro: Vidro) => {
   return partes.join(" | ");
 };
 
+const identificarTipoAdicionalPorDescricao = (descricao: string): "kit" | "perfil" | "ferragem" | null => {
+  const texto = String(descricao || "").trim().toLowerCase();
+  if (texto.startsWith("kit:")) return "kit";
+  if (texto.startsWith("perfil:")) return "perfil";
+  if (texto.startsWith("ferragem:")) return "ferragem";
+  return null;
+};
+
+const removerPrefixoTipoAdicional = (descricao: string) => {
+  return String(descricao || "").replace(/^\s*(kit|perfil|ferragem)\s*:\s*/i, "").trim();
+};
+
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
@@ -435,10 +447,21 @@ export default function RelatorioOrçamento() {
       acabamento: tipoLabel,
     };
 
-    setItens((prev) => [...prev, novoItem]);
+    const itemAtual = editandoId != null ? itens.find((i) => i.id === editandoId) : undefined;
+    const atualizandoAdicional = Boolean(itemAtual && itemAtual.tipo === "adicional");
+
+    if (atualizandoAdicional && editandoId != null) {
+      setItens((prev) => prev.map((i) => (i.id === editandoId ? { ...novoItem, id: editandoId } : i)));
+      setEditandoId(null);
+    } else {
+      setItens((prev) => [...prev, novoItem]);
+    }
+
     setAdicionalSelecionadoId("");
     setQuantidadeAdicional(1);
     setValorUnitarioAdicional("");
+    setFiltroCorAdicional("");
+    setBuscaAdicional("");
   };
 
   useEffect(() => {
@@ -868,6 +891,48 @@ useEffect(() => {
   };
 
   const handleEditarItem = (item: ItemOrcamento) => {
+    const tipoAdicional = identificarTipoAdicionalPorDescricao(item.descricao);
+    const ehAdicional = item.tipo === "adicional" || tipoAdicional !== null;
+
+    if (ehAdicional) {
+      setEditandoId(item.id);
+
+      if (tipoAdicional) {
+        setTipoAdicionalSelecionado(tipoAdicional);
+
+        const descricaoBase = removerPrefixoTipoAdicional(item.descricao).toLowerCase();
+        const listaAlvo = tipoAdicional === "kit"
+          ? listaKits
+          : tipoAdicional === "perfil"
+            ? listaPerfis
+            : listaFerragens;
+
+        const adicionalEncontrado = listaAlvo.find((adicional) => {
+          const codigo = "codigo" in adicional ? String(adicional.codigo || "").trim() : "";
+          const nome = String(adicional.nome || "").trim();
+          const comCodigo = `${codigo ? `${codigo} - ` : ""}${nome}`.trim().toLowerCase();
+
+          return comCodigo === descricaoBase || nome.toLowerCase() === descricaoBase;
+        });
+
+        setAdicionalSelecionadoId(adicionalEncontrado ? String(adicionalEncontrado.id) : "");
+      }
+
+      setQuantidadeAdicional(Math.max(1, Number(item.qtd) || 1));
+
+      const valorUnitario = Number(item.valorServicoUn ?? (item.qtd ? item.total / item.qtd : 0));
+      setValorUnitarioAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
+
+      // Limpa o formulário de vidro para evitar edição no bloco errado.
+      setLargura("");
+      setAltura("");
+      setQuantidade(1);
+      setServicoSelecionado(null);
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
 
     const [l, a] = item.medidaCalc.split('x');
@@ -883,6 +948,10 @@ useEffect(() => {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const itemEmEdicao = editandoId != null ? itens.find((item) => item.id === editandoId) || null : null;
+  const editandoAdicional = Boolean(itemEmEdicao && (itemEmEdicao.tipo === "adicional" || identificarTipoAdicionalPorDescricao(itemEmEdicao.descricao)));
+  const editandoVidro = Boolean(editandoId) && !editandoAdicional;
 
   const handleSalvarOrcamento = async () => {
     if (itens.length === 0) {
@@ -1275,12 +1344,19 @@ useEffect(() => {
                   <div className="absolute top-0 left-0 w-full bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between animate-fade-in">
                     <div className="flex items-center gap-2">
                       <Edit2 size={14} className="text-amber-600" />
-                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Modo Edição Ativo</span>
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                        {editandoAdicional ? "Editando adicional" : "Modo Edição Ativo"}
+                      </span>
                     </div>
                     <button
                       onClick={() => {
                         setEditandoId(null);
-                        setLargura(""); setAltura("");
+                        setLargura("");
+                        setAltura("");
+                        setQuantidade(1);
+                        setAdicionalSelecionadoId("");
+                        setQuantidadeAdicional(1);
+                        setValorUnitarioAdicional("");
                       }}
                       className="text-amber-700 hover:text-amber-900"
                     >
@@ -1577,25 +1653,18 @@ useEffect(() => {
                     onClick={adicionarAdicional}
                     className="w-full py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
                   >
-                    <Plus size={16} />
-                    <span>Adicionar adicional</span>
+                    {editandoAdicional ? <Sparkles size={16} /> : <Plus size={16} />}
+                    <span>{editandoAdicional ? "Atualizar adicional" : "Adicionar adicional"}</span>
                   </button>
                 </div>
 
                 <div className="flex justify-center w-full pt-4">
                   <button
-                    onClick={() => {
-                      if (editandoId) {
-                        // Remove o antigo e adiciona o novo com os dados atualizados
-                        setItens(prev => prev.filter(i => i.id !== editandoId));
-                        setEditandoId(null);
-                      }
-                      adicionarItem();
-                    }}
+                    onClick={adicionarItem}
                     className="w-1/2 py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
                   >
-                    {editandoId ? <Sparkles size={18} /> : <Plus size={18} />}
-                    <span>{editandoId ? "Atualizar Item" : "Adicionar Item"}</span>
+                    {editandoVidro ? <Sparkles size={18} /> : <Plus size={18} />}
+                    <span>{editandoVidro ? "Atualizar Item" : "Adicionar Item"}</span>
                   </button>
                 </div>
               </div>
