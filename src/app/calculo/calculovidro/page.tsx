@@ -206,6 +206,11 @@ export default function RelatorioOrçamento() {
   const [indiceVidroAssociacaoAtivo, setIndiceVidroAssociacaoAtivo] = useState(0);
   const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
+  const linhasItensRef = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const [tipoEdicaoRapidaAdicional, setTipoEdicaoRapidaAdicional] = useState<"kit" | "perfil" | "ferragem">("kit");
+  const [adicionalEdicaoRapidaId, setAdicionalEdicaoRapidaId] = useState("");
+  const [qtdEdicaoRapidaAdicional, setQtdEdicaoRapidaAdicional] = useState("1");
+  const [valorEdicaoRapidaAdicional, setValorEdicaoRapidaAdicional] = useState("");
 
   const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
@@ -661,6 +666,15 @@ useEffect(() => {
 }, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
   useEffect(() => {
+    if (editandoId == null) return;
+
+    const linha = linhasItensRef.current[String(editandoId)];
+    if (linha) {
+      linha.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [editandoId]);
+
+  useEffect(() => {
     if (!isMounted || !empresaId || draftRestauradoRef.current) return;
 
     try {
@@ -760,6 +774,38 @@ useEffect(() => {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [itens.length, clienteId, obra, largura, altura]);
+
+  useEffect(() => {
+    if (editandoId == null) return;
+    if (String(valorEdicaoRapidaAdicional || "").trim()) return;
+
+    const itemAtual = itens.find((item) => item.id === editandoId);
+    const ehAdicional = Boolean(itemAtual && (itemAtual.tipo === "adicional" || identificarTipoAdicionalPorDescricao(itemAtual.descricao)));
+    if (!ehAdicional) return;
+
+    const listaAdicionais = tipoEdicaoRapidaAdicional === "kit"
+      ? listaKits
+      : tipoEdicaoRapidaAdicional === "perfil"
+        ? listaPerfis
+        : listaFerragens;
+
+    const itemSelecionado = listaAdicionais.find((item) => String(item.id) === String(adicionalEdicaoRapidaId));
+    if (!itemSelecionado) return;
+
+    const preco = obterPrecoPadraoAdicional(itemSelecionado);
+    if (preco > 0) {
+      setValorEdicaoRapidaAdicional(preco.toFixed(2).replace(".", ","));
+    }
+  }, [
+    editandoId,
+    itens,
+    valorEdicaoRapidaAdicional,
+    tipoEdicaoRapidaAdicional,
+    listaKits,
+    listaPerfis,
+    listaFerragens,
+    adicionalEdicaoRapidaId,
+  ]);
 
   if (checkingAuth) {
     return (
@@ -891,7 +937,14 @@ useEffect(() => {
   };
 
   const handleEditarItem = (item: ItemOrcamento) => {
-    const tipoAdicional = identificarTipoAdicionalPorDescricao(item.descricao);
+    const tipoAdicional = identificarTipoAdicionalPorDescricao(item.descricao)
+      || (String(item.acabamento || "").trim().toLowerCase() === "kit"
+        ? "kit"
+        : String(item.acabamento || "").trim().toLowerCase() === "perfil"
+          ? "perfil"
+          : String(item.acabamento || "").trim().toLowerCase() === "ferragem"
+            ? "ferragem"
+            : null);
     const ehAdicional = item.tipo === "adicional" || tipoAdicional !== null;
 
     if (ehAdicional) {
@@ -899,6 +952,7 @@ useEffect(() => {
 
       if (tipoAdicional) {
         setTipoAdicionalSelecionado(tipoAdicional);
+        setTipoEdicaoRapidaAdicional(tipoAdicional);
 
         const descricaoBase = removerPrefixoTipoAdicional(item.descricao).toLowerCase();
         const listaAlvo = tipoAdicional === "kit"
@@ -916,12 +970,15 @@ useEffect(() => {
         });
 
         setAdicionalSelecionadoId(adicionalEncontrado ? String(adicionalEncontrado.id) : "");
+        setAdicionalEdicaoRapidaId(adicionalEncontrado ? String(adicionalEncontrado.id) : "");
       }
 
       setQuantidadeAdicional(Math.max(1, Number(item.qtd) || 1));
+      setQtdEdicaoRapidaAdicional(String(Math.max(1, Number(item.qtd) || 1)));
 
       const valorUnitario = Number(item.valorServicoUn ?? (item.qtd ? item.total / item.qtd : 0));
       setValorUnitarioAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
+      setValorEdicaoRapidaAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
 
       // Limpa o formulário de vidro para evitar edição no bloco errado.
       setLargura("");
@@ -929,7 +986,6 @@ useEffect(() => {
       setQuantidade(1);
       setServicoSelecionado(null);
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -946,12 +1002,70 @@ useEffect(() => {
     const servico = listaServicos.find(s => s.nome === item.servico);
     setServicoSelecionado(servico || null);
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const itemEmEdicao = editandoId != null ? itens.find((item) => item.id === editandoId) || null : null;
   const editandoAdicional = Boolean(itemEmEdicao && (itemEmEdicao.tipo === "adicional" || identificarTipoAdicionalPorDescricao(itemEmEdicao.descricao)));
   const editandoVidro = Boolean(editandoId) && !editandoAdicional;
+  const listaEdicaoRapidaAdicional = tipoEdicaoRapidaAdicional === "kit"
+    ? listaKits
+    : tipoEdicaoRapidaAdicional === "perfil"
+      ? listaPerfis
+      : listaFerragens;
+
+  const tipoLabelEdicaoRapida = tipoEdicaoRapidaAdicional === "kit"
+    ? "Kit"
+    : tipoEdicaoRapidaAdicional === "perfil"
+      ? "Perfil"
+      : "Ferragem";
+
+  const salvarEdicaoRapidaAdicional = () => {
+    if (editandoId == null) return;
+
+    const qtd = Math.max(1, Number(qtdEdicaoRapidaAdicional) || 1);
+    const valorUnitario = parseValorDigitado(valorEdicaoRapidaAdicional);
+
+    if (valorUnitario < 0) {
+      setModalAvisoTitulo("Valor inválido");
+      setModalAvisoMensagem("O valor unitário não pode ser negativo.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    const itemSelecionado = listaEdicaoRapidaAdicional.find((item) => String(item.id) === String(adicionalEdicaoRapidaId));
+    if (!itemSelecionado) {
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Selecione o kit, perfil ou ferragem para concluir a edição.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
+    const codigo = "codigo" in itemSelecionado ? String(itemSelecionado.codigo || "").trim() : "";
+    const descricaoBase = `${codigo ? `${codigo} - ` : ""}${itemSelecionado.nome}`.trim();
+
+    setItens((prev) => prev.map((item) => {
+      if (item.id !== editandoId) return item;
+      return {
+        ...item,
+        descricao: `${tipoLabelEdicaoRapida}: ${descricaoBase}`,
+        acabamento: tipoLabelEdicaoRapida,
+        servico: "Item adicional",
+        servicos: "Item adicional",
+        qtd,
+        valorServicoUn: valorUnitario,
+        total: valorUnitario * qtd,
+        totalOriginal: undefined,
+        totalRateado: false,
+        observacaoRateio: undefined,
+      };
+    }));
+
+    setEditandoId(null);
+    setTipoEdicaoRapidaAdicional("kit");
+    setAdicionalEdicaoRapidaId("");
+    setQtdEdicaoRapidaAdicional("1");
+    setValorEdicaoRapidaAdicional("");
+  };
 
   const handleSalvarOrcamento = async () => {
     if (itens.length === 0) {
@@ -1334,7 +1448,7 @@ useEffect(() => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
               {/* CARD DIMENSÕES (MANTIDO) */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 relative overflow-hidden">
@@ -1730,7 +1844,10 @@ useEffect(() => {
                         {itens.map((item) => (
                           <tr
                             key={item.id}
-                            className={`hover:bg-gray-50/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-blue-50/30' : ''}`}
+                            ref={(el) => {
+                              linhasItensRef.current[String(item.id)] = el;
+                            }}
+                            className={`hover:bg-gray-50/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-blue-50/30' : ''} ${editandoId === item.id ? 'bg-amber-50/70 outline outline-2 outline-amber-200' : ''}`}
                           >
                             {/* 1. CHECKBOX */}
                             <td className="px-4 py-4">
@@ -1768,6 +1885,12 @@ useEffect(() => {
                                 </div>
                               )}
 
+                              {editandoId === item.id && (
+                                <div className="mt-1 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                                  Em edicao
+                                </div>
+                              )}
+
                               {/* Serviço / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
@@ -1775,6 +1898,87 @@ useEffect(() => {
                                   <span className="text-[10px] text-gray-400 uppercase font-bold bg-amber-50 px-1.5 py-0.5 rounded-md">
                                     {item.servico}
                                   </span>
+                                </div>
+                              )}
+
+                              {editandoId === item.id && (item.tipo === "adicional" || identificarTipoAdicionalPorDescricao(item.descricao)) && (
+                                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 p-2.5">
+                                  <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <select
+                                      value={tipoEdicaoRapidaAdicional}
+                                      onChange={(e) => {
+                                        setTipoEdicaoRapidaAdicional(e.target.value as "kit" | "perfil" | "ferragem");
+                                        setAdicionalEdicaoRapidaId("");
+                                      }}
+                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                    >
+                                      <option value="kit">Kit</option>
+                                      <option value="perfil">Perfil</option>
+                                      <option value="ferragem">Ferragem</option>
+                                    </select>
+                                    <select
+                                      value={adicionalEdicaoRapidaId}
+                                      onChange={(e) => {
+                                        const novoId = e.target.value;
+                                        setAdicionalEdicaoRapidaId(novoId);
+                                        const itemSelecionado = listaEdicaoRapidaAdicional.find((itemCatalogo) => String(itemCatalogo.id) === String(novoId));
+                                        if (itemSelecionado) {
+                                          const preco = obterPrecoPadraoAdicional(itemSelecionado);
+                                          if (preco > 0) {
+                                            setValorEdicaoRapidaAdicional(preco.toFixed(2).replace(".", ","));
+                                          }
+                                        }
+                                      }}
+                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                    >
+                                      <option value="">Selecione o item...</option>
+                                      {listaEdicaoRapidaAdicional.map((itemCatalogo) => {
+                                        const codigo = "codigo" in itemCatalogo ? String(itemCatalogo.codigo || "").trim() : "";
+                                        return (
+                                          <option key={itemCatalogo.id} value={itemCatalogo.id}>
+                                            {`${codigo ? `${codigo} - ` : ""}${itemCatalogo.nome}`}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={qtdEdicaoRapidaAdicional}
+                                      onChange={(e) => setQtdEdicaoRapidaAdicional(e.target.value)}
+                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      placeholder="Qtd"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={valorEdicaoRapidaAdicional}
+                                      onChange={(e) => setValorEdicaoRapidaAdicional(e.target.value)}
+                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      placeholder="Valor unitário"
+                                    />
+                                  </div>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      onClick={salvarEdicaoRapidaAdicional}
+                                      className="px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-[11px] font-bold hover:bg-amber-200 transition-colors"
+                                    >
+                                      Salvar aqui
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditandoId(null);
+                                        setTipoEdicaoRapidaAdicional("kit");
+                                        setAdicionalEdicaoRapidaId("");
+                                        setQtdEdicaoRapidaAdicional("1");
+                                        setValorEdicaoRapidaAdicional("");
+                                      }}
+                                      className="px-2.5 py-1.5 rounded-lg bg-white text-gray-600 text-[11px] font-bold border border-gray-200 hover:bg-gray-50 transition-colors"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </td>
