@@ -211,10 +211,10 @@ export function CalculoVidroPDF({
         );
     };
 
-    const colDescStyle = mostrarColunaPrecoM2Un ? styles.colDesc : [styles.colDesc, { width: '48%' }];
-    const colQtdStyle = mostrarColunaPrecoM2Un ? styles.colQtd : [styles.colQtd, { width: '10%' }];
-    const colVaoStyle = mostrarColunaPrecoM2Un ? styles.colVao : [styles.colVao, { width: '22%' }];
-    const colTotalStyle = mostrarColunaPrecoM2Un ? styles.colTotal : [styles.colTotal, { width: '20%' }];
+    const colDescOverride = mostrarColunaPrecoM2Un ? {} : { width: '48%' as const };
+    const colQtdOverride = mostrarColunaPrecoM2Un ? {} : { width: '10%' as const };
+    const colVaoOverride = mostrarColunaPrecoM2Un ? {} : { width: '22%' as const };
+    const colTotalOverride = mostrarColunaPrecoM2Un ? {} : { width: '20%' as const };
 
     return (
         <Document>
@@ -245,13 +245,13 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, colDescStyle]}>Projeto</Text>
-                        <Text style={[styles.tableColHeader, colQtdStyle]}>Qtd. Vaos</Text>
-                        <Text style={[styles.tableColHeader, colVaoStyle]}>Larg x Alt</Text>
+                        <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Projeto</Text>
+                        <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vaos</Text>
+                        <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg x Alt</Text>
                         {mostrarColunaPrecoM2Un && (
                             <Text style={[styles.tableColHeader, styles.colPrecoUnitario]}>Preco m² / Un</Text>
                         )}
-                        <Text style={[styles.tableColHeader, colTotalStyle]}>Total</Text>
+                        <Text style={[styles.tableColHeader, styles.colTotal, colTotalOverride]}>Total</Text>
                     </View>
 
                     {itens.map((item, index) => (
@@ -265,7 +265,7 @@ export function CalculoVidroPDF({
                         ]} wrap={false}> 
 
                             {/* Descrição e Serviços */}
-                            <View style={[styles.tableCol, colDescStyle]}>
+                            <View style={[styles.tableCol, styles.colDesc, colDescOverride]}>
                                 <View style={styles.descricaoComDesenho}>
                                     {item.desenhoUrl && (
                                         <View style={styles.desenhoThumbBox}>
@@ -342,10 +342,10 @@ export function CalculoVidroPDF({
                             </View>
 
                             {/* Quantidade, Medidas e Preço */}
-                            <Text style={[styles.tableCol, colQtdStyle, { color: contentColor }]}>
+                            <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
                                 {Number(item.qtd || 0).toString().padStart(2, '0')}
                             </Text>
-                            <Text style={[styles.tableCol, colVaoStyle, { color: contentColor }]}>
+                            <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
                                 {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
                             </Text>
                             {mostrarColunaPrecoM2Un && (
@@ -353,7 +353,7 @@ export function CalculoVidroPDF({
                                     {formatarPrecoColuna(item)}
                                 </Text>
                             )}
-                            <Text style={[styles.tableCol, colTotalStyle, { color: contentColor }]}>
+                            <Text style={[styles.tableCol, styles.colTotal, colTotalOverride, { color: contentColor }]}> 
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                         </View>
