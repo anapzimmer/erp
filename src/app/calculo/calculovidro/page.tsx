@@ -134,6 +134,16 @@ const montarRotuloVidro = (vidro: Vidro) => {
   return partes.join(" | ");
 };
 
+const obterChaveVidroSemCor = (vidro?: Vidro | null) => {
+  if (!vidro) return "";
+
+  return [
+    normalizarTextoComparacao(vidro.nome),
+    normalizarTextoComparacao(formatarEspessuraExibicao(vidro.espessura)),
+    normalizarTextoComparacao(vidro.tipo),
+  ].join("|");
+};
+
 const identificarTipoAdicionalPorDescricao = (descricao: string): "kit" | "perfil" | "ferragem" | null => {
   const texto = String(descricao || "").trim().toLowerCase();
   if (texto.startsWith("kit:")) return "kit";
@@ -325,10 +335,18 @@ export default function RelatorioOrçamento() {
     );
 
     const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidro.preco);
+    const excedeuLimiteMedida = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
     const precoM2 = aplicarAcrescimoPorMedida(precoBaseM2, larguraMm, alturaMm);
-    const observacaoPreco = precoEspecial
-      ? `Preco especial aplicado: ${obterNomeTabelaDoCliente(grupoIdDoCliente)}`
-      : undefined;
+
+    const observacoesPreco: string[] = [];
+    if (precoEspecial) {
+      observacoesPreco.push(`Preco especial aplicado: ${obterNomeTabelaDoCliente(grupoIdDoCliente)}`);
+    }
+    if (excedeuLimiteMedida) {
+      observacoesPreco.push(`Acrescimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida acima de ${LIMITE_MEDIDA_ACRESCIMO_MM}mm`);
+    }
+
+    const observacaoPreco = observacoesPreco.length > 0 ? observacoesPreco.join(" | ") : undefined;
 
     return { precoM2, observacaoPreco };
   };
@@ -865,6 +883,7 @@ useEffect(() => {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''} ${vidroSelecionado.tipo || ''}`.trim(),
       tipo: vidroSelecionado.tipo || "", // Garante que o tipo vá para o PDF
+      vidro_id: vidroSelecionado.id,
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
@@ -907,7 +926,14 @@ useEffect(() => {
       if (selecionados.includes(item.id)) {
         const [lReal, aReal] = item.medidaReal.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')) || 0);
         const contextoPreco = obterContextoPrecoVidroPorCliente(novoVidro, lReal, aReal);
-        const precoVidroM2 = contextoPreco.precoM2;
+        const vidroAtual = listaVidros.find((v) => String(v.id) === String(item.vidro_id));
+        const mesmaFamiliaSemCor = Boolean(
+          vidroAtual &&
+          obterChaveVidroSemCor(vidroAtual) &&
+          obterChaveVidroSemCor(vidroAtual) === obterChaveVidroSemCor(novoVidro)
+        );
+        const manterPrecoAtual = mesmaFamiliaSemCor && typeof item.precoVidroM2 === 'number' && item.precoVidroM2 > 0;
+        const precoVidroM2 = manterPrecoAtual ? Number(item.precoVidroM2) : contextoPreco.precoM2;
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
         // 3. Refazer o cálculo de área
@@ -927,7 +953,7 @@ useEffect(() => {
           totalOriginal: undefined,
           totalRateado: false,
           observacaoRateio: undefined,
-          observacaoPreco: contextoPreco.observacaoPreco
+          observacaoPreco: manterPrecoAtual ? item.observacaoPreco : contextoPreco.observacaoPreco
         };
       }
       return item;
@@ -996,7 +1022,8 @@ useEffect(() => {
     setAltura(a.replace(/\D/g, ''));
     setQuantidade(item.qtd);
 
-    const vidro = listaVidros.find(v => item.descricao.includes(v.nome));
+    const vidro = listaVidros.find(v => String(v.id) === String(item.vidro_id))
+      || listaVidros.find(v => item.descricao.includes(v.nome));
     if (vidro) setVidroSelecionado(vidro);
 
     const servico = listaServicos.find(s => s.nome === item.servico);
@@ -1297,6 +1324,8 @@ useEffect(() => {
     return {
       id: Math.random(),
       descricao: `${vidro.nome} ${vidro.espessura || ''} ${vidro.tipo || ''}`.trim(),
+      tipo: vidro.tipo || "",
+      vidro_id: vidro.id,
       // Guardamos as duas separadas para não haver confusão
       medidaReal: `${lReal} x ${aReal} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
@@ -1561,6 +1590,8 @@ useEffect(() => {
                     // 1. Localizamos o grupo do cliente
                     const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
                     const grupoId = clienteAtual?.grupo_preco_id || clienteAtual?.tabela_id;
+                    const larguraNumero = Number(largura) || 0;
+                    const alturaNumero = Number(altura) || 0;
 
                     // 2. Procuramos o preço especial
                     const especial = precosEspeciais.find(p =>
@@ -1568,12 +1599,25 @@ useEffect(() => {
                       String(p.grupo_preco_id || p.tabela_id) === String(grupoId)
                     );
 
+                    const precoBase = especial ? Number(especial.preco) : Number(vidroSelecionado.preco);
+                    const excedeuLimiteMedida = larguraNumero > LIMITE_MEDIDA_ACRESCIMO_MM || alturaNumero > LIMITE_MEDIDA_ACRESCIMO_MM;
+                    const precoComAcrescimo = excedeuLimiteMedida
+                      ? aplicarAcrescimoPorMedida(precoBase, larguraNumero, alturaNumero)
+                      : null;
+
                     return (
-                      <p className={`text-[10px] font-bold mt-1 uppercase tracking-tighter ${especial ? 'text-gray-600' : 'text-gray-400'}`}>
-                        {especial
-                          ? `⭐ Preço Diferenciado: ${formatarMoeda(Number(especial.preco))} /m²`
-                          : `Preço padrão: ${formatarMoeda(Number(vidroSelecionado.preco))} /m²`}
-                      </p>
+                      <div className="mt-1 space-y-1">
+                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${especial ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {especial
+                            ? `⭐ Preço Diferenciado: ${formatarMoeda(precoBase)} /m²`
+                            : `Preço padrão: ${formatarMoeda(precoBase)} /m²`}
+                        </p>
+                        {precoComAcrescimo !== null && (
+                          <p className="text-[10px] font-bold uppercase tracking-tighter text-amber-600">
+                            {`Com acréscimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida: ${formatarMoeda(precoComAcrescimo)} /m²`}
+                          </p>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
