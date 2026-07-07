@@ -48,6 +48,7 @@ const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
 const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07;
+const DEBUG_PRECO_VIDRO = true;
 
 const parseValorDigitado = (valor: string) => {
   if (!valor) return 0;
@@ -328,6 +329,7 @@ export default function RelatorioOrçamento() {
 
   const obterContextoPrecoVidroPorCliente = (vidro: Vidro, larguraMm: number, alturaMm: number) => {
     const grupoIdDoCliente = obterGrupoPrecoIdCliente();
+    const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
 
     const precoEspecial = precosEspeciais.find(p =>
       String(p.vidro_id) === String(vidro.id) &&
@@ -347,6 +349,23 @@ export default function RelatorioOrçamento() {
     }
 
     const observacaoPreco = observacoesPreco.length > 0 ? observacoesPreco.join(" | ") : undefined;
+
+    if (DEBUG_PRECO_VIDRO) {
+      console.groupCollapsed("[DEBUG PRECO VIDRO] obterContextoPrecoVidroPorCliente");
+      console.log("clienteId", clienteId);
+      console.log("clienteNome", clienteObjeto?.nome || "-");
+      console.log("grupoPrecoId", grupoIdDoCliente);
+      console.log("vidroId", vidro.id);
+      console.log("vidroNome", montarRotuloVidro(vidro));
+      console.log("medidasMm", { larguraMm, alturaMm });
+      console.log("precoEspecial", precoEspecial ? Number(precoEspecial.preco) : null);
+      console.log("precoBaseM2", precoBaseM2);
+      console.log("excedeuLimiteMedida", excedeuLimiteMedida);
+      console.log("percentualAcrescimo", PERCENTUAL_ACRESCIMO_MEDIDA);
+      console.log("precoM2Final", precoM2);
+      console.log("observacaoPreco", observacaoPreco || "-");
+      console.groupEnd();
+    }
 
     return { precoM2, observacaoPreco };
   };
@@ -854,6 +873,23 @@ useEffect(() => {
 
     const valorTotalVidro = areaCobrada * precoVidroM2;
 
+    if (DEBUG_PRECO_VIDRO) {
+      console.groupCollapsed("[DEBUG PRECO VIDRO] adicionarItem");
+      console.log("vidroSelecionado", {
+        id: vidroSelecionado.id,
+        nome: montarRotuloVidro(vidroSelecionado),
+        precoCadastro: Number(vidroSelecionado.preco),
+      });
+      console.log("medidaRealMm", { largura: l, altura: a });
+      console.log("medidaCalculoMm", { largura: lCalc, altura: aCalc });
+      console.log("areaM2", areaM2);
+      console.log("areaCobrada", areaCobrada);
+      console.log("precoVidroM2Aplicado", precoVidroM2);
+      console.log("valorTotalVidro", valorTotalVidro);
+      console.log("observacaoPreco", contextoPreco.observacaoPreco || "-");
+      console.groupEnd();
+    }
+
     let valorServicoTotal = 0;
     let detalheServico = "";
 
@@ -943,6 +979,27 @@ useEffect(() => {
         // 4. Calcular novos valores
         const novoValorVidroTotal = areaCobrada * precoVidroM2;
         const novoTotalUnitario = novoValorVidroTotal + (item.valorServicoUn || 0);
+
+        if (DEBUG_PRECO_VIDRO) {
+          console.groupCollapsed("[DEBUG PRECO VIDRO] trocarMaterialSelecionados");
+          console.log("itemId", item.id);
+          console.log("vidroAtual", {
+            id: vidroAtual?.id || item.vidro_id || null,
+            nome: vidroAtual ? montarRotuloVidro(vidroAtual) : item.descricao,
+            precoM2ItemAntes: item.precoVidroM2,
+          });
+          console.log("novoVidro", {
+            id: novoVidro.id,
+            nome: montarRotuloVidro(novoVidro),
+            precoCadastro: Number(novoVidro.preco),
+          });
+          console.log("mesmaFamiliaSemCor", mesmaFamiliaSemCor);
+          console.log("manterPrecoAtual", manterPrecoAtual);
+          console.log("precoM2CalculadoContexto", contextoPreco.precoM2);
+          console.log("precoM2AplicadoFinal", precoVidroM2);
+          console.log("observacaoPrecoFinal", manterPrecoAtual ? item.observacaoPreco || "-" : contextoPreco.observacaoPreco || "-");
+          console.groupEnd();
+        }
 
         return {
           ...item,
