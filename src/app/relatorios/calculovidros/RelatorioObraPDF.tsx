@@ -128,6 +128,7 @@ type RelatorioObraItem = {
   tuboBandeira?: string | null
   corMaterial: string
   modoCalculo: string
+  custoVidro: number
   subtotal: number
   folhas: Array<{
     id: string
@@ -594,6 +595,7 @@ export function RelatorioObraPDF({
           <View style={styles.desenhoPaginaBloco}>
             <Text style={styles.cardTitle}>Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}</Text>
             <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
+            <Text style={styles.cardMeta}>Custo do vidro: {fmtMoeda((obra.custoVidro && obra.custoVidro > 0) ? obra.custoVidro : obra.folhas.reduce((acc, folha) => acc + Number(folha.total || 0), 0))}</Text>
             {obra.vidroPorta && (
               <Text style={styles.cardMeta}>Vidro da porta: {obra.vidroPorta}</Text>
             )}
@@ -951,6 +953,7 @@ export function RelatorioObraPDF({
                 ) : (
                   <Text style={styles.cardMeta}>Cor do vidro: {obra.vidro || "-"}</Text>
                 )}
+                <Text style={styles.cardMeta}>Custo do vidro: {fmtMoeda((obra.custoVidro && obra.custoVidro > 0) ? obra.custoVidro : obra.folhas.reduce((acc, folha) => acc + Number(folha.total || 0), 0))}</Text>
                 {obra.vidroBandeira && (
                   <Text style={styles.cardMeta}>Vidro da bandeira: {obra.vidroBandeira}</Text>
                 )}

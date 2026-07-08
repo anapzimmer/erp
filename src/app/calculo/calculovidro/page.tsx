@@ -27,6 +27,7 @@ interface ItemOrcamento {
   servico?: string;
   servicos?: string;
   valorServicoUn?: number;
+  valorUnitario?: number;
   vidro_id?: string | number;
   totalOriginal?: number;
   totalRateado?: boolean;
@@ -1104,6 +1105,7 @@ useEffect(() => {
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
       precoVidroM2,
+      valorUnitario: totalPorPeca,
       acabamento: "", // Se você tiver um estado de acabamento, coloque aqui
       servicos: detalheServico, // Passa o detalhe do serviço (Furos, CNC, etc)
 
@@ -1595,9 +1597,11 @@ useEffect(() => {
     const lReal = l;
     const aReal = a;
 
-    const areaCobradaM2 = (lCalc / 1000) * (aCalc / 1000);
+    const areaM2 = (lCalc / 1000) * (aCalc / 1000);
+    const areaCobradaM2 = areaM2 < 0.25 ? 0.25 : areaM2;
     const contextoPreco = obterContextoPrecoVidroPorCliente(vidro, lReal, aReal);
     const precoM2 = contextoPreco.precoM2;
+    const valorUnitario = areaCobradaM2 * precoM2;
 
     return {
       id: Math.random(),
@@ -1609,6 +1613,7 @@ useEffect(() => {
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: Number(qtd),
       precoVidroM2: precoM2,
+      valorUnitario,
       total: areaCobradaM2 * precoM2 * Number(qtd),
       totalOriginal: undefined,
       totalRateado: false,

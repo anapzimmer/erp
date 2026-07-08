@@ -24,7 +24,6 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
     // --- LÓGICA DE SEGURANÇA (Bloqueios) ---
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key.toUpperCase())) ||
         (e.ctrlKey && ["U", "S", "P", "C"].includes(e.key.toLowerCase()))
       ) {
         e.preventDefault();

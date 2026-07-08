@@ -122,6 +122,15 @@ type FerragemItem = {
   cores?: string | null
 }
 
+const LIMITE_MEDIDA_ACRESCIMO_MM = 3210
+const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07
+const DEBUG_CALCULO_PROJETO = true
+
+const aplicarAcrescimoPorMedida = (precoBaseM2: number, larguraMm: number, alturaMm: number) => {
+  const excedeuLimite = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM
+  return excedeuLimite ? precoBaseM2 * (1 + PERCENTUAL_ACRESCIMO_MEDIDA) : precoBaseM2
+}
+
 type PerfilItem = {
   id: string
   nome: string
@@ -1910,7 +1919,7 @@ const calcularProjeto = (params: {
       const quantidadeFolhas = Math.max(1, Number(f.quantidade_folhas || 1))
       const folhaEhBandeira = /bandeira|band[oô]/i.test(String(f.tipo_folha || ""))
       const vidroFolha = folhaEhBandeira ? vidroBandeiraAtivo : vidroPortaAtivo
-      const precoM2Folha = folhaEhBandeira ? precoBandeiraAtivo : precoPortaAtivo
+      const precoM2BaseFolha = folhaEhBandeira ? precoBandeiraAtivo : precoPortaAtivo
       return largurasParaCalculoFolhas.map((larguraLado) => {
         const vars = {
           ...varsBase,
@@ -1919,6 +1928,7 @@ const calcularProjeto = (params: {
         }
         const w = Math.max(avaliarFormula(f.formula_largura, vars), 0)
         const h = Math.max(avaliarFormula(f.formula_altura, vars), 0)
+        const precoM2Folha = aplicarAcrescimoPorMedida(precoM2BaseFolha, w, h)
         const wR = arred50(w)
         const hR = arred50(h)
         const area = Math.max((wR * hR) / 1_000_000, 0.25)
@@ -1941,6 +1951,28 @@ const calcularProjeto = (params: {
   const folhasCalc = deduplicarFolhasDeslizante(folhasCalcBrutas, variacaoDrawing)
 
   const totalVidro = folhasCalc.reduce((s, f) => s + f.precoVidro, 0)
+
+  if (DEBUG_CALCULO_PROJETO) {
+    console.groupCollapsed("[DEBUG CALCULO PROJETO] calcularProjeto")
+    console.log("dimensoesProjeto", { largura, altura, largura2, altura2, qtd })
+    console.log("variacoes", { variacaoDrawing, variacaoTecnica, variacaoTrilho })
+    console.log("precosBaseM2", { precoVidroM2, precoPortaAtivo, precoBandeiraAtivo })
+    console.table(folhasCalc.map((folha) => ({
+      numero: folha.numero,
+      tipo: folha.tipo,
+      quantidadeFolhas: folha.quantidadeFolhas,
+      larguraMm: folha.largura,
+      alturaMm: folha.altura,
+      larguraCalcMm: folha.larguraArredondada,
+      alturaCalcMm: folha.alturaArredondada,
+      areaM2: folha.area,
+      precoM2Aplicado: folha.precoM2Utilizado,
+      excedeuLimite3210: folha.largura > LIMITE_MEDIDA_ACRESCIMO_MM || folha.altura > LIMITE_MEDIDA_ACRESCIMO_MM,
+      precoVidroFolha: folha.precoVidro,
+    })))
+    console.log("totalVidro", totalVidro)
+    console.groupEnd()
+  }
 
   // ── Kit: encontrar o mais próximo ─────────────────────────────────────────
   let kitSelecionado: KitItem | null = null
@@ -3101,14 +3133,42 @@ export default function CalculoProjetoPage() {
   const getPrecoVidroM2 = (item: ItemCalculoProjeto) => {
     const vidroSel = getVidro(item)
     if (!vidroSel) return 0
-    if (!clienteSel?.grupo_preco_id) return Number(vidroSel.preco || 0)
+    if (!clienteSel?.grupo_preco_id) {
+      const precoPadrao = Number(vidroSel.preco || 0)
+      if (DEBUG_CALCULO_PROJETO) {
+        console.groupCollapsed("[DEBUG CALCULO PROJETO] getPrecoVidroM2")
+        console.log("itemId", item.id)
+        console.log("cliente", clienteSel?.nome || "sem cliente")
+        console.log("grupoPrecoId", clienteSel?.grupo_preco_id || null)
+        console.log("vidro", { id: vidroSel.id, nome: vidroSel.nome, espessura: vidroSel.espessura, tipo: vidroSel.tipo || "" })
+        console.log("precoPadraoM2", precoPadrao)
+        console.log("precoEspecialM2", null)
+        console.log("precoRetornadoM2", precoPadrao)
+        console.groupEnd()
+      }
+      return precoPadrao
+    }
 
     const especial = precosEspeciais.find((preco) =>
       String(preco.grupo_preco_id) === String(clienteSel.grupo_preco_id) &&
       String(preco.vidro_id) === String(vidroSel.id)
     )
 
-    return Number(especial?.preco ?? vidroSel.preco ?? 0)
+    const precoRetornado = Number(especial?.preco ?? vidroSel.preco ?? 0)
+
+    if (DEBUG_CALCULO_PROJETO) {
+      console.groupCollapsed("[DEBUG CALCULO PROJETO] getPrecoVidroM2")
+      console.log("itemId", item.id)
+      console.log("cliente", clienteSel?.nome || "sem cliente")
+      console.log("grupoPrecoId", clienteSel?.grupo_preco_id || null)
+      console.log("vidro", { id: vidroSel.id, nome: vidroSel.nome, espessura: vidroSel.espessura, tipo: vidroSel.tipo || "" })
+      console.log("precoPadraoM2", Number(vidroSel.preco || 0))
+      console.log("precoEspecialM2", especial ? Number(especial.preco) : null)
+      console.log("precoRetornadoM2", precoRetornado)
+      console.groupEnd()
+    }
+
+    return precoRetornado
   }
 
   const getPrecoVidroM2PorId = (vidroId?: string | null) => {
@@ -3830,6 +3890,13 @@ export default function CalculoProjetoPage() {
       const totalPerfisMetroLinear = itemResultado.resultado.cortes
         .filter((corte) => corte.unidadeCalculo === "metro")
         .reduce((total, corte) => total + corte.precoTotal, 0)
+      const custoVidroFolhas = itemResultado.resultado.folhas.reduce(
+        (total, folha) => total + Number(folha.precoVidro || 0),
+        0
+      )
+      const custoVidroFinal = Number(itemResultado.resultado.totalVidro || 0) > 0
+        ? Number(itemResultado.resultado.totalVidro)
+        : custoVidroFolhas
 
       return {
         itemId: itemResultado.itemId,
@@ -3849,6 +3916,7 @@ export default function CalculoProjetoPage() {
         tuboBandeira: itemOriginal?.tuboBandeira?.trim() || null,
         corMaterial: itemResultado.corMaterial || "Sem cor definida",
         modoCalculo: itemResultado.resultado.usouKit ? "Kit" : "Barra",
+        custoVidro: custoVidroFinal,
         subtotal: Math.max(0, itemResultado.resultado.totalGeral - totalPerfisMetroLinear),
         folhas: itemResultado.resultado.folhas.map((folha, folhaIndex) => ({
           id: `${itemResultado.itemId}-folha-${folha.numero}-${folhaIndex}`,

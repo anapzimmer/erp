@@ -178,7 +178,12 @@ export function CalculoVidroPDF({
         return total + (quantidadeVaos * pecasPorVao);
     }, 0);
     const formatarPrecoColuna = (item: ItemVidro) => {
+        const precoUnitarioPeca = Number(item.valorUnitario ?? 0);
         const precoM2 = Number(item.precoVidroM2 ?? 0);
+        if (precoUnitarioPeca > 0 && precoM2 > 0) {
+            return `${precoUnitarioPeca.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un`;
+        }
+
         if (precoM2 > 0) {
             return `${precoM2.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²`;
         }
