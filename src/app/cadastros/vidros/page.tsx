@@ -741,12 +741,18 @@ const logoLight = branding?.logo_light || null;
 
       {carregando && !modalAviso && !mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-100 animate-fade-in">
-          <div className="bg-white rounded-4xl p-10 shadow-2xl flex flex-col items-center gap-4">
+          <div className="bg-white rounded-4xl p-10 shadow-2xl border border-gray-100 flex flex-col items-center gap-3 min-w-72">
             <div className="relative">
-              <Loader2 className="w-12 h-12 animate-spin" style={{ color: theme.menuIconColor }} />
-              <div className="absolute inset-0 rounded-full blur-md opacity-20 animate-pulse" style={{ backgroundColor: theme.menuIconColor }}></div>
+              <div
+                className="h-14 w-14 rounded-full border-4 border-gray-200 border-t-transparent animate-spin"
+                style={{ borderTopColor: theme.menuIconColor }}
+              />
             </div>
-            <p className="text-gray-500 font-bold text-xs uppercase tracking-widest">Processando...</p>
+
+            <div className="text-center">
+              <p className="text-gray-700 font-black text-xs uppercase tracking-widest">Processando...</p>
+              <p className="mt-1 text-[11px] text-gray-500">Aguarde enquanto os dados sao atualizados.</p>
+            </div>
           </div>
         </div>
       )}

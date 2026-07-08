@@ -32,6 +32,7 @@ interface ItemOrcamento {
   totalRateado?: boolean;
   observacaoRateio?: string;
   observacaoPreco?: string;
+  observacaoDivisao?: string;
 }
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
@@ -41,12 +42,29 @@ interface KitCatalogo { id: string | number; nome: string; preco?: number | stri
 interface PerfilCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
 interface FerragemCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
 interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
-interface ItemNaoEncontrado { nomeExcel: string; nomeExcelNormalizado: string; l: number; a: number; qtd: number; }
+interface ItemNaoEncontrado { nomeExcel: string; nomeExcelNormalizado: string; l: number; a: number; qtd: number; medidaOriginalL?: number; medidaOriginalA?: number; }
+interface LinhaImportacaoExcel {
+  nomeExcel: string;
+  nomeExcelNormalizado: string;
+  l: number;
+  a: number;
+  qtd: number;
+  vidroNoBanco: Vidro | null;
+  medidaOriginalL?: number;
+  medidaOriginalA?: number;
+}
+interface ModalAvisoAcao {
+  id: string;
+  label: string;
+  variant?: "primary" | "secondary";
+  onClick?: () => void;
+}
 
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
+const LIMITE_MEDIDA_ALERTA_DIVISAO_MM = 3600;
 const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07;
 const DEBUG_PRECO_VIDRO = true;
 
@@ -157,6 +175,17 @@ const removerPrefixoTipoAdicional = (descricao: string) => {
   return String(descricao || "").replace(/^\s*(kit|perfil|ferragem)\s*:\s*/i, "").trim();
 };
 
+const montarObservacaoVaoOriginal = (larguraOriginal?: number, alturaOriginal?: number) => {
+  if (!larguraOriginal || !alturaOriginal) return undefined;
+  return `Vao original medida ${larguraOriginal} x ${alturaOriginal} mm`;
+};
+
+const anexarObservacao = (observacaoBase?: string, observacaoExtra?: string) => {
+  if (!observacaoExtra) return observacaoBase;
+  if (!observacaoBase) return observacaoExtra;
+  return `${observacaoBase} | ${observacaoExtra}`;
+};
+
 export default function RelatorioOrçamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
@@ -208,6 +237,8 @@ export default function RelatorioOrçamento() {
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
     "Para adicionar o item, você precisa preencher largura, altura e selecionar o material."
   );
+  const [modalAvisoAcoes, setModalAvisoAcoes] = useState<ModalAvisoAcao[] | null>(null);
+  const importacaoPendenteRef = useRef<LinhaImportacaoExcel[] | null>(null);
 
   //excel
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -375,7 +406,14 @@ export default function RelatorioOrçamento() {
 
     const nomeAtualNoExcel = itensNaoEncontrados[0].nomeExcelNormalizado;
     const correspondentes = itensNaoEncontrados.filter(i => i.nomeExcelNormalizado === nomeAtualNoExcel);
-    const novosItens = correspondentes.map(c => gerarObjetoItem(vidro, c.l, c.a, c.qtd));
+    const novosItens = correspondentes.map(c => {
+      const novoItem = gerarObjetoItem(vidro, c.l, c.a, c.qtd);
+      const observacaoVaoOriginal = montarObservacaoVaoOriginal(c.medidaOriginalL, c.medidaOriginalA);
+      if (observacaoVaoOriginal) {
+        novoItem.observacaoPreco = anexarObservacao(novoItem.observacaoPreco, observacaoVaoOriginal);
+      }
+      return novoItem;
+    });
 
     setItens(prev => [...prev, ...novosItens]);
 
@@ -844,6 +882,127 @@ useEffect(() => {
     adicionalEdicaoRapidaId,
   ]);
 
+  const fecharModalAviso = () => {
+    setMostrarModalAviso(false);
+    setModalAvisoAcoes(null);
+  };
+
+  const abrirModalAvisoComAcoes = (titulo: string, mensagem: string, acoes: ModalAvisoAcao[]) => {
+    setModalAvisoTitulo(titulo);
+    setModalAvisoMensagem(mensagem);
+    setModalAvisoAcoes(acoes);
+    setMostrarModalAviso(true);
+  };
+
+  const dividirDimensaoEmPartes = (medida: number, limite: number) => {
+    if (medida <= limite) return [medida];
+
+    const quantidadePartes = Math.ceil(medida / limite);
+    const tamanhoBase = Math.floor(medida / quantidadePartes);
+    const resto = medida - (tamanhoBase * quantidadePartes);
+
+    return Array.from({ length: quantidadePartes }, (_, index) =>
+      tamanhoBase + (index < resto ? 1 : 0)
+    );
+  };
+
+  const expandirLinhaImportacao = (linha: LinhaImportacaoExcel, dividirPeca: boolean): LinhaImportacaoExcel[] => {
+    const excedeLimite = linha.l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || linha.a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM;
+    if (!dividirPeca || !excedeLimite) return [linha];
+
+    const partesLargura = dividirDimensaoEmPartes(linha.l, LIMITE_MEDIDA_ALERTA_DIVISAO_MM);
+    const partesAltura = dividirDimensaoEmPartes(linha.a, LIMITE_MEDIDA_ALERTA_DIVISAO_MM);
+
+    return partesLargura.flatMap((larguraParte) =>
+      partesAltura.map((alturaParte) => ({
+        ...linha,
+        l: larguraParte,
+        a: alturaParte,
+        medidaOriginalL: linha.medidaOriginalL || linha.l,
+        medidaOriginalA: linha.medidaOriginalA || linha.a,
+      }))
+    );
+  };
+
+  const aplicarImportacaoLinhas = (linhasBase: LinhaImportacaoExcel[], dividirPeca: boolean) => {
+    const pendentesParaAssociar: ItemNaoEncontrado[] = [];
+    const novosItensProcessados: ItemOrcamento[] = [];
+    const linhasConsolidadas = new Map<string, LinhaImportacaoExcel>();
+
+    linhasBase.forEach((linha) => {
+      const linhasExpandidas = expandirLinhaImportacao(linha, dividirPeca);
+
+      linhasExpandidas.forEach((linhaExpandida) => {
+        const chaveConsolidacao = [
+          linhaExpandida.nomeExcelNormalizado,
+          linhaExpandida.l,
+          linhaExpandida.a,
+          linhaExpandida.vidroNoBanco ? String(linhaExpandida.vidroNoBanco.id) : "sem-vidro",
+          linhaExpandida.medidaOriginalL || "sem-origem-l",
+          linhaExpandida.medidaOriginalA || "sem-origem-a",
+        ].join("|");
+
+        const existente = linhasConsolidadas.get(chaveConsolidacao);
+        if (existente) {
+          existente.qtd += linhaExpandida.qtd;
+          return;
+        }
+
+        linhasConsolidadas.set(chaveConsolidacao, { ...linhaExpandida });
+      });
+    });
+
+    linhasConsolidadas.forEach((linhaConsolidada) => {
+      if (linhaConsolidada.vidroNoBanco) {
+        const novoItem = gerarObjetoItem(
+          linhaConsolidada.vidroNoBanco,
+          linhaConsolidada.l,
+          linhaConsolidada.a,
+          linhaConsolidada.qtd
+        );
+
+        if (
+          linhaConsolidada.medidaOriginalL &&
+          linhaConsolidada.medidaOriginalA &&
+          (linhaConsolidada.medidaOriginalL !== linhaConsolidada.l || linhaConsolidada.medidaOriginalA !== linhaConsolidada.a)
+        ) {
+          const observacaoVaoOriginal = montarObservacaoVaoOriginal(linhaConsolidada.medidaOriginalL, linhaConsolidada.medidaOriginalA);
+          novoItem.observacaoPreco = anexarObservacao(novoItem.observacaoPreco, observacaoVaoOriginal);
+        }
+
+        novosItensProcessados.push(novoItem);
+        return;
+      }
+
+      pendentesParaAssociar.push({
+        nomeExcel: linhaConsolidada.nomeExcel,
+        nomeExcelNormalizado: linhaConsolidada.nomeExcelNormalizado,
+        l: linhaConsolidada.l,
+        a: linhaConsolidada.a,
+        qtd: linhaConsolidada.qtd,
+        medidaOriginalL: linhaConsolidada.medidaOriginalL,
+        medidaOriginalA: linhaConsolidada.medidaOriginalA,
+      });
+    });
+
+    if (novosItensProcessados.length > 0) {
+      setItens((prev) => [...prev, ...novosItensProcessados]);
+    }
+
+    if (pendentesParaAssociar.length > 0) {
+      setItensNaoEncontrados(pendentesParaAssociar);
+      setMostrarModalAssociacao(true);
+    }
+  };
+
+  const processarImportacaoPendente = (dividirPeca: boolean) => {
+    const linhasPendentes = importacaoPendenteRef.current;
+    if (!linhasPendentes) return;
+
+    aplicarImportacaoLinhas(linhasPendentes, dividirPeca);
+    importacaoPendenteRef.current = null;
+  };
+
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -852,7 +1011,7 @@ useEffect(() => {
     );
   }
 
-  const adicionarItem = () => {
+  const adicionarItemInterno = (ignorarAlertaDivisao = false) => {
     const l = parseFloat(largura);
     const a = parseFloat(altura);
 
@@ -860,6 +1019,27 @@ useEffect(() => {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Para adicionar o item, você precisa preencher largura, altura e selecionar o material.");
       setMostrarModalAviso(true);
+      return;
+    }
+
+    const excedeuLimiteDivisao = l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM;
+    if (excedeuLimiteDivisao && !ignorarAlertaDivisao) {
+      abrirModalAvisoComAcoes(
+        "Peça acima de 3600mm",
+        `A peça excede ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Deseja manter sem dividir ou ajustar antes de continuar?`,
+        [
+          {
+            id: "cancelar",
+            label: "Ajustar peça",
+            variant: "secondary",
+          },
+          {
+            id: "manter",
+            label: "Manter sem dividir",
+            onClick: () => adicionarItemInterno(true),
+          },
+        ]
+      );
       return;
     }
 
@@ -948,6 +1128,10 @@ useEffect(() => {
     setQuantidade(1);
     setQuantidadeServico(1); // Reseta o CNC
     setTimeout(() => larguraRef.current?.focus(), 50);
+  };
+
+  const adicionarItem = () => {
+    adicionarItemInterno(false);
   };
 
   // Função para troca em massa com recálculo total
@@ -1275,8 +1459,8 @@ useEffect(() => {
       // sheet_to_json tenta detectar o cabeçalho automaticamente
       const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
 
-      const pendentesParaAssociar: ItemNaoEncontrado[] = [];
-      const novosItensProcessados: ItemOrcamento[] = [];
+      const linhasImportacao: LinhaImportacaoExcel[] = [];
+      let quantidadePecasAcimaLimiteDivisao = 0;
 
       data.forEach((linha) => {
         // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
@@ -1293,25 +1477,62 @@ useEffect(() => {
 
         if (!nomeExcelNormalizado || l <= 0 || a <= 0) return;
 
+        if (l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM) {
+          quantidadePecasAcimaLimiteDivisao += qtd;
+        }
+
         const vidroNoBanco = listaVidros.find(v =>
           normalizarTextoComparacao(v.nome) === nomeExcelNormalizado
         );
 
-        if (vidroNoBanco) {
-          novosItensProcessados.push(gerarObjetoItem(vidroNoBanco, l, a, qtd));
-        } else {
-          pendentesParaAssociar.push({ nomeExcel, nomeExcelNormalizado, l, a, qtd });
-        }
+        linhasImportacao.push({
+          nomeExcel,
+          nomeExcelNormalizado,
+          l,
+          a,
+          qtd,
+          vidroNoBanco: vidroNoBanco || null,
+        });
       });
 
-      if (novosItensProcessados.length > 0) {
-        setItens(prev => [...prev, ...novosItensProcessados]);
+      if (quantidadePecasAcimaLimiteDivisao > 0) {
+        importacaoPendenteRef.current = linhasImportacao;
+
+        abrirModalAvisoComAcoes(
+          "Importação com peças acima de 3600mm",
+          `A importação possui ${quantidadePecasAcimaLimiteDivisao} peça(s) acima de ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Como deseja continuar?`,
+          [
+            {
+              id: "cancelar",
+              label: "Cancelar",
+              variant: "secondary",
+              onClick: () => {
+                importacaoPendenteRef.current = null;
+              },
+            },
+            {
+              id: "manter",
+              label: "Importar sem dividir",
+              variant: "secondary",
+              onClick: () => {
+                processarImportacaoPendente(false);
+              },
+            },
+            {
+              id: "dividir",
+              label: "Dividir e importar",
+              onClick: () => {
+                processarImportacaoPendente(true);
+              },
+            },
+          ]
+        );
+
+        if (e.target) e.target.value = "";
+        return;
       }
 
-      if (pendentesParaAssociar.length > 0) {
-        setItensNaoEncontrados(pendentesParaAssociar);
-        setMostrarModalAssociacao(true);
-      }
+      aplicarImportacaoLinhas(linhasImportacao, false);
 
       // Reset do input para permitir importar o mesmo arquivo de novo
       if (e.target) e.target.value = "";
@@ -1986,6 +2207,12 @@ useEffect(() => {
                                 </div>
                               )}
 
+                              {item.observacaoDivisao && (
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-indigo-600">
+                                  {item.observacaoDivisao}
+                                </div>
+                              )}
+
                               {editandoId === item.id && (
                                 <div className="mt-1 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
                                   Em edicao
@@ -2259,7 +2486,7 @@ useEffect(() => {
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Trash2 size={28} className="text-red-500" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Remover Item?</h3>
@@ -2294,7 +2521,7 @@ useEffect(() => {
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ClipboardList size={28} className="text-orange-400" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar orçamento?</h3>
@@ -2329,7 +2556,7 @@ useEffect(() => {
           <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-xs overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calculator size={28} className="text-amber-500" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">{modalAvisoTitulo}</h3>
@@ -2339,12 +2566,34 @@ useEffect(() => {
               </div>
 
               <div className="p-4 bg-gray-50">
-                <button
-                  onClick={() => setMostrarModalAviso(false)}
-                  className="w-full py-4 text-sm font-black text-[#1e3a5a] bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
-                >
-                  Fechar
-                </button>
+                {modalAvisoAcoes && modalAvisoAcoes.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {modalAvisoAcoes.map((acao) => (
+                      <button
+                        key={acao.id}
+                        onClick={() => {
+                          const callback = acao.onClick;
+                          fecharModalAviso();
+                          callback?.();
+                        }}
+                        className={`w-full py-4 text-sm font-black rounded-2xl transition-all active:scale-95 shadow-sm ${
+                          acao.variant === "secondary"
+                            ? "text-gray-600 bg-white border border-gray-200 hover:bg-gray-100"
+                            : "text-[#1e3a5a] bg-white border border-[#1e3a5a]/30 hover:bg-[#1e3a5a]/5"
+                        }`}
+                      >
+                        {acao.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    onClick={fecharModalAviso}
+                    className="w-full py-4 text-sm font-black text-[#1e3a5a] bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+                  >
+                    Fechar
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -2356,7 +2605,7 @@ useEffect(() => {
 
               {/* Cabeçalho */}
               <div className="p-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1e3a5a]/10 rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center">
                   <ClipboardList size={24} className="text-[#1e3a5a]" />
                 </div>
                 <div>
@@ -2473,7 +2722,7 @@ useEffect(() => {
               {/* Ícone com a cor do tema */}
               <div
                 className="p-2 rounded-xl shrink-0"
-                style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}
+                style={{ color: theme.menuIconColor }}
               >
                 <Sparkles size={20} />
               </div>
