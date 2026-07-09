@@ -124,8 +124,8 @@ const materiaisIniciais: ProjetoIndividualMaterial[] = [
   criarMaterial({ qtd: 1, unidade: "und", descricao: "3530 - FECHADURA COMPLETA V/A", valorUnitario: 75.98 }),
 ];
 
-const trilhoOpcoes = ["Interrompido", "Embutido"];
-const corKitOpcoes = ["Preto", "Branco", "Fosco"];
+const trilhoOpcoes = ["Escolher", "Interrompido", "Embutido"];
+const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
 
 export default function ProjetoIndividualPage() {
   const { empresaId } = useAuth();
@@ -486,6 +486,19 @@ const tuboPadrao = listaPerfis.find((perfil) => {
     }
   }, [listaVidrosAberta]);
 
+  const fechaduraSelecionada = useMemo(() => {
+  if (dados.corKit === "Escolher") return null;
+
+  const corAtual = dados.corKit.toLowerCase();
+
+  return ferragens.find((ferragem) => {
+    const texto = `${ferragem.codigo} ${ferragem.nome} ${ferragem.categoria || ""}`.toLowerCase();
+    const cor = String(ferragem.cores || "").toLowerCase();
+
+    return texto.includes("fechadura") && cor === corAtual;
+  }) || null;
+}, [dados.corKit, ferragens]);
+  
 useEffect(() => {
   if (!kitSelecionado) return;
 
@@ -516,7 +529,7 @@ useEffect(() => {
 }, [dados.quantidade, kitSelecionado]);
 
 useEffect(() => {
-  if (!dados.vidro) return;
+ if (!dados.vidro || dados.vidro === "Escolher") return;
 
   const vidroNome = dados.vidro
     .replace(/^vidro\s+/i, "")
@@ -548,26 +561,37 @@ useEffect(() => {
 }, [calculoVidro.areaTotalCobrada, dados.vidro, precoVidroM2]);
 
 useEffect(() => {
-  const indiceFechadura = materiais.findIndex((item) =>
-    item.descricao.toLowerCase().includes("fechadura")
-  );
+  if (!fechaduraSelecionada || Number(dados.quantidade || 0) <= 0) return;
 
-  if (indiceFechadura < 0) return;
+  const descricaoFechadura = `${fechaduraSelecionada.codigo} - ${fechaduraSelecionada.nome} ${
+    fechaduraSelecionada.cores ? `| ${fechaduraSelecionada.cores}` : ""
+  }`.toUpperCase();
 
-  setMateriais((lista) =>
-    lista.map((item, index) =>
-      index === indiceFechadura
-        ? {
-            ...item,
-            qtd: Number(dados.quantidade || 1),
-          }
-        : item
-    )
-  );
-}, [dados.quantidade]);
+  setMateriais((lista) => {
+    const indiceFechadura = lista.findIndex((item) =>
+      item.descricao.toLowerCase().includes("fechadura")
+    );
+
+    const itemAtual = lista[indiceFechadura] || criarMaterial();
+
+    const itemAtualizado: ProjetoIndividualMaterial = {
+      ...itemAtual,
+      qtd: Number(dados.quantidade || 1),
+      unidade: "und",
+      descricao: descricaoFechadura,
+      valorUnitario: Number(fechaduraSelecionada.preco || 0),
+    };
+
+    if (indiceFechadura < 0) return [...lista, itemAtualizado];
+
+    return lista.map((item, index) =>
+      index === indiceFechadura ? itemAtualizado : item
+    );
+  });
+}, [dados.quantidade, fechaduraSelecionada]);
 
 useEffect(() => {
-  if (!perfilTuboSelecionado) return;
+ if (!perfilTuboSelecionado || Number(dados.altura || 0) <= 0) return;
 
   const alturaMm = Number(dados.altura || 0);
   const quantidade = Number(dados.quantidade || 1);
@@ -606,32 +630,64 @@ useEffect(() => {
   });
 }, [dados.altura, dados.quantidade, perfilTuboSelecionado]);
 
+const encontrarTuboPadrao = () => {
+  return perfis.find((perfil) => {
+    const texto = `${perfil.codigo} ${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`.toLowerCase();
+
+    const ehTubo = texto.includes("tubo");
+    const eh50x50 =
+      texto.includes("50x50") ||
+      texto.includes("50*50") ||
+      texto.includes("50 x 50") ||
+      texto.includes("50 * 50");
+
+    return ehTubo && eh50x50;
+  });
+};
+
+const novoProjeto = () => {
+  setDados((atual) => ({
+    ...atual,
+    cliente: "",
+    largura: 0,
+    altura: 0,
+    quantidade: 1,
+    trilho: "Escolher",
+    vidro: "Escolher",
+    corKit: "Escolher",
+  }));
+
+  setMateriais([]);
+
+  const tuboPadrao = encontrarTuboPadrao();
+  setPerfilTuboId(tuboPadrao?.id || null);
+};
+
 const itensCatalogo = useMemo<ItemCatalogo[]>(() => {
- const itensPerfis = perfis.map((perfil) => ({
-  id: `perfil-${perfil.id}`,
-  tipo: "perfil" as const,
-  descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome} ${perfil.cores ? `| ${perfil.cores}` : ""}`.toUpperCase(),
-  preco: Number(perfil.preco || 0),
-}));
+  const itensPerfis = perfis.map((perfil) => ({
+    id: `perfil-${perfil.id}`,
+    tipo: "perfil" as const,
+    descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome} ${
+      perfil.cores ? `| ${perfil.cores}` : ""
+    }`.toUpperCase(),
+    preco: Number(perfil.preco || 0),
+  }));
 
-const itensKits = kits.map((kit) => ({
-  id: `kit-${kit.id}`,
-  tipo: "kit" as const,
-  descricao: `${kit.nome} ${kit.cores ? `| ${kit.cores}` : ""}`.toUpperCase(),
-  preco: Number(kit.preco || 0),
-}));
+  const itensKits = kits.map((kit) => ({
+    id: `kit-${kit.id}`,
+    tipo: "kit" as const,
+    descricao: `${kit.nome} ${kit.cores ? `| ${kit.cores}` : ""}`.toUpperCase(),
+    preco: Number(kit.preco || 0),
+  }));
 
-const itensFerragens = ferragens.map((ferragem) => ({
-  id: `ferragem-${ferragem.id}`,
-  tipo: "ferragem" as const,
-  descricao: `${ferragem.codigo} - ${ferragem.nome} ${ferragem.cores ? `| ${ferragem.cores}` : ""}`.toUpperCase(),
-  preco: Number(ferragem.preco || 0),
-}));
-
-
-  console.log("Perfis:", itensPerfis.length);
-console.log("Kits:", itensKits.length);
-console.log("Ferragens:", itensFerragens.length);
+  const itensFerragens = ferragens.map((ferragem) => ({
+    id: `ferragem-${ferragem.id}`,
+    tipo: "ferragem" as const,
+    descricao: `${ferragem.codigo} - ${ferragem.nome} ${
+      ferragem.cores ? `| ${ferragem.cores}` : ""
+    }`.toUpperCase(),
+    preco: Number(ferragem.preco || 0),
+  }));
 
   return [...itensPerfis, ...itensKits, ...itensFerragens];
 }, [perfis, kits, ferragens]);
@@ -895,6 +951,13 @@ xl:grid-cols-[380px_1fr] gap-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <SectionTitle>Relação de materiais</SectionTitle>
                       <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
+                        <button
+  type="button"
+  onClick={novoProjeto}
+  className="rounded-xl bg-slate-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
+>
+  Novo
+</button>
                         <button
                           type="button"
                           onClick={() => setMateriais((lista) => [...lista, criarMaterial()])}
