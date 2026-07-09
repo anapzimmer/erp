@@ -180,12 +180,12 @@ export function CalculoVidroPDF({
     const formatarPrecoColuna = (item: ItemVidro) => {
         const precoUnitarioPeca = Number(item.valorUnitario ?? 0);
         const precoM2 = Number(item.precoVidroM2 ?? 0);
-        if (precoUnitarioPeca > 0 && precoM2 > 0) {
-            return `${precoUnitarioPeca.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un`;
-        }
-
         if (precoM2 > 0) {
             return `${precoM2.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²`;
+        }
+
+        if (precoUnitarioPeca > 0) {
+            return `${precoUnitarioPeca.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un`;
         }
 
         const precoUn = Number(item.valorUnitario ?? item.valorServicoUn ?? 0);
@@ -200,6 +200,22 @@ export function CalculoVidroPDF({
         const texto = String(valor || '').trim();
         if (!texto) return '-';
         return texto.replace(/\s*mm\b/gi, '').trim();
+    };
+
+    const formatarDescricaoItem = (item: ItemVidro) => {
+        const descricao = String(item.descricao || '').trim();
+        const tipo = String(item.tipo || '').trim();
+        if (!tipo) return descricao;
+
+        const normalizar = (valor: string) =>
+            valor
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
+        return normalizar(descricao).includes(normalizar(tipo))
+            ? descricao
+            : `${descricao} - ${tipo}`;
     };
 
     const ehItemAvulso = (item: ItemVidro) => {
@@ -279,7 +295,7 @@ export function CalculoVidroPDF({
                                     )}
                                     <View style={styles.descricaoTexto}>
                                         <Text style={ehCabecalhoProjeto(item) ? [styles.tituloCabecalhoProjeto, { color: contentColor }] : { color: contentColor }}>
-                                            {item.descricao}{item.tipo ? ` - ${item.tipo}` : ''}
+                                            {formatarDescricaoItem(item)}
                                         </Text>
                                         {ehPerfilConsolidado(item) && (
                                             <Text style={styles.seloConsolidado}>Plano de corte consolidado de barras</Text>
