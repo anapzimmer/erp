@@ -240,8 +240,14 @@ const kitSelecionado = useMemo(() => {
 
   const corAtual = dados.corKit.toLowerCase();
 
+  const larguraKitNecessaria = Number(dados.largura || 0) * 2;
+  const alturaKitNecessaria = Number(dados.altura || 0);
+
   const kitsFiltrados = kits.filter((kit) => {
-    const categoriaOk = String(kit.categoria || "").toLowerCase() === categoriaEsperada.toLowerCase();
+    const categoriaOk = String(kit.categoria || "")
+      .toLowerCase()
+      .includes(categoriaEsperada.toLowerCase());
+
     const corOk = String(kit.cores || "").toLowerCase() === corAtual;
 
     return categoriaOk && corOk;
@@ -250,17 +256,21 @@ const kitSelecionado = useMemo(() => {
   if (kitsFiltrados.length === 0) return null;
 
   return kitsFiltrados
+    .filter((kit) =>
+      Number(kit.largura || 0) >= larguraKitNecessaria &&
+      Number(kit.altura || 0) >= alturaKitNecessaria
+    )
     .sort((a, b) => {
       const diferencaA =
-        Math.abs(Number(a.largura || 0) - Number(dados.largura || 0)) +
-        Math.abs(Number(a.altura || 0) - Number(dados.altura || 0));
+        Math.abs(Number(a.largura || 0) - larguraKitNecessaria) +
+        Math.abs(Number(a.altura || 0) - alturaKitNecessaria);
 
       const diferencaB =
-        Math.abs(Number(b.largura || 0) - Number(dados.largura || 0)) +
-        Math.abs(Number(b.altura || 0) - Number(dados.altura || 0));
+        Math.abs(Number(b.largura || 0) - larguraKitNecessaria) +
+        Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
 
       return diferencaA - diferencaB;
-    })[0];
+    })[0] || null;
 }, [dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
 
 
