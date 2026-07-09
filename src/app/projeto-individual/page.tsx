@@ -61,6 +61,35 @@ type KitCadastro = {
   empresa_id: string;
 };
 
+type PerfilCadastro = {
+  id: string;
+  codigo: string;
+  nome: string;
+  cores?: string | null;
+  categoria?: string | null;
+  preco?: number | null;
+  empresa_id: string;
+  nome_completo?: string | null;
+};
+
+type ItemCatalogo = {
+  id: string;
+  tipo: "perfil" | "kit" | "ferragem";
+  descricao: string;
+  preco: number;
+};
+
+type FerragemCadastro = {
+  id: string;
+  codigo: string;
+  nome: string;
+  preco?: number | null;
+  categoria?: string | null;
+  cores?: string | null;
+  codigo_interno?: string | null;
+  empresa_id?: string | null;
+};
+
 const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
   const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
@@ -114,6 +143,9 @@ export default function ProjetoIndividualPage() {
   const vidroInputRef = useRef<HTMLInputElement>(null);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
   const [kits, setKits] = useState<KitCadastro[]>([]);
+  const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
+const [perfilTuboId, setPerfilTuboId] = useState<string | null>(null);
+const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
     projeto: "PORTA DE CORRER",
     numero: "005412",
@@ -187,6 +219,21 @@ export default function ProjetoIndividualPage() {
     };
   }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
 
+  const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
+  setMateriais((lista) =>
+    lista.map((material) =>
+      material.id === idMaterial
+        ? {
+            ...material,
+            descricao: item.descricao,
+            unidade: item.tipo === "perfil" ? "barra" : "und",
+            valorUnitario: item.preco,
+          }
+        : material
+    )
+  );
+};
+
   const atualizarCampo = <K extends keyof Omit<ProjetoIndividualDados, "materiais">>(
     campo: K,
     valor: Omit<ProjetoIndividualDados, "materiais">[K]
@@ -225,6 +272,11 @@ export default function ProjetoIndividualPage() {
   return match ? Number(match[1]) : 0;
 };
 
+const perfilTuboSelecionado = useMemo(() => {
+  if (!perfilTuboId) return null;
+
+  return perfis.find((perfil) => perfil.id === perfilTuboId) || null;
+}, [perfilTuboId, perfis]);
 
 const kitSelecionado = useMemo(() => {
   const espessura = obterEspessuraVidro(dados.vidro);
@@ -287,6 +339,8 @@ const kitSelecionado = useMemo(() => {
   { data: vidrosData, error: vidrosError },
   { data: precosVidroData, error: precosVidroError },
   { data: kitsData, error: kitsError },
+  { data: perfisData, error: perfisError },
+  { data: ferragensData, error: ferragensError },
 ] = await Promise.all([
   supabase
     .from("clientes")
@@ -309,7 +363,21 @@ const kitSelecionado = useMemo(() => {
     .from("kits")
     .select("id, nome, largura, altura, categoria, cores, preco_por_cor, preco, empresa_id")
     .eq("empresa_id", empresaId),
+
+    supabase
+  .from("perfis")
+  .select("id, codigo, nome, cores, categoria, preco, empresa_id, nome_completo")
+  .eq("empresa_id", empresaId)
+  .order("nome", { ascending: true }),
+
+  supabase
+  .from("ferragens")
+  .select("id, codigo, nome, preco, categoria, cores, codigo_interno, empresa_id")
+  .eq("empresa_id", empresaId)
+  .order("nome", { ascending: true }),
 ]);
+
+
 
       if (!ativo) return;
 
@@ -348,11 +416,43 @@ const kitSelecionado = useMemo(() => {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
       }
 
+      if (ferragensError) {
+  console.error("Erro ao carregar ferragens:", ferragensError);
+  setFerragens([]);
+} else {
+  setFerragens((ferragensData || []) as FerragemCadastro[]);
+}
+
       if (kitsError) {
   console.error("Erro ao carregar kits:", kitsError);
   setKits([]);
 } else {
   setKits((kitsData || []) as KitCadastro[]);
+}
+
+if (perfisError) {
+  console.error("Erro ao carregar perfis:", perfisError);
+  setPerfis([]);
+} else {
+  const listaPerfis = (perfisData || []) as PerfilCadastro[];
+  setPerfis(listaPerfis);
+
+const tuboPadrao = listaPerfis.find((perfil) => {
+  const texto = `${perfil.codigo} ${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`.toLowerCase();
+
+  const ehTubo = texto.includes("tubo");
+  const eh50x50 =
+    texto.includes("50x50") ||
+    texto.includes("50*50") ||
+    texto.includes("50 x 50") ||
+    texto.includes("50 * 50");
+
+  return ehTubo && eh50x50;
+});
+
+  if (tuboPadrao) {
+    setPerfilTuboId(tuboPadrao.id);
+  }
 }
 
       setCarregandoClientes(false);
@@ -446,6 +546,95 @@ useEffect(() => {
     );
   });
 }, [calculoVidro.areaTotalCobrada, dados.vidro, precoVidroM2]);
+
+useEffect(() => {
+  const indiceFechadura = materiais.findIndex((item) =>
+    item.descricao.toLowerCase().includes("fechadura")
+  );
+
+  if (indiceFechadura < 0) return;
+
+  setMateriais((lista) =>
+    lista.map((item, index) =>
+      index === indiceFechadura
+        ? {
+            ...item,
+            qtd: Number(dados.quantidade || 1),
+          }
+        : item
+    )
+  );
+}, [dados.quantidade]);
+
+useEffect(() => {
+  if (!perfilTuboSelecionado) return;
+
+  const alturaMm = Number(dados.altura || 0);
+  const quantidade = Number(dados.quantidade || 1);
+
+  const totalUsadoMm = alturaMm * quantidade;
+  const barrasNecessarias = Math.ceil(totalUsadoMm / 6000);
+
+  const descricaoTubo = `${perfilTuboSelecionado.codigo} - ${
+    perfilTuboSelecionado.nome_completo ||
+    perfilTuboSelecionado.nome
+  }`.toUpperCase();
+
+  const precoTubo = Number(perfilTuboSelecionado.preco || 0);
+
+  setMateriais((lista) => {
+    const indiceTubo = lista.findIndex((item) => {
+      const descricao = item.descricao.toLowerCase();
+      return descricao.includes("tubo");
+    });
+
+    const itemAtual = lista[indiceTubo] || criarMaterial();
+
+    const itemAtualizado: ProjetoIndividualMaterial = {
+      ...itemAtual,
+      qtd: barrasNecessarias,
+      unidade: "barra",
+      descricao: descricaoTubo,
+      valorUnitario: precoTubo,
+    };
+
+    if (indiceTubo < 0) return [...lista, itemAtualizado];
+
+    return lista.map((item, index) =>
+      index === indiceTubo ? itemAtualizado : item
+    );
+  });
+}, [dados.altura, dados.quantidade, perfilTuboSelecionado]);
+
+const itensCatalogo = useMemo<ItemCatalogo[]>(() => {
+ const itensPerfis = perfis.map((perfil) => ({
+  id: `perfil-${perfil.id}`,
+  tipo: "perfil" as const,
+  descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome} ${perfil.cores ? `| ${perfil.cores}` : ""}`.toUpperCase(),
+  preco: Number(perfil.preco || 0),
+}));
+
+const itensKits = kits.map((kit) => ({
+  id: `kit-${kit.id}`,
+  tipo: "kit" as const,
+  descricao: `${kit.nome} ${kit.cores ? `| ${kit.cores}` : ""}`.toUpperCase(),
+  preco: Number(kit.preco || 0),
+}));
+
+const itensFerragens = ferragens.map((ferragem) => ({
+  id: `ferragem-${ferragem.id}`,
+  tipo: "ferragem" as const,
+  descricao: `${ferragem.codigo} - ${ferragem.nome} ${ferragem.cores ? `| ${ferragem.cores}` : ""}`.toUpperCase(),
+  preco: Number(ferragem.preco || 0),
+}));
+
+
+  console.log("Perfis:", itensPerfis.length);
+console.log("Kits:", itensKits.length);
+console.log("Ferragens:", itensFerragens.length);
+
+  return [...itensPerfis, ...itensKits, ...itensFerragens];
+}, [perfis, kits, ferragens]);
 
   return (
     <main className="min-h-screen overflow-x-auto bg-[#eef3f8] text-[#0f2742]">
@@ -723,7 +912,7 @@ xl:grid-cols-[380px_1fr] gap-3">
                       </div>
                     </div>
 
-                    <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+                <div className="mt-4 overflow-visible rounded-lg border border-slate-200">
                       <div className="grid grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
                         <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
                         <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
@@ -745,11 +934,12 @@ xl:grid-cols-[380px_1fr] gap-3">
                             />
                           </div>
                           <div className="flex items-center px-3 py-2.5">
-                            <input
-                              value={item.descricao}
-                              onChange={(e) => atualizarMaterial(item.id, "descricao", e.target.value)}
-                              className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-slate-50"
-                            />
+                            <DescricaoMaterialInput
+  item={item}
+  itensCatalogo={itensCatalogo}
+  atualizarMaterial={atualizarMaterial}
+  selecionarItemCatalogo={selecionarItemCatalogo}
+/>
                           </div>
                           <div className="px-3 py-2.5">
                             <input
@@ -860,6 +1050,7 @@ function OptionInput({
     setAtivoIndex(Math.max(0, options.indexOf(opcao)));
   };
 
+    
   return (
     <label className="relative flex min-h-[72px] items-center gap-5 border-b border-slate-200 py-3 pl-6">
       <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">{icon}</span>
@@ -913,6 +1104,77 @@ function OptionInput({
   );
 }
 
+function DescricaoMaterialInput({
+  item,
+  itensCatalogo,
+  atualizarMaterial,
+  selecionarItemCatalogo,
+}: {
+  item: ProjetoIndividualMaterial;
+  itensCatalogo: ItemCatalogo[];
+  atualizarMaterial: <K extends keyof ProjetoIndividualMaterial>(
+    id: string,
+    campo: K,
+    valor: ProjetoIndividualMaterial[K]
+  ) => void;
+  selecionarItemCatalogo: (idMaterial: string, item: ItemCatalogo) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+
+  const termo = item.descricao.trim().toLowerCase();
+
+  const itensFiltrados = useMemo(() => {
+    if (!termo || termo === "novo item") return itensCatalogo.slice(0, 10);
+
+    return itensCatalogo
+      .filter((catalogo) => catalogo.descricao.toLowerCase().includes(termo))
+      .slice(0, 10);
+  }, [itensCatalogo, termo]);
+
+  return (
+    <div className="relative w-full">
+      <input
+        value={item.descricao}
+      onFocus={() => {
+  if (item.descricao.toLowerCase() === "novo item") {
+    atualizarMaterial(item.id, "descricao", "");
+  }
+
+  setAberto(true);
+}}
+        onChange={(e) => {
+          atualizarMaterial(item.id, "descricao", e.target.value.toUpperCase());
+          setAberto(true);
+        }}
+        onBlur={() => window.setTimeout(() => setAberto(false), 120)}
+        className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-slate-50"
+      />
+
+      {aberto && itensFiltrados.length > 0 && (
+        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+          {itensFiltrados.map((catalogo) => (
+            <button
+              key={catalogo.id}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                selecionarItemCatalogo(item.id, catalogo);
+                setAberto(false);
+              }}
+              className="block w-full px-3 py-2 text-left text-xs font-semibold text-[#07385a] hover:bg-[#07385a]/10"
+            >
+              <span>{catalogo.descricao}</span>
+              <span className="ml-2 text-[10px] text-slate-400">
+                {catalogo.tipo}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjetoDrawing({ largura, altura }: { largura: number; altura: number }) {
   return (
     <div className="relative h-[520px] w-[360px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -960,7 +1222,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
       <div className={`flex h-[68px] w-[74px] shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#0f2742]">{label}</p>
-        <p className="mt-1 text-xl font-bold leading-tight text-[#0f2742] xl:text-[22px]">{value}</p>
+        <p className="mt-1 text-xl font-bold leading-tight text-[#0f2742] xl:text-[18px]">{value}</p>
         <p className="mt-1 text-xs text-slate-500">{detail}</p>
       </div>
     </div>
