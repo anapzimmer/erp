@@ -147,16 +147,16 @@ export default function ProjetoIndividualPage() {
 const [perfilTuboId, setPerfilTuboId] = useState<string | null>(null);
 const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "PORTA DE CORRER",
+    projeto: "PORTA FORA VÃO - KIT",
     numero: "005412",
     data: hojePtBr(),
-    cliente: "Cliente Exemplo",
-    largura: 1000,
-    altura: 2140,
-    quantidade: 1,
-    trilho: "Interrompido",
-    vidro: "Fume 10mm",
-    corKit: "Preto",
+    cliente: "Selecionar Cliente ",
+    largura: 0,
+    altura: 0,
+    quantidade: 0,
+    trilho: "Selecionar",
+    vidro: "Selecionar",
+    corKit: "Selecionar",
     observacao: "Imagem ilustrativa do projeto",
   });
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>(materiaisIniciais);
