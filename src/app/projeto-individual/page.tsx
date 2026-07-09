@@ -49,6 +49,18 @@ type PrecoVidroGrupo = {
   preco: number;
 };
 
+type KitCadastro = {
+  id: number;
+  nome: string;
+  largura: number;
+  altura: number;
+  categoria?: string | null;
+  cores?: string | null;
+  preco_por_cor?: string | null;
+  preco?: number | null;
+  empresa_id: string;
+};
+
 const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
   const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
@@ -101,6 +113,7 @@ export default function ProjetoIndividualPage() {
   const [vidroAtivoIndex, setVidroAtivoIndex] = useState(0);
   const vidroInputRef = useRef<HTMLInputElement>(null);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
+  const [kits, setKits] = useState<KitCadastro[]>([]);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
     projeto: "PORTA DE CORRER",
     numero: "005412",
@@ -207,6 +220,50 @@ export default function ProjetoIndividualPage() {
     setVidroAtivoIndex(0);
   };
 
+  const obterEspessuraVidro = (texto: string) => {
+  const match = texto.match(/(\d{1,2})\s*mm/i);
+  return match ? Number(match[1]) : 0;
+};
+
+
+const kitSelecionado = useMemo(() => {
+  const espessura = obterEspessuraVidro(dados.vidro);
+
+  const categoriaEsperada =
+    espessura === 10
+      ? "Kit Porta"
+      : espessura === 6 || espessura === 8
+        ? "Kit Janela"
+        : "";
+
+  if (!categoriaEsperada) return null;
+
+  const corAtual = dados.corKit.toLowerCase();
+
+  const kitsFiltrados = kits.filter((kit) => {
+    const categoriaOk = String(kit.categoria || "").toLowerCase() === categoriaEsperada.toLowerCase();
+    const corOk = String(kit.cores || "").toLowerCase() === corAtual;
+
+    return categoriaOk && corOk;
+  });
+
+  if (kitsFiltrados.length === 0) return null;
+
+  return kitsFiltrados
+    .sort((a, b) => {
+      const diferencaA =
+        Math.abs(Number(a.largura || 0) - Number(dados.largura || 0)) +
+        Math.abs(Number(a.altura || 0) - Number(dados.altura || 0));
+
+      const diferencaB =
+        Math.abs(Number(b.largura || 0) - Number(dados.largura || 0)) +
+        Math.abs(Number(b.altura || 0) - Number(dados.altura || 0));
+
+      return diferencaA - diferencaB;
+    })[0];
+}, [dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
+
+
   useEffect(() => {
     let ativo = true;
 
@@ -215,26 +272,34 @@ export default function ProjetoIndividualPage() {
 
       setCarregandoClientes(true);
       setCarregandoVidros(true);
-      const [
-        { data: clientesData, error: clientesError },
-        { data: vidrosData, error: vidrosError },
-        { data: precosVidroData, error: precosVidroError },
-      ] = await Promise.all([
-        supabase
-          .from("clientes")
-          .select("id, nome, grupo_preco_id")
-          .eq("empresa_id", empresaId)
-          .order("nome", { ascending: true }),
-        supabase
-          .from("vidros")
-          .select("id, nome, espessura, tipo, preco")
-          .eq("empresa_id", empresaId)
-          .order("nome", { ascending: true }),
-        supabase
-          .from("vidro_precos_grupos")
-          .select("vidro_id, grupo_preco_id, preco")
-          .eq("empresa_id", empresaId),
-      ]);
+     const [
+  { data: clientesData, error: clientesError },
+  { data: vidrosData, error: vidrosError },
+  { data: precosVidroData, error: precosVidroError },
+  { data: kitsData, error: kitsError },
+] = await Promise.all([
+  supabase
+    .from("clientes")
+    .select("id, nome, grupo_preco_id")
+    .eq("empresa_id", empresaId)
+    .order("nome", { ascending: true }),
+
+  supabase
+    .from("vidros")
+    .select("id, nome, espessura, tipo, preco")
+    .eq("empresa_id", empresaId)
+    .order("nome", { ascending: true }),
+
+  supabase
+    .from("vidro_precos_grupos")
+    .select("vidro_id, grupo_preco_id, preco")
+    .eq("empresa_id", empresaId),
+
+  supabase
+    .from("kits")
+    .select("id, nome, largura, altura, categoria, cores, preco_por_cor, preco, empresa_id")
+    .eq("empresa_id", empresaId),
+]);
 
       if (!ativo) return;
 
@@ -273,6 +338,13 @@ export default function ProjetoIndividualPage() {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
       }
 
+      if (kitsError) {
+  console.error("Erro ao carregar kits:", kitsError);
+  setKits([]);
+} else {
+  setKits((kitsData || []) as KitCadastro[]);
+}
+
       setCarregandoClientes(false);
       setCarregandoVidros(false);
     };
@@ -304,44 +376,72 @@ export default function ProjetoIndividualPage() {
     }
   }, [listaVidrosAberta]);
 
-  useEffect(() => {
-    if (!dados.vidro) return;
+useEffect(() => {
+  if (!kitSelecionado) return;
 
-   const vidroNome = dados.vidro
-  .replace(/^vidro\s+/i, "")
-  .trim();
+  const descricaoKit = kitSelecionado.nome.toUpperCase();
+  const precoKit = Number(kitSelecionado.preco || 0);
 
-const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
-    setMateriais((lista) => {
-      const indiceVidro = lista.findIndex((item) => item.descricao.toLowerCase().includes("vidro"));
-      const itemAtual = lista[indiceVidro] || criarMaterial();
-      const itemAtualizado: ProjetoIndividualMaterial = {
-        ...itemAtual,
-        qtd: calculoVidro.areaTotalCobrada,
-        unidade: "m2",
-        descricao: descricaoVidro,
-        valorUnitario: precoVidroM2,
-      };
+  setMateriais((lista) => {
+    const indiceKit = lista.findIndex((item) =>
+      item.descricao.toLowerCase().includes("kit")
+    );
 
-      if (
-        itemAtual.qtd === itemAtualizado.qtd &&
-        itemAtual.unidade === itemAtualizado.unidade &&
-        itemAtual.descricao === itemAtualizado.descricao &&
-        itemAtual.valorUnitario === itemAtualizado.valorUnitario
-      ) {
-        return lista;
-      }
+    const itemAtual = lista[indiceKit] || criarMaterial();
 
-      if (indiceVidro < 0) return [itemAtualizado, ...lista];
-      return lista.map((item, index) => (index === indiceVidro ? itemAtualizado : item));
-    });
-  }, [calculoVidro.areaTotalCobrada, dados.vidro, precoVidroM2]);
+    const itemAtualizado: ProjetoIndividualMaterial = {
+      ...itemAtual,
+      qtd: Number(dados.quantidade || 1),
+      unidade: "und",
+      descricao: descricaoKit,
+      valorUnitario: precoKit,
+    };
+
+    if (indiceKit < 0) return [...lista, itemAtualizado];
+
+    return lista.map((item, index) =>
+      index === indiceKit ? itemAtualizado : item
+    );
+  });
+}, [dados.quantidade, kitSelecionado]);
+
+useEffect(() => {
+  if (!dados.vidro) return;
+
+  const vidroNome = dados.vidro
+    .replace(/^vidro\s+/i, "")
+    .trim();
+
+  const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
+
+  setMateriais((lista) => {
+    const indiceVidro = lista.findIndex((item) =>
+      item.descricao.toLowerCase().includes("vidro")
+    );
+
+    const itemAtual = lista[indiceVidro] || criarMaterial();
+
+    const itemAtualizado: ProjetoIndividualMaterial = {
+      ...itemAtual,
+      qtd: calculoVidro.areaTotalCobrada,
+      unidade: "m2",
+      descricao: descricaoVidro,
+      valorUnitario: precoVidroM2,
+    };
+
+    if (indiceVidro < 0) return [itemAtualizado, ...lista];
+
+    return lista.map((item, index) =>
+      index === indiceVidro ? itemAtualizado : item
+    );
+  });
+}, [calculoVidro.areaTotalCobrada, dados.vidro, precoVidroM2]);
 
   return (
     <main className="min-h-screen overflow-x-auto bg-[#eef3f8] text-[#0f2742]">
-      <div className="min-h-screen min-w-[1520px] p-3 lg:p-5">
+     <div className="mx-auto w-full max-w-[1800px] p-3 lg:p-5">
         <div className="flex min-h-[calc(100vh-40px)] w-full flex-col overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,39,66,0.10)]">
-          <header className="grid min-h-[118px] grid-cols-[430px_330px_1fr] items-center gap-5 border-b border-slate-200 bg-white px-9 py-4">
+          <header className="grid min-h-[118px] grid-cols-[25%_25%_50%] items-center gap-5 border-b border-slate-200 bg-white px-9 py-4">
             <div className="flex items-center">
               <div className="flex h-[82px] w-[300px] items-center">
                 {logoUsuario ? (
@@ -467,7 +567,7 @@ const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
           </header>
 
           <div className="flex min-h-0 flex-1">
-          <aside className="flex w-[210px] shrink-0 flex-col bg-[#00375a]">
+          <aside className="flex w-20 xl:w-[210px] shrink-0 flex-col bg-[#00375a]">
             <nav className="flex flex-1 flex-col gap-4 px-4 py-5">
               {[
                 { label: "Orcamento", icon: ClipboardList, ativo: true },
@@ -493,8 +593,9 @@ const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
           </aside>
 
           <section className="flex min-w-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto bg-[#f7fafc] p-5">
-              <div className="grid grid-cols-[420px_1fr] gap-5">
+            <div className="flex-1 overflow-y-auto bg-[#f7fafc] p-3">
+              <div className="grid grid-cols-1
+xl:grid-cols-[380px_1fr] gap-3">
                 <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <SectionTitle>Desenho ilustrativo</SectionTitle>
                   <div className="mt-7 flex min-h-[460px] items-center justify-center">
@@ -613,7 +714,7 @@ const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
                     </div>
 
                     <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
-                      <div className="grid grid-cols-[88px_1fr_100px_46px_128px_46px_128px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
+                      <div className="grid grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
                         <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
                         <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
                         <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
@@ -623,7 +724,7 @@ const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
                         <div className="px-3 py-3 text-right">Valor total</div>
                       </div>
                       {materiais.map((item) => (
-                        <div key={item.id} className="group relative grid grid-cols-[88px_1fr_100px_46px_128px_46px_128px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
+                        <div key={item.id} className="group relative grid grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
                           <div className="px-3 py-2.5">
                             <input
                               type="number"
@@ -681,7 +782,7 @@ const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
                 </div>
               </div>
 
-              <section className="mt-5 grid grid-cols-5 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <section className="mt-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <SummaryCard icon={<Grid2X2 size={30} />} label="Area total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Area de vidro" tone="green" />
                 <SummaryCard icon={<ClipboardList size={30} />} label="Total de itens" value={numero(totalItens, 0)} detail="Itens na lista" tone="blue" />
                 <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
