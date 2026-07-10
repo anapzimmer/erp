@@ -22,6 +22,9 @@ export type ProjetoIndividualDados = {
   trilho: string;
   vidro: string;
   corKit: string;
+  puxador?: string;
+  tamanhoPuxador?: string;
+  trinco?: string;
   observacao?: string;
   materiais: ProjetoIndividualMaterial[];
 };
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   drawingCaption: { fontSize: 7, color: "#64748b", marginTop: 8 },
   dataGrid: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
   dataItem: {
-    width: "50%",
+    width: "33.33%",
     paddingVertical: 8,
     paddingHorizontal: 6,
     borderBottomWidth: 1,
@@ -247,24 +250,36 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 <Text style={styles.dataValue}>{dados.largura || 0} mm</Text>
               </View>
               <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Trilho</Text>
-                <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
-              </View>
-              <View style={styles.dataItem}>
                 <Text style={styles.dataLabel}>Altura</Text>
                 <Text style={styles.dataValue}>{dados.altura || 0} mm</Text>
-              </View>
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Vidro</Text>
-                <Text style={styles.dataValue}>{dados.vidro || "-"}</Text>
               </View>
               <View style={styles.dataItem}>
                 <Text style={styles.dataLabel}>Quantidade</Text>
                 <Text style={styles.dataValue}>{dados.quantidade || 0}</Text>
               </View>
               <View style={styles.dataItem}>
+                <Text style={styles.dataLabel}>Cor do vidro</Text>
+                <Text style={styles.dataValue}>{dados.vidro || "-"}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.dataLabel}>Trilho</Text>
+                <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
+              </View>
+              <View style={styles.dataItem}>
                 <Text style={styles.dataLabel}>Cor do kit</Text>
                 <Text style={styles.dataValue}>{dados.corKit || "-"}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.dataLabel}>Puxador</Text>
+                <Text style={styles.dataValue}>{dados.puxador || "-"}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.dataLabel}>Tamanho do puxador</Text>
+                <Text style={styles.dataValue}>{dados.tamanhoPuxador || "-"}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.dataLabel}>Trinco</Text>
+                <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>
               </View>
             </View>
           </View>
