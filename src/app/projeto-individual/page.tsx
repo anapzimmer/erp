@@ -559,7 +559,15 @@ export default function ProjetoIndividualPage() {
 
     return regras
       .map(({ codigo, multiplicador }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor: codigo === "3530AROU-CIL" });
+    let ferragem = buscarFerragemPorCodigo(codigo, {
+        ignorarCor: codigo === "3530AROU-CIL",
+      });
+
+      if (!ferragem && codigo === "PUXBC30") {
+        ferragem = buscarFerragemPorCodigo(codigo, {
+          ignorarCor: true,
+        });
+      }
         if (!ferragem) return null;
 
         return criarMaterial({
