@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import React from "react";
-import { Document, Image, Page, StyleSheet, Text, View, Svg, Rect, Line, Path } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 export type ProjetoIndividualMaterial = {
   id: string;
@@ -40,9 +40,21 @@ const moeda = (valor: number) =>
 const numero = (valor: number) =>
   Number(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const quantidade = (valor: number, unidade: string) => {
+  const unidadeNormalizada = String(unidade || "").toLowerCase();
+
+  if (unidadeNormalizada.includes("und") || unidadeNormalizada.includes("barra")) {
+    return Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+  }
+
+  return numero(valor);
+};
+
+const arredondar5cm = (valorMm: number) => Math.ceil(Number(valorMm || 0) / 50) * 50;
+
 const styles = StyleSheet.create({
   page: {
-    padding: 28,
+    padding: 24,
     fontFamily: "Helvetica",
     backgroundColor: "#ffffff",
     color: "#0f2742",
@@ -53,7 +65,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "#dbe4ee",
-    marginBottom: 8,
+    marginBottom: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
@@ -72,22 +84,23 @@ const styles = StyleSheet.create({
   logoText: { color: "#00a85a", fontSize: 16, fontWeight: "bold" },
   brandName: { fontSize: 20, fontWeight: "bold", color: "#10253f" },
   brandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
-  headerMetaWrap: { flexDirection: "row", gap: 10, flex: 2, justifyContent: "flex-end" },
-  metaBox: { borderLeftWidth: 1, borderLeftColor: "#dbe4ee", paddingLeft: 10, minWidth: 80 },
+  headerMetaWrap: { flexDirection: "row", gap: 8, flex: 2, justifyContent: "flex-end" },
+  metaBox: { borderLeftWidth: 1, borderLeftColor: "#dbe4ee", paddingLeft: 8, minWidth: 78 },
   metaLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
   metaValue: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
   metaGreen: { color: "#009b55" },
   titleRow: {
     backgroundColor: "#ffffff",
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: "#dbe4ee",
-    marginBottom: 14,
+    marginBottom: 10,
   },
-  titleLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase" },
-  title: { fontSize: 18, color: "#0f2742", fontWeight: "bold", marginTop: 3 },
-  grid: { flexDirection: "row", gap: 12, marginBottom: 14 },
+  titleLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase" },
+  title: { fontSize: 12, color: "#0f2742", fontWeight: "normal", marginTop: 3 },
+  grid: { flexDirection: "row", gap: 10, marginBottom: 10 },
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 10,
@@ -95,11 +108,12 @@ const styles = StyleSheet.create({
     borderColor: "#dbe4ee",
     padding: 8,
   },
-  drawingCard: { width: "36%" },
-  dataCard: { width: "64%" },
+  drawingCard: { width: "32%" },
+  dataCard: { width: "68%" },
   sectionTitle: { fontSize: 10, color: "#0f2742", fontWeight: "bold", textTransform: "uppercase" },
   titleLine: { width: 22, height: 2, backgroundColor: "#00a85a", marginTop: 8, marginBottom: 12 },
-  drawingBox: { height: 210, alignItems: "center", justifyContent: "center" },
+  drawingBox: { height: 190, alignItems: "center", justifyContent: "center" },
+  drawingImage: { width: 140, maxHeight: 180, objectFit: "contain" },
   drawingCaption: { fontSize: 7, color: "#64748b", marginTop: 8 },
   dataGrid: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
   dataItem: {
@@ -110,7 +124,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e2e8f0",
   },
   dataLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  dataValue: { fontSize: 12, color: "#0f2742", fontWeight: "bold" },
+  dataValue: { fontSize: 11, color: "#0f2742", fontWeight: "normal" },
   tableCard: {
     backgroundColor: "#ffffff",
     borderRadius: 10,
@@ -129,39 +143,44 @@ const styles = StyleSheet.create({
   th: { color: "#ffffff", fontSize: 8, fontWeight: "bold", textTransform: "uppercase", paddingHorizontal: 6 },
   tr: { flexDirection: "row", minHeight: 28, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
   td: { fontSize: 8.5, color: "#0f2742", paddingHorizontal: 6 },
-  colQtd: { width: "12%", textAlign: "center" },
-  colDesc: { width: "46%" },
-  colUn: { width: "12%", textAlign: "center" },
+  colQtd: { width: "10%", textAlign: "center" },
+  colDesc: { width: "50%" },
+  colUn: { width: "10%", textAlign: "center" },
   colValor: { width: "15%", textAlign: "right" },
-  totalRow: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: 10, gap: 14 },
-  totalLabel: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
-  totalValue: {
-    backgroundColor: "#10b981",
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "bold",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 7,
-  },
-  summary: { flexDirection: "row", gap: 8, marginTop: 14 },
+  summary: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 10 },
   summaryBox: {
-    flex: 1,
+    width: "31.8%",
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#dbe4ee",
     borderRadius: 9,
-    padding: 10,
+    padding: 8,
   },
   summaryLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase" },
-  summaryValue: { fontSize: 13, color: "#0f2742", fontWeight: "bold", marginTop: 4 },
+  summaryValue: { fontSize: 10.5, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
   footer: { position: "absolute", left: 28, right: 28, bottom: 14, fontSize: 7, color: "#94a3b8", textAlign: "center" },
 });
 
 export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFProps) {
-  const areaTotal = (Number(dados.largura || 0) * Number(dados.altura || 0) * Number(dados.quantidade || 0)) / 1_000_000;
+  const larguraVidro = arredondar5cm(Number(dados.largura || 0) + 50);
+  const alturaVidro = arredondar5cm(Number(dados.altura || 0) + (dados.trilho === "Embutido" ? 70 : 50));
+  const areaTotal = Number(((larguraVidro * alturaVidro * Number(dados.quantidade || 0)) / 1_000_000).toFixed(3));
   const total = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
-  const totalItens = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0), 0);
+  const valorVidros = dados.materiais
+    .filter((item) => item.descricao.toLowerCase().includes("vidro"))
+    .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
+  const valorKitPerfis = dados.materiais
+    .filter((item) => {
+      const descricao = item.descricao.toLowerCase();
+      const unidade = item.unidade.toLowerCase();
+      return descricao.includes("kit") || unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("vt");
+    })
+    .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
+  const valorFerragens = Math.max(0, total - valorVidros - valorKitPerfis);
+  const totalVidros = Number(dados.quantidade || 0);
+  const desenhoSrc = dados.puxador === "Com puxador"
+    ? "/desenhos/portaforavao-1flscompleto.png"
+    : "/desenhos/portaforavao-1fls.png";
 
   return (
     <Document>
@@ -169,6 +188,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
         <View style={styles.header}>
           <View style={styles.brand}>
             {logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={logoUrl} style={styles.logoEmpresa} />
             ) : (
               <>
@@ -177,14 +197,14 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 </View>
                 <View>
                   <Text style={styles.brandName}>Logo da empresa</Text>
-                  <Text style={styles.brandSub}>Projetos em Vidros e Ferragens</Text>
+                  <Text style={styles.brandSub}>Projetos em vidros e ferragens</Text>
                 </View>
               </>
             )}
           </View>
           <View style={styles.headerMetaWrap}>
             <View style={styles.metaBox}>
-              <Text style={styles.metaLabel}>N orçamento</Text>
+              <Text style={styles.metaLabel}>Nº orçamento</Text>
               <Text style={[styles.metaValue, styles.metaGreen]}>{dados.numero || "-"}</Text>
             </View>
             <View style={styles.metaBox}>
@@ -208,36 +228,8 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
             <Text style={styles.sectionTitle}>Desenho ilustrativo</Text>
             <View style={styles.titleLine} />
             <View style={styles.drawingBox}>
-              <Svg width="170" height="250" viewBox="0 0 170 250">
-                <Rect x="28" y="18" width="114" height="198" fill="#f8fafc" stroke="#0f2742" strokeWidth="1.5" />
-                <Rect x="28" y="18" width="52" height="198" fill="#ffffff" stroke="#0f2742" strokeWidth="1" />
-                {Array.from({ length: 16 }).map((_, row) =>
-                  Array.from({ length: 5 }).map((__, col) => (
-                    <Rect
-                      key={`b-${row}-${col}`}
-                      x={31 + col * 9.5 + (row % 2 ? 4.5 : 0)}
-                      y={22 + row * 11.5}
-                      width="9"
-                      height="5"
-                      fill="#ffffff"
-                      stroke="#94a3b8"
-                      strokeWidth="0.35"
-                    />
-                  ))
-                )}
-                <Rect x="82" y="22" width="56" height="190" fill="#e8f7ff" stroke="#0f2742" strokeWidth="1" />
-                <Path d="M88 190 L132 128" stroke="#ffffff" strokeWidth="5" opacity="0.65" />
-                <Path d="M88 142 L132 80" stroke="#ffffff" strokeWidth="5" opacity="0.45" />
-                <Rect x="132" y="107" width="7" height="28" fill="#ffffff" stroke="#0f2742" strokeWidth="1" />
-                <Line x1="28" y1="220" x2="142" y2="220" stroke="#0f2742" strokeWidth="3" />
-                <Line x1="28" y1="12" x2="142" y2="12" stroke="#1d8bd1" strokeWidth="0.7" />
-                <Line x1="28" y1="8" x2="28" y2="16" stroke="#1d8bd1" strokeWidth="0.7" />
-                <Line x1="142" y1="8" x2="142" y2="16" stroke="#1d8bd1" strokeWidth="0.7" />
-                <Line x1="148" y1="18" x2="148" y2="216" stroke="#1d8bd1" strokeWidth="0.7" />
-                <Line x1="144" y1="18" x2="152" y2="18" stroke="#1d8bd1" strokeWidth="0.7" />
-                <Line x1="144" y1="216" x2="152" y2="216" stroke="#1d8bd1" strokeWidth="0.7" />
-              </Svg>
-              <Text style={styles.drawingCaption}>{dados.largura || 0} mm x {dados.altura || 0} mm</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={desenhoSrc} style={styles.drawingImage} />
             </View>
           </View>
 
@@ -296,38 +288,42 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
             <Text style={[styles.th, styles.colValor]}>Valor total</Text>
           </View>
           {dados.materiais.map((item) => (
-            <View key={item.id} style={styles.tr}>
-              <Text style={[styles.td, styles.colQtd]}>{numero(item.qtd)}</Text>
+            <View key={item.id} style={styles.tr} wrap={false}>
+              <Text style={[styles.td, styles.colQtd]}>{quantidade(item.qtd, item.unidade)}</Text>
               <Text style={[styles.td, styles.colDesc]}>{item.descricao}</Text>
               <Text style={[styles.td, styles.colUn]}>{item.unidade}</Text>
               <Text style={[styles.td, styles.colValor]}>{moeda(item.valorUnitario)}</Text>
               <Text style={[styles.td, styles.colValor]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
             </View>
           ))}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Valor total do orçamento</Text>
-            <Text style={styles.totalValue}>{moeda(total)}</Text>
-          </View>
         </View>
 
-        <View style={styles.summary}>
+        <View style={styles.summary} wrap={false}>
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryLabel}>Área total</Text>
+            <Text style={styles.summaryLabel}>Area total</Text>
             <Text style={styles.summaryValue}>{numero(areaTotal)} m2</Text>
           </View>
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryLabel}>Total de itens</Text>
-            <Text style={styles.summaryValue}>{numero(totalItens)}</Text>
+            <Text style={styles.summaryLabel}>Qtd. Peças</Text>
+            <Text style={styles.summaryValue}>{numero(totalVidros)}</Text>
+          </View>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryLabel}>Valor de vidro</Text>
+            <Text style={styles.summaryValue}>{moeda(valorVidros)}</Text>
+          </View>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryLabel}>Valor kit/perfis</Text>
+            <Text style={styles.summaryValue}>{moeda(valorKitPerfis)}</Text>
+          </View>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryLabel}>Valor ferragens</Text>
+            <Text style={styles.summaryValue}>{moeda(valorFerragens)}</Text>
           </View>
           <View style={styles.summaryBox}>
             <Text style={styles.summaryLabel}>Valor total</Text>
             <Text style={styles.summaryValue}>{moeda(total)}</Text>
           </View>
         </View>
-
-        {dados.observacao ? (
-          <Text style={[styles.footer, { bottom: 26 }]}>{dados.observacao}</Text>
-        ) : null}
         <Text style={styles.footer}>Projeto individual gerado pelo Glass Code</Text>
       </Page>
     </Document>

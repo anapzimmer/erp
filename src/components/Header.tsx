@@ -56,8 +56,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
   {
     group: "Projetos",
     items: [
-      { label: "Cadastro de Projetos", href: "/projetos" },
-      { label: "Calcular Projeto", href: "/calculoprojeto" },
+      { label: "Matriz de Projetos", href: "/matriz-projetos" },
       { label: "Imagens", href: "/imagens" },
     ],
   },

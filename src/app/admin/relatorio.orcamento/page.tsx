@@ -16,6 +16,7 @@ import { TemperaPDF } from "@/app/relatorios/calculovidros/TemperaPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
+import { ProjetoIndividualPDF, type ProjetoIndividualDados } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
 
@@ -688,22 +689,22 @@ export default function RelatorioOrçamento() {
                                                                     const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
                                                                     const ehFechamentoSacada = tipoItem === "fechamento_sacada";
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
-                                                                    const ehCalculoprojeto = tipoItem === "calculoprojeto";
                                                                     const ehMaoAmiga = tipoItem === "mao_amiga";
+                                                                    const ehPfv1fKit = tipoItem === "pfv1f_kit";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehFechamentoSacada
                                                                         ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehMaoAmiga
                                                                         ? `/calculo/maoamiga?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPfv1fKit
+                                                                        ? `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehEspelho
                                                                             ? `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`
                                                                             : ehPeleVidro
                                                                                 ? `/calculo/peledevidro?edit=${orc.id}&returnTo=${returnTo}`
-                                                                                : ehCalculoprojeto
-                                                                                    ? `/calculoprojeto?edit=${orc.id}&returnTo=${returnTo}`
-                                                                                    : `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
+                                                                                : `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
                                                                     router.push(rotaEdicao);
                                                                 }}
                                                                 className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
@@ -876,6 +877,38 @@ export default function RelatorioOrçamento() {
 
                                         // Detecta se é pele de vidro
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
+                                        if (tipo === "pfv1f_kit") {
+                                            const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
+                                                ? itensRaw.dados as Partial<ProjetoIndividualDados>
+                                                : {};
+                                            const materiaisPdf = Array.isArray(itensRaw.materiais)
+                                                ? itensRaw.materiais as ProjetoIndividualDados["materiais"]
+                                                : [];
+
+                                            return (
+                                                <ProjetoIndividualPDF
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    dados={{
+                                                        projeto: String(dadosPdf.projeto || "PFV1F - KIT"),
+                                                        numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
+                                                        data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
+                                                        cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),
+                                                        largura: Number(dadosPdf.largura || 0),
+                                                        altura: Number(dadosPdf.altura || 0),
+                                                        quantidade: Number(dadosPdf.quantidade || 0),
+                                                        trilho: String(dadosPdf.trilho || ""),
+                                                        vidro: String(dadosPdf.vidro || ""),
+                                                        corKit: String(dadosPdf.corKit || ""),
+                                                        puxador: String(dadosPdf.puxador || ""),
+                                                        tamanhoPuxador: String(dadosPdf.tamanhoPuxador || ""),
+                                                        trinco: String(dadosPdf.trinco || ""),
+                                                        observacao: String(dadosPdf.observacao || ""),
+                                                        materiais: materiaisPdf,
+                                                    }}
+                                                />
+                                            );
+                                        }
+
                                         if (tipo === "pele_de_vidro") {
                                             // Mapeamento dos perfis
                                             const perfisOriginais = Array.isArray(itensRaw.perfis) ? itensRaw.perfis as PelePerfilItem[] : [];
