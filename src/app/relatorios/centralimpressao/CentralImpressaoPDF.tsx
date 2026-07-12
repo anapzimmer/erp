@@ -129,6 +129,8 @@ const multiplicadorPecasProjeto = (projeto?: string) => {
   const texto = String(projeto || "").toLowerCase();
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
+  if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
+  if (texto.includes("pc2f") || texto.includes("porta de correr 2 folhas")) return 2;
   if (texto.includes("pfv2f") || texto.includes("2 folhas")) return 2;
   return 1;
 };

@@ -98,7 +98,6 @@ type JC2FKitOrcamentoPersistido = {
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
   materiais?: ProjetoIndividualMaterial[];
-  perfilTuboId?: string | null;
 };
 
 type CentralImpressaoProjetoItem = {
@@ -140,6 +139,19 @@ const numero = (valor: number, casas = 2) =>
   Number(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
 const parseNumeroPtBr = (valor: string) => Number(valor.replace(/\./g, "").replace(",", ".") || 0);
+
+const ehUnidadeM2 = (unidade?: string) => normalizarTexto(unidade).includes("m2");
+
+const formatarQtdMaterial = (qtd: number, unidade?: string) =>
+  ehUnidadeM2(unidade) ? numero(qtd) : String(Number(qtd || 0));
+
+const parseQtdMaterial = (valor: string, unidade?: string) =>
+  ehUnidadeM2(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
+
+const limitarNumero4Digitos = (valor: string) => {
+  const somenteDigitos = valor.replace(/\D/g, "").slice(0, 4);
+  return Number(somenteDigitos || 0);
+};
 
 const hojePtBr = () => new Date().toLocaleDateString("pt-BR");
 
@@ -203,7 +215,6 @@ export default function JC2FKitPage() {
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
   const [kits, setKits] = useState<KitCadastro[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
-  const [perfilTuboId, setPerfilTuboId] = useState<string | null>(null);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false);
@@ -244,7 +255,6 @@ export default function JC2FKitPage() {
         const rascunho = JSON.parse(salvo) as {
           dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
           materiais?: ProjetoIndividualMaterial[];
-          perfilTuboId?: string | null;
         };
 
         if (rascunho.dados) {
@@ -253,10 +263,6 @@ export default function JC2FKitPage() {
 
         if (Array.isArray(rascunho.materiais)) {
           setMateriais(rascunho.materiais);
-        }
-
-        if ("perfilTuboId" in rascunho) {
-          setPerfilTuboId(rascunho.perfilTuboId || null);
         }
       }
     } catch (erro) {
@@ -272,12 +278,12 @@ export default function JC2FKitPage() {
     try {
       window.localStorage.setItem(
         PROJETO_INDIVIDUAL_DRAFT_KEY,
-        JSON.stringify({ dados, materiais, perfilTuboId })
+        JSON.stringify({ dados, materiais })
       );
     } catch (erro) {
       console.warn("Nao foi possivel salvar o rascunho do projeto individual:", erro);
     }
-  }, [centralItemId, dados, editId, materiais, perfilTuboId, rascunhoRestaurado]);
+  }, [centralItemId, dados, editId, materiais, rascunhoRestaurado]);
 
   useEffect(() => {
     if (!centralItemId) return;
@@ -381,10 +387,14 @@ export default function JC2FKitPage() {
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
-    const larguraFixa = arredondar5cm(Number(dados.largura || 0) / 2);
-    const alturaFixa = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 60));
-    const larguraMovel = arredondar5cm(larguraFixa + 50);
-    const alturaMovel = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 20));
+    const larguraFixaMedida = Number(dados.largura || 0) / 2;
+    const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - 60);
+    const larguraMovelMedida = larguraFixaMedida + 50;
+    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - 20);
+    const larguraFixa = arredondar5cm(larguraFixaMedida);
+    const alturaFixa = arredondar5cm(alturaFixaMedida);
+    const larguraMovel = arredondar5cm(larguraMovelMedida);
+    const alturaMovel = arredondar5cm(alturaMovelMedida);
     const areaFixa = (larguraFixa * alturaFixa * quantidadeVaos) / 1_000_000;
     const areaMovel = (larguraMovel * alturaMovel * quantidadeVaos) / 1_000_000;
     const areaTotalCobrada = areaFixa + areaMovel;
@@ -396,6 +406,10 @@ export default function JC2FKitPage() {
       alturaFixa,
       larguraMovel,
       alturaMovel,
+      larguraFixaMedida,
+      alturaFixaMedida,
+      larguraMovelMedida,
+      alturaMovelMedida,
       areaFixa: Number(areaFixa.toFixed(3)),
       areaMovel: Number(areaMovel.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
@@ -619,7 +633,7 @@ export default function JC2FKitPage() {
       } else {
         const listaPerfis = (perfisData || []) as PerfilCadastro[];
         setPerfis(listaPerfis);
-        setPerfilTuboId(null);
+
       }
 
       setCarregandoClientes(false);
@@ -699,7 +713,9 @@ export default function JC2FKitPage() {
       "1520P",
       "1520P-PT",
       "1560",
+      "1561",
       "1335",
+      "1038.C",
       "1038.C-BC",
     ].map(normalizarTexto),
     []
@@ -709,17 +725,20 @@ export default function JC2FKitPage() {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     if (quantidadeProjeto <= 0 || dados.corKit === "Escolher") return [];
 
-    const regras: Array<{ codigo: string; multiplicador: number }> = [
-      { codigo: "1561", multiplicador: 1 },
+    const regras: Array<{ codigos: string[]; multiplicador: number }> = [
+      { codigos: ["1561"], multiplicador: 1 },
     ];
 
     if (dados.trinco === "Com trinco") {
-      regras.push({ codigo: "1335", multiplicador: 1 }, { codigo: "1038.C-BC", multiplicador: 1 });
+      regras.push(
+        { codigos: ["1335"], multiplicador: 1 },
+        { codigos: ["1038.C-BC", "1038.C"], multiplicador: 1 }
+      );
     }
 
     return regras
-      .map(({ codigo, multiplicador }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo);
+      .map(({ codigos, multiplicador }) => {
+        const ferragem = codigos.map((codigo) => buscarFerragemPorCodigo(codigo)).find(Boolean);
         if (!ferragem) return null;
 
         return criarMaterial({
@@ -768,13 +787,15 @@ export default function JC2FKitPage() {
       .replace(/^vidro\s+/i, "")
       .trim();
 
-    const descricaoVidroFixo = `VIDRO FIXO ${vidroNome.toUpperCase()}`;
-    const descricaoVidroMovel = `VIDRO MÓVEL ${vidroNome.toUpperCase()}`;
+    const medidaVidroFixo = `${calculoVidro.larguraFixaMedida}x${calculoVidro.alturaFixaMedida}`;
+    const medidaVidroMovel = `${calculoVidro.larguraMovelMedida}x${calculoVidro.alturaMovelMedida}`;
+    const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
         const descricao = normalizarTexto(item.descricao);
-        return !(descricao.includes("vidro fixo") || descricao.includes("vidro movel") || descricao.includes("vidro móvel"));
+        return !(descricao.includes("vidro fixo") || descricao.includes("vidro movel") || descricao.includes("vidro movel"));
       });
 
       const vidroFixo = criarMaterial({
@@ -793,7 +814,7 @@ export default function JC2FKitPage() {
 
       return [vidroFixo, vidroMovel, ...semVidrosAutomaticos];
     });
-  }, [calculoVidro.areaFixa, calculoVidro.areaMovel, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
     setMateriais((lista) => {
@@ -836,7 +857,6 @@ export default function JC2FKitPage() {
 
     setMateriais([]);
 
-    setPerfilTuboId(null);
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
@@ -945,7 +965,7 @@ export default function JC2FKitPage() {
       projeto: "JC2F - KIT",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
-    setPerfilTuboId(itens.perfilTuboId || null);
+
   }, [editId, returnTo, router]);
 
   useEffect(() => {
@@ -1024,7 +1044,7 @@ export default function JC2FKitPage() {
         modo: "kit",
         dados: dadosAtualizados,
         materiais,
-        perfilTuboId,
+
         resumo: {
           areaTotal: calculoVidro.areaTotalCobrada,
           totalVidros,
@@ -1456,10 +1476,10 @@ export default function JC2FKitPage() {
                           <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
                             <div className="px-3 py-2.5">
                               <input
-                                type="number"
-                                value={item.qtd}
-                                step="0.01"
-                                onChange={(e) => atualizarMaterial(item.id, "qtd", Number(e.target.value || 0))}
+                                type="text"
+                                inputMode="decimal"
+                                value={formatarQtdMaterial(item.qtd, item.unidade)}
+                                onChange={(e) => atualizarMaterial(item.id, "qtd", parseQtdMaterial(e.target.value, item.unidade))}
                                 className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-slate-50"
                               />
                             </div>
@@ -1619,7 +1639,13 @@ function DataInput({
             type="number"
             value={value}
             tabIndex={tabIndex}
-            onChange={(e) => onChange(Number(e.target.value || 0))}
+            min={0}
+            max={9999}
+            inputMode="numeric"
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
+            }}
+            onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
             className="w-[64px] min-w-0 rounded-md bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
           />
           {suffix && <span className="text-[15px] font-semibold leading-tight text-[#10253f]">{suffix}</span>}

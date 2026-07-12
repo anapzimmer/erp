@@ -704,6 +704,8 @@ export default function RelatorioOrcamento() {
                                                                     const ehMaoAmiga = tipoItem === "mao_amiga";
                                                                     const ehPfv1fKit = tipoItem === "pfv1f_kit";
                                                                     const ehPfv2fKit = tipoItem === "pfv2f_kit";
+                                                                    const ehPc2fKit = tipoItem === "pc2f_kit";
+                                                                    const ehPc4fKit = tipoItem === "pc4f_kit";
                                                                     const ehJc4fKit = tipoItem === "jc4f_kit";
                                                                     const ehJc2fKit = tipoItem === "jc2f_kit";
                                                                     const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
@@ -718,6 +720,10 @@ export default function RelatorioOrcamento() {
                                                                         ? `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPfv2fKit
                                                                         ? `/pfv2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc2fKit
+                                                                        ? `/pc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc4fKit
+                                                                        ? `/pc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehJc4fKit
                                                                         ? `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehJc2fKit
@@ -911,6 +917,10 @@ export default function RelatorioOrcamento() {
                                                         ? "Porta de correr atrás do Vão - 1 folha"
                                                         : item.projeto === "PFV2F - KIT"
                                                             ? "Porta de correr atrás do vão - 2 folhas"
+                                                            : item.projeto === "PC2F - KIT"
+                                                                ? "Porta de correr 2 folhas"
+                                                            : item.projeto === "PC4F - KIT"
+                                                                ? "Porta de correr 4 folhas"
                                                             : item.projeto === "JC4F - KIT"
                                                                 ? "Janela de correr 4 folhas"
                                                                 : item.projeto === "JC2F - KIT"
@@ -944,7 +954,7 @@ export default function RelatorioOrcamento() {
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv2f_kit" || tipo === "jc4f_kit" || tipo === "jc2f_kit") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv2f_kit" || tipo === "pc2f_kit" || tipo === "pc4f_kit" || tipo === "jc4f_kit" || tipo === "jc2f_kit") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -956,7 +966,7 @@ export default function RelatorioOrcamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),

@@ -49,10 +49,14 @@ const formatarPuxador = (puxador?: string, tamanho?: string) => {
 
 const ehJanelaCorrer4Folhas = (projeto?: string) => /jc4f|janela de correr 4/i.test(String(projeto || ""));
 const ehJanelaCorrer2Folhas = (projeto?: string) => /jc2f|janela de correr 2/i.test(String(projeto || ""));
+const ehPortaCorrer2Folhas = (projeto?: string) => /pc2f|porta de correr 2 folhas/i.test(String(projeto || ""));
+const ehPortaCorrer4Folhas = (projeto?: string) => /pc4f|porta de correr 4 folhas/i.test(String(projeto || ""));
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
   if (projeto === "PFV2F - KIT") return "Porta de correr atrás do vão - 2 folhas";
+  if (projeto === "PC2F - KIT") return "Porta de correr 2 folhas";
+  if (projeto === "PC4F - KIT") return "Porta de correr 4 folhas";
   if (projeto === "JC4F - KIT") return "Janela de correr 4 folhas";
   if (projeto === "JC2F - KIT") return "Janela de correr 2 folhas";
   return projeto || "Projeto";
@@ -62,6 +66,8 @@ const multiplicadorPecasProjeto = (projeto?: string) => {
   const texto = String(projeto || "").toLowerCase();
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
+  if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
+  if (texto.includes("pc2f") || texto.includes("porta de correr 2 folhas")) return 2;
   if (texto.includes("pfv2f") || texto.includes("2 folhas")) return 2;
   return 1;
 };
@@ -201,7 +207,11 @@ export default function CentralImpressaoPage() {
 
   const editarItem = (item: ProjetoComposicao) => {
     const projetoTexto = item.projeto.toLowerCase();
-    const rota = item.origemRota || (projetoTexto.includes("jc2f") || projetoTexto.includes("janela de correr 2")
+    const rota = item.origemRota || (projetoTexto.includes("pc4f") || ehPortaCorrer4Folhas(item.projeto)
+      ? "/pc4f-kit"
+      : projetoTexto.includes("pc2f") || ehPortaCorrer2Folhas(item.projeto)
+      ? "/pc2f-kit"
+      : projetoTexto.includes("jc2f") || projetoTexto.includes("janela de correr 2")
       ? "/jc2f-kit"
       : projetoTexto.includes("jc4f") || projetoTexto.includes("janela de correr 4")
       ? "/jc4f-kit"

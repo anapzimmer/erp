@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -93,7 +93,7 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type JC4FKitOrcamentoPersistido = {
+type PC4FKitOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
@@ -163,8 +163,11 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   valorUnitario: parcial?.valorUnitario ?? 0,
 });
 
+const trilhoOpcoes = ["Escolher", "Interrompido", "Embutido"];
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
-const trincoOpcoes = ["Sem trinco", "Com trinco"];
+const puxadorOpcoes = ["Sem puxador", "Com puxador"];
+const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
+const trincoOpcoes = ["Sem trinco", "Trinco simples", "Trinco Duplo", "Chave", "Trinco+ Chave"];
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -172,13 +175,18 @@ const normalizarTexto = (texto?: string | number | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-const descricaoTemCodigo = (descricao: string, codigo: string) => {
-  const descricaoNormalizada = normalizarTexto(descricao);
-  const codigoNormalizado = normalizarTexto(codigo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^a-z0-9])${codigoNormalizado}($|[^a-z0-9])`).test(descricaoNormalizada);
+const codigoFerragemCompativel = (codigoCadastro: string, codigoBase: string) => {
+  if (!codigoCadastro || !codigoBase) return false;
+  if (codigoCadastro === codigoBase) return true;
+  if (codigoCadastro.startsWith(`${codigoBase}-`)) return true;
+
+  if (!codigoCadastro.startsWith(codigoBase)) return false;
+
+  const sufixo = codigoCadastro.slice(codigoBase.length);
+  return /^[a-z]{1,8}$/.test(sufixo);
 };
 
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:jc4f-kit:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pc4f-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -193,7 +201,7 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-export default function JC4FKitPage() {
+export default function PC4FKitPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -225,7 +233,7 @@ export default function JC4FKitPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "JC4F - KIT",
+    projeto: "PC4F - KIT",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
@@ -264,6 +272,8 @@ export default function JC4FKitPage() {
         if (Array.isArray(rascunho.materiais)) {
           setMateriais(rascunho.materiais);
         }
+
+
       }
     } catch (erro) {
       console.warn("Nao foi possivel restaurar o rascunho do projeto individual:", erro);
@@ -305,7 +315,7 @@ export default function JC4FKitPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "JC4F - KIT",
+        projeto: "PC4F - KIT",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
@@ -316,7 +326,7 @@ export default function JC4FKitPage() {
         corKit: item.corPerfil || item.corKit || "Escolher",
         puxador: item.puxador || "Sem puxador",
         tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
-        trinco: item.trinco === "Com trinco" ? "Com trinco" : "Sem trinco",
+        trinco: item.trinco || "Sem trinco",
       }));
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
@@ -348,7 +358,7 @@ export default function JC4FKitPage() {
       .filter((item) => {
         const descricao = item.descricao.toLowerCase();
         const unidade = item.unidade.toLowerCase();
-        return unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("vt");
+        return unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("vt");
       })
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
@@ -388,12 +398,14 @@ export default function JC4FKitPage() {
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
     const larguraFixaMedida = Number(dados.largura || 0) / 4;
-    const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - 60);
     const larguraMovelMedida = larguraFixaMedida + 50;
-    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - 20);
+    const alturaBruta = Number(dados.altura || 0);
+    const ehEmbutido = dados.trilho === "Embutido";
+    const alturaFixaMedida = Math.max(0, alturaBruta - (ehEmbutido ? 40 : 60));
+    const alturaMovelMedida = Math.max(0, alturaBruta - (ehEmbutido ? 0 : 20));
     const larguraFixa = arredondar5cm(larguraFixaMedida);
-    const alturaFixa = arredondar5cm(alturaFixaMedida);
     const larguraMovel = arredondar5cm(larguraMovelMedida);
+    const alturaFixa = arredondar5cm(alturaFixaMedida);
     const alturaMovel = arredondar5cm(alturaMovelMedida);
     const areaFixa = (larguraFixa * alturaFixa * 2 * quantidadeVaos) / 1_000_000;
     const areaMovel = (larguraMovel * alturaMovel * 2 * quantidadeVaos) / 1_000_000;
@@ -414,7 +426,7 @@ export default function JC4FKitPage() {
       areaMovel: Number(areaMovel.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
-  }, [dados.altura, dados.largura, dados.quantidade]);
+  }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -471,6 +483,7 @@ export default function JC4FKitPage() {
 
   const kitSelecionado = useMemo(() => {
     const espessura = obterEspessuraVidro(dados.vidro);
+
     const categoriaEsperada =
       espessura === 10
         ? "Kit Porta"
@@ -486,13 +499,16 @@ export default function JC4FKitPage() {
     const alturaKitNecessaria = Number(dados.altura || 0);
 
     const kitsFiltrados = kits.filter((kit) => {
-      const textoKit = `${kit.nome || ""} ${kit.categoria || ""}`.toLowerCase();
-      const categoriaOk = textoKit.includes(categoriaEsperada.toLowerCase());
-      const quatroFolhasOk = /\b4\s*f\b|\b4\s*folhas?\b|4f/.test(textoKit);
+      const categoriaOk = String(kit.categoria || "")
+        .toLowerCase()
+        .includes(categoriaEsperada.toLowerCase());
 
       const corOk = String(kit.cores || "").toLowerCase() === corAtual;
 
-      return categoriaOk && quatroFolhasOk && corOk;
+      const nomeNormalizado = normalizarTexto(kit.nome);
+      const folhasOk = nomeNormalizado.includes("4f");
+
+      return categoriaOk && corOk && folhasOk;
     });
 
     if (kitsFiltrados.length === 0) return null;
@@ -503,6 +519,7 @@ export default function JC4FKitPage() {
         Number(kit.altura || 0) >= alturaKitNecessaria
       )
       .sort((a, b) => {
+
         const diferencaA =
           Math.abs(Number(a.largura || 0) - larguraKitNecessaria) +
           Math.abs(Number(a.altura || 0) - alturaKitNecessaria);
@@ -680,52 +697,71 @@ export default function JC4FKitPage() {
     return buscarFerragem((_, ferragem) => {
       const codigoFerragem = normalizarTexto(ferragem.codigo);
       const codigoInterno = normalizarTexto(ferragem.codigo_interno);
-      return codigoFerragem === codigoNormalizado ||
-        codigoInterno === codigoNormalizado ||
-        descricaoTemCodigo(codigoFerragem, codigoNormalizado) ||
-        descricaoTemCodigo(codigoInterno, codigoNormalizado);
+      return codigoFerragemCompativel(codigoFerragem, codigoNormalizado) || codigoFerragemCompativel(codigoInterno, codigoNormalizado);
     }, opcoes);
   }, [buscarFerragem]);
 
   const codigosFerragensAutomaticas = useMemo(
-    () => [
-      "3530AROU-CIL",
-      "3530DP",
-      "3530DP-PT",
-      "3230D",
-      "3230DP",
-      "3230D-PT",
-      "PUXBC30",
-      "PUXBC30PT",
-      "1519",
-      "1519-PT",
-      "1038B",
-      "1038B-PT",
-      "1520AROU-CIL",
-      "1520P",
-      "1520P-PT",
-      "1560",
-      "1335",
-      "1038.C-BC",
-    ].map(normalizarTexto),
+    () => ["3530AROU-CIL", "3530DP", "3230D", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P"].map(normalizarTexto),
     []
   );
 
   const ferragensAutomaticas = useMemo(() => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     if (quantidadeProjeto <= 0 || dados.corKit === "Escolher") return [];
+    const codigoPuxador =
+      dados.tamanhoPuxador === "600mm"
+        ? "PUXBC60"
+        : dados.tamanhoPuxador === "800mm"
+          ? "PUXBC80"
+          : "PUXBC30";
 
     const regras: Array<{ codigo: string; multiplicador: number }> = [
-      { codigo: "1560", multiplicador: 1 },
+      { codigo: "3530AROU-CIL", multiplicador: 1 },
+      { codigo: "3530DP", multiplicador: 1 },
+      { codigo: "3534", multiplicador: 1 },
     ];
 
-    if (dados.trinco === "Com trinco") {
-      regras.push({ codigo: "1335", multiplicador: 2 }, { codigo: "1038.C-BC", multiplicador: 2 });
+    if (dados.puxador === "Com puxador") {
+      regras.push({ codigo: codigoPuxador, multiplicador: 2 });
+    }
+
+    if (dados.trinco === "Trinco simples") {
+      regras.push({ codigo: "1335", multiplicador: 1 }, { codigo: "1038B", multiplicador: 1 });
+    }
+
+    if (dados.trinco === "Trinco Duplo") {
+      regras.push({ codigo: "1519", multiplicador: 1 }, { codigo: "1038B", multiplicador: 1 });
+    }
+
+    if (dados.trinco === "Chave") {
+      regras.push(
+        { codigo: "1520AROU-CIL", multiplicador: 1 },
+        { codigo: "1520P", multiplicador: 1 },
+        { codigo: "1038B", multiplicador: 1 }
+      );
+    }
+
+    if (dados.trinco === "Trinco+ Chave") {
+      regras.push(
+        { codigo: "1519", multiplicador: 1 },
+        { codigo: "1520AROU-CIL", multiplicador: 1 },
+        { codigo: "1520P", multiplicador: 1 },
+        { codigo: "1038B", multiplicador: 2 }
+      );
     }
 
     return regras
       .map(({ codigo, multiplicador }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo);
+        let ferragem = buscarFerragemPorCodigo(codigo, {
+          ignorarCor: codigo === "3530AROU-CIL" || codigo === "1520AROU-CIL",
+        });
+
+        if (!ferragem && codigo.startsWith("PUXBC")) {
+          ferragem = buscarFerragemPorCodigo(codigo, {
+            ignorarCor: true,
+          });
+        }
         if (!ferragem) return null;
 
         return criarMaterial({
@@ -736,7 +772,7 @@ export default function JC4FKitPage() {
         });
       })
       .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
-  }, [buscarFerragemPorCodigo, dados.corKit, dados.quantidade, dados.trinco]);
+  }, [buscarFerragemPorCodigo, dados.corKit, dados.puxador, dados.quantidade, dados.tamanhoPuxador, dados.trinco]);
 
   useEffect(() => {
     if (!kitSelecionado) return;
@@ -782,7 +818,7 @@ export default function JC4FKitPage() {
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
         const descricao = normalizarTexto(item.descricao);
-        return !(descricao.includes("vidro fixo") || descricao.includes("vidro movel") || descricao.includes("vidro movel"));
+        return !descricao.startsWith("vidro");
       });
 
       const vidroFixo = criarMaterial({
@@ -806,7 +842,8 @@ export default function JC4FKitPage() {
   useEffect(() => {
     setMateriais((lista) => {
       const itensManuais = lista.filter((item) => {
-        return !codigosFerragensAutomaticas.some((codigo) => descricaoTemCodigo(item.descricao, codigo));
+        const descricao = normalizarTexto(item.descricao);
+        return !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
       });
 
       return [...itensManuais, ...ferragensAutomaticas];
@@ -822,7 +859,7 @@ export default function JC4FKitPage() {
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/jc4f-kit");
+      router.push("/pc4f-kit");
       return;
     }
 
@@ -846,14 +883,18 @@ export default function JC4FKitPage() {
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = dados.trinco === "Com trinco"
-      ? "/desenhos/janela4fls-comtrinco.png"
-      : "/desenhos/janela4fls-semtrinco.png";
+    const desenhoUrl = dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco"
+      ? "/desenhos/porta4fls-completo.png"
+      : dados.puxador === "Com puxador"
+        ? "/desenhos/porta4fls-puxador.png"
+        : dados.trinco !== "Sem trinco"
+          ? "/desenhos/porta4fls-comtrincos.png"
+          : "/desenhos/porta4fls-simples.png";
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Janela de correr 4 folhas",
+      projeto: "Porta de correr 4 folhas",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
@@ -870,7 +911,7 @@ export default function JC4FKitPage() {
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/jc4f-kit",
+      origemRota: "/pc4f-kit",
     };
   };
 
@@ -923,7 +964,7 @@ export default function JC4FKitPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar orçamento JC4F:", error);
+      console.error("Erro ao carregar orçamento PC4F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -932,12 +973,12 @@ export default function JC4FKitPage() {
       return;
     }
 
-    const itens = orcamento?.itens as JC4FKitOrcamentoPersistido | null;
-    if (itens?.tipo !== "jc4f_kit") {
+    const itens = orcamento?.itens as PC4FKitOrcamentoPersistido | null;
+    if (itens?.tipo !== "pc4f_kit") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este orçamento não pertence ao JC4F - KIT.",
+        mensagem: "Este orçamento não pertence ao PC4F - KIT.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -948,7 +989,7 @@ export default function JC4FKitPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "JC4F - KIT",
+      projeto: "PC4F - KIT",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
   }, [editId, returnTo, router]);
@@ -1013,9 +1054,9 @@ export default function JC4FKitPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "JC4F - KIT",
+        projeto: "PC4F - KIT",
       };
-      const itensPersistidos: JC4FKitOrcamentoPersistido & {
+      const itensPersistidos: PC4FKitOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1025,7 +1066,7 @@ export default function JC4FKitPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "jc4f_kit",
+        tipo: "pc4f_kit",
         modo: "kit",
         dados: dadosAtualizados,
         materiais,
@@ -1069,7 +1110,7 @@ export default function JC4FKitPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar orçamento JC4F:", erro);
+      console.error("Erro ao salvar orçamento PC4F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1292,7 +1333,7 @@ export default function JC4FKitPage() {
                   <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
                     <div className="mt-4 flex min-h-[340px] items-center justify-center sm:min-h-[460px] xl:min-h-[420px]">
-                      <ProjetoDrawing comTrinco={dados.trinco === "Com trinco"} />
+                      <ProjetoDrawing comPuxador={dados.puxador === "Com puxador"} comTrinco={dados.trinco !== "Sem trinco"} />
                     </div>
                   </section>
 
@@ -1401,11 +1442,49 @@ export default function JC4FKitPage() {
                           )}
                         </label>
                         <OptionInput
+                          icon={<RailSymbol size={24} strokeWidth={1.6} />}
+                          label="Trilho"
+                          value={dados.trilho}
+                          options={trilhoOpcoes}
+                          onChange={(v) => atualizarCampo("trilho", v)}
+                        />
+
+                        <OptionInput
                           icon={<Palette size={24} strokeWidth={1.6} />}
                           label="Cor do kit"
                           value={dados.corKit}
                           options={corKitOpcoes}
                           onChange={(v) => atualizarCampo("corKit", v)}
+                        />
+
+                        <OptionInput
+                          icon={<Wrench size={24} strokeWidth={1.6} />}
+                          label="Puxador"
+                          value={dados.puxador || "Sem puxador"}
+                          options={puxadorOpcoes}
+                          onChange={(v) => {
+                            atualizarCampo("puxador", v);
+
+                            if (v === "Sem puxador") {
+                              atualizarCampo("tamanhoPuxador", "Escolher");
+                            }
+
+                            if (
+                              v === "Com puxador" &&
+                              dados.tamanhoPuxador === "Escolher"
+                            ) {
+                              atualizarCampo("tamanhoPuxador", "300mm");
+                            }
+                          }}
+                        />
+
+                        <OptionInput
+                          icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
+                          label="Furação do puxador"
+                          value={dados.tamanhoPuxador || "Escolher"}
+                          options={tamanhoPuxadorOpcoes}
+                          disabled={dados.puxador !== "Com puxador"}
+                          onChange={(v) => atualizarCampo("tamanhoPuxador", v)}
                         />
 
                         <OptionInput
@@ -1438,7 +1517,7 @@ export default function JC4FKitPage() {
                           </button>
                           <PDFDownloadLink
                             document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                            fileName={`jc4f_kit_${dados.numero || "novo"}.pdf`}
+                            fileName={`pc4f_kit_${dados.numero || "novo"}.pdf`}
                             className="rounded-xl bg-[#18bd72] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             {({ loading }) => loading ? "Gerando..." : "Baixar PDF"}
@@ -1771,8 +1850,14 @@ function DescricaoMaterialInput({
   );
 }
 
-function ProjetoDrawing({ comTrinco }: { comTrinco: boolean }) {
-  const desenhoSrc = comTrinco ? "/desenhos/janela4fls-comtrinco.png" : "/desenhos/janela4fls-semtrinco.png";
+function ProjetoDrawing({ comPuxador, comTrinco }: { comPuxador: boolean; comTrinco: boolean }) {
+  const desenhoSrc = comPuxador && comTrinco
+    ? "/desenhos/porta4fls-completo.png"
+    : comPuxador
+      ? "/desenhos/porta4fls-puxador.png"
+      : comTrinco
+        ? "/desenhos/porta4fls-comtrincos.png"
+        : "/desenhos/porta4fls-simples.png";
 
   return (
     <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -1780,7 +1865,10 @@ function ProjetoDrawing({ comTrinco }: { comTrinco: boolean }) {
       <img
         src={desenhoSrc}
         alt=""
-        className="max-h-full w-auto max-w-full object-contain"
+        className="h-auto max-h-full max-w-full object-contain"
+        style={{ imageRendering: "crisp-edges" }}
+        decoding="sync"
+        loading="eager"
         draggable={false}
       />
     </div>
@@ -1806,7 +1894,3 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
-
-
-
-

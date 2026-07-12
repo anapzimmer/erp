@@ -141,6 +141,19 @@ const numero = (valor: number, casas = 2) =>
 
 const parseNumeroPtBr = (valor: string) => Number(valor.replace(/\./g, "").replace(",", ".") || 0);
 
+const ehUnidadeM2 = (unidade?: string) => normalizarTexto(unidade).includes("m2");
+
+const formatarQtdMaterial = (qtd: number, unidade?: string) =>
+  ehUnidadeM2(unidade) ? numero(qtd) : String(Number(qtd || 0));
+
+const parseQtdMaterial = (valor: string, unidade?: string) =>
+  ehUnidadeM2(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
+
+const limitarNumero4Digitos = (valor: string) => {
+  const somenteDigitos = valor.replace(/\D/g, "").slice(0, 4);
+  return Number(somenteDigitos || 0);
+};
+
 const hojePtBr = () => new Date().toLocaleDateString("pt-BR");
 
 const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoIndividualMaterial => ({
@@ -257,6 +270,7 @@ export default function PFV2FKitPage() {
         if (Array.isArray(rascunho.materiais)) {
           setMateriais(rascunho.materiais);
         }
+
 
         if ("perfilTuboId" in rascunho) {
           setPerfilTuboId(rascunho.perfilTuboId || null);
@@ -383,15 +397,19 @@ export default function PFV2FKitPage() {
     return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
-    const larguraCalculo = arredondar5cm((Number(dados.largura || 0) / 2) + 50);
+    const larguraMedida = (Number(dados.largura || 0) / 2) + 50;
     const alturaAdicional = dados.trilho === "Embutido" ? 70 : 50;
-    const alturaCalculo = arredondar5cm(Number(dados.altura || 0) + alturaAdicional);
+    const alturaMedida = Number(dados.altura || 0) + alturaAdicional;
+    const larguraCalculo = arredondar5cm(larguraMedida);
+    const alturaCalculo = arredondar5cm(alturaMedida);
     const areaUnit = (larguraCalculo * alturaCalculo) / 1_000_000;
     const areaTotalCobrada = areaUnit * Number(dados.quantidade || 0) * 2;
 
     return {
       larguraCalculo,
       alturaCalculo,
+      larguraMedida,
+      alturaMedida,
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
   }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
@@ -790,7 +808,8 @@ export default function PFV2FKitPage() {
       .replace(/^vidro\s+/i, "")
       .trim();
 
-    const descricaoVidro = `VIDRO ${vidroNome.toUpperCase()}`;
+    const medidaVidro = `${calculoVidro.larguraMedida}x${calculoVidro.alturaMedida}`;
+    const descricaoVidro = `VIDRO ${medidaVidro} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const indiceVidro = lista.findIndex((item) =>
@@ -813,7 +832,7 @@ export default function PFV2FKitPage() {
         index === indiceVidro ? itemAtualizado : item
       );
     });
-  }, [calculoVidro.areaTotalCobrada, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
     setMateriais((lista) => {
@@ -1514,10 +1533,10 @@ export default function PFV2FKitPage() {
                           <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
                             <div className="px-3 py-2.5">
                               <input
-                                type="number"
-                                value={item.qtd}
-                                step="0.01"
-                                onChange={(e) => atualizarMaterial(item.id, "qtd", Number(e.target.value || 0))}
+                                type="text"
+                                inputMode="decimal"
+                                value={formatarQtdMaterial(item.qtd, item.unidade)}
+                                onChange={(e) => atualizarMaterial(item.id, "qtd", parseQtdMaterial(e.target.value, item.unidade))}
                                 className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-slate-50"
                               />
                             </div>
@@ -1677,7 +1696,13 @@ function DataInput({
             type="number"
             value={value}
             tabIndex={tabIndex}
-            onChange={(e) => onChange(Number(e.target.value || 0))}
+            min={0}
+            max={9999}
+            inputMode="numeric"
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
+            }}
+            onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
             className="w-[64px] min-w-0 rounded-md bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
           />
           {suffix && <span className="text-[15px] font-semibold leading-tight text-[#10253f]">{suffix}</span>}
