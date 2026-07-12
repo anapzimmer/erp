@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -93,7 +93,7 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type PFV1FKitOrcamentoPersistido = {
+type PFV2FKitOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
@@ -163,7 +163,13 @@ const normalizarTexto = (texto?: string | number | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pfv1f-kit:rascunho";
+const descricaoTemCodigo = (descricao: string, codigo: string) => {
+  const descricaoNormalizada = normalizarTexto(descricao);
+  const codigoNormalizado = normalizarTexto(codigo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${codigoNormalizado}($|[^a-z0-9])`).test(descricaoNormalizada);
+};
+
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pfv2f-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -178,7 +184,7 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-export default function PFV1FKitPage() {
+export default function PFV2FKitPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -211,7 +217,7 @@ export default function PFV1FKitPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "PFV1F - KIT",
+    projeto: "PFV2F - KIT",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
@@ -296,7 +302,7 @@ export default function PFV1FKitPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "PFV1F - KIT",
+        projeto: "PFV2F - KIT",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
@@ -327,7 +333,7 @@ export default function PFV1FKitPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0);
+  const totalVidros = Number(dados.quantidade || 0) * 2;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -339,7 +345,7 @@ export default function PFV1FKitPage() {
       .filter((item) => {
         const descricao = item.descricao.toLowerCase();
         const unidade = item.unidade.toLowerCase();
-        return unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("vt");
+        return unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("vt");
       })
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
@@ -377,11 +383,11 @@ export default function PFV1FKitPage() {
     return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
-    const larguraCalculo = arredondar5cm(Number(dados.largura || 0) + 50);
+    const larguraCalculo = arredondar5cm((Number(dados.largura || 0) / 2) + 50);
     const alturaAdicional = dados.trilho === "Embutido" ? 70 : 50;
     const alturaCalculo = arredondar5cm(Number(dados.altura || 0) + alturaAdicional);
     const areaUnit = (larguraCalculo * alturaCalculo) / 1_000_000;
-    const areaTotalCobrada = areaUnit * Number(dados.quantidade || 0);
+    const areaTotalCobrada = areaUnit * Number(dados.quantidade || 0) * 2;
 
     return {
       larguraCalculo,
@@ -442,12 +448,6 @@ export default function PFV1FKitPage() {
     const match = texto.match(/(\d{1,2})\s*mm/i);
     return match ? Number(match[1]) : 0;
   };
-
-  const perfilTuboSelecionado = useMemo(() => {
-    if (!perfilTuboId) return null;
-
-    return perfis.find((perfil) => perfil.id === perfilTuboId) || null;
-  }, [perfilTuboId, perfis]);
 
   const kitSelecionado = useMemo(() => {
     const espessura = obterEspessuraVidro(dados.vidro);
@@ -607,23 +607,7 @@ export default function PFV1FKitPage() {
       } else {
         const listaPerfis = (perfisData || []) as PerfilCadastro[];
         setPerfis(listaPerfis);
-
-        const tuboPadrao = listaPerfis.find((perfil) => {
-          const texto = `${perfil.codigo} ${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`.toLowerCase();
-
-          const ehTubo = texto.includes("tubo");
-          const eh50x50 =
-            texto.includes("50x50") ||
-            texto.includes("50*50") ||
-            texto.includes("50 x 50") ||
-            texto.includes("50 * 50");
-
-          return ehTubo && eh50x50;
-        });
-
-        if (tuboPadrao) {
-          setPerfilTuboId(tuboPadrao.id);
-        }
+        setPerfilTuboId(null);
       }
 
       setCarregandoClientes(false);
@@ -675,15 +659,43 @@ export default function PFV1FKitPage() {
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return buscarFerragem((texto, ferragem) => {
+    return buscarFerragem((_, ferragem) => {
       const codigoFerragem = normalizarTexto(ferragem.codigo);
       const codigoInterno = normalizarTexto(ferragem.codigo_interno);
-      return codigoFerragem === codigoNormalizado || codigoInterno === codigoNormalizado || texto.includes(codigoNormalizado);
+
+      if (
+        codigoFerragem &&
+        codigoFerragem.startsWith(codigoNormalizado) &&
+        codigoFerragem !== codigoNormalizado &&
+        /^\d/.test(codigoFerragem.slice(codigoNormalizado.length))
+      ) {
+        return false;
+      }
+
+      return codigoFerragem === codigoNormalizado ||
+        codigoInterno === codigoNormalizado ||
+        descricaoTemCodigo(codigoFerragem, codigoNormalizado) ||
+        descricaoTemCodigo(codigoInterno, codigoNormalizado);
     }, opcoes);
   }, [buscarFerragem]);
 
   const codigosFerragensAutomaticas = useMemo(
-    () => ["3530AROU-CIL", "3530DP", "3230D", "PUXBC30", "PUXBC60", "PUXBC80", "1519", "1038B", "1520AROU-CIL", "1520P"].map(normalizarTexto),
+    () => [
+      "3530AROU-CIL",
+      "3530DP",
+      "3230DP",
+      "3230D",
+      "353490",
+      "3530P",
+      "3534",
+      "PUXBC30",
+      "PUXBC60",
+      "PUXBC80",
+      "1519",
+      "1038B",
+      "1520AROU-CIL",
+      "1520P",
+    ].map(normalizarTexto),
     []
   );
 
@@ -699,12 +711,12 @@ export default function PFV1FKitPage() {
 
     const regras: Array<{ codigo: string; multiplicador: number }> = [
       { codigo: "3530AROU-CIL", multiplicador: 1 },
-      { codigo: "3530DP", multiplicador: 1 },
-      { codigo: "3230D", multiplicador: 1 },
+      { codigo: "3530P", multiplicador: 1 },
+      { codigo: "3534", multiplicador: 1 },
     ];
 
     if (dados.puxador === "Com puxador") {
-      regras.push({ codigo: codigoPuxador, multiplicador: 1 });
+      regras.push({ codigo: codigoPuxador, multiplicador: 2 });
     }
 
     if (dados.trinco === "Com trinco") {
@@ -806,8 +818,7 @@ export default function PFV1FKitPage() {
   useEffect(() => {
     setMateriais((lista) => {
       const itensManuais = lista.filter((item) => {
-        const descricao = normalizarTexto(item.descricao);
-        return !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
+        return !codigosFerragensAutomaticas.some((codigo) => descricaoTemCodigo(item.descricao, codigo));
       });
 
       return [...itensManuais, ...ferragensAutomaticas];
@@ -815,62 +826,15 @@ export default function PFV1FKitPage() {
   }, [codigosFerragensAutomaticas, ferragensAutomaticas]);
 
   useEffect(() => {
-    if (!perfilTuboSelecionado || Number(dados.altura || 0) <= 0) return;
-
-    const alturaMm = Number(dados.altura || 0);
-    const quantidade = Number(dados.quantidade || 1);
-
-    const totalUsadoMm = alturaMm * quantidade;
-    const barrasNecessarias = Math.ceil(totalUsadoMm / 6000);
-
-    const descricaoTubo = `${perfilTuboSelecionado.codigo} - ${perfilTuboSelecionado.nome_completo ||
-      perfilTuboSelecionado.nome
-      }`.toUpperCase();
-
-    const precoTubo = Number(perfilTuboSelecionado.preco || 0);
-
     setMateriais((lista) => {
-      const indiceTubo = lista.findIndex((item) => {
-        const descricao = item.descricao.toLowerCase();
-        return descricao.includes("tubo");
-      });
-
-      const itemAtual = lista[indiceTubo] || criarMaterial();
-
-      const itemAtualizado: ProjetoIndividualMaterial = {
-        ...itemAtual,
-        qtd: barrasNecessarias,
-        unidade: "barra",
-        descricao: descricaoTubo,
-        valorUnitario: precoTubo,
-      };
-
-      if (indiceTubo < 0) return [...lista, itemAtualizado];
-
-      return lista.map((item, index) =>
-        index === indiceTubo ? itemAtualizado : item
-      );
+      const filtrada = lista.filter((item) => !normalizarTexto(item.descricao).includes("tubo"));
+      return filtrada.length === lista.length ? lista : filtrada;
     });
-  }, [dados.altura, dados.quantidade, perfilTuboSelecionado]);
-
-  const encontrarTuboPadrao = () => {
-    return perfis.find((perfil) => {
-      const texto = `${perfil.codigo} ${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`.toLowerCase();
-
-      const ehTubo = texto.includes("tubo");
-      const eh50x50 =
-        texto.includes("50x50") ||
-        texto.includes("50*50") ||
-        texto.includes("50 x 50") ||
-        texto.includes("50 * 50");
-
-      return ehTubo && eh50x50;
-    });
-  };
+  }, [materiais]);
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/pfv1f-kit");
+      router.push("/pfv2f-kit");
       return;
     }
 
@@ -892,19 +856,18 @@ export default function PFV1FKitPage() {
 
     setMateriais([]);
 
-    const tuboPadrao = encontrarTuboPadrao();
-    setPerfilTuboId(tuboPadrao?.id || null);
+    setPerfilTuboId(null);
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
     const desenhoUrl = dados.puxador === "Com puxador"
-      ? "/desenhos/portaforavao-1flscompleto.png"
-      : "/desenhos/portaforavao-1fls.png";
+      ? "/desenhos/portaforavao-2flscompleto.png"
+      : "/desenhos/portaforavao-2fls.png";
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Porta de correr atrás do vão",
+      projeto: "Porta de correr atrás do vão - 2 folhas",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
@@ -921,7 +884,7 @@ export default function PFV1FKitPage() {
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/pfv1f-kit",
+      origemRota: "/pfv2f-kit",
     };
   };
 
@@ -974,7 +937,7 @@ export default function PFV1FKitPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar orçamento PFV1F:", error);
+      console.error("Erro ao carregar orçamento PFV2F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -983,12 +946,12 @@ export default function PFV1FKitPage() {
       return;
     }
 
-    const itens = orcamento?.itens as PFV1FKitOrcamentoPersistido | null;
-    if (itens?.tipo !== "pfv1f_kit") {
+    const itens = orcamento?.itens as PFV2FKitOrcamentoPersistido | null;
+    if (itens?.tipo !== "pfv2f_kit") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este orçamento não pertence ao PFV1F - KIT.",
+        mensagem: "Este orçamento não pertence ao PFV2F - KIT.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -999,7 +962,7 @@ export default function PFV1FKitPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "PFV1F - KIT",
+      projeto: "PFV2F - KIT",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
     setPerfilTuboId(itens.perfilTuboId || null);
@@ -1065,9 +1028,9 @@ export default function PFV1FKitPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "PFV1F - KIT",
+        projeto: "PFV2F - KIT",
       };
-      const itensPersistidos: PFV1FKitOrcamentoPersistido & {
+      const itensPersistidos: PFV2FKitOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1077,7 +1040,7 @@ export default function PFV1FKitPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "pfv1f_kit",
+        tipo: "pfv2f_kit",
         modo: "kit",
         dados: dadosAtualizados,
         materiais,
@@ -1122,7 +1085,7 @@ export default function PFV1FKitPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar orçamento PFV1F:", erro);
+      console.error("Erro ao salvar orçamento PFV2F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1529,7 +1492,7 @@ export default function PFV1FKitPage() {
                           </button>
                           <PDFDownloadLink
                             document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                            fileName={`pfv1f_kit_${dados.numero || "novo"}.pdf`}
+                            fileName={`pfv2f_kit_${dados.numero || "novo"}.pdf`}
                             className="rounded-xl bg-[#18bd72] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             {({ loading }) => loading ? "Gerando..." : "Baixar PDF"}
@@ -1857,7 +1820,7 @@ function DescricaoMaterialInput({
 }
 
 function ProjetoDrawing({ comPuxador }: { comPuxador: boolean }) {
-  const desenhoSrc = comPuxador ? "/desenhos/portaforavao-1flscompleto.png" : "/desenhos/portaforavao-1fls.png";
+  const desenhoSrc = comPuxador ? "/desenhos/portaforavao-2flscompleto.png" : "/desenhos/portaforavao-2fls.png";
 
   return (
     <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">

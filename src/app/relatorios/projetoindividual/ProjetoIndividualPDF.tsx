@@ -162,9 +162,23 @@ const styles = StyleSheet.create({
 });
 
 export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFProps) {
-  const larguraVidro = arredondar5cm(Number(dados.largura || 0) + 50);
+  const projetoNormalizado = String(dados.projeto || "").toLowerCase();
+  const ehJanelaCorrer4Folhas = projetoNormalizado.includes("jc4f") || projetoNormalizado.includes("janela de correr 4");
+  const ehJanelaCorrer2Folhas = projetoNormalizado.includes("jc2f") || projetoNormalizado.includes("janela de correr 2");
+  const ehJanelaCorrer = ehJanelaCorrer4Folhas || ehJanelaCorrer2Folhas;
+  const ehDuasFolhas = projetoNormalizado.includes("pfv2f") || projetoNormalizado.includes("2 folhas");
+  const quantidadeVaos = Number(dados.quantidade || 0);
+  const larguraFixaJc = arredondar5cm(Number(dados.largura || 0) / (ehJanelaCorrer2Folhas ? 2 : 4));
+  const alturaFixaJc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 60));
+  const larguraMovelJc = arredondar5cm(larguraFixaJc + 50);
+  const alturaMovelJc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 20));
+  const quantidadePecasVidro = ehJanelaCorrer4Folhas ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
+  const larguraBaseVidro = ehDuasFolhas ? Number(dados.largura || 0) / 2 : Number(dados.largura || 0);
+  const larguraVidro = arredondar5cm(larguraBaseVidro + 50);
   const alturaVidro = arredondar5cm(Number(dados.altura || 0) + (dados.trilho === "Embutido" ? 70 : 50));
-  const areaTotal = Number(((larguraVidro * alturaVidro * Number(dados.quantidade || 0)) / 1_000_000).toFixed(3));
+  const areaTotal = ehJanelaCorrer
+    ? Number((((larguraFixaJc * alturaFixaJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos) + (larguraMovelJc * alturaMovelJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : Number(((larguraVidro * alturaVidro * quantidadePecasVidro) / 1_000_000).toFixed(3));
   const total = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorVidros = dados.materiais
     .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -177,10 +191,31 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
     })
     .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorFerragens = Math.max(0, total - valorVidros - valorKitPerfis);
-  const totalVidros = Number(dados.quantidade || 0);
-  const desenhoSrc = dados.puxador === "Com puxador"
-    ? "/desenhos/portaforavao-1flscompleto.png"
-    : "/desenhos/portaforavao-1fls.png";
+  const totalVidros = quantidadePecasVidro;
+  const nomeProjeto = ehJanelaCorrer4Folhas
+    ? "Janela de correr 4 folhas"
+    : ehJanelaCorrer2Folhas
+      ? "Janela de correr 2 folhas"
+    : ehDuasFolhas
+      ? "Porta de correr atrás do vão - 2 folhas"
+      : projetoNormalizado.includes("pfv1f")
+        ? "Porta de correr atrás do Vão - 1 folha"
+    : dados.projeto || "Projeto individual";
+  const desenhoSrc = ehJanelaCorrer4Folhas
+    ? dados.trinco === "Com trinco"
+      ? "/desenhos/janela4fls-comtrinco.png"
+      : "/desenhos/janela4fls-semtrinco.png"
+    : ehJanelaCorrer2Folhas
+      ? dados.trinco === "Com trinco"
+        ? "/desenhos/projeto2f-trinco.png"
+        : "/desenhos/projeto2f-simples.png"
+    : dados.puxador === "Com puxador"
+      ? ehDuasFolhas
+        ? "/desenhos/portaforavao-2flscompleto.png"
+        : "/desenhos/portaforavao-1flscompleto.png"
+      : ehDuasFolhas
+        ? "/desenhos/portaforavao-2fls.png"
+        : "/desenhos/portaforavao-1fls.png";
 
   return (
     <Document>
@@ -220,7 +255,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
 
         <View style={styles.titleRow}>
           <Text style={styles.titleLabel}>Projeto</Text>
-          <Text style={styles.title}>{dados.projeto || "Projeto individual"}</Text>
+          <Text style={styles.title}>{nomeProjeto}</Text>
         </View>
 
         <View style={styles.grid}>
@@ -253,22 +288,28 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 <Text style={styles.dataLabel}>Cor do vidro</Text>
                 <Text style={styles.dataValue}>{dados.vidro || "-"}</Text>
               </View>
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Trilho</Text>
-                <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
-              </View>
+              {!ehJanelaCorrer ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>Trilho</Text>
+                  <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
+                </View>
+              ) : null}
               <View style={styles.dataItem}>
                 <Text style={styles.dataLabel}>Cor do kit</Text>
                 <Text style={styles.dataValue}>{dados.corKit || "-"}</Text>
               </View>
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Puxador</Text>
-                <Text style={styles.dataValue}>{dados.puxador || "-"}</Text>
-              </View>
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Tamanho do puxador</Text>
-                <Text style={styles.dataValue}>{dados.tamanhoPuxador || "-"}</Text>
-              </View>
+              {!ehJanelaCorrer ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>Puxador</Text>
+                  <Text style={styles.dataValue}>{dados.puxador || "-"}</Text>
+                </View>
+              ) : null}
+              {!ehJanelaCorrer ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>Tamanho do puxador</Text>
+                  <Text style={styles.dataValue}>{dados.tamanhoPuxador || "-"}</Text>
+                </View>
+              ) : null}
               <View style={styles.dataItem}>
                 <Text style={styles.dataLabel}>Trinco</Text>
                 <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>

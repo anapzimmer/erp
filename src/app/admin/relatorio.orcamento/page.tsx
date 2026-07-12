@@ -17,6 +17,7 @@ import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
 import { ProjetoIndividualPDF, type ProjetoIndividualDados } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
+import { CentralImpressaoPDF, type CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
 
@@ -74,6 +75,17 @@ type OrcamentoCalculoprojetoPersistido = {
     };
 };
 
+type OrcamentoProjetosPersistido = {
+    tipo?: string;
+    cliente?: string;
+    obra?: string;
+    projetos?: Array<CentralImpressaoItem & {
+        largura?: number;
+        altura?: number;
+        corPerfil?: string;
+    }>;
+};
+
 type PerfilCadastro = {
     codigo?: string | null;
     nome?: string | null;
@@ -120,7 +132,7 @@ type SacadaAcessoriosProp = Parameters<typeof SacadaFrontalPDF>[0]["acessorios"]
 type RelatorioObraProp = Parameters<typeof RelatorioObraPDF>[0]["relatorioObra"];
 type OtimizacaoGlobalProp = Parameters<typeof RelatorioObraPDF>[0]["otimizacaoGlobal"];
 
-export default function RelatorioOrçamento() {
+export default function RelatorioOrcamento() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { theme } = useTheme()
@@ -691,13 +703,25 @@ export default function RelatorioOrçamento() {
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
                                                                     const ehMaoAmiga = tipoItem === "mao_amiga";
                                                                     const ehPfv1fKit = tipoItem === "pfv1f_kit";
+                                                                    const ehPfv2fKit = tipoItem === "pfv2f_kit";
+                                                                    const ehJc4fKit = tipoItem === "jc4f_kit";
+                                                                    const ehJc2fKit = tipoItem === "jc2f_kit";
+                                                                    const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehFechamentoSacada
                                                                         ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehMaoAmiga
                                                                         ? `/calculo/maoamiga?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehOrcamentoProjetos
+                                                                        ? `/central-impressao?edit=${orc.id}`
                                                                         : ehPfv1fKit
                                                                         ? `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPfv2fKit
+                                                                        ? `/pfv2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc4fKit
+                                                                        ? `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc2fKit
+                                                                        ? `/jc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehEspelho
@@ -728,7 +752,7 @@ export default function RelatorioOrçamento() {
                                                                 <PencilLine size={18} />
                                                             </button>
 
-                                                            {/* EXCLUIR - VERMELHO PADRÃO DE ALERTA NO HOVER */}
+                                                            {/* EXCLUIR - VERMELHO PADR?O DE ALERTA NO HOVER */}
                                                             <button
                                                                 onClick={() => {
                                                                     setItemParaExcluir(orc);
@@ -779,7 +803,7 @@ export default function RelatorioOrçamento() {
                     warning: theme.modalIconWarningColor,
                 }}
             />
-            {/* TOAST DISCRETO - PADRÃO ERP */}
+            {/* TOAST DISCRETO - PADR?O ERP */}
             {showToast && (
                 <div className="fixed bottom-8 right-8 z-110 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div
@@ -877,7 +901,50 @@ export default function RelatorioOrçamento() {
 
                                         // Detecta se é pele de vidro
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
-                                        if (tipo === "pfv1f_kit") {
+                                        if (tipo === "orcamento_projetos") {
+                                            const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
+                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(dadosProjetos.projetos)
+                                                ? dadosProjetos.projetos.map((item, index) => ({
+                                                    id: String(item.id || index),
+                                                    numero: String(item.numero || orcamentoParaVisualizar?.numero_formatado || ""),
+                                                    projeto: item.projeto === "PFV1F - KIT"
+                                                        ? "Porta de correr atrás do Vão - 1 folha"
+                                                        : item.projeto === "PFV2F - KIT"
+                                                            ? "Porta de correr atrás do vão - 2 folhas"
+                                                            : item.projeto === "JC4F - KIT"
+                                                                ? "Janela de correr 4 folhas"
+                                                                : item.projeto === "JC2F - KIT"
+                                                                    ? "Janela de correr 2 folhas"
+                                                            : String(item.projeto || "Projeto"),
+                                                    cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || item.cliente || ""),
+                                                    medidas: item.medidas || `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
+                                                    largura: Number(item.largura || 0),
+                                                    altura: Number(item.altura || 0),
+                                                    quantidade: Number(item.quantidade || 0),
+                                                    modo: String(item.modo || "Kit"),
+                                                    desenhoUrl: String(item.desenhoUrl || ""),
+                                                    vidro: item.vidro,
+                                                    corKit: item.corPerfil || item.corKit,
+                                                    trilho: item.trilho,
+                                                    puxador: item.puxador,
+                                                    trinco: item.trinco,
+                                                    valorTotal: Number(item.valorTotal || 0),
+                                                }))
+                                                : [];
+
+                                            return (
+                                                <CentralImpressaoPDF
+                                                    itens={projetosPdf}
+                                                    nomeEmpresa={nomeEmpresa}
+                                                    logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
+                                                    numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
+                                                    cliente={orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || "")}
+                                                    obra={orcamentoParaVisualizar?.obra_referencia || String(dadosProjetos.obra || "")}
+                                                />
+                                            );
+                                        }
+
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv2f_kit" || tipo === "jc4f_kit" || tipo === "jc2f_kit") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -889,7 +956,7 @@ export default function RelatorioOrçamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || "PFV1F - KIT"),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),
