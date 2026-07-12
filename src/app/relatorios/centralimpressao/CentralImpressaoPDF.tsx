@@ -185,6 +185,7 @@ export function CentralImpressaoPDF({
         <View style={styles.list}>
           {itens.map((item, index) => {
             const ehJanela = /jc4f|jc2f|janela de correr 4|janela de correr 2/i.test(item.projeto || "");
+            const ehPortaGiro = /pg|porta de giro/i.test(item.projeto || "");
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
@@ -218,7 +219,7 @@ export function CentralImpressaoPDF({
                     </View>
                     {!ehJanela ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>Trilho</Text>
+                        <Text style={styles.infoLabel}>{ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
@@ -229,7 +230,7 @@ export function CentralImpressaoPDF({
                       </View>
                     ) : null}
                     <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Trinco</Text>
+                      <Text style={styles.infoLabel}>{ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                       <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                     </View>
                     <View style={styles.info}>

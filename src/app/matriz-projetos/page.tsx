@@ -10,8 +10,8 @@ import { useTheme } from "@/context/ThemeContext";
 const projetos = [
   {
     id: "pfv1f",
-    nome: "PFV 1F",
-    titulo: "Porta fora vão - 1 folha",
+    nome: "Porta fora vão - 1 folha",
+    titulo: "Calculo com e sem puxador",
     categoria: "Portas",
     status: "Disponível",
     imagem: "/desenhos/portaforavao-1fls.png",
@@ -21,8 +21,8 @@ const projetos = [
   },
   {
     id: "pfv2f",
-    nome: "PFV 2F",
-    titulo: "Porta fora vão - 2 folhas",
+    nome: "Porta fora vão - 2 folhas",
+    titulo: "Calculo com e sem puxador",
     categoria: "Portas",
     status: "Disponível",
     imagem: "/desenhos/portaforavao-2fls.png",
@@ -32,30 +32,30 @@ const projetos = [
   },
   {
     id: "pc2f",
-    nome: "PC 2F",
-    titulo: "Porta de correr - 2 folhas",
+    nome: "Porta de correr - 2 folhas",
+    titulo: "Calculo com e sem puxador",
     categoria: "Portas",
     status: "Disponivel",
-    imagem: "/desenhos/projeto2f-simples.png",
+    imagem: "/desenhos/projeto2fls-trincoepuxador.png",
     kitHref: "/pc2f-kit",
     barraHref: "/pc2f-barra",
-    descricao: "Projeto individual para or?amento por kit.",
+    descricao: "Projeto individual para orçamento por kit.",
   },
   {
     id: "pc4f",
-    nome: "PC 4F",
-    titulo: "Porta de correr - 4 folhas",
+    nome: "Porta de correr - 4 folhas",
+    titulo: "Calculo com e sem puxador",
     categoria: "Portas",
     status: "Disponivel",
-    imagem: "/desenhos/porta4fls-simples.png",
+    imagem: "/desenhos/porta4fls-completo.png",
     kitHref: "/pc4f-kit",
     barraHref: "/pc4f-barra",
-    descricao: "Projeto individual para or?amento por kit.",
+    descricao: "Projeto individual para orçamento por kit.",
   },
   {
     id: "jc4f",
-    nome: "JC 4F",
-    titulo: "Janela de correr - 4 folhas",
+    nome: "Janela de correr - 4 folhas",
+    titulo: "Calculo com e sem trinco",
     categoria: "Janelas",
     status: "Disponível",
     imagem: "/desenhos/janela4fls-semtrinco.png",
@@ -65,8 +65,8 @@ const projetos = [
   },
   {
     id: "jc2f",
-    nome: "JC 2F",
-    titulo: "Janela de correr - 2 folhas",
+    nome: "Janela de correr - 2 folhas",
+    titulo: "Calculo com e sem trinco",
     categoria: "Janelas",
     status: "Disponível",
     imagem: "/desenhos/projeto2f-simples.png",
@@ -74,6 +74,30 @@ const projetos = [
     barraHref: "/jc2f-barra",
     descricao: "Projeto individual para orçamento por kit.",
   },
+  {
+    id: "pg",
+    nome: "Porta de giro",
+    titulo: "Calculo para 1 folha e 2 folhas",
+    categoria: "Portas",
+    status: "Disponivel",
+    imagem: "/desenhos/portagiro-1fls1520ta.png",
+    kitHref: "/pg",
+    barraHref: "/pg2f",
+    kitLabel: "1 folha",
+    barraLabel: "2 folhas",
+    descricao: "Projeto individual para porta de giro.",
+  },
+  {
+    id: "pg-dobradica",
+    nome: "Porta de giro dobradiça",
+    titulo: "Projeto unico com dobradiça",
+    categoria: "Portas",
+    status: "Disponivel",
+    imagem: "/desenhos/portagirodob-1flssimples.png",
+    kitHref: "/pg?modelo=dobradica",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual de porta de giro com dobradiça.",
+  }
 ];
 
 export default function MatrizProjetosPage() {
@@ -191,24 +215,26 @@ export default function MatrizProjetosPage() {
                       </span>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-500">{projeto.descricao}</p>
-                    <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className={`mt-5 grid gap-3 ${projeto.barraHref ? "grid-cols-2" : "grid-cols-1"}`}>
                       <button
                         type="button"
                         onClick={() => router.push(projeto.kitHref)}
                         className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white transition hover:brightness-95"
                         style={{ backgroundColor: theme.menuBackgroundColor }}
                       >
-                        Kit
+                        {projeto.kitLabel || "Kit"}
                         <ArrowRight size={16} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => router.push(projeto.barraHref)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] transition hover:bg-slate-50"
-                      >
-                        Barra
-                        <ArrowRight size={16} />
-                      </button>
+                      {projeto.barraHref ? (
+                        <button
+                          type="button"
+                          onClick={() => router.push(projeto.barraHref)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] transition hover:bg-slate-50"
+                        >
+                          {projeto.barraLabel || "Barra"}
+                          <ArrowRight size={16} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>

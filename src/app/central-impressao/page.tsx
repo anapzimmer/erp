@@ -59,6 +59,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PC4F - KIT") return "Porta de correr 4 folhas";
   if (projeto === "JC4F - KIT") return "Janela de correr 4 folhas";
   if (projeto === "JC2F - KIT") return "Janela de correr 2 folhas";
+  if (projeto === "PG - 1 folha") return "Porta de giro - 1 folha";
   return projeto || "Projeto";
 };
 

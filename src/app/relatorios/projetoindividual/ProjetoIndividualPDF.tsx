@@ -168,6 +168,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const ehJanelaCorrer = ehJanelaCorrer4Folhas || ehJanelaCorrer2Folhas;
   const ehPc2f = projetoNormalizado.includes("pc2f") || projetoNormalizado.includes("porta de correr 2 folhas");
   const ehPc4f = projetoNormalizado.includes("pc4f") || projetoNormalizado.includes("porta de correr 4 folhas");
+  const ehPortaGiro = projetoNormalizado.includes("pg") || projetoNormalizado.includes("porta de giro");
   const ehDuasFolhas = projetoNormalizado.includes("pfv2f") || projetoNormalizado.includes("2 folhas");
   const quantidadeVaos = Number(dados.quantidade || 0);
   const larguraFixaJc = arredondar5cm(Number(dados.largura || 0) / (ehJanelaCorrer2Folhas ? 2 : 4));
@@ -182,6 +183,8 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const larguraMovelPc4f = arredondar5cm(larguraFixaPc4f + 50);
   const alturaFixaPc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - (dados.trilho === "Embutido" ? 40 : 60)));
   const alturaMovelPc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - (dados.trilho === "Embutido" ? 0 : 20)));
+  const larguraPortaGiro = arredondar5cm(Math.max(0, Number(dados.largura || 0) - 15));
+  const alturaPortaGiro = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 15));
   const quantidadePecasVidro = ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
   const larguraBaseVidro = ehDuasFolhas ? Number(dados.largura || 0) / 2 : Number(dados.largura || 0);
   const larguraVidro = arredondar5cm(larguraBaseVidro + 50);
@@ -192,6 +195,8 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
       ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
     : ehPc4f
       ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPortaGiro
+      ? Number(((larguraPortaGiro * alturaPortaGiro * quantidadeVaos) / 1_000_000).toFixed(3))
     : Number(((larguraVidro * alturaVidro * quantidadePecasVidro) / 1_000_000).toFixed(3));
   const total = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorVidros = dados.materiais
@@ -214,6 +219,8 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
       ? "Porta de correr 2 folhas"
     : ehPc4f
       ? "Porta de correr 4 folhas"
+    : ehPortaGiro
+      ? "Porta de giro - 1 folha"
     : ehDuasFolhas
       ? "Porta de correr atrás do vão - 2 folhas"
       : projetoNormalizado.includes("pfv1f")
@@ -241,6 +248,24 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
           : dados.trinco !== "Sem trinco"
             ? "/desenhos/porta4fls-comtrincos.png"
             : "/desenhos/porta4fls-simples.png"
+    : ehPortaGiro
+      ? String(dados.trinco || "").toLowerCase().includes("dobradi")
+        ? dados.trilho === "Sem fechadura"
+          ? "/desenhos/portagirodob-1flssimples.png"
+          : dados.trilho === "1520TA" && dados.puxador === "Com puxador"
+            ? "/desenhos/portagirodob-1fls1520tacompleto.png"
+            : dados.trilho === "1520TA"
+              ? "/desenhos/portagirodob-1fls1520ta.png"
+              : dados.puxador === "Com puxador"
+                ? "/desenhos/portagirodob-1flscompleto.png"
+                : "/desenhos/portagirodob-1fls.png"
+        : dados.trilho === "1520TA" && dados.puxador === "Com puxador"
+          ? "/desenhos/portagiro-1fls1520tacompleto.png"
+          : dados.trilho === "1520TA"
+            ? "/desenhos/portagiro-1fls1520ta.png"
+            : dados.puxador === "Com puxador"
+              ? "/desenhos/portagiro-1flscompleto.png"
+              : "/desenhos/portagiro-1fls.png"
     : dados.puxador === "Com puxador"
       ? ehDuasFolhas
         ? "/desenhos/portaforavao-2flscompleto.png"
@@ -322,12 +347,12 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
               </View>
               {!ehJanelaCorrer ? (
                 <View style={styles.dataItem}>
-                  <Text style={styles.dataLabel}>Trilho</Text>
+                  <Text style={styles.dataLabel}>{ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                   <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
                 </View>
               ) : null}
               <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Cor do kit</Text>
+                <Text style={styles.dataLabel}>{ehPortaGiro ? "Cor do material" : "Cor do kit"}</Text>
                 <Text style={styles.dataValue}>{dados.corKit || "-"}</Text>
               </View>
               {!ehJanelaCorrer ? (
@@ -343,7 +368,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 </View>
               ) : null}
               <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Trinco</Text>
+                <Text style={styles.dataLabel}>{ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                 <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>
               </View>
             </View>
