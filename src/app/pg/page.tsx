@@ -186,6 +186,24 @@ const codigoFerragemCompativel = (codigoCadastro: string, codigoBase: string) =>
   return /^[a-z]{1,8}$/.test(sufixo);
 };
 
+
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
+  const descricao = normalizarTexto(descricaoOriginal);
+  const unidade = normalizarTexto(unidadeOriginal);
+
+  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
+  if (descricao.includes("tubo")) return 1;
+  if (
+    descricao.includes("kit") ||
+    descricao.includes("perfil") ||
+    descricao.includes("cantoneira") ||
+    descricao.includes("baguete") ||
+    descricao.includes("vt") ||
+    unidade.includes("barra")
+  ) return 2;
+
+  return 3;
+};
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pg:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -375,12 +393,23 @@ export default function PGPage() {
       .filter((item) => {
         const descricao = item.descricao.toLowerCase();
         const unidade = item.unidade.toLowerCase();
-        return unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("vt");
+        return unidade.includes("barra") || descricao.includes("kit") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("cantoneira") || descricao.includes("vt");
       })
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
   const valorFerragens = Math.max(0, totalMateriais - valorVidros - valorPerfis);
+  const materiaisOrdenados = useMemo(
+    () => materiais
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const ordemA = ordemMaterialDescricao(a.item.descricao, a.item.unidade);
+        const ordemB = ordemMaterialDescricao(b.item.descricao, b.item.unidade);
+        return ordemA === ordemB ? a.index - b.index : ordemA - ordemB;
+      })
+      .map(({ item }) => item),
+    [materiais]
+  );
   const clientesFiltrados = useMemo(() => {
     const termo = dados.cliente.trim().toLowerCase();
     if (!termo || dados.cliente === "Cliente Exemplo") return clientes.slice(0, 8);
@@ -849,12 +878,16 @@ export default function PGPage() {
   };
 
   const enviarParaCentralImpressao = () => {
-    const novoItem = montarItemCentral();
+    const itemCentral = montarItemCentral(centralItemId || undefined);
 
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = atual ? JSON.parse(atual) as CentralImpressaoProjetoItem[] : [];
-      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, novoItem]));
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
+        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+        : [...lista, itemCentral];
+
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
       if (dados.cliente) {
         window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, dados.cliente);
       }
@@ -862,7 +895,7 @@ export default function PGPage() {
       console.warn("Não foi possível enviar o projeto para a central de impressão:", erro);
     }
 
-    router.push("/central-impressao");
+    router.push(centralItemId ? returnTo : "/central-impressao");
   };
 
   const gerarNumeroOrcamento = async () => {
@@ -1469,7 +1502,7 @@ export default function PGPage() {
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
-                        {materiais.map((item) => (
+                        {materiaisOrdenados.map((item) => (
                           <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
                             <div className="px-3 py-2.5">
                               <input

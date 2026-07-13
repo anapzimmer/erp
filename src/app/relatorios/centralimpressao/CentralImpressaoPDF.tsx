@@ -3,6 +3,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 
 export type CentralImpressaoItem = {
   id: string;
@@ -21,6 +22,19 @@ export type CentralImpressaoItem = {
   puxador?: string;
   trinco?: string;
   valorTotal?: number;
+  materiais?: ProjetoIndividualMaterial[];
+};
+
+export type CentralOtimizacaoPerfil = {
+  codigo: string;
+  descricao: string;
+  comprimentoBarra: number;
+  barras: number[][];
+  totalCortes: number;
+  barrasOriginais?: number;
+  valorUnitario?: number;
+  valorOriginal?: number;
+  valorOtimizado?: number;
 };
 
 type CentralImpressaoPDFProps = {
@@ -30,6 +44,7 @@ type CentralImpressaoPDFProps = {
   numeroOrcamento?: string;
   cliente?: string;
   obra?: string;
+  otimizacaoPerfis?: CentralOtimizacaoPerfil[];
 };
 
 const styles = StyleSheet.create({
@@ -111,6 +126,17 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
   totalValue: { fontSize: 10, color: "#0f2742", fontWeight: "normal" },
   totalValueStrong: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
+  optSection: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    borderRadius: 8,
+    padding: 8,
+  },
+  optTitle: { fontSize: 10, fontWeight: "bold", color: "#0f2742", marginBottom: 6 },
+  optCard: { borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 6, marginTop: 6 },
+  optName: { fontSize: 8, color: "#0f2742", fontWeight: "bold" },
+  optLine: { fontSize: 7, color: "#475569", marginTop: 3 },
   footer: {
     position: "absolute",
     left: 24,
@@ -142,12 +168,16 @@ export function CentralImpressaoPDF({
   numeroOrcamento,
   cliente,
   obra,
+  otimizacaoPerfis = [],
 }: CentralImpressaoPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
   const quantidadeVaos = itens.length;
   const quantidadePecas = itens.reduce((total, item) => total + (Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto)), 0);
   const areaTotal = itens.reduce((total, item) => total + ((Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000), 0);
   const valorTotalOrcamento = itens.reduce((total, item) => total + Number(item.valorTotal || 0), 0);
+  const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
+  const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
+  const economiaPerfis = Math.max(0, valorPerfisOriginais - valorPerfisOtimizados);
 
   return (
     <Document>
@@ -264,6 +294,28 @@ export function CentralImpressaoPDF({
             <Text style={styles.totalValueStrong}>{moeda(valorTotalOrcamento)}</Text>
           </View>
         </View>
+
+        {otimizacaoPerfis.length > 0 ? (
+          <View style={styles.optSection} wrap={false}>
+            <Text style={styles.optTitle}>Relação de materiais otimizada</Text>
+            <Text style={styles.optLine}>Economia estimada em perfis: {moeda(economiaPerfis)}</Text>
+            {otimizacaoPerfis.map((perfil) => (
+              <View key={`${perfil.codigo}-${perfil.descricao}`} style={styles.optCard}>
+                <Text style={styles.optName}>
+                  {perfil.descricao} - {perfil.barrasOriginais || 0} para {perfil.barras.length} barra(s) - {moeda(Number(perfil.valorOtimizado || 0))}
+                </Text>
+                {perfil.barras.map((barra, index) => {
+                  const usado = barra.reduce((soma, corte) => soma + corte, 0);
+                  return (
+                    <Text key={`${perfil.codigo}-${index}`} style={styles.optLine}>
+                      Barra {index + 1}: {barra.join(" + ")} = {usado} mm
+                    </Text>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <Text style={styles.footer} fixed>
           Orçamentos Projetos gerado pelo Glass Code

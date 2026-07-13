@@ -9,6 +9,9 @@ export type ProjetoIndividualMaterial = {
   unidade: string;
   descricao: string;
   valorUnitario: number;
+  codigoPerfil?: string;
+  comprimentoBarra?: number;
+  cortes?: number[];
 };
 
 export type ProjetoIndividualDados = {
@@ -48,6 +51,30 @@ const quantidade = (valor: number, unidade: string) => {
   }
 
   return numero(valor);
+};
+
+const normalizarTexto = (texto?: string | number | null) =>
+  String(texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
+  const descricao = normalizarTexto(descricaoOriginal);
+  const unidade = normalizarTexto(unidadeOriginal);
+
+  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
+  if (descricao.includes("tubo")) return 1;
+  if (
+    descricao.includes("kit") ||
+    descricao.includes("perfil") ||
+    descricao.includes("cantoneira") ||
+    descricao.includes("baguete") ||
+    descricao.includes("vt") ||
+    unidade.includes("barra")
+  ) return 2;
+
+  return 3;
 };
 
 const arredondar5cm = (valorMm: number) => Math.ceil(Number(valorMm || 0) / 50) * 50;
@@ -206,10 +233,18 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
     .filter((item) => {
       const descricao = item.descricao.toLowerCase();
       const unidade = item.unidade.toLowerCase();
-      return descricao.includes("kit") || unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("vt");
+      return descricao.includes("kit") || unidade.includes("barra") || descricao.includes("perfil") || descricao.includes("tubo") || descricao.includes("cantoneira") || descricao.includes("vt");
     })
     .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorFerragens = Math.max(0, total - valorVidros - valorKitPerfis);
+  const materiaisOrdenados = dados.materiais
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const ordemA = ordemMaterialDescricao(a.item.descricao, a.item.unidade);
+      const ordemB = ordemMaterialDescricao(b.item.descricao, b.item.unidade);
+      return ordemA === ordemB ? a.index - b.index : ordemA - ordemB;
+    })
+    .map(({ item }) => item);
   const totalVidros = quantidadePecasVidro;
   const nomeProjeto = ehJanelaCorrer4Folhas
     ? "Janela de correr 4 folhas"
@@ -385,7 +420,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
             <Text style={[styles.th, styles.colValor]}>Valor unit.</Text>
             <Text style={[styles.th, styles.colValor]}>Valor total</Text>
           </View>
-          {dados.materiais.map((item) => (
+          {materiaisOrdenados.map((item) => (
             <View key={item.id} style={styles.tr} wrap={false}>
               <Text style={[styles.td, styles.colQtd]}>{quantidade(item.qtd, item.unidade)}</Text>
               <Text style={[styles.td, styles.colDesc]}>{item.descricao}</Text>

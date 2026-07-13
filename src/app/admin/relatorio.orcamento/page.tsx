@@ -17,7 +17,7 @@ import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
 import { ProjetoIndividualPDF, type ProjetoIndividualDados } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
-import { CentralImpressaoPDF, type CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF"
+import { CentralImpressaoPDF, type CentralImpressaoItem, type CentralOtimizacaoPerfil } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
 
@@ -84,6 +84,12 @@ type OrcamentoProjetosPersistido = {
         altura?: number;
         corPerfil?: string;
     }>;
+    projetosOtimizados?: Array<CentralImpressaoItem & {
+        largura?: number;
+        altura?: number;
+        corPerfil?: string;
+    }>;
+    otimizacaoPerfis?: CentralOtimizacaoPerfil[];
 };
 
 type PerfilCadastro = {
@@ -703,11 +709,17 @@ export default function RelatorioOrcamento() {
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
                                                                     const ehMaoAmiga = tipoItem === "mao_amiga";
                                                                     const ehPfv1fKit = tipoItem === "pfv1f_kit";
+                                                                    const ehPfv1fBarra = tipoItem === "pfv1f_barra";
                                                                     const ehPfv2fKit = tipoItem === "pfv2f_kit";
+                                                                    const ehPfv2fBarra = tipoItem === "pfv2f_barra";
                                                                     const ehPc2fKit = tipoItem === "pc2f_kit";
+                                                                    const ehPc2fBarra = tipoItem === "pc2f_barra";
                                                                     const ehPc4fKit = tipoItem === "pc4f_kit";
+                                                                    const ehPc4fBarra = tipoItem === "pc4f_barra";
                                                                     const ehJc4fKit = tipoItem === "jc4f_kit";
+                                                                    const ehJc4fBarra = tipoItem === "jc4f_barra";
                                                                     const ehJc2fKit = tipoItem === "jc2f_kit";
+                                                                    const ehJc2fBarra = tipoItem === "jc2f_barra";
                                                                     const ehPg1f = tipoItem === "pg_1f";
                                                                     const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
@@ -719,16 +731,28 @@ export default function RelatorioOrcamento() {
                                                                         ? `/central-impressao?edit=${orc.id}`
                                                                         : ehPfv1fKit
                                                                         ? `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPfv1fBarra
+                                                                        ? `/pfv1f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPfv2fKit
                                                                         ? `/pfv2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPfv2fBarra
+                                                                        ? `/pfv2f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPc2fKit
                                                                         ? `/pc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc2fBarra
+                                                                        ? `/pc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPc4fKit
                                                                         ? `/pc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc4fBarra
+                                                                        ? `/pc4f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehJc4fKit
                                                                         ? `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc4fBarra
+                                                                        ? `/jc4f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehJc2fKit
                                                                         ? `/jc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc2fBarra
+                                                                        ? `/jc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPg1f
                                                                         ? `/pg?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
@@ -912,8 +936,11 @@ export default function RelatorioOrcamento() {
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
                                         if (tipo === "orcamento_projetos") {
                                             const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
-                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(dadosProjetos.projetos)
-                                                ? dadosProjetos.projetos.map((item, index) => ({
+                                            const projetosOrigem = Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0
+                                                ? dadosProjetos.projetosOtimizados
+                                                : dadosProjetos.projetos;
+                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(projetosOrigem)
+                                                ? projetosOrigem.map((item, index) => ({
                                                     id: String(item.id || index),
                                                     numero: String(item.numero || orcamentoParaVisualizar?.numero_formatado || ""),
                                                     projeto: item.projeto === "PFV1F - KIT"
@@ -942,7 +969,11 @@ export default function RelatorioOrcamento() {
                                                     puxador: item.puxador,
                                                     trinco: item.trinco,
                                                     valorTotal: Number(item.valorTotal || 0),
+                                                    materiais: item.materiais,
                                                 }))
+                                                : [];
+                                            const otimizacaoPerfis = Array.isArray(dadosProjetos.otimizacaoPerfis)
+                                                ? dadosProjetos.otimizacaoPerfis as CentralOtimizacaoPerfil[]
                                                 : [];
 
                                             return (
@@ -953,11 +984,12 @@ export default function RelatorioOrcamento() {
                                                     numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
                                                     cliente={orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || "")}
                                                     obra={orcamentoParaVisualizar?.obra_referencia || String(dadosProjetos.obra || "")}
+                                                    otimizacaoPerfis={otimizacaoPerfis}
                                                 />
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv2f_kit" || tipo === "pc2f_kit" || tipo === "pc4f_kit" || tipo === "jc4f_kit" || tipo === "jc2f_kit" || tipo === "pg_1f") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -969,7 +1001,7 @@ export default function RelatorioOrcamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),

@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
 import { CentralImpressaoPDF, type CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
+import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import { supabase } from "@/lib/supabaseClient";
 
 type ProjetoComposicao = CentralImpressaoItem & {
@@ -21,6 +22,19 @@ type ProjetoComposicao = CentralImpressaoItem & {
   tamanhoPuxador?: string;
   trinco?: string;
   origemRota?: string;
+  materiais?: ProjetoIndividualMaterial[];
+};
+
+export type OtimizacaoPerfil = {
+  codigo: string;
+  descricao: string;
+  comprimentoBarra: number;
+  barras: number[][];
+  totalCortes: number;
+  barrasOriginais: number;
+  valorUnitario: number;
+  valorOriginal: number;
+  valorOtimizado: number;
 };
 
 const CENTRAL_KEY = "glasscode:central-impressao:composicao";
@@ -28,6 +42,8 @@ const CENTRAL_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 const CENTRAL_OBRA_KEY = "glasscode:central-impressao:obra";
 const CENTRAL_NUMERO_KEY = "glasscode:central-impressao:numero";
 const CENTRAL_ORCAMENTO_ID_KEY = "glasscode:central-impressao:orcamento-id";
+const CENTRAL_USAR_OTIMIZACAO_KEY = "glasscode:central-impressao:usar-otimizacao";
+const CENTRAL_IMPRIMIR_OTIMIZACAO_KEY = "glasscode:central-impressao:imprimir-otimizacao";
 
 const moeda = (valor: number) =>
   Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -82,6 +98,88 @@ const carregarLista = (): ProjetoComposicao[] => {
   }
 };
 
+const extrairCodigoPerfil = (material: ProjetoIndividualMaterial) =>
+  String(material.codigoPerfil || material.descricao.split(" - ")[0] || "").trim().toUpperCase();
+
+const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
+  item.materiais?.reduce((total, material) => {
+    if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
+      return total;
+    }
+    return total + (Number(material.qtd || 0) * Number(material.valorUnitario || 0));
+  }, 0) || 0;
+
+const otimizarCortes = (cortesOriginais: number[], comprimentoBarra: number) => {
+  const cortes = cortesOriginais
+    .map((corte) => Math.ceil(Number(corte || 0)))
+    .filter((corte) => corte > 0)
+    .sort((a, b) => b - a);
+
+  const barras: number[][] = [];
+
+  cortes.forEach((corte) => {
+    let melhorIndice = -1;
+    let menorSobra = Number.POSITIVE_INFINITY;
+
+    barras.forEach((barra, index) => {
+      const usado = barra.reduce((soma, valor) => soma + valor, 0);
+      const sobra = comprimentoBarra - usado - corte;
+      if (sobra >= 0 && sobra < menorSobra) {
+        melhorIndice = index;
+        menorSobra = sobra;
+      }
+    });
+
+    if (melhorIndice >= 0) {
+      barras[melhorIndice].push(corte);
+    } else {
+      barras.push([corte]);
+    }
+  });
+
+  return barras;
+};
+
+const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[] => {
+  const grupos = new Map<string, { codigo: string; descricao: string; comprimentoBarra: number; cortes: number[]; barrasOriginais: number; valorUnitario: number }>();
+
+  itens.forEach((item) => {
+    item.materiais?.forEach((material) => {
+      if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
+        return;
+      }
+
+      const codigo = extrairCodigoPerfil(material);
+      const descricao = String(material.descricao || codigo).toUpperCase();
+      const comprimentoBarra = Number(material.comprimentoBarra || 6000);
+      const chave = `${codigo}|${descricao}|${comprimentoBarra}`;
+      const grupo = grupos.get(chave) || { codigo, descricao, comprimentoBarra, cortes: [], barrasOriginais: 0, valorUnitario: Number(material.valorUnitario || 0) };
+
+      grupo.cortes.push(...material.cortes.map((corte) => Number(corte || 0)));
+      grupo.barrasOriginais += Number(material.qtd || 0);
+      if (!grupo.valorUnitario && material.valorUnitario) grupo.valorUnitario = Number(material.valorUnitario || 0);
+      grupos.set(chave, grupo);
+    });
+  });
+
+  return Array.from(grupos.values())
+    .map((grupo) => {
+      const barras = otimizarCortes(grupo.cortes, grupo.comprimentoBarra);
+      return {
+        codigo: grupo.codigo,
+        descricao: grupo.descricao,
+        comprimentoBarra: grupo.comprimentoBarra,
+        barras,
+        totalCortes: grupo.cortes.length,
+        barrasOriginais: grupo.barrasOriginais,
+        valorUnitario: grupo.valorUnitario,
+        valorOriginal: grupo.barrasOriginais * grupo.valorUnitario,
+        valorOtimizado: barras.length * grupo.valorUnitario,
+      };
+    })
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }));
+};
+
 export default function CentralImpressaoPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,6 +193,8 @@ export default function CentralImpressaoPage() {
   const [rascunhoCarregado, setRascunhoCarregado] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [usarOtimizacao, setUsarOtimizacao] = useState(false);
+  const [imprimirOtimizacao, setImprimirOtimizacao] = useState(false);
 
   useEffect(() => {
     const carregar = async () => {
@@ -107,6 +207,8 @@ export default function CentralImpressaoPage() {
           setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo orçamento");
           setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || listaRascunho[0]?.cliente || "");
           setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
+          setUsarOtimizacao(window.localStorage.getItem(CENTRAL_USAR_OTIMIZACAO_KEY) === "1");
+          setImprimirOtimizacao(window.localStorage.getItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY) === "1");
           setRascunhoCarregado(true);
           return;
         }
@@ -119,13 +221,15 @@ export default function CentralImpressaoPage() {
 
         if (!error && data) {
           const itensSalvos = data.itens && !Array.isArray(data.itens) && typeof data.itens === "object"
-            ? data.itens as { projetos?: ProjetoComposicao[]; cliente?: string; obra?: string }
+            ? data.itens as { projetos?: ProjetoComposicao[]; cliente?: string; obra?: string; otimizacaoPerfis?: OtimizacaoPerfil[]; resumo?: { otimizacaoAplicada?: boolean } }
             : null;
 
           setItens(Array.isArray(itensSalvos?.projetos) ? itensSalvos.projetos : []);
           setNumeroOrcamento(data.numero_formatado || "Novo orçamento");
           setCliente(data.cliente_nome || itensSalvos?.cliente || "");
           setObra(data.obra_referencia || itensSalvos?.obra || "");
+          setUsarOtimizacao(Boolean(itensSalvos?.resumo?.otimizacaoAplicada));
+          setImprimirOtimizacao(Array.isArray(itensSalvos?.otimizacaoPerfis) && itensSalvos.otimizacaoPerfis.length > 0);
           window.localStorage.setItem(CENTRAL_ORCAMENTO_ID_KEY, editId);
           setRascunhoCarregado(true);
           return;
@@ -137,6 +241,8 @@ export default function CentralImpressaoPage() {
       setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo orçamento");
       setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || lista[0]?.cliente || "");
       setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
+      setUsarOtimizacao(window.localStorage.getItem(CENTRAL_USAR_OTIMIZACAO_KEY) === "1");
+      setImprimirOtimizacao(window.localStorage.getItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY) === "1");
       setRascunhoCarregado(true);
     };
 
@@ -149,10 +255,64 @@ export default function CentralImpressaoPage() {
     window.localStorage.setItem(CENTRAL_NUMERO_KEY, numeroOrcamento);
     window.localStorage.setItem(CENTRAL_CLIENTE_KEY, cliente);
     window.localStorage.setItem(CENTRAL_OBRA_KEY, obra);
+    window.localStorage.setItem(CENTRAL_USAR_OTIMIZACAO_KEY, usarOtimizacao ? "1" : "0");
+    window.localStorage.setItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY, imprimirOtimizacao ? "1" : "0");
     if (editId) {
       window.localStorage.setItem(CENTRAL_ORCAMENTO_ID_KEY, editId);
     }
-  }, [cliente, editId, itens, numeroOrcamento, obra, rascunhoCarregado]);
+  }, [cliente, editId, imprimirOtimizacao, itens, numeroOrcamento, obra, rascunhoCarregado, usarOtimizacao]);
+
+  const otimizacaoPerfis = useMemo(() => calcularOtimizacaoPerfis(itens), [itens]);
+  const otimizacaoAplicada = usarOtimizacao && otimizacaoPerfis.length > 0;
+  const otimizacaoPerfisPdf = otimizacaoAplicada && imprimirOtimizacao ? otimizacaoPerfis : [];
+
+  const totais = useMemo(() => {
+    const base = itens.reduce(
+      (acc, item) => {
+        acc.projetos += 1;
+        acc.pecas += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto);
+        acc.area += (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+        acc.valorOriginal += Number(item.valorTotal || 0);
+        return acc;
+      },
+      { projetos: 0, pecas: 0, area: 0, valorOriginal: 0 }
+    );
+
+    const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
+    const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
+    const economiaPerfis = Math.max(0, valorPerfisOriginais - valorPerfisOtimizados);
+    const valor = otimizacaoAplicada
+      ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
+      : base.valorOriginal;
+
+    return {
+      ...base,
+      valor,
+      valorPerfisOriginais,
+      valorPerfisOtimizados,
+      economiaPerfis,
+      otimizacaoAplicada,
+    };
+  }, [itens, otimizacaoAplicada, otimizacaoPerfis]);
+
+  const valoresRateadosPorItem = useMemo(() => {
+    const mapa = new Map<string, number>();
+    const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
+    const economiaPerfis = Math.max(0, valorPerfisOriginais - otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0));
+
+    itens.forEach((item) => {
+      const valorOriginal = Number(item.valorTotal || 0);
+      if (!otimizacaoAplicada || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
+        mapa.set(item.id, valorOriginal);
+        return;
+      }
+
+      const participacao = calcularValorPerfisOriginaisItem(item) / valorPerfisOriginais;
+      mapa.set(item.id, Math.max(0, valorOriginal - (economiaPerfis * participacao)));
+    });
+
+    return mapa;
+  }, [itens, otimizacaoAplicada, otimizacaoPerfis]);
 
   const itensPdf = useMemo<CentralImpressaoItem[]>(
     () => itens.map((item) => ({
@@ -171,23 +331,11 @@ export default function CentralImpressaoPage() {
       trilho: item.trilho,
       puxador: formatarPuxador(item.puxador, item.tamanhoPuxador),
       trinco: item.trinco,
-      valorTotal: Number(item.valorTotal || 0),
+      valorTotal: valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
+      materiais: item.materiais,
     })),
-    [cliente, itens]
+    [cliente, itens, valoresRateadosPorItem]
   );
-
-  const totais = useMemo(() => {
-    return itens.reduce(
-      (acc, item) => {
-        acc.projetos += 1;
-        acc.pecas += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto);
-        acc.area += (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
-        acc.valor += Number(item.valorTotal || 0);
-        return acc;
-      },
-      { projetos: 0, pecas: 0, area: 0, valor: 0 }
-    );
-  }, [itens]);
 
   const atualizarItem = <K extends keyof ProjetoComposicao>(id: string, campo: K, valor: ProjetoComposicao[K]) => {
     setItens((lista) =>
@@ -242,6 +390,10 @@ export default function CentralImpressaoPage() {
     window.localStorage.removeItem(CENTRAL_CLIENTE_KEY);
     window.localStorage.removeItem(CENTRAL_OBRA_KEY);
     window.localStorage.removeItem(CENTRAL_ORCAMENTO_ID_KEY);
+    window.localStorage.removeItem(CENTRAL_USAR_OTIMIZACAO_KEY);
+    window.localStorage.removeItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY);
+    setUsarOtimizacao(false);
+    setImprimirOtimizacao(false);
   };
 
   const gerarNumeroOrcamento = async () => {
@@ -289,7 +441,9 @@ export default function CentralImpressaoPage() {
           cliente,
           obra,
           projetos: itens,
+          projetosOtimizados: otimizacaoAplicada ? itensPdf : undefined,
           resumo: totais,
+          otimizacaoPerfis: otimizacaoPerfisPdf,
         },
         valor_total: Number(totais.valor || 0),
         metragem_total: 0,
@@ -394,7 +548,7 @@ export default function CentralImpressaoPage() {
               <div className="flex flex-wrap gap-2">
                 {itens.length > 0 ? (
                   <PDFDownloadLink
-                    document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} />}
+                    document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
                     fileName={`composicao_projetos_${new Date().toISOString().slice(0, 10)}.pdf`}
                     className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white transition hover:brightness-95"
                     style={{ backgroundColor: theme.menuBackgroundColor }}
@@ -553,10 +707,16 @@ export default function CentralImpressaoPage() {
                           </Field>
                           <Field label="Valor do projeto">
                             <input
-                              value={numeroDecimal(item.valorTotal || 0)}
+                              value={numeroDecimal(valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
                               onChange={(e) => atualizarItem(item.id, "valorTotal", parseNumero(e.target.value))}
-                              className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none"
+                              readOnly={otimizacaoAplicada}
+                              className={`w-full bg-transparent text-sm font-bold text-slate-700 outline-none ${otimizacaoAplicada ? "cursor-default" : ""}`}
                             />
+                            {otimizacaoAplicada ? (
+                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                                Valor com otimização rateada
+                              </p>
+                            ) : null}
                           </Field>
                         </div>
                       </div>
@@ -578,6 +738,76 @@ export default function CentralImpressaoPage() {
                 <TotalResumo label="M² total" value={`${numeroDecimal(totais.area)} m²`} />
                 <TotalResumo label="Valor total do orçamento" value={moeda(totais.valor)} strong />
               </div>
+            ) : null}
+
+            {otimizacaoPerfis.length > 0 ? (
+              <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-black tracking-tight text-[#0f2742]">Relação de materiais otimizada</h2>
+                    <p className="text-sm text-slate-500">Cortes agrupados por perfil para aproveitamento em barras. Marque para gravar e imprimir essa otimização no orçamento.</p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:items-end">
+                    <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={usarOtimizacao}
+                        onChange={(event) => {
+                          setUsarOtimizacao(event.target.checked);
+                          if (!event.target.checked) setImprimirOtimizacao(false);
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      Aplicar otimização no valor
+                    </label>
+                    <label className={`inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black shadow-sm ${usarOtimizacao ? "cursor-pointer text-[#0f2742]" : "cursor-not-allowed text-slate-400"}`}>
+                      <input
+                        type="checkbox"
+                        checked={usarOtimizacao && imprimirOtimizacao}
+                        onChange={(event) => setImprimirOtimizacao(event.target.checked)}
+                        disabled={!usarOtimizacao}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      Sair relação otimizada no PDF
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <TotalResumo label="Barras sem otimização" value={String(otimizacaoPerfis.reduce((total, perfil) => total + perfil.barrasOriginais, 0))} />
+                  <TotalResumo label="Barras otimizadas" value={String(otimizacaoPerfis.reduce((total, perfil) => total + perfil.barras.length, 0))} />
+                  <TotalResumo label="Economia estimada" value={moeda(totais.economiaPerfis)} strong={otimizacaoAplicada} />
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {otimizacaoPerfis.map((perfil) => (
+                    <article key={`${perfil.codigo}-${perfil.descricao}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-400">{perfil.codigo}</p>
+                          <h3 className="mt-1 text-sm font-black text-[#0f2742]">{perfil.descricao}</h3>
+                        </div>
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                          {perfil.barrasOriginais} → {perfil.barras.length} barras
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold text-slate-500">
+                        Valor: {moeda(perfil.valorOriginal)} → {moeda(perfil.valorOtimizado)}
+                      </p>
+                      <div className="mt-3 space-y-1.5">
+                        {perfil.barras.map((barra, index) => {
+                          const usado = barra.reduce((soma, corte) => soma + corte, 0);
+                          return (
+                            <p key={`${perfil.codigo}-${index}`} className="text-xs font-semibold text-slate-600">
+                              Barra {index + 1}: {barra.join(" + ")} = {usado} mm
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
             ) : null}
           </section>
         </main>
