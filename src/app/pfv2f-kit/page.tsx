@@ -915,7 +915,7 @@ export default function PFV2FKitPage() {
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Porta de correr atrÃ¡s do vÃ£o - 2 folhas",
+      projeto: "Porta de correr atrás do vão - 2 folhas",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
