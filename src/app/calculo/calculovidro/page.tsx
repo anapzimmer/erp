@@ -663,7 +663,7 @@ export default function RelatorioOrçamento() {
 
   const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
     try {
-      console.log("Buscando orçamento ID:", id);
+      console.log("Buscando Orçamento ID:", id);
       const { data: orcamento, error } = await supabase
         .from('orcamentos')
         .select('*')
@@ -690,7 +690,7 @@ export default function RelatorioOrçamento() {
         // Não queremos sair da página, queremos editar nela.
       }
     } catch (err) {
-      console.error("Erro ao carregar orçamento para edição:", err);
+      console.error("Erro ao carregar Orçamento para edição:", err);
     }
   }, [listaClientes]);
 
@@ -1340,7 +1340,7 @@ useEffect(() => {
   const handleSalvarOrcamento = async () => {
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o orçamento.");
+      setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o Orçamento.");
       setMostrarModalAviso(true);
       return;
     }
@@ -1417,7 +1417,7 @@ useEffect(() => {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro completo:", error);
       setModalAvisoTitulo("Erro ao salvar");
-      setModalAvisoMensagem("Não foi possível salvar o orçamento. " + message);
+      setModalAvisoMensagem("Não foi possível salvar o Orçamento. " + message);
       setMostrarModalAviso(true);
     }
   };
@@ -2364,7 +2364,7 @@ useEffect(() => {
                       <div className="p-4 bg-gray-50 rounded-full">
                         <Calculator size={40} className="opacity-20" />
                       </div>
-                      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento</p>
+                      <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento</p>
                     </div>
                   )}
                 </div>
@@ -2529,7 +2529,7 @@ useEffect(() => {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ClipboardList size={28} className="text-orange-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar orçamento?</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar Orçamento?</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Isso irá remover **todos os {itens.length} itens** da sua lista atual. Essa ação não pode ser desfeita.
                 </p>

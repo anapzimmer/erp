@@ -99,7 +99,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
       <View style={[styles.header, { marginRight: 10 }, { borderBottomColor: themeColor }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento de Espelhos</Text>
-          {/* Número do orçamento substitui nomeEmpresa */}
+          {/* Número do Orçamento substitui nomeEmpresa */}
           {numeroOrcamento ? (
             <Text style={[styles.subtitulo, { color: themeColor, fontWeight: "bold", marginTop: 4 }]}>
               Nº Orçamento: {numeroOrcamento}

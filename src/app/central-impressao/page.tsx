@@ -204,7 +204,7 @@ export default function CentralImpressaoPage() {
 
         if (idRascunho === editId && listaRascunho.length > 0) {
           setItens(listaRascunho);
-          setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo orçamento");
+          setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo Orçamento");
           setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || listaRascunho[0]?.cliente || "");
           setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
           setUsarOtimizacao(window.localStorage.getItem(CENTRAL_USAR_OTIMIZACAO_KEY) === "1");
@@ -225,7 +225,7 @@ export default function CentralImpressaoPage() {
             : null;
 
           setItens(Array.isArray(itensSalvos?.projetos) ? itensSalvos.projetos : []);
-          setNumeroOrcamento(data.numero_formatado || "Novo orçamento");
+          setNumeroOrcamento(data.numero_formatado || "Novo Orçamento");
           setCliente(data.cliente_nome || itensSalvos?.cliente || "");
           setObra(data.obra_referencia || itensSalvos?.obra || "");
           setUsarOtimizacao(Boolean(itensSalvos?.resumo?.otimizacaoAplicada));
@@ -238,7 +238,7 @@ export default function CentralImpressaoPage() {
 
       const lista = carregarLista();
       setItens(lista);
-      setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo orçamento");
+      setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo Orçamento");
       setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || lista[0]?.cliente || "");
       setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
       setUsarOtimizacao(window.localStorage.getItem(CENTRAL_USAR_OTIMIZACAO_KEY) === "1");
@@ -418,7 +418,7 @@ export default function CentralImpressaoPage() {
 
   const salvarOrcamento = async () => {
     if (!empresaId) {
-      setMensagem("Empresa não encontrada para salvar o orçamento.");
+      setMensagem("Empresa não encontrada para salvar o Orçamento.");
       return;
     }
     if (itens.length === 0) {
@@ -429,7 +429,7 @@ export default function CentralImpressaoPage() {
     try {
       setSalvando(true);
       setMensagem("");
-      const numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo orçamento"
+      const numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
         ? numeroOrcamento
         : await gerarNumeroOrcamento();
       const payload = {
@@ -462,7 +462,7 @@ export default function CentralImpressaoPage() {
       router.push(`/admin/relatorio.orcamento?filtro=${encodeURIComponent(numeroFinal)}`);
     } catch (erro) {
       const texto = erro instanceof Error ? erro.message : "Erro desconhecido";
-      setMensagem(`Não foi possível salvar o orçamento. ${texto}`);
+      setMensagem(`Não foi possível salvar o Orçamento. ${texto}`);
     } finally {
       setSalvando(false);
     }
@@ -499,13 +499,13 @@ export default function CentralImpressaoPage() {
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: theme.menuBackgroundColor }}>
-                  Composição do orçamento
+                  Composição do Orçamento
                 </p>
                 <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl" style={{ color: theme.contentTextLightBg }}>
                   Projetos da mesma obra
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 opacity-70" style={{ color: theme.contentTextLightBg }}>
-                  Cada projeto enviado pelos cálculos entra aqui como um item do mesmo cliente, pronto para revisar, imprimir e depois salvar como orçamento único.
+                  Cada projeto enviado pelos cálculos entra aqui como um item do mesmo cliente, pronto para revisar, imprimir e depois salvar como Orçamento único.
                 </p>
               </div>
 
@@ -520,11 +520,11 @@ export default function CentralImpressaoPage() {
 
           <section className="mt-6 rounded-3xl border bg-white p-5 shadow-sm" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
             <div className="grid gap-4 xl:grid-cols-[0.75fr_1fr_1fr_auto] xl:items-end">
-              <Field label="Nº orçamento">
+              <Field label="Nº Orçamento">
                 <input
                   value={numeroOrcamento}
                   onChange={(e) => setNumeroOrcamento(e.target.value)}
-                  placeholder="Novo orçamento"
+                  placeholder="Novo Orçamento"
                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                 />
               </Field>
@@ -532,7 +532,7 @@ export default function CentralImpressaoPage() {
                 <input
                   value={cliente}
                   onChange={(e) => setCliente(e.target.value)}
-                  placeholder="Cliente do orçamento"
+                  placeholder="Cliente do Orçamento"
                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                 />
               </Field>
@@ -571,10 +571,10 @@ export default function CentralImpressaoPage() {
                   onClick={salvarOrcamento}
                   disabled={salvando}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-500"
-                  title="Salvar esta composição como orçamento único."
+                  title="Salvar esta composição como Orçamento único."
                 >
                   <Save size={16} />
-                  {salvando ? "Salvando..." : "Salvar orçamento"}
+                  {salvando ? "Salvando..." : "Salvar Orçamento"}
                 </button>
                 <button
                   type="button"
@@ -736,7 +736,7 @@ export default function CentralImpressaoPage() {
                 <TotalResumo label="Quantidade de vão" value={String(totais.projetos)} />
                 <TotalResumo label="Quantidade de peças" value={String(totais.pecas)} />
                 <TotalResumo label="M² total" value={`${numeroDecimal(totais.area)} m²`} />
-                <TotalResumo label="Valor total do orçamento" value={moeda(totais.valor)} strong />
+                <TotalResumo label="Valor total do Orçamento" value={moeda(totais.valor)} strong />
               </div>
             ) : null}
 
@@ -745,7 +745,7 @@ export default function CentralImpressaoPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-lg font-black tracking-tight text-[#0f2742]">Relação de materiais otimizada</h2>
-                    <p className="text-sm text-slate-500">Cortes agrupados por perfil para aproveitamento em barras. Marque para gravar e imprimir essa otimização no orçamento.</p>
+                    <p className="text-sm text-slate-500">Cortes agrupados por perfil para aproveitamento em barras. Marque para gravar e imprimir essa otimização no Orçamento.</p>
                   </div>
                   <div className="flex flex-col gap-2 sm:items-end">
                     <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] shadow-sm">

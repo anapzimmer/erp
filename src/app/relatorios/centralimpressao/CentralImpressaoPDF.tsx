@@ -199,8 +199,8 @@ export function CentralImpressaoPDF({
 
         <View style={styles.topInfo} fixed>
           <View style={styles.topInfoBox}>
-            <Text style={styles.topLabel}>Nº orçamento</Text>
-            <Text style={styles.topValue}>{numeroOrcamento || "Novo orçamento"}</Text>
+            <Text style={styles.topLabel}>Nº Orçamento</Text>
+            <Text style={styles.topValue}>{numeroOrcamento || "Novo Orçamento"}</Text>
           </View>
           <View style={styles.topInfoBox}>
             <Text style={styles.topLabel}>Cliente</Text>
@@ -290,7 +290,7 @@ export function CentralImpressaoPDF({
             </Text>
           </View>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Valor total do orçamento</Text>
+            <Text style={styles.totalLabel}>Valor total do Orçamento</Text>
             <Text style={styles.totalValueStrong}>{moeda(valorTotalOrcamento)}</Text>
           </View>
         </View>

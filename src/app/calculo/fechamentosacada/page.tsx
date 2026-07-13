@@ -687,7 +687,7 @@ export default function CalculoFechamentoSacadaPage() {
       const clienteEncontrado = listaClientes.find((c) => c.nome === orc.cliente_nome);
       if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
     } catch (err) {
-      console.error("Erro ao carregar orçamento para edição:", err);
+      console.error("Erro ao carregar Orçamento para edição:", err);
     }
   }, [listaClientes]);
 

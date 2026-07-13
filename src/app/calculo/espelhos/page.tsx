@@ -145,7 +145,7 @@ export default function CalculoEspelhosPage() {
   const [showModalAviso, setShowModalAviso] = useState(false);
   const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
-    "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao orçamento."
+    "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento."
   );
   const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
@@ -185,7 +185,7 @@ export default function CalculoEspelhosPage() {
         setListaItens(orcamento.itens);
       }
     } catch (error) {
-      console.error("Erro ao carregar orçamento de espelho para edição:", error);
+      console.error("Erro ao carregar Orçamento de espelho para edição:", error);
     }
   };
 
@@ -527,7 +527,7 @@ export default function CalculoEspelhosPage() {
     // Validação
     if (!nomeCliente || listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao orçamento.");
+      setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento.");
       setShowModalAviso(true);
       return; // Interrompe a execução
     }
@@ -551,7 +551,7 @@ export default function CalculoEspelhosPage() {
       }
 
       if (!empresaIdFinal) {
-        throw new Error("Empresa não identificada para salvar orçamento.");
+        throw new Error("Empresa não identificada para salvar Orçamento.");
       }
 
       let numero = "";
@@ -621,9 +621,9 @@ export default function CalculoEspelhosPage() {
       setShowModalSucesso(true);
 
     } catch (error: any) {
-      console.error("Erro ao salvar orçamento de espelhos:", error);
+      console.error("Erro ao salvar Orçamento de espelhos:", error);
       setModalAvisoTitulo("Erro ao salvar");
-      setModalAvisoMensagem("Não foi possível salvar o orçamento. " + (error?.message || "Falha inesperada."));
+      setModalAvisoMensagem("Não foi possível salvar o Orçamento. " + (error?.message || "Falha inesperada."));
       setShowModalAviso(true);
     }
   };
@@ -981,7 +981,7 @@ export default function CalculoEspelhosPage() {
                     // Estado Vazio
                     <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                       <ClipboardList size={28} className="mb-3" />
-                      <p className="text-sm font-medium">Nenhum item adicionado ao orçamento.</p>
+                      <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento.</p>
                       <p className="text-xs mt-1">Comece adicionando as dimensões e o tipo de espelho.</p>
                     </div>
                   )}
@@ -1064,7 +1064,7 @@ export default function CalculoEspelhosPage() {
           </div>
         </div>
       )}
-      {/* MODAL DE SALVAR ORÇAMENTO */}
+      {/* MODAL DE SALVAR Orçamento */}
       {showModalSalvar && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
@@ -1089,7 +1089,7 @@ export default function CalculoEspelhosPage() {
                 <Save size={32} />
               </div>
               <h3 className="text-xl font-bold tracking-tight mb-2">Salvar Orçamento</h3>
-              <p className="text-sm opacity-70">Preencha os dados ao lado para salvar o orçamento no sistema.</p>
+              <p className="text-sm opacity-70">Preencha os dados ao lado para salvar o Orçamento no sistema.</p>
             </div>
 
             {/* LADO DIREITO (Formulário) */}

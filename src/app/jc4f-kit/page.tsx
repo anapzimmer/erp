@@ -314,8 +314,8 @@ export default function JC4FKitPage() {
       if (!item) {
         setMensagemSistema({
           tipo: "aviso",
-          titulo: "Projeto nÃ£o encontrado",
-          mensagem: "NÃ£o foi possÃ­vel localizar este projeto na central de impressÃ£o.",
+          titulo: "Projeto Não encontrado",
+          mensagem: "Não foi possível localizar este projeto na central de impressão.",
           aoFechar: () => router.push(returnTo),
         });
         return;
@@ -339,11 +339,11 @@ export default function JC4FKitPage() {
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
     } catch (erro) {
-      console.warn("NÃ£o foi possÃ­vel carregar o projeto da central de impressÃ£o:", erro);
+      console.warn("Não foi possível carregar o projeto da central de impressão:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
-        mensagem: "NÃ£o foi possÃ­vel carregar este projeto para ediÃ§Ã£o.",
+        mensagem: "Não foi possível carregar este projeto para edição.",
         aoFechar: () => router.push(returnTo),
       });
     }
@@ -629,7 +629,7 @@ export default function JC4FKitPage() {
       }
 
       if (precosVidroError) {
-        console.error("Erro ao carregar preÃ§os por tabela:", precosVidroError);
+        console.error("Erro ao carregar preços por tabela:", precosVidroError);
         setPrecosVidroGrupos([]);
       } else {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
@@ -918,7 +918,7 @@ export default function JC4FKitPage() {
         window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, dados.cliente);
       }
     } catch (erro) {
-      console.warn("NÃ£o foi possÃ­vel enviar o projeto para a central de impressÃ£o:", erro);
+      console.warn("Não foi possível enviar o projeto para a central de impressão:", erro);
     }
 
     router.push(centralItemId ? returnTo : "/central-impressao");
@@ -956,11 +956,11 @@ export default function JC4FKitPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar orÃ§amento JC4F:", error);
+      console.error("Erro ao carregar Orçamento JC4F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
-        mensagem: `NÃ£o foi possÃ­vel carregar o orÃ§amento: ${error.message}`,
+        mensagem: `Não foi possível carregar o Orçamento: ${error.message}`,
       });
       return;
     }
@@ -969,8 +969,8 @@ export default function JC4FKitPage() {
     if (itens?.tipo !== "jc4f_kit") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "OrÃ§amento incompatÃ­vel",
-        mensagem: "Este orÃ§amento nÃ£o pertence ao JC4F - KIT.",
+        titulo: "Orçamento incompatÃ­vel",
+        mensagem: "Este Orçamento Não pertence ao JC4F - KIT.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1008,11 +1008,11 @@ export default function JC4FKitPage() {
         window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
         router.push(returnTo);
       } catch (erro) {
-        console.warn("NÃ£o foi possÃ­vel atualizar o projeto na central de impressÃ£o:", erro);
+        console.warn("Não foi possível atualizar o projeto na central de impressão:", erro);
         setMensagemSistema({
           tipo: "erro",
           titulo: "Erro ao salvar",
-          mensagem: "NÃ£o foi possÃ­vel atualizar este projeto na central de impressÃ£o.",
+          mensagem: "Não foi possível atualizar este projeto na central de impressão.",
         });
       } finally {
         setSalvandoOrcamento(false);
@@ -1023,8 +1023,8 @@ export default function JC4FKitPage() {
     if (!empresaId) {
       setMensagemSistema({
         tipo: "erro",
-        titulo: "Empresa nÃ£o encontrada",
-        mensagem: "Empresa nÃ£o encontrada para salvar o orÃ§amento.",
+        titulo: "Empresa Não encontrada",
+        mensagem: "Empresa Não encontrada para salvar o Orçamento.",
       });
       return;
     }
@@ -1032,7 +1032,7 @@ export default function JC4FKitPage() {
     if (!dados.cliente.trim()) {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Cliente obrigatÃ³rio",
+        titulo: "Cliente obrigatório",
         mensagem: "Selecione ou informe o cliente antes de salvar.",
       });
       return;
@@ -1094,19 +1094,19 @@ export default function JC4FKitPage() {
       window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
       setMensagemSistema({
         tipo: "sucesso",
-        titulo: editId ? "OrÃ§amento atualizado" : "OrÃ§amento salvo",
-        mensagem: `OrÃ§amento ${numeroFinal} salvo com sucesso.`,
+        titulo: editId ? "Orçamento atualizado" : "Orçamento salvo",
+        mensagem: `Orçamento ${numeroFinal} salvo com sucesso.`,
         aoFechar: () => router.push(returnTo),
       });
     } catch (erro) {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar orÃ§amento JC4F:", erro);
+      console.error("Erro ao salvar Orçamento JC4F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
-        mensagem: `NÃ£o foi possÃ­vel salvar o orÃ§amento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
+        mensagem: `Não foi possível salvar o Orçamento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
       });
     } finally {
       setSalvandoOrcamento(false);
@@ -1175,7 +1175,7 @@ export default function JC4FKitPage() {
               <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">NÂº orÃ§amento</label>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Nº Orçamento</label>
                   <input
                     value={dados.numero}
                     tabIndex={-1}
@@ -1285,12 +1285,12 @@ export default function JC4FKitPage() {
             <aside className="flex w-full shrink-0 flex-col bg-[#00375a] lg:w-20 xl:w-[210px]">
               <nav className="flex flex-1 flex-row gap-3 overflow-x-auto px-3 py-3 lg:flex-col lg:gap-4 lg:overflow-visible lg:px-4 lg:py-5">
                 {[
-                  { label: "OrÃ§amento", icon: ClipboardList, ativo: true },
+                  { label: "Orçamento", icon: ClipboardList, ativo: true },
                   { label: "Imprimir", icon: Printer },
                   { label: "Projetos", icon: FolderOpen },
                   { label: "PDF +", icon: FileText },
                   { label: "Salvar", icon: Save },
-                  { label: "ConfiguraÃ§Ãµes", icon: Settings },
+                  { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
                 ].map(({ label, icon: Icon, ativo }) => (
                   <button
@@ -1453,7 +1453,7 @@ export default function JC4FKitPage() {
 
                     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <SectionTitle>RelaÃ§Ã£o de materiais</SectionTitle>
+                        <SectionTitle>Relação de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
                           <button
                             type="button"
@@ -1482,7 +1482,7 @@ export default function JC4FKitPage() {
                       <div className="mt-4 overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
                         <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
                           <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-white/20 px-3 py-3">Produto / descriÃ§Ã£o</div>
+                          <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
                           <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
                           <div className="px-3 py-3 text-center" />
                           <div className="border-r border-white/20 px-3 py-3 text-right">Valor unit.</div>
@@ -1540,7 +1540,7 @@ export default function JC4FKitPage() {
                       </div>
 
                       <div className="mt-3 flex items-center justify-end gap-5">
-                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do orÃ§amento</p>
+                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do Orçamento</p>
                         <div className="rounded-lg bg-[#18bd72] px-8 py-3 text-xl font-bold text-white shadow-lg shadow-emerald-900/10">
                           {moeda(totalMateriais)}
                         </div>
@@ -1550,12 +1550,12 @@ export default function JC4FKitPage() {
                 </div>
 
                 <section className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-6">
-                  <SummaryCard icon={<Grid2X2 size={30} />} label="Ãrea total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Ãrea de vidro" tone="green" />
-                  <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="PeÃ§as de vidro" tone="blue" />
+                  <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
+                  <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
                   <SummaryCard icon={<RailSymbol size={30} />} label="Valor perfis" value={moeda(valorPerfis)} detail="Perfis" tone="blue" />
-                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessÃ³rios" tone="orange" />
-                  <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="OrÃ§amento total" tone="emerald" />
+                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessórios" tone="orange" />
+                  <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="Orçamento total" tone="emerald" />
                 </section>
               </div>
 

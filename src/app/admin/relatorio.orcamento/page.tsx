@@ -215,7 +215,7 @@ export default function RelatorioOrcamento() {
         if (idsParaDeletar.length === 0) {
             setModalConfirmacao({
                 titulo: "Atenção",
-                mensagem: "Nenhum orçamento foi selecionado para exclusão.",
+                mensagem: "Nenhum Orçamento foi selecionado para exclusão.",
                 tipo: "aviso",
             });
             return;
@@ -494,7 +494,7 @@ export default function RelatorioOrcamento() {
                                     </h1>
 
                                     <p className="mt-2 text-sm font-medium text-gray-500">
-                                        Acompanhe os orçamentos criados, filtre por período e gerencie ações rápidas.
+                                        Acompanhe os Orçamentos criados, filtre por período e gerencie ações rápidas.
                                     </p>
                                 </div>
 
@@ -601,7 +601,7 @@ export default function RelatorioOrcamento() {
                                                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
                                                             <Filter size={20} />
                                                         </div>
-                                                        <p className="text-sm font-semibold text-gray-500">Nenhum orçamento encontrado para os filtros aplicados.</p>
+                                                        <p className="text-sm font-semibold text-gray-500">Nenhum Orçamento encontrado para os filtros aplicados.</p>
                                                         <p className="text-xs text-gray-400">Limpe a busca ou ajuste o período para ver mais resultados.</p>
                                                     </div>
                                                 </td>
@@ -791,7 +791,7 @@ export default function RelatorioOrcamento() {
                                                                     setItemParaExcluir(orc);
                                                                     setModalConfirmacao({
                                                                         titulo: "Confirmar exclusão",
-                                                                        mensagem: `Você está prestes a excluir o orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
+                                                                        mensagem: `Você está prestes a excluir o Orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
                                                                         confirmar: () => handleDelete([orc.id]),
                                                                         labelConfirmar: "Excluir",
                                                                         labelCancelar: "Cancelar",

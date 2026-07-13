@@ -331,7 +331,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
           </View>
           <View style={styles.headerMetaWrap}>
             <View style={styles.metaBox}>
-              <Text style={styles.metaLabel}>Nº orçamento</Text>
+              <Text style={styles.metaLabel}>Nº Orçamento</Text>
               <Text style={[styles.metaValue, styles.metaGreen]}>{dados.numero || "-"}</Text>
             </View>
             <View style={styles.metaBox}>

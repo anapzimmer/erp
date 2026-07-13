@@ -265,11 +265,11 @@ export default function CalculoVidros() {
   };
 
   const handleNovoOrcamento = () => {
-    setModalConfig({ show: true, title: "Iniciar novo orçamento", message: "Esta ação limpará todos os itens do orçamento atual, inclusive os dados salvos.", type: 'confirm', action: resetTotal });
+    setModalConfig({ show: true, title: "Iniciar novo Orçamento", message: "Esta ação limpará todos os itens do Orçamento atual, inclusive os dados salvos.", type: 'confirm', action: resetTotal });
   };
 
   const handleExcluirItem = (id: number) => {
-    setModalConfig({ show: true, title: "Confirmar exclusão", message: "Deseja remover este item do orçamento?", type: 'delete', action: () => setItens(itens.filter(i => i.id !== id)) });
+    setModalConfig({ show: true, title: "Confirmar exclusão", message: "Deseja remover este item do Orçamento?", type: 'delete', action: () => setItens(itens.filter(i => i.id !== id)) });
   };
 
   const handleMedidaChange = (value: string, setter: (val: string) => void) => {
@@ -891,7 +891,7 @@ export default function CalculoVidros() {
             </h3>
 
             <p className="text-xs text-gray-500 mb-4 text-center">
-              Esta ação irá alterar o vidro de <b>todos os itens do orçamento</b>.
+              Esta ação irá alterar o vidro de <b>todos os itens do Orçamento</b>.
             </p>
 
             {/* INPUT DE VIDRO */}
@@ -939,7 +939,7 @@ export default function CalculoVidros() {
                 <div className="bg-white p-6 rounded-3xl shadow-xl max-w-sm w-full text-center">
 
                   <h3 className="text-lg font-bold text-[#1C415B] mb-3">
-                    Recalcular orçamento?
+                    Recalcular Orçamento?
                   </h3>
 
                   <p className="text-sm text-gray-600 mb-6">
@@ -1506,7 +1506,7 @@ export default function CalculoVidros() {
 
         {/* 2. CONTEÚDO CONDICIONAL */}
         {(!modoProducao && !modoSeparacao) ? (
-          /* --- MODO ORÇAMENTO --- */
+          /* --- MODO Orçamento --- */
           <>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <table className="w-full text-left">

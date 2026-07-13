@@ -254,7 +254,7 @@ export default function Dashboard() {
   ];
 
   const quickActions = [
-    { label: "Novo orçamento", href: "/orcamentos", icon: ClipboardList },
+    { label: "Novo Orçamento", href: "/orcamentos", icon: ClipboardList },
     { label: "Cadastrar cliente", href: "/cadastros/clientes", icon: UsersRound },
   ];
 
@@ -452,7 +452,7 @@ export default function Dashboard() {
                       {
                         id: "placeholder",
                         numero_formatado: "Sem movimentações",
-                        cliente_nome: "Crie ou atualize um orçamento para ver aqui",
+                        cliente_nome: "Crie ou atualize um Orçamento para ver aqui",
                         created_at: null,
                         valor_total: null,
                       },

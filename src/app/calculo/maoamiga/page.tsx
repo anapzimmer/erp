@@ -491,7 +491,7 @@ export default function CalculoMaoAmigaPage() {
       const clienteEncontrado = listaClientes.find((c) => c.nome === orc.cliente_nome);
       if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
     } catch (err) {
-      console.error("Erro ao carregar orçamento para edição:", err);
+      console.error("Erro ao carregar Orçamento para edição:", err);
     }
   }, [listaClientes]);
 
@@ -992,7 +992,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   Mão Amiga
                 </div>
                 <h1 className="mt-4 text-3xl md:text-5xl font-black leading-none" style={{ color: theme.contentTextLightBg }}>
-                  Cálculo de orçamento Mão Amiga
+                  Cálculo de Orçamento Mão Amiga
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
                   Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da tabela. O sistema arredonda o vidro, calcula perfis e barras.

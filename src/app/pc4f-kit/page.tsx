@@ -997,11 +997,11 @@ export default function PC4FKitPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar orçamento PC4F:", error);
+      console.error("Erro ao carregar Orçamento PC4F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
-        mensagem: `Não foi possível carregar o orçamento: ${error.message}`,
+        mensagem: `Não foi possível carregar o Orçamento: ${error.message}`,
       });
       return;
     }
@@ -1011,7 +1011,7 @@ export default function PC4FKitPage() {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este orçamento não pertence ao PC4F - KIT.",
+        mensagem: "Este Orçamento não pertence ao PC4F - KIT.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1065,7 +1065,7 @@ export default function PC4FKitPage() {
       setMensagemSistema({
         tipo: "erro",
         titulo: "Empresa não encontrada",
-        mensagem: "Empresa não encontrada para salvar o orçamento.",
+        mensagem: "Empresa não encontrada para salvar o Orçamento.",
       });
       return;
     }
@@ -1143,11 +1143,11 @@ export default function PC4FKitPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar orçamento PC4F:", erro);
+      console.error("Erro ao salvar Orçamento PC4F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
-        mensagem: `Não foi possível salvar o orçamento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
+        mensagem: `Não foi possível salvar o Orçamento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
       });
     } finally {
       setSalvandoOrcamento(false);
@@ -1216,7 +1216,7 @@ export default function PC4FKitPage() {
               <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Nº orçamento</label>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Nº Orçamento</label>
                   <input
                     value={dados.numero}
                     tabIndex={-1}
@@ -1619,7 +1619,7 @@ export default function PC4FKitPage() {
                       </div>
 
                       <div className="mt-3 flex items-center justify-end gap-5">
-                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do orçamento</p>
+                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do Orçamento</p>
                         <div className="rounded-lg bg-[#18bd72] px-8 py-3 text-xl font-bold text-white shadow-lg shadow-emerald-900/10">
                           {moeda(totalMateriais)}
                         </div>

@@ -82,12 +82,12 @@ export default function SelecaoOrcamento() {
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#e9f6ee] px-3 py-1.5 text-[#2F7A4D]">
                 <PlusCircle size={16} />
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em]">Novo OrÃ§amento</span>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em]">Novo Orçamento</span>
               </div>
 
               <h1 className="text-3xl font-black tracking-tight text-[#1F3F57] md:text-4xl">Selecione o modelo de cÃ¡lculo</h1>
               <p className="mt-2 max-w-2xl text-sm font-medium text-[#5f7385] md:text-base">
-                Fluxo rÃ¡pido para iniciar um novo orÃ§amento com o tipo de projeto certo.
+                Fluxo rÃ¡pido para iniciar um novo Orçamento com o tipo de projeto certo.
               </p>
             </div>
 
@@ -118,7 +118,7 @@ export default function SelecaoOrcamento() {
               <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8fa0ae]" size={18} />
               <input
                 type="text"
-                placeholder="Pesquisar modelo de orÃ§amento"
+                placeholder="Pesquisar modelo de Orçamento"
                 className="w-full rounded-2xl border border-[#e1e8ef] bg-[#f9fbfd] py-3 pl-12 pr-4 text-sm font-medium text-[#30495c] outline-none transition-all placeholder:text-[#9aabba] focus:border-[#b8cbdb] focus:bg-white"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}

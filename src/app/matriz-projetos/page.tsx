@@ -17,7 +17,7 @@ const projetos = [
     imagem: "/desenhos/portaforavao-1fls.png",
     kitHref: "/pfv1f-kit",
     barraHref: "/pfv1f-barra",
-    descricao: "Projeto individual para orçamento por kit ou por barra.",
+    descricao: "Projeto individual para Orçamento por kit ou por barra.",
   },
   {
     id: "pfv2f",
@@ -28,7 +28,7 @@ const projetos = [
     imagem: "/desenhos/portaforavao-2fls.png",
     kitHref: "/pfv2f-kit",
     barraHref: "/pfv2f-barra",
-    descricao: "Projeto individual para orçamento por kit ou por barra.",
+    descricao: "Projeto individual para Orçamento por kit ou por barra.",
   },
   {
     id: "pc2f",
@@ -39,7 +39,7 @@ const projetos = [
     imagem: "/desenhos/projeto2fls-trincoepuxador.png",
     kitHref: "/pc2f-kit",
     barraHref: "/pc2f-barra",
-    descricao: "Projeto individual para orçamento por kit.",
+    descricao: "Projeto individual para Orçamento por kit.",
   },
   {
     id: "pc4f",
@@ -50,7 +50,7 @@ const projetos = [
     imagem: "/desenhos/porta4fls-completo.png",
     kitHref: "/pc4f-kit",
     barraHref: "/pc4f-barra",
-    descricao: "Projeto individual para orçamento por kit.",
+    descricao: "Projeto individual para Orçamento por kit.",
   },
   {
     id: "jc4f",
@@ -61,7 +61,7 @@ const projetos = [
     imagem: "/desenhos/janela4fls-semtrinco.png",
     kitHref: "/jc4f-kit",
     barraHref: "/jc4f-barra",
-    descricao: "Projeto individual para orçamento por kit.",
+    descricao: "Projeto individual para Orçamento por kit.",
   },
   {
     id: "jc2f",
@@ -72,7 +72,7 @@ const projetos = [
     imagem: "/desenhos/projeto2f-simples.png",
     kitHref: "/jc2f-kit",
     barraHref: "/jc2f-barra",
-    descricao: "Projeto individual para orçamento por kit.",
+    descricao: "Projeto individual para Orçamento por kit.",
   },
   {
     id: "pg",
