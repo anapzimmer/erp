@@ -21,6 +21,7 @@ type ProjetoComposicao = CentralImpressaoItem & {
   puxador?: string;
   tamanhoPuxador?: string;
   trinco?: string;
+  pecasDivisao?: number;
   origemRota?: string;
   materiais?: ProjetoIndividualMaterial[];
 };
@@ -67,6 +68,8 @@ const ehJanelaCorrer4Folhas = (projeto?: string) => /jc4f|janela de correr 4/i.t
 const ehJanelaCorrer2Folhas = (projeto?: string) => /jc2f|janela de correr 2/i.test(String(projeto || ""));
 const ehPortaCorrer2Folhas = (projeto?: string) => /pc2f|porta de correr 2 folhas/i.test(String(projeto || ""));
 const ehPortaCorrer4Folhas = (projeto?: string) => /pc4f|porta de correr 4 folhas/i.test(String(projeto || ""));
+const ehFixos = (projeto?: string) => /fixos|fixo/i.test(String(projeto || ""));
+const ehPma2f = (projeto?: string) => /pma2f|m[aã]o amiga 2/i.test(String(projeto || ""));
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
@@ -76,11 +79,17 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "JC4F - KIT") return "Janela de correr 4 folhas";
   if (projeto === "JC2F - KIT") return "Janela de correr 2 folhas";
   if (projeto === "PG - 1 folha") return "Porta de giro - 1 folha";
+  if (ehFixos(projeto)) return "Fixos";
+  if (ehPma2f(projeto)) return "Mão Amiga 2 folhas";
   return projeto || "Projeto";
 };
 
-const multiplicadorPecasProjeto = (projeto?: string) => {
+const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposicao, "pecasDivisao" | "tamanhoPuxador">) => {
   const texto = String(projeto || "").toLowerCase();
+  if (texto.includes("fixos") || texto.includes("fixo")) {
+    return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
+  }
+  if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
   if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
@@ -101,6 +110,9 @@ const carregarLista = (): ProjetoComposicao[] => {
 const extrairCodigoPerfil = (material: ProjetoIndividualMaterial) =>
   String(material.codigoPerfil || material.descricao.split(" - ")[0] || "").trim().toUpperCase();
 
+const modoProjetoEhBarra = (item: Pick<ProjetoComposicao, "modo">) =>
+  String(item.modo || "").toLowerCase().includes("barra");
+
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {
     if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
@@ -108,6 +120,19 @@ const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
     }
     return total + (Number(material.qtd || 0) * Number(material.valorUnitario || 0));
   }, 0) || 0;
+
+const calcularAreaVidrosItem = (item: ProjetoComposicao) => {
+  const areaMateriais = item.materiais?.reduce((total, material) => {
+    const descricao = String(material.descricao || "").toLowerCase();
+    const unidade = String(material.unidade || "").toLowerCase();
+    if (!descricao.includes("vidro") && !unidade.includes("m2")) return total;
+    return total + Number(material.qtd || 0);
+  }, 0) || 0;
+
+  if (areaMateriais > 0) return areaMateriais;
+
+  return (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+};
 
 const otimizarCortes = (cortesOriginais: number[], comprimentoBarra: number) => {
   const cortes = cortesOriginais
@@ -144,6 +169,8 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
   const grupos = new Map<string, { codigo: string; descricao: string; comprimentoBarra: number; cortes: number[]; barrasOriginais: number; valorUnitario: number }>();
 
   itens.forEach((item) => {
+    if (!modoProjetoEhBarra(item)) return;
+
     item.materiais?.forEach((material) => {
       if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
         return;
@@ -270,8 +297,8 @@ export default function CentralImpressaoPage() {
     const base = itens.reduce(
       (acc, item) => {
         acc.projetos += 1;
-        acc.pecas += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto);
-        acc.area += (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+        acc.pecas += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item);
+        acc.area += calcularAreaVidrosItem(item);
         acc.valorOriginal += Number(item.valorTotal || 0);
         return acc;
       },
@@ -302,7 +329,7 @@ export default function CentralImpressaoPage() {
 
     itens.forEach((item) => {
       const valorOriginal = Number(item.valorTotal || 0);
-      if (!otimizacaoAplicada || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
+      if (!otimizacaoAplicada || !modoProjetoEhBarra(item) || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
         mapa.set(item.id, valorOriginal);
         return;
       }
@@ -330,7 +357,9 @@ export default function CentralImpressaoPage() {
       corKit: item.corPerfil || item.corKit,
       trilho: item.trilho,
       puxador: formatarPuxador(item.puxador, item.tamanhoPuxador),
+      tamanhoPuxador: item.tamanhoPuxador,
       trinco: item.trinco,
+      pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       valorTotal: valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
       materiais: item.materiais,
     })),
@@ -368,6 +397,10 @@ export default function CentralImpressaoPage() {
       ? "/pfv2f-kit"
       : projetoTexto.includes("porta de correr") || projetoTexto.includes("pfv1f")
         ? "/pfv1f-kit"
+      : projetoTexto.includes("fixos") || projetoTexto.includes("fixo")
+        ? "/fixos"
+      : projetoTexto.includes("pma2f") || projetoTexto.includes("mao amiga 2") || projetoTexto.includes("mão amiga 2")
+        ? "/pma2f"
         : "");
     if (!rota) {
       setMensagem("Este projeto ainda não tem uma tela de edição vinculada.");
@@ -680,8 +713,17 @@ export default function CentralImpressaoPage() {
                               className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                             />
                           </Field>
-                          {!(ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
-                            <Field label="Trilho">
+                          {ehFixos(item.projeto) ? (
+                            <Field label="Divisão">
+                              <input
+                                value={`${Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)))} peça(s)`}
+                                readOnly
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                            <Field label={ehPma2f(item.projeto) ? "Projeto" : "Trilho"}>
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
@@ -689,7 +731,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
                             <Field label="Puxador">
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
@@ -698,13 +740,15 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          <Field label="Trinco">
-                            <input
-                              value={item.trinco || ""}
-                              onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
+                          {!ehFixos(item.projeto) ? (
+                            <Field label={ehPma2f(item.projeto) ? "Roldana" : "Trinco"}>
+                              <input
+                                value={item.trinco || ""}
+                                onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
                           <Field label="Valor do projeto">
                             <input
                               value={numeroDecimal(valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}

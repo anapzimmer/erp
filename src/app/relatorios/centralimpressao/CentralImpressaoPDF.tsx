@@ -20,7 +20,9 @@ export type CentralImpressaoItem = {
   corKit?: string;
   trilho?: string;
   puxador?: string;
+  tamanhoPuxador?: string;
   trinco?: string;
+  pecasDivisao?: number;
   valorTotal?: number;
   materiais?: ProjetoIndividualMaterial[];
 };
@@ -151,8 +153,25 @@ const styles = StyleSheet.create({
 const moeda = (valor: number) =>
   Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const multiplicadorPecasProjeto = (projeto?: string) => {
+const calcularAreaVidrosItem = (item: CentralImpressaoItem) => {
+  const areaMateriais = item.materiais?.reduce((total, material) => {
+    const descricao = String(material.descricao || "").toLowerCase();
+    const unidade = String(material.unidade || "").toLowerCase();
+    if (!descricao.includes("vidro") && !unidade.includes("m2")) return total;
+    return total + Number(material.qtd || 0);
+  }, 0) || 0;
+
+  if (areaMateriais > 0) return areaMateriais;
+
+  return (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+};
+
+const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressaoItem, "pecasDivisao" | "tamanhoPuxador">) => {
   const texto = String(projeto || "").toLowerCase();
+  if (texto.includes("fixos") || texto.includes("fixo")) {
+    return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
+  }
+  if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
   if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
@@ -172,8 +191,8 @@ export function CentralImpressaoPDF({
 }: CentralImpressaoPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
   const quantidadeVaos = itens.length;
-  const quantidadePecas = itens.reduce((total, item) => total + (Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto)), 0);
-  const areaTotal = itens.reduce((total, item) => total + ((Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000), 0);
+  const quantidadePecas = itens.reduce((total, item) => total + (Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item)), 0);
+  const areaTotal = itens.reduce((total, item) => total + calcularAreaVidrosItem(item), 0);
   const valorTotalOrcamento = itens.reduce((total, item) => total + Number(item.valorTotal || 0), 0);
   const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
   const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
@@ -216,6 +235,9 @@ export function CentralImpressaoPDF({
           {itens.map((item, index) => {
             const ehJanela = /jc4f|jc2f|janela de correr 4|janela de correr 2/i.test(item.projeto || "");
             const ehPortaGiro = /pg|porta de giro/i.test(item.projeto || "");
+            const ehFixos = /fixos|fixo/i.test(item.projeto || "");
+            const ehPma2f = /pma2f|m[aã]o amiga 2/i.test(item.projeto || "");
+            const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
@@ -247,22 +269,30 @@ export function CentralImpressaoPDF({
                       <Text style={styles.infoLabel}>Cor</Text>
                       <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
                     </View>
-                    {!ehJanela ? (
+                    {ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>Divisão</Text>
+                        <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
+                      </View>
+                    ) : null}
+                    {!ehJanela && !ehFixos ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>{ehPma2f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehJanela ? (
+                    {!ehJanela && !ehFixos ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Puxador</Text>
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>{ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
-                      <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
-                    </View>
+                    {!ehFixos ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>{ehPma2f ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.info}>
                       <Text style={styles.infoLabel}>Valor total</Text>
                       <Text style={styles.infoValueStrong}>{moeda(item.valorTotal || 0)}</Text>

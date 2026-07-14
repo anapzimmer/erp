@@ -28,6 +28,7 @@ export type ProjetoIndividualDados = {
   puxador?: string;
   tamanhoPuxador?: string;
   trinco?: string;
+  pecasDivisao?: number;
   observacao?: string;
   materiais: ProjetoIndividualMaterial[];
 };
@@ -196,8 +197,11 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const ehPc2f = projetoNormalizado.includes("pc2f") || projetoNormalizado.includes("porta de correr 2 folhas");
   const ehPc4f = projetoNormalizado.includes("pc4f") || projetoNormalizado.includes("porta de correr 4 folhas");
   const ehPortaGiro = projetoNormalizado.includes("pg") || projetoNormalizado.includes("porta de giro");
+  const ehFixos = projetoNormalizado.includes("fixos") || projetoNormalizado.includes("fixo");
+  const ehPma2f = projetoNormalizado.includes("pma2f") || projetoNormalizado.includes("mao amiga 2") || projetoNormalizado.includes("mão amiga 2");
   const ehDuasFolhas = projetoNormalizado.includes("pfv2f") || projetoNormalizado.includes("2 folhas");
   const quantidadeVaos = Number(dados.quantidade || 0);
+  const pecasFixos = Math.min(6, Math.max(1, Number(dados.pecasDivisao || dados.tamanhoPuxador || 1)));
   const larguraFixaJc = arredondar5cm(Number(dados.largura || 0) / (ehJanelaCorrer2Folhas ? 2 : 4));
   const alturaFixaJc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 60));
   const larguraMovelJc = arredondar5cm(larguraFixaJc + 50);
@@ -212,12 +216,20 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const alturaMovelPc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - (dados.trilho === "Embutido" ? 0 : 20)));
   const larguraPortaGiro = arredondar5cm(Math.max(0, Number(dados.largura || 0) - 15));
   const alturaPortaGiro = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 15));
-  const quantidadePecasVidro = ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
+  const larguraFixos = arredondar5cm(Math.max(0, Number(dados.largura || 0) - 25) / pecasFixos);
+  const alturaFixos = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 25));
+  const larguraPma2f = arredondar5cm((Number(dados.largura || 0) / 2) + 50);
+  const alturaPma2f = arredondar5cm(Number(dados.altura || 0));
+  const quantidadePecasVidro = ehPma2f ? quantidadeVaos * 2 : ehFixos ? quantidadeVaos * pecasFixos : ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
   const larguraBaseVidro = ehDuasFolhas ? Number(dados.largura || 0) / 2 : Number(dados.largura || 0);
   const larguraVidro = arredondar5cm(larguraBaseVidro + 50);
   const alturaVidro = arredondar5cm(Number(dados.altura || 0) + (dados.trilho === "Embutido" ? 70 : 50));
   const areaTotal = ehJanelaCorrer
     ? Number((((larguraFixaJc * alturaFixaJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos) + (larguraMovelJc * alturaMovelJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehFixos
+      ? Number(((larguraFixos * alturaFixos * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma2f
+      ? Number(((larguraPma2f * alturaPma2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehPc2f
       ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
     : ehPc4f
@@ -256,12 +268,26 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
       ? "Porta de correr 4 folhas"
     : ehPortaGiro
       ? "Porta de giro - 1 folha"
+    : ehFixos
+      ? "Fixos"
+    : ehPma2f
+      ? "Mão Amiga 2 folhas"
     : ehDuasFolhas
       ? "Porta de correr atrás do vão - 2 folhas"
       : projetoNormalizado.includes("pfv1f")
         ? "Porta de correr atrás do Vão - 1 folha"
     : dados.projeto || "Projeto individual";
-  const desenhoSrc = ehJanelaCorrer4Folhas
+  const desenhoFixos = pecasFixos === 1 ? "/desenhos/fixo-1folha.png" : `/desenhos/fixo-${pecasFixos}folhas.png`;
+  const desenhoPma2f = String(dados.trilho || "").toLowerCase().includes("kit pia")
+    ? "/desenhos/pma-2fs-kitpia.png"
+    : dados.puxador === "Com puxador"
+      ? "/desenhos/pma-2fs-completo.png"
+      : "/desenhos/pma-2fs-simples.png";
+  const desenhoSrc = ehFixos
+    ? desenhoFixos
+    : ehPma2f
+      ? desenhoPma2f
+    : ehJanelaCorrer4Folhas
     ? dados.trinco === "Com trinco"
       ? "/desenhos/janela4fls-comtrinco.png"
       : "/desenhos/janela4fls-semtrinco.png"
@@ -380,32 +406,40 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 <Text style={styles.dataLabel}>Cor do vidro</Text>
                 <Text style={styles.dataValue}>{dados.vidro || "-"}</Text>
               </View>
-              {!ehJanelaCorrer ? (
+              {!ehJanelaCorrer && !ehFixos ? (
                 <View style={styles.dataItem}>
-                  <Text style={styles.dataLabel}>{ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                  <Text style={styles.dataLabel}>{ehPma2f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                   <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
                 </View>
               ) : null}
               <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>{ehPortaGiro ? "Cor do material" : "Cor do kit"}</Text>
+                <Text style={styles.dataLabel}>{ehPortaGiro || ehFixos || ehPma2f ? "Cor do material" : "Cor do kit"}</Text>
                 <Text style={styles.dataValue}>{dados.corKit || "-"}</Text>
               </View>
-              {!ehJanelaCorrer ? (
+              {ehFixos ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>Divisão</Text>
+                  <Text style={styles.dataValue}>{pecasFixos} peça(s)</Text>
+                </View>
+              ) : null}
+              {!ehJanelaCorrer && !ehFixos ? (
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>Puxador</Text>
                   <Text style={styles.dataValue}>{dados.puxador || "-"}</Text>
                 </View>
               ) : null}
-              {!ehJanelaCorrer ? (
+              {!ehJanelaCorrer && !ehFixos ? (
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>Tamanho do puxador</Text>
                   <Text style={styles.dataValue}>{dados.tamanhoPuxador || "-"}</Text>
                 </View>
               ) : null}
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>{ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
-                <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>
-              </View>
+              {!ehFixos ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>{ehPma2f ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                  <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </View>

@@ -97,6 +97,28 @@ const projetos = [
     kitHref: "/pg?modelo=dobradica",
     kitLabel: "Calcular",
     descricao: "Projeto individual de porta de giro com dobradiça.",
+  },
+  {
+    id: "fixos",
+    nome: "Fixos",
+    titulo: "Cálculo dividido em 1 a 6 peças",
+    categoria: "Fixos",
+    status: "Disponível",
+    imagem: "/desenhos/fixo-1folha.png",
+    kitHref: "/fixos",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual para painéis fixos por barra.",
+  },
+  {
+    id: "pma2f",
+    nome: "Mão Amiga - 2 folhas",
+    titulo: "Janela, porta ou kit pia",
+    categoria: "Mão Amiga",
+    status: "Disponível",
+    imagem: "/desenhos/pma-2fs-simples.png",
+    kitHref: "/pma2f",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual PMA com 2 folhas móveis.",
   }
 ];
 
