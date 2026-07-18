@@ -721,8 +721,11 @@ export default function RelatorioOrcamento() {
                                                                     const ehJc2fKit = tipoItem === "jc2f_kit";
                                                                     const ehJc2fBarra = tipoItem === "jc2f_barra";
                                                                     const ehPg1f = tipoItem === "pg_1f";
+                                                                    const ehPg2f = tipoItem === "pg_2f";
                                                                     const ehFixos = tipoItem === "fixos";
                                                                     const ehPma2f = tipoItem === "pma2f";
+                                                                    const ehPma3f = tipoItem === "pma3f";
+                                                                    const ehPma4f = tipoItem === "pma4f";
                                                                     const ehBox2Fls = tipoItem === "box2fls";
                                                                     const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
@@ -758,10 +761,16 @@ export default function RelatorioOrcamento() {
                                                                         ? `/jc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPg1f
                                                                         ? `/pg?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPg2f
+                                                                        ? `/pg2f?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehFixos
                                                                         ? `/fixos?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPma2f
                                                                         ? `/pma2f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPma3f
+                                                                        ? `/pma3f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPma4f
+                                                                        ? `/pma4f?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehBox2Fls
                                                                         ? `/box2fls?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
@@ -1000,7 +1009,7 @@ export default function RelatorioOrcamento() {
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f" || tipo === "fixos" || tipo === "pma2f" || tipo === "box2fls") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "box2fls") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -1012,7 +1021,7 @@ export default function RelatorioOrcamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),

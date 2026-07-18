@@ -52,17 +52,6 @@ type PrecoVidroGrupo = {
   preco: number;
 };
 
-type KitCadastro = {
-  id: number;
-  nome: string;
-  largura: number;
-  altura: number;
-  categoria?: string | null;
-  cores?: string | null;
-  preco_por_cor?: string | null;
-  preco?: number | null;
-  empresa_id: string;
-};
 
 type PerfilCadastro = {
   id: string;
@@ -93,7 +82,7 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type Box2FlsOrcamentoPersistido = {
+type PMA3FOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
@@ -139,6 +128,7 @@ const numero = (valor: number, casas = 2) =>
   Number(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
 const parseNumeroPtBr = (valor: string) => Number(valor.replace(/\./g, "").replace(",", ".") || 0);
+const medidaInteira = (valor: number) => Math.floor(Math.max(0, Number(valor || 0)));
 
 const ehUnidadeM2 = (unidade?: string) => normalizarTexto(unidade).includes("m2");
 
@@ -166,10 +156,11 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   cortes: parcial?.cortes,
 });
 
-const alturaBoxOpcoes = ["Padrão", "Até o teto"];
-const modeloKitOpcoes = ["Tradicional", "Quadrado", "Evidence"];
-const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco", "Gold", "Cromado", "Rose"];
+const projetoOpcoes = ["Janela todas correm", "Porta todas correm", "Janela 1F + 2M", "Porta 1F + 2M"];
+const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
 const puxadorOpcoes = ["Sem puxador", "Com puxador"];
+const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
+const roldanaOpcoes = ["1122D", "1126AC", "1122M"];
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -195,7 +186,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
 
   return 3;
 };
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:box2fls:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pma3f:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -210,55 +201,16 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-const desenhoBox2Fls = (modelo?: string, puxador?: string) => {
-  if (normalizarTexto(modelo).includes("evidence")) {
-    return puxador === "Com puxador" ? "/desenhos/box-eleganceduplo.png" : "/desenhos/box-elegancesimples.png";
+const desenhoPMA3F = (tipoProjeto?: string, puxador?: string) => {
+  const tipo = normalizarTexto(tipoProjeto);
+  const todasCorrem = tipo.includes("todas");
+  if (todasCorrem) {
+    return puxador === "Com puxador" ? "/desenhos/pma-3fs-completo.png" : "/desenhos/pma-3fs-simples.png";
   }
-
-  return puxador === "Com puxador" ? "/desenhos/box-padraopuxador.png" : "/desenhos/box-padrao.png";
+  return puxador === "Com puxador" ? "/desenhos/pma-12fs-completo.png" : "/desenhos/pma-12fs-simples.png";
 };
 
-const precoKitPorCor = (kit: KitCadastro, cor: string) => {
-  const precoBase = Number(kit.preco || 0);
-  const texto = String(kit.preco_por_cor || "").trim();
-  if (!texto) return precoBase;
-
-  try {
-    const parsed = JSON.parse(texto) as Record<string, number | string>;
-    const chave = Object.keys(parsed).find((item) => normalizarTexto(item) === normalizarTexto(cor));
-    return chave ? Number(parsed[chave] || precoBase) : precoBase;
-  } catch {
-    const partes = texto.split(/[;|,]/);
-    const encontrado = partes.find((parte) => normalizarTexto(parte).includes(normalizarTexto(cor)));
-    const valor = encontrado?.match(/(\d+(?:[.,]\d+)?)/)?.[1];
-    return valor ? parseNumeroPtBr(valor) : precoBase;
-  }
-};
-
-const limiteKitBox = (nome: string) => {
-  const texto = normalizarTexto(nome);
-  if (texto.includes("300x150") || texto.includes("1,50") || texto.includes("1.50")) return 1500;
-  if (texto.includes("300x200") || texto.includes("2,00") || texto.includes("2.00")) return 2000;
-  const match = texto.match(/\b(120|130|133|150|180|200)\b/);
-  return match ? Number(match[1]) * 10 : 0;
-};
-
-const kitCorrespondeModeloBox = (kit: KitCadastro, modelo: string) => {
-  const nome = normalizarTexto(kit.nome);
-  const modeloNormalizado = normalizarTexto(modelo);
-
-  if (modeloNormalizado.includes("tradicional")) {
-    return nome.includes("kit f1") && !nome.includes("quadrado") && !nome.includes("evid") && !nome.includes("elegance");
-  }
-
-  if (modeloNormalizado.includes("quadrado")) {
-    return nome.includes("quadrado") && nome.includes("f1");
-  }
-
-  return nome.includes("evid") || nome.includes("elegance");
-};
-
-export default function Box2FlsPage() {
+export default function PMA3FPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -278,7 +230,6 @@ export default function Box2FlsPage() {
   const [vidroAtivoIndex, setVidroAtivoIndex] = useState(0);
   const vidroInputRef = useRef<HTMLInputElement>(null);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
-  const [kits, setKits] = useState<KitCadastro[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
@@ -290,19 +241,19 @@ export default function Box2FlsPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "BOX2FLS",
+    projeto: "PMA3F",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
     largura: 0,
     altura: 0,
     quantidade: 1,
-    trilho: "Padrão",
+    trilho: "Janela todas correm",
     vidro: "Escolher",
     corKit: "Escolher",
     puxador: "Sem puxador",
     tamanhoPuxador: "Escolher",
-    trinco: "Tradicional",
+    trinco: "1122D",
     observacao: "Imagem ilustrativa do projeto",
   });
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
@@ -372,18 +323,18 @@ export default function Box2FlsPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "BOX2FLS",
+        projeto: "PMA3F",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
         altura: Number(item.altura || 0),
         quantidade: Number(item.quantidade || 1),
-        trilho: item.trilho || "Padrão",
+        trilho: item.trilho || "Janela todas correm",
         vidro: item.vidro || "Escolher",
         corKit: item.corPerfil || item.corKit || "Escolher",
         puxador: item.puxador || "Sem puxador",
-        tamanhoPuxador: "Escolher",
-        trinco: item.trinco || "Tradicional",
+        tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
+        trinco: item.trinco || "1122D",
       }));
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
@@ -403,7 +354,7 @@ export default function Box2FlsPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * 2;
+  const totalVidros = Number(dados.quantidade || 0) * 3;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -465,35 +416,28 @@ export default function Box2FlsPage() {
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
-    const alturaAteTeto = dados.trilho === "Até o teto";
-    const larguraFixaMedida = Number(dados.largura || 0) / 2;
-    const larguraMovelMedida = larguraFixaMedida + 50;
-    const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 55 : 35));
-    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 20 : 0));
-    const larguraFixa = arredondar5cm(larguraFixaMedida);
-    const larguraMovel = arredondar5cm(larguraMovelMedida);
-    const alturaFixa = arredondar5cm(alturaFixaMedida);
-    const alturaMovel = arredondar5cm(alturaMovelMedida);
-    const areaFixa = (larguraFixa * alturaFixa * quantidadeVaos) / 1_000_000;
-    const areaMovel = (larguraMovel * alturaMovel * quantidadeVaos) / 1_000_000;
-    const areaTotalCobrada = areaFixa + areaMovel;
+    const larguraMedida = ((Number(dados.largura || 0) + 20) / 3);
+    const alturaMedida = Math.max(0, Number(dados.altura || 0));
+    const larguraCalculo = arredondar5cm(larguraMedida);
+    const alturaCalculo = arredondar5cm(alturaMedida);
+    const areaTotalCobrada = (larguraCalculo * alturaCalculo * 3 * quantidadeVaos) / 1_000_000;
 
     return {
-      larguraCalculo: larguraMovel,
-      alturaCalculo: alturaMovel,
-      larguraFixa,
-      alturaFixa,
-      larguraMovel,
-      alturaMovel,
-      larguraFixaMedida,
-      alturaFixaMedida,
-      larguraMovelMedida,
-      alturaMovelMedida,
-      areaFixa: Number(areaFixa.toFixed(3)),
-      areaMovel: Number(areaMovel.toFixed(3)),
+      larguraCalculo,
+      alturaCalculo,
+      larguraFixa: larguraCalculo,
+      alturaFixa: alturaCalculo,
+      larguraMovel: larguraCalculo,
+      alturaMovel: alturaCalculo,
+      larguraFixaMedida: larguraMedida,
+      alturaFixaMedida: alturaMedida,
+      larguraMovelMedida: larguraMedida,
+      alturaMovelMedida: alturaMedida,
+      areaFixa: 0,
+      areaMovel: Number(areaTotalCobrada.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
-  }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
+  }, [dados.altura, dados.largura, dados.quantidade]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -543,6 +487,11 @@ export default function Box2FlsPage() {
     setVidroAtivoIndex(0);
   };
 
+  const obterEspessuraVidro = (texto: string) => {
+    const match = texto.match(/(\d{1,2})\s*mm/i);
+    return match ? Number(match[1]) : 0;
+  };
+
   const codigoCatalogoCompativel = (codigoCadastro: string, codigoBase: string) => {
     if (!codigoCadastro || !codigoBase) return false;
     if (codigoCadastro === codigoBase) return true;
@@ -568,29 +517,11 @@ export default function Box2FlsPage() {
     }) || null;
   }, [perfilCorrespondeCor, perfis]);
 
-  const kitSelecionado = useMemo(() => {
-    const largura = Number(dados.largura || 0);
-    if (largura <= 0 || dados.corKit === "Escolher") return null;
-
-    const corAtual = normalizarTexto(dados.corKit);
-    const candidatosModelo = kits
-      .filter((kit) => kitCorrespondeModeloBox(kit, dados.trinco || "Tradicional"))
-      .map((kit) => ({ kit, limite: limiteKitBox(kit.nome) || Number(kit.largura || 0) }))
-      .filter(({ limite }) => limite >= largura)
-      .sort((a, b) => a.limite - b.limite);
-
-    const candidatosComCor = candidatosModelo.filter(({ kit }) => {
-      const corKit = normalizarTexto(kit.cores);
-      return !corKit || corKit === "padrao" || corKit.includes(corAtual);
-    });
-
-    return (candidatosComCor[0] || candidatosModelo[0])?.kit || null;
-  }, [dados.corKit, dados.largura, dados.trinco, kits]);
-
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigo(codigo);
-    const totalUsadoMm = Number(comprimentoMm || 0) * Number(quantidadeCortes || 0) * quantidadeProjeto;
+    const comprimentoInteiroMm = medidaInteira(comprimentoMm);
+    const totalUsadoMm = comprimentoInteiroMm * Number(quantidadeCortes || 0) * quantidadeProjeto;
 
     if (!perfil || totalUsadoMm <= 0) return null;
 
@@ -601,21 +532,70 @@ export default function Box2FlsPage() {
       valorUnitario: Number(perfil.preco || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)),
+      cortes: Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => comprimentoInteiroMm),
     });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
+  const agruparMateriaisBarra = useCallback((itens: ProjetoIndividualMaterial[]) => {
+    const grupos = new Map<string, ProjetoIndividualMaterial>();
+
+    itens.forEach((item) => {
+      const chave = [
+        normalizarTexto(item.codigoPerfil || item.descricao.split(" - ")[0]),
+        normalizarTexto(item.descricao),
+        normalizarTexto(item.unidade),
+        Number(item.valorUnitario || 0),
+        Number(item.comprimentoBarra || 6000),
+      ].join("|");
+      const existente = grupos.get(chave);
+
+      if (!existente) {
+        grupos.set(chave, item);
+        return;
+      }
+
+      const cortes = [...(existente.cortes || []), ...(item.cortes || [])].map((corte) => medidaInteira(Number(corte || 0)));
+      const comprimentoBarra = Number(existente.comprimentoBarra || item.comprimentoBarra || 6000);
+      grupos.set(chave, {
+        ...existente,
+        cortes,
+        qtd: Math.ceil(cortes.reduce((total, corte) => total + corte, 0) / comprimentoBarra),
+      });
+    });
+
+    return Array.from(grupos.values());
+  }, []);
+
   const perfisAutomaticos = useMemo(() => {
+    const espessura = obterEspessuraVidro(dados.vidro);
+    const largura = Number(dados.largura || 0);
     const altura = Number(dados.altura || 0);
-    const modeloTradicional = dados.trinco === "Tradicional";
+    const tipoProjeto = normalizarTexto(dados.trilho);
+    const todasCorrem = tipoProjeto.includes("todas");
 
-    if (dados.corKit === "Escolher" || !modeloTradicional || altura <= 1900) return [];
+    if (dados.corKit === "Escolher" || largura <= 0 || altura <= 0) return [];
 
-    const perfilVt806 = criarPerfilBarra("VT806", altura, 1);
-    const perfilVt66 = criarPerfilBarra("VT66", altura, 1);
+    const perfisLargura = todasCorrem && largura > 3000
+      ? [
+        criarPerfilBarra("VT268", largura, 1),
+        criarPerfilBarra("VT39", largura, 1),
+        criarPerfilBarra("VT06", largura, 1),
+      ]
+      : [
+        criarPerfilBarra("VT68", largura, 1),
+        criarPerfilBarra("VT39", largura, 1),
+      ];
+    const codigoAlturaUnica = espessura === 10 ? "VT390" : espessura === 8 ? "VT380" : "";
+    const codigoPerfilU = espessura === 10 ? "VT10" : espessura === 8 ? "VT66" : "";
+    const quantidadePerfilUAltura = todasCorrem ? 2 : 3;
 
-    return [perfilVt806, perfilVt66].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
-  }, [criarPerfilBarra, dados.altura, dados.corKit, dados.trinco]);
+    return agruparMateriaisBarra([
+      ...perfisLargura,
+      codigoAlturaUnica ? criarPerfilBarra(codigoAlturaUnica, altura, 4) : null,
+      codigoPerfilU ? criarPerfilBarra(codigoPerfilU, altura, quantidadePerfilUAltura) : null,
+      !todasCorrem && codigoPerfilU ? criarPerfilBarra(codigoPerfilU, calculoVidro.larguraMovelMedida, 2) : null,
+    ].filter((item): item is ProjetoIndividualMaterial => Boolean(item)));
+  }, [agruparMateriaisBarra, calculoVidro.larguraMovelMedida, criarPerfilBarra, dados.altura, dados.corKit, dados.largura, dados.trilho, dados.vidro]);
 
 
   useEffect(() => {
@@ -630,7 +610,6 @@ export default function Box2FlsPage() {
         { data: clientesData, error: clientesError },
         { data: vidrosData, error: vidrosError },
         { data: precosVidroData, error: precosVidroError },
-        { data: kitsData, error: kitsError },
         { data: perfisData, error: perfisError },
         { data: ferragensData, error: ferragensError },
       ] = await Promise.all([
@@ -649,11 +628,6 @@ export default function Box2FlsPage() {
         supabase
           .from("vidro_precos_grupos")
           .select("vidro_id, grupo_preco_id, preco")
-          .eq("empresa_id", empresaId),
-
-        supabase
-          .from("kits")
-          .select("id, nome, largura, altura, categoria, cores, preco_por_cor, preco, empresa_id")
           .eq("empresa_id", empresaId),
 
         supabase
@@ -715,13 +689,6 @@ export default function Box2FlsPage() {
         setFerragens((ferragensData || []) as FerragemCadastro[]);
       }
 
-      if (kitsError) {
-        console.error("Erro ao carregar kits:", kitsError);
-        setKits([]);
-      } else {
-        setKits((kitsData || []) as KitCadastro[]);
-      }
-
       if (perfisError) {
         console.error("Erro ao carregar perfis:", perfisError);
         setPerfis([]);
@@ -761,78 +728,92 @@ export default function Box2FlsPage() {
     }
   }, [listaVidrosAberta]);
 
-  const codigosAutomaticos = useMemo(
-    () => ["VT806", "VT66", "1679C"].map(normalizarTexto),
+  const corFerragemSelecionada = normalizarTexto(dados.corKit);
+
+  const ferragemCorrespondeCor = useCallback((ferragem: FerragemCadastro, ignorarCor = false) => {
+    if (ignorarCor) return true;
+    if (!corFerragemSelecionada || corFerragemSelecionada === "escolher") return false;
+    return normalizarTexto(ferragem.cores).includes(corFerragemSelecionada);
+  }, [corFerragemSelecionada]);
+
+  const textoFerragem = useCallback((ferragem: FerragemCadastro) =>
+    normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
+
+  const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
+    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
+    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+
+  const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
+    const codigoNormalizado = normalizarTexto(codigo);
+
+    return buscarFerragem((texto, ferragem) => {
+      const codigoFerragem = normalizarTexto(ferragem.codigo);
+      const codigoInterno = normalizarTexto(ferragem.codigo_interno);
+      return codigoFerragem === codigoNormalizado || codigoInterno === codigoNormalizado || texto.includes(codigoNormalizado);
+    }, opcoes);
+  }, [buscarFerragem]);
+
+  const codigosFerragensAutomaticas = useMemo(
+    () => [
+      "VT68", "VT268", "VT39", "VT06", "VT380", "VT390", "VT10", "VT66",
+      "1561", "1122D", "1126AC", "1122M",
+      "3530AROU-CIL", "3530DP", "3230DP", "PUXBC30", "PUXBC60", "PUXBC80",
+    ].map(normalizarTexto),
     []
   );
 
-  const buscarFerragemPorCodigo = useCallback((codigo: string, ignorarCor = false) => {
-    const codigoNormalizado = normalizarTexto(codigo);
-    const corSelecionada = normalizarTexto(dados.corKit);
-    const aliasesCor = new Map<string, string[]>([
-      ["branco", ["branco", "bc"]],
-      ["preto", ["preto", "pt"]],
-      ["fosco", ["fosco"]],
-      ["gold", ["gold", "dourado"]],
-      ["cromado", ["cromado", "cr"]],
-      ["rose", ["rose", "rosê", "rose gold"]],
-    ]);
-    const coresAceitas = aliasesCor.get(corSelecionada) || [corSelecionada];
-
-    const ferragensDoCodigo = ferragens.filter((ferragem) => {
-      const codigoFerragem = normalizarTexto(ferragem.codigo);
-      const codigoInterno = normalizarTexto(ferragem.codigo_interno);
-      return (
-        codigoFerragem === codigoNormalizado ||
-        codigoFerragem.startsWith(codigoNormalizado) ||
-        codigoInterno.includes(codigoNormalizado)
-      );
-    });
-
-    const comCorSelecionada = ferragensDoCodigo.find((ferragem) => {
-      const corFerragem = normalizarTexto(ferragem.cores);
-      return coresAceitas.some((cor) => cor && corFerragem.includes(cor));
-    });
-
-    if (comCorSelecionada) return comCorSelecionada;
-
-    const semCor = ferragensDoCodigo.find((ferragem) => !normalizarTexto(ferragem.cores));
-    if (semCor) return semCor;
-
-    return ignorarCor ? ferragensDoCodigo[0] || null : null;
-  }, [dados.corKit, ferragens]);
-
-  const kitAutomatico = useMemo(() => {
-    const quantidadeProjeto = Number(dados.quantidade || 0);
-    if (!kitSelecionado || quantidadeProjeto <= 0) return [];
-
-    return [
-      criarMaterial({
-        qtd: quantidadeProjeto,
-        unidade: "und",
-        descricao: `${kitSelecionado.nome}${kitSelecionado.cores ? ` | ${kitSelecionado.cores}` : ""}`.toUpperCase(),
-        valorUnitario: precoKitPorCor(kitSelecionado, dados.corKit),
-      }),
-    ];
-  }, [dados.corKit, dados.quantidade, kitSelecionado]);
-
   const ferragensAutomaticas = useMemo(() => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    if (dados.puxador !== "Com puxador" || quantidadeProjeto <= 0) return [];
+    if (quantidadeProjeto <= 0 || dados.corKit === "Escolher") return [];
+    const codigoPuxador =
+      dados.tamanhoPuxador === "600mm"
+        ? "PUXBC60"
+        : dados.tamanhoPuxador === "800mm"
+          ? "PUXBC80"
+          : "PUXBC30";
+    const tipoProjeto = normalizarTexto(dados.trilho);
+    const todasCorrem = tipoProjeto.includes("todas");
+    const ehPorta = tipoProjeto.includes("porta");
+    const codigoRoldana = dados.trinco || "1122D";
+    const multiplicadorRoldana = todasCorrem ? 6 : 4;
+    const multiplicadorAcessorios = todasCorrem ? 2 : 1;
 
-    const puxador = buscarFerragemPorCodigo("1679C");
+    const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean; alternativas?: string[]; codigoExibicao?: string }> = [];
 
-    return [
-      criarMaterial({
-        qtd: quantidadeProjeto,
-        unidade: "und",
-        descricao: puxador
-          ? montarDescricaoComCor(puxador.codigo, puxador.nome, puxador.cores)
-          : "1679C - PUXADOR C BARRA CHATA 300MM",
-        valorUnitario: Number(puxador?.preco || 0),
-      }),
-    ];
-  }, [buscarFerragemPorCodigo, dados.puxador, dados.quantidade]);
+    if (ehPorta) {
+      regras.push(
+        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana, ignorarCor: true },
+        { codigo: "3530AROU-CIL", multiplicador: multiplicadorAcessorios, ignorarCor: true },
+        { codigo: "3530DP", multiplicador: multiplicadorAcessorios },
+        { codigo: "3230DP", alternativas: ["3230D"], codigoExibicao: "3230DP", multiplicador: multiplicadorAcessorios }
+      );
+    } else {
+      regras.push(
+        { codigo: "1561", multiplicador: 2 },
+        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana, ignorarCor: true }
+      );
+    }
+
+    if (dados.puxador === "Com puxador") {
+      regras.push({ codigo: codigoPuxador, multiplicador: multiplicadorAcessorios, ignorarCor: true });
+    }
+
+    return regras
+      .map(({ codigo, multiplicador, ignorarCor, alternativas = [], codigoExibicao }) => {
+        const ferragem = [codigo, ...alternativas]
+          .map((codigoBusca) => buscarFerragemPorCodigo(codigoBusca, { ignorarCor }))
+          .find(Boolean);
+        if (!ferragem) return null;
+
+        return criarMaterial({
+          qtd: quantidadeProjeto * multiplicador,
+          unidade: "und",
+          descricao: montarDescricaoComCor(codigoExibicao || ferragem.codigo, ferragem.nome, ferragem.cores),
+          valorUnitario: Number(ferragem.preco || 0),
+        });
+      })
+      .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
+  }, [buscarFerragemPorCodigo, dados.corKit, dados.puxador, dados.quantidade, dados.tamanhoPuxador, dados.trilho, dados.trinco]);
 
 
   useEffect(() => {
@@ -842,10 +823,8 @@ export default function Box2FlsPage() {
       .replace(/^vidro\s+/i, "")
       .trim();
 
-    const medidaVidroFixo = `${calculoVidro.larguraFixaMedida}x${calculoVidro.alturaFixaMedida}`;
-    const medidaVidroMovel = `${calculoVidro.larguraMovelMedida}x${calculoVidro.alturaMovelMedida}`;
-    const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
-    const descricaoVidroMovel = `VIDRO MOVEL ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const medidaVidroMovel = `${medidaInteira(calculoVidro.larguraMovelMedida)}x${medidaInteira(calculoVidro.alturaMovelMedida)}`;
+    const descricaoVidroMovel = `VIDRO MOVEL 3 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
@@ -853,34 +832,27 @@ export default function Box2FlsPage() {
         return !descricao.startsWith("vidro");
       });
 
-      const vidroFixo = criarMaterial({
-        qtd: calculoVidro.areaFixa,
-        unidade: "m2",
-        descricao: descricaoVidroFixo,
-        valorUnitario: precoVidroM2,
-      });
-
       const vidroMovel = criarMaterial({
-        qtd: calculoVidro.areaMovel,
+        qtd: calculoVidro.areaTotalCobrada,
         unidade: "m2",
         descricao: descricaoVidroMovel,
         valorUnitario: precoVidroM2,
       });
 
-      return [vidroFixo, vidroMovel, ...semVidrosAutomaticos];
+      return [vidroMovel, ...semVidrosAutomaticos];
     });
-  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaMovelMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
     setMateriais((lista) => {
       const itensManuais = lista.filter((item) => {
         const descricao = normalizarTexto(item.descricao);
-        return !descricao.includes("kit") && !codigosAutomaticos.some((codigo) => descricao.includes(codigo));
+        return !descricao.includes("kit") && !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
       });
 
-      return [...itensManuais, ...kitAutomatico, ...perfisAutomaticos, ...ferragensAutomaticas];
+      return [...itensManuais, ...perfisAutomaticos, ...ferragensAutomaticas];
     });
-  }, [codigosAutomaticos, ferragensAutomaticas, kitAutomatico, perfisAutomaticos]);
+  }, [codigosFerragensAutomaticas, ferragensAutomaticas, perfisAutomaticos]);
 
   useEffect(() => {
     setMateriais((lista) => {
@@ -891,7 +863,7 @@ export default function Box2FlsPage() {
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/box2fls");
+      router.push("/pma3f");
       return;
     }
 
@@ -903,41 +875,41 @@ export default function Box2FlsPage() {
       largura: 0,
       altura: 0,
       quantidade: 1,
-      trilho: "Padrão",
+      trilho: "Janela todas correm",
       vidro: "Escolher",
       corKit: "Escolher",
       puxador: "Sem puxador",
       tamanhoPuxador: "Escolher",
-      trinco: "Tradicional",
+      trinco: "1122D",
     }));
 
     setMateriais([]);
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = desenhoBox2Fls(dados.trinco, dados.puxador);
+    const desenhoUrl = desenhoPMA3F(dados.trilho, dados.puxador);
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Box 2 folhas",
+      projeto: "PMA3F - Barra",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
       quantidade: Number(dados.quantidade || 0),
-      modo: "Kit",
+      modo: "Barra",
       desenhoUrl,
       vidro: dados.vidro || "",
       corKit: dados.corKit || "",
       corPerfil: dados.corKit || "",
       trilho: dados.trilho || "",
       puxador: dados.puxador || "",
-      tamanhoPuxador: "",
+      tamanhoPuxador: dados.tamanhoPuxador || "",
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/box2fls",
+      origemRota: "/pma3f",
     };
   };
 
@@ -994,7 +966,7 @@ export default function Box2FlsPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar Orçamento BOX2FLS:", error);
+      console.error("Erro ao carregar Orçamento PMA3F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -1003,12 +975,12 @@ export default function Box2FlsPage() {
       return;
     }
 
-    const itens = orcamento?.itens as Box2FlsOrcamentoPersistido | null;
-    if (itens?.tipo !== "box2fls") {
+    const itens = orcamento?.itens as PMA3FOrcamentoPersistido | null;
+    if (itens?.tipo !== "pma3f") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este Orçamento não pertence ao BOX2FLS.",
+        mensagem: "Este Orçamento não pertence ao PMA3F.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1019,7 +991,7 @@ export default function Box2FlsPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "BOX2FLS",
+      projeto: "PMA3F",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
   }, [editId, returnTo, router]);
@@ -1084,9 +1056,9 @@ export default function Box2FlsPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "BOX2FLS",
+        projeto: "PMA3F",
       };
-      const itensPersistidos: Box2FlsOrcamentoPersistido & {
+      const itensPersistidos: PMA3FOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1096,8 +1068,8 @@ export default function Box2FlsPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "box2fls",
-        modo: "kit",
+        tipo: "pma3f",
+        modo: "barra",
         dados: dadosAtualizados,
         materiais,
         resumo: {
@@ -1140,7 +1112,7 @@ export default function Box2FlsPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar Orçamento BOX2FLS:", erro);
+      console.error("Erro ao salvar Orçamento PMA3F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1160,13 +1132,6 @@ export default function Box2FlsPage() {
       preco: Number(perfil.preco || 0),
     }));
 
-    const itensKits = kits.map((kit) => ({
-      id: `kit-${kit.id}`,
-      tipo: "kit" as const,
-      descricao: `${kit.nome}${kit.cores ? ` | ${kit.cores}` : ""}`.toUpperCase(),
-      preco: precoKitPorCor(kit, dados.corKit),
-    }));
-
     const itensFerragens = ferragens.map((ferragem) => ({
       id: `ferragem-${ferragem.id}`,
       tipo: "ferragem" as const,
@@ -1174,8 +1139,8 @@ export default function Box2FlsPage() {
       preco: Number(ferragem.preco || 0),
     }));
 
-    return [...itensPerfis, ...itensKits, ...itensFerragens];
-  }, [dados.corKit, ferragens, kits, perfis]);
+    return [...itensPerfis, ...itensFerragens];
+  }, [perfis, ferragens]);
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#eef3f8] text-[#0f2742] xl:h-screen xl:overflow-hidden">
@@ -1363,7 +1328,7 @@ export default function Box2FlsPage() {
                   <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
                     <div className="mt-4 flex min-h-[340px] items-center justify-center sm:min-h-[460px] xl:min-h-[420px]">
-                      <ProjetoDrawing modelo={dados.trinco || "Tradicional"} puxador={dados.puxador} />
+                      <ProjetoDrawing tipoProjeto={dados.trilho} comPuxador={dados.puxador === "Com puxador"} />
                     </div>
                   </section>
 
@@ -1473,10 +1438,13 @@ export default function Box2FlsPage() {
                         </label>
                         <OptionInput
                           icon={<RailSymbol size={24} strokeWidth={1.6} />}
-                          label="Altura"
+                          label="Projeto"
                           value={dados.trilho}
-                          options={alturaBoxOpcoes}
-                          onChange={(v) => atualizarCampo("trilho", v)}
+                          options={projetoOpcoes}
+                          onChange={(v) => {
+                            atualizarCampo("trilho", v);
+                            if (normalizarTexto(v).includes("janela")) atualizarCampo("trinco", "1122D");
+                          }}
                         />
 
                         <OptionInput
@@ -1489,18 +1457,41 @@ export default function Box2FlsPage() {
 
                         <OptionInput
                           icon={<Wrench size={24} strokeWidth={1.6} />}
-                          label="Modelo do kit"
-                          value={dados.trinco || "Tradicional"}
-                          options={modeloKitOpcoes}
-                          onChange={(v) => atualizarCampo("trinco", v)}
+                          label="Puxador"
+                          value={dados.puxador || "Sem puxador"}
+                          options={puxadorOpcoes}
+                          onChange={(v) => {
+                            atualizarCampo("puxador", v);
+
+                            if (v === "Sem puxador") {
+                              atualizarCampo("tamanhoPuxador", "Escolher");
+                            }
+
+                            if (
+                              v === "Com puxador" &&
+                              dados.tamanhoPuxador === "Escolher"
+                            ) {
+                              atualizarCampo("tamanhoPuxador", "300mm");
+                            }
+                          }}
+                        />
+
+                        <OptionInput
+                          icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
+                          label="Furação do puxador"
+                          value={dados.tamanhoPuxador || "Escolher"}
+                          options={tamanhoPuxadorOpcoes}
+                          disabled={dados.puxador !== "Com puxador"}
+                          onChange={(v) => atualizarCampo("tamanhoPuxador", v)}
                         />
 
                         <OptionInput
                           icon={<Settings size={24} strokeWidth={1.6} />}
-                          label="Puxador"
-                          value={dados.puxador || "Sem puxador"}
-                          options={puxadorOpcoes}
-                          onChange={(v) => atualizarCampo("puxador", v)}
+                          label="Roldana"
+                          value={dados.trinco || "1122D"}
+                          options={roldanaOpcoes}
+                          disabled={false}
+                          onChange={(v) => atualizarCampo("trinco", v)}
                         />
                       </div>
                     </section>
@@ -1525,7 +1516,7 @@ export default function Box2FlsPage() {
                           </button>
                           <PDFDownloadLink
                             document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                            fileName={`box2fls_${dados.numero || "novo"}.pdf`}
+                            fileName={`PMA3F_${dados.numero || "novo"}.pdf`}
                             className="rounded-xl bg-[#18bd72] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             {({ loading }) => loading ? "Gerando..." : "Baixar PDF"}
@@ -1858,8 +1849,8 @@ function DescricaoMaterialInput({
   );
 }
 
-function ProjetoDrawing({ modelo, puxador }: { modelo: string; puxador?: string }) {
-  const desenhoSrc = desenhoBox2Fls(modelo, puxador);
+function ProjetoDrawing({ tipoProjeto, comPuxador }: { tipoProjeto: string; comPuxador: boolean }) {
+  const desenhoSrc = desenhoPMA3F(tipoProjeto, comPuxador ? "Com puxador" : "Sem puxador");
 
   return (
     <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -1893,6 +1884,5 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
-
 
 
