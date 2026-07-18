@@ -70,6 +70,7 @@ const ehPortaCorrer2Folhas = (projeto?: string) => /pc2f|porta de correr 2 folha
 const ehPortaCorrer4Folhas = (projeto?: string) => /pc4f|porta de correr 4 folhas/i.test(String(projeto || ""));
 const ehFixos = (projeto?: string) => /fixos|fixo/i.test(String(projeto || ""));
 const ehPma2f = (projeto?: string) => /pma2f|m[aã]o amiga 2/i.test(String(projeto || ""));
+const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
@@ -81,6 +82,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PG - 1 folha") return "Porta de giro - 1 folha";
   if (ehFixos(projeto)) return "Fixos";
   if (ehPma2f(projeto)) return "Mão Amiga 2 folhas";
+  if (ehBox2Fls(projeto)) return "Box 2 folhas";
   return projeto || "Projeto";
 };
 
@@ -90,6 +92,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
     return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
   }
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
+  if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
   if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
@@ -401,6 +404,8 @@ export default function CentralImpressaoPage() {
         ? "/fixos"
       : projetoTexto.includes("pma2f") || projetoTexto.includes("mao amiga 2") || projetoTexto.includes("mão amiga 2")
         ? "/pma2f"
+      : projetoTexto.includes("box2fls") || projetoTexto.includes("box 2 folhas")
+        ? "/box2fls"
         : "");
     if (!rota) {
       setMensagem("Este projeto ainda não tem uma tela de edição vinculada.");
@@ -723,7 +728,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
-                            <Field label={ehPma2f(item.projeto) ? "Projeto" : "Trilho"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma2f(item.projeto) ? "Projeto" : "Trilho"}>
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
@@ -741,7 +746,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!ehFixos(item.projeto) ? (
-                            <Field label={ehPma2f(item.projeto) ? "Roldana" : "Trinco"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehPma2f(item.projeto) ? "Roldana" : "Trinco"}>
                               <input
                                 value={item.trinco || ""}
                                 onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}

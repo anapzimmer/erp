@@ -172,6 +172,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
     return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
   }
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
+  if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
   if (texto.includes("pc4f") || texto.includes("porta de correr 4 folhas")) return 4;
@@ -237,6 +238,7 @@ export function CentralImpressaoPDF({
             const ehPortaGiro = /pg|porta de giro/i.test(item.projeto || "");
             const ehFixos = /fixos|fixo/i.test(item.projeto || "");
             const ehPma2f = /pma2f|m[aã]o amiga 2/i.test(item.projeto || "");
+            const ehBox2Fls = /box2fls|box 2 folhas/i.test(item.projeto || "");
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
 
             return (
@@ -277,7 +279,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehJanela && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehPma2f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma2f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
@@ -289,7 +291,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehPma2f ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehPma2f ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                       </View>
                     ) : null}

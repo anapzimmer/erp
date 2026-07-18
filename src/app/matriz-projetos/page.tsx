@@ -119,6 +119,17 @@ const projetos = [
     kitHref: "/pma2f",
     kitLabel: "Calcular",
     descricao: "Projeto individual PMA com 2 folhas móveis.",
+  },
+  {
+    id: "box2fls",
+    nome: "Box 2 folhas",
+    titulo: "Fixo e móvel por kit",
+    categoria: "Box",
+    status: "Disponível",
+    imagem: "/desenhos/box-padrao.png",
+    kitHref: "/box2fls",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual de box frontal com 2 folhas.",
   }
 ];
 
