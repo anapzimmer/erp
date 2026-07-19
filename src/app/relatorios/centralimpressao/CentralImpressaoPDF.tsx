@@ -17,7 +17,10 @@ export type CentralImpressaoItem = {
   modo: string;
   desenhoUrl: string;
   vidro?: string;
+  vidroBandeira?: string;
   corKit?: string;
+  alturaAteTubo?: number;
+  tuboPerfil?: string;
   trilho?: string;
   puxador?: string;
   tamanhoPuxador?: string;
@@ -181,6 +184,10 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("deslizante2f") || texto.includes("deslizante 2")) return 2;
   if (texto.includes("deslizante3f") || texto.includes("deslizante 3")) return 3;
   if (texto.includes("deslizante4f") || texto.includes("deslizante 4")) return 4;
+  if (texto.includes("deslizante5f") || texto.includes("deslizante 5")) return 5;
+  if (texto.includes("deslizante6f") || texto.includes("deslizante 6")) return 6;
+  if (texto.includes("pc4fcb") || texto.includes("4 folhas com bandeira")) return 6;
+  if (texto.includes("pc2fcb") || texto.includes("2 folhas com bandeira")) return 3;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -257,8 +264,13 @@ export function CentralImpressaoPDF({
             const ehDeslizante2f = /deslizante2f|deslizante 2/i.test(item.projeto || "");
             const ehDeslizante3f = /deslizante3f|deslizante 3/i.test(item.projeto || "");
             const ehDeslizante4f = /deslizante4f|deslizante 4/i.test(item.projeto || "");
+            const ehDeslizante5f = /deslizante5f|deslizante 5/i.test(item.projeto || "");
+            const ehDeslizante6f = /deslizante6f|deslizante 6/i.test(item.projeto || "");
+            const ehPc2fComBandeira = /pc2fcb|2 folhas com bandeira/i.test(item.projeto || "");
+            const ehPc4fComBandeira = /pc4fcb|4 folhas com bandeira/i.test(item.projeto || "");
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
-            const nomeProjeto = ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
+            const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira;
+            const nomeProjeto = ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
@@ -283,13 +295,31 @@ export function CentralImpressaoPDF({
                       <Text style={styles.infoValue}>{item.modo}</Text>
                     </View>
                     <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Vidro</Text>
+                      <Text style={styles.infoLabel}>{temBandeira ? "Vidro porta" : "Vidro"}</Text>
                       <Text style={styles.infoValue}>{item.vidro || "-"}</Text>
                     </View>
+                    {temBandeira ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>Vidro bandeira</Text>
+                        <Text style={styles.infoValue}>{item.vidroBandeira || "-"}</Text>
+                      </View>
+                    ) : null}
+                    {temBandeira ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>Altura até o tubo</Text>
+                        <Text style={styles.infoValue}>{item.alturaAteTubo || 0} mm</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.info}>
                       <Text style={styles.infoLabel}>Cor</Text>
                       <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
                     </View>
+                    {temBandeira ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>Tubo</Text>
+                        <Text style={styles.infoValue}>{item.tuboPerfil || "-"}</Text>
+                      </View>
+                    ) : null}
                     {ehFixos ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Divisão</Text>
@@ -298,7 +328,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehJanela && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
@@ -310,7 +340,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                       </View>
                     ) : null}

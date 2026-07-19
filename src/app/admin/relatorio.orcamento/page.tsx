@@ -714,6 +714,10 @@ export default function RelatorioOrcamento() {
                                                                     const ehPfv2fBarra = tipoItem === "pfv2f_barra";
                                                                     const ehPc2fKit = tipoItem === "pc2f_kit";
                                                                     const ehPc2fBarra = tipoItem === "pc2f_barra";
+                                                                    const ehPc2fcb = tipoItem === "pc2fcb";
+                                                                    const ehPc2fcbKit = tipoItem === "pc2fcb_kit";
+                                                                    const ehPc4fcb = tipoItem === "pc4fcb";
+                                                                    const ehPc4fcbKit = tipoItem === "pc4fcb_kit";
                                                                     const ehPc4fKit = tipoItem === "pc4f_kit";
                                                                     const ehPc4fBarra = tipoItem === "pc4f_barra";
                                                                     const ehJc4fKit = tipoItem === "jc4f_kit";
@@ -733,6 +737,8 @@ export default function RelatorioOrcamento() {
                                                                     const ehDeslizante2f = tipoItem === "deslizante2f";
                                                                     const ehDeslizante3f = tipoItem === "deslizante3f";
                                                                     const ehDeslizante4f = tipoItem === "deslizante4f";
+                                                                    const ehDeslizante5f = tipoItem === "deslizante5f";
+                                                                    const ehDeslizante6f = tipoItem === "deslizante6f";
                                                                     const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehFechamentoSacada
@@ -753,6 +759,14 @@ export default function RelatorioOrcamento() {
                                                                         ? `/pc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPc2fBarra
                                                                         ? `/pc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc2fcbKit
+                                                                        ? `/pc2fcb-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc2fcb
+                                                                        ? `/pc2fcb?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc4fcbKit
+                                                                        ? `/pc4fcb-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPc4fcb
+                                                                        ? `/pc4fcb?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPc4fKit
                                                                         ? `/pc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPc4fBarra
@@ -791,6 +805,10 @@ export default function RelatorioOrcamento() {
                                                                         ? `/deslizante3f?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehDeslizante4f
                                                                         ? `/deslizante4f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehDeslizante5f
+                                                                        ? `/deslizante5f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehDeslizante6f
+                                                                        ? `/deslizante6f?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehSacada
                                                                         ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehEspelho
@@ -1027,7 +1045,7 @@ export default function RelatorioOrcamento() {
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -1039,16 +1057,19 @@ export default function RelatorioOrcamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),
                                                         largura: Number(dadosPdf.largura || 0),
                                                         altura: Number(dadosPdf.altura || 0),
+                                                        alturaAteTubo: Number(dadosPdf.alturaAteTubo || 0),
                                                         quantidade: Number(dadosPdf.quantidade || 0),
                                                         trilho: String(dadosPdf.trilho || ""),
                                                         vidro: String(dadosPdf.vidro || ""),
+                                                        vidroBandeira: String(dadosPdf.vidroBandeira || ""),
                                                         corKit: String(dadosPdf.corKit || ""),
+                                                        tuboPerfil: String(dadosPdf.tuboPerfil || ""),
                                                         puxador: String(dadosPdf.puxador || ""),
                                                         tamanhoPuxador: String(dadosPdf.tamanhoPuxador || ""),
                                                         trinco: String(dadosPdf.trinco || ""),
