@@ -929,7 +929,7 @@ export default function CentralImpressaoPage() {
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
                       fileName={`composicao_projetos_${new Date().toISOString().slice(0, 10)}.pdf`}
-                      className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white transition hover:brightness-95"
+                      className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
                       style={{ backgroundColor: theme.menuBackgroundColor }}
                     >
                       {({ loading: gerando }) => (
@@ -942,7 +942,7 @@ export default function CentralImpressaoPage() {
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfis} somenteRelacaoObra />}
                       fileName={`relacao_obra_${new Date().toISOString().slice(0, 10)}.pdf`}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                     >
                       {({ loading: gerando }) => (
                         <>
@@ -953,7 +953,7 @@ export default function CentralImpressaoPage() {
                     </PDFDownloadLink>
                   </>
                 ) : (
-                  <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 py-3 text-sm font-black text-slate-500">
+                  <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">
                     <FileDown size={16} />
                     Gerar PDF
                   </button>
@@ -962,7 +962,7 @@ export default function CentralImpressaoPage() {
                   type="button"
                   onClick={salvarOrcamento}
                   disabled={salvando}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-500"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500"
                   title="Salvar esta composição como Orçamento único."
                 >
                   <Save size={16} />
@@ -972,7 +972,7 @@ export default function CentralImpressaoPage() {
                   type="button"
                   onClick={() => setModalVidroAberto(true)}
                   disabled={itens.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Criar uma nova versão deste orçamento com outra cor de vidro."
                 >
                   <Palette size={16} />
@@ -1205,7 +1205,7 @@ export default function CentralImpressaoPage() {
                     <p className="text-sm text-slate-500">Cortes agrupados por perfil para aproveitamento em barras. Marque para aplicar a otimização no valor.</p>
                   </div>
                   <div className="flex flex-col gap-2 sm:items-end">
-                    <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] shadow-sm">
+                    <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#0f2742] shadow-sm">
                       <input
                         type="checkbox"
                         checked={usarOtimizacao}
@@ -1215,9 +1215,9 @@ export default function CentralImpressaoPage() {
                         }}
                         className="h-4 w-4 rounded border-slate-300"
                       />
-                      Aplicar otimização no valor
+                      Otimizar
                     </label>
-                    <label className={`inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black shadow-sm ${usarOtimizacao ? "cursor-pointer text-[#0f2742]" : "cursor-not-allowed text-slate-400"}`}>
+                    <label className={`inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm ${usarOtimizacao ? "cursor-pointer text-[#0f2742]" : "cursor-not-allowed text-slate-400"}`}>
                       <input
                         type="checkbox"
                         checked={usarOtimizacao && imprimirOtimizacao}
@@ -1225,7 +1225,7 @@ export default function CentralImpressaoPage() {
                         disabled={!usarOtimizacao}
                         className="h-4 w-4 rounded border-slate-300"
                       />
-                      Sair relação otimizada no PDF
+                      Otimização no PDF
                     </label>
                   </div>
                 </div>
@@ -1347,7 +1347,7 @@ export default function CentralImpressaoPage() {
                 type="button"
                 onClick={duplicarOrcamentoComVidro}
                 disabled={!vidroSelecionadoOrcamento}
-                className="rounded-xl px-4 py-3 text-sm font-black text-white transition hover:brightness-95"
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: theme.menuBackgroundColor }}
               >
                 Criar cópia
@@ -1366,8 +1366,8 @@ function ResumoCard({ icon, label, value }: { icon: React.ReactNode; label: stri
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#07385a]">{icon}</div>
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
-          <p className="mt-1 text-lg font-black text-[#0f2742]">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{label}</p>
+          <p className="mt-1 text-lg font-semibold text-[#0f2742]">{value}</p>
         </div>
       </div>
     </div>
