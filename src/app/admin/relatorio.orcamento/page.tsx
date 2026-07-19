@@ -724,8 +724,14 @@ export default function RelatorioOrcamento() {
                                                                     const ehJc4fBarra = tipoItem === "jc4f_barra";
                                                                     const ehJc2fKit = tipoItem === "jc2f_kit";
                                                                     const ehJc2fBarra = tipoItem === "jc2f_barra";
+                                                                    const ehJc2fcs = tipoItem === "jc2fcs";
+                                                                    const ehJc2fcsKit = tipoItem === "jc2fcs_kit";
+                                                                    const ehJc4fcs = tipoItem === "jc4fcs";
+                                                                    const ehJc4fcsKit = tipoItem === "jc4fcs_kit";
                                                                     const ehPg1f = tipoItem === "pg_1f";
                                                                     const ehPg2f = tipoItem === "pg_2f";
+                                                                    const ehPgf = tipoItem === "pgf";
+                                                                    const ehMax = tipoItem === "max";
                                                                     const ehFixos = tipoItem === "fixos";
                                                                     const ehPma2f = tipoItem === "pma2f";
                                                                     const ehPma3f = tipoItem === "pma3f";
@@ -734,6 +740,8 @@ export default function RelatorioOrcamento() {
                                                                     const ehPma6f = tipoItem === "pma6f";
                                                                     const ehPma2f4m = tipoItem === "pma2f4m";
                                                                     const ehBox2Fls = tipoItem === "box2fls";
+                                                                    const ehBoxCanto3f = tipoItem === "boxcanto3f";
+                                                                    const ehBoxCanto = tipoItem === "boxcanto";
                                                                     const ehDeslizante2f = tipoItem === "deslizante2f";
                                                                     const ehDeslizante3f = tipoItem === "deslizante3f";
                                                                     const ehDeslizante4f = tipoItem === "deslizante4f";
@@ -779,10 +787,22 @@ export default function RelatorioOrcamento() {
                                                                         ? `/jc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehJc2fBarra
                                                                         ? `/jc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc2fcsKit
+                                                                        ? `/jc2fcs-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc2fcs
+                                                                        ? `/jc2fcs?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc4fcsKit
+                                                                        ? `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehJc4fcs
+                                                                        ? `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPg1f
                                                                         ? `/pg?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPg2f
                                                                         ? `/pg2f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehPgf
+                                                                        ? `/pgf?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehMax
+                                                                        ? `/max?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehFixos
                                                                         ? `/fixos?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehPma2f
@@ -799,6 +819,10 @@ export default function RelatorioOrcamento() {
                                                                         ? `/pma2f4m?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehBox2Fls
                                                                         ? `/box2fls?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehBoxCanto3f
+                                                                        ? `/boxcanto3f?edit=${orc.id}&returnTo=${returnTo}`
+                                                                        : ehBoxCanto
+                                                                        ? `/boxcanto?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehDeslizante2f
                                                                         ? `/deslizante2f?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehDeslizante3f
@@ -1045,7 +1069,7 @@ export default function RelatorioOrcamento() {
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc4fcs" || tipo === "jc4fcs_kit" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "jc2fcs" || tipo === "jc2fcs_kit" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "pgf" || tipo === "max" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "boxcanto3f" || tipo === "boxcanto" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
                                                 ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
@@ -1057,7 +1081,7 @@ export default function RelatorioOrcamento() {
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "max" ? "MAX" : tipo === "pgf" ? "Porta de giro com fixo lateral" : tipo === "jc4fcs" || tipo === "jc4fcs_kit" ? "Janela de correr 4 folhas com sacada inferior" : tipo === "jc2fcs" || tipo === "jc2fcs_kit" ? "Janela de correr 2 folhas com sacada inferior" : tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "boxcanto3f" ? "Box de canto 3 folhas" : tipo === "boxcanto" ? "Box de canto" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),

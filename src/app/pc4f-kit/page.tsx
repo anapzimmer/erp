@@ -731,7 +731,7 @@ export default function PC4FKitPage() {
   }, [buscarFerragem]);
 
   const codigosFerragensAutomaticas = useMemo(
-    () => ["3530AROU-CIL", "3530DP", "3230D", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P"].map(normalizarTexto),
+    () => ["3530AROU-CIL", "3530DP", "3530P", "3230D", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P"].map(normalizarTexto),
     []
   );
 
@@ -747,7 +747,7 @@ export default function PC4FKitPage() {
 
     const regras: Array<{ codigo: string; multiplicador: number }> = [
       { codigo: "3530AROU-CIL", multiplicador: 1 },
-      { codigo: "3530DP", multiplicador: 1 },
+      { codigo: "3530P", multiplicador: 1 },
       { codigo: "3534", multiplicador: 1 },
     ];
 

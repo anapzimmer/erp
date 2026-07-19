@@ -93,7 +93,7 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type Box2FlsOrcamentoPersistido = {
+type BoxCantoOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
@@ -108,6 +108,7 @@ type CentralImpressaoProjetoItem = {
   medidas?: string;
   largura?: number;
   altura?: number;
+  alturaAteTubo?: number;
   quantidade?: number;
   modo?: string;
   desenhoUrl?: string;
@@ -195,7 +196,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
 
   return 3;
 };
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:box2fls:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:boxcanto3f:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -210,13 +211,8 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-const desenhoBox2Fls = (modelo?: string, puxador?: string) => {
-  if (normalizarTexto(modelo).includes("evidence")) {
-    return puxador === "Com puxador" ? "/desenhos/box-eleganceduplo.png" : "/desenhos/box-elegancesimples.png";
-  }
-
-  return puxador === "Com puxador" ? "/desenhos/box-padraopuxador.png" : "/desenhos/box-padrao.png";
-};
+const desenhoBoxCanto = (puxador?: string) =>
+  puxador === "Com puxador" ? "/desenhos/box-canto3fcp.png" : "/desenhos/box-canto3f.png";
 
 const precoKitPorCor = (kit: KitCadastro, cor: string) => {
   const precoBase = Number(kit.preco || 0);
@@ -237,6 +233,8 @@ const precoKitPorCor = (kit: KitCadastro, cor: string) => {
 
 const limiteKitBox = (nome: string) => {
   const texto = normalizarTexto(nome);
+  const medidasCanto = texto.match(/(\d{2,3})\s*x\s*(\d{2,3})\s*x\s*(\d{2,3})/);
+  if (medidasCanto) return (Number(medidasCanto[2]) + Number(medidasCanto[3])) * 10;
   if (texto.includes("300x150") || texto.includes("1,50") || texto.includes("1.50")) return 1500;
   if (texto.includes("300x200") || texto.includes("2,00") || texto.includes("2.00")) return 2000;
   const match = texto.match(/\b(120|130|133|150|180|200)\b/);
@@ -251,17 +249,17 @@ const kitCorrespondeModeloBox = (kit: KitCadastro, modelo: string) => {
   const modeloNormalizado = normalizarTexto(modelo);
 
   if (modeloNormalizado.includes("tradicional")) {
-    return nome.includes("kit f1") && !nome.includes("quadrado") && !nome.includes("evid") && !nome.includes("elegance");
+    return nome.includes("c1") && !nome.includes("quadrado") && !nome.includes("evid") && !nome.includes("elegance");
   }
 
   if (modeloNormalizado.includes("quadrado")) {
-    return nome.includes("quadrado") && nome.includes("f1");
+    return nome.includes("quadrado") && nome.includes("canto");
   }
 
-  return nome.includes("evid") || nome.includes("elegance");
+  return (nome.includes("evid") || nome.includes("elegance")) && nome.includes("canto");
 };
 
-export default function Box2FlsPage() {
+export default function BoxCanto3FPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -293,11 +291,12 @@ export default function Box2FlsPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "BOX2FLS",
+    projeto: "Box de canto 3 folhas",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
     largura: 0,
+    alturaAteTubo: 0,
     altura: 0,
     quantidade: 1,
     trilho: "Padrão",
@@ -375,10 +374,11 @@ export default function Box2FlsPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "BOX2FLS",
+        projeto: "Box de canto 3 folhas",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
+        alturaAteTubo: Number(item.alturaAteTubo || 0),
         altura: Number(item.altura || 0),
         quantidade: Number(item.quantidade || 1),
         trilho: item.trilho || "Padrão",
@@ -406,7 +406,7 @@ export default function Box2FlsPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * 2;
+  const totalVidros = Number(dados.quantidade || 0) * 3;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -469,34 +469,46 @@ export default function Box2FlsPage() {
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
     const alturaAteTeto = dados.trilho === "Até o teto";
-    const larguraFixaMedida = Number(dados.largura || 0) / 2;
-    const larguraMovelMedida = larguraFixaMedida + 50;
+    const larguraA = Number(dados.largura || 0);
+    const larguraB = Number(dados.alturaAteTubo || 0);
+    const larguraFixaAMedida = larguraA;
+    const larguraFixaBMedida = larguraB / 2;
+    const larguraMovelBMedida = larguraFixaBMedida + 50;
     const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 55 : 35));
     const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 20 : 0));
-    const larguraFixa = arredondar5cm(larguraFixaMedida);
-    const larguraMovel = arredondar5cm(larguraMovelMedida);
+    const larguraFixaA = arredondar5cm(larguraFixaAMedida);
+    const larguraFixaB = arredondar5cm(larguraFixaBMedida);
+    const larguraMovelB = arredondar5cm(larguraMovelBMedida);
     const alturaFixa = arredondar5cm(alturaFixaMedida);
     const alturaMovel = arredondar5cm(alturaMovelMedida);
-    const areaFixa = (larguraFixa * alturaFixa * quantidadeVaos) / 1_000_000;
-    const areaMovel = (larguraMovel * alturaMovel * quantidadeVaos) / 1_000_000;
+    const areaFixaA = (larguraFixaA * alturaFixa * quantidadeVaos) / 1_000_000;
+    const areaFixaB = (larguraFixaB * alturaFixa * quantidadeVaos) / 1_000_000;
+    const areaMovelB = (larguraMovelB * alturaMovel * quantidadeVaos) / 1_000_000;
+    const areaFixa = areaFixaA + areaFixaB;
+    const areaMovel = areaMovelB;
     const areaTotalCobrada = areaFixa + areaMovel;
 
     return {
-      larguraCalculo: larguraMovel,
+      larguraCalculo: larguraMovelB,
       alturaCalculo: alturaMovel,
-      larguraFixa,
+      larguraFixa: larguraFixaA,
       alturaFixa,
-      larguraMovel,
+      larguraMovel: larguraMovelB,
       alturaMovel,
-      larguraFixaMedida,
+      larguraFixaMedida: larguraFixaAMedida,
       alturaFixaMedida,
-      larguraMovelMedida,
+      larguraMovelMedida: larguraMovelBMedida,
       alturaMovelMedida,
+      larguraFixaBMedida,
+      larguraMovelBMedida,
+      areaFixaA: Number(areaFixaA.toFixed(3)),
+      areaFixaB: Number(areaFixaB.toFixed(3)),
+      areaMovelB: Number(areaMovelB.toFixed(3)),
       areaFixa: Number(areaFixa.toFixed(3)),
       areaMovel: Number(areaMovel.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
-  }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
+  }, [dados.altura, dados.alturaAteTubo, dados.largura, dados.quantidade, dados.trilho]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -572,11 +584,10 @@ export default function Box2FlsPage() {
   }, [perfilCorrespondeCor, perfis]);
 
   const kitSelecionado = useMemo(() => {
-    const largura = Number(dados.largura || 0);
-    if (largura <= 0) return null;
+    const larguraTotal = Number(dados.largura || 0) + Number(dados.alturaAteTubo || 0);
+    if (larguraTotal <= 0 || dados.corKit === "Escolher") return null;
 
     const corAtual = normalizarTexto(dados.corKit);
-    const modeloTradicional = normalizarTexto(dados.trinco || "Tradicional").includes("tradicional");
     const candidatosModelo = kits
       .filter((kit) => kitCorrespondeModeloBox(kit, dados.trinco || "Tradicional"))
       .map((kit) => ({
@@ -585,18 +596,17 @@ export default function Box2FlsPage() {
         limiteAltura: limiteAlturaKitBox(kit),
       }))
       .filter(({ limiteLargura, limiteAltura }) =>
-        limiteLargura >= largura &&
-        (modeloTradicional || limiteAltura <= 0 || limiteAltura >= Number(dados.altura || 0))
+        limiteLargura >= larguraTotal && (limiteAltura <= 0 || limiteAltura >= Number(dados.altura || 0))
       )
       .sort((a, b) => a.limiteLargura - b.limiteLargura || a.limiteAltura - b.limiteAltura);
 
-    const candidatosComCor = corAtual && corAtual !== "escolher" ? candidatosModelo.filter(({ kit }) => {
+    const candidatosComCor = candidatosModelo.filter(({ kit }) => {
       const corKit = normalizarTexto(kit.cores);
       return !corKit || corKit === "padrao" || corKit.includes(corAtual);
-    }) : [];
+    });
 
     return (candidatosComCor[0] || candidatosModelo[0])?.kit || null;
-  }, [dados.altura, dados.corKit, dados.largura, dados.trinco, kits]);
+  }, [dados.altura, dados.alturaAteTubo, dados.corKit, dados.largura, dados.trinco, kits]);
 
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
@@ -622,10 +632,10 @@ export default function Box2FlsPage() {
 
     if (dados.corKit === "Escolher" || !modeloTradicional || altura <= 1900) return [];
 
-    const perfilVt806 = criarPerfilBarra("VT806", altura, 1);
-    const perfilVt66 = criarPerfilBarra("VT66", altura, 1);
+    const perfilVt64 = criarPerfilBarra("VT64", altura, 1);
+    const perfilVt66 = criarPerfilBarra("VT66", altura, 2);
 
-    return [perfilVt806, perfilVt66].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
+    return [perfilVt64, perfilVt66].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
   }, [criarPerfilBarra, dados.altura, dados.corKit, dados.trinco]);
 
 
@@ -773,7 +783,7 @@ export default function Box2FlsPage() {
   }, [listaVidrosAberta]);
 
   const codigosAutomaticos = useMemo(
-    () => ["VT806", "VT66", "1679C"].map(normalizarTexto),
+    () => ["VT64", "VT66", "1679C"].map(normalizarTexto),
     []
   );
 
@@ -853,10 +863,12 @@ export default function Box2FlsPage() {
       .replace(/^vidro\s+/i, "")
       .trim();
 
-    const medidaVidroFixo = `${calculoVidro.larguraFixaMedida}x${calculoVidro.alturaFixaMedida}`;
-    const medidaVidroMovel = `${calculoVidro.larguraMovelMedida}x${calculoVidro.alturaMovelMedida}`;
-    const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
-    const descricaoVidroMovel = `VIDRO MOVEL ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const medidaVidroFixoA = `${calculoVidro.larguraFixaMedida}x${calculoVidro.alturaFixaMedida}`;
+    const medidaVidroFixoB = `${calculoVidro.larguraFixaBMedida}x${calculoVidro.alturaFixaMedida}`;
+    const medidaVidroMovelB = `${calculoVidro.larguraMovelBMedida}x${calculoVidro.alturaMovelMedida}`;
+    const descricaoVidroFixoA = `VIDRO FIXO A ${medidaVidroFixoA} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroFixoB = `VIDRO FIXO B ${medidaVidroFixoB} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovelB = `VIDRO MOVEL B ${medidaVidroMovelB} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
@@ -864,23 +876,30 @@ export default function Box2FlsPage() {
         return !descricao.startsWith("vidro");
       });
 
-      const vidroFixo = criarMaterial({
-        qtd: calculoVidro.areaFixa,
+      const vidroFixoA = criarMaterial({
+        qtd: calculoVidro.areaFixaA,
         unidade: "m2",
-        descricao: descricaoVidroFixo,
+        descricao: descricaoVidroFixoA,
         valorUnitario: precoVidroM2,
       });
 
-      const vidroMovel = criarMaterial({
-        qtd: calculoVidro.areaMovel,
+      const vidroFixoB = criarMaterial({
+        qtd: calculoVidro.areaFixaB,
         unidade: "m2",
-        descricao: descricaoVidroMovel,
+        descricao: descricaoVidroFixoB,
         valorUnitario: precoVidroM2,
       });
 
-      return [vidroFixo, vidroMovel, ...semVidrosAutomaticos];
+      const vidroMovelB = criarMaterial({
+        qtd: calculoVidro.areaMovelB,
+        unidade: "m2",
+        descricao: descricaoVidroMovelB,
+        valorUnitario: precoVidroM2,
+      });
+
+      return [vidroFixoA, vidroFixoB, vidroMovelB, ...semVidrosAutomaticos];
     });
-  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixaA, calculoVidro.areaFixaB, calculoVidro.areaMovelB, calculoVidro.larguraFixaBMedida, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelBMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
     setMateriais((lista) => {
@@ -902,7 +921,7 @@ export default function Box2FlsPage() {
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/box2fls");
+      router.push("/boxcanto3f");
       return;
     }
 
@@ -912,6 +931,7 @@ export default function Box2FlsPage() {
       ...atual,
       cliente: "",
       largura: 0,
+      alturaAteTubo: 0,
       altura: 0,
       quantidade: 1,
       trilho: "Padrão",
@@ -926,15 +946,16 @@ export default function Box2FlsPage() {
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = desenhoBox2Fls(dados.trinco, dados.puxador);
+    const desenhoUrl = desenhoBoxCanto(dados.puxador);
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Box 2 folhas",
+      projeto: "Box de canto 3 folhas",
       cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
+      medidas: `${Number(dados.largura || 0)} + ${Number(dados.alturaAteTubo || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
+      alturaAteTubo: Number(dados.alturaAteTubo || 0),
       altura: Number(dados.altura || 0),
       quantidade: Number(dados.quantidade || 0),
       modo: "Kit",
@@ -948,7 +969,7 @@ export default function Box2FlsPage() {
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/box2fls",
+      origemRota: "/boxcanto3f",
     };
   };
 
@@ -1005,7 +1026,7 @@ export default function Box2FlsPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar Orçamento BOX2FLS:", error);
+      console.error("Erro ao carregar Orçamento BOXCANTO3F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -1014,12 +1035,12 @@ export default function Box2FlsPage() {
       return;
     }
 
-    const itens = orcamento?.itens as Box2FlsOrcamentoPersistido | null;
-    if (itens?.tipo !== "box2fls") {
+    const itens = orcamento?.itens as BoxCantoOrcamentoPersistido | null;
+    if (itens?.tipo !== "boxcanto3f") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este Orçamento não pertence ao BOX2FLS.",
+        mensagem: "Este Orçamento não pertence ao BOXCANTO3F.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1030,7 +1051,7 @@ export default function Box2FlsPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "BOX2FLS",
+      projeto: "Box de canto 3 folhas",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
   }, [editId, returnTo, router]);
@@ -1095,9 +1116,9 @@ export default function Box2FlsPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "BOX2FLS",
+        projeto: "Box de canto 3 folhas",
       };
-      const itensPersistidos: Box2FlsOrcamentoPersistido & {
+      const itensPersistidos: BoxCantoOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1107,7 +1128,7 @@ export default function Box2FlsPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "box2fls",
+        tipo: "boxcanto3f",
         modo: "kit",
         dados: dadosAtualizados,
         materiais,
@@ -1151,7 +1172,7 @@ export default function Box2FlsPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar Orçamento BOX2FLS:", erro);
+      console.error("Erro ao salvar Orçamento BOXCANTO3F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1351,7 +1372,7 @@ export default function Box2FlsPage() {
                         key={label}
                         tabIndex={-1}
                         document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                        fileName={`box2fls_${dados.numero || "novo"}.pdf`}
+                        fileName={`boxcanto3f_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
                         {({ loading }) => (
@@ -1397,7 +1418,7 @@ export default function Box2FlsPage() {
                   <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
                     <div className="mt-4 flex min-h-[340px] items-center justify-center sm:min-h-[460px] xl:min-h-[420px]">
-                      <ProjetoDrawing modelo={dados.trinco || "Tradicional"} puxador={dados.puxador} />
+                      <ProjetoDrawing puxador={dados.puxador} />
                     </div>
                   </section>
 
@@ -1407,10 +1428,18 @@ export default function Box2FlsPage() {
                       <div className="mt-5 grid overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
-                          label="Largura"
+                          label="Largura A"
                           value={dados.largura}
                           suffix="mm"
                           onChange={(v) => atualizarCampo("largura", v)}
+                        />
+
+                        <DataInput
+                          icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
+                          label="Largura B"
+                          value={dados.alturaAteTubo || 0}
+                          suffix="mm"
+                          onChange={(v) => atualizarCampo("alturaAteTubo", v)}
                         />
 
                         <DataInput
@@ -1885,8 +1914,8 @@ function DescricaoMaterialInput({
   );
 }
 
-function ProjetoDrawing({ modelo, puxador }: { modelo: string; puxador?: string }) {
-  const desenhoSrc = desenhoBox2Fls(modelo, puxador);
+function ProjetoDrawing({ puxador }: { puxador?: string }) {
+  const desenhoSrc = desenhoBoxCanto(puxador);
 
   return (
     <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -1920,6 +1949,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 
