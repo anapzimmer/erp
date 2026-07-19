@@ -79,6 +79,7 @@ const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPm
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehDeslizante2f = (projeto?: string) => /deslizante2f|deslizante 2/i.test(String(projeto || ""));
 const ehDeslizante3f = (projeto?: string) => /deslizante3f|deslizante 3/i.test(String(projeto || ""));
+const ehDeslizante4f = (projeto?: string) => /deslizante4f|deslizante 4/i.test(String(projeto || ""));
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
@@ -100,6 +101,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (ehBox2Fls(projeto)) return "Box 2 folhas";
   if (ehDeslizante2f(projeto)) return "Deslizante 2 folhas";
   if (ehDeslizante3f(projeto)) return "Deslizante 3 folhas";
+  if (ehDeslizante4f(projeto)) return "Deslizante 4 folhas";
   return projeto || "Projeto";
 };
 
@@ -117,6 +119,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
   if (texto.includes("deslizante2f") || texto.includes("deslizante 2")) return 2;
   if (texto.includes("deslizante3f") || texto.includes("deslizante 3")) return 3;
+  if (texto.includes("deslizante4f") || texto.includes("deslizante 4")) return 4;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -429,6 +432,8 @@ export default function CentralImpressaoPage() {
       ? "/deslizante2f"
       : projetoTexto.includes("deslizante3f") || projetoTexto.includes("deslizante 3")
       ? "/deslizante3f"
+      : projetoTexto.includes("deslizante4f") || projetoTexto.includes("deslizante 4")
+      ? "/deslizante4f"
       : projetoTexto.includes("2 folhas") || projetoTexto.includes("pfv2f")
       ? "/pfv2f-kit"
       : projetoTexto.includes("porta de correr") || projetoTexto.includes("pfv1f")
@@ -771,7 +776,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) ? "Projeto" : "Trilho"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) ? "Projeto" : "Trilho"}>
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
@@ -789,7 +794,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!ehFixos(item.projeto) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) ? "Carrinho" : ehPma(item.projeto) ? "Roldana" : "Trinco"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) ? "Carrinho" : ehPma(item.projeto) ? "Roldana" : "Trinco"}>
                               <input
                                 value={item.trinco || ""}
                                 onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}

@@ -198,6 +198,17 @@ const projetos = [
     descricao: "Projeto individual deslizante com 3 folhas.",
   },
   {
+    id: "deslizante4f",
+    nome: "Deslizante - 4 folhas",
+    titulo: "Todas correm ou 1 fixa + 3 móveis",
+    categoria: "Deslizante",
+    status: "Disponível",
+    imagem: "/desenhos/deslizante-4fls-cs-simples.png",
+    kitHref: "/deslizante4f",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual deslizante com 4 folhas.",
+  },
+  {
     id: "box2fls",
     nome: "Box 2 folhas",
     titulo: "Cálculo de box tradicional, quadrado e Evidence",

@@ -180,6 +180,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
   if (texto.includes("deslizante2f") || texto.includes("deslizante 2")) return 2;
   if (texto.includes("deslizante3f") || texto.includes("deslizante 3")) return 3;
+  if (texto.includes("deslizante4f") || texto.includes("deslizante 4")) return 4;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -255,8 +256,9 @@ export function CentralImpressaoPDF({
             const ehBox2Fls = /box2fls|box 2 folhas/i.test(item.projeto || "");
             const ehDeslizante2f = /deslizante2f|deslizante 2/i.test(item.projeto || "");
             const ehDeslizante3f = /deslizante3f|deslizante 3/i.test(item.projeto || "");
+            const ehDeslizante4f = /deslizante4f|deslizante 4/i.test(item.projeto || "");
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
-            const nomeProjeto = ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
+            const nomeProjeto = ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
@@ -296,7 +298,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehJanela && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
@@ -308,7 +310,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                       </View>
                     ) : null}
