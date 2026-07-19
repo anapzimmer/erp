@@ -1258,30 +1258,53 @@ export default function PG2FPage() {
                   { label: "Salvar", icon: Save },
                   { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
-                ].map(({ label, icon: Icon, ativo }) => (
-                  <button
-                    key={label}
-                    tabIndex={-1}
-                    onClick={() => {
-                      if (label === "Projetos") {
-                        router.push("/matriz-projetos");
-                      }
-                      if (label === "PDF +") {
-                        enviarParaCentralImpressao();
-                      }
-                      if (label === "Salvar") {
-                        salvarOrcamento();
-                      }
-                    }}
-                    disabled={label === "Salvar" && salvandoOrcamento}
-                    className={`flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
-                      }`}
-                    type="button"
-                  >
-                    <Icon size={22} />
-                    <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
-                  </button>
-                ))}
+                ].map(({ label, icon: Icon, ativo }) => {
+                  const itemClass = `flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
+                    }`;
+
+                  if (label === "Imprimir") {
+                    return (
+                      <PDFDownloadLink
+                        key={label}
+                        tabIndex={-1}
+                        document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
+                        fileName={`pg2f_2f_${dados.numero || "novo"}.pdf`}
+                        className={itemClass}
+                      >
+                        {({ loading }) => (
+                          <>
+                            <Icon size={22} />
+                            <span className="lg:hidden xl:inline">{loading ? "Gerando..." : label}</span>
+                          </>
+                        )}
+                      </PDFDownloadLink>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={label}
+                      tabIndex={-1}
+                      onClick={() => {
+                        if (label === "Projetos") {
+                          router.push("/matriz-projetos");
+                        }
+                        if (label === "PDF +") {
+                          enviarParaCentralImpressao();
+                        }
+                        if (label === "Salvar") {
+                          salvarOrcamento();
+                        }
+                      }}
+                      disabled={label === "Salvar" && salvandoOrcamento}
+                      className={itemClass}
+                      type="button"
+                    >
+                      <Icon size={22} />
+                      <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
+                    </button>
+                  );
+                })}
               </nav>
             </aside>
 
@@ -1472,14 +1495,7 @@ export default function PG2FPage() {
                             className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             Adicionar item
-                          </button>
-                          <PDFDownloadLink
-                            document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                            fileName={`pg2f_2f_${dados.numero || "novo"}.pdf`}
-                            className="rounded-xl bg-[#18bd72] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
-                          >
-                            {({ loading }) => loading ? "Gerando..." : "Baixar PDF"}
-                          </PDFDownloadLink>
+                          </button>
                         </div>
                       </div>
 

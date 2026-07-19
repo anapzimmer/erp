@@ -143,6 +143,25 @@ const limitarNumero4Digitos = (valor: string) => {
   return Number(somenteDigitos || 0);
 };
 
+const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
+  const barras: number[] = [];
+  const cortes = cortesOriginais
+    .map((corte) => Math.ceil(Number(corte || 0)))
+    .filter((corte) => corte > 0)
+    .sort((a, b) => b - a);
+
+  cortes.forEach((corte) => {
+    const indice = barras.findIndex((usado) => usado + corte <= comprimentoBarra);
+    if (indice >= 0) {
+      barras[indice] += corte;
+    } else {
+      barras.push(corte);
+    }
+  });
+
+  return barras.length;
+};
+
 const hojePtBr = () => new Date().toLocaleDateString("pt-BR");
 
 const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoIndividualMaterial => ({
@@ -522,17 +541,18 @@ export default function PMA3FPage() {
     const perfil = buscarPerfilPorCodigo(codigo);
     const comprimentoInteiroMm = medidaInteira(comprimentoMm);
     const totalUsadoMm = comprimentoInteiroMm * Number(quantidadeCortes || 0) * quantidadeProjeto;
+    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => comprimentoInteiroMm);
 
     if (!perfil || totalUsadoMm <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => comprimentoInteiroMm),
+      cortes,
     });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
@@ -559,7 +579,7 @@ export default function PMA3FPage() {
       grupos.set(chave, {
         ...existente,
         cortes,
-        qtd: Math.ceil(cortes.reduce((total, corte) => total + corte, 0) / comprimentoBarra),
+        qtd: calcularBarrasPorCortes(cortes, comprimentoBarra),
       });
     });
 
@@ -782,7 +802,7 @@ export default function PMA3FPage() {
 
     if (ehPorta) {
       regras.push(
-        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana, ignorarCor: true },
+        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana },
         { codigo: "3530AROU-CIL", multiplicador: multiplicadorAcessorios, ignorarCor: true },
         { codigo: "3530DP", multiplicador: multiplicadorAcessorios },
         { codigo: "3230DP", alternativas: ["3230D"], codigoExibicao: "3230DP", multiplicador: multiplicadorAcessorios }
@@ -790,12 +810,12 @@ export default function PMA3FPage() {
     } else {
       regras.push(
         { codigo: "1561", multiplicador: 2 },
-        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana, ignorarCor: true }
+        { codigo: codigoRoldana, multiplicador: multiplicadorRoldana }
       );
     }
 
     if (dados.puxador === "Com puxador") {
-      regras.push({ codigo: codigoPuxador, multiplicador: multiplicadorAcessorios, ignorarCor: true });
+      regras.push({ codigo: codigoPuxador, multiplicador: multiplicadorAcessorios });
     }
 
     return regras
@@ -1295,30 +1315,53 @@ export default function PMA3FPage() {
                   { label: "Salvar", icon: Save },
                   { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
-                ].map(({ label, icon: Icon, ativo }) => (
-                  <button
-                    key={label}
-                    tabIndex={-1}
-                    onClick={() => {
-                      if (label === "Projetos") {
-                        router.push("/matriz-projetos");
-                      }
-                      if (label === "PDF +") {
-                        enviarParaCentralImpressao();
-                      }
-                      if (label === "Salvar") {
-                        salvarOrcamento();
-                      }
-                    }}
-                    disabled={label === "Salvar" && salvandoOrcamento}
-                    className={`flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
-                      }`}
-                    type="button"
-                  >
-                    <Icon size={22} />
-                    <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
-                  </button>
-                ))}
+                ].map(({ label, icon: Icon, ativo }) => {
+                  const itemClass = `flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
+                    }`;
+
+                  if (label === "Imprimir") {
+                    return (
+                      <PDFDownloadLink
+                        key={label}
+                        tabIndex={-1}
+                        document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
+                        fileName={`PMA3F_${dados.numero || "novo"}.pdf`}
+                        className={itemClass}
+                      >
+                        {({ loading }) => (
+                          <>
+                            <Icon size={22} />
+                            <span className="lg:hidden xl:inline">{loading ? "Gerando..." : label}</span>
+                          </>
+                        )}
+                      </PDFDownloadLink>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={label}
+                      tabIndex={-1}
+                      onClick={() => {
+                        if (label === "Projetos") {
+                          router.push("/matriz-projetos");
+                        }
+                        if (label === "PDF +") {
+                          enviarParaCentralImpressao();
+                        }
+                        if (label === "Salvar") {
+                          salvarOrcamento();
+                        }
+                      }}
+                      disabled={label === "Salvar" && salvandoOrcamento}
+                      className={itemClass}
+                      type="button"
+                    >
+                      <Icon size={22} />
+                      <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
+                    </button>
+                  );
+                })}
               </nav>
             </aside>
 
@@ -1513,14 +1556,7 @@ export default function PMA3FPage() {
                             className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             Adicionar item
-                          </button>
-                          <PDFDownloadLink
-                            document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                            fileName={`PMA3F_${dados.numero || "novo"}.pdf`}
-                            className="rounded-xl bg-[#18bd72] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
-                          >
-                            {({ loading }) => loading ? "Gerando..." : "Baixar PDF"}
-                          </PDFDownloadLink>
+                          </button>
                         </div>
                       </div>
 

@@ -174,7 +174,12 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("pma3f") || texto.includes("mao amiga 3") || texto.includes("mão amiga 3")) return 3;
   if (texto.includes("pma4f") || texto.includes("mao amiga 4") || texto.includes("mão amiga 4")) return 4;
+  if (texto.includes("pma5f") || texto.includes("mao amiga 5") || texto.includes("mão amiga 5")) return 5;
+  if (texto.includes("pma6f") || texto.includes("mao amiga 6") || texto.includes("mão amiga 6")) return 6;
+  if (texto.includes("pma2f4m") || texto.includes("2 fixas + 4") || texto.includes("2 fixas e 4")) return 6;
   if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
+  if (texto.includes("deslizante2f") || texto.includes("deslizante 2")) return 2;
+  if (texto.includes("deslizante3f") || texto.includes("deslizante 3")) return 3;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -243,9 +248,15 @@ export function CentralImpressaoPDF({
             const ehPma2f = /pma2f|m[aã]o amiga 2/i.test(item.projeto || "");
             const ehPma3f = /pma3f|m[aã]o amiga 3/i.test(item.projeto || "");
             const ehPma4f = /pma4f|m[aã]o amiga 4/i.test(item.projeto || "");
-            const ehPma = ehPma2f || ehPma3f || ehPma4f;
+            const ehPma5f = /pma5f|m[aã]o amiga 5/i.test(item.projeto || "");
+            const ehPma6f = /pma6f|m[aã]o amiga 6/i.test(item.projeto || "");
+            const ehPma2f4m = /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(item.projeto || "");
+            const ehPma = ehPma2f || ehPma3f || ehPma4f || ehPma5f || ehPma6f || ehPma2f4m;
             const ehBox2Fls = /box2fls|box 2 folhas/i.test(item.projeto || "");
+            const ehDeslizante2f = /deslizante2f|deslizante 2/i.test(item.projeto || "");
+            const ehDeslizante3f = /deslizante3f|deslizante 3/i.test(item.projeto || "");
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
+            const nomeProjeto = ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
@@ -255,7 +266,7 @@ export function CentralImpressaoPDF({
 
                 <View style={styles.infoArea}>
                   <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
-                  <Text style={styles.projectName}>{item.projeto}</Text>
+                  <Text style={styles.projectName}>{nomeProjeto}</Text>
                   <View style={styles.infoGrid}>
                     <View style={styles.info}>
                       <Text style={styles.infoLabel}>Medidas</Text>
@@ -285,7 +296,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehJanela && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
@@ -297,7 +308,7 @@ export function CentralImpressaoPDF({
                     ) : null}
                     {!ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                       </View>
                     ) : null}

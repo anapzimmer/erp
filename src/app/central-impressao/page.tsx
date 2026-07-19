@@ -72,8 +72,13 @@ const ehFixos = (projeto?: string) => /fixos|fixo/i.test(String(projeto || ""));
 const ehPma2f = (projeto?: string) => /pma2f|m[aã]o amiga 2/i.test(String(projeto || ""));
 const ehPma3f = (projeto?: string) => /pma3f|m[aã]o amiga 3/i.test(String(projeto || ""));
 const ehPma4f = (projeto?: string) => /pma4f|m[aã]o amiga 4/i.test(String(projeto || ""));
-const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto);
+const ehPma5f = (projeto?: string) => /pma5f|m[aã]o amiga 5/i.test(String(projeto || ""));
+const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(projeto || ""));
+const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
+const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
+const ehDeslizante2f = (projeto?: string) => /deslizante2f|deslizante 2/i.test(String(projeto || ""));
+const ehDeslizante3f = (projeto?: string) => /deslizante3f|deslizante 3/i.test(String(projeto || ""));
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
@@ -86,10 +91,15 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PG - 2 folhas") return "Porta de giro - 2 folhas";
   if (/pg dobradi[cç]a - 2|porta de giro dobradi[cç]a - 2/i.test(String(projeto || ""))) return "Porta de giro dobradiça - 2 folhas";
   if (ehFixos(projeto)) return "Fixos";
+  if (ehPma2f4m(projeto)) return "Mão Amiga 2 fixas + 4 móveis";
+  if (ehPma6f(projeto)) return "Mão Amiga 6 folhas";
+  if (ehPma5f(projeto)) return "Mão Amiga 5 folhas";
   if (ehPma4f(projeto)) return "Mão Amiga 4 folhas";
   if (ehPma3f(projeto)) return "Mão Amiga 3 folhas";
   if (ehPma2f(projeto)) return "Mão Amiga 2 folhas";
   if (ehBox2Fls(projeto)) return "Box 2 folhas";
+  if (ehDeslizante2f(projeto)) return "Deslizante 2 folhas";
+  if (ehDeslizante3f(projeto)) return "Deslizante 3 folhas";
   return projeto || "Projeto";
 };
 
@@ -101,7 +111,12 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("pma3f") || texto.includes("mao amiga 3") || texto.includes("mão amiga 3")) return 3;
   if (texto.includes("pma4f") || texto.includes("mao amiga 4") || texto.includes("mão amiga 4")) return 4;
+  if (texto.includes("pma5f") || texto.includes("mao amiga 5") || texto.includes("mão amiga 5")) return 5;
+  if (texto.includes("pma6f") || texto.includes("mao amiga 6") || texto.includes("mão amiga 6")) return 6;
+  if (texto.includes("pma2f4m") || texto.includes("2 fixas + 4") || texto.includes("2 fixas e 4")) return 6;
   if (texto.includes("box2fls") || texto.includes("box 2 folhas")) return 2;
+  if (texto.includes("deslizante2f") || texto.includes("deslizante 2")) return 2;
+  if (texto.includes("deslizante3f") || texto.includes("deslizante 3")) return 3;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -410,6 +425,10 @@ export default function CentralImpressaoPage() {
       ? "/pg2f"
       : projetoTexto.includes("pg") || projetoTexto.includes("porta de giro")
       ? "/pg"
+      : projetoTexto.includes("deslizante2f") || projetoTexto.includes("deslizante 2")
+      ? "/deslizante2f"
+      : projetoTexto.includes("deslizante3f") || projetoTexto.includes("deslizante 3")
+      ? "/deslizante3f"
       : projetoTexto.includes("2 folhas") || projetoTexto.includes("pfv2f")
       ? "/pfv2f-kit"
       : projetoTexto.includes("porta de correr") || projetoTexto.includes("pfv1f")
@@ -422,6 +441,12 @@ export default function CentralImpressaoPage() {
         ? "/pma3f"
       : projetoTexto.includes("pma4f") || projetoTexto.includes("mao amiga 4") || projetoTexto.includes("mão amiga 4")
         ? "/pma4f"
+      : projetoTexto.includes("pma5f") || projetoTexto.includes("mao amiga 5") || projetoTexto.includes("mão amiga 5")
+        ? "/pma5f"
+      : projetoTexto.includes("pma6f") || projetoTexto.includes("mao amiga 6") || projetoTexto.includes("mão amiga 6")
+        ? "/pma6f"
+      : projetoTexto.includes("pma2f4m") || projetoTexto.includes("2 fixas + 4") || projetoTexto.includes("2 fixas e 4")
+        ? "/pma2f4m"
       : projetoTexto.includes("box2fls") || projetoTexto.includes("box 2 folhas")
         ? "/box2fls"
         : "");
@@ -746,7 +771,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma(item.projeto) ? "Projeto" : "Trilho"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) ? "Projeto" : "Trilho"}>
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
@@ -764,7 +789,7 @@ export default function CentralImpressaoPage() {
                             </Field>
                           ) : null}
                           {!ehFixos(item.projeto) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehPma(item.projeto) ? "Roldana" : "Trinco"}>
+                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) ? "Carrinho" : ehPma(item.projeto) ? "Roldana" : "Trinco"}>
                               <input
                                 value={item.trinco || ""}
                                 onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}

@@ -82,7 +82,7 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type PMA4FOrcamentoPersistido = {
+type PMA5FOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
   dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
@@ -175,7 +175,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   cortes: parcial?.cortes,
 });
 
-const projetoOpcoes = ["Janela todas correm", "Porta todas correm", "Janela 1F + 3M", "Porta 1F + 3M"];
+const projetoOpcoes = ["Janela todas correm", "Porta todas correm", "Janela 1F + 4M", "Porta 1F + 4M"];
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
 const puxadorOpcoes = ["Sem puxador", "Com puxador"];
 const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
@@ -205,7 +205,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
 
   return 3;
 };
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pma4f:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pma5f:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -220,16 +220,16 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-const desenhoPMA4F = (tipoProjeto?: string, puxador?: string) => {
+const desenhoPMA5F = (tipoProjeto?: string, puxador?: string) => {
   const tipo = normalizarTexto(tipoProjeto);
   const todasCorrem = tipo.includes("todas");
   if (todasCorrem) {
-    return puxador === "Com puxador" ? "/desenhos/pma-4fs-completo.png" : "/desenhos/pma-4fs-simples.png";
+    return puxador === "Com puxador" ? "/desenhos/pma-5fs-completo.png" : "/desenhos/pma-5fs-simples.png";
   }
-  return puxador === "Com puxador" ? "/desenhos/pma-13fs-completo.png" : "/desenhos/pma-13fs-simples.png";
+  return puxador === "Com puxador" ? "/desenhos/pma-14fs-completo.png" : "/desenhos/pma-14fs-simples.png";
 };
 
-export default function PMA4FPage() {
+export default function PMA5FPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -260,7 +260,7 @@ export default function PMA4FPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "PMA4F",
+    projeto: "PMA5F",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
@@ -342,7 +342,7 @@ export default function PMA4FPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "PMA4F",
+        projeto: "PMA5F",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
@@ -373,7 +373,7 @@ export default function PMA4FPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * 4;
+  const totalVidros = Number(dados.quantidade || 0) * 5;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -435,11 +435,11 @@ export default function PMA4FPage() {
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
-    const larguraMedida = ((Number(dados.largura || 0) + 30) / 4);
+    const larguraMedida = ((Number(dados.largura || 0) + 40) / 5);
     const alturaMedida = Math.max(0, Number(dados.altura || 0));
     const larguraCalculo = arredondar5cm(larguraMedida);
     const alturaCalculo = arredondar5cm(alturaMedida);
-    const areaTotalCobrada = (larguraCalculo * alturaCalculo * 4 * quantidadeVaos) / 1_000_000;
+    const areaTotalCobrada = (larguraCalculo * alturaCalculo * 5 * quantidadeVaos) / 1_000_000;
 
     return {
       larguraCalculo,
@@ -595,10 +595,12 @@ export default function PMA4FPage() {
 
     if (dados.corKit === "Escolher" || largura <= 0 || altura <= 0) return [];
 
-    const perfisLargura = largura > 3000
+    const perfisLargura = todasCorrem
       ? [
         criarPerfilBarra("VT268", largura, 1),
         criarPerfilBarra("VT239", largura, 1),
+        criarPerfilBarra("VT68", largura, 1),
+        criarPerfilBarra("VT39", largura, 1),
       ]
       : [
         criarPerfilBarra("VT68", largura, 2),
@@ -610,7 +612,7 @@ export default function PMA4FPage() {
 
     return agruparMateriaisBarra([
       ...perfisLargura,
-      codigoAlturaUnica ? criarPerfilBarra(codigoAlturaUnica, altura, 6) : null,
+      codigoAlturaUnica ? criarPerfilBarra(codigoAlturaUnica, altura, 8) : null,
       codigoPerfilU ? criarPerfilBarra(codigoPerfilU, altura, quantidadePerfilUAltura) : null,
       !todasCorrem && codigoPerfilU ? criarPerfilBarra(codigoPerfilU, calculoVidro.larguraMovelMedida, 2) : null,
     ].filter((item): item is ProjetoIndividualMaterial => Boolean(item)));
@@ -794,7 +796,7 @@ export default function PMA4FPage() {
     const todasCorrem = tipoProjeto.includes("todas");
     const ehPorta = tipoProjeto.includes("porta");
     const codigoRoldana = dados.trinco || "1122D";
-    const multiplicadorRoldana = todasCorrem ? 8 : 6;
+    const multiplicadorRoldana = todasCorrem ? 10 : 8;
     const multiplicadorAcessorios = todasCorrem ? 2 : 1;
 
     const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean; alternativas?: string[]; codigoExibicao?: string }> = [];
@@ -843,7 +845,7 @@ export default function PMA4FPage() {
       .trim();
 
     const medidaVidroMovel = `${medidaInteira(calculoVidro.larguraMovelMedida)}x${medidaInteira(calculoVidro.alturaMovelMedida)}`;
-    const descricaoVidroMovel = `VIDRO MOVEL 4 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL 5 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
@@ -882,7 +884,7 @@ export default function PMA4FPage() {
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/pma4f");
+      router.push("/pma5f");
       return;
     }
 
@@ -906,12 +908,12 @@ export default function PMA4FPage() {
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = desenhoPMA4F(dados.trilho, dados.puxador);
+    const desenhoUrl = desenhoPMA5F(dados.trilho, dados.puxador);
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "PMA4F - Barra",
+      projeto: "PMA5F - Barra",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
@@ -928,7 +930,7 @@ export default function PMA4FPage() {
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/pma4f",
+      origemRota: "/pma5f",
     };
   };
 
@@ -985,7 +987,7 @@ export default function PMA4FPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar Orçamento PMA4F:", error);
+      console.error("Erro ao carregar Orçamento PMA5F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -994,12 +996,12 @@ export default function PMA4FPage() {
       return;
     }
 
-    const itens = orcamento?.itens as PMA4FOrcamentoPersistido | null;
-    if (itens?.tipo !== "pma4f") {
+    const itens = orcamento?.itens as PMA5FOrcamentoPersistido | null;
+    if (itens?.tipo !== "pma5f") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este Orçamento não pertence ao PMA4F.",
+        mensagem: "Este Orçamento não pertence ao PMA5F.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1010,7 +1012,7 @@ export default function PMA4FPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "PMA4F",
+      projeto: "PMA5F",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
   }, [editId, returnTo, router]);
@@ -1075,9 +1077,9 @@ export default function PMA4FPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "PMA4F",
+        projeto: "PMA5F",
       };
-      const itensPersistidos: PMA4FOrcamentoPersistido & {
+      const itensPersistidos: PMA5FOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1087,7 +1089,7 @@ export default function PMA4FPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "pma4f",
+        tipo: "pma5f",
         modo: "barra",
         dados: dadosAtualizados,
         materiais,
@@ -1131,7 +1133,7 @@ export default function PMA4FPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar Orçamento PMA4F:", erro);
+      console.error("Erro ao salvar Orçamento PMA5F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1324,7 +1326,7 @@ export default function PMA4FPage() {
                         key={label}
                         tabIndex={-1}
                         document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                        fileName={`PMA4F_${dados.numero || "novo"}.pdf`}
+                        fileName={`PMA5F_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
                         {({ loading }) => (
@@ -1885,7 +1887,7 @@ function DescricaoMaterialInput({
 }
 
 function ProjetoDrawing({ tipoProjeto, comPuxador }: { tipoProjeto: string; comPuxador: boolean }) {
-  const desenhoSrc = desenhoPMA4F(tipoProjeto, comPuxador ? "Com puxador" : "Sem puxador");
+  const desenhoSrc = desenhoPMA5F(tipoProjeto, comPuxador ? "Com puxador" : "Sem puxador");
 
   return (
     <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -1919,6 +1921,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 

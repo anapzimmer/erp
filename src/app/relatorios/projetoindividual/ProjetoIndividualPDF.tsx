@@ -202,8 +202,13 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const ehPma2f = projetoNormalizado.includes("pma2f") || projetoNormalizado.includes("mao amiga 2") || projetoNormalizado.includes("mão amiga 2");
   const ehPma3f = projetoNormalizado.includes("pma3f") || projetoNormalizado.includes("mao amiga 3") || projetoNormalizado.includes("mão amiga 3");
   const ehPma4f = projetoNormalizado.includes("pma4f") || projetoNormalizado.includes("mao amiga 4") || projetoNormalizado.includes("mão amiga 4");
-  const ehPma = ehPma2f || ehPma3f || ehPma4f;
+  const ehPma5f = projetoNormalizado.includes("pma5f") || projetoNormalizado.includes("mao amiga 5") || projetoNormalizado.includes("mão amiga 5");
+  const ehPma6f = projetoNormalizado.includes("pma6f") || projetoNormalizado.includes("mao amiga 6") || projetoNormalizado.includes("mão amiga 6");
+  const ehPma2f4m = projetoNormalizado.includes("pma2f4m") || projetoNormalizado.includes("2 fixas + 4") || projetoNormalizado.includes("2 fixas e 4");
+  const ehPma = ehPma2f || ehPma3f || ehPma4f || ehPma5f || ehPma6f || ehPma2f4m;
   const ehBox2Fls = projetoNormalizado.includes("box2fls") || projetoNormalizado.includes("box 2 folhas");
+  const ehDeslizante2f = projetoNormalizado.includes("deslizante2f") || projetoNormalizado.includes("deslizante 2");
+  const ehDeslizante3f = projetoNormalizado.includes("deslizante3f") || projetoNormalizado.includes("deslizante 3");
   const ehDuasFolhas = projetoNormalizado.includes("pfv2f") || projetoNormalizado.includes("2 folhas");
   const quantidadeVaos = Number(dados.quantidade || 0);
   const pecasFixos = Math.min(6, Math.max(1, Number(dados.pecasDivisao || dados.tamanhoPuxador || 1)));
@@ -231,18 +236,38 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const alturaPma3f = arredondar5cm(Number(dados.altura || 0));
   const larguraPma4f = arredondar5cm((Number(dados.largura || 0) + 30) / 4);
   const alturaPma4f = arredondar5cm(Number(dados.altura || 0));
+  const larguraPma5f = arredondar5cm((Number(dados.largura || 0) + 40) / 5);
+  const alturaPma5f = arredondar5cm(Number(dados.altura || 0));
+  const larguraPma6f = arredondar5cm((Number(dados.largura || 0) + 50) / 6);
+  const alturaPma6f = arredondar5cm(Number(dados.altura || 0));
+  const larguraPma2f4m = arredondar5cm((Number(dados.largura || 0) + 40) / 6);
+  const alturaPma2f4m = arredondar5cm(Number(dados.altura || 0));
   const larguraFixaBox2Fls = arredondar5cm(Number(dados.largura || 0) / 2);
   const larguraMovelBox2Fls = arredondar5cm((Number(dados.largura || 0) / 2) + 50);
   const alturaFixaBox2Fls = arredondar5cm(Math.max(0, Number(dados.altura || 0) - (dados.trilho === "Até o teto" ? 55 : 35)));
   const alturaMovelBox2Fls = arredondar5cm(Math.max(0, Number(dados.altura || 0) - (dados.trilho === "Até o teto" ? 25 : 0)));
-  const quantidadePecasVidro = ehBox2Fls ? quantidadeVaos * 2 : ehPma4f ? quantidadeVaos * 4 : ehPma3f ? quantidadeVaos * 3 : ehPma2f ? quantidadeVaos * 2 : ehFixos ? quantidadeVaos * pecasFixos : ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f || ehPortaGiro2Folhas ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
+  const larguraDeslizante2f = arredondar5cm((Number(dados.largura || 0) + 10) / 2);
+  const alturaDeslizante2f = arredondar5cm(Number(dados.altura || 0));
+  const larguraDeslizante3f = arredondar5cm((Number(dados.largura || 0) + 20) / 3);
+  const alturaDeslizante3f = arredondar5cm(Number(dados.altura || 0));
+  const quantidadePecasVidro = ehDeslizante3f ? quantidadeVaos * 3 : ehDeslizante2f ? quantidadeVaos * 2 : ehBox2Fls ? quantidadeVaos * 2 : ehPma2f4m ? quantidadeVaos * 6 : ehPma6f ? quantidadeVaos * 6 : ehPma5f ? quantidadeVaos * 5 : ehPma4f ? quantidadeVaos * 4 : ehPma3f ? quantidadeVaos * 3 : ehPma2f ? quantidadeVaos * 2 : ehFixos ? quantidadeVaos * pecasFixos : ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f || ehPortaGiro2Folhas ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
   const larguraBaseVidro = ehDuasFolhas ? Number(dados.largura || 0) / 2 : Number(dados.largura || 0);
   const larguraVidro = arredondar5cm(larguraBaseVidro + 50);
   const alturaVidro = arredondar5cm(Number(dados.altura || 0) + (dados.trilho === "Embutido" ? 70 : 50));
   const areaTotal = ehJanelaCorrer
     ? Number((((larguraFixaJc * alturaFixaJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos) + (larguraMovelJc * alturaMovelJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehDeslizante2f
+      ? Number(((larguraDeslizante2f * alturaDeslizante2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehDeslizante3f
+      ? Number(((larguraDeslizante3f * alturaDeslizante3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehFixos
       ? Number(((larguraFixos * alturaFixos * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma2f4m
+      ? Number(((larguraPma2f4m * alturaPma2f4m * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma6f
+      ? Number(((larguraPma6f * alturaPma6f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma5f
+      ? Number(((larguraPma5f * alturaPma5f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehPma4f
       ? Number(((larguraPma4f * alturaPma4f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehPma3f
@@ -295,6 +320,12 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
       ? "Porta de giro - 1 folha"
     : ehFixos
       ? "Fixos"
+    : ehPma2f4m
+      ? "Mão Amiga 2 fixas + 4 móveis"
+    : ehPma6f
+      ? "Mão Amiga 6 folhas"
+    : ehPma5f
+      ? "Mão Amiga 5 folhas"
     : ehPma4f
       ? "Mão Amiga 4 folhas"
     : ehPma3f
@@ -303,6 +334,10 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
       ? "Mão Amiga 2 folhas"
     : ehBox2Fls
       ? "Box 2 folhas"
+    : ehDeslizante2f
+      ? "Deslizante 2 folhas"
+    : ehDeslizante3f
+      ? "Deslizante 3 folhas"
     : ehDuasFolhas
       ? "Porta de correr atrás do vão - 2 folhas"
       : projetoNormalizado.includes("pfv1f")
@@ -328,6 +363,23 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
     : dados.puxador === "Com puxador"
       ? "/desenhos/pma-13fs-completo.png"
       : "/desenhos/pma-13fs-simples.png";
+  const desenhoPma5f = normalizarTexto(dados.trilho).includes("todas")
+    ? dados.puxador === "Com puxador"
+      ? "/desenhos/pma-5fs-completo.png"
+      : "/desenhos/pma-5fs-simples.png"
+    : dados.puxador === "Com puxador"
+      ? "/desenhos/pma-14fs-completo.png"
+      : "/desenhos/pma-14fs-simples.png";
+  const desenhoPma6f = normalizarTexto(dados.trilho).includes("todas")
+    ? dados.puxador === "Com puxador"
+      ? "/desenhos/pma-6fs-completo.png"
+      : "/desenhos/pma-6fs-simples.png"
+    : dados.puxador === "Com puxador"
+      ? "/desenhos/pma-15fs-completo.png"
+      : "/desenhos/pma-15fs-simples.png";
+  const desenhoPma2f4m = dados.puxador === "Com puxador"
+    ? "/desenhos/pma-24fs-completo.png"
+    : "/desenhos/pma-24fs-simples.png";
   const modeloBoxNormalizado = normalizarTexto(dados.trinco);
   const desenhoBox2Fls = modeloBoxNormalizado.includes("evidence") || modeloBoxNormalizado.includes("elegance")
     ? dados.puxador === "Com puxador"
@@ -336,10 +388,42 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
     : dados.puxador === "Com puxador"
       ? "/desenhos/box-padraopuxador.png"
       : "/desenhos/box-padrao.png";
+  const desenhoDeslizante2f = normalizarTexto(dados.trinco).includes("inteiro")
+    ? dados.puxador === "Com puxador"
+      ? "/desenhos/deslizante-2fls-ci-completo.png"
+      : "/desenhos/deslizante-2fls-ci-simples.png"
+    : dados.puxador === "Com puxador"
+      ? "/desenhos/deslizante-2fls-cs-completo.png"
+      : "/desenhos/deslizante-2fls-cs-simples.png";
+  const desenhoDeslizante3f = normalizarTexto(dados.trilho).includes("fixo")
+    ? normalizarTexto(dados.trinco).includes("inteiro")
+      ? dados.puxador === "Com puxador"
+        ? "/desenhos/deslizante-12fls-ci-completo.png"
+        : "/desenhos/deslizante-12fls-ci-simples.png"
+      : dados.puxador === "Com puxador"
+        ? "/desenhos/deslizante-12fls-cs-completo.png"
+        : "/desenhos/deslizante-12fls-cs-simples.png"
+    : normalizarTexto(dados.trinco).includes("inteiro")
+      ? dados.puxador === "Com puxador"
+        ? "/desenhos/deslizante-3fls-ci-completo.png"
+        : "/desenhos/deslizante-3fls-ci-simples.png"
+      : dados.puxador === "Com puxador"
+        ? "/desenhos/deslizante-3fls-cs-completo.png"
+        : "/desenhos/deslizante-3fls-cs-simples.png";
   const desenhoSrc = ehFixos
     ? desenhoFixos
     : ehBox2Fls
       ? desenhoBox2Fls
+    : ehDeslizante2f
+      ? desenhoDeslizante2f
+    : ehDeslizante3f
+      ? desenhoDeslizante3f
+    : ehPma2f4m
+      ? desenhoPma2f4m
+    : ehPma6f
+      ? desenhoPma6f
+    : ehPma5f
+      ? desenhoPma5f
     : ehPma4f
       ? desenhoPma4f
     : ehPma3f
@@ -471,12 +555,12 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
               </View>
               {!ehJanelaCorrer && !ehFixos ? (
                 <View style={styles.dataItem}>
-                  <Text style={styles.dataLabel}>{ehBox2Fls ? "Altura" : ehPma ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                  <Text style={styles.dataLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
                   <Text style={styles.dataValue}>{dados.trilho || "-"}</Text>
                 </View>
               ) : null}
               <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>{ehPortaGiro || ehFixos || ehPma ? "Cor do material" : "Cor do kit"}</Text>
+                <Text style={styles.dataLabel}>{ehPortaGiro || ehFixos || ehPma || ehDeslizante2f || ehDeslizante3f ? "Cor do material" : "Cor do kit"}</Text>
                 <Text style={styles.dataValue}>{dados.corKit || "-"}</Text>
               </View>
               {ehFixos ? (
@@ -499,7 +583,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
               ) : null}
               {!ehFixos ? (
                 <View style={styles.dataItem}>
-                  <Text style={styles.dataLabel}>{ehBox2Fls ? "Modelo do kit" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                  <Text style={styles.dataLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
                   <Text style={styles.dataValue}>{dados.trinco || "-"}</Text>
                 </View>
               ) : null}
