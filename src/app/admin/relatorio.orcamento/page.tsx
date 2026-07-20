@@ -707,7 +707,6 @@ export default function RelatorioOrcamento() {
                                                                     const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
                                                                     const ehFechamentoSacada = tipoItem === "fechamento_sacada";
                                                                     const ehPeleVidro = tipoItem === "pele_de_vidro";
-                                                                    const ehMaoAmiga = tipoItem === "mao_amiga";
                                                                     const ehPfv1fKit = tipoItem === "pfv1f_kit";
                                                                     const ehPfv1fBarra = tipoItem === "pfv1f_barra";
                                                                     const ehPfv2fKit = tipoItem === "pfv2f_kit";
@@ -751,8 +750,6 @@ export default function RelatorioOrcamento() {
                                                                     const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
                                                                     const rotaEdicao = ehFechamentoSacada
                                                                         ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehMaoAmiga
-                                                                        ? `/calculo/maoamiga?edit=${orc.id}&returnTo=${returnTo}`
                                                                         : ehOrcamentoProjetos
                                                                         ? `/central-impressao?edit=${orc.id}`
                                                                         : ehPfv1fKit
@@ -1391,4 +1388,5 @@ export default function RelatorioOrcamento() {
         </div>
     )
 }
+
 
