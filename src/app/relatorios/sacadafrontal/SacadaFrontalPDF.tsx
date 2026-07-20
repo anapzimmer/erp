@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React from "react";
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
 import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
@@ -462,3 +462,4 @@ export function SacadaFrontalPDF({
     </Document>
   );
 }
+

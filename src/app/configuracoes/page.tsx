@@ -1,4 +1,4 @@
-//app/configuracoes/page.tsx
+﻿//app/configuracoes/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"

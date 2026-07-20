@@ -963,7 +963,7 @@ export default function PFV2FBarraPage() {
     if (itens?.tipo !== "pfv2f_barra") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Orçamento incompatÃ­vel",
+        titulo: "Orçamento incompatível",
         mensagem: "Este Orçamento Não pertence ao PFV2F - BARRA.",
         aoFechar: () => router.push(returnTo),
       });
@@ -1880,6 +1880,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 

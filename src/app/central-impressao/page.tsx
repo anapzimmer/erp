@@ -25,6 +25,7 @@ type ProjetoComposicao = CentralImpressaoItem & {
   tamanhoPuxador?: string;
   trinco?: string;
   observacao?: string;
+  medidasDetalhadas?: string;
   pecasDivisao?: number;
   origemRota?: string;
   materiais?: ProjetoIndividualMaterial[];
@@ -211,6 +212,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
 const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposicao, "pecasDivisao" | "tamanhoPuxador" | "trinco">) => {
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
+  if (texto.includes("vidros avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
   if (texto.includes("fixos") || texto.includes("fixo")) {
     return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
@@ -999,8 +1001,18 @@ export default function CentralImpressaoPage() {
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
                       <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.desenhoUrl} alt={item.projeto} className="max-h-full max-w-full object-contain" />
+                        {item.desenhoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.desenhoUrl} alt={item.projeto} className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <div className="text-center">
+                            <Layers3 size={42} className="mx-auto text-slate-300" />
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                              Sem desenho
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">Vidros avulsos</p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -1175,6 +1187,18 @@ export default function CentralImpressaoPage() {
                               </p>
                             ) : null}
                           </Field>
+                          {item.medidasDetalhadas ? (
+                            <div className="md:col-span-2 xl:col-span-4">
+                              <Field label="Medidas dos vidros">
+                                <textarea
+                                  value={item.medidasDetalhadas}
+                                  onChange={(e) => atualizarItem(item.id, "medidasDetalhadas", e.target.value)}
+                                  rows={Math.min(6, Math.max(3, item.medidasDetalhadas.split("\n").length))}
+                                  className="w-full resize-none bg-transparent text-sm font-normal leading-6 text-slate-700 outline-none"
+                                />
+                              </Field>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>

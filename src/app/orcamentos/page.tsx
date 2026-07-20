@@ -35,11 +35,11 @@ const modelosOrcamento = [
   {
     id: "espelhos",
     nome: "Espelhos",
-    categoria: "DecoraÃ§Ã£o",
-    descricao: "CÃ¡lculo de espelhos lapidados e bisotÃª",
+    categoria: "Decoração",
+    descricao: "Cálculo de espelhos lapidados e bisotê",
     imagem: "/desenhos/espelhos.png",
     rota: "/espelhos",
-    tags: ["Lapidado", "BisotÃª"],
+    tags: ["Lapidado", "Bisotê"],
   },
   {
     id: "vidro-comum",
@@ -58,10 +58,10 @@ export default function SelecaoOrcamento() {
   const [busca, setBusca] = useState("")
   const [filtroAtivo, setFiltroAtivo] = useState("Todos")
 
-  // Categorias para os botÃµes
-  const categoriasFiltro = ["Todos", "Box", "Engenharia", "DecoraÃ§Ã£o"]
+  // Categorias para os botões
+  const categoriasFiltro = ["Todos", "Box", "Engenharia", "Decoração"]
 
-  // LÃ³gica de Filtragem combinada (Busca + BotÃ£o)
+  // Lógica de Filtragem combinada (Busca + Botão)
   const modelosFiltrados = modelosOrcamento.filter(item => {
     const matchBusca = item.nome.toLowerCase().includes(busca.toLowerCase());
     const matchFiltro = filtroAtivo === "Todos" || item.categoria === filtroAtivo;
@@ -82,12 +82,12 @@ export default function SelecaoOrcamento() {
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#e9f6ee] px-3 py-1.5 text-[#2F7A4D]">
                 <PlusCircle size={16} />
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em]">Novo Orçamento</span>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em]">Novo Or�amento</span>
               </div>
 
-              <h1 className="text-3xl font-black tracking-tight text-[#1F3F57] md:text-4xl">Selecione o modelo de cÃ¡lculo</h1>
+              <h1 className="text-3xl font-black tracking-tight text-[#1F3F57] md:text-4xl">Selecione o modelo de cálculo</h1>
               <p className="mt-2 max-w-2xl text-sm font-medium text-[#5f7385] md:text-base">
-                Fluxo rÃ¡pido para iniciar um novo Orçamento com o tipo de projeto certo.
+                Fluxo rápido para iniciar um novo Or�amento com o tipo de projeto certo.
               </p>
             </div>
 
@@ -118,7 +118,7 @@ export default function SelecaoOrcamento() {
               <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8fa0ae]" size={18} />
               <input
                 type="text"
-                placeholder="Pesquisar modelo de Orçamento"
+                placeholder="Pesquisar modelo de Or�amento"
                 className="w-full rounded-2xl border border-[#e1e8ef] bg-[#f9fbfd] py-3 pl-12 pr-4 text-sm font-medium text-[#30495c] outline-none transition-all placeholder:text-[#9aabba] focus:border-[#b8cbdb] focus:bg-white"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
@@ -213,10 +213,11 @@ export default function SelecaoOrcamento() {
               <Search className="text-[#a5b4c2]" size={30} />
             </div>
             <h3 className="text-2xl font-black text-[#1F3F57]">Nenhum projeto encontrado</h3>
-            <p className="mt-2 text-sm font-medium text-[#75899c]">Tente outro nome ou altere os filtros para visualizar mais opÃ§Ãµes.</p>
+            <p className="mt-2 text-sm font-medium text-[#75899c]">Tente outro nome ou altere os filtros para visualizar mais opções.</p>
           </div>
         )}
       </main>
     </div>
   )
 }
+

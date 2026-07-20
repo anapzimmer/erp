@@ -926,7 +926,7 @@ export default function JC4FBarraPage() {
     if (itens?.tipo !== "jc4f_barra") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Orçamento incompatÃ­vel",
+        titulo: "Orçamento incompatível",
         mensagem: "Este Orçamento Não pertence ao JC4F - BARRA.",
         aoFechar: () => router.push(returnTo),
       });
@@ -1804,6 +1804,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 

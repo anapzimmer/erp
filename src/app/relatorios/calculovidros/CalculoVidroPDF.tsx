@@ -1,4 +1,4 @@
-//app/relatorios/calculovidros/CalculoVidroPDF.tsx
+﻿//app/relatorios/calculovidros/CalculoVidroPDF.tsx
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
@@ -417,3 +417,4 @@ export function CalculoVidroPDF({
         </Document>
     );
 }   
+

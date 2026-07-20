@@ -1,4 +1,4 @@
-//app/relatorios/ferragens/FerragensPDF.tsx
+﻿//app/relatorios/ferragens/FerragensPDF.tsx
 "use client"
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';

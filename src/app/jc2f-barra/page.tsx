@@ -934,7 +934,7 @@ export default function JC2FBarraPage() {
     if (itens?.tipo !== "jc2f_barra") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Orçamento incompatÃ­vel",
+        titulo: "Orçamento incompatível",
         mensagem: "Este Orçamento Não pertence ao JC2F - BARRA.",
         aoFechar: () => router.push(returnTo),
       });
@@ -1814,6 +1814,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 

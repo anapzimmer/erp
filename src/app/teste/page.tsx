@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 
@@ -593,3 +593,4 @@ const rL = calc(flAtiva, SIM_L, SIM_A);
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-//app/perfis/page.tsx
+﻿//app/perfis/page.tsx
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
@@ -785,3 +785,4 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     </div>
   )
 }
+

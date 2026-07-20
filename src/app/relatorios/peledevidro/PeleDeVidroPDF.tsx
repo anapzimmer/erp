@@ -1,4 +1,4 @@
-//app/relatorios/peledevidro/PeleDeVidroPDF.tsx
+﻿//app/relatorios/peledevidro/PeleDeVidroPDF.tsx
 "use client";
 import React from "react";
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
@@ -312,3 +312,4 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
         </Document>
     );
 }
+

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React from "react"
 import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
@@ -225,3 +225,4 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
     </Document>
   )
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useMemo, useState } from "react";
@@ -528,3 +528,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

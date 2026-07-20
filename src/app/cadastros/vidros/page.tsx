@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
 import { VidrosPDF } from "@/app/relatorios/vidros/VidrosPDF"
-import { useTheme } from "@/context/ThemeContext" // ðŸ”¥ Importando o contexto de tema
+import { useTheme } from "@/context/ThemeContext" // 🔥 Importando o contexto de tema
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -29,9 +29,9 @@ const padronizarEspessura = (valor: string) => { if (!valor) return ""; const li
 
 export default function VidrosPage() {
   const router = useRouter()
-  const { theme } = useTheme(); // ðŸ”¥ Consumindo o tema
+  const { theme } = useTheme(); // 🔥 Consumindo o tema
 
-  // --- AutenticaÃ§Ã£o (Padronizado) ---
+  // --- Autenticação (Padronizado) ---
   const { user, empresaId, nomeEmpresa, loading: checkingAuth } = useAuth();
 
   // --- Estados de UI ---
@@ -40,7 +40,7 @@ export default function VidrosPage() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // --- Estados da LÃ³gica de NegÃ³cio ---
+  // --- Estados da Lógica de Negócio ---
   const [vidros, setVidros] = useState<Vidro[]>([])
   const [grupos, setGrupos] = useState<Grupo[]>([])
   const [novoVidro, setNovoVidro] = useState<Omit<Vidro, "id" | "empresa_id">>({ nome: "", espessura: "", tipo: "", preco: 0 })
@@ -107,7 +107,7 @@ export default function VidrosPage() {
     if (empresaId) carregarDados();
   }, [empresaId, carregarDados]);
 
-  // --- LÃ³gica (Import, Export, CRUD) ---
+  // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
     const csvContent = "Nome;Espessura;Tipo;Preco\n"
       + vidros.map(v =>
@@ -134,11 +134,11 @@ export default function VidrosPage() {
   const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
-    // DEBUG: Verifique se o empresaId estÃ¡ chegando aqui
-    console.log("Iniciando importaÃ§Ã£o para Empresa ID:", empresaId);
+    // DEBUG: Verifique se o empresaId está chegando aqui
+    console.log("Iniciando importação para Empresa ID:", empresaId);
 
     if (!file || !empresaId) {
-      setModalAviso({ titulo: "Erro", mensagem: "Empresa nÃ£o identificada ou arquivo ausente." });
+      setModalAviso({ titulo: "Erro", mensagem: "Empresa não identificada ou arquivo ausente." });
       return;
     }
 
@@ -174,7 +174,7 @@ export default function VidrosPage() {
               .eq("espessura", espessuraFormatada)
               .eq("tipo", tipoFormatado)
               .eq("empresa_id", empresaId)
-              .maybeSingle(); // Usar maybeSingle Ã© mais seguro que .single()
+              .maybeSingle(); // Usar maybeSingle é mais seguro que .single()
 
             if (existente) {
               if (existente.preco !== precoFormatado) {
@@ -219,7 +219,7 @@ export default function VidrosPage() {
       await carregarDados();
       setCarregando(false);
       setModalAviso({
-        titulo: "ImportaÃ§Ã£o ConcluÃ­da",
+        titulo: "Importação Concluída",
         mensagem: `Resumo:\n- Atualizados: ${atualizados}\n- Novos: ${inseridos}\n- Erros: ${erros}`,
         tipo: "sucesso"
       });
@@ -233,7 +233,7 @@ export default function VidrosPage() {
   const limparDuplicados = () => {
     setModalAviso({
       titulo: "Limpar Duplicados",
-      mensagem: "Tem certeza? Isso manterÃ¡ apenas o maior preÃ§o para vidros com o mesmo Nome, Espessura e Tipo, e apagarÃ¡ os outros.",
+      mensagem: "Tem certeza? Isso manterá apenas o maior preço para vidros com o mesmo Nome, Espessura e Tipo, e apagará os outros.",
       confirmar: async () => {
         setCarregando(true);
         try {
@@ -265,7 +265,7 @@ export default function VidrosPage() {
   }
 
   const salvarVidro = async () => {
-    if (!novoVidro.nome.trim() || !novoVidro.espessura.trim() || !novoVidro.tipo.trim()) { setModalAviso({ titulo: "AtenÃ§Ã£o", mensagem: "Preencha todos os campos obrigatÃ³rios." }); return }
+    if (!novoVidro.nome.trim() || !novoVidro.espessura.trim() || !novoVidro.tipo.trim()) { setModalAviso({ titulo: "Atenção", mensagem: "Preencha todos os campos obrigatórios." }); return }
     if (!empresaId) return;
     setCarregando(true)
 
@@ -316,7 +316,7 @@ export default function VidrosPage() {
 
   const deletarVidro = (id: string) => {
     setModalAviso({
-      titulo: "Confirmar ExclusÃ£o", mensagem: "Tem certeza que deseja excluir este vidro? Isso removerÃ¡ preÃ§os especiais associados.", confirmar: async () => {
+      titulo: "Confirmar Exclusão", mensagem: "Tem certeza que deseja excluir este vidro? Isso removerá preços especiais associados.", confirmar: async () => {
         await supabase.from("vidro_precos_grupos").delete().eq("vidro_id", id)
         const { error } = await supabase.from("vidros").delete().eq("id", id)
         if (error) setModalAviso({ titulo: "Erro", mensagem: "Erro ao excluir: " + error.message }); else { setVidros(prev => prev.filter(v => v.id !== id)); setModalAviso(null); }
@@ -334,7 +334,7 @@ export default function VidrosPage() {
   }
   const abrirModalParaNovo = () => { setEditando(null); setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 }); setPrecosGruposModal([]); setMostrarModal(true); }
 
-  // --- Filtros e CÃ¡lculos ---
+  // --- Filtros e Cálculos ---
   const vidrosFiltrados = vidros.filter(v =>
     (filtroNome ? v.nome.toLowerCase().includes(filtroNome.toLowerCase()) : true) &&
     (filtroEspessura ? v.espessura.toLowerCase().includes(filtroEspessura.toLowerCase()) : true) &&
@@ -350,7 +350,7 @@ export default function VidrosPage() {
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone
     const temSubmenu = !!item.submenu
-    const isActive = false; // Implementar lÃ³gica de ativaÃ§Ã£o se necessÃ¡rio
+    const isActive = false; // Implementar lógica de ativação se necessário
 
     return (
       <div key={item.nome} className="mb-1">
@@ -400,14 +400,14 @@ export default function VidrosPage() {
   const [branding, setBranding] = useState<any>(null);
 
 const carregarBranding = useCallback(async () => {
-  // 1. SÃ³ executa se tivermos o ID da empresa logada
+  // 1. Só executa se tivermos o ID da empresa logada
   if (!empresaId) return;
 
   try {
     const { data, error } = await supabase
       .from('configuracoes_branding')
       .select('*')
-      .eq('empresa_id', empresaId) // ðŸ”¥ FILTRO ESSENCIAL: busca apenas o branding desta empresa
+      .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
       .single();
 
     if (error) {
@@ -440,14 +440,14 @@ const logoLight = branding?.logo_light || null;
 <Sidebar
   showMobileMenu={showMobileMenu}
   setShowMobileMenu={setShowMobileMenu}
-  nomeEmpresa={nomeEmpresa} // Certifique-se de que essa variÃ¡vel existe
-  // Passe estas props se quiser o botÃ£o de recolher nesta pÃ¡gina:
+  nomeEmpresa={nomeEmpresa} // Certifique-se de que essa variável existe
+  // Passe estas props se quiser o botão de recolher nesta página:
   expandido={sidebarExpandido} 
   setExpandido={setSidebarExpandido}
 />
 {/* ------------------------- */}
 
-      {/* CONTEÃšDO PRINCIPAL */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col w-full">
         {/* TOPBAR */}
         <Header
@@ -458,7 +458,7 @@ const logoLight = branding?.logo_light || null;
 
         />
 
-        {/* CONTEÃšDO ESPECÃFICO */}
+        {/* CONTEÚDO ESPECÍFICO */}
         <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
@@ -468,17 +468,17 @@ const logoLight = branding?.logo_light || null;
                 <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{vidrosFiltrados.length} de {vidros.length} vidros cadastrados.</p>
               </div>
             </div>
-            {/* BOTÃ•ES DE AÃ‡Ã•ES SUPERIORES */}
+            {/* BOTÕES DE AÇÕES SUPERIORES */}
             <div className="flex items-center gap-2 no-print">
 
-              {/* BotÃ£o Imprimir PDF */}
+              {/* Botão Imprimir PDF */}
               {typeof window !== "undefined" && (
                 <PDFDownloadLink
                   document={
                     <VidrosPDF
                       dados={vidrosFiltrados}
                       empresa={nomeEmpresa || "Sua Empresa"}
-                      logoUrl={theme.logoLightUrl} // Usa o que jÃ¡ estÃ¡ no tema do sistema
+                      logoUrl={theme.logoLightUrl} // Usa o que já está no tema do sistema
                       coresEmpresa={{
                         primary: theme.menuBackgroundColor, // Cor do menu daquela empresa
                         secondary: theme.menuTextColor,
@@ -505,7 +505,7 @@ const logoLight = branding?.logo_light || null;
                   )}
                 </PDFDownloadLink>
               )}
-              {/* BotÃ£o Exportar CSV */}
+              {/* Botão Exportar CSV */}
               <button
                 onClick={exportarCSV}
                 title="Exportar CSV"
@@ -519,7 +519,7 @@ const logoLight = branding?.logo_light || null;
                 />
               </button>
 
-              {/* BotÃ£o Importar CSV */}
+              {/* Botão Importar CSV */}
               <label
                 htmlFor="importarCSV"
                 title="Importar CSV"
@@ -541,7 +541,7 @@ const logoLight = branding?.logo_light || null;
             {[
               { titulo: "Total", valor: vidros.length, icone: Box },
               { titulo: "Mais Procurado", valor: getMaisProcurados(), icone: Star },
-              { titulo: "PreÃ§o MÃ©dio", valor: calcularPrecoMedio(), icone: DollarSign },
+              { titulo: "Preço Médio", valor: calcularPrecoMedio(), icone: DollarSign },
               { titulo: "Grupos Especiais", valor: contarPrecoEspecial(), icone: Tag }
             ].map(card => (
               <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
@@ -585,7 +585,7 @@ const logoLight = branding?.logo_light || null;
                 <h2>Vidros cadastrados</h2>
                 <span>{vidrosFiltrados.length} de {vidros.length}</span>
               </div>
-              <div className="cadastro-list-badge">CatÃ¡logo</div>
+              <div className="cadastro-list-badge">Catálogo</div>
             </div>
             <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
@@ -594,8 +594,8 @@ const logoLight = branding?.logo_light || null;
                   <th className="p-4">Nome</th>
                   <th className="p-4 ">Espessura</th>
                   <th className="p-4 ">Tipo</th>
-                  <th className="p-4 ">PreÃ§o Base</th>
-                  <th className="p-4  text-center">AÃ§Ãµes</th>
+                  <th className="p-4 ">Preço Base</th>
+                  <th className="p-4  text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
@@ -620,14 +620,14 @@ const logoLight = branding?.logo_light || null;
         </main>
       </div>
 
-      {/* MODAL DE CADASTRO/EDIÃ‡ÃƒO */}
+      {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-50 animate-fade-in px-4">
           <div
             className="rounded-4xl p-10 shadow-2xl w-full max-w-lg border border-white/20 transition-all"
             style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
           >
-            {/* CabeÃ§alho */}
+            {/* Cabeçalho */}
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-2xl font-black tracking-tight" style={{ color: branding?.modal_text_color || theme.menuBackgroundColor }}>
@@ -661,21 +661,21 @@ const logoLight = branding?.logo_light || null;
                   style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
               <div className="col-span-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">PreÃ§o Base (R$)</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Preço Base (R$)</label>
                 <input type="number" step="0.01" placeholder="0,00" value={novoVidro.preco} onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })}
                   className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm font-bold focus:bg-white focus:outline-none focus:ring-2 transition-all"
                   style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
               </div>
             </div>
 
-            {/* SEÃ‡ÃƒO DE PREÃ‡OS POR GRUPO */}
+            {/* SEÇÃO DE PREÇOS POR GRUPO */}
             <div className="pt-6 border-t border-gray-100 mb-8">
               <div className="flex justify-between items-center mb-5">
-                <h3 className="font-bold text-gray-700 text-xs uppercase tracking-tight">Tabelas de PreÃ§os</h3>
+                <h3 className="font-bold text-gray-700 text-xs uppercase tracking-tight">Tabelas de Preços</h3>
                 <button onClick={() => setPrecosGruposModal([...precosGruposModal, { id: "", vidro_id: editando?.id || "", grupo_preco_id: "", preco: 0, grupo_nome: "" }])}
                   className="text-[11px] font-black flex items-center gap-1.5 uppercase tracking-wider hover:opacity-70 transition-opacity"
                   style={{ color: branding?.button_dark_bg || '#2563eb' }}>
-                  <PlusCircle size={14} /> Adicionar PreÃ§o
+                  <PlusCircle size={14} /> Adicionar Preço
                 </button>
               </div>
               <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -709,7 +709,7 @@ const logoLight = branding?.logo_light || null;
               </div>
             </div>
 
-            {/* BotÃµes de AÃ§Ã£o */}
+            {/* Botões de Ação */}
             <div className="flex gap-4 justify-end">
               <button onClick={() => setMostrarModal(false)} className="px-8 py-3.5 rounded-2xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all">
                 Cancelar
@@ -759,4 +759,5 @@ const logoLight = branding?.logo_light || null;
     </div>
   )
 }
+
 

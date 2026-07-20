@@ -84,7 +84,7 @@ export default function KitsPage() {
   const lightTertiary = theme.contentTextLightBg;
 
 
-  // --- ESTADOS LÃ“GICA ---
+  // --- ESTADOS LÓGICA ---
   const [kits, setKits] = useState<Kit[]>([])
   const [novoKit, setNovoKit] = useState<KitFormData>(criarKitVazio);
   const [editando, setEditando] = useState<Kit | null>(null)
@@ -219,7 +219,7 @@ export default function KitsPage() {
 
   const salvarKit = async () => {
     if (!novoKit.nome.trim()) {
-      setModalAviso({ titulo: "AtenÃ§Ã£o", mensagem: "O nome do kit Ã© obrigatÃ³rio." });
+      setModalAviso({ titulo: "Atenção", mensagem: "O nome do kit é obrigatório." });
       return;
     }
 
@@ -233,8 +233,8 @@ export default function KitsPage() {
 
     if (conflitoExistente) {
       setModalAviso({
-        titulo: "Nome duplicado com referÃªncia diferente",
-        mensagem: `JÃ¡ existe um kit com esse nome usando a referÃªncia ${conflitoExistente.largura}x${conflitoExistente.altura} mm. Para evitar ambiguidade no projeto, altere o nome ou use a mesma referÃªncia.`,
+        titulo: "Nome duplicado com referência diferente",
+        mensagem: `Já existe um kit com esse nome usando a referência ${conflitoExistente.largura}x${conflitoExistente.altura} mm. Para evitar ambiguidade no projeto, altere o nome ou use a mesma referência.`,
       });
       return
     }
@@ -278,15 +278,15 @@ export default function KitsPage() {
 
   const deletarKit = (id: number) => {
     setModalAviso({
-      titulo: "Confirmar ExclusÃ£o",
-      mensagem: "Tem certeza que deseja excluir este kit? Esta aÃ§Ã£o nÃ£o pode ser desfeita.",
+      titulo: "Confirmar Exclusão",
+      mensagem: "Tem certeza que deseja excluir este kit? Esta ação não pode ser desfeita.",
       confirmar: async () => {
         try {
           const { error } = await supabase.from("kits").delete().eq("id", id);
           if (error) throw error;
           setKits(prev => prev.filter(k => k.id !== id));
         } catch (e: any) {
-          setModalAviso({ titulo: "Erro", mensagem: "NÃ£o foi possÃ­vel excluir: " + e.message });
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir: " + e.message });
         }
       }
     });
@@ -301,7 +301,7 @@ export default function KitsPage() {
         const conteudo = await decodeCsvFile(file);
         const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
 
-        // --- IMPORTAÃ‡ÃƒO INTELIGENTE REVISADA ---
+        // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
         const cabecalho = linhas[0].toLowerCase();
         // O formato novo estruturado tem 6 colunas, o antigo tem 5.
         const colunasCabecalho = cabecalho.split(";");
@@ -318,7 +318,7 @@ export default function KitsPage() {
           let precoFinal = 0;
 
           if (formatoNovo) {
-            // --- FORMATO NOVO (6 Colunas): Nome;Largura;Altura;Cor;Categoria;PreÃ§o ---
+            // --- FORMATO NOVO (6 Colunas): Nome;Largura;Altura;Cor;Categoria;Preço ---
             nomeFinal = colunas[0];
             largura = parseFloat(colunas[1]) || 0;
             altura = parseFloat(colunas[2]) || 0;
@@ -326,23 +326,23 @@ export default function KitsPage() {
             categoriaFinal = colunas[4];
             precoFinal = parseFloat((colunas[5] || "0").replace(/\./g, "").replace(",", ".")) || 0;
           } else {
-            // --- FORMATO ANTIGO (5 Colunas): DescriÃ§Ã£o;Largura;Altura;Categoria;PreÃ§o ---
+            // --- FORMATO ANTIGO (5 Colunas): Descrição;Largura;Altura;Categoria;Preço ---
             const descricaoCompleta = colunas[0] || "";
 
-            // Separa nome e cor pelo hÃ­fen
+            // Separa nome e cor pelo hífen
             if (descricaoCompleta.includes(" - ")) {
               const partes = descricaoCompleta.split(" - ");
               nomeFinal = partes[0].trim();
               corFinal = partes[1].trim();
             } else {
               nomeFinal = descricaoCompleta;
-              corFinal = "PadrÃ£o";
+              corFinal = "Padrão";
             }
 
             largura = parseFloat(colunas[1]) || 0;
             altura = parseFloat(colunas[2]) || 0;
             categoriaFinal = colunas[3] || "Kits";
-            // PreÃ§o na coluna 4 para o formato antigo
+            // Preço na coluna 4 para o formato antigo
             precoFinal = parseFloat((colunas[4] || "0").replace(/\./g, "").replace(",", ".")) || 0;
           }
 
@@ -371,7 +371,7 @@ export default function KitsPage() {
 
           if (error) throw error;
           await carregarDados();
-          setModalAviso({ titulo: "Sucesso", mensagem: "ImportaÃ§Ã£o concluÃ­da com sucesso!" });
+          setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com sucesso!" });
         }
       } catch (err: any) {
         setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
@@ -384,20 +384,20 @@ export default function KitsPage() {
   const handleExportarCSV = () => {
     try {
       if (kits.length === 0) {
-        setModalAviso({ titulo: "Aviso", mensagem: "NÃ£o hÃ¡ dados para exportar." });
+        setModalAviso({ titulo: "Aviso", mensagem: "Não há dados para exportar." });
         return;
       }
-      const cabecalhos = ["Nome", "Largura (mm)", "Altura (mm)", "Cor", "Categoria", "PreÃ§o"];
+      const cabecalhos = ["Nome", "Largura (mm)", "Altura (mm)", "Cor", "Categoria", "Preço"];
       const linhas = kits.map(kit => [
         `"${kit.nome}"`,                                     // Coluna 1: Nome
         kit.largura,                                         // Coluna 2: Largura
         kit.altura,                                          // Coluna 3: Altura
-        `"${kit.cores || "PadrÃ£o"}"`,                        // Coluna 4: Cor
+        `"${kit.cores || "Padrão"}"`,                        // Coluna 4: Cor
         `"${kit.categoria || "Geral"}"`,                     // Coluna 5: Categoria
-        (kit.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) // Coluna 6: PreÃ§o
+        (kit.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) // Coluna 6: Preço
       ]);
 
-      // 3. MONTAR CONTEÃšDO COM PONTO E VÃRGULA
+      // 3. MONTAR CONTEÚDO COM PONTO E VÍRGULA
       const conteudoCSV = [
         cabecalhos.join(";"),
         ...linhas.map(linha => linha.join(";"))
@@ -502,7 +502,7 @@ export default function KitsPage() {
         />
 
         <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
-          {/* HEADER SEÃ‡ÃƒO */}
+          {/* HEADER SEÇÃO */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <div
@@ -518,9 +518,9 @@ export default function KitsPage() {
                 <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{kitsFiltrados.length} de {kits.length} kits cadastrados.</p>
               </div>
             </div>
-            {/* AÃ‡Ã•ES PADRONIZADAS */}
+            {/* AÇÕES PADRONIZADAS */}
             <div className="flex gap-2 no-print">
-              {/* BotÃ£o Imprimir PDF */}
+              {/* Botão Imprimir PDF */}
               {isClient && (
                 <PDFDownloadLink
                   document={
@@ -537,7 +537,7 @@ export default function KitsPage() {
 />
                   }
                   fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
-                  title="Imprimir CatÃ¡logo"
+                  title="Imprimir Catálogo"
                   className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
                 >
                   {({ loading }) => (
@@ -555,7 +555,7 @@ export default function KitsPage() {
                 </PDFDownloadLink>
               )}
 
-              {/* BotÃ£o Exportar CSV */}
+              {/* Botão Exportar CSV */}
               <button
                 onClick={handleExportarCSV}
                 title="Exportar Planilha"
@@ -569,7 +569,7 @@ export default function KitsPage() {
                 />
               </button>
 
-              {/* BotÃ£o Importar CSV */}
+              {/* Botão Importar CSV */}
               <label
                 htmlFor="importarCSV"
                 title="Importar Planilha"
@@ -596,7 +596,7 @@ export default function KitsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
             {[
               { titulo: "Total", valor: kits.length, icone: Layers },
-              { titulo: "Com PreÃ§o", valor: kits.filter(k => k.preco).length, icone: DollarSign },
+              { titulo: "Com Preço", valor: kits.filter(k => k.preco).length, icone: DollarSign },
               { titulo: "Cores", valor: new Set(kits.map(k => k.cores)).size, icone: Palette },
               { titulo: "Categorias", valor: new Set(kits.map(k => k.categoria)).size, icone: Package }
             ].map(card => (
@@ -608,7 +608,7 @@ export default function KitsPage() {
             ))}
           </div>
 
-          {/* FILTROS E AÃ‡ÃƒO */}
+          {/* FILTROS E AÇÃO */}
           <div className="flex justify-between items-center mb-6 gap-4 flex-wrap filtros-sessao">
             <div className="flex flex-wrap gap-3 flex-1">
               <div className="relative w-full md:w-96">
@@ -655,7 +655,7 @@ export default function KitsPage() {
                 <h2>Kits cadastrados</h2>
                 <span>{kitsFiltrados.length} de {kits.length}</span>
               </div>
-              <div className="cadastro-list-badge">CatÃ¡logo</div>
+              <div className="cadastro-list-badge">Catálogo</div>
             </div>
             <div className="cadastro-table-wrap">
             <table className="w-full text-sm text-left border-collapse">
@@ -666,8 +666,8 @@ export default function KitsPage() {
                   <th className="p-4 text-xs uppercase tracking-widest">Altura (mm)</th>
                   <th className="p-4 text-xs uppercase tracking-widest">Cor</th>
                   <th className="p-4 text-xs uppercase tracking-widest">Categoria</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">PreÃ§o Base</th>
-                  <th className="p-4 text-xs uppercase tracking-widest text-center">AÃ§Ãµes</th>
+                  <th className="p-4 text-xs uppercase tracking-widest">Preço Base</th>
+                  <th className="p-4 text-xs uppercase tracking-widest text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -679,7 +679,7 @@ export default function KitsPage() {
                     <td className="p-4">
                       <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
                         style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                        {k.cores || "PadrÃ£o"}
+                        {k.cores || "Padrão"}
                       </span>
                     </td>
                     <td className="p-4 text-gray-500 font-medium">{k.categoria || "Geral"}</td>
@@ -701,7 +701,7 @@ export default function KitsPage() {
         </main>
       </div>
 
-      {/* MODAL DE CADASTRO/EDIÃ‡ÃƒO */}
+      {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 px-4">
           <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
@@ -727,10 +727,10 @@ export default function KitsPage() {
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
                 />
                 <p className="mt-2 text-[11px] text-gray-400">
-                  Se o nome tiver algo como 1200x2100 8mm, a largura e a altura sÃ£o sugeridas automaticamente, mas vocÃª pode alterar os campos abaixo.
+                  Se o nome tiver algo como 1200x2100 8mm, a largura e a altura são sugeridas automaticamente, mas você pode alterar os campos abaixo.
                 </p>
                 <p className="mt-1 text-[11px] text-gray-400">
-                  Kits com o mesmo nome nÃ£o podem ter referÃªncias diferentes.
+                  Kits com o mesmo nome não podem ter referências diferentes.
                 </p>
                 <button
                   type="button"
@@ -796,7 +796,7 @@ export default function KitsPage() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">PreÃ§o de Venda</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
@@ -819,25 +819,25 @@ export default function KitsPage() {
                 setEspessuraDetectada("");
               }} className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600">Descartar</button>
               <button onClick={salvarKit} disabled={carregando} className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
-                {carregando ? "Salvando..." : (editando ? "Salvar AlteraÃ§Ãµes" : "Cadastrar Kit")}
+                {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Kit")}
               </button>
             </div>
           </div>
         </div>
       )}
-      {/* MODAL DE CARREGAMENTO DA IMPORTAÃ‡ÃƒO */}
+      {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-100">
           <div className="bg-white rounded-4xl p-10 flex flex-col items-center shadow-2xl border border-white/20">
             <div className="relative mb-6">
               {/* Spinner Principal */}
               <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
-              {/* Ãcone de Arquivo no centro */}
+              {/* Ícone de Arquivo no centro */}
               <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
             </div>
             <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
             <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Por favor, nÃ£o feche a pÃ¡gina...
+              Por favor, não feche a página...
             </p>
           </div>
         </div>
@@ -858,4 +858,5 @@ export default function KitsPage() {
     </div>
   )
 }
+
 

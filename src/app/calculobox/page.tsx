@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabaseClient"
 import { Trash2, Home, Package, Printer, UserPlus, Pencil, AlertCircle, RefreshCw, Image as ImageIcon, PlusCircle, Search, ClipboardList } from "lucide-react"
@@ -1760,3 +1760,4 @@ export default function CalculoVidros() {
     </div>
   );
 }
+

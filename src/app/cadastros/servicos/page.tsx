@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
@@ -419,3 +419,4 @@ if (branding) {
     </div>
   )
 }
+

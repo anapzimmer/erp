@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
@@ -1514,3 +1514,4 @@ const acessoriosComPrecoTabela = useMemo(() => {
     </div>
   );
 }
+

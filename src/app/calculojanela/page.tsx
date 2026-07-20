@@ -1,4 +1,4 @@
-    "use client"
+﻿    "use client"
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
@@ -548,3 +548,4 @@
         </div>
     )
     }
+

@@ -1,4 +1,4 @@
-// src/app/not-found.tsx
+﻿// src/app/not-found.tsx
 import ErrorState from "@/components/ErrorState";
 
 export default function NotFound() {

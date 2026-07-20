@@ -969,7 +969,7 @@ export default function JC4FKitPage() {
     if (itens?.tipo !== "jc4f_kit") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Orçamento incompatÃ­vel",
+        titulo: "Orçamento incompatível",
         mensagem: "Este Orçamento Não pertence ao JC4F - KIT.",
         aoFechar: () => router.push(returnTo),
       });
@@ -1854,6 +1854,7 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
 
 
 

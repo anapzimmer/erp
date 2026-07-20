@@ -27,6 +27,7 @@ export type CentralImpressaoItem = {
   trinco?: string;
   observacao?: string;
   pecasDivisao?: number;
+  medidasDetalhadas?: string;
   valorTotal?: number;
   materiais?: ProjetoIndividualMaterial[];
 };
@@ -106,13 +107,17 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   image: { maxWidth: 112, maxHeight: 104, objectFit: "contain" },
+  imagePlaceholderTitle: { fontSize: 9, color: "#0f2742", fontWeight: "bold", textAlign: "center" },
+  imagePlaceholderText: { fontSize: 7, color: "#64748b", marginTop: 3, textAlign: "center" },
   infoArea: { flex: 1 },
   projectLabel: { fontSize: 7, color: "#00a85a", fontWeight: "bold", textTransform: "uppercase", marginBottom: 3 },
   projectName: { fontSize: 11, fontWeight: "normal", color: "#0f2742", marginBottom: 7 },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
   info: { width: "31.8%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
+  infoWide: { width: "98%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
   infoLabel: { fontSize: 6, color: "#64748b", textTransform: "uppercase" },
   infoValue: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "normal" },
+  infoMultiline: { fontSize: 7, color: "#0f2742", marginTop: 2, lineHeight: 1.35, fontWeight: "normal" },
   infoValueStrong: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "bold" },
   totals: {
     flexDirection: "row",
@@ -455,7 +460,14 @@ export function CentralImpressaoPDF({
             return (
               <View key={item.id} style={styles.card} wrap={false}>
                 <View style={styles.imageWrap}>
-                  <Image src={item.desenhoUrl} style={styles.image} />
+                  {item.desenhoUrl ? (
+                    <Image src={item.desenhoUrl} style={styles.image} />
+                  ) : (
+                    <View>
+                      <Text style={styles.imagePlaceholderTitle}>Sem desenho</Text>
+                      <Text style={styles.imagePlaceholderText}>Vidros avulsos</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.infoArea}>
@@ -534,6 +546,12 @@ export function CentralImpressaoPDF({
                       <Text style={styles.infoLabel}>Valor total</Text>
                       <Text style={styles.infoValueStrong}>{moeda(item.valorTotal || 0)}</Text>
                     </View>
+                    {item.medidasDetalhadas ? (
+                      <View style={styles.infoWide}>
+                        <Text style={styles.infoLabel}>Medidas detalhadas</Text>
+                        <Text style={styles.infoMultiline}>{item.medidasDetalhadas}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               </View>
