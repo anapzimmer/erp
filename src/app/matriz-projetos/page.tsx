@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Layers3, Search, Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, Layers3, LayoutGrid, Search, SlidersHorizontal, Wrench } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
@@ -12,7 +12,7 @@ const projetos = [
     id: "pfv1f",
     nome: "Porta fora vão - 1 folha",
     titulo: "Cálculo com e sem puxador",
-    categoria: "Portas",
+    categoria: "Porta fora vão",
     status: "Disponível",
     imagem: "/desenhos/portaforavao-1fls.png",
     kitHref: "/pfv1f-kit",
@@ -23,7 +23,7 @@ const projetos = [
     id: "pfv2f",
     nome: "Porta fora vão - 2 folhas",
     titulo: "Cálculo com e sem puxador",
-    categoria: "Portas",
+    categoria: "Porta fora vão",
     status: "Disponível",
     imagem: "/desenhos/portaforavao-2fls.png",
     kitHref: "/pfv2f-kit",
@@ -124,7 +124,7 @@ const projetos = [
     id: "pg",
     nome: "Porta de giro",
     titulo: "Cálculo para 1 folha e 2 folhas",
-    categoria: "Portas",
+    categoria: "Portas giro",
     status: "Disponível",
     imagem: "/desenhos/portagiro-1fls1520ta.png",
     kitHref: "/pg",
@@ -137,7 +137,7 @@ const projetos = [
     id: "pg-dobradica",
     nome: "Porta de giro dobradiça",
     titulo: "Projeto único com dobradiça",
-    categoria: "Portas",
+    categoria: "Portas giro",
     status: "Disponível",
     imagem: "/desenhos/portagirodob-1flssimples.png",
     kitHref: "/pg?modelo=dobradica",
@@ -148,7 +148,7 @@ const projetos = [
     id: "pgf",
     nome: "Porta de giro com fixo lateral",
     titulo: "Vidro / vidro ou vidro / alvenaria",
-    categoria: "Portas",
+    categoria: "Portas giro",
     status: "Disponível",
     imagem: "/desenhos/pgf-simples.png",
     kitHref: "/pgf?encontro=vidro",
@@ -178,6 +178,17 @@ const projetos = [
     kitHref: "/fixos",
     kitLabel: "Calcular",
     descricao: "Projeto individual para painéis fixos por barra.",
+  },
+  {
+    id: "fixo-bandeira",
+    nome: "Fixo com bandeira",
+    titulo: "Fixo inferior com bandeira superior",
+    categoria: "Fixos",
+    status: "Disponível",
+    imagem: "/desenhos/fixo-1folhascombandeira.png",
+    kitHref: "/fixo-bandeira",
+    kitLabel: "Calcular",
+    descricao: "Projeto individual com vidro inferior, vidro de bandeira e tubo selecionável.",
   },
   {
     id: "pma2f",
@@ -335,22 +346,51 @@ const projetos = [
   }
 ];
 
+const ordemCategorias = [
+  "Porta fora vão",
+  "Portas giro",
+  "Portas",
+  "Janelas",
+  "Mão Amiga",
+  "Deslizante",
+  "Box",
+  "Fixos",
+  "Max",
+];
+
 export default function MatrizProjetosPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const { user, nomeEmpresa, loading, signOut } = useAuth();
   const [busca, setBusca] = useState("");
+  const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
+
+  const categorias = useMemo(() => {
+    const nomes = Array.from(new Set(projetos.map((projeto) => projeto.categoria)));
+    const ordenadas = ordemCategorias.filter((categoria) => nomes.includes(categoria));
+    const restantes = nomes.filter((categoria) => !ordemCategorias.includes(categoria)).sort();
+    return ["Todos", ...ordenadas, ...restantes];
+  }, []);
+
+  const totalPorCategoria = useMemo(() => {
+    const mapa = new Map<string, number>();
+    projetos.forEach((projeto) => {
+      mapa.set(projeto.categoria, (mapa.get(projeto.categoria) || 0) + 1);
+    });
+    return mapa;
+  }, []);
 
   const projetosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return projetos;
-    return projetos.filter((projeto) =>
-      [projeto.nome, projeto.titulo, projeto.categoria, projeto.descricao]
+    return projetos.filter((projeto) => {
+      const categoriaOk = categoriaAtiva === "Todos" || projeto.categoria === categoriaAtiva;
+      const buscaOk = !termo || [projeto.nome, projeto.titulo, projeto.categoria, projeto.descricao]
         .join(" ")
         .toLowerCase()
-        .includes(termo)
-    );
-  }, [busca]);
+        .includes(termo);
+      return categoriaOk && buscaOk;
+    });
+  }, [busca, categoriaAtiva]);
 
   if (loading) {
     return (
@@ -376,104 +416,149 @@ export default function MatrizProjetosPage() {
         <Header nomeEmpresa={nomeEmpresa} usuarioEmail={user.email || ""} handleSignOut={signOut} />
 
         <main className="min-w-0 flex-1 p-4 md:p-8 xl:p-10">
-          <section
-            className="relative overflow-hidden rounded-[2rem] border p-6 shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)] md:p-8 xl:p-10"
-            style={{
-              background: `linear-gradient(120deg, #ffffff 0%, #f8fafc 65%, ${theme.menuBackgroundColor}08 100%)`,
-              borderColor: `${theme.menuBackgroundColor}1A`,
-            }}
-          >
-            <div
-              className="absolute right-0 top-0 h-56 w-56 rounded-full blur-3xl"
-              style={{ backgroundColor: `${theme.menuBackgroundColor}10` }}
-            />
-
-            <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-6" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: theme.menuBackgroundColor }}>
-                  Matriz de projetos
-                </p>
-                <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl" style={{ color: theme.contentTextLightBg }}>
-                  Escolha o projeto para calcular
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 opacity-70" style={{ color: theme.contentTextLightBg }}>
-                  Use esta página como central dos projetos individuais. Cada card pode abrir o cálculo por kit ou por barra.
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50" style={{ color: theme.menuBackgroundColor }}>
+                    <LayoutGrid size={21} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.menuBackgroundColor }}>
+                      Matriz de projetos
+                    </p>
+                    <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: theme.contentTextLightBg }}>
+                      Escolha o projeto para calcular
+                    </h1>
+                  </div>
+                </div>
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
+                  Selecione uma tipologia para abrir o cálculo individual. Os projetos com dois modos permitem escolher entre kit e barra.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <ResumoCard icon={<Layers3 size={22} />} label="Projetos" value={String(projetos.length)} />
-                <ResumoCard icon={<CheckCircle2 size={22} />} label="Ativos" value={String(projetos.length)} />
-                <ResumoCard icon={<Wrench size={22} />} label="Modos" value="Kit/Barra" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <ResumoCard icon={<Layers3 size={21} />} label="Projetos" value={String(projetos.length)} />
+                <ResumoCard icon={<CheckCircle2 size={21} />} label="Ativos" value={String(projetos.length)} />
+                <ResumoCard icon={<Wrench size={21} />} label="Modos" value="Kit/Barra" />
               </div>
             </div>
           </section>
 
-          <section className="mt-6 rounded-3xl border bg-white p-5 shadow-sm" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-xl font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>
-                  Projetos disponíveis
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">A lista já fica pronta para receber novos modelos.</p>
-              </div>
-              <label className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 md:max-w-sm">
-                <Search size={18} className="text-slate-400" />
-                <input
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar projeto"
-                  className="w-full bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400"
-                />
-              </label>
-            </div>
+          <section className="mt-5 rounded-3xl border bg-white p-4 shadow-sm md:p-5" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
+            <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+              <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center gap-2 px-2 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  <SlidersHorizontal size={15} />
+                  Categorias
+                </div>
+                <div className="mt-2 grid gap-1">
+                  {categorias.map((categoria) => {
+                    const ativo = categoriaAtiva === categoria;
+                    const total = categoria === "Todos" ? projetos.length : totalPorCategoria.get(categoria) || 0;
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    return (
+                      <button
+                        key={categoria}
+                        type="button"
+                        onClick={() => setCategoriaAtiva(categoria)}
+                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                          ativo ? "bg-white text-[#0f2742] shadow-sm" : "text-slate-500 hover:bg-white/70"
+                        }`}
+                      >
+                        <span className={ativo ? "font-semibold" : "font-normal"}>{categoria}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${ativo ? "bg-[#07385a] text-white" : "bg-white text-slate-400"}`}>
+                          {total}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <div className="min-w-0">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-[#0f2742]">
+                      {categoriaAtiva === "Todos" ? "Todos os projetos" : categoriaAtiva}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {projetosFiltrados.length} projeto(s) encontrado(s)
+                    </p>
+                  </div>
+                  <label className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 md:max-w-sm">
+                    <Search size={18} className="text-slate-400" />
+                    <input
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                      placeholder="Buscar projeto"
+                      className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none placeholder:text-slate-400"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-3 xl:grid-cols-2">
               {projetosFiltrados.map((projeto) => (
                 <article
                   key={projeto.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
                 >
-                  <div className="flex h-56 items-center justify-center bg-[#f7fafc] p-5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={projeto.imagem} alt={projeto.nome} className="max-h-full max-w-full object-contain" />
-                  </div>
-                  <div className="border-t border-slate-200 p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{projeto.categoria}</p>
-                        <h3 className="mt-1 text-xl font-black text-[#0f2742]">{projeto.nome}</h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-600">{projeto.titulo}</p>
+                  <div className="grid min-h-[190px] grid-cols-1 sm:grid-cols-[150px_minmax(0,1fr)]">
+                    <button
+                      type="button"
+                      onClick={() => router.push(projeto.kitHref)}
+                      className="flex h-44 items-center justify-center bg-[#f7fafc] p-4 transition group-hover:bg-slate-50 sm:h-full"
+                      title={`Abrir ${projeto.nome}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={projeto.imagem} alt={projeto.nome} className="max-h-36 max-w-full object-contain" />
+                    </button>
+
+                    <div className="flex min-w-0 flex-col p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{projeto.categoria}</p>
+                          <h3 className="mt-1 truncate text-lg font-semibold text-[#0f2742]">{projeto.nome}</h3>
+                          <p className="mt-1 text-sm font-normal text-slate-600">{projeto.titulo}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-emerald-700">
+                          {projeto.status}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black uppercase text-emerald-700">
-                        {projeto.status}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-500">{projeto.descricao}</p>
-                    <div className={`mt-5 grid gap-3 ${projeto.barraHref ? "grid-cols-2" : "grid-cols-1"}`}>
-                      <button
-                        type="button"
-                        onClick={() => router.push(projeto.kitHref)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white transition hover:brightness-95"
-                        style={{ backgroundColor: theme.menuBackgroundColor }}
-                      >
-                        {projeto.kitLabel || "Kit"}
-                        <ArrowRight size={16} />
-                      </button>
-                      {projeto.barraHref ? (
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">{projeto.descricao}</p>
+                      <div className={`mt-auto grid gap-2 pt-4 ${projeto.barraHref ? "grid-cols-2" : "grid-cols-1"}`}>
                         <button
                           type="button"
-                          onClick={() => router.push(projeto.barraHref)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#0f2742] transition hover:bg-slate-50"
+                          onClick={() => router.push(projeto.kitHref)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium transition hover:bg-white"
+                          style={{ color: theme.menuBackgroundColor }}
                         >
-                          {projeto.barraLabel || "Barra"}
+                          {projeto.kitLabel || "Kit"}
                           <ArrowRight size={16} />
                         </button>
-                      ) : null}
+                        {projeto.barraHref ? (
+                          <button
+                            type="button"
+                            onClick={() => router.push(projeto.barraHref)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-[#0f2742]"
+                          >
+                            {projeto.barraLabel || "Barra"}
+                            <ArrowRight size={16} />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </article>
               ))}
+                </div>
+                {projetosFiltrados.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-semibold text-[#0f2742]">Nenhum projeto encontrado</p>
+                    <p className="mt-1 text-sm text-slate-500">Tente buscar por outro nome ou trocar a categoria.</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </section>
         </main>
@@ -488,8 +573,8 @@ function ResumoCard({ icon, label, value }: { icon: React.ReactNode; label: stri
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#07385a]">{icon}</div>
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
-          <p className="mt-1 text-lg font-black text-[#0f2742]">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{label}</p>
+          <p className="mt-1 text-lg font-semibold text-[#0f2742]">{value}</p>
         </div>
       </div>
     </div>
