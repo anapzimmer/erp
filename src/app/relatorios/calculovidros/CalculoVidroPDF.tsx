@@ -167,6 +167,7 @@ export function CalculoVidroPDF({
     const contentColor = textColor || themeColor;
     const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
+    const ehRelatorioVidrosAvulsos = !itens.some(ehCabecalhoProjeto) && !itens.some(ehPerfilConsolidado);
     const mostrarColunaPrecoM2Un =
         typeof exibirColunaPrecoM2Un === 'boolean'
             ? exibirColunaPrecoM2Un
@@ -232,10 +233,27 @@ export function CalculoVidroPDF({
         );
     };
 
-    const colDescOverride = mostrarColunaPrecoM2Un ? {} : { width: '48%' as const };
-    const colQtdOverride = mostrarColunaPrecoM2Un ? {} : { width: '10%' as const };
-    const colVaoOverride = mostrarColunaPrecoM2Un ? {} : { width: '22%' as const };
-    const colTotalOverride = mostrarColunaPrecoM2Un ? {} : { width: '20%' as const };
+    const colDescOverride = ehRelatorioVidrosAvulsos
+        ? { width: '38%' as const }
+        : mostrarColunaPrecoM2Un
+            ? {}
+            : { width: '48%' as const };
+    const colQtdOverride = ehRelatorioVidrosAvulsos
+        ? { width: '10%' as const }
+        : mostrarColunaPrecoM2Un
+            ? {}
+            : { width: '10%' as const };
+    const colVaoOverride = ehRelatorioVidrosAvulsos
+        ? { width: '18%' as const }
+        : mostrarColunaPrecoM2Un
+            ? {}
+            : { width: '22%' as const };
+    const colTotalOverride = ehRelatorioVidrosAvulsos
+        ? { width: '16%' as const }
+        : mostrarColunaPrecoM2Un
+            ? {}
+            : { width: '20%' as const };
+    const colPrecoUnitarioOverride = ehRelatorioVidrosAvulsos ? { width: '18%' as const } : {};
 
     return (
         <Document>
@@ -266,11 +284,21 @@ export function CalculoVidroPDF({
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
                     <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
-                        <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Projeto</Text>
-                        <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vaos</Text>
-                        <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg x Alt</Text>
+                        {ehRelatorioVidrosAvulsos ? (
+                            <>
+                                <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Peças</Text>
+                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Medidas</Text>
+                                <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Vidro</Text>
+                            </>
+                        ) : (
+                            <>
+                                <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Projeto</Text>
+                                <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vaos</Text>
+                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg x Alt</Text>
+                            </>
+                        )}
                         {mostrarColunaPrecoM2Un && (
-                            <Text style={[styles.tableColHeader, styles.colPrecoUnitario]}>Preco m² / Un</Text>
+                            <Text style={[styles.tableColHeader, styles.colPrecoUnitario, colPrecoUnitarioOverride]}>Valor m²</Text>
                         )}
                         <Text style={[styles.tableColHeader, styles.colTotal, colTotalOverride]}>Total</Text>
                     </View>
@@ -284,6 +312,17 @@ export function CalculoVidroPDF({
                                     ? styles.rowPerfilConsolidado
                                     : { backgroundColor: getPdfZebraRowBackground(index) }
                         ]} wrap={false}> 
+
+                            {ehRelatorioVidrosAvulsos ? (
+                                <>
+                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
+                                        {Number(item.qtd || 0).toString().padStart(2, '0')}
+                                    </Text>
+                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
+                                        {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
+                                    </Text>
+                                </>
+                            ) : null}
 
                             {/* Descrição e Serviços */}
                             <View style={[styles.tableCol, styles.colDesc, colDescOverride]}>
@@ -361,16 +400,18 @@ export function CalculoVidroPDF({
                                     </View>
                                 )}
                             </View>
-
-                            {/* Quantidade, Medidas e Preço */}
-                            <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
-                                {Number(item.qtd || 0).toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
-                                {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
-                            </Text>
+                            {!ehRelatorioVidrosAvulsos ? (
+                                <>
+                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
+                                        {Number(item.qtd || 0).toString().padStart(2, '0')}
+                                    </Text>
+                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
+                                        {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
+                                    </Text>
+                                </>
+                            ) : null}
                             {mostrarColunaPrecoM2Un && (
-                                <Text style={[styles.tableCol, styles.colPrecoUnitario, { color: contentColor }]}>
+                                <Text style={[styles.tableCol, styles.colPrecoUnitario, colPrecoUnitarioOverride, { color: contentColor }]}>
                                     {formatarPrecoColuna(item)}
                                 </Text>
                             )}
