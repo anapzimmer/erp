@@ -1210,42 +1210,42 @@ export default function BoxCanto3FPage() {
   }, [dados.corKit, ferragens, kits, perfis]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#eef3f8] text-[#0f2742] xl:h-screen xl:overflow-hidden">
-      <div className="flex min-h-screen w-full xl:h-full xl:min-h-0">
-        <div className="flex min-h-screen w-full flex-col overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,39,66,0.10)] xl:h-full xl:min-h-0">
-          <header className="grid min-h-[118px] shrink-0 grid-cols-1 items-center gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 xl:grid-cols-[minmax(220px,0.9fr)_minmax(260px,0.8fr)_minmax(520px,1.6fr)]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#f3f6f9] text-[#0f2742]">
+      <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen w-full flex-col bg-[#f3f6f9]">
+          <header className="grid shrink-0 grid-cols-1 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,0.9fr)_minmax(520px,1.5fr)]">
             <div className="flex items-center">
-              <div className="flex h-[82px] w-full max-w-[300px] items-center">
+              <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={logoUsuario}
                     alt="Logo da empresa"
-                    className="max-h-[82px] w-auto max-w-[300px] object-contain"
+                    className="max-h-[54px] w-auto max-w-[220px] object-contain"
                   />
                 ) : (
-                  <div className="text-[30px] font-semibold leading-none text-[#10253f]">
+                  <div className="text-[22px] font-semibold leading-none text-[#10253f]">
                     Logo da empresa
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-start gap-3 xl:justify-end">
-              <label className="text-sm font-medium uppercase tracking-wide text-slate-500">Projeto:</label>
+            <div className="flex items-center justify-start gap-2 xl:justify-end">
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Projeto:</label>
               <input
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[260px] border-0 bg-transparent p-0 text-[20px] font-bold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-[300px] border-0 bg-transparent p-0 text-[17px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Nº Orçamento</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
                   <input
                     value={dados.numero}
                     tabIndex={-1}
@@ -1254,10 +1254,10 @@ export default function BoxCanto3FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Data</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
                   <input
                     value={dados.data}
                     tabIndex={-1}
@@ -1266,10 +1266,10 @@ export default function BoxCanto3FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Cliente</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
                   {listaClientesAberta ? (
                     <input
                       ref={clienteInputRef}
@@ -1351,9 +1351,9 @@ export default function BoxCanto3FPage() {
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            <aside className="flex w-full shrink-0 flex-col bg-[#00375a] lg:w-20 xl:w-[210px]">
-              <nav className="flex flex-1 flex-row gap-3 overflow-x-auto px-3 py-3 lg:flex-col lg:gap-4 lg:overflow-visible lg:px-4 lg:py-5">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <aside className="w-full shrink-0 border-b border-slate-200 bg-white">
+              <nav className="flex flex-row gap-2 overflow-x-auto px-4 py-2 sm:px-6">
                 {[
                   { label: "Orçamento", icon: ClipboardList, ativo: true },
                   { label: "Imprimir", icon: Printer },
@@ -1363,8 +1363,7 @@ export default function BoxCanto3FPage() {
                   { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
                 ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
-                    }`;
+                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-[#07385a]/15 bg-[#07385a]/5 text-[#07385a]" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50"}`;
 
                   if (label === "Imprimir") {
                     return (
@@ -1375,10 +1374,10 @@ export default function BoxCanto3FPage() {
                         fileName={`boxcanto3f_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
-                        {({ loading }) => (
+                        {() => (
                           <>
-                            <Icon size={22} />
-                            <span className="lg:hidden xl:inline">{loading ? "Gerando..." : label}</span>
+                            <Icon size={18} />
+                            <span>{label}</span>
                           </>
                         )}
                       </PDFDownloadLink>
@@ -1404,8 +1403,8 @@ export default function BoxCanto3FPage() {
                       className={itemClass}
                       type="button"
                     >
-                      <Icon size={22} />
-                      <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
+                      <Icon size={18} />
+                      <span>{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
                     </button>
                   );
                 })}
@@ -1413,19 +1412,19 @@ export default function BoxCanto3FPage() {
             </aside>
 
             <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-[#f7fafc] p-3 xl:overflow-auto">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
-                  <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex-1 overflow-y-auto bg-[#f3f6f9] p-4">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[340px] items-center justify-center sm:min-h-[460px] xl:min-h-[420px]">
+                    <div className="mt-3 flex min-h-[300px] items-center justify-center sm:min-h-[390px] xl:min-h-[380px]">
                       <ProjetoDrawing puxador={dados.puxador} />
                     </div>
                   </section>
 
-                  <div className="space-y-5">
-                    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="space-y-4">
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <SectionTitle>Dados do projeto</SectionTitle>
-                      <div className="mt-5 grid overflow-visible md:grid-cols-3">
+                      <div className="mt-4 grid overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Largura A"
@@ -1456,8 +1455,8 @@ export default function BoxCanto3FPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
-                          <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">
+                        <label className="relative flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+                          <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 flex-1">
@@ -1486,7 +1485,7 @@ export default function BoxCanto3FPage() {
                                 }}
                                 onBlur={() => window.setTimeout(() => setListaVidrosAberta(false), 250)}
                                 disabled={carregandoVidros}
-                                className="mt-0.5 w-full bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                                className="mt-0.5 w-full bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
                                 placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
                               />
                             ) : (
@@ -1499,7 +1498,7 @@ export default function BoxCanto3FPage() {
                                     setListaVidrosAberta(true);
                                   }
                                 }}
-                                className="mt-0.5 block w-full truncate rounded-md bg-transparent p-0 text-left text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+                                className="mt-0.5 block w-full truncate rounded-md bg-transparent p-0 text-left text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
                               >
                                 {dados.vidro || "Digite o vidro"}
                               </button>
@@ -1659,7 +1658,7 @@ export default function BoxCanto3FPage() {
                   </div>
                 </div>
 
-                <section className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+                <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-3 xl:grid-cols-6">
                   <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
@@ -1757,8 +1756,8 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
-      <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">{icon}</span>
+    <label className="flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
         <span className="mt-0.5 flex items-center gap-1.5">
@@ -1773,9 +1772,9 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[64px] min-w-0 rounded-md bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+            className="w-[64px] min-w-0 rounded-md bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
           />
-          {suffix && <span className="text-[15px] font-semibold leading-tight text-[#10253f]">{suffix}</span>}
+          {suffix && <span className="text-sm font-semibold leading-tight text-[#10253f]">{suffix}</span>}
         </span>
       </span>
     </label>
@@ -1801,11 +1800,11 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
+      className={`flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
         disabled ? "opacity-50" : ""
       }`}
     >
-      <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">
+      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         {icon}
       </span>
 
@@ -1819,7 +1818,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
+          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>
@@ -1918,7 +1917,7 @@ function ProjetoDrawing({ puxador }: { puxador?: string }) {
   const desenhoSrc = desenhoBoxCanto(puxador);
 
   return (
-    <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
+    <div className="flex h-[350px] w-full items-center justify-center sm:h-[410px]" role="img" aria-label="Desenho ilustrativo do projeto">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={desenhoSrc}
@@ -1939,16 +1938,18 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     emerald: "bg-green-100 text-green-700",
   };
   return (
-    <div className="flex items-center gap-4 border-slate-200 px-3 xl:border-r last:border-r-0">
-      <div className={`flex h-[68px] w-[74px] shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
+    <div className="flex items-center gap-3 border-slate-200 px-3 py-2 xl:border-r last:border-r-0">
+      <div className={`flex h-11 w-12 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}>{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[#0f2742]">{label}</p>
-        <p className="mt-1 text-xl font-bold leading-tight text-[#0f2742] xl:text-[18px]">{value}</p>
-        <p className="mt-1 text-xs text-slate-500">{detail}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="mt-0.5 text-base font-semibold leading-tight text-[#0f2742]">{value}</p>
+        <p className="mt-0.5 text-[11px] text-slate-500">{detail}</p>
       </div>
     </div>
   );
 }
+
+
 
 
 

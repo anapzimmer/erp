@@ -1,4 +1,4 @@
-//app/calculovidro/page.tsx
+﻿//app/calculovidro/page.tsx
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -61,7 +61,7 @@ interface ModalAvisoAcao {
   onClick?: () => void;
 }
 
-// Funções de apoio
+// FunÃ§Ãµes de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
 const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
@@ -187,7 +187,7 @@ const anexarObservacao = (observacaoBase?: string, observacaoExtra?: string) => 
   return `${observacaoBase} | ${observacaoExtra}`;
 };
 
-export default function RelatorioOrçamento() {
+export default function RelatorioOrcamento() {
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
   const carregadoRef = useRef(false);
@@ -195,7 +195,7 @@ export default function RelatorioOrçamento() {
   const searchParams = useSearchParams(); // Adicione esta linha
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
 
-  // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
+  // Estados do Layout (EXATAMENTE COMO VOCÃŠ ENVIOU)
   const [isMounted, setIsMounted] = useState(false);
   const draftRestauradoRef = useRef(false);
 
@@ -209,7 +209,7 @@ export default function RelatorioOrçamento() {
   const [listaFerragens, setListaFerragens] = useState<FerragemCatalogo[]>([])
   const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
 
-  // Estados do Orçamento
+  // Estados do OrÃ§amento
   const [clienteId, setClienteId] = useState("")
   const [obra, setObra] = useState("")
   const [largura, setLargura] = useState("")
@@ -226,7 +226,7 @@ export default function RelatorioOrçamento() {
   const [filtroCorAdicional, setFiltroCorAdicional] = useState("")
   const [buscaAdicional, setBuscaAdicional] = useState("")
 
-  // Edição de Modal
+  // EdiÃ§Ã£o de Modal
   const [editandoId, setEditandoId] = useState<string | number | null>(null);
   const [itemParaExcluir, setItemParaExcluir] = useState<string | number | null>(null);
   const [mostrarModalLimpar, setMostrarModalLimpar] = useState(false);
@@ -234,9 +234,9 @@ export default function RelatorioOrçamento() {
   const alturaRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const [mostrarModalAviso, setMostrarModalAviso] = useState(false);
-  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
+  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("AtenÃ§Ã£o");
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
-    "Para adicionar o item, você precisa preencher largura, altura e selecionar o material."
+    "Para adicionar o item, vocÃª precisa preencher largura, altura e selecionar o material."
   );
   const [modalAvisoAcoes, setModalAvisoAcoes] = useState<ModalAvisoAcao[] | null>(null);
   const importacaoPendenteRef = useRef<LinhaImportacaoExcel[] | null>(null);
@@ -257,11 +257,11 @@ export default function RelatorioOrçamento() {
 
   const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
-  // Estados para seleção em massa
+  // Estados para seleÃ§Ã£o em massa
   const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
   const [valorRateioLote, setValorRateioLote] = useState("");
 
-  // Função para marcar/desmarcar todos
+  // FunÃ§Ã£o para marcar/desmarcar todos
   const toggleTodos = () => {
     if (selecionados.length === itens.length) {
       setSelecionados([]);
@@ -270,7 +270,7 @@ export default function RelatorioOrçamento() {
     }
   };
 
-  // Função para alternar um item individual
+  // FunÃ§Ã£o para alternar um item individual
   const toggleItem = (id: string | number) => {
     setSelecionados(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -279,8 +279,8 @@ export default function RelatorioOrçamento() {
 
   const idsAlvoRateio = selecionados.length > 0 ? selecionados : itens.map(item => item.id);
   const descricaoAlvoRateio = selecionados.length > 0
-    ? `${selecionados.length} cálculo(s) selecionado(s)`
-    : `todos os ${itens.length} cálculo(s)`;
+    ? `${selecionados.length} cÃ¡lculo(s) selecionado(s)`
+    : `todos os ${itens.length} cÃ¡lculo(s)`;
 
   const nomeAtualAssociacao = itensNaoEncontrados[0]?.nomeExcel || "";
   const nomeAtualAssociacaoNormalizado = normalizarTextoComparacao(nomeAtualAssociacao);
@@ -486,22 +486,22 @@ export default function RelatorioOrçamento() {
     const valorUnitario = parseValorDigitado(valorUnitarioAdicional);
 
     if (!itemSelecionado) {
-      setModalAvisoTitulo("Atenção");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
       setModalAvisoMensagem("Selecione um kit, perfil ou ferragem para adicionar.");
       setMostrarModalAviso(true);
       return;
     }
 
     if (!quantidadeValida || quantidadeValida <= 0) {
-      setModalAvisoTitulo("Quantidade inválida");
+      setModalAvisoTitulo("Quantidade invÃ¡lida");
       setModalAvisoMensagem("Informe uma quantidade maior que zero para o adicional.");
       setMostrarModalAviso(true);
       return;
     }
 
     if (valorUnitario < 0) {
-      setModalAvisoTitulo("Valor inválido");
-      setModalAvisoMensagem("O valor unitário não pode ser negativo.");
+      setModalAvisoTitulo("Valor invÃ¡lido");
+      setModalAvisoMensagem("O valor unitÃ¡rio nÃ£o pode ser negativo.");
       setMostrarModalAviso(true);
       return;
     }
@@ -558,8 +558,8 @@ export default function RelatorioOrçamento() {
 
   const aplicarRateioValorSelecionados = () => {
     if (itens.length === 0) {
-      setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Adicione pelo menos um cálculo antes de aplicar o rateio.");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
+      setModalAvisoMensagem("Adicione pelo menos um cÃ¡lculo antes de aplicar o rateio.");
       setMostrarModalAviso(true);
       return;
     }
@@ -567,8 +567,8 @@ export default function RelatorioOrçamento() {
     const valorTotalRateio = parseValorDigitado(valorRateioLote);
 
     if (!valorTotalRateio || valorTotalRateio <= 0) {
-      setModalAvisoTitulo("Valor inválido");
-      setModalAvisoMensagem("Informe um valor total válido para distribuir entre os cálculos selecionados.");
+      setModalAvisoTitulo("Valor invÃ¡lido");
+      setModalAvisoMensagem("Informe um valor total vÃ¡lido para distribuir entre os cÃ¡lculos selecionados.");
       setMostrarModalAviso(true);
       return;
     }
@@ -600,7 +600,7 @@ export default function RelatorioOrçamento() {
 
     if (!haRateioSelecionado) {
       setModalAvisoTitulo("Nada para restaurar");
-      setModalAvisoMensagem("Os itens alvo não possuem rateio manual para desfazer.");
+      setModalAvisoMensagem("Os itens alvo nÃ£o possuem rateio manual para desfazer.");
       setMostrarModalAviso(true);
       return;
     }
@@ -663,7 +663,7 @@ export default function RelatorioOrçamento() {
 
   const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
     try {
-      console.log("Buscando Orçamento ID:", id);
+      console.log("Buscando OrÃ§amento ID:", id);
       const { data: orcamento, error } = await supabase
         .from('orcamentos')
         .select('*')
@@ -677,7 +677,7 @@ export default function RelatorioOrçamento() {
         const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
         if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
 
-        // 2. Preenche os campos básicos
+        // 2. Preenche os campos bÃ¡sicos
         setObra(orcamento.obra_referencia || "");
         setUltimoNumeroGerado(orcamento.numero_formatado || "");
 
@@ -687,10 +687,10 @@ export default function RelatorioOrçamento() {
         }
 
         // REMOVIDO: O router.push('/admin/relatorio.orcamento'); 
-        // Não queremos sair da página, queremos editar nela.
+        // NÃ£o queremos sair da pÃ¡gina, queremos editar nela.
       }
     } catch (err) {
-      console.error("Erro ao carregar Orçamento para edição:", err);
+      console.error("Erro ao carregar OrÃ§amento para ediÃ§Ã£o:", err);
     }
   }, [listaClientes]);
 
@@ -708,7 +708,7 @@ export default function RelatorioOrçamento() {
           supabase.from('tabelas').select('id, nome').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
-          // Busca a tabela de vínculos de preços especiais
+          // Busca a tabela de vÃ­nculos de preÃ§os especiais
           supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId),
           supabase.from('kits').select('id, nome, preco, preco_por_cor').eq('empresa_id', empresaId).order('nome'),
           supabase.from('perfis').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome'),
@@ -722,7 +722,7 @@ export default function RelatorioOrçamento() {
           if (resV.data.length > 0) setVidroSelecionado(resV.data[0]);
         }
         if (resS.data) setListaServicos(resS.data);
-        if (resP.data) setPrecosEspeciais(resP.data); // Salva os preços especiais aqui
+        if (resP.data) setPrecosEspeciais(resP.data); // Salva os preÃ§os especiais aqui
         if (resK.data) setListaKits(resK.data);
         if (resPerfis.data) setListaPerfis(resPerfis.data);
         if (resFerragens.data) setListaFerragens(resFerragens.data);
@@ -1017,8 +1017,8 @@ useEffect(() => {
     const a = parseFloat(altura);
 
     if (!l || !a || !vidroSelecionado) {
-      setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Para adicionar o item, você precisa preencher largura, altura e selecionar o material.");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
+      setModalAvisoMensagem("Para adicionar o item, vocÃª precisa preencher largura, altura e selecionar o material.");
       setMostrarModalAviso(true);
       return;
     }
@@ -1026,12 +1026,12 @@ useEffect(() => {
     const excedeuLimiteDivisao = l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM;
     if (excedeuLimiteDivisao && !ignorarAlertaDivisao) {
       abrirModalAvisoComAcoes(
-        "Peça acima de 3600mm",
-        `A peça excede ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Deseja manter sem dividir ou ajustar antes de continuar?`,
+        "PeÃ§a acima de 3600mm",
+        `A peÃ§a excede ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Deseja manter sem dividir ou ajustar antes de continuar?`,
         [
           {
             id: "cancelar",
-            label: "Ajustar peça",
+            label: "Ajustar peÃ§a",
             variant: "secondary",
           },
           {
@@ -1078,18 +1078,18 @@ useEffect(() => {
       const precoUnitarioServico = Number(servicoSelecionado.preco);
       const unidade = servicoSelecionado.unidade?.toLowerCase();
 
-      if (unidade === 'm²') {
+      if (unidade === 'mÂ²') {
         valorServicoTotal = areaCobrada * precoUnitarioServico;
-        detalheServico = `${servicoSelecionado.nome} (m²)`;
+        detalheServico = `${servicoSelecionado.nome} (mÂ²)`;
       }
       else if (unidade === 'ml' || unidade === 'm') {
-        // Se for ml, usamos a quantidadeServico que o usuário digitou ou o perímetro
-        // Como você pediu para "pedir", usaremos a quantidadeServico
+        // Se for ml, usamos a quantidadeServico que o usuÃ¡rio digitou ou o perÃ­metro
+        // Como vocÃª pediu para "pedir", usaremos a quantidadeServico
         valorServicoTotal = quantidadeServico * precoUnitarioServico;
         detalheServico = `${servicoSelecionado.nome} (${quantidadeServico}ml)`;
       }
       else {
-        // UNITÁRIO / CNC
+        // UNITÃRIO / CNC
         valorServicoTotal = precoUnitarioServico * quantidadeServico;
         detalheServico = `${servicoSelecionado.nome} (${quantidadeServico}un)`;
       }
@@ -1099,17 +1099,17 @@ useEffect(() => {
     const novoItem = {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''} ${vidroSelecionado.tipo || ''}`.trim(),
-      tipo: vidroSelecionado.tipo || "", // Garante que o tipo vá para o PDF
+      tipo: vidroSelecionado.tipo || "", // Garante que o tipo vÃ¡ para o PDF
       vidro_id: vidroSelecionado.id,
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
       precoVidroM2,
       valorUnitario: totalPorPeca,
-      acabamento: "", // Se você tiver um estado de acabamento, coloque aqui
-      servicos: detalheServico, // Passa o detalhe do serviço (Furos, CNC, etc)
+      acabamento: "", // Se vocÃª tiver um estado de acabamento, coloque aqui
+      servicos: detalheServico, // Passa o detalhe do serviÃ§o (Furos, CNC, etc)
 
-      servico: detalheServico, // Mantém por compatibilidade com sua tabela na tela
+      servico: detalheServico, // MantÃ©m por compatibilidade com sua tabela na tela
       valorServicoUn: valorServicoTotal,
       total: totalPorPeca * quantidade,
       totalOriginal: undefined,
@@ -1136,14 +1136,14 @@ useEffect(() => {
     adicionarItemInterno(false);
   };
 
-  // Função para troca em massa com recálculo total
+  // FunÃ§Ã£o para troca em massa com recÃ¡lculo total
   const trocarMaterialSelecionados = (novoVidroId: string) => {
     if (!novoVidroId) return;
 
     const novoVidro = listaVidros.find((v: Vidro) => String(v.id) === String(novoVidroId));
     if (!novoVidro) return;
 
-    // Pegamos o grupo do cliente para garantir o preço especial na troca
+    // Pegamos o grupo do cliente para garantir o preÃ§o especial na troca
     setItens(prev => prev.map(item => {
       if (selecionados.includes(item.id)) {
         const [lReal, aReal] = item.medidaReal.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')) || 0);
@@ -1158,7 +1158,7 @@ useEffect(() => {
         const precoVidroM2 = manterPrecoAtual ? Number(item.precoVidroM2) : contextoPreco.precoM2;
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
-        // 3. Refazer o cálculo de área
+        // 3. Refazer o cÃ¡lculo de Ã¡rea
         const areaM2 = (lCalc / 1000) * (aCalc / 1000);
         const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
 
@@ -1202,7 +1202,7 @@ useEffect(() => {
       return item;
     }));
 
-    setSelecionados([]); // Limpa seleção após a troca
+    setSelecionados([]); // Limpa seleÃ§Ã£o apÃ³s a troca
   };
 
   const handleEditarItem = (item: ItemOrcamento) => {
@@ -1249,7 +1249,7 @@ useEffect(() => {
       setValorUnitarioAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
       setValorEdicaoRapidaAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
 
-      // Limpa o formulário de vidro para evitar edição no bloco errado.
+      // Limpa o formulÃ¡rio de vidro para evitar ediÃ§Ã£o no bloco errado.
       setLargura("");
       setAltura("");
       setQuantidade(1);
@@ -1258,10 +1258,10 @@ useEffect(() => {
       return;
     }
 
-    setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
+    setEditandoId(item.id); // Salva o ID para sabermos que Ã© uma ediÃ§Ã£o
 
     const [l, a] = item.medidaCalc.split('x');
-    setLargura(l.replace(/\D/g, '')); // Pega só os números
+    setLargura(l.replace(/\D/g, '')); // Pega sÃ³ os nÃºmeros
     setAltura(a.replace(/\D/g, ''));
     setQuantidade(item.qtd);
 
@@ -1296,16 +1296,16 @@ useEffect(() => {
     const valorUnitario = parseValorDigitado(valorEdicaoRapidaAdicional);
 
     if (valorUnitario < 0) {
-      setModalAvisoTitulo("Valor inválido");
-      setModalAvisoMensagem("O valor unitário não pode ser negativo.");
+      setModalAvisoTitulo("Valor invÃ¡lido");
+      setModalAvisoMensagem("O valor unitÃ¡rio nÃ£o pode ser negativo.");
       setMostrarModalAviso(true);
       return;
     }
 
     const itemSelecionado = listaEdicaoRapidaAdicional.find((item) => String(item.id) === String(adicionalEdicaoRapidaId));
     if (!itemSelecionado) {
-      setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Selecione o kit, perfil ou ferragem para concluir a edição.");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
+      setModalAvisoMensagem("Selecione o kit, perfil ou ferragem para concluir a ediÃ§Ã£o.");
       setMostrarModalAviso(true);
       return;
     }
@@ -1339,8 +1339,8 @@ useEffect(() => {
 
   const handleSalvarOrcamento = async () => {
     if (itens.length === 0) {
-      setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o Orçamento.");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
+      setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o OrÃ§amento.");
       setMostrarModalAviso(true);
       return;
     }
@@ -1348,7 +1348,7 @@ useEffect(() => {
     try {
       let numeroFinal = "";
 
-      // 1. Gerar ou recuperar número
+      // 1. Gerar ou recuperar nÃºmero
       if (editId) {
         const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
         numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
@@ -1369,7 +1369,7 @@ useEffect(() => {
         numeroFinal = `${prefixoData}${seq.toString().padStart(2, '0')}`;
       }
 
-      // 2. Cálculos Totais
+      // 2. CÃ¡lculos Totais
       const pesoTotal = itens.reduce((acc, item) => {
         return acc + (calcularPesoItem(item) || 0);
       }, 0);
@@ -1385,10 +1385,10 @@ useEffect(() => {
         cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
         obra_referencia: obra || "Geral",
         itens: itens, // Supabase entende array como JSONB automaticamente
-        valor_total: Number(vTotal), // Garante que é número
+        valor_total: Number(vTotal), // Garante que Ã© nÃºmero
         empresa_id: empresaId,
-        metragem_total: Number(mTotal) || 0, // Garante que é número
-        peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
+        metragem_total: Number(mTotal) || 0, // Garante que Ã© nÃºmero
+        peso_total: Number(pesoTotal) || 0,  // <--- FORÃ‡ANDO O NÃšMERO AQUI
         theme_color: theme.menuIconColor || '#1e3a5a'
       };
 
@@ -1417,7 +1417,7 @@ useEffect(() => {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro completo:", error);
       setModalAvisoTitulo("Erro ao salvar");
-      setModalAvisoMensagem("Não foi possível salvar o Orçamento. " + message);
+      setModalAvisoMensagem("NÃ£o foi possÃ­vel salvar o OrÃ§amento. " + message);
       setMostrarModalAviso(true);
     }
   };
@@ -1426,7 +1426,7 @@ useEffect(() => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      // Lógica de "pulo" de campo
+      // LÃ³gica de "pulo" de campo
       if (document.activeElement === larguraRef.current) {
         alturaRef.current?.focus();
       } else if (document.activeElement === alturaRef.current) {
@@ -1444,7 +1444,7 @@ useEffect(() => {
 
     if (!clienteId) {
       setModalAvisoTitulo("Selecione o cliente");
-      setModalAvisoMensagem("Selecione um cliente antes de importar para aplicar a tabela de preço correta.");
+      setModalAvisoMensagem("Selecione um cliente antes de importar para aplicar a tabela de preÃ§o correta.");
       setMostrarModalAviso(true);
       if (e.target) e.target.value = "";
       return;
@@ -1458,7 +1458,7 @@ useEffect(() => {
       const wb = XLSX.read(dataData, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
 
-      // sheet_to_json tenta detectar o cabeçalho automaticamente
+      // sheet_to_json tenta detectar o cabeÃ§alho automaticamente
       const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
 
       const linhasImportacao: LinhaImportacaoExcel[] = [];
@@ -1466,7 +1466,7 @@ useEffect(() => {
 
       data.forEach((linha) => {
         // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
-        const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]) || "").trim();
+        const nomeExcel = String(extrairValor(linha, ["vidro", "descriÃ§Ã£o", "descriÃ§ao", "material", "cor", "item"]) || "").trim();
         const nomeExcelNormalizado = normalizarTextoComparacao(nomeExcel);
 
         // Captura de medidas - aceita largura/altura em colunas separadas ou medida unica (ex: 802x602)
@@ -1501,8 +1501,8 @@ useEffect(() => {
         importacaoPendenteRef.current = linhasImportacao;
 
         abrirModalAvisoComAcoes(
-          "Importação com peças acima de 3600mm",
-          `A importação possui ${quantidadePecasAcimaLimiteDivisao} peça(s) acima de ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Como deseja continuar?`,
+          "ImportaÃ§Ã£o com peÃ§as acima de 3600mm",
+          `A importaÃ§Ã£o possui ${quantidadePecasAcimaLimiteDivisao} peÃ§a(s) acima de ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Como deseja continuar?`,
           [
             {
               id: "cancelar",
@@ -1540,7 +1540,7 @@ useEffect(() => {
       if (e.target) e.target.value = "";
     };
 
-    reader.readAsArrayBuffer(file); // Correção do "risco no meio"
+    reader.readAsArrayBuffer(file); // CorreÃ§Ã£o do "risco no meio"
   };
 
 
@@ -1573,7 +1573,7 @@ useEffect(() => {
       return { l: largura, a: altura };
     }
 
-    const medidaBruta = extrairValor(linha, ["medida", "medidas", "dimensao", "dimensão", "tamanho"]);
+    const medidaBruta = extrairValor(linha, ["medida", "medidas", "dimensao", "dimensÃ£o", "tamanho"]);
     const textoMedida = String(medidaBruta || "").trim();
 
     // Exemplos aceitos: 802x602, 802 x 602, 802*602
@@ -1587,13 +1587,13 @@ useEffect(() => {
     return { l: largura, a: altura };
   };
 
-  // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
+  // FunÃ§Ã£o auxiliar para criar o item com seus cÃ¡lculos (Arredondamento 5cm)
   const gerarObjetoItem = (vidro: Vidro, l: number, a: number, qtd: number): ItemOrcamento => {
-    // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
+    // Medida de CÃ¡lculo (Arredondada 5cm) -> Ex: 408 vira 450
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
 
-    // Medida Real (Física) -> Ex: 408
+    // Medida Real (FÃ­sica) -> Ex: 408
     const lReal = l;
     const aReal = a;
 
@@ -1608,7 +1608,7 @@ useEffect(() => {
       descricao: `${vidro.nome} ${vidro.espessura || ''} ${vidro.tipo || ''}`.trim(),
       tipo: vidro.tipo || "",
       vidro_id: vidro.id,
-      // Guardamos as duas separadas para não haver confusão
+      // Guardamos as duas separadas para nÃ£o haver confusÃ£o
       medidaReal: `${lReal} x ${aReal} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: Number(qtd),
@@ -1623,16 +1623,16 @@ useEffect(() => {
   };
 
   const calcularPesoItem = (item: ItemOrcamento) => {
-    // Extrai a espessura da descrição (ex: "4+4" = 8)
+    // Extrai a espessura da descriÃ§Ã£o (ex: "4+4" = 8)
     const numeros = item.descricao.match(/\d+/g);
     const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
 
-    // Pega a medida física (408x500)
+    // Pega a medida fÃ­sica (408x500)
     const partes = item.medidaReal.split('x').map((v: string) => parseInt(v));
     const largReal = partes[0];
     const altReal = partes[1];
 
-    // Cálculo: Área Real * 2.5 * Espessura * Qtd
+    // CÃ¡lculo: Ãrea Real * 2.5 * Espessura * Qtd
     const areaRealM2 = (largReal / 1000) * (altReal / 1000);
     const pesoFinal = areaRealM2 * 2.5 * espessura * item.qtd;
 
@@ -1642,7 +1642,7 @@ useEffect(() => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      router.push("/login"); // Força o redirecionamento
+      router.push("/login"); // ForÃ§a o redirecionamento
       router.refresh();      // Garante que o estado do Next.js seja limpo
     } catch (error) {
       console.error("Erro ao sair:", error);
@@ -1660,21 +1660,21 @@ useEffect(() => {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
         >
-          {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
+          {/* ConteÃºdo dinÃ¢mico que aparece ao lado da logo no Header */}
           <div className="flex items-center gap-6">
             <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
+              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">OrÃ§amento</h1>
               <span className="text-xs text-gray-800 font-bold"># {ultimoNumeroGerado || "NOVO"}</span>
             </div>
 
-            {/* ÁREA DE AÇÕES DISCRETAS */}
+            {/* ÃREA DE AÃ‡Ã•ES DISCRETAS */}
             <div className="ml-6 flex items-center gap-2 animate-fade-in">
               <button
                 onClick={handleNovoOrcamento}
                 className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all hover:border-slate-300 hover:text-slate-700"
               >
                 <Plus size={14} />
-                Novo Orçamento
+                Novo OrÃ§amento
               </button>
 
               {itens.length > 0 && (
@@ -1683,13 +1683,13 @@ useEffect(() => {
                   className="flex items-center gap-2 rounded-full border border-[#1e3a5a]/15 bg-[#1e3a5a]/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#1e3a5a] transition-all hover:border-[#1e3a5a]/30 hover:bg-[#1e3a5a]/10"
                 >
                   <div className="h-1.5 w-1.5 rounded-full bg-[#1e3a5a]/55" />
-                  Salvar Orçamento
+                  Salvar OrÃ§amento
                 </button>
               )}
             </div>
 
 
-            {/* --- BOTÃO PDF CORRIGIDO --- */}
+            {/* --- BOTÃƒO PDF CORRIGIDO --- */}
             <PDFDownloadLink
               document={
                 <CalculoVidroPDF
@@ -1704,13 +1704,13 @@ useEffect(() => {
                   nomeEmpresa={nomeEmpresa}
                   logoUrl={"logoLightUrl" in theme ? theme.logoLightUrl || undefined : undefined}
                   themeColor={theme.contentTextLightBg}
-                  nomeCliente={listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || "Não selecionado"}
+                  nomeCliente={listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || "NÃ£o selecionado"}
                   nomeObra={obra}
 
-                  // Cálculo do Peso Total seguindo a lógica do seu rodapé
+                  // CÃ¡lculo do Peso Total seguindo a lÃ³gica do seu rodapÃ©
                   pesoTotal={itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)}
 
-                  // Cálculo da Metragem Total (M² de Cobrança) - Alinhado com o rodapé
+                  // CÃ¡lculo da Metragem Total (MÂ² de CobranÃ§a) - Alinhado com o rodapÃ©
                   metragemTotal={itens.reduce((acc: number, item) => {
                     const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
                     return acc + ((l / 1000) * (a / 1000) * item.qtd);
@@ -1719,12 +1719,12 @@ useEffect(() => {
                   // Adicionado: Valor Total do Pedido (importante para o PDF bater com a tela)
                   valorTotal={itens.reduce((acc: number, i) => acc + i.total, 0)}
 
-                  // Adicionado: Total de Peças
+                  // Adicionado: Total de PeÃ§as
                   totalPecas={itens.reduce((acc: number, i) => acc + Number(i.qtd), 0)}
                 />
               }
-              fileName={`Orçamento ${listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || 'Geral'
-                } - N° ${Date.now().toString().slice(-6)}.pdf`}
+              fileName={`OrÃ§amento ${listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || 'Geral'
+                } - NÂ° ${Date.now().toString().slice(-6)}.pdf`}
             >
               {({ loading }) => (
                 <button
@@ -1744,7 +1744,7 @@ useEffect(() => {
         </Header>
 
         <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
-          {/* IDENTIFICAÇÃO: CLIENTE E OBRA */}
+          {/* IDENTIFICAÃ‡ÃƒO: CLIENTE E OBRA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 px-3 border-r border-gray-100">
               <span className="text-xs font-bold text-gray-400 uppercase">Cliente:</span>
@@ -1755,23 +1755,23 @@ useEffect(() => {
             </div>
             <div className="flex items-center gap-2 px-3">
               <span className="text-xs font-bold text-gray-400 uppercase">Obra:</span>
-              <input type="text" placeholder="Identificação da obra" className="flex-1 p-2 outline-none text-sm" value={obra} onChange={(e) => setObra(e.target.value)} />
+              <input type="text" placeholder="IdentificaÃ§Ã£o da obra" className="flex-1 p-2 outline-none text-sm" value={obra} onChange={(e) => setObra(e.target.value)} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
-              {/* CARD DIMENSÕES (MANTIDO) */}
+              {/* CARD DIMENSÃ•ES (MANTIDO) */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 relative overflow-hidden">
 
-                {/* AVISO DE EDIÇÃO SOFISTICADO */}
+                {/* AVISO DE EDIÃ‡ÃƒO SOFISTICADO */}
                 {editandoId && (
                   <div className="absolute top-0 left-0 w-full bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between animate-fade-in">
                     <div className="flex items-center gap-2">
                       <Edit2 size={14} className="text-amber-600" />
                       <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
-                        {editandoAdicional ? "Editando adicional" : "Modo Edição Ativo"}
+                        {editandoAdicional ? "Editando adicional" : "Modo EdiÃ§Ã£o Ativo"}
                       </span>
                     </div>
                     <button
@@ -1797,10 +1797,10 @@ useEffect(() => {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
-                      Especificações
+                      EspecificaÃ§Ãµes
                     </span>
                     <h3 className="text-sm font-bold text-[#1e3a5a]">
-                      Dimensões
+                      DimensÃµes
                     </h3>
                   </div>
                 </div>
@@ -1876,7 +1876,7 @@ useEffect(() => {
                     const larguraNumero = Number(largura) || 0;
                     const alturaNumero = Number(altura) || 0;
 
-                    // 2. Procuramos o preço especial
+                    // 2. Procuramos o preÃ§o especial
                     const especial = precosEspeciais.find(p =>
                       String(p.vidro_id) === String(vidroSelecionado.id) &&
                       String(p.grupo_preco_id || p.tabela_id) === String(grupoId)
@@ -1892,12 +1892,12 @@ useEffect(() => {
                       <div className="mt-1 space-y-1">
                         <p className={`text-[10px] font-bold uppercase tracking-tighter ${especial ? 'text-gray-600' : 'text-gray-400'}`}>
                           {especial
-                            ? `⭐ Preço Diferenciado: ${formatarMoeda(precoBase)} /m²`
-                            : `Preço padrão: ${formatarMoeda(precoBase)} /m²`}
+                            ? `â­ PreÃ§o Diferenciado: ${formatarMoeda(precoBase)} /mÂ²`
+                            : `PreÃ§o padrÃ£o: ${formatarMoeda(precoBase)} /mÂ²`}
                         </p>
                         {precoComAcrescimo !== null && (
                           <p className="text-[10px] font-bold uppercase tracking-tighter text-amber-600">
-                            {`Com acréscimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida: ${formatarMoeda(precoComAcrescimo)} /m²`}
+                            {`Com acrÃ©scimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida: ${formatarMoeda(precoComAcrescimo)} /mÂ²`}
                           </p>
                         )}
                       </div>
@@ -1907,7 +1907,7 @@ useEffect(() => {
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
-                {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
+                {/* TÃTULO DA SEÃ‡ÃƒO: ACABAMENTOS */}
                 <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
                   <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
                     {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
@@ -1915,15 +1915,15 @@ useEffect(() => {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
-                      Personalização
+                      PersonalizaÃ§Ã£o
                     </span>
                     <h3 className="text-sm font-bold text-[#1e3a5a]">
-                      Acabamentos e Serviços
+                      Acabamentos e ServiÃ§os
                     </h3>
                   </div>
                 </div>
                 <div className="space-y-2 max-h-28.75 overflow-y-auto pr-2 custom-scrollbar">
-                  {/* Opção Padrão (Nenhum) */}
+                  {/* OpÃ§Ã£o PadrÃ£o (Nenhum) */}
                   <div
                     onClick={() => setServicoSelecionado(null)}
                     className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-gray-50 border-gray-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'
@@ -1948,7 +1948,7 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Lista de outros serviços */}
+                  {/* Lista de outros serviÃ§os */}
                   {listaServicos.map((s) => {
                     const isSelected = servicoSelecionado?.id === s.id;
                     return (
@@ -1980,8 +1980,8 @@ useEffect(() => {
                   })}
                 </div>
 
-                {/* O campo aparece se houver serviço e a unidade NÃO for m² */}
-                {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'm²' && (
+                {/* O campo aparece se houver serviÃ§o e a unidade NÃƒO for mÂ² */}
+                {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'mÂ²' && (
                   <div className="mt-4 p-4 bg-[#1e3a5a]/5 rounded-2xl border border-[#1e3a5a]/10 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
                       <Wrench size={14} className="text-[#1e3a5a]" />
@@ -2045,7 +2045,7 @@ useEffect(() => {
                       value={buscaAdicional}
                       onChange={(e) => setBuscaAdicional(e.target.value)}
                       className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
-                      placeholder="Buscar por código ou nome"
+                      placeholder="Buscar por cÃ³digo ou nome"
                     />
 
                     <select
@@ -2086,7 +2086,7 @@ useEffect(() => {
                       value={valorUnitarioAdicional}
                       onChange={(e) => setValorUnitarioAdicional(e.target.value)}
                       className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
-                      placeholder="Valor unitário"
+                      placeholder="Valor unitÃ¡rio"
                     />
                   </div>
 
@@ -2116,7 +2116,7 @@ useEffect(() => {
                 <div className="p-5 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ClipboardList size={18} className="text-[#1e3a5a]" />
-                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
+                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do OrÃ§amento</h3>
                   </div>
                   <div className="flex items-center gap-4">
                     {/* Input de arquivo escondido */}
@@ -2159,12 +2159,12 @@ useEffect(() => {
                               className="rounded border-gray-300 text-[#1e3a5a] focus:ring-[#1e3a5a]"
                             />
                           </th>
-                          <th className="px-6 py-4">Descrição / Acabamento</th>
+                          <th className="px-6 py-4">DescriÃ§Ã£o / Acabamento</th>
                           <th className="px-6 py-4 text-center">Medidas</th>
                           <th className="px-6 py-4 text-center">Qtd</th>
-                          <th className="px-6 py-4 text-right">Unitário</th>
+                          <th className="px-6 py-4 text-right">UnitÃ¡rio</th>
                           <th className="px-6 py-4 text-right">Total</th>
-                          <th className="px-6 py-4 text-center">Ações</th>
+                          <th className="px-6 py-4 text-center">AÃ§Ãµes</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm divide-y divide-gray-50">
@@ -2186,14 +2186,14 @@ useEffect(() => {
                               />
                             </td>
 
-                            {/* 2. DESCRIÇÃO (Faltava este no seu snippet) */}
+                            {/* 2. DESCRIÃ‡ÃƒO (Faltava este no seu snippet) */}
                             <td className="px-6 py-4">
                               {/* Nome do Vidro e Espessura */}
                               <div className="text-gray-700 leading-tight">
                                 {item.descricao}
                               </div>
 
-                              {/* Tipo do Vidro (Subtítulo discreto) */}
+                              {/* Tipo do Vidro (SubtÃ­tulo discreto) */}
                               {item.tipo && (
                                 <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">
                                   {item.tipo}
@@ -2224,7 +2224,7 @@ useEffect(() => {
                                 </div>
                               )}
 
-                              {/* Serviço / Acabamento */}
+                              {/* ServiÃ§o / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
                                   <Sparkles size={10} className="text-amber-500" />
@@ -2289,7 +2289,7 @@ useEffect(() => {
                                       value={valorEdicaoRapidaAdicional}
                                       onChange={(e) => setValorEdicaoRapidaAdicional(e.target.value)}
                                       className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
-                                      placeholder="Valor unitário"
+                                      placeholder="Valor unitÃ¡rio"
                                     />
                                   </div>
                                   <div className="mt-2 flex items-center gap-2">
@@ -2328,7 +2328,7 @@ useEffect(() => {
                               </span>
                             </td>
 
-                            {/* 5. UNITÁRIO */}
+                            {/* 5. UNITÃRIO */}
                             <td className="px-6 py-4 text-right font-medium text-gray-500">
                               {formatarMoeda(item.total / item.qtd)}
                             </td>
@@ -2338,7 +2338,7 @@ useEffect(() => {
                               {formatarMoeda(item.total)}
                             </td>
 
-                            {/* 7. AÇÕES */}
+                            {/* 7. AÃ‡Ã•ES */}
                             <td className="px-6 py-4">
                               <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -2364,17 +2364,17 @@ useEffect(() => {
                       <div className="p-4 bg-gray-50 rounded-full">
                         <Calculator size={40} className="opacity-20" />
                       </div>
-                      <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento</p>
+                      <p className="text-sm font-medium">Nenhum item adicionado ao OrÃ§amento</p>
                     </div>
                   )}
                 </div>
-                {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
+                {/* RODAPÃ‰ TÃ‰CNICO E LOGÃSTICO */}
                 <div className="p-6 bg-white border-t border-gray-100 flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                   <div className="flex items-center gap-8">
 
-                    {/* 1. Qtd Total EM EVIDÊNCIA (Destaque colorido) */}
+                    {/* 1. Qtd Total EM EVIDÃŠNCIA (Destaque colorido) */}
                     <div className="bg-[#1e3a5a]/5 px-5 py-2 rounded-2xl border border-[#1e3a5a]/10 flex flex-col">
-                      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Total de Peças</span>
+                      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Total de PeÃ§as</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-xl font-black text-[#1e3a5a]">
                           {itens.reduce((acc: number, i) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
@@ -2385,14 +2385,14 @@ useEffect(() => {
 
                     <div className="h-8 w-px bg-gray-100" />
 
-                    {/* 2. Metragem de Cobrança: Sem destaque colorido */}
+                    {/* 2. Metragem de CobranÃ§a: Sem destaque colorido */}
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">MÂ² de CobranÃ§a</span>
                       <span className="text-lg font-medium text-gray-500">
                         {itens.reduce((acc: number, item) => {
                           const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
                           return acc + ((l / 1000) * (a / 1000) * item.qtd);
-                        }, 0).toFixed(3)} m²
+                        }, 0).toFixed(3)} mÂ²
                       </span>
                     </div>
 
@@ -2400,7 +2400,7 @@ useEffect(() => {
 
                     {/* 3. Peso da Carga: Sem destaque colorido */}
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Peso Logístico</span>
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Peso LogÃ­stico</span>
                       <span className="text-lg font-medium text-gray-500">
                         {itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)
                           .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
@@ -2410,7 +2410,7 @@ useEffect(() => {
 
                   {/* 4. Valor Total do Pedido */}
                   <div className="min-w-[320px] text-right">
-                    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Orçamento</p>
+                    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do OrÃ§amento</p>
                     <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
                       {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
                     </p>
@@ -2422,7 +2422,7 @@ useEffect(() => {
                     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-300">Resumo do Orçamento</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-300">Resumo do OrÃ§amento</p>
                           <h4 className="mt-1 text-sm font-bold text-[#1e3a5a]">Troca de vidro e rateio</h4>
                           <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                             <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
@@ -2430,7 +2430,7 @@ useEffect(() => {
                               <button
                                 onClick={() => setSelecionados([])}
                                 className="rounded-full p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
-                                title="Limpar seleção"
+                                title="Limpar seleÃ§Ã£o"
                               >
                                 <X size={14} />
                               </button>
@@ -2458,7 +2458,7 @@ useEffect(() => {
                             <input
                               type="text"
                               inputMode="decimal"
-                              placeholder={selecionados.length > 0 ? "Valor rateio seleção" : "Valor rateio geral"}
+                              placeholder={selecionados.length > 0 ? "Valor rateio seleÃ§Ã£o" : "Valor rateio geral"}
                               value={valorRateioLote}
                               onChange={(e) => setValorRateioLote(e.target.value)}
                               className="w-36 rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-700 outline-none focus:border-[#1e3a5a]"
@@ -2467,13 +2467,13 @@ useEffect(() => {
                               onClick={aplicarRateioValorSelecionados}
                               className="rounded-full bg-slate-900 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-slate-700"
                             >
-                              {selecionados.length > 0 ? "Ratear seleção" : "Ratear todos"}
+                              {selecionados.length > 0 ? "Ratear seleÃ§Ã£o" : "Ratear todos"}
                             </button>
                             <button
                               onClick={removerRateioSelecionados}
                               className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
                             >
-                              {selecionados.length > 0 ? "Restaurar seleção" : "Restaurar todos"}
+                              {selecionados.length > 0 ? "Restaurar seleÃ§Ã£o" : "Restaurar todos"}
                             </button>
                           </div>
                         </div>
@@ -2486,7 +2486,7 @@ useEffect(() => {
           </div>
         </main>
 
-        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+        {/* MODAL DE CONFIRMAÃ‡ÃƒO DE EXCLUSÃƒO */}
         {itemParaExcluir && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
@@ -2496,7 +2496,7 @@ useEffect(() => {
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Remover Item?</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Tem certeza que deseja remover este item do pedido? Esta ação não pode ser desfeita.
+                  Tem certeza que deseja remover este item do pedido? Esta aÃ§Ã£o nÃ£o pode ser desfeita.
                 </p>
               </div>
 
@@ -2529,9 +2529,9 @@ useEffect(() => {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ClipboardList size={28} className="text-orange-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar Orçamento?</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar OrÃ§amento?</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Isso irá remover **todos os {itens.length} itens** da sua lista atual. Essa ação não pode ser desfeita.
+                  Isso irÃ¡ remover **todos os {itens.length} itens** da sua lista atual. Essa aÃ§Ã£o nÃ£o pode ser desfeita.
                 </p>
               </div>
 
@@ -2608,7 +2608,7 @@ useEffect(() => {
           <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-[#1e3a5a]/40 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up border border-white/20">
 
-              {/* Cabeçalho */}
+              {/* CabeÃ§alho */}
               <div className="p-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center">
                   <ClipboardList size={24} className="text-[#1e3a5a]" />
@@ -2618,7 +2618,7 @@ useEffect(() => {
                     Associar Material
                   </h3>
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest">
-                    Item não reconhecido no sistema
+                    Item nÃ£o reconhecido no sistema
                   </p>
                 </div>
               </div>
@@ -2695,7 +2695,7 @@ useEffect(() => {
                   )}
                 </div>
 
-                {/* Botão Pular (Agora na cor do tema) */}
+                {/* BotÃ£o Pular (Agora na cor do tema) */}
                 <button
                   onClick={() => {
                     const nomeAtual = itensNaoEncontrados[0].nomeExcelNormalizado;
@@ -2716,7 +2716,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* MODAL DISCRETO E AUTOMÁTICO - POSIÇÃO SUPERIOR */}
+        {/* MODAL DISCRETO E AUTOMÃTICO - POSIÃ‡ÃƒO SUPERIOR */}
         {mostrarModalSucesso && (
           <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
             <div
@@ -2724,7 +2724,7 @@ useEffect(() => {
               style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
             >
 
-              {/* Ícone com a cor do tema */}
+              {/* Ãcone com a cor do tema */}
               <div
                 className="p-2 rounded-xl shrink-0"
                 style={{ color: theme.menuIconColor }}
@@ -2756,7 +2756,7 @@ useEffect(() => {
                   className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
                 >
                   <ClipboardList size={12} />
-                  Ver Histórico
+                  Ver HistÃ³rico
                 </button>
               </div>
             </div>

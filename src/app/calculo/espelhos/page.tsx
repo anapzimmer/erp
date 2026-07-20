@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -47,7 +47,7 @@ function getShapeStyle(
   const minDim = Math.min(width, height);
   const maxDim = Math.max(width, height);
 
-  // PADRÃO
+  // PADRÃƒO
   let shape: ShapeStyle = {
     width,
     height,
@@ -143,9 +143,9 @@ export default function CalculoEspelhosPage() {
   const [divisoesAltura, setDivisoesAltura] = useState(1);
   const [showModalSalvar, setShowModalSalvar] = useState(false)
   const [showModalAviso, setShowModalAviso] = useState(false);
-  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
+  const [modalAvisoTitulo, setModalAvisoTitulo] = useState("AtenÃ§Ã£o");
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
-    "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento."
+    "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao OrÃ§amento."
   );
   const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
 
@@ -160,7 +160,7 @@ export default function CalculoEspelhosPage() {
       const { data: aData } = await supabase.from("acabamentos").select("*").order("nome");
       if (aData && aData.length > 0) {
         setAcabamentosDB(aData);
-        setAcabamentoId(""); // começa como Nenhum
+        setAcabamentoId(""); // comeÃ§a como Nenhum
       }
     };
     carregarDados();
@@ -185,7 +185,7 @@ export default function CalculoEspelhosPage() {
         setListaItens(orcamento.itens);
       }
     } catch (error) {
-      console.error("Erro ao carregar Orçamento de espelho para edição:", error);
+      console.error("Erro ao carregar OrÃ§amento de espelho para ediÃ§Ã£o:", error);
     }
   };
 
@@ -299,14 +299,14 @@ export default function CalculoEspelhosPage() {
       // 1. Faz o logout no Supabase
       await supabase.auth.signOut();
 
-      // 2. Redireciona o usuário para a página de login (ou home)
+      // 2. Redireciona o usuÃ¡rio para a pÃ¡gina de login (ou home)
       router.push("/login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
   };
 
-  // --- CÁLCULO DEPURADO ---
+  // --- CÃLCULO DEPURADO ---
   const calculoAtual = useMemo(() => {
     const lOriginal = parseFloat(largura) || 0;
     const aOriginal = parseFloat(altura) || 0;
@@ -327,21 +327,21 @@ export default function CalculoEspelhosPage() {
     const lCalc = Math.ceil((lOriginal + sobraL) / 50) * 50;
     const aCalc = Math.ceil((aOriginal + sobraA) / 50) * 50;
 
-    // 3. ÁREA TOTAL (Bruta ou do Jogo)
+    // 3. ÃREA TOTAL (Bruta ou do Jogo)
     let areaTotalM2 = 0;
     let ehJogo = acb?.tipo_visual?.includes('jogo');
 
     if (ehJogo) {
-      // Cálculo específico para Jogo: área de cada pecinha * total
+      // CÃ¡lculo especÃ­fico para Jogo: Ã¡rea de cada pecinha * total
       const lPeca = Math.ceil(((lOriginal / divisoesL) + sobraL) / 50) * 50;
       const aPeca = Math.ceil(((aOriginal / divisoesA) + sobraA) / 50) * 50;
       areaTotalM2 = (lPeca * aPeca * totalPecas) / 1_000_000;
     } else {
-      // Cálculo normal
+      // CÃ¡lculo normal
       areaTotalM2 = (lCalc * aCalc) / 1_000_000;
     }
 
-    // 4. VALOR BASE DO VIDRO (Área Total * Preço)
+    // 4. VALOR BASE DO VIDRO (Ãrea Total * PreÃ§o)
     let valorVidro = areaTotalM2 * Number(vidro.preco);
     let totalComAdicionais = valorVidro;
 
@@ -356,7 +356,7 @@ export default function CalculoEspelhosPage() {
       }
       else if (acb.tipo_calculo === 'metro_linear') {
         totalComAdicionais += ((lOriginal + aOriginal) * 2 / 1000) * Number(acb.preco);
-      } else if (acb.tipo_calculo === 'unitário') {
+      } else if (acb.tipo_calculo === 'unitÃ¡rio') {
         totalComAdicionais += Number(acb.preco);
       }
     }
@@ -374,13 +374,13 @@ export default function CalculoEspelhosPage() {
     const vSel = vidrosDB.find(v => v.id === vidroId);
     const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
 
-    // --- LÓGICA DE LIMPEZA ---
+    // --- LÃ“GICA DE LIMPEZA ---
     let nomeAcabamento = aSel?.nome || '';
 
-    // Remove termos repetitivos como "(Lapidado)" ou "(Bisotê)" do nome do acabamento
+    // Remove termos repetitivos como "(Lapidado)" ou "(BisotÃª)" do nome do acabamento
     nomeAcabamento = nomeAcabamento
       .replace(/\(Lapidado\)/g, '')
-      .replace(/\(Bisotê\)/g, '')
+      .replace(/\(BisotÃª\)/g, '')
       .trim();
 
     const descricaoFinal = aSel
@@ -394,7 +394,7 @@ export default function CalculoEspelhosPage() {
       quantidade: quantidade,
       total: calculoAtual.total,
 
-      // 🔥 ESSENCIAL PARA O PDF
+      // ðŸ”¥ ESSENCIAL PARA O PDF
       tipoVisual: aSel?.tipo_visual || 'padrao',
       larguraReal: Number(largura),
       alturaReal: Number(altura),
@@ -402,7 +402,7 @@ export default function CalculoEspelhosPage() {
       divisoesAltura: divisoesAltura,
     }]);
 
-    // Limpa apenas as medidas, mantém o vidro e acabamento selecionados
+    // Limpa apenas as medidas, mantÃ©m o vidro e acabamento selecionados
     setLargura("");
     setAltura("");
     setQuantidade(1);
@@ -413,7 +413,7 @@ export default function CalculoEspelhosPage() {
     }, 10);
   };
 
-  // --- FUNÇÃO RenderPreview ATUALIZADA (Correção Semi-Oval) ---
+  // --- FUNÃ‡ÃƒO RenderPreview ATUALIZADA (CorreÃ§Ã£o Semi-Oval) ---
   const RenderPreview = useMemo(() => {
 
     const acb = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
@@ -524,16 +524,16 @@ export default function CalculoEspelhosPage() {
   }, [largura, altura, acabamentoId, acabamentosDB, divisoesLargura, divisoesAltura]);
 
   const handleSalvarOrcamento = async () => {
-    // Validação
+    // ValidaÃ§Ã£o
     if (!nomeCliente || listaItens.length === 0) {
-      setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento.");
+      setModalAvisoTitulo("AtenÃ§Ã£o");
+      setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao OrÃ§amento.");
       setShowModalAviso(true);
-      return; // Interrompe a execução
+      return; // Interrompe a execuÃ§Ã£o
     }
 
     try {
-      // Garante empresa_id mesmo quando o hook ainda não terminou de carregar.
+      // Garante empresa_id mesmo quando o hook ainda nÃ£o terminou de carregar.
       let empresaIdFinal = empresaId;
       if (!empresaIdFinal) {
         const { data: authData } = await supabase.auth.getUser();
@@ -551,7 +551,7 @@ export default function CalculoEspelhosPage() {
       }
 
       if (!empresaIdFinal) {
-        throw new Error("Empresa não identificada para salvar Orçamento.");
+        throw new Error("Empresa nÃ£o identificada para salvar OrÃ§amento.");
       }
 
       let numero = "";
@@ -621,19 +621,19 @@ export default function CalculoEspelhosPage() {
       setShowModalSucesso(true);
 
     } catch (error: any) {
-      console.error("Erro ao salvar Orçamento de espelhos:", error);
+      console.error("Erro ao salvar OrÃ§amento de espelhos:", error);
       setModalAvisoTitulo("Erro ao salvar");
-      setModalAvisoMensagem("Não foi possível salvar o Orçamento. " + (error?.message || "Falha inesperada."));
+      setModalAvisoMensagem("NÃ£o foi possÃ­vel salvar o OrÃ§amento. " + (error?.message || "Falha inesperada."));
       setShowModalAviso(true);
     }
   };
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
-      {/* Conteúdo Principal */}
+      {/* ConteÃºdo Principal */}
       <div className="flex-1 flex flex-col w-full min-w-0">
 
-        {/* AQUI ESTÁ A MÁGICA: Chamando o seu componente padronizado */}
+        {/* AQUI ESTÃ A MÃGICA: Chamando o seu componente padronizado */}
         <Header
           nomeEmpresa={nomeEmpresa}
           usuarioEmail={user?.email || ""}
@@ -641,21 +641,21 @@ export default function CalculoEspelhosPage() {
         >
           <div className="flex items-center gap-6">
             <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Espelho</h1>
+              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">OrÃ§amento Espelho</h1>
               <span className="text-xs text-gray-800 "># {ultimoNumeroGerado || "NOVO"}</span>
             </div>
 
-            {/* ÁREA DE AÇÕES DISCRETAS */}
+            {/* ÃREA DE AÃ‡Ã•ES DISCRETAS */}
             <div className="ml-6 flex items-center gap-3 animate-fade-in">
               <button
                 onClick={() => setShowModalSalvar(true)}
                 className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Salvar Orçamento
+                Salvar OrÃ§amento
               </button>
 
-              {/* Ícone discreto para PDF */}
+              {/* Ãcone discreto para PDF */}
               <button
                 onClick={() => setShowModalPDF(true)}
                 className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
@@ -670,11 +670,11 @@ export default function CalculoEspelhosPage() {
         <main className="p-4 md:p-8 flex-1 overflow-y-auto">
           {/* O header antigo foi removido daqui */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
-            {/* Coluna Esquerda: Configurações */}
+            {/* Coluna Esquerda: ConfiguraÃ§Ãµes */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.menuBackgroundColor }}>
-                  <Calculator size={20} /> Dimensões
+                  <Calculator size={20} /> DimensÃµes
                 </h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
@@ -770,7 +770,7 @@ export default function CalculoEspelhosPage() {
                     >
                       {vidrosDB.map(v => (
                         <option key={v.id} value={v.id}>
-                          {v.nome} {v.espessura} - {v.tipo} ({Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²)
+                          {v.nome} {v.espessura} - {v.tipo} ({Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mÂ²)
                         </option>
                       ))}
                     </select>
@@ -781,7 +781,7 @@ export default function CalculoEspelhosPage() {
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold mb-4" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
                 <div className="space-y-2 max-h-87.5 overflow-y-auto pr-2">
-                  {/* OPÇÃO: SEM ACABAMENTO */}
+                  {/* OPÃ‡ÃƒO: SEM ACABAMENTO */}
                   <label className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
                     <span className="text-sm font-medium text-gray-500">Nenhum / Apenas Lapidado</span>
                     <input
@@ -796,7 +796,7 @@ export default function CalculoEspelhosPage() {
 
                   {/* LISTA DO BANCO */}
                   {acabamentosDB.map((item) => {
-                    // Define o estilo do ícone baseado no tipo_visual do banco
+                    // Define o estilo do Ã­cone baseado no tipo_visual do banco
                     let iconStyle = "border-2 border-gray-400";
                     if (item.tipo_visual.includes('redondo')) iconStyle = "rounded-full border-2 border-gray-400";
                     else if (item.tipo_visual.includes('bisote')) iconStyle = "rounded-sm border-4 border-double border-gray-400";
@@ -805,7 +805,7 @@ export default function CalculoEspelhosPage() {
 
                     return (
                       <label key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
-                        {/* --- EXIBIÇÃO DO DESENHO NA LISTA --- */}
+                        {/* --- EXIBIÃ‡ÃƒO DO DESENHO NA LISTA --- */}
                         <div className={`shrink-0 bg-gray-300 w-10 h-10 ${iconStyle} flex items-center justify-center`}>
                           {item.tipo_visual.includes('jogo') && (
                             <div className="grid grid-cols-3 gap-0.5 p-0.5 h-full w-full">
@@ -819,7 +819,7 @@ export default function CalculoEspelhosPage() {
 
                         <div className="flex-1">
                           <span className="text-sm font-medium text-gray-700">{item.nome}</span>
-                          {/* Mostra o tipo técnico do banco como label secundária */}
+                          {/* Mostra o tipo tÃ©cnico do banco como label secundÃ¡ria */}
                           <p className="text-xs text-gray-400 capitalize">{item.tipo_visual.replace(/-/g, ' ')}</p>
                         </div>
 
@@ -850,7 +850,7 @@ export default function CalculoEspelhosPage() {
                 </div>
               </div>
 
-              {/* Botão de Adição e Valor Atual */}
+              {/* BotÃ£o de AdiÃ§Ã£o e Valor Atual */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subtotal do item</p>
@@ -901,11 +901,11 @@ export default function CalculoEspelhosPage() {
                         {listaItens.map((item, index) => (
                           <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
 
-                            {/* Lado Esquerdo: Descrição e Detalhes */}
+                            {/* Lado Esquerdo: DescriÃ§Ã£o e Detalhes */}
                             <div className="flex-1 min-w-0 pr-4">
                               <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
 
-                                {/* Descrição */}
+                                {/* DescriÃ§Ã£o */}
                                 <h4
                                   className="text-sm font-semibold truncate leading-tight"
                                   style={{ color: theme.contentTextLightBg }}
@@ -925,9 +925,9 @@ export default function CalculoEspelhosPage() {
                               </p>
                             </div>
 
-                            {/* Lado Direito: Preço e Ações */}
+                            {/* Lado Direito: PreÃ§o e AÃ§Ãµes */}
                             <div className="flex items-center gap-2 sm:gap-3">
-                              {/* Preço Unitário */}
+                              {/* PreÃ§o UnitÃ¡rio */}
                               <span
                                 className="text-sm font-bold whitespace-nowrap mr-2"
                                 style={{ color: theme.contentTextLightBg }}
@@ -935,7 +935,7 @@ export default function CalculoEspelhosPage() {
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                               </span>
 
-                              {/* --- BOTÃO DE EDITAR (Cor do Tema) --- */}
+                              {/* --- BOTÃƒO DE EDITAR (Cor do Tema) --- */}
                               <button
                                 onClick={() => {
                                   setLargura(item.medidas.split('x')[0]);
@@ -950,7 +950,7 @@ export default function CalculoEspelhosPage() {
                                 <Pencil size={16} />
                               </button>
 
-                              {/* --- BOTÃO DE REMOVER (Vermelho Erro) --- */}
+                              {/* --- BOTÃƒO DE REMOVER (Vermelho Erro) --- */}
                               <button
                                 onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
                                 title="Remover item"
@@ -964,9 +964,9 @@ export default function CalculoEspelhosPage() {
                         ))}
                       </div>
 
-                      {/* --- RODAPÉ COM A SOMA TOTAL --- */}
+                      {/* --- RODAPÃ‰ COM A SOMA TOTAL --- */}
                       <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-500">Total do Orçamento</span>
+                        <span className="text-sm font-medium text-gray-500">Total do OrÃ§amento</span>
 
                         {/* Soma Total */}
                         <span
@@ -981,8 +981,8 @@ export default function CalculoEspelhosPage() {
                     // Estado Vazio
                     <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                       <ClipboardList size={28} className="mb-3" />
-                      <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento.</p>
-                      <p className="text-xs mt-1">Comece adicionando as dimensões e o tipo de espelho.</p>
+                      <p className="text-sm font-medium">Nenhum item adicionado ao OrÃ§amento.</p>
+                      <p className="text-xs mt-1">Comece adicionando as dimensÃµes e o tipo de espelho.</p>
                     </div>
                   )}
                 </div>
@@ -992,7 +992,7 @@ export default function CalculoEspelhosPage() {
         </main>
       </div>
 
-      {/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
+      {/* MODAL DE FINALIZAÃ‡ÃƒO E DOWNLOAD */}
       {showModalPDF && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
@@ -1008,7 +1008,7 @@ export default function CalculoEspelhosPage() {
               <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
                 <ClipboardList size={32} />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar OrÃ§amento</h3>
               <p className="text-sm opacity-70">Preencha os dados ao lado para personalizar seu PDF antes de baixar.</p>
             </div>
 
@@ -1026,7 +1026,7 @@ export default function CalculoEspelhosPage() {
                   <input type="text" value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} className="w-full bg-transparent border-b py-2.5 outline-none text-sm" placeholder="Nome do cliente..." />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / Referência</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / ReferÃªncia</label>
                   <input type="text" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} className="w-full bg-transparent border-b py-2.5 outline-none text-sm" placeholder="Ex: Apartamento 402..." />
                 </div>
               </div>
@@ -1046,7 +1046,7 @@ export default function CalculoEspelhosPage() {
                       numeroOrcamento={ultimoNumeroGerado}
                     />
                   }
-                  fileName={`Orçamento_${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'}.pdf`}
+                  fileName={`OrÃ§amento_${nomeCliente?.replace(/[^a-z0-9]/gi, '') || 'cliente'}.pdf`}
                   className="w-full"
                 >
                   {({ loading }) => (
@@ -1055,7 +1055,7 @@ export default function CalculoEspelhosPage() {
                       className="w-full px-5 py-3 rounded-xl font-semibold bg-[#1e3a5a] text-white hover:bg-[#2a527d] transition-all text-sm flex items-center justify-center gap-2"
                     >
                       <Printer size={16} />
-                      {loading ? "Gerando PDF..." : "Baixar Orçamento"}
+                      {loading ? "Gerando PDF..." : "Baixar OrÃ§amento"}
                     </button>
                   )}
                 </PDFDownloadLink>
@@ -1064,7 +1064,7 @@ export default function CalculoEspelhosPage() {
           </div>
         </div>
       )}
-      {/* MODAL DE SALVAR Orçamento */}
+      {/* MODAL DE SALVAR OrÃ§amento */}
       {showModalSalvar && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
@@ -1088,11 +1088,11 @@ export default function CalculoEspelhosPage() {
               >
                 <Save size={32} />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Salvar Orçamento</h3>
-              <p className="text-sm opacity-70">Preencha os dados ao lado para salvar o Orçamento no sistema.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Salvar OrÃ§amento</h3>
+              <p className="text-sm opacity-70">Preencha os dados ao lado para salvar o OrÃ§amento no sistema.</p>
             </div>
 
-            {/* LADO DIREITO (Formulário) */}
+            {/* LADO DIREITO (FormulÃ¡rio) */}
             <div className="p-8 md:w-3/5 flex flex-col">
               <div className="flex justify-end mb-4">
                 <button
@@ -1115,7 +1115,7 @@ export default function CalculoEspelhosPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / Referência</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 opacity-50">Obra / ReferÃªncia</label>
                   <input
                     type="text"
                     value={nomeObra}
@@ -1132,7 +1132,7 @@ export default function CalculoEspelhosPage() {
                 style={{ backgroundColor: theme.menuBackgroundColor }}
               >
                 <Save size={16} />
-                Salvar Orçamento
+                Salvar OrÃ§amento
               </button>
             </div>
           </div>
@@ -1144,12 +1144,12 @@ export default function CalculoEspelhosPage() {
           <div
             className="backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
             style={{
-              backgroundColor: `${theme.modalBackgroundColor || '#FFFFFF'}F0`, // Adiciona leve transparência
+              backgroundColor: `${theme.modalBackgroundColor || '#FFFFFF'}F0`, // Adiciona leve transparÃªncia
               borderRight: `4px solid ${theme.menuIconColor}`,
               color: theme.modalTextColor
             }}
           >
-            {/* Ícone com a cor do tema */}
+            {/* Ãcone com a cor do tema */}
             <div
               className="p-2 rounded-xl shrink-0"
               style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}
@@ -1180,7 +1180,7 @@ export default function CalculoEspelhosPage() {
                 className="text-[10px] font-bold opacity-50 hover:opacity-100 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
               >
                 <ClipboardList size={12} />
-                Ver Histórico
+                Ver HistÃ³rico
               </button>
             </div>
           </div>
@@ -1195,7 +1195,7 @@ export default function CalculoEspelhosPage() {
               color: theme.modalTextColor || '#1F2937'
             }}
           >
-            {/* Ícone com Animação de Pulso */}
+            {/* Ãcone com AnimaÃ§Ã£o de Pulso */}
             <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6 relative">
               <div className="absolute inset-0 rounded-full bg-amber-200 animate-ping opacity-20"></div>
               <AlertTriangle size={32} className="text-amber-500 animate-bounce" />

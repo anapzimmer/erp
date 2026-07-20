@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -328,8 +328,8 @@ export default function PMA2FPage() {
       if (!item) {
         setMensagemSistema({
           tipo: "aviso",
-          titulo: "Projeto não encontrado",
-          mensagem: "Não foi possível localizar este projeto na central de impressão.",
+          titulo: "Projeto nÃ£o encontrado",
+          mensagem: "NÃ£o foi possÃ­vel localizar este projeto na central de impressÃ£o.",
           aoFechar: () => router.push(returnTo),
         });
         return;
@@ -353,11 +353,11 @@ export default function PMA2FPage() {
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
     } catch (erro) {
-      console.warn("Não foi possível carregar o projeto da central de impressão:", erro);
+      console.warn("NÃ£o foi possÃ­vel carregar o projeto da central de impressÃ£o:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
-        mensagem: "Não foi possível carregar este projeto para edição.",
+        mensagem: "NÃ£o foi possÃ­vel carregar este projeto para ediÃ§Ã£o.",
         aoFechar: () => router.push(returnTo),
       });
     }
@@ -653,7 +653,7 @@ export default function PMA2FPage() {
       }
 
       if (precosVidroError) {
-        console.error("Erro ao carregar preços por tabela:", precosVidroError);
+        console.error("Erro ao carregar preÃ§os por tabela:", precosVidroError);
         setPrecosVidroGrupos([]);
       } else {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
@@ -906,7 +906,7 @@ export default function PMA2FPage() {
         window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, dados.cliente);
       }
     } catch (erro) {
-      console.warn("Não foi possível enviar o projeto para a central de impressão:", erro);
+      console.warn("NÃ£o foi possÃ­vel enviar o projeto para a central de impressÃ£o:", erro);
     }
 
     router.push(centralItemId ? returnTo : "/central-impressao");
@@ -944,11 +944,11 @@ export default function PMA2FPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar Orçamento PMA2F:", error);
+      console.error("Erro ao carregar OrÃ§amento PMA2F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
-        mensagem: `Não foi possível carregar o Orçamento: ${error.message}`,
+        mensagem: `NÃ£o foi possÃ­vel carregar o OrÃ§amento: ${error.message}`,
       });
       return;
     }
@@ -957,8 +957,8 @@ export default function PMA2FPage() {
     if (itens?.tipo !== "pma2f") {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Orçamento incompatível",
-        mensagem: "Este Orçamento não pertence ao PMA2F.",
+        titulo: "OrÃ§amento incompatÃ­vel",
+        mensagem: "Este OrÃ§amento nÃ£o pertence ao PMA2F.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -996,11 +996,11 @@ export default function PMA2FPage() {
         window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
         router.push(returnTo);
       } catch (erro) {
-        console.warn("Não foi possível atualizar o projeto na central de impressão:", erro);
+        console.warn("NÃ£o foi possÃ­vel atualizar o projeto na central de impressÃ£o:", erro);
         setMensagemSistema({
           tipo: "erro",
           titulo: "Erro ao salvar",
-          mensagem: "Não foi possível atualizar este projeto na central de impressão.",
+          mensagem: "NÃ£o foi possÃ­vel atualizar este projeto na central de impressÃ£o.",
         });
       } finally {
         setSalvandoOrcamento(false);
@@ -1011,8 +1011,8 @@ export default function PMA2FPage() {
     if (!empresaId) {
       setMensagemSistema({
         tipo: "erro",
-        titulo: "Empresa não encontrada",
-        mensagem: "Empresa não encontrada para salvar o Orçamento.",
+        titulo: "Empresa nÃ£o encontrada",
+        mensagem: "Empresa nÃ£o encontrada para salvar o OrÃ§amento.",
       });
       return;
     }
@@ -1020,7 +1020,7 @@ export default function PMA2FPage() {
     if (!dados.cliente.trim()) {
       setMensagemSistema({
         tipo: "aviso",
-        titulo: "Cliente obrigatório",
+        titulo: "Cliente obrigatÃ³rio",
         mensagem: "Selecione ou informe o cliente antes de salvar.",
       });
       return;
@@ -1082,19 +1082,19 @@ export default function PMA2FPage() {
       window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
       setMensagemSistema({
         tipo: "sucesso",
-        titulo: editId ? "Orçamento atualizado" : "Orçamento salvo",
-        mensagem: `Orçamento ${numeroFinal} salvo com sucesso.`,
+        titulo: editId ? "OrÃ§amento atualizado" : "OrÃ§amento salvo",
+        mensagem: `OrÃ§amento ${numeroFinal} salvo com sucesso.`,
         aoFechar: () => router.push(returnTo),
       });
     } catch (erro) {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar Orçamento PMA2F:", erro);
+      console.error("Erro ao salvar OrÃ§amento PMA2F:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
-        mensagem: `Não foi possível salvar o Orçamento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
+        mensagem: `NÃ£o foi possÃ­vel salvar o OrÃ§amento. ${mensagem}${detalhes ? ` (${detalhes})` : ""}`,
       });
     } finally {
       setSalvandoOrcamento(false);
@@ -1121,42 +1121,42 @@ export default function PMA2FPage() {
   }, [perfis, ferragens]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#eef3f8] text-[#0f2742] xl:h-screen xl:overflow-hidden">
-      <div className="flex min-h-screen w-full xl:h-full xl:min-h-0">
-        <div className="flex min-h-screen w-full flex-col overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,39,66,0.10)] xl:h-full xl:min-h-0">
-          <header className="grid min-h-[118px] shrink-0 grid-cols-1 items-center gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 xl:grid-cols-[minmax(220px,0.9fr)_minmax(260px,0.8fr)_minmax(520px,1.6fr)]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#f3f6f9] text-[#0f2742]">
+      <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen w-full flex-col bg-[#f3f6f9]">
+          <header className="grid shrink-0 grid-cols-1 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,0.9fr)_minmax(520px,1.5fr)]">
             <div className="flex items-center">
-              <div className="flex h-[82px] w-full max-w-[300px] items-center">
+              <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={logoUsuario}
                     alt="Logo da empresa"
-                    className="max-h-[82px] w-auto max-w-[300px] object-contain"
+                    className="max-h-[54px] w-auto max-w-[220px] object-contain"
                   />
                 ) : (
-                  <div className="text-[30px] font-semibold leading-none text-[#10253f]">
+                  <div className="text-[22px] font-semibold leading-none text-[#10253f]">
                     Logo da empresa
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-start gap-3 xl:justify-end">
-              <label className="text-sm font-medium uppercase tracking-wide text-slate-500">Projeto:</label>
+            <div className="flex items-center justify-start gap-2 xl:justify-end">
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Projeto:</label>
               <input
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[260px] border-0 bg-transparent p-0 text-[20px] font-bold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-[300px] border-0 bg-transparent p-0 text-[17px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Nº Orçamento</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">NÂº OrÃ§amento</label>
                   <input
                     value={dados.numero}
                     tabIndex={-1}
@@ -1165,10 +1165,10 @@ export default function PMA2FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Data</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
                   <input
                     value={dados.data}
                     tabIndex={-1}
@@ -1177,10 +1177,10 @@ export default function PMA2FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[58px] items-center gap-3 border-t border-slate-200 py-3 sm:border-l sm:border-t-0 sm:px-5">
-                <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-600" />
+              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+                <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-600">Cliente</label>
+                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
                   {listaClientesAberta ? (
                     <input
                       ref={clienteInputRef}
@@ -1262,20 +1262,19 @@ export default function PMA2FPage() {
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            <aside className="flex w-full shrink-0 flex-col bg-[#00375a] lg:w-20 xl:w-[210px]">
-              <nav className="flex flex-1 flex-row gap-3 overflow-x-auto px-3 py-3 lg:flex-col lg:gap-4 lg:overflow-visible lg:px-4 lg:py-5">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <aside className="w-full shrink-0 border-b border-slate-200 bg-white">
+              <nav className="flex flex-row gap-2 overflow-x-auto px-4 py-2 sm:px-6">
                 {[
-                  { label: "Orçamento", icon: ClipboardList, ativo: true },
+                  { label: "OrÃ§amento", icon: ClipboardList, ativo: true },
                   { label: "Imprimir", icon: Printer },
                   { label: "Projetos", icon: FolderOpen },
                   { label: "PDF +", icon: FileText },
                   { label: "Salvar", icon: Save },
-                  { label: "Configurações", icon: Settings },
+                  { label: "ConfiguraÃ§Ãµes", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
                 ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${ativo ? "bg-[#18c979] text-white shadow-lg shadow-emerald-900/20" : "text-white/90 hover:bg-white/10"
-                    }`;
+                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-[#07385a]/15 bg-[#07385a]/5 text-[#07385a]" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50"}`;
 
                   if (label === "Imprimir") {
                     return (
@@ -1286,10 +1285,10 @@ export default function PMA2FPage() {
                         fileName={`pma2f_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
-                        {({ loading }) => (
+                        {() => (
                           <>
-                            <Icon size={22} />
-                            <span className="lg:hidden xl:inline">{loading ? "Gerando..." : label}</span>
+                            <Icon size={18} />
+                            <span>{label}</span>
                           </>
                         )}
                       </PDFDownloadLink>
@@ -1315,8 +1314,8 @@ export default function PMA2FPage() {
                       className={itemClass}
                       type="button"
                     >
-                      <Icon size={22} />
-                      <span className="lg:hidden xl:inline">{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
+                      <Icon size={18} />
+                      <span>{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
                     </button>
                   );
                 })}
@@ -1324,19 +1323,19 @@ export default function PMA2FPage() {
             </aside>
 
             <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-[#f7fafc] p-3 xl:overflow-auto">
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
-                  <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex-1 overflow-y-auto bg-[#f3f6f9] p-4">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[340px] items-center justify-center sm:min-h-[460px] xl:min-h-[420px]">
+                    <div className="mt-3 flex min-h-[300px] items-center justify-center sm:min-h-[390px] xl:min-h-[380px]">
                       <ProjetoDrawing tipoProjeto={dados.trilho} comPuxador={dados.puxador === "Com puxador"} />
                     </div>
                   </section>
 
-                  <div className="space-y-5">
-                    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="space-y-4">
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <SectionTitle>Dados do projeto</SectionTitle>
-                      <div className="mt-5 grid overflow-visible md:grid-cols-3">
+                      <div className="mt-4 grid overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Largura"
@@ -1359,8 +1358,8 @@ export default function PMA2FPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
-                          <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">
+                        <label className="relative flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+                          <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 flex-1">
@@ -1389,7 +1388,7 @@ export default function PMA2FPage() {
                                 }}
                                 onBlur={() => window.setTimeout(() => setListaVidrosAberta(false), 250)}
                                 disabled={carregandoVidros}
-                                className="mt-0.5 w-full bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                                className="mt-0.5 w-full bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
                                 placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
                               />
                             ) : (
@@ -1402,7 +1401,7 @@ export default function PMA2FPage() {
                                     setListaVidrosAberta(true);
                                   }
                                 }}
-                                className="mt-0.5 block w-full truncate rounded-md bg-transparent p-0 text-left text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+                                className="mt-0.5 block w-full truncate rounded-md bg-transparent p-0 text-left text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
                               >
                                 {dados.vidro || "Digite o vidro"}
                               </button>
@@ -1480,7 +1479,7 @@ export default function PMA2FPage() {
 
                         <OptionInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
-                          label="Furação do puxador"
+                          label="FuraÃ§Ã£o do puxador"
                           value={dados.tamanhoPuxador || "Escolher"}
                           options={tamanhoPuxadorOpcoes}
                           disabled={dados.puxador !== "Com puxador"}
@@ -1500,7 +1499,7 @@ export default function PMA2FPage() {
 
                     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <SectionTitle>Relação de materiais</SectionTitle>
+                        <SectionTitle>RelaÃ§Ã£o de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
                           <button
                             type="button"
@@ -1522,7 +1521,7 @@ export default function PMA2FPage() {
                       <div className="mt-4 overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
                         <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
                           <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
+                          <div className="border-r border-white/20 px-3 py-3">Produto / descriÃ§Ã£o</div>
                           <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
                           <div className="px-3 py-3 text-center" />
                           <div className="border-r border-white/20 px-3 py-3 text-right">Valor unit.</div>
@@ -1580,7 +1579,7 @@ export default function PMA2FPage() {
                       </div>
 
                       <div className="mt-3 flex items-center justify-end gap-5">
-                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do Orçamento</p>
+                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do OrÃ§amento</p>
                         <div className="rounded-lg bg-[#18bd72] px-8 py-3 text-xl font-bold text-white shadow-lg shadow-emerald-900/10">
                           {moeda(totalMateriais)}
                         </div>
@@ -1589,13 +1588,13 @@ export default function PMA2FPage() {
                   </div>
                 </div>
 
-                <section className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-6">
-                  <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
-                  <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
+                <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+                  <SummaryCard icon={<Grid2X2 size={30} />} label="Ãrea total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Ãrea de vidro" tone="green" />
+                  <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="PeÃ§as de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
                   <SummaryCard icon={<RailSymbol size={30} />} label="Valor perfis" value={moeda(valorPerfis)} detail="Perfis" tone="blue" />
-                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessórios" tone="orange" />
-                  <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="Orçamento total" tone="emerald" />
+                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessÃ³rios" tone="orange" />
+                  <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="OrÃ§amento total" tone="emerald" />
                 </section>
               </div>
 
@@ -1687,8 +1686,8 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
-      <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">{icon}</span>
+    <label className="flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
         <span className="mt-0.5 flex items-center gap-1.5">
@@ -1703,9 +1702,9 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[64px] min-w-0 rounded-md bg-transparent text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+            className="w-[64px] min-w-0 rounded-md bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
           />
-          {suffix && <span className="text-[15px] font-semibold leading-tight text-[#10253f]">{suffix}</span>}
+          {suffix && <span className="text-sm font-semibold leading-tight text-[#10253f]">{suffix}</span>}
         </span>
       </span>
     </label>
@@ -1731,11 +1730,11 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[72px] items-center gap-5 border-b border-slate-200 px-4 py-3 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
+      className={`flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
         disabled ? "opacity-50" : ""
       }`}
     >
-      <span className="flex w-9 shrink-0 justify-start text-[#0f2742]/80">
+      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         {icon}
       </span>
 
@@ -1749,7 +1748,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-[15px] font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
+          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>
@@ -1848,7 +1847,7 @@ function ProjetoDrawing({ tipoProjeto, comPuxador }: { tipoProjeto: string; comP
   const desenhoSrc = desenhoPma2f(tipoProjeto, comPuxador ? "Com puxador" : "Sem puxador");
 
   return (
-    <div className="flex h-[430px] w-full items-center justify-center sm:h-[520px]" role="img" aria-label="Desenho ilustrativo do projeto">
+    <div className="flex h-[350px] w-full items-center justify-center sm:h-[410px]" role="img" aria-label="Desenho ilustrativo do projeto">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={desenhoSrc}
@@ -1869,14 +1868,16 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     emerald: "bg-green-100 text-green-700",
   };
   return (
-    <div className="flex items-center gap-4 border-slate-200 px-3 xl:border-r last:border-r-0">
-      <div className={`flex h-[68px] w-[74px] shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
+    <div className="flex items-center gap-3 border-slate-200 px-3 py-2 xl:border-r last:border-r-0">
+      <div className={`flex h-11 w-12 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}>{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[#0f2742]">{label}</p>
-        <p className="mt-1 text-xl font-bold leading-tight text-[#0f2742] xl:text-[18px]">{value}</p>
-        <p className="mt-1 text-xs text-slate-500">{detail}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="mt-0.5 text-base font-semibold leading-tight text-[#0f2742]">{value}</p>
+        <p className="mt-0.5 text-[11px] text-slate-500">{detail}</p>
       </div>
     </div>
   );
 }
+
+
 
