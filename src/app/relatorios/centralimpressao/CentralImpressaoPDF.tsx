@@ -28,6 +28,13 @@ export type CentralImpressaoItem = {
   observacao?: string;
   pecasDivisao?: number;
   medidasDetalhadas?: string;
+  vidrosAvulsos?: Array<{
+    id: string;
+    quantidade: number;
+    medida: string;
+    vidro: string;
+    valorTotal: number;
+  }>;
   valorTotal?: number;
   materiais?: ProjetoIndividualMaterial[];
 };
@@ -119,6 +126,20 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "normal" },
   infoMultiline: { fontSize: 7, color: "#0f2742", marginTop: 2, lineHeight: 1.35, fontWeight: "normal" },
   infoValueStrong: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "bold" },
+  vidroTable: {
+    width: "98%",
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    borderRadius: 5,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  vidroHeader: { flexDirection: "row", backgroundColor: "#07385a", color: "#ffffff" },
+  vidroRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  vidroCellQtd: { width: "16%", padding: 4, fontSize: 7, textAlign: "center" },
+  vidroCellMedida: { width: "24%", padding: 4, fontSize: 7 },
+  vidroCellDesc: { width: "40%", padding: 4, fontSize: 7 },
+  vidroCellTotal: { width: "20%", padding: 4, fontSize: 7, textAlign: "right" },
   totals: {
     flexDirection: "row",
     gap: 8,
@@ -455,6 +476,7 @@ export function CentralImpressaoPDF({
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
             const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira || ehJc2fComSacada || ehJc4fComSacada;
             const ehJanelaComSacada = ehJc2fComSacada || ehJc4fComSacada;
+            const ehVidroAvulso = /vidros avulsos/i.test(item.projeto || "");
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
 
             return (
@@ -546,7 +568,24 @@ export function CentralImpressaoPDF({
                       <Text style={styles.infoLabel}>Valor total</Text>
                       <Text style={styles.infoValueStrong}>{moeda(item.valorTotal || 0)}</Text>
                     </View>
-                    {item.medidasDetalhadas ? (
+                    {ehVidroAvulso && item.vidrosAvulsos?.length ? (
+                      <View style={styles.vidroTable}>
+                        <View style={styles.vidroHeader}>
+                          <Text style={styles.vidroCellQtd}>PEÇAS</Text>
+                          <Text style={styles.vidroCellMedida}>MEDIDAS</Text>
+                          <Text style={styles.vidroCellDesc}>VIDRO</Text>
+                          <Text style={styles.vidroCellTotal}>TOTAL</Text>
+                        </View>
+                        {item.vidrosAvulsos.map((vidro) => (
+                          <View key={vidro.id} style={styles.vidroRow} wrap={false}>
+                            <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
+                            <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
+                            <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                            <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : item.medidasDetalhadas ? (
                       <View style={styles.infoWide}>
                         <Text style={styles.infoLabel}>Medidas detalhadas</Text>
                         <Text style={styles.infoMultiline}>{item.medidasDetalhadas}</Text>

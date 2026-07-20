@@ -578,7 +578,9 @@ export default function CentralImpressaoPage() {
       numero: item.numero,
       projeto: nomeProjetoVisivel(item.projeto),
       cliente: cliente || item.cliente,
-      medidas: `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0
+        ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
+        : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
       quantidade: Number(item.quantidade || 0),
@@ -594,6 +596,8 @@ export default function CentralImpressaoPage() {
       tamanhoPuxador: item.tamanhoPuxador,
       trinco: item.trinco,
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
+      medidasDetalhadas: item.medidasDetalhadas,
+      vidrosAvulsos: item.vidrosAvulsos,
       valorTotal: valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
       materiais: item.materiais,
     })),
@@ -622,8 +626,11 @@ export default function CentralImpressaoPage() {
       ...item,
       id: criarId(),
       numero: numeroOrcamento || item.numero,
-      medidas: `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0
+        ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
+        : item.medidas,
       materiais: item.materiais?.map((material) => ({ ...material, id: criarId() })),
+      vidrosAvulsos: item.vidrosAvulsos?.map((vidro) => ({ ...vidro, id: criarId() })),
     };
     const proximaLista = [...itens, copia];
 
@@ -1187,7 +1194,26 @@ export default function CentralImpressaoPage() {
                               </p>
                             ) : null}
                           </Field>
-                          {item.medidasDetalhadas ? (
+                          {item.vidrosAvulsos?.length ? (
+                            <div className="md:col-span-2 xl:col-span-4">
+                              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-[0.04em] text-white">
+                                  <div className="px-3 py-2 text-center">Peças</div>
+                                  <div className="px-3 py-2">Medidas</div>
+                                  <div className="px-3 py-2">Cor e espessura do vidro</div>
+                                  <div className="px-3 py-2 text-right">Valor total</div>
+                                </div>
+                                {item.vidrosAvulsos.map((vidro) => (
+                                  <div key={vidro.id} className="grid grid-cols-[90px_1fr_1.6fr_130px] border-t border-slate-100 text-sm text-slate-700">
+                                    <div className="px-3 py-2 text-center">{Number(vidro.quantidade || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</div>
+                                    <div className="px-3 py-2">{vidro.medida}</div>
+                                    <div className="px-3 py-2">{vidro.vidro}</div>
+                                    <div className="px-3 py-2 text-right font-semibold text-[#0f2742]">{moeda(vidro.valorTotal)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : item.medidasDetalhadas ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <Field label="Medidas dos vidros">
                                 <textarea

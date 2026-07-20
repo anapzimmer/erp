@@ -1675,6 +1675,14 @@ useEffect(() => {
       })
       .join("\n");
 
+    const vidrosAvulsos = itens.map((item) => ({
+      id: criarId(),
+      quantidade: Number(item.qtd || 0),
+      medida: item.medidaReal,
+      vidro: String(item.descricao || "Vidro").replace(/^vidro\s+/i, "").trim(),
+      valorTotal: Number(item.total || 0),
+    }));
+
     const materiais = itens.map((item) => {
       const { largura, altura } = extrairMedida(item.medidaCalc);
       const area = (largura / 1000) * (altura / 1000) * Number(item.qtd || 0);
@@ -1714,6 +1722,7 @@ useEffect(() => {
       trinco: "",
       pecasDivisao: totalPecas,
       medidasDetalhadas,
+      vidrosAvulsos,
       valorTotal,
       materiais,
       origemRota: "/calculo/calculovidro",
