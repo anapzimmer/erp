@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
   vidroCellTotal: { width: "20%", padding: 4, fontSize: 7, textAlign: "right" },
   totals: {
     flexDirection: "row",
-    gap: 8,
+    gap: 4,
     borderWidth: 1,
     borderColor: "#dbe4ee",
     borderRadius: 8,
-    padding: 8,
+    padding: 6,
     marginTop: 10,
     backgroundColor: "#f8fafc",
   },
@@ -154,11 +154,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
     borderRadius: 6,
-    padding: 7,
+    padding: 5,
   },
-  totalLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  totalValue: { fontSize: 10, color: "#0f2742", fontWeight: "normal" },
-  totalValueStrong: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
+  totalBoxStrong: {
+    flex: 1.55,
+    backgroundColor: "#ffffff",
+    borderRadius: 6,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+  },
+  totalLabel: { fontSize: 5.4, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
+  totalValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
+  totalValueStrong: { fontSize: 9.5, color: "#0f2742", fontWeight: "bold" },
   optSection: {
     marginTop: 10,
     borderWidth: 1,
@@ -358,6 +366,8 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   return 1;
 };
 
+const ehVidroAvulso = (projeto?: string) => /vidros avulsos/i.test(String(projeto || ""));
+
 export function CentralImpressaoPDF({
   itens,
   nomeEmpresa,
@@ -369,8 +379,13 @@ export function CentralImpressaoPDF({
   somenteRelacaoObra = false,
 }: CentralImpressaoPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
-  const quantidadeVaos = itens.length;
-  const quantidadePecas = itens.reduce((total, item) => total + (Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item)), 0);
+  const quantidadeVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : Number(item.quantidade || 0)), 0);
+  const quantidadePecasVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item)), 0);
+  const quantidadePecasAvulsas = itens.reduce((total, item) => {
+    if (!ehVidroAvulso(item.projeto)) return total;
+    return total + (item.vidrosAvulsos?.reduce((subtotal, vidro) => subtotal + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0));
+  }, 0);
+  const quantidadePecas = quantidadePecasVaos + quantidadePecasAvulsas;
   const areaTotal = itens.reduce((total, item) => total + calcularAreaVidrosItem(item), 0);
   const valorTotalOrcamento = itens.reduce((total, item) => total + Number(item.valorTotal || 0), 0);
   const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
@@ -605,7 +620,15 @@ export function CentralImpressaoPDF({
             <Text style={styles.totalValue}>{quantidadeVaos}</Text>
           </View>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Quantidade de peças</Text>
+            <Text style={styles.totalLabel}>Peças dos vãos</Text>
+            <Text style={styles.totalValue}>{quantidadePecasVaos}</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Peças avulsas</Text>
+            <Text style={styles.totalValue}>{quantidadePecasAvulsas}</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Total peças</Text>
             <Text style={styles.totalValue}>{quantidadePecas}</Text>
           </View>
           <View style={styles.totalBox}>
@@ -614,7 +637,7 @@ export function CentralImpressaoPDF({
               {areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
             </Text>
           </View>
-          <View style={styles.totalBox}>
+          <View style={styles.totalBoxStrong}>
             <Text style={styles.totalLabel}>Valor total do Orçamento</Text>
             <Text style={styles.totalValueStrong}>{moeda(valorTotalOrcamento)}</Text>
           </View>

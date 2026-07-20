@@ -162,6 +162,7 @@ const ehPma5f = (projeto?: string) => /pma5f|m[aã]o amiga 5/i.test(String(proje
 const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(projeto || ""));
 const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
 const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
+const ehVidroAvulso = (projeto?: string) => /vidros avulsos/i.test(String(projeto || ""));
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehBoxCanto3f = (projeto?: string) => /boxcanto3f|box de canto 3/i.test(String(projeto || ""));
 const ehBoxCanto = (projeto?: string) => /boxcanto|box de canto/i.test(String(projeto || ""));
@@ -527,13 +528,17 @@ export default function CentralImpressaoPage() {
   const totais = useMemo(() => {
     const base = itens.reduce(
       (acc, item) => {
-        acc.projetos += 1;
-        acc.pecas += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item);
+        if (ehVidroAvulso(item.projeto)) {
+          acc.pecasAvulsas += item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
+        } else {
+          acc.projetos += Number(item.quantidade || 0);
+          acc.pecasVaos += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item);
+        }
         acc.area += calcularAreaVidrosItem(item);
         acc.valorOriginal += Number(item.valorTotal || 0);
         return acc;
       },
-      { projetos: 0, pecas: 0, area: 0, valorOriginal: 0 }
+      { projetos: 0, pecasVaos: 0, pecasAvulsas: 0, area: 0, valorOriginal: 0 }
     );
 
     const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
@@ -545,6 +550,7 @@ export default function CentralImpressaoPage() {
 
     return {
       ...base,
+      pecas: base.pecasVaos + base.pecasAvulsas,
       valor,
       valorPerfisOriginais,
       valorPerfisOtimizados,
@@ -896,11 +902,13 @@ export default function CentralImpressaoPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <ResumoCard icon={<Layers3 size={22} />} label="Projetos" value={String(totais.projetos)} />
-                <ResumoCard icon={<Layers3 size={22} />} label="m²" value={`${numeroDecimal(totais.area)} m²`} />
-                <ResumoCard icon={<Plus size={22} />} label="Peças" value={String(totais.pecas)} />
-                <ResumoCard icon={<FileDown size={22} />} label="Total" value={moeda(totais.valor)} />
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(92px,1fr))_minmax(190px,1.55fr)]">
+                <ResumoCard icon={<Layers3 size={22} />} label="Vãos" value={String(totais.projetos)} />
+                <ResumoCard icon={<Plus size={22} />} label="Peças dos vãos" value={String(totais.pecasVaos)} />
+                <ResumoCard icon={<Plus size={22} />} label="Peças avulsas" value={String(totais.pecasAvulsas)} />
+                <ResumoCard icon={<Plus size={22} />} label="Total peças" value={String(totais.pecas)} />
+                <ResumoCard icon={<Layers3 size={22} />} label="m² total" value={`${numeroDecimal(totais.area)} m²`} />
+                <ResumoCard icon={<FileDown size={22} />} label="Total" value={moeda(totais.valor)} strong />
               </div>
             </div>
           </section>
@@ -1239,9 +1247,11 @@ export default function CentralImpressaoPage() {
             </div>
 
             {itens.length > 0 ? (
-              <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-4">
+              <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(96px,1fr))_minmax(210px,1.6fr)]">
                 <TotalResumo label="Quantidade de vão" value={String(totais.projetos)} />
-                <TotalResumo label="Quantidade de peças" value={String(totais.pecas)} />
+                <TotalResumo label="Peças dos vãos" value={String(totais.pecasVaos)} />
+                <TotalResumo label="Peças avulsas" value={String(totais.pecasAvulsas)} />
+                <TotalResumo label="Total de peças" value={String(totais.pecas)} />
                 <TotalResumo label="M² total" value={`${numeroDecimal(totais.area)} m²`} />
                 <TotalResumo label="Valor total do Orçamento" value={moeda(totais.valor)} strong />
               </div>
@@ -1410,14 +1420,14 @@ export default function CentralImpressaoPage() {
   );
 }
 
-function ResumoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function ResumoCard({ icon, label, value, strong = false }: { icon: React.ReactNode; label: string; value: string; strong?: boolean }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+    <div className={`rounded-2xl border bg-white/80 shadow-sm ${strong ? "border-emerald-200 p-4" : "border-slate-200 p-3"}`}>
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#07385a]">{icon}</div>
+        <div className={`${strong ? "h-11 w-11 bg-emerald-50 text-emerald-700" : "h-9 w-9 bg-slate-100 text-[#07385a]"} flex items-center justify-center rounded-xl`}>{icon}</div>
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{label}</p>
-          <p className="mt-1 text-lg font-semibold text-[#0f2742]">{value}</p>
+          <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-medium uppercase tracking-[0.14em] text-slate-400`}>{label}</p>
+          <p className={`mt-1 text-[#0f2742] ${strong ? "text-xl font-bold" : "text-base font-semibold"}`}>{value}</p>
         </div>
       </div>
     </div>
@@ -1426,9 +1436,9 @@ function ResumoCard({ icon, label, value }: { icon: React.ReactNode; label: stri
 
 function TotalResumo({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="rounded-2xl border border-white bg-white px-4 py-3 shadow-sm">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
-      <p className={`mt-1 text-lg text-[#0f2742] ${strong ? "font-black" : "font-normal"}`}>{value}</p>
+    <div className={`rounded-2xl border bg-white shadow-sm ${strong ? "border-emerald-200 px-5 py-4" : "border-white px-3 py-3"}`}>
+      <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-black uppercase tracking-[0.14em] text-slate-400`}>{label}</p>
+      <p className={`mt-1 text-[#0f2742] ${strong ? "text-2xl font-black" : "text-base font-normal"}`}>{value}</p>
     </div>
   );
 }
