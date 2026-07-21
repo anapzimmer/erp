@@ -903,7 +903,7 @@ export default function Deslizante6FPage() {
     }
 
     if (!carrinhoInteiro) {
-      regras.push({ codigo: "3001", multiplicador: projetoTodasCorrem ? 12 : 10, ignorarCor: true });
+      regras.push({ codigo: "3001", multiplicador: projetoTodasCorrem ? 12 : 10 });
     }
 
     if (dados.puxador === "Com puxador") {
