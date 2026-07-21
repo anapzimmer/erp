@@ -888,7 +888,7 @@ export default function Deslizante2FPage() {
     }
 
     if (!carrinhoInteiro) {
-      regras.push({ codigo: "3001", multiplicador: 6, ignorarCor: true });
+      regras.push({ codigo: "3001", multiplicador: 4, ignorarCor: true });
     }
 
     if (dados.puxador === "Com puxador") {
