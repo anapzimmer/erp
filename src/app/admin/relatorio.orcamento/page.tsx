@@ -2,11 +2,27 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import type { CSSProperties } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
-import { Search, Calendar, PencilLine, Trash2, X, ClipboardList, Filter, CalendarDays, CalendarRange, CalendarClock } from "lucide-react"
+import {
+    Search,
+    Calendar,
+    PencilLine,
+    Trash2,
+    X,
+    ClipboardList,
+    Filter,
+    CalendarDays,
+    CalendarRange,
+    CalendarClock,
+    Eye,
+    UserRound,
+    Building2,
+    Clock3,
+    FileText,
+    RefreshCcw,
+} from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
@@ -421,6 +437,85 @@ export default function RelatorioOrcamento() {
         return diffDays > 0 ? diffDays : 0;
     };
 
+    const valorTotalOrcamentos = orcamentos.reduce(
+        (total, orcamento) => total + (Number(orcamento.valor_total) || 0),
+        0
+    );
+
+    const limparFiltros = () => {
+        setFiltro("");
+        setDataInicio("");
+        setDataFim("");
+    };
+
+    const handleEditarOrcamento = (orc: Orcamento) => {
+        const numero = String(orc.numero_formatado || "");
+        const ehSacada = /^SAC/i.test(numero);
+        const ehEspelho = /^OR(?!C)/i.test(numero);
+        const itensObj = orc.itens && !Array.isArray(orc.itens) ? orc.itens : undefined;
+        const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
+        const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
+
+        const rotasPorTipo: Record<string, string> = {
+            fechamento_sacada: `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`,
+            pele_de_vidro: `/calculo/peledevidro?edit=${orc.id}&returnTo=${returnTo}`,
+            pfv1f_kit: `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pfv1f_barra: `/pfv1f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            pfv2f_kit: `/pfv2f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pfv2f_barra: `/pfv2f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            pc2f_kit: `/pc2f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pc2f_barra: `/pc2f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            pc2fcb: `/pc2fcb?edit=${orc.id}&returnTo=${returnTo}`,
+            pc2fcb_kit: `/pc2fcb-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pc4fcb: `/pc4fcb?edit=${orc.id}&returnTo=${returnTo}`,
+            pc4fcb_kit: `/pc4fcb-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pc4f_kit: `/pc4f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pc4f_barra: `/pc4f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            jc2f_kit: `/jc2f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            jc2f_barra: `/jc2f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            jc2fcs: `/jc2fcs?edit=${orc.id}&returnTo=${returnTo}`,
+            jc2fcs_kit: `/jc2fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4f_kit: `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4f_barra: `/jc4f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcs: `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcs_kit: `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            pg_1f: `/pg?edit=${orc.id}&returnTo=${returnTo}`,
+            pg_2f: `/pg2f?edit=${orc.id}&returnTo=${returnTo}`,
+            pgf: `/pgf?edit=${orc.id}&returnTo=${returnTo}`,
+            max: `/max?edit=${orc.id}&returnTo=${returnTo}`,
+            fixos: `/fixos?edit=${orc.id}&returnTo=${returnTo}`,
+            pma2f: `/pma2f?edit=${orc.id}&returnTo=${returnTo}`,
+            pma3f: `/pma3f?edit=${orc.id}&returnTo=${returnTo}`,
+            pma4f: `/pma4f?edit=${orc.id}&returnTo=${returnTo}`,
+            pma5f: `/pma5f?edit=${orc.id}&returnTo=${returnTo}`,
+            pma6f: `/pma6f?edit=${orc.id}&returnTo=${returnTo}`,
+            pma2f4m: `/pma2f4m?edit=${orc.id}&returnTo=${returnTo}`,
+            box2fls: `/box2fls?edit=${orc.id}&returnTo=${returnTo}`,
+            boxcanto3f: `/boxcanto3f?edit=${orc.id}&returnTo=${returnTo}`,
+            boxcanto: `/boxcanto?edit=${orc.id}&returnTo=${returnTo}`,
+            deslizante2f: `/deslizante2f?edit=${orc.id}&returnTo=${returnTo}`,
+            deslizante3f: `/deslizante3f?edit=${orc.id}&returnTo=${returnTo}`,
+            deslizante4f: `/deslizante4f?edit=${orc.id}&returnTo=${returnTo}`,
+            deslizante5f: `/deslizante5f?edit=${orc.id}&returnTo=${returnTo}`,
+            deslizante6f: `/deslizante6f?edit=${orc.id}&returnTo=${returnTo}`,
+            orcamento_projetos: `/central-impressao?edit=${orc.id}`,
+        };
+
+        let rotaEdicao = rotasPorTipo[tipoItem];
+
+        if (!rotaEdicao) {
+            if (ehSacada) {
+                rotaEdicao = `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`;
+            } else if (ehEspelho) {
+                rotaEdicao = `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`;
+            } else {
+                rotaEdicao = `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
+            }
+        }
+
+        router.push(rotaEdicao);
+    };
+
     if (checkingAuth) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -477,421 +572,312 @@ export default function RelatorioOrcamento() {
                     handleSignOut={handleSignOut}
                 />
 
-                <main className="p-4 md:p-8 xl:p-10 flex-1 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto space-y-8">
+                <main className="flex-1 overflow-y-auto p-4 md:p-7 xl:p-9">
+                    <div className="mx-auto max-w-[1600px] space-y-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <div
+                                    className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]"
+                                    style={{ color: theme.menuIconColor }}
+                                >
+                                    <ClipboardList size={15} />
+                                    Orçamentos
+                                </div>
+                                <h1
+                                    className="text-2xl font-black tracking-tight md:text-3xl"
+                                    style={{ color: theme.contentTextLightBg }}
+                                >
+                                    Histórico de Orçamentos
+                                </h1>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Consulte, filtre e gerencie os orçamentos cadastrados.
+                                </p>
+                            </div>
 
-                        <section className="rounded-3xl border bg-white/90 p-5 shadow-[0_24px_60px_-50px_rgba(15,23,42,0.65)] backdrop-blur-sm md:p-6"
-                            style={{ borderColor: `${theme.contentTextLightBg}1A` }}>
-                            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-                                <div>
-                                    <div className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em]"
-                                        style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
-                                        <ClipboardList size={14} /> Histórico
+                            <button
+                                type="button"
+                                onClick={() => router.push("/calculo/calculovidro")}
+                                className="inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                style={{ backgroundColor: theme.menuIconColor }}
+                            >
+                                <FileText size={17} />
+                                Novo orçamento
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            {[
+                                { label: "Valor total", valor: valorTotalOrcamentos, icon: ClipboardList, color: theme.menuIconColor },
+                                { label: "Orçado hoje", valor: totais.diario, icon: CalendarDays, color: "#0f8b8d" },
+                                { label: "Orçado na semana", valor: totais.semanal, icon: CalendarRange, color: "#587ca5" },
+                                { label: "Orçado no mês", valor: totais.mensal, icon: CalendarClock, color: "#7c6bb3" },
+                            ].map((item) => {
+                                const Icone = item.icon;
+                                return (
+                                    <div
+                                        key={item.label}
+                                        className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_25px_-20px_rgba(15,23,42,0.45)]"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div
+                                                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                                                style={{ backgroundColor: `${item.color}12`, color: item.color }}
+                                            >
+                                                <Icone size={22} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-slate-500">{item.label}</p>
+                                                <p
+                                                    className="mt-1 truncate text-xl font-black"
+                                                    style={{ color: theme.contentTextLightBg }}
+                                                >
+                                                    {item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
+                                );
+                            })}
+                        </div>
 
-                                    <h1 className="text-2xl font-black tracking-tight md:text-3xl" style={{ color: theme.contentTextLightBg }}>
-                                        Histórico de Orçamentos
-                                    </h1>
-
-                                    <p className="mt-2 text-sm font-medium text-gray-500">
-                                        Acompanhe os Orçamentos criados, filtre por período e gerencie ações rápidas.
-                                    </p>
+                        <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_-25px_rgba(15,23,42,0.55)] md:p-5">
+                            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(280px,1fr)_auto_auto_auto]">
+                                <div className="relative">
+                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        value={filtro}
+                                        onChange={(event) => setFiltro(event.target.value)}
+                                        placeholder="Pesquisar por número, cliente ou obra..."
+                                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-100"
+                                    />
                                 </div>
 
-                                <div className="w-full max-w-3xl space-y-3">
-                                    <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-gray-600" size={18} />
-                                        <input
-                                            type="text"
-                                            placeholder="Filtrar por cliente, obra ou código"
-                                            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm outline-none shadow-sm transition-all focus:border-gray-300 focus:ring-4 focus:ring-black/5"
-                                            value={filtro}
-                                            onChange={(e) => setFiltro(e.target.value)}
-                                        />
-                                    </div>
+                                <button type="button" onClick={() => aplicarPeriodoRapido(1)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                    Hoje
+                                </button>
+                                <button type="button" onClick={() => aplicarPeriodoRapido(7)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                    7 dias
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => aplicarPeriodoRapido(30)}
+                                    className="h-11 rounded-xl border px-4 text-sm font-bold transition"
+                                    style={{ borderColor: `${theme.menuIconColor}55`, backgroundColor: `${theme.menuIconColor}0D`, color: theme.menuIconColor }}
+                                >
+                                    30 dias
+                                </button>
+                            </div>
 
+                            <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
+                                <div className="relative flex-1">
+                                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data inicial</span>
+                                    <input
+                                        type="date"
+                                        value={dataInicio}
+                                        onChange={(event) => setDataInicio(event.target.value)}
+                                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
+                                    />
                                 </div>
+                                <div className="relative flex-1">
+                                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data final</span>
+                                    <input
+                                        type="date"
+                                        value={dataFim}
+                                        onChange={(event) => setDataFim(event.target.value)}
+                                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
+                                    />
+                                </div>
+                                {(filtro || dataInicio || dataFim) && (
+                                    <button
+                                        type="button"
+                                        onClick={limparFiltros}
+                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                                    >
+                                        <RefreshCcw size={16} />
+                                        Limpar filtros
+                                    </button>
+                                )}
                             </div>
                         </section>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {[
-                                {
-                                    label: "Orçado Hoje",
-                                    valor: totais.diario,
-                                    icon: CalendarDays,
-                                    color: "#6091b0" // Laranja
-                                },
-                                {
-                                    label: "Orçado Semanal",
-                                    valor: totais.semanal,
-                                    icon: CalendarRange,
-                                    color: "#dc5d46" // Seu tema (ex: verde ou azul)
-                                },
-                                {
-                                    label: "Orçado Mensal",
-                                    valor: totais.mensal,
-                                    icon: CalendarClock,
-                                    color: "#011427" // Verde (sugere sucesso/fechamento)
-                                },
-                            ].map((item, idx) => (
-                                <div key={idx} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                                    <div
-                                        className="p-3.5 rounded-2xl"
-                                        style={{ backgroundColor: `${item.color}15` }}
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>Orçamentos encontrados</h2>
+                                    <span
+                                        className="rounded-full px-2.5 py-1 text-xs font-bold"
+                                        style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}
                                     >
-                                        <item.icon size={22} style={{ color: item.color }} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">{item.label}</span>
-                                        <span className="text-lg md:text-xl font-black text-slate-800">
-                                            {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                        </span>
-                                    </div>
+                                        {orcamentosFiltrados.length}
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
+                                <p className="mt-1 text-xs text-slate-400">Os registros mais recentes aparecem primeiro.</p>
+                            </div>
 
-                        {/* TABELA ESTILO CARD */}
-                        <div className="bg-white rounded-4xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
                             {selecionados.length > 0 && (
-                                <div className="px-6 pt-6 pb-1">
-                                    <button
-                                        onClick={() => {
-                                            setItemParaExcluir(null);
-                                            setModalConfirmacao({
-                                                titulo: "Confirmar exclusão",
-                                                mensagem: `Você está prestes a excluir ${selecionados.length} registros selecionados.\nEsta ação não pode ser desfeita.`,
-                                                confirmar: () => handleDelete([...selecionados]),
-                                                labelConfirmar: "Excluir",
-                                                labelCancelar: "Cancelar",
-                                            });
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-bold hover:bg-red-100 transition-all animate-in fade-in slide-in-from-top-2"
-                                    >
-                                        <Trash2 size={18} />
-                                        Excluir ({selecionados.length})
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setItemParaExcluir(null);
+                                        setModalConfirmacao({
+                                            titulo: "Confirmar exclusão",
+                                            mensagem: `Você está prestes a excluir ${selecionados.length} registros selecionados.\nEsta ação não pode ser desfeita.`,
+                                            confirmar: () => handleDelete([...selecionados]),
+                                            labelConfirmar: "Excluir",
+                                            labelCancelar: "Cancelar",
+                                        });
+                                    }}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                                >
+                                    <Trash2 size={17} />
+                                    Excluir selecionados ({selecionados.length})
+                                </button>
                             )}
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-50/65 border-b border-gray-100">
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400 font-black text-left">N° Orçamento</th>
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Cliente & Projeto</th>
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-left">Criado</th>
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400  text-right">Valor Obra</th>
-                                            <th className="px-8 py-5 text-[10px] uppercase tracking-[0.15em] text-gray-400 text-center">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {loadingDados ? (
-                                            <tr><td colSpan={5} className="p-20 text-center">
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: theme.contentTextLightBg }}></div>
-                                                    <span className="text-sm font-medium text-gray-400">Sincronizando dados...</span>
-                                                </div>
-                                            </td></tr>
-                                        ) : orcamentosFiltrados.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={5} className="p-16 text-center">
-                                                    <div className="mx-auto flex max-w-md flex-col items-center gap-3">
-                                                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                                                            <Filter size={20} />
-                                                        </div>
-                                                        <p className="text-sm font-semibold text-gray-500">Nenhum Orçamento encontrado para os filtros aplicados.</p>
-                                                        <p className="text-xs text-gray-400">Limpe a busca ou ajuste o período para ver mais resultados.</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : orcamentosFiltrados.map((orc) => {
-                                            const dias = calcularDiasRestantes(orc.excluir_em);
-                                            const isUrgent = dias <= 15;
-
-                                            return (
-                                                <tr key={orc.id} className="hover:bg-[#f8fafc] transition-all group">
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="font-mono text-[13px] font-black tracking-wider py-1 px-3 rounded-lg w-fit"
-                                                                style={{ backgroundColor: `${theme.contentTextLightBg}10`, color: theme.contentTextLightBg }}>
-                                                                {orc.numero_formatado}
-                                                            </span>
-                                                            <span className="text-[10px] text-gray-400 font-bold ml-1 uppercase">ID: #{orc.id.toString().slice(0, 5)}</span>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-[#1e3a5a] text-xs shadow-inner">
-                                                                {orc.cliente_nome.charAt(0)}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-[#1e3a5a] tracking-tight">
-                                                                    {orc.cliente_nome}
-                                                                </span>
-                                                                <span className="text-[11px] text-gray-400 font-medium italic">
-                                                                    {orc.obra_referencia || "Projeto Geral"}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                                                                <Calendar size={14} className="opacity-40" />
-                                                                <span>{new Date(orc.created_at).toLocaleDateString('pt-BR')}</span>
-                                                            </div>
-                                                            <div
-                                                                className="flex items-center gap-2 text-[10px] px-2.5 py-1 rounded-full w-fit border tracking-wider shadow-sm"
-                                                                style={{
-                                                                    backgroundColor: isUrgent ? '#FFF1F2' : `${theme.menuIconColor}10`,
-                                                                    color: isUrgent ? '#E11D48' : theme.menuIconColor,
-                                                                    borderColor: isUrgent ? '#FECDD3' : `${theme.menuIconColor}20`
-                                                                }}
-                                                            >
-                                                                <div className={`w-1.5 h-1.5 rounded-full ${isUrgent ? 'bg-red-500 animate-pulse' : ''}`} style={{ backgroundColor: isUrgent ? undefined : theme.menuIconColor }} />
-                                                                {dias === 0 ? "EXPIRA HOJE!" : `FALTAM ${dias} DIAS`}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-8 py-6 text-right">
-                                                        <div className="flex flex-col ">
-                                                            <span className="text-base font-black text-[#1e3a5a]">
-                                                                {Number(orc.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                                            </span>
-                                                            <span className="text-[10px] text-gray-400 font-medium">Investimento Total</span>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex justify-center items-center gap-3">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setOrcamentoParaVisualizar(orc);
-                                                                    setTipoPreviewCalculoprojeto("comercial");
-                                                                    setShowPDFModal(true);
-                                                                }}
-
-                                                                className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/view"
-                                                                style={{
-                                                                    '--hover-bg': `${theme.menuIconColor}10`, // 10% de opacidade do seu verde
-                                                                    '--hover-text': theme.menuIconColor,
-                                                                    '--hover-border': `${theme.menuIconColor}30`
-                                                                } as CSSProperties}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                                                                    e.currentTarget.style.color = 'var(--hover-text)';
-                                                                    e.currentTarget.style.borderColor = 'var(--hover-border)';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'white';
-                                                                    e.currentTarget.style.color = '#9ca3af'; // gray-400
-                                                                    e.currentTarget.style.borderColor = '#f3f4f6'; // gray-100
-                                                                }}
-                                                                title="Visualização Rápida"
-                                                            >
-                                                                <Search size={18} />
-                                                            </button>
-
-                                                            {/* EDITAR - USA O AZUL menuHoverColor (#2A5C7E) NO HOVER */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    const numero = String(orc.numero_formatado || "");
-                                                                    const ehSacada = /^SAC/i.test(numero);
-                                                                    const ehEspelho = /^OR(?!C)/i.test(numero);
-                                                                    const itensObj = (orc.itens && !Array.isArray(orc.itens)) ? orc.itens : undefined;
-                                                                    const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
-                                                                    const ehFechamentoSacada = tipoItem === "fechamento_sacada";
-                                                                    const ehPeleVidro = tipoItem === "pele_de_vidro";
-                                                                    const ehPfv1fKit = tipoItem === "pfv1f_kit";
-                                                                    const ehPfv1fBarra = tipoItem === "pfv1f_barra";
-                                                                    const ehPfv2fKit = tipoItem === "pfv2f_kit";
-                                                                    const ehPfv2fBarra = tipoItem === "pfv2f_barra";
-                                                                    const ehPc2fKit = tipoItem === "pc2f_kit";
-                                                                    const ehPc2fBarra = tipoItem === "pc2f_barra";
-                                                                    const ehPc2fcb = tipoItem === "pc2fcb";
-                                                                    const ehPc2fcbKit = tipoItem === "pc2fcb_kit";
-                                                                    const ehPc4fcb = tipoItem === "pc4fcb";
-                                                                    const ehPc4fcbKit = tipoItem === "pc4fcb_kit";
-                                                                    const ehPc4fKit = tipoItem === "pc4f_kit";
-                                                                    const ehPc4fBarra = tipoItem === "pc4f_barra";
-                                                                    const ehJc4fKit = tipoItem === "jc4f_kit";
-                                                                    const ehJc4fBarra = tipoItem === "jc4f_barra";
-                                                                    const ehJc2fKit = tipoItem === "jc2f_kit";
-                                                                    const ehJc2fBarra = tipoItem === "jc2f_barra";
-                                                                    const ehJc2fcs = tipoItem === "jc2fcs";
-                                                                    const ehJc2fcsKit = tipoItem === "jc2fcs_kit";
-                                                                    const ehJc4fcs = tipoItem === "jc4fcs";
-                                                                    const ehJc4fcsKit = tipoItem === "jc4fcs_kit";
-                                                                    const ehPg1f = tipoItem === "pg_1f";
-                                                                    const ehPg2f = tipoItem === "pg_2f";
-                                                                    const ehPgf = tipoItem === "pgf";
-                                                                    const ehMax = tipoItem === "max";
-                                                                    const ehFixos = tipoItem === "fixos";
-                                                                    const ehPma2f = tipoItem === "pma2f";
-                                                                    const ehPma3f = tipoItem === "pma3f";
-                                                                    const ehPma4f = tipoItem === "pma4f";
-                                                                    const ehPma5f = tipoItem === "pma5f";
-                                                                    const ehPma6f = tipoItem === "pma6f";
-                                                                    const ehPma2f4m = tipoItem === "pma2f4m";
-                                                                    const ehBox2Fls = tipoItem === "box2fls";
-                                                                    const ehBoxCanto3f = tipoItem === "boxcanto3f";
-                                                                    const ehBoxCanto = tipoItem === "boxcanto";
-                                                                    const ehDeslizante2f = tipoItem === "deslizante2f";
-                                                                    const ehDeslizante3f = tipoItem === "deslizante3f";
-                                                                    const ehDeslizante4f = tipoItem === "deslizante4f";
-                                                                    const ehDeslizante5f = tipoItem === "deslizante5f";
-                                                                    const ehDeslizante6f = tipoItem === "deslizante6f";
-                                                                    const ehOrcamentoProjetos = tipoItem === "orcamento_projetos";
-                                                                    const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
-                                                                    const rotaEdicao = ehFechamentoSacada
-                                                                        ? `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehOrcamentoProjetos
-                                                                        ? `/central-impressao?edit=${orc.id}`
-                                                                        : ehPfv1fKit
-                                                                        ? `/pfv1f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPfv1fBarra
-                                                                        ? `/pfv1f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPfv2fKit
-                                                                        ? `/pfv2f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPfv2fBarra
-                                                                        ? `/pfv2f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc2fKit
-                                                                        ? `/pc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc2fBarra
-                                                                        ? `/pc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc2fcbKit
-                                                                        ? `/pc2fcb-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc2fcb
-                                                                        ? `/pc2fcb?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc4fcbKit
-                                                                        ? `/pc4fcb-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc4fcb
-                                                                        ? `/pc4fcb?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc4fKit
-                                                                        ? `/pc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPc4fBarra
-                                                                        ? `/pc4f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc4fKit
-                                                                        ? `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc4fBarra
-                                                                        ? `/jc4f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc2fKit
-                                                                        ? `/jc2f-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc2fBarra
-                                                                        ? `/jc2f-barra?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc2fcsKit
-                                                                        ? `/jc2fcs-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc2fcs
-                                                                        ? `/jc2fcs?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc4fcsKit
-                                                                        ? `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehJc4fcs
-                                                                        ? `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPg1f
-                                                                        ? `/pg?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPg2f
-                                                                        ? `/pg2f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPgf
-                                                                        ? `/pgf?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehMax
-                                                                        ? `/max?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehFixos
-                                                                        ? `/fixos?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma2f
-                                                                        ? `/pma2f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma3f
-                                                                        ? `/pma3f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma4f
-                                                                        ? `/pma4f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma5f
-                                                                        ? `/pma5f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma6f
-                                                                        ? `/pma6f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehPma2f4m
-                                                                        ? `/pma2f4m?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehBox2Fls
-                                                                        ? `/box2fls?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehBoxCanto3f
-                                                                        ? `/boxcanto3f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehBoxCanto
-                                                                        ? `/boxcanto?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehDeslizante2f
-                                                                        ? `/deslizante2f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehDeslizante3f
-                                                                        ? `/deslizante3f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehDeslizante4f
-                                                                        ? `/deslizante4f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehDeslizante5f
-                                                                        ? `/deslizante5f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehDeslizante6f
-                                                                        ? `/deslizante6f?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehSacada
-                                                                        ? `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`
-                                                                        : ehEspelho
-                                                                            ? `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`
-                                                                            : ehPeleVidro
-                                                                                ? `/calculo/peledevidro?edit=${orc.id}&returnTo=${returnTo}`
-                                                                                : `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
-                                                                    router.push(rotaEdicao);
-                                                                }}
-                                                                className="p-3 bg-white border border-gray-100 text-gray-400 transition-all active:scale-95 rounded-2xl group/edit"
-                                                                style={{
-                                                                    '--hover-bg': `${theme.menuHoverColor}10`, // 10% de opacidade do seu azul
-                                                                    '--hover-text': theme.menuHoverColor,
-                                                                    '--hover-border': `${theme.menuHoverColor}30`
-                                                                } as CSSProperties}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                                                                    e.currentTarget.style.color = 'var(--hover-text)';
-                                                                    e.currentTarget.style.borderColor = 'var(--hover-border)';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'white';
-                                                                    e.currentTarget.style.color = '#9ca3af';
-                                                                    e.currentTarget.style.borderColor = '#f3f4f6';
-                                                                }}
-                                                                title="Editar Orçamento"
-                                                            >
-                                                                <PencilLine size={18} />
-                                                            </button>
-
-                                                            {/* EXCLUIR - VERMELHO PADR?O DE ALERTA NO HOVER */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    setItemParaExcluir(orc);
-                                                                    setModalConfirmacao({
-                                                                        titulo: "Confirmar exclusão",
-                                                                        mensagem: `Você está prestes a excluir o Orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
-                                                                        confirmar: () => handleDelete([orc.id]),
-                                                                        labelConfirmar: "Excluir",
-                                                                        labelCancelar: "Cancelar",
-                                                                    });
-                                                                }}
-                                                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all active:scale-95 rounded-2xl"
-                                                                title="Excluir Registro"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
-                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {orcamentosFiltrados.length} registros encontrados
-                                </span>
-                            </div>
                         </div>
+
+                        {loadingDados ? (
+                            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-transparent" style={{ borderTopColor: theme.menuIconColor }} />
+                                    <span className="text-sm font-medium text-slate-400">Sincronizando dados...</span>
+                                </div>
+                            </div>
+                        ) : orcamentosFiltrados.length === 0 ? (
+                            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-8">
+                                <div className="flex max-w-sm flex-col items-center text-center">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Filter size={22} /></div>
+                                    <h3 className="mt-4 font-bold text-slate-700">Nenhum orçamento encontrado</h3>
+                                    <p className="mt-1 text-sm text-slate-400">Limpe a pesquisa ou altere o período para visualizar outros registros.</p>
+                                    <button type="button" onClick={limparFiltros} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Limpar filtros</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                                {orcamentosFiltrados.map((orc) => {
+                                    const dias = calcularDiasRestantes(orc.excluir_em);
+                                    const expiraHoje = dias === 0;
+                                    const urgente = dias > 0 && dias <= 15;
+                                    const selecionado = selecionados.includes(orc.id);
+                                    const valorFormatado = (Number(orc.valor_total) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+                                    return (
+                                        <article
+                                            key={orc.id}
+                                            className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${selecionado ? "border-emerald-300 ring-4 ring-emerald-50" : "border-slate-200/90 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.7)]"}`}
+                                        >
+                                            <div
+                                                className="absolute left-0 top-0 h-full w-1"
+                                                style={{ backgroundColor: expiraHoje ? "#ef4444" : urgente ? "#f59e0b" : theme.menuIconColor }}
+                                            />
+
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-start gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selecionado}
+                                                        onChange={() => setSelecionados((atuais) => atuais.includes(orc.id) ? atuais.filter((id) => id !== orc.id) : [...atuais, orc.id])}
+                                                        className="mt-1 h-4 w-4 rounded border-slate-300 accent-emerald-600"
+                                                        aria-label={`Selecionar orçamento ${orc.numero_formatado}`}
+                                                    />
+                                                    <div>
+                                                        <p className="font-mono text-sm font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>{orc.numero_formatado || "Sem número"}</p>
+                                                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">ID #{String(orc.id).slice(0, 6)}</p>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide"
+                                                    style={{
+                                                        backgroundColor: expiraHoje ? "#fef2f2" : urgente ? "#fffbeb" : `${theme.menuIconColor}12`,
+                                                        color: expiraHoje ? "#dc2626" : urgente ? "#d97706" : theme.menuIconColor,
+                                                    }}
+                                                >
+                                                    {expiraHoje ? "Expira hoje" : urgente ? "Atenção" : "Ativo"}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-5">
+                                                <div className="flex items-center gap-2">
+                                                    <UserRound size={16} className="shrink-0 text-slate-400" />
+                                                    <h3 className="truncate text-sm font-black" style={{ color: theme.contentTextLightBg }}>{orc.cliente_nome || "Cliente não informado"}</h3>
+                                                </div>
+                                                <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                                                    <Building2 size={15} className="shrink-0 text-slate-400" />
+                                                    <span className="truncate">{orc.obra_referencia || "Projeto geral"}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-50/80 p-3">
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"><Calendar size={13} />Criado em</div>
+                                                    <p className="mt-1 text-xs font-bold text-slate-600">{new Date(orc.created_at).toLocaleDateString("pt-BR")}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor</p>
+                                                    <p className="mt-1 text-sm font-black" style={{ color: theme.menuIconColor }}>{valorFormatado}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className={`mt-4 flex items-center gap-2 text-xs font-bold ${expiraHoje ? "text-red-600" : urgente ? "text-amber-600" : "text-slate-500"}`}>
+                                                <Clock3 size={15} />
+                                                {expiraHoje ? "Este orçamento expira hoje" : `Expira em ${dias} ${dias === 1 ? "dia" : "dias"}`}
+                                            </div>
+
+                                            <div className="mt-5 flex items-center border-t border-slate-100 pt-4">
+                                                <div className="flex flex-1 items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setOrcamentoParaVisualizar(orc);
+                                                            setTipoPreviewCalculoprojeto("comercial");
+                                                            setShowPDFModal(true);
+                                                        }}
+                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                                                        title="Visualizar orçamento"
+                                                    >
+                                                        <Eye size={15} />Visualizar
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEditarOrcamento(orc)}
+                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                                                        title="Editar orçamento"
+                                                    >
+                                                        <PencilLine size={15} />Editar
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setItemParaExcluir(orc);
+                                                        setModalConfirmacao({
+                                                            titulo: "Confirmar exclusão",
+                                                            mensagem: `Você está prestes a excluir o Orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
+                                                            confirmar: () => handleDelete([orc.id]),
+                                                            labelConfirmar: "Excluir",
+                                                            labelCancelar: "Cancelar",
+                                                        });
+                                                    }}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                                                    title="Excluir orçamento"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {!loadingDados && orcamentosFiltrados.length > 0 && (
+                            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+                                <span className="text-xs font-semibold text-slate-400">Exibindo {orcamentosFiltrados.length} de {orcamentos.length} orçamentos</span>
+                                {(filtro || dataInicio || dataFim) && (
+                                    <button type="button" onClick={limparFiltros} className="text-xs font-bold" style={{ color: theme.menuIconColor }}>Mostrar todos</button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>
@@ -1394,5 +1380,3 @@ export default function RelatorioOrcamento() {
         </div>
     )
 }
-
-
