@@ -1273,7 +1273,7 @@ useEffect(() => {
 
     setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
 
-    const [l, a] = item.medidaCalc.split('x');
+    const [l, a] = item.medidaReal.split('x');
     setLargura(l.replace(/\D/g, '')); // Pega só os números
     setAltura(a.replace(/\D/g, ''));
     setQuantidade(item.qtd);
@@ -1668,12 +1668,16 @@ useEffect(() => {
       return acc + ((largura / 1000) * (altura / 1000) * Number(item.qtd || 0));
     }, 0);
 
-    const medidasDetalhadas = itens
-      .map((item, index) => {
-        const servico = item.servicos || item.servico ? ` | ${item.servicos || item.servico}` : "";
-        return `${index + 1}. ${item.qtd} peça(s) - ${item.descricao} - real ${item.medidaReal} - cálculo ${item.medidaCalc}${servico}`;
-      })
-      .join("\n");
+ const medidasDetalhadas = itens
+  .map((item, index) => {
+    const servico =
+      item.servicos || item.servico
+        ? ` | ${item.servicos || item.servico}`
+        : "";
+
+    return `${index + 1}. ${item.qtd} peça(s) - ${item.descricao} - ${item.medidaReal}${servico}`;
+  })
+  .join("\n");
 
     const vidrosAvulsos = itens.map((item) => ({
       id: criarId(),
@@ -1695,9 +1699,9 @@ useEffect(() => {
         id: criarId(),
         qtd: ehVidro ? Number(area.toFixed(3)) : Number(item.qtd || 0),
         unidade: ehVidro ? "m2" : "und",
-        descricao: ehVidro
-          ? `VIDRO ${item.medidaReal} ${item.descricao}${item.medidaCalc !== item.medidaReal ? ` | CÁLCULO ${item.medidaCalc}` : ""}`.toUpperCase()
-          : String(item.descricao || "ITEM").toUpperCase(),
+      descricao: ehVidro
+  ? `VIDRO ${item.medidaReal} ${item.descricao}`.toUpperCase()
+  : String(item.descricao || "ITEM").toUpperCase(),
         valorUnitario: Number(valorUnitario || 0),
       };
     });
