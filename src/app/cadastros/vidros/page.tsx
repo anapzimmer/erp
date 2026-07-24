@@ -17,7 +17,7 @@ import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- Tipagens ---
-type Vidro = { id: string; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
+type Vidro = { id: string; codigo: string | null; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
 type PrecoGrupo = { id: string; vidro_id: string; grupo_preco_id: string; preco: number; grupo_nome?: string }
 type Grupo = { id: string; nome: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -43,7 +43,7 @@ export default function VidrosPage() {
   // --- Estados da Lógica de Negócio ---
   const [vidros, setVidros] = useState<Vidro[]>([])
   const [grupos, setGrupos] = useState<Grupo[]>([])
-  const [novoVidro, setNovoVidro] = useState<Omit<Vidro, "id" | "empresa_id">>({ nome: "", espessura: "", tipo: "", preco: 0 })
+  const [novoVidro, setNovoVidro] = useState<Omit<Vidro, "id" | "empresa_id">>({ codigo: "", nome: "", espessura: "", tipo: "", preco: 0 })
   const [editando, setEditando] = useState<Vidro | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -109,9 +109,9 @@ export default function VidrosPage() {
 
   // --- Lógica (Import, Export, CRUD) ---
   const exportarCSV = () => {
-    const csvContent = "Nome;Espessura;Tipo;Preco\n"
+    const csvContent = "Codigo;Nome;Espessura;Tipo;Preco\n"
       + vidros.map(v =>
-        `${formatarParaBanco(v.nome)};${padronizarEspessura(v.espessura)};${formatarParaBanco(v.tipo)};${v.preco}`
+        `${v.codigo || ""};${formatarParaBanco(v.nome)};${padronizarEspessura(v.espessura)};${formatarParaBanco(v.tipo)};${v.preco}`
       ).join("\n");
 
     const blob = new Blob(["\ufeff", csvContent], { type: "text/csv;charset=utf-8;" });
@@ -154,12 +154,19 @@ export default function VidrosPage() {
         const colunas = row.replace(/['"]+/g, '').split(";");
         if (colunas.length < 4) { erros++; continue; }
 
-        const [nome, espessura, tipo, preco] = colunas;
+        // Compatível com os dois formatos:
+        // antigo: Nome;Espessura;Tipo;Preco
+        // novo: Codigo;Nome;Espessura;Tipo;Preco
+        const possuiCodigo = colunas.length >= 5;
+        const codigo = possuiCodigo ? colunas[0].trim().toUpperCase() : "";
+        const nome = possuiCodigo ? colunas[1] : colunas[0];
+        const espessura = possuiCodigo ? colunas[2] : colunas[1];
+        const tipo = possuiCodigo ? colunas[3] : colunas[2];
+        const preco = possuiCodigo ? colunas[4] : colunas[3];
 
         if (nome && espessura && tipo && preco) {
           try {
-            const nomeOriginal = colunas[0];
-            const nomeFormatado = capitalizarFrase(formatarParaBanco(nomeOriginal));
+            const nomeFormatado = capitalizarFrase(formatarParaBanco(nome));
             const espessuraFormatada = padronizarEspessura(espessura);
             const tipoFormatado = capitalizarFrase(formatarParaBanco(tipo));
             const precoFormatado = Number(preco.toString().replace(",", "."));
@@ -167,20 +174,27 @@ export default function VidrosPage() {
             if (isNaN(precoFormatado)) { erros++; continue; }
 
             // 1. BUSCA EXISTENTE (Ajustado para evitar erro 400/406)
-            const { data: existente, error: errorSearch } = await supabase
+            let consultaExistente = supabase
               .from("vidros")
-              .select("id, preco")
-              .eq("nome", nomeFormatado)
-              .eq("espessura", espessuraFormatada)
-              .eq("tipo", tipoFormatado)
-              .eq("empresa_id", empresaId)
-              .maybeSingle(); // Usar maybeSingle é mais seguro que .single()
+              .select("id, preco, codigo")
+              .eq("empresa_id", empresaId);
+
+            if (codigo) {
+              consultaExistente = consultaExistente.eq("codigo", codigo);
+            } else {
+              consultaExistente = consultaExistente
+                .eq("nome", nomeFormatado)
+                .eq("espessura", espessuraFormatada)
+                .eq("tipo", tipoFormatado);
+            }
+
+            const { data: existente, error: errorSearch } = await consultaExistente.maybeSingle();
 
             if (existente) {
               if (existente.preco !== precoFormatado) {
                 const { error: errorUpdate } = await supabase
                   .from("vidros")
-                  .update({ preco: precoFormatado })
+                  .update({ preco: precoFormatado, ...(codigo ? { codigo } : {}) })
                   .eq("id", existente.id);
 
                 if (errorUpdate) {
@@ -195,6 +209,7 @@ export default function VidrosPage() {
               const { error: errorInsert } = await supabase
                 .from("vidros")
                 .insert([{
+                  codigo: codigo || null,
                   nome: nomeFormatado,
                   espessura: espessuraFormatada,
                   tipo: tipoFormatado,
@@ -270,6 +285,7 @@ export default function VidrosPage() {
     setCarregando(true)
 
     const vidroPadronizado = {
+      codigo: novoVidro.codigo?.trim() ? novoVidro.codigo.trim().toUpperCase() : null,
       nome: formatarParaBanco(novoVidro.nome),
       tipo: formatarParaBanco(novoVidro.tipo),
       espessura: padronizarEspessura(novoVidro.espessura),
@@ -309,7 +325,7 @@ export default function VidrosPage() {
         }
       }
 
-      setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 }); setEditando(null); setPrecosGruposModal([]); setMostrarModal(false);
+      setNovoVidro({ codigo: "", nome: "", espessura: "", tipo: "", preco: 0 }); setEditando(null); setPrecosGruposModal([]); setMostrarModal(false);
       carregarDados();
     } catch (e: any) { setModalAviso({ titulo: "Erro", mensagem: "Erro ao processar: " + e.message }) } finally { setCarregando(false) }
   }
@@ -326,13 +342,13 @@ export default function VidrosPage() {
 
   const abrirModalParaEdicao = async (vidro: Vidro) => {
     setEditando(vidro);
-    setNovoVidro({ nome: vidro.nome, espessura: vidro.espessura, tipo: vidro.tipo, preco: vidro.preco });
+    setNovoVidro({ codigo: vidro.codigo || "", nome: vidro.nome, espessura: vidro.espessura, tipo: vidro.tipo, preco: vidro.preco });
     const { data } = await supabase.from("vidro_precos_grupos").select("*, grupo:tabelas(nome)").eq("vidro_id", vidro.id)
     const precosFormatados = (data || []).map((p: any) => ({ id: p.id, vidro_id: p.vidro_id, grupo_preco_id: p.grupo_preco_id, preco: Number(p.preco) || 0, grupo_nome: p.grupo?.nome || "" }))
     setPrecosGruposModal(precosFormatados);
     setMostrarModal(true);
   }
-  const abrirModalParaNovo = () => { setEditando(null); setNovoVidro({ nome: "", espessura: "", tipo: "", preco: 0 }); setPrecosGruposModal([]); setMostrarModal(true); }
+  const abrirModalParaNovo = () => { setEditando(null); setNovoVidro({ codigo: "", nome: "", espessura: "", tipo: "", preco: 0 }); setPrecosGruposModal([]); setMostrarModal(true); }
 
   // --- Filtros e Cálculos ---
   const vidrosFiltrados = vidros.filter(v =>
@@ -591,6 +607,7 @@ const logoLight = branding?.logo_light || null;
             <table className="w-full text-sm text-left border-collapse" style={{ fontFamily: 'sans-serif' }}>
               <thead style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}>
                 <tr>
+                  <th className="p-4">Código</th>
                   <th className="p-4">Nome</th>
                   <th className="p-4 ">Espessura</th>
                   <th className="p-4 ">Tipo</th>
@@ -601,6 +618,7 @@ const logoLight = branding?.logo_light || null;
               <tbody className="divide-y divide-gray-100" style={{ color: '#374151' }}>
                 {vidrosFiltrados.map(v => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-gray-400 font-bold uppercase">{v.codigo || "—"}</td>
                     <td className="p-4 text-gray-500 font-medium">{v.nome}</td>
                     <td className="p-4 text-gray-500 font-medium">{v.espessura}</td>
                     <td className="p-4 text-gray-500 font-medium">{v.tipo}</td>
@@ -642,6 +660,13 @@ const logoLight = branding?.logo_light || null;
 
             {/* Inputs Principais */}
             <div className="grid grid-cols-2 gap-5 mb-8">
+              <div className="col-span-2">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Código do produto</label>
+                <input type="text" placeholder="Ex: INC08TE" value={novoVidro.codigo || ""} onChange={e => setNovoVidro({ ...novoVidro, codigo: e.target.value.toUpperCase() })}
+                  className="w-full p-3.5 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm font-bold uppercase focus:bg-white focus:outline-none focus:ring-2 transition-all"
+                  style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties} />
+                <p className="mt-1.5 ml-1 text-[10px] text-gray-400">Use o mesmo código que aparece no relatório do fornecedor.</p>
+              </div>
               <div className="col-span-2">
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1 block">Nome do Vidro *</label>
                 <input type="text" placeholder="Ex: Vidro Temperado" value={novoVidro.nome} onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })}
@@ -759,5 +784,3 @@ const logoLight = branding?.logo_light || null;
     </div>
   )
 }
-
-

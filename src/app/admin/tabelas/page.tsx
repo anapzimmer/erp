@@ -1,9 +1,9 @@
 ﻿//src/app/admin/tabelas/page.tsx
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties } from "lucide-react"
+import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
@@ -13,7 +13,7 @@ import CadastrosAvisoModal from "@/components/CadastrosAvisoModal";
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
-type Vidro = { id: string; nome: string; preco: number; espessura: string; tipo: string; } // de number para string
+type Vidro = { id: string; codigo?: string | null; nome: string; preco: number; espessura: string; tipo: string; } // de number para string
 type ItemTabela = {
   id: string; // de number para string
   grupo_preco_id: string; // de number para string
@@ -59,6 +59,170 @@ export default function GestaoPrecosPage() {
   } | null>(null);
   const [editandoItemId, setEditandoItemId] = useState<string | null>(null);
   const [novoPrecoEdicao, setNovoPrecoEdicao] = useState<string>("");
+  const arquivoTabelaRef = useRef<HTMLInputElement>(null);
+
+  type LinhaImportada = {
+    codigo: string;
+    descricao: string;
+    precoAtual: number;
+    minimoAtual: number;
+  };
+
+  const normalizarTexto = (valor: string) =>
+    valor
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Z0-9]/gi, "")
+      .toUpperCase();
+
+  const moedaBrasileiraParaNumero = (valor: string) =>
+    Number(valor.replace(/\./g, "").replace(",", "."));
+
+  const interpretarArquivoTabela = (conteudo: string) => {
+    const linhas = conteudo.split(/\r?\n/);
+    const linhaTabela = linhas.find((linha) => /^\s*TABELA\s+/i.test(linha));
+
+    const nomeTabela = linhaTabela
+      ? linhaTabela
+          .replace(/^\s*TABELA\s+/i, "")
+          .replace(/\s+-\s+[^-]+\s*$/, "")
+          .trim()
+      : "Tabela importada";
+
+    const itens: LinhaImportada[] = [];
+
+    for (const linha of linhas) {
+      const correspondencia = linha.match(
+        /^\s*(\S+)\s+(.+?)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+_{3,}/
+      );
+
+      if (!correspondencia) continue;
+
+      itens.push({
+        codigo: correspondencia[1].trim(),
+        descricao: correspondencia[2].trim(),
+        precoAtual: moedaBrasileiraParaNumero(correspondencia[3]),
+        minimoAtual: moedaBrasileiraParaNumero(correspondencia[4]),
+      });
+    }
+
+    return { nomeTabela, itens };
+  };
+
+  const importarTabelaTxt = async (arquivo: File) => {
+    if (!empresaIdAtual) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível identificar a empresa." });
+      return;
+    }
+
+    if (!arquivo.name.toLowerCase().endsWith(".txt")) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Selecione um arquivo TXT válido." });
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      const conteudo = await arquivo.text();
+      const { nomeTabela, itens } = interpretarArquivoTabela(conteudo);
+
+      if (!itens.length) {
+        throw new Error("Nenhum produto foi reconhecido no arquivo.");
+      }
+
+      const { data: tabelaExistente, error: erroTabelaExistente } = await supabase
+        .from("tabelas")
+        .select("id, nome")
+        .eq("empresa_id", empresaIdAtual)
+        .ilike("nome", nomeTabela)
+        .maybeSingle();
+
+      if (erroTabelaExistente) throw erroTabelaExistente;
+
+      let tabelaImportada = tabelaExistente;
+
+      if (!tabelaImportada) {
+        const { data: novaTabela, error: erroNovaTabela } = await supabase
+          .from("tabelas")
+          .insert({ nome: nomeTabela, empresa_id: empresaIdAtual })
+          .select("id, nome")
+          .single();
+
+        if (erroNovaTabela) throw erroNovaTabela;
+        tabelaImportada = novaTabela;
+      }
+
+      const { data: vidrosBanco, error: erroVidros } = await supabase
+        .from("vidros")
+        .select("id, codigo, nome")
+        .eq("empresa_id", empresaIdAtual);
+
+      if (erroVidros) throw erroVidros;
+
+      const vidrosPorCodigo = new Map(
+        (vidrosBanco || [])
+          .filter((vidro) => vidro.codigo)
+          .map((vidro) => [normalizarTexto(vidro.codigo), vidro])
+      );
+
+      const vidrosPorNome = new Map(
+        (vidrosBanco || []).map((vidro) => [normalizarTexto(vidro.nome), vidro])
+      );
+
+      const registros = [];
+      const naoEncontrados: string[] = [];
+
+      for (const item of itens) {
+        const vidro =
+          vidrosPorCodigo.get(normalizarTexto(item.codigo)) ||
+          vidrosPorNome.get(normalizarTexto(item.descricao));
+
+        if (!vidro) {
+          naoEncontrados.push(`${item.codigo} - ${item.descricao}`);
+          continue;
+        }
+
+        registros.push({
+          grupo_preco_id: tabelaImportada.id,
+          vidro_id: vidro.id,
+          preco: item.precoAtual,
+          empresa_id: empresaIdAtual,
+        });
+      }
+
+      if (!registros.length) {
+        throw new Error("Os produtos do arquivo não correspondem aos vidros cadastrados. Confira a coluna codigo da tabela vidros.");
+      }
+
+      const { error: erroImportacao } = await supabase
+        .from("vidro_precos_grupos")
+        .upsert(registros, { onConflict: "grupo_preco_id,vidro_id" });
+
+      if (erroImportacao) throw erroImportacao;
+
+      await carregarTabelas(empresaIdAtual);
+      setTabelaSelecionada(tabelaImportada);
+      await carregarItensTabela(tabelaImportada.id);
+
+      const complemento = naoEncontrados.length
+        ? ` ${naoEncontrados.length} produto(s) não foram encontrados pelo código e ficaram de fora.`
+        : "";
+
+      setModalSucessoAberto({
+        aberto: true,
+        mensagem: `${registros.length} preço(s) importado(s) para a tabela “${tabelaImportada.nome}”.${complemento}`,
+      });
+    } catch (error: any) {
+      console.error("Erro ao importar tabela:", error);
+      setModalAvisoAberto({
+        aberto: true,
+        mensagem: error?.message || "Não foi possível importar a tabela.",
+      });
+    } finally {
+      setCarregando(false);
+      if (arquivoTabelaRef.current) arquivoTabelaRef.current.value = "";
+    }
+  };
 
   const iniciarEdicao = (item: ItemTabela) => {
     if (!tabelaSelecionada) return; // Segurança extra
@@ -195,7 +359,7 @@ export default function GestaoPrecosPage() {
 
     const { data, error } = await supabase
       .from("vidros")
-      .select("id, nome, espessura, tipo, preco")
+      .select("id, codigo, nome, espessura, tipo, preco")
       .eq("empresa_id", idParaFiltrar); // Filtro agora está blindado
 
     if (error) {
@@ -203,6 +367,7 @@ export default function GestaoPrecosPage() {
     } else {
       const vidrosFormatados = data?.map(v => ({
         id: v.id,
+        codigo: v.codigo,
         nome: `${v.nome} - ${v.espessura}mm - ${v.tipo}`,
         preco: v.preco,
         espessura: v.espessura,
@@ -419,6 +584,40 @@ const { error } = await supabase
               <h1 className="text-2xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Gestão de Preços</h1>
               <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie tabelas e reajustes de preços dos vidros.</p>
             </div>
+          </div>
+
+          <div className="mb-6 p-4 md:p-5 rounded-2xl border border-dashed border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style={{ backgroundColor: theme.contentTextDarkBg }}>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${theme.menuIconColor}18`, color: theme.menuIconColor }}>
+                <FileText size={22} />
+              </div>
+              <div>
+                <h2 className="font-bold" style={{ color: theme.contentTextLightBg }}>Importar tabela pelo relatório TXT</h2>
+                <p className="text-sm text-gray-500 mt-1">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
+              </div>
+            </div>
+
+            <input
+              ref={arquivoTabelaRef}
+              type="file"
+              accept=".txt,text/plain"
+              className="hidden"
+              onChange={(event) => {
+                const arquivo = event.target.files?.[0];
+                if (arquivo) importarTabelaTxt(arquivo);
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={() => arquivoTabelaRef.current?.click()}
+              disabled={carregando}
+              className="px-5 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50 shrink-0"
+              style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
+            >
+              <Upload size={18} />
+              {carregando ? "Importando..." : "Enviar tabela TXT"}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
