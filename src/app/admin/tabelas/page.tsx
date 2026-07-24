@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText } from "lucide-react"
+import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText, Link2, Sparkles, X, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
@@ -68,6 +68,25 @@ export default function GestaoPrecosPage() {
     minimoAtual: number;
   };
 
+  type AcaoPendente = "vincular" | "criar" | "ignorar";
+
+  type ItemPendente = LinhaImportada & {
+    acao: AcaoPendente;
+    vidroSelecionadoId: string;
+    sugestaoVidroId?: string;
+    novoNome: string;
+    novaEspessura: string;
+    novoTipo: string;
+  };
+
+  type ImportacaoPendente = {
+    nomeTabela: string;
+    reconhecidos: Array<{ item: LinhaImportada; vidro: Vidro }>;
+    pendentes: ItemPendente[];
+  };
+
+  const [importacaoPendente, setImportacaoPendente] = useState<ImportacaoPendente | null>(null);
+
   const normalizarTexto = (valor: string) =>
     valor
       .normalize("NFD")
@@ -109,6 +128,46 @@ export default function GestaoPrecosPage() {
     return { nomeTabela, itens };
   };
 
+  const extrairDadosDescricao = (descricao: string) => {
+    const descricaoLimpa = descricao.trim().replace(/\s+/g, " ");
+    const espessuraEncontrada = descricaoLimpa.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})?)\s*MM\b/i);
+    const espessura = espessuraEncontrada
+      ? espessuraEncontrada[1].replace(/\s/g, "").split("+").map((p) => p.padStart(2, "0")).join("+") + "mm"
+      : "";
+
+    const tiposConhecidos = ["temperado", "laminado", "comum", "espelho", "aramado", "insulado"];
+    const tipoEncontrado = tiposConhecidos.find((tipo) => descricaoLimpa.toLowerCase().includes(tipo));
+    const tipo = tipoEncontrado ? tipoEncontrado.charAt(0).toUpperCase() + tipoEncontrado.slice(1) : "";
+
+    const nome = descricaoLimpa
+      .replace(/\b\d{1,2}(?:\s*\+\s*\d{1,2})?\s*MM\b/gi, "")
+      .replace(new RegExp(`\\b(${tiposConhecidos.join("|")})\\b`, "gi"), "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return { nome: nome || descricaoLimpa, espessura, tipo };
+  };
+
+  const pontuarSemelhanca = (item: LinhaImportada, vidro: Vidro) => {
+    const descricao = normalizarTexto(item.descricao);
+    const nome = normalizarTexto(vidro.nome);
+    let pontos = 0;
+
+    if (descricao === nome) pontos += 100;
+    else if (descricao.includes(nome) || nome.includes(descricao)) pontos += 55;
+
+    const palavrasDescricao = new Set(item.descricao.toUpperCase().split(/\s+/).map(normalizarTexto).filter(Boolean));
+    const palavrasVidro = vidro.nome.toUpperCase().split(/\s+/).map(normalizarTexto).filter(Boolean);
+    pontos += palavrasVidro.filter((palavra) => palavrasDescricao.has(palavra)).length * 12;
+
+    const espessuraDescricao = item.descricao.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})?)\s*MM\b/i)?.[1]?.replace(/\s/g, "");
+    const espessuraVidro = vidro.espessura.replace(/\D|mm/gi, "");
+    if (espessuraDescricao && normalizarTexto(espessuraDescricao) === normalizarTexto(espessuraVidro)) pontos += 25;
+
+    if (vidro.tipo && descricao.includes(normalizarTexto(vidro.tipo))) pontos += 20;
+    return pontos;
+  };
+
   const importarTabelaTxt = async (arquivo: File) => {
     if (!empresaIdAtual) {
       setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível identificar a empresa." });
@@ -121,106 +180,185 @@ export default function GestaoPrecosPage() {
     }
 
     setCarregando(true);
-
     try {
       const conteudo = await arquivo.text();
       const { nomeTabela, itens } = interpretarArquivoTabela(conteudo);
+      if (!itens.length) throw new Error("Nenhum produto foi reconhecido no arquivo.");
 
-      if (!itens.length) {
-        throw new Error("Nenhum produto foi reconhecido no arquivo.");
+      const { data: vidrosBanco, error: erroVidros } = await supabase
+        .from("vidros")
+        .select("id, codigo, nome, preco, espessura, tipo")
+        .eq("empresa_id", empresaIdAtual)
+        .order("nome");
+      if (erroVidros) throw erroVidros;
+
+      const catalogo = (vidrosBanco || []) as Vidro[];
+      const porCodigo = new Map(
+        catalogo.filter((v) => v.codigo).map((v) => [normalizarTexto(v.codigo || ""), v])
+      );
+      const porNome = new Map(catalogo.map((v) => [normalizarTexto(v.nome), v]));
+
+      const reconhecidos: Array<{ item: LinhaImportada; vidro: Vidro }> = [];
+      const pendentes: ItemPendente[] = [];
+
+      for (const item of itens) {
+        const encontrado = porCodigo.get(normalizarTexto(item.codigo)) || porNome.get(normalizarTexto(item.descricao));
+        if (encontrado) {
+          reconhecidos.push({ item, vidro: encontrado });
+          continue;
+        }
+
+        const sugestao = [...catalogo]
+          .map((vidro) => ({ vidro, pontos: pontuarSemelhanca(item, vidro) }))
+          .sort((a, b) => b.pontos - a.pontos)[0];
+        const usarSugestao = sugestao && sugestao.pontos >= 35;
+        const dados = extrairDadosDescricao(item.descricao);
+
+        pendentes.push({
+          ...item,
+          acao: usarSugestao ? "vincular" : "criar",
+          vidroSelecionadoId: usarSugestao ? sugestao.vidro.id : "",
+          sugestaoVidroId: usarSugestao ? sugestao.vidro.id : undefined,
+          novoNome: dados.nome,
+          novaEspessura: dados.espessura,
+          novoTipo: dados.tipo,
+        });
       }
 
+      if (!pendentes.length) {
+        setImportacaoPendente({ nomeTabela, reconhecidos, pendentes: [] });
+        await confirmarImportacao({ nomeTabela, reconhecidos, pendentes: [] });
+        return;
+      }
+
+      setImportacaoPendente({ nomeTabela, reconhecidos, pendentes });
+    } catch (error: any) {
+      console.error("Erro ao analisar tabela:", error);
+      setModalAvisoAberto({ aberto: true, mensagem: error?.message || "Não foi possível analisar a tabela." });
+    } finally {
+      setCarregando(false);
+      if (arquivoTabelaRef.current) arquivoTabelaRef.current.value = "";
+    }
+  };
+
+  const atualizarItemPendente = (indice: number, alteracoes: Partial<ItemPendente>) => {
+    setImportacaoPendente((atual) => {
+      if (!atual) return atual;
+      return {
+        ...atual,
+        pendentes: atual.pendentes.map((item, i) => i === indice ? { ...item, ...alteracoes } : item),
+      };
+    });
+  };
+
+  const confirmarImportacao = async (dadosForcados?: ImportacaoPendente) => {
+    const dados = dadosForcados || importacaoPendente;
+    if (!dados || !empresaIdAtual) return;
+
+    const vinculosInvalidos = dados.pendentes.filter((item) => item.acao === "vincular" && !item.vidroSelecionadoId);
+    const novosInvalidos = dados.pendentes.filter(
+      (item) => item.acao === "criar" && (!item.novoNome.trim() || !item.novaEspessura.trim() || !item.novoTipo.trim())
+    );
+    if (vinculosInvalidos.length || novosInvalidos.length) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Revise os itens destacados. Para criar um vidro, informe nome, espessura e tipo; para vincular, selecione um cadastro." });
+      return;
+    }
+
+    setCarregando(true);
+    try {
       const { data: tabelaExistente, error: erroTabelaExistente } = await supabase
         .from("tabelas")
         .select("id, nome")
         .eq("empresa_id", empresaIdAtual)
-        .ilike("nome", nomeTabela)
+        .ilike("nome", dados.nomeTabela)
         .maybeSingle();
-
       if (erroTabelaExistente) throw erroTabelaExistente;
 
       let tabelaImportada = tabelaExistente;
-
       if (!tabelaImportada) {
         const { data: novaTabela, error: erroNovaTabela } = await supabase
           .from("tabelas")
-          .insert({ nome: nomeTabela, empresa_id: empresaIdAtual })
+          .insert({ nome: dados.nomeTabela, empresa_id: empresaIdAtual })
           .select("id, nome")
           .single();
-
         if (erroNovaTabela) throw erroNovaTabela;
         tabelaImportada = novaTabela;
       }
 
-      const { data: vidrosBanco, error: erroVidros } = await supabase
-        .from("vidros")
-        .select("id, codigo, nome")
-        .eq("empresa_id", empresaIdAtual);
+      const registros: Array<{ grupo_preco_id: string; vidro_id: string; preco: number; empresa_id: string }> =
+        dados.reconhecidos.map(({ item, vidro }) => ({
+          grupo_preco_id: tabelaImportada!.id,
+          vidro_id: vidro.id,
+          preco: item.precoAtual,
+          empresa_id: empresaIdAtual,
+        }));
 
-      if (erroVidros) throw erroVidros;
+      let vinculados = 0;
+      let criados = 0;
+      let ignorados = 0;
 
-      const vidrosPorCodigo = new Map(
-        (vidrosBanco || [])
-          .filter((vidro) => vidro.codigo)
-          .map((vidro) => [normalizarTexto(vidro.codigo), vidro])
-      );
-
-      const vidrosPorNome = new Map(
-        (vidrosBanco || []).map((vidro) => [normalizarTexto(vidro.nome), vidro])
-      );
-
-      const registros = [];
-      const naoEncontrados: string[] = [];
-
-      for (const item of itens) {
-        const vidro =
-          vidrosPorCodigo.get(normalizarTexto(item.codigo)) ||
-          vidrosPorNome.get(normalizarTexto(item.descricao));
-
-        if (!vidro) {
-          naoEncontrados.push(`${item.codigo} - ${item.descricao}`);
+      for (const item of dados.pendentes) {
+        if (item.acao === "ignorar") {
+          ignorados++;
           continue;
+        }
+
+        let vidroId = item.vidroSelecionadoId;
+        if (item.acao === "vincular") {
+          const { error: erroVinculo } = await supabase
+            .from("vidros")
+            .update({ codigo: item.codigo.toUpperCase() })
+            .eq("id", vidroId)
+            .eq("empresa_id", empresaIdAtual);
+          if (erroVinculo) throw new Error(`Não foi possível vincular ${item.codigo}: ${erroVinculo.message}`);
+          vinculados++;
+        } else {
+          const { data: novoVidro, error: erroNovoVidro } = await supabase
+            .from("vidros")
+            .insert({
+              codigo: item.codigo.toUpperCase(),
+              nome: item.novoNome.trim(),
+              espessura: item.novaEspessura.trim(),
+              tipo: item.novoTipo.trim(),
+              preco: item.precoAtual,
+              empresa_id: empresaIdAtual,
+            })
+            .select("id")
+            .single();
+          if (erroNovoVidro) throw new Error(`Não foi possível criar ${item.codigo}: ${erroNovoVidro.message}`);
+          vidroId = novoVidro.id;
+          criados++;
         }
 
         registros.push({
           grupo_preco_id: tabelaImportada.id,
-          vidro_id: vidro.id,
+          vidro_id: vidroId,
           preco: item.precoAtual,
           empresa_id: empresaIdAtual,
         });
       }
 
-      if (!registros.length) {
-        throw new Error("Os produtos do arquivo não correspondem aos vidros cadastrados. Confira a coluna codigo da tabela vidros.");
+      if (registros.length) {
+        const { error: erroImportacao } = await supabase
+          .from("vidro_precos_grupos")
+          .upsert(registros, { onConflict: "grupo_preco_id,vidro_id" });
+        if (erroImportacao) throw erroImportacao;
       }
 
-      const { error: erroImportacao } = await supabase
-        .from("vidro_precos_grupos")
-        .upsert(registros, { onConflict: "grupo_preco_id,vidro_id" });
-
-      if (erroImportacao) throw erroImportacao;
-
       await carregarTabelas(empresaIdAtual);
+      await carregarTodosVidros(empresaIdAtual);
       setTabelaSelecionada(tabelaImportada);
       await carregarItensTabela(tabelaImportada.id);
-
-      const complemento = naoEncontrados.length
-        ? ` ${naoEncontrados.length} produto(s) não foram encontrados pelo código e ficaram de fora.`
-        : "";
-
+      setImportacaoPendente(null);
       setModalSucessoAberto({
         aberto: true,
-        mensagem: `${registros.length} preço(s) importado(s) para a tabela “${tabelaImportada.nome}”.${complemento}`,
+        mensagem: `${registros.length} preço(s) salvos na tabela “${tabelaImportada.nome}”. Vinculados: ${vinculados}. Novos vidros: ${criados}. Ignorados: ${ignorados}.`,
       });
     } catch (error: any) {
-      console.error("Erro ao importar tabela:", error);
-      setModalAvisoAberto({
-        aberto: true,
-        mensagem: error?.message || "Não foi possível importar a tabela.",
-      });
+      console.error("Erro ao confirmar importação:", error);
+      setModalAvisoAberto({ aberto: true, mensagem: error?.message || "Não foi possível concluir a importação." });
     } finally {
       setCarregando(false);
-      if (arquivoTabelaRef.current) arquivoTabelaRef.current.value = "";
     }
   };
 
@@ -848,6 +986,88 @@ const { error } = await supabase
           </div>
         </main>
       </div>
+
+
+      {importacaoPendente && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 md:p-6">
+          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl border border-white/20 flex flex-col" style={{ backgroundColor: theme.modalBackgroundColor }}>
+            <div className="p-5 md:p-7 border-b border-gray-100 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={20} style={{ color: theme.menuIconColor }} />
+                  <h2 className="text-xl md:text-2xl font-black" style={{ color: theme.modalTextColor }}>Conferir produtos da importação</h2>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Tabela <strong>{importacaoPendente.nomeTabela}</strong>: {importacaoPendente.reconhecidos.length} reconhecido(s) e {importacaoPendente.pendentes.length} aguardando decisão.
+                </p>
+              </div>
+              <button onClick={() => setImportacaoPendente(null)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"><X size={22} /></button>
+            </div>
+
+            <div className="overflow-y-auto p-4 md:p-6 space-y-4">
+              {importacaoPendente.pendentes.map((item, indice) => {
+                const selecionado = vidros.find((v) => v.id === item.vidroSelecionadoId);
+                const incompleto = item.acao === "vincular"
+                  ? !item.vidroSelecionadoId
+                  : item.acao === "criar" && (!item.novoNome || !item.novaEspessura || !item.novoTipo);
+
+                return (
+                  <div key={`${item.codigo}-${indice}`} className={`rounded-2xl border p-4 ${incompleto ? "border-amber-300 bg-amber-50/40" : "border-gray-100"}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-black text-sm px-2.5 py-1 rounded-lg bg-gray-100" style={{ color: theme.modalTextColor }}>{item.codigo}</span>
+                          <span className="font-bold text-sm" style={{ color: theme.modalTextColor }}>{item.descricao}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Preço importado: R$ {item.precoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => atualizarItemPendente(indice, { acao: "vincular" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "vincular" ? theme.menuBackgroundColor : "#FFF", color: item.acao === "vincular" ? "#FFF" : theme.modalTextColor }}><Link2 size={15} /> Vincular</button>
+                        <button onClick={() => atualizarItemPendente(indice, { acao: "criar" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "criar" ? theme.menuIconColor : "#FFF", color: item.acao === "criar" ? "#FFF" : theme.modalTextColor }}><PlusCircle size={15} /> Criar novo</button>
+                        <button onClick={() => atualizarItemPendente(indice, { acao: "ignorar" })} className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${item.acao === "ignorar" ? "bg-gray-700 text-white" : "bg-white text-gray-500"}`}><AlertTriangle size={15} /> Ignorar</button>
+                      </div>
+                    </div>
+
+                    {item.acao === "vincular" && (
+                      <div>
+                        {item.sugestaoVidroId && item.vidroSelecionadoId === item.sugestaoVidroId && (
+                          <p className="text-xs font-semibold mb-2" style={{ color: theme.menuIconColor }}>Sugestão automática encontrada</p>
+                        )}
+                        <select value={item.vidroSelecionadoId} onChange={(e) => atualizarItemPendente(indice, { vidroSelecionadoId: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 bg-white text-sm">
+                          <option value="">Selecione um vidro cadastrado</option>
+                          {vidros.map((vidro) => <option key={vidro.id} value={vidro.id}>{vidro.codigo ? `${vidro.codigo} — ` : ""}{vidro.nome} | {vidro.espessura} | {vidro.tipo}</option>)}
+                        </select>
+                        {selecionado && <p className="text-xs text-gray-500 mt-2">O código <strong>{item.codigo}</strong> será gravado em “{selecionado.nome}”.</p>}
+                      </div>
+                    )}
+
+                    {item.acao === "criar" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input value={item.novoNome} onChange={(e) => atualizarItemPendente(indice, { novoNome: e.target.value })} placeholder="Nome do vidro" className="p-3 rounded-xl border border-gray-200 text-sm" />
+                        <input value={item.novaEspessura} onChange={(e) => atualizarItemPendente(indice, { novaEspessura: e.target.value })} placeholder="Espessura, ex.: 08mm" className="p-3 rounded-xl border border-gray-200 text-sm" />
+                        <input value={item.novoTipo} onChange={(e) => atualizarItemPendente(indice, { novoTipo: e.target.value })} placeholder="Tipo, ex.: Temperado" className="p-3 rounded-xl border border-gray-200 text-sm" />
+                      </div>
+                    )}
+
+                    {item.acao === "ignorar" && <p className="text-xs text-gray-500">Este produto não será salvo e voltará a aparecer em uma próxima importação.</p>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-5 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs text-gray-500">Os produtos já reconhecidos serão atualizados automaticamente após a confirmação.</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setImportacaoPendente(null)} disabled={carregando} className="px-5 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-600">Cancelar</button>
+                <button onClick={() => confirmarImportacao()} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ backgroundColor: theme.modalButtonBackgroundColor }}>
+                  {carregando ? "Salvando..." : "Confirmar importação"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CadastrosAvisoModal
         aviso={modalSucessoAberto.aberto
