@@ -814,7 +814,7 @@ export default function RelatorioOrcamento() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor</p>
-                                                    <p className="mt-1 text-sm font-black" style={{ color: theme.menuIconColor }}>{valorFormatado}</p>
+                                                    <p className="mt-1 text-sm " style={{ color: theme.primaryColor }}>{valorFormatado}</p>
                                                 </div>
                                             </div>
 
