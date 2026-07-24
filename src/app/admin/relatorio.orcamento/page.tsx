@@ -597,7 +597,7 @@ export default function RelatorioOrcamento() {
                             <button
                                 type="button"
                                 onClick={() => router.push("/calculo/calculovidro")}
-                                className="inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                className="inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-theme.primaryColor shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                                 style={{ backgroundColor: theme.menuIconColor }}
                             >
                                 <FileText size={17} />
