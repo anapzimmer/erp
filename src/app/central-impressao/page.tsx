@@ -1331,30 +1331,31 @@ export default function CentralImpressaoPage() {
       </div>
 
       {modalVidroAberto ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-[1px]">
-          <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-900/15">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <section className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: theme.menuBackgroundColor }}>
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
                   Nova versão
                 </p>
-                <h2 className="mt-2 text-xl font-black text-[#0f2742]">Duplicar com outro vidro</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">Duplicar com outro vidro</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
                   O orçamento atual continua salvo. A central ficará com uma nova cópia, mantendo a cor dos perfis e trocando só o vidro.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setModalVidroAberto(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
                 title="Fechar"
               >
                 <X size={17} />
               </button>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Vidro cadastrado</label>
+            <div className="px-5 py-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Vidro cadastrado</label>
               <input
                 value={buscaVidroOrcamento}
                 onChange={(e) => {
@@ -1362,7 +1363,7 @@ export default function CentralImpressaoPage() {
                   setVidroSelecionadoOrcamento(null);
                 }}
                 placeholder="Digite cor, tipo ou espessura"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-[#0f2742] outline-none transition focus:border-[#07385a]/40"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-300"
               />
               <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white">
                 {vidrosFiltrados.length > 0 ? (
@@ -1379,11 +1380,11 @@ export default function CentralImpressaoPage() {
                           setBuscaVidroOrcamento(nomeVidro);
                         }}
                         className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
-                          selecionado ? "bg-[#07385a] text-white" : "text-slate-600 hover:bg-slate-50"
+                          selecionado ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        <span className="font-bold">{nomeVidro}</span>
-                        <span className={`text-xs ${selecionado ? "text-white/80" : "text-slate-400"}`}>
+                        <span className="font-medium">{nomeVidro}</span>
+                        <span className={`text-xs ${selecionado ? "text-slate-500" : "text-slate-400"}`}>
                           {moeda(Number(vidro.preco || 0))}
                         </span>
                       </button>
@@ -1395,11 +1396,11 @@ export default function CentralImpressaoPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setModalVidroAberto(false)}
-                className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 Cancelar
               </button>
@@ -1407,11 +1408,12 @@ export default function CentralImpressaoPage() {
                 type="button"
                 onClick={duplicarOrcamentoComVidro}
                 disabled={!vidroSelecionadoOrcamento}
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: theme.menuBackgroundColor }}
               >
                 Criar cópia
               </button>
+            </div>
             </div>
           </section>
         </div>

@@ -637,89 +637,85 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
         </main>
       </div>
 
-      {/* MODAIS (Design Refinado e Delicado) */}
+      {/* MODAIS */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] z-50 px-4 transition-all">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] transition-all">
           <div
-            className="rounded-3xl p-8 shadow-2xl w-full max-w-md border border-white/20"
+            className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
             style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
           >
-            {/* Cabeçalho do Modal */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
-                <h2
-                  className="text-xl font-extrabold tracking-tight"
-                  style={{ color: branding?.modal_text_color || '#1C415B' }}
-                >
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                   {editando ? "Editar Perfil" : "Novo Perfil"}
                 </h2>
                 <div
-                  className="h-1 w-8 mt-1.5 rounded-full"
-                  style={{ backgroundColor: branding?.button_dark_bg || '#39B89F' }}
+                  className="mt-2 h-0.5 w-8 rounded-full bg-slate-200"
                 ></div>
               </div>
               <button
                 onClick={() => setMostrarModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                title="Fechar"
               >
-                <X size={18} className="text-gray-400 group-hover:text-gray-600" />
+                <X size={16} />
               </button>
             </div>
 
             {/* Corpo do Modal */}
-            <div className="space-y-5">
+            <div className="space-y-5 px-5 py-5">
               <div className="grid grid-cols-4 gap-4">
                 <div className="col-span-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Código</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código</label>
                   <input
                     type="text"
                     value={novoPerfil.codigo}
                     onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm uppercase text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
                 <div className="col-span-3">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Descrição</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Descrição</label>
                   <input
                     type="text"
                     value={novoPerfil.nome}
                     onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm outline-none border border-gray-100 focus:border-blue-300 transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Cor</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
                   <input
                     type="text"
                     placeholder="Ex: Alumínio"
                     value={novoPerfil.cores}
                     onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Categoria</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
                   <input
                     type="text"
                     placeholder="Ex: Trilho"
                     value={novoPerfil.categoria}
                     onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block px-1">Preço Sugerido</label>
+                <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço Sugerido</label>
                 <input
                   type="number"
                   placeholder="0,00"
                   value={novoPerfil.preco ?? ""}
                   onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full px-4 py-2.5 bg-gray-50/50 rounded-2xl text-sm font-bold border border-gray-100 outline-none focus:border-blue-300 transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                 />
               </div>
 
@@ -727,7 +723,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               <button
                 onClick={salvarPerfil}
                 disabled={carregando}
-                className="w-full mt-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[2px] transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 hover:brightness-110"
+                className="mt-2 w-full rounded-xl py-3 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-70 hover:brightness-95"
                 style={{
                   backgroundColor: branding?.modal_button_background_color || darkPrimary, // Usa a cor principal se não houver branding
                   color: branding?.modal_button_text_color || '#FFFFFF'
@@ -762,16 +758,14 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       />
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-100">
-          <div className="bg-white rounded-4xl p-10 flex flex-col items-center shadow-2xl border border-white/20">
-            <div className="relative mb-6">
-              {/* Spinner Principal */}
-              <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
-              {/* Ícone de Arquivo no centro */}
-              <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="relative mb-4">
+              <Loader2 size={34} className="animate-spin" style={{ color: darkTertiary }} />
+              <Upload size={15} className="absolute inset-0 m-auto text-slate-400" />
             </div>
-            <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
+            <h3 className="mb-1 text-base font-semibold text-slate-900">Importando dados</h3>
+            <p className="text-sm text-slate-500">
               Por favor, não feche a página...
             </p>
           </div>

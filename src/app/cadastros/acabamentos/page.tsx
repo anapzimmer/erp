@@ -418,28 +418,31 @@ export default function AcabamentosPage() {
 
             {/* MODAL */}
             {mostrarModal && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+                    <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
 
                         {/* HEADER FIXO */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-2xl font-black" style={{ color: theme.primary }}>
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+                            <div>
+                              <h2 className="text-lg font-semibold text-slate-900">
                                 {editando ? "Editar" : "Novo"} Acabamento
-                            </h2>
-                            <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600">
-                                <X size={24} />
+                              </h2>
+                              <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200" />
+                            </div>
+                            <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+                                <X size={16} />
                             </button>
                         </div>
 
                         {/* CONTEÚDO COM SCROLL */}
-                        <div className="p-6 overflow-y-auto flex-1">
+                        <div className="flex-1 overflow-y-auto px-5 py-5">
                             <div className="space-y-6">
                                 <input
                                     type="text"
                                     placeholder="Nome do Acabamento (ex: Orgânico)"
                                     value={novoAcabamento.nome}
                                     onChange={e => setNovoAcabamento({ ...novoAcabamento, nome: e.target.value })}
-                                    className="w-full p-4 rounded-xl border border-gray-200 outline-none focus:ring-2"
+                                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
                                     style={{ "--tw-ring-color": theme.tertiary } as any}
                                 />
 
@@ -447,7 +450,7 @@ export default function AcabamentosPage() {
                                     <select
                                         value={novoAcabamento.tipo_calculo}
                                         onChange={e => setNovoAcabamento({ ...novoAcabamento, tipo_calculo: e.target.value as Acabamento["tipo_calculo"] })}
-                                        className="p-4 rounded-xl border border-gray-200 outline-none focus:ring-2 bg-white"
+                                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
                                         style={{ "--tw-ring-color": theme.tertiary } as any}
                                     >
                                         <option value="metro_linear">Metro Linear (R$/m)</option>
@@ -460,19 +463,19 @@ export default function AcabamentosPage() {
                                         placeholder={novoAcabamento.tipo_calculo === 'porcentagem' ? "Porcentagem (ex: 20)" : "Preço (ex: 15.50)"}
                                         value={novoAcabamento.preco === 0 ? "" : novoAcabamento.preco}
                                         onChange={e => setNovoAcabamento({ ...novoAcabamento, preco: parseFloat(e.target.value) || 0 })}
-                                        className="p-4 rounded-xl border border-gray-200 outline-none focus:ring-2"
+                                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
                                         style={{ "--tw-ring-color": theme.tertiary } as any}
                                     />
                                 </div>
 
                                 {/* Margem de Cálculo */}
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-2 block">
+                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
                                         Margem de Cálculo para Área (em cm)
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="number" placeholder="Sobra Largura (cm)" value={novoAcabamento.sobra_largura === 0 ? "" : novoAcabamento.sobra_largura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_largura: parseFloat(e.target.value) || 0 })} className="p-4 rounded-xl border border-gray-200 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
-                                        <input type="number" placeholder="Sobra Altura (cm)" value={novoAcabamento.sobra_altura === 0 ? "" : novoAcabamento.sobra_altura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_altura: parseFloat(e.target.value) || 0 })} className="p-4 rounded-xl border border-gray-200 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+                                        <input type="number" placeholder="Sobra Largura (cm)" value={novoAcabamento.sobra_largura === 0 ? "" : novoAcabamento.sobra_largura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_largura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+                                        <input type="number" placeholder="Sobra Altura (cm)" value={novoAcabamento.sobra_altura === 0 ? "" : novoAcabamento.sobra_altura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_altura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
                                     </div>
                                 </div>
 
@@ -599,30 +602,32 @@ export default function AcabamentosPage() {
             )}
 
             {mostrarModalExclusao && acabamentoParaExcluir && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-gray-100 flex flex-col overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+                    <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
 
                         {/* Título e ícone menor */}
-                        <div className="p-6 pb-4 flex flex-col items-center text-center">
-                            <div className="p-3 rounded-full bg-red-100 mb-3">
-                                <Trash2 className="w-6 h-6 text-red-600" />
+                        <div className="flex items-start gap-3 px-5 py-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">
-                                Excluir Acabamento
-                            </h3>
-                            <p className="text-gray-500 text-sm">
-                                Tem certeza que deseja excluir o acabamento <strong className="text-gray-700">{acabamentoParaExcluir.nome}</strong>?
-                            </p>
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-900">
+                                    Excluir Acabamento
+                                </h3>
+                                <p className="mt-1 text-sm leading-6 text-gray-500">
+                                    Tem certeza que deseja excluir o acabamento <span className="font-medium text-gray-700">{acabamentoParaExcluir.nome}</span>?
+                                </p>
+                            </div>
                         </div>
 
                         {/* FOOTER DO MODAL (BOTOES MENORES) */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-2">
+                        <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
                             <button
                                 onClick={() => {
                                     setAcabamentoParaExcluir(null);
                                     setMostrarModalExclusao(false);
                                 }}
-                                className="flex-1 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition"
+                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
                             >
                                 Cancelar
                             </button>
@@ -633,7 +638,7 @@ export default function AcabamentosPage() {
                                     setAcabamentoParaExcluir(null);
                                     setMostrarModalExclusao(false);
                                 }}
-                                className="flex-1 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+                                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
                             >
                                 {carregando ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Excluir"}
                             </button>

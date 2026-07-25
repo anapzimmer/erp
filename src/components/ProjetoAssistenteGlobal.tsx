@@ -472,16 +472,16 @@ export default function ProjetoAssistenteGlobal() {
   if (!ativoNestaRota || !painel) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-slate-950/25 p-4 pt-8 backdrop-blur-[1px]">
-      <section className={`w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10 ${painel === "ajuda" ? "max-w-4xl" : "max-w-2xl"}`}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-slate-950/30 px-4 py-6 pt-8 backdrop-blur-[2px]">
+      <section className={`w-full overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] ${painel === "ajuda" ? "max-w-4xl" : "max-w-2xl"}`}>
         <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#07385a]/10 text-[#07385a]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
               {painel === "ajuda" ? <HelpCircle size={22} /> : <Settings size={22} />}
             </span>
             <div>
-              <h2 className="text-base font-semibold text-[#0f2742]">
-                {painel === "ajuda" ? "Ajuda do projeto" : "Configuracoes do projeto"}
+              <h2 className="text-base font-semibold text-slate-900">
+                {painel === "ajuda" ? "Ajuda do projeto" : "Configurações do projeto"}
               </h2>
               <p className="mt-1 text-sm text-slate-500">{projetoNome}</p>
             </div>
@@ -508,7 +508,7 @@ export default function ProjetoAssistenteGlobal() {
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
                 placeholder="Pesquisar por vidro, tubo, puxador, PDF, salvar, cor, roldana, kit..."
-                className="w-full bg-transparent text-sm font-medium text-[#0f2742] outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
               />
             </label>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
@@ -524,17 +524,17 @@ export default function ProjetoAssistenteGlobal() {
                 topicosFiltrados.map((topico) => (
                   <article key={`${topico.categoria}-${topico.titulo}`} className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[#07385a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#07385a]">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
                         {topico.categoria}
                       </span>
-                      <h3 className="text-sm font-semibold text-[#0f2742]">{topico.titulo}</h3>
+                      <h3 className="text-sm font-semibold text-slate-900">{topico.titulo}</h3>
                     </div>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{topico.texto}</p>
                   </article>
                 ))
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-                  <p className="text-sm font-semibold text-[#0f2742]">Nenhum topico encontrado</p>
+                  <p className="text-sm font-semibold text-slate-900">Nenhum tópico encontrado</p>
                   <p className="mt-1 text-sm text-slate-500">Tente pesquisar por outro termo.</p>
                 </div>
               )}
@@ -576,13 +576,13 @@ export default function ProjetoAssistenteGlobal() {
                 {salvo ? (
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
                     <CheckCircle2 size={16} />
-                    Configuracao salva
+                    Configuração salva
                   </span>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => setPainel(null)}
-                  className="rounded-xl bg-[#07385a] px-5 py-2 text-sm font-semibold text-white transition hover:brightness-95"
+                  className="rounded-xl bg-slate-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
                 >
                   Concluir
                 </button>
@@ -599,7 +599,7 @@ function CampoConfig({ label, value, onChange }: { label: string; value: string;
   return (
     <label className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
       <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-semibold text-[#0f2742] outline-none">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium text-slate-700 outline-none">
         {["Escolher", "Preto", "Branco", "Fosco", "Gold", "Cromado", "Rose"].map((opcao) => (
           <option key={opcao} value={opcao}>{opcao}</option>
         ))}
@@ -617,7 +617,7 @@ function CampoNumeroConfig({ label, value, onChange }: { label: string; value: n
         min={1}
         value={value}
         onChange={(event) => onChange(Number(event.target.value || 1))}
-        className="mt-1 w-full bg-transparent text-sm font-semibold text-[#0f2742] outline-none"
+        className="mt-1 w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
       />
     </label>
   );
@@ -627,7 +627,7 @@ function ToggleConfig({ titulo, descricao, ativo, onChange }: { titulo: string; 
   return (
     <button type="button" onClick={() => onChange(!ativo)} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50">
       <span>
-        <span className="block text-sm font-semibold text-[#0f2742]">{titulo}</span>
+        <span className="block text-sm font-semibold text-slate-900">{titulo}</span>
         <span className="mt-1 block text-xs leading-5 text-slate-500">{descricao}</span>
       </span>
       <span className={`flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition ${ativo ? "bg-[#18bd72]" : "bg-slate-300"}`}>

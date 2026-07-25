@@ -364,11 +364,19 @@ if (branding) {
 
       {/* MODAL */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 backdrop-blur-sm p-4">
-          <div className="bg-white p-8 rounded-4xl w-full max-w-md shadow-2xl border border-gray-100">
-            <h2 className="text-2xl font-black mb-6" style={{ color: theme.primary }}>{editando ? "Editar" : "Novo"} Serviço</h2>
-            <div className="space-y-4">
-              <input type="text" placeholder="Nome do Serviço" value={novoServico.nome} onChange={e => setNovoServico({ ...novoServico, nome: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">{editando ? "Editar" : "Novo"} Serviço</h2>
+                <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200" />
+              </div>
+              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <input type="text" placeholder="Nome do Serviço" value={novoServico.nome} onChange={e => setNovoServico({ ...novoServico, nome: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
               <div className="grid grid-cols-2 gap-4">
                 <select
                   value={novoServico.unidade}
@@ -376,7 +384,7 @@ if (branding) {
                     ...novoServico,
                     unidade: e.target.value as Servico["unidade"]
                   })}
-                  className="p-3 rounded-xl border border-gray-200 outline-none focus:ring-2"
+                  className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
                   style={{ "--tw-ring-color": theme.tertiary } as any}
                 >
                   <option value="m²">m²</option>
@@ -391,13 +399,13 @@ if (branding) {
                     ...novoServico,
                     preco: parseFloat(e.target.value) || 0
                   })}
-                  className="p-3 rounded-xl border border-gray-200 outline-none focus:ring-2"
+                  className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
                   style={{ "--tw-ring-color": theme.tertiary } as any}
                 />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setMostrarModal(false)} className="flex-1 py-3 font-bold text-gray-500 bg-gray-100 rounded-xl">Cancelar</button>
-                <button onClick={salvarServico} className="flex-1 py-3 font-bold text-white rounded-xl flex justify-center items-center gap-2" style={{ backgroundColor: theme.tertiary, color: theme.primary }}>
+              <div className="flex justify-end gap-3 pt-3">
+                <button onClick={() => setMostrarModal(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50">Cancelar</button>
+                <button onClick={salvarServico} className="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:brightness-95" style={{ backgroundColor: theme.tertiary, color: theme.primary }}>
                   {carregando ? <Loader2 className="animate-spin" size={20} /> : "Salvar"}
                 </button>
               </div>

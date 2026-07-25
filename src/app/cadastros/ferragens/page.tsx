@@ -658,44 +658,45 @@ export default function FerragensPage() {
 
       {/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO MINIMALISTA DISCRETO) */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 animate-fade-in px-4">
-          <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
+          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
 
             {/* Cabeçalho alinhado ao tema */}
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
-                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>
+                <h2 className="text-lg font-semibold text-slate-900">
                   {editando ? "Editar Ferragem" : "Nova Ferragem"}
                 </h2>
-                <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
+                <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200"></div>
               </div>
               <button
                 onClick={() => setMostrarModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                title="Fechar"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 px-5 py-5">
               {/* Grid 1: Identificação */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="md:col-span-1">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Código</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código</label>
                   <input
                     type="text"
                     value={novaFerragem.codigo}
                     onChange={e => setNovaFerragem({ ...novaFerragem, codigo: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm uppercase text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Nome do Produto</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do Produto</label>
                   <input
                     type="text"
                     value={novaFerragem.nome}
                     onChange={e => setNovaFerragem({ ...novaFerragem, nome: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
@@ -703,28 +704,28 @@ export default function FerragensPage() {
               {/* Grid 2: Especificações */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Cores</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cores</label>
                   <input
                     type="text"
                     value={novaFerragem.cores}
                     onChange={e => setNovaFerragem({ ...novaFerragem, cores: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Categoria</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
                   <input
                     type="text"
                     value={novaFerragem.categoria}
                     onChange={e => setNovaFerragem({ ...novaFerragem, categoria: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
 
               {/* Preço de Venda */}
               <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
+                <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço de Venda</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
@@ -732,24 +733,24 @@ export default function FerragensPage() {
                     step="0.01"
                     value={novaFerragem.preco ?? ""}
                     onChange={e => setNovaFerragem({ ...novaFerragem, preco: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
             </div>
 
             {/* Ações Inferiores com o Tema Glass Code */}
-            <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-50">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-4">
               <button
                 onClick={() => setMostrarModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-all"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
               >
                 Descartar
               </button>
               <button
                 onClick={salvarFerragem}
                 disabled={carregando}
-                className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
                 style={{ backgroundColor: darkTertiary, color: darkPrimary }}
               >
                 {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Ferragem")}
@@ -761,13 +762,12 @@ export default function FerragensPage() {
 
       {/* MODAL DE LOADING PARA O PDF */}
       {gerandoPDF && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 shadow-2xl">
-            {/* Círculo de loading animado com a cor do seu sistema */}
-            <div className="w-12 h-12 border-4 animate-spin rounded-full"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="h-10 w-10 animate-spin rounded-full border-4"
               style={{ borderTopColor: 'transparent', borderRightColor: darkTertiary, borderBottomColor: darkTertiary, borderLeftColor: darkTertiary }}>
             </div>
-            <p className="font-bold text-gray-700" style={{ color: darkPrimary }}>
+            <p className="text-sm font-semibold text-gray-700" style={{ color: darkPrimary }}>
               Gerando seu Catálogo...
             </p>
             <span className="text-xs text-gray-400">Isso pode levar alguns segundos</span>
@@ -776,7 +776,13 @@ export default function FerragensPage() {
       )}
 
       {/* AVISOS E LOADING */}
-      {modalCarregando && <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"><div className="bg-white p-8 rounded-3xl animate-bounce">Processando CSV...</div></div>}
+      {modalCarregando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="rounded-[22px] border border-slate-200 bg-white px-6 py-5 text-sm font-medium text-slate-700 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            Processando CSV...
+          </div>
+        </div>
+      )}
       <CadastrosAvisoModal
         aviso={modalAviso}
         onClose={() => setModalAviso(null)}

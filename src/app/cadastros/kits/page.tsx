@@ -703,28 +703,28 @@ export default function KitsPage() {
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] z-50 px-4">
-          <div className="bg-white rounded-2xl p-7 shadow-xl w-full max-w-lg border border-gray-100">
-            <div className="flex justify-between items-start mb-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
-                <h2 className="text-xl font-bold" style={{ color: darkPrimary }}>
+                <h2 className="text-lg font-semibold text-slate-900">
                   {editando ? "Editar Kit" : "Novo Kit"}
                 </h2>
-                <div className="h-0.5 w-6 mt-1 rounded-full" style={{ backgroundColor: darkTertiary }}></div>
+                <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200"></div>
               </div>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={20} />
+              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+                <X size={16} />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 px-5 py-5">
               <div>
-                <label className="text-[11px] font-semibold text-gray-400 ml-1 mb-1 block">Nome do Kit</label>
+                <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do Kit</label>
                 <input
                   type="text"
                   value={novoKit.nome}
                   onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
                 />
                 <p className="mt-2 text-[11px] text-gray-400">
                   Se o nome tiver algo como 1200x2100 8mm, a largura e a altura são sugeridas automaticamente, mas você pode alterar os campos abaixo.
@@ -735,7 +735,7 @@ export default function KitsPage() {
                 <button
                   type="button"
                   onClick={aplicarMedidasDoNome}
-                  className="mt-2 text-[11px] font-bold uppercase tracking-wide"
+                  className="mt-2 text-[11px] font-semibold"
                   style={{ color: darkTertiary }}
                 >
                   Reaplicar medidas do nome
@@ -749,7 +749,7 @@ export default function KitsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Largura (mm)</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Largura (mm)</label>
                   <input
                     type="number"
                     value={novoKit.largura}
@@ -757,11 +757,11 @@ export default function KitsPage() {
                       larguraManualRef.current = true;
                       setNovoKit({ ...novoKit, largura: Number(e.target.value) });
                     }}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Altura (mm)</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Altura (mm)</label>
                   <input
                     type="number"
                     value={novoKit.altura}
@@ -769,34 +769,34 @@ export default function KitsPage() {
                       alturaManualRef.current = true;
                       setNovoKit({ ...novoKit, altura: Number(e.target.value) });
                     }}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Cores</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cores</label>
                   <input
                     type="text"
                     value={novoKit.cores || ""}
                     onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Categoria</label>
+                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
                   <input
                     type="text"
                     value={novoKit.categoria || ""}
                     onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase ml-1 mb-1 block">Preço de Venda</label>
+                <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço de Venda</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
@@ -804,21 +804,21 @@ export default function KitsPage() {
                     step="0.01"
                     value={novoKit.preco ?? ""}
                     onChange={e => setNovoKit({ ...novoKit, preco: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 transition-all focus:border-blue-300"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-50">
+            <div className="flex justify-end items-center gap-3 border-t border-slate-100 px-5 py-4">
               <button onClick={() => {
                 setMostrarModal(false);
                 larguraManualRef.current = false;
                 alturaManualRef.current = false;
                 ultimaDeteccaoRef.current = { largura: null, altura: null };
                 setEspessuraDetectada("");
-              }} className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600">Descartar</button>
-              <button onClick={salvarKit} disabled={carregando} className="px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
+              }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50">Descartar</button>
+              <button onClick={salvarKit} disabled={carregando} className="rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
                 {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Kit")}
               </button>
             </div>
@@ -827,16 +827,14 @@ export default function KitsPage() {
       )}
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-100">
-          <div className="bg-white rounded-4xl p-10 flex flex-col items-center shadow-2xl border border-white/20">
-            <div className="relative mb-6">
-              {/* Spinner Principal */}
-              <Loader2 size={48} className="animate-spin" style={{ color: darkTertiary }} />
-              {/* Ícone de Arquivo no centro */}
-              <Upload size={20} className="absolute inset-0 m-auto text-gray-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+            <div className="relative mb-4">
+              <Loader2 size={34} className="animate-spin" style={{ color: darkTertiary }} />
+              <Upload size={15} className="absolute inset-0 m-auto text-slate-400" />
             </div>
-            <h3 className="text-xl font-black mb-2" style={{ color: darkPrimary }}>Importando Dados</h3>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
+            <h3 className="mb-1 text-base font-semibold text-slate-900">Importando dados</h3>
+            <p className="text-sm text-slate-500">
               Por favor, não feche a página...
             </p>
           </div>

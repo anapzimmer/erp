@@ -591,7 +591,7 @@ export default function ClientesPage() {
                             {cliente.tipo_pessoa === "juridica" ? <Building2 size={17} /> : <UserRound size={17} />}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-900">{cliente.nome}</p>
+                            <p className="truncate font-medium text-slate-600">{cliente.nome}</p>
                             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
                               {cliente.situacao_cadastral && (
                                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${statusAtivo(cliente.situacao_cadastral) ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
@@ -629,14 +629,14 @@ export default function ClientesPage() {
       )}
 
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/35 backdrop-blur-[2px]">
-          <div className="flex h-full w-full max-w-5xl flex-col bg-slate-50 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/30 backdrop-blur-[2px]">
+          <div className="flex h-full w-full max-w-5xl flex-col border-l border-slate-200 bg-slate-50 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 md:px-7">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">{editando ? "Editar cliente" : "Novo cliente"}</h2>
                 <p className="mt-0.5 text-xs text-slate-500">Os dados fiscais podem ser preenchidos automaticamente pelo CNPJ.</p>
               </div>
-              <button onClick={fecharModal} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={21} /></button>
+              <button onClick={fecharModal} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar"><X size={16} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-7">
