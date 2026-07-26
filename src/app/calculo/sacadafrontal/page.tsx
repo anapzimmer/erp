@@ -589,11 +589,11 @@ const acessoriosComPrecoTabela = useMemo(() => {
     { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
     { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
     { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100 },
+    { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
     { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
   ];
 
-  return regras.map(({ nome, codigo, quantidade, pacote }) => {
+  return regras.map(({ nome, codigo, quantidade, pacote, precoPorPacote }) => {
     const corUsar = resolverCorAcessorio(codigo, corPerfil);
     const resultado = resolverFerragemPorCodigoECor(
       ferragensTabela,
@@ -608,6 +608,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
     const quantidadePacote = pacote
       ? Math.ceil(quantidadeNecessaria / pacote) * pacote
       : quantidadeNecessaria;
+    const quantidadeParaPreco = precoPorPacote && pacote
+      ? Math.ceil(quantidadeNecessaria / pacote)
+      : quantidadePacote;
 
     if (process.env.NODE_ENV !== "production" && precoUnitario === 0) {
       const codigoNorm = normalizarCodigo(codigo);
@@ -635,7 +638,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       quantidadePacote: pacote ? quantidadePacote : undefined,
       pacote,
       precoUnitario,
-      valorTotal: Number((quantidadePacote * precoUnitario).toFixed(2)),
+      valorTotal: Number((quantidadeParaPreco * precoUnitario).toFixed(2)),
     };
   });
 }, [

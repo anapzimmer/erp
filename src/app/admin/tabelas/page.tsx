@@ -59,6 +59,8 @@ export default function GestaoPrecosPage() {
   } | null>(null);
   const [editandoItemId, setEditandoItemId] = useState<string | null>(null);
   const [novoPrecoEdicao, setNovoPrecoEdicao] = useState<string>("");
+  const [editandoTabelaId, setEditandoTabelaId] = useState<string | null>(null);
+  const [nomeTabelaEdicao, setNomeTabelaEdicao] = useState("");
   const arquivoTabelaRef = useRef<HTMLInputElement>(null);
 
   type LinhaImportada = {
@@ -408,25 +410,100 @@ export default function GestaoPrecosPage() {
       return;
     }
 
-    // 1. Primeiro removemos os itens vinculados a essa tabela (Boa prática para evitar erro de FK)
-    await supabase
-      .from("vidro_precos_grupos")
-      .delete()
-      .eq("grupo_preco_id", tabela.id);
+    setCarregando(true);
+    const diagnostico: Record<string, unknown> = {
+      tabelaId: tabela.id,
+      tabelaNome: tabela.nome,
+      empresaId: empresaIdAtual,
+    };
 
-    // 2. Agora excluímos a tabela de fato
-    const { error } = await supabase
-      .from("tabelas")
-      .delete()
-      .eq("id", tabela.id)
-      .eq("empresa_id", empresaIdAtual); // Garante que você é o dono
+    try {
+      console.group("[TABELAS] Diagnóstico da exclusão");
+      console.log("Iniciando exclusão da tabela:", diagnostico);
 
-    if (!error) {
+      const { data: tabelaAntes, error: erroTabelaAntes } = await supabase
+        .from("tabelas")
+        .select("id, nome, empresa_id")
+        .eq("id", tabela.id)
+        .maybeSingle();
+
+      diagnostico.tabelaAntes = tabelaAntes || null;
+      if (erroTabelaAntes) {
+        diagnostico.erroTabelaAntes = erroTabelaAntes;
+        throw erroTabelaAntes;
+      }
+
+      if (!tabelaAntes) {
+        throw new Error("Não encontrei essa tabela no banco antes da exclusão. Pode ser empresa diferente, permissão/RLS ou ID incorreto.");
+      }
+
+      if (String(tabelaAntes.empresa_id) !== String(empresaIdAtual)) {
+        throw new Error(`A tabela pertence à empresa ${tabelaAntes.empresa_id}, mas a página está usando a empresa ${empresaIdAtual}.`);
+      }
+
+      const { count: precosRemovidos, error: erroPrecos } = await supabase
+        .from("vidro_precos_grupos")
+        .delete({ count: "exact" })
+        .eq("grupo_preco_id", tabela.id);
+
+      diagnostico.precosRemovidos = precosRemovidos ?? 0;
+      if (erroPrecos) throw erroPrecos;
+
+      const { count: clientesAtualizados, error: erroClientes } = await supabase
+        .from("clientes")
+        .update({ grupo_preco_id: null }, { count: "exact" })
+        .eq("grupo_preco_id", tabela.id)
+        .eq("empresa_id", empresaIdAtual);
+
+      diagnostico.clientesAtualizados = clientesAtualizados ?? 0;
+      if (erroClientes) throw erroClientes;
+
+      const { count: tabelasRemovidas, error: erroTabela } = await supabase
+        .from("tabelas")
+        .delete({ count: "exact" })
+        .eq("id", tabela.id)
+        .eq("empresa_id", empresaIdAtual);
+
+      diagnostico.tabelasRemovidas = tabelasRemovidas ?? 0;
+      if (erroTabela) throw erroTabela;
+
+      const { data: tabelaDepois, error: erroTabelaDepois } = await supabase
+        .from("tabelas")
+        .select("id, nome, empresa_id")
+        .eq("id", tabela.id)
+        .maybeSingle();
+
+      diagnostico.tabelaDepois = tabelaDepois || null;
+      if (erroTabelaDepois) {
+        diagnostico.erroTabelaDepois = erroTabelaDepois;
+        throw erroTabelaDepois;
+      }
+
+      console.log("Resultado da exclusão:", diagnostico);
+
+      if (tabelaDepois) {
+        throw new Error(`O Supabase encontrou a tabela, mas bloqueou o DELETE por política RLS. Registros afetados: ${tabelasRemovidas ?? 0}. Execute o SQL database/tabelas_rls_fix.sql no Supabase.`);
+      }
+
       setTabelas(prev => prev.filter(t => t.id !== tabela.id));
       setTabelaSelecionada(null);
+      setItensTabela([]);
+      setEditandoTabelaId(null);
+      setNomeTabelaEdicao("");
       setModalConfirmacao(null);
-      // 🔥 NOVO: Abre o seu modal customizado
       setModalSucessoAberto({ aberto: true, mensagem: "Tabela removida com sucesso." });
+      await carregarTabelas(empresaIdAtual);
+    } catch (error: any) {
+      diagnostico.erro = error?.message || error;
+      console.error("Erro ao excluir tabela:", error);
+      console.log("Diagnóstico completo:", diagnostico);
+      setModalAvisoAberto({
+        aberto: true,
+        mensagem: `Não foi possível excluir a tabela.\n${error?.message || "Verifique se ela está vinculada a algum cadastro."}\n\nAbra o console e procure por [TABELAS] Diagnóstico da exclusão.`,
+      });
+    } finally {
+      console.groupEnd();
+      setCarregando(false);
     }
   };
 
@@ -568,6 +645,56 @@ console.log("Enviando empresa_id:", empresaIdAtual);
       setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível criar a tabela no banco de dados." });
     }
     setCarregando(false);
+  };
+
+  const iniciarEdicaoTabela = (tabela: TabelaPreco) => {
+    setEditandoTabelaId(tabela.id);
+    setNomeTabelaEdicao(tabela.nome);
+  };
+
+  const cancelarEdicaoTabela = () => {
+    setEditandoTabelaId(null);
+    setNomeTabelaEdicao("");
+  };
+
+  const salvarNomeTabela = async (tabela: TabelaPreco) => {
+    const nomeLimpo = nomeTabelaEdicao.trim();
+
+    if (!nomeLimpo) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Informe um nome para a tabela." });
+      return;
+    }
+
+    if (!empresaIdAtual) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível identificar a empresa. Atualize a página e tente novamente." });
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("tabelas")
+        .update({ nome: nomeLimpo })
+        .eq("id", tabela.id)
+        .eq("empresa_id", empresaIdAtual)
+        .select("id, nome")
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("A tabela não foi atualizada no banco.");
+
+      const tabelaAtualizada = data as TabelaPreco;
+      setTabelas((atuais) => atuais.map((item) => item.id === tabela.id ? tabelaAtualizada : item));
+      setTabelaSelecionada((atual) => atual?.id === tabela.id ? tabelaAtualizada : atual);
+      cancelarEdicaoTabela();
+      setModalSucessoAberto({ aberto: true, mensagem: "Nome da tabela atualizado com sucesso." });
+    } catch (error: any) {
+      console.error("Erro ao editar tabela:", error);
+      setModalAvisoAberto({ aberto: true, mensagem: `Não foi possível editar o nome da tabela. ${error?.message || ""}` });
+    } finally {
+      setCarregando(false);
+    }
   };
 
 const adicionarVidroATabela = async () => {
@@ -787,7 +914,9 @@ const { error } = await supabase
               </div>
 
               <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                {tabelas.map(t => (
+                {tabelas.map(t => {
+                  const editandoEstaTabela = editandoTabelaId === t.id;
+                  return (
                   <div
                     key={t.id}
                     className={`w-full group text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-gray-50'
@@ -799,29 +928,77 @@ const { error } = await supabase
                       border: `1px solid ${tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : '#E5E7EB'}`
                     }}
                   >
-                    <div className="flex-1 cursor-pointer truncate" onClick={() => setTabelaSelecionada(t)}>
-                      <span className="truncate">{t.nome}</span>
-                    </div>
+                    {editandoEstaTabela ? (
+                      <input
+                        value={nomeTabelaEdicao}
+                        onChange={(e) => setNomeTabelaEdicao(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void salvarNomeTabela(t);
+                          if (e.key === "Escape") cancelarEdicaoTabela();
+                        }}
+                        autoFocus
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none focus:border-slate-400"
+                      />
+                    ) : (
+                      <div className="flex-1 cursor-pointer truncate" onClick={() => setTabelaSelecionada(t)}>
+                        <span className="truncate">{t.nome}</span>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2">
-                      {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
+                      {editandoEstaTabela ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void salvarNomeTabela(t)}
+                            disabled={carregando}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                            title="Salvar nome"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelarEdicaoTabela}
+                            disabled={carregando}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                            title="Cancelar edição"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
 
-                      <button
-                        // 🔥 Chamando a função correta de exclusão
-                        onClick={() => setModalConfirmacao({
-                          titulo: "Confirmar exclusão",
-                          mensagem: `Deseja excluir a tabela \"${t.nome}\"? Esta ação não pode ser desfeita.`,
-                          confirmar: () => excluirTabela(t),
-                          labelConfirmar: "Excluir",
-                          labelCancelar: "Cancelar",
-                        })}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => iniciarEdicaoTabela(t)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-700 hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Editar nome da tabela"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setModalConfirmacao({
+                              titulo: "Confirmar exclusão",
+                              mensagem: `Deseja excluir a tabela \"${t.nome}\"? Esta ação não pode ser desfeita.`,
+                              confirmar: () => excluirTabela(t),
+                              labelConfirmar: "Excluir",
+                              labelCancelar: "Cancelar",
+                            })}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Excluir tabela"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
