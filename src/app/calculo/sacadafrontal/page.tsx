@@ -12,6 +12,8 @@ import { formatarPreco } from "@/utils/formatarPreco";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF";
+import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
+import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 
 type ClienteSacada = {
   id: string;
@@ -60,8 +62,17 @@ type SacadaFrontalDraft = {
   corPerfil: string;
 };
 
+type SacadaFrontalCentralItem = CentralImpressaoItem & {
+  origemRota?: string;
+  corPerfil?: string;
+  centralDados?: SacadaFrontalDraft;
+};
+
 const CORES_PERFIL = ["Branco", "Preto", "Fosco"];
 const SACADA_FRONTAL_DRAFT_KEY = "sacada-frontal-draft";
+const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
+const CENTRAL_IMPRESSAO_OBRA_KEY = "glasscode:central-impressao:obra";
 const CODIGOS_COR_PERFIL = new Set(["CAN625", "SUP626", "NYL314", "NYL042"]);
 const CODIGOS_SEMPRE_PRETO = new Set(["GUA033"]);
 const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
@@ -254,6 +265,8 @@ export default function CalculoSacadaFrontalPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const editId = searchParams.get("edit");
+  const centralItemId = searchParams.get("centralItem");
+  const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
@@ -291,7 +304,7 @@ export default function CalculoSacadaFrontalPage() {
   useEffect(() => {
     setDraftHidratado(false);
 
-    if (typeof window === "undefined" || editId) {
+    if (typeof window === "undefined" || editId || centralItemId) {
       setDraftHidratado(true);
       return;
     }
@@ -320,10 +333,10 @@ export default function CalculoSacadaFrontalPage() {
     } finally {
       setDraftHidratado(true);
     }
-  }, [chaveDraft, editId]);
+  }, [centralItemId, chaveDraft, editId]);
 
   useEffect(() => {
-    if (!draftHidratado || typeof window === "undefined" || editId) {
+    if (!draftHidratado || typeof window === "undefined" || editId || centralItemId) {
       return;
     }
 
@@ -348,6 +361,7 @@ export default function CalculoSacadaFrontalPage() {
     chaveDraft,
     clienteId,
     corPerfil,
+    centralItemId,
     draftHidratado,
     editId,
     larguraVaoMm,
@@ -476,6 +490,37 @@ export default function CalculoSacadaFrontalPage() {
       editCarregadoRef.current = true;
     }
   }, [editId, carregandoInsumos, listaClientes.length, carregarOrcamentoParaEdicao]);
+
+  useEffect(() => {
+    if (!centralItemId || typeof window === "undefined") return;
+
+    try {
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? (JSON.parse(salvo) as SacadaFrontalCentralItem[]) : [];
+      const item = lista.find((projeto) => projeto.id === centralItemId);
+      const dados = item?.centralDados;
+
+      if (!dados) {
+        setDraftHidratado(true);
+        return;
+      }
+
+      setClienteId(dados.clienteId || "");
+      setBuscaCliente(dados.buscaCliente || item?.cliente || "");
+      setObra(dados.obra || "");
+      setLarguraVaoMm(dados.larguraVaoMm || "");
+      setAlturaVaoMm(dados.alturaVaoMm || "");
+      setQuantidadeVaos(dados.quantidadeVaos || "");
+      setQuantidadeDivisoesLargura(dados.quantidadeDivisoesLargura || "");
+      setBuscaVidro(dados.buscaVidro || item?.vidro || "");
+      setVidroId(dados.vidroId || "");
+      setCorPerfil(dados.corPerfil || item?.corKit || "");
+      setDraftHidratado(true);
+    } catch (erro) {
+      console.warn("Não foi possível restaurar a sacada frontal da central:", erro);
+      setDraftHidratado(true);
+    }
+  }, [centralItemId]);
 
   useEffect(() => {
     if (!carregandoInsumos && !vidros.length && vidroId) {
@@ -708,7 +753,102 @@ const acessoriosComPrecoTabela = useMemo(() => {
     [clienteId, listaClientes]
   );
 
+  const montarMateriaisCentral = (): ProjetoIndividualMaterial[] => [
+    {
+      id: "vidro-sacada-frontal",
+      qtd: resultado.areaTotalVidro,
+      unidade: "m2",
+      descricao: `VIDRO ${resultado.larguraVidroMm}x${resultado.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
+      valorUnitario: precoVidroM2Efetivo,
+    },
+    ...perfisComPrecoTabela.map((perfil) => ({
+      id: `perfil-${perfil.codigo}`,
+      qtd: Number(perfil.quantidadeBarras || 0),
+      unidade: "barra",
+      descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
+      valorUnitario: Number(perfil.precoBarra || 0),
+      codigoPerfil: perfil.codigo,
+      comprimentoBarra: 6000,
+      cortes: perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : [],
+    })),
+    ...acessoriosComPrecoTabela.map((acessorio) => ({
+      id: `acessorio-${acessorio.codigo}`,
+      qtd: acessorio.precoUnitario > 0
+        ? Number((acessorio.valorTotal / acessorio.precoUnitario).toFixed(3))
+        : Number(acessorio.quantidadePacote || acessorio.quantidade || 0),
+      unidade: acessorio.pacote ? "pacote" : "und",
+      descricao: `${acessorio.codigo} - ${acessorio.nome}`.toUpperCase(),
+      valorUnitario: Number(acessorio.precoUnitario || 0),
+    })),
+  ];
+
+  const montarItemCentral = (id?: string): SacadaFrontalCentralItem => {
+    const centralDados: SacadaFrontalDraft = {
+      clienteId,
+      buscaCliente,
+      obra,
+      larguraVaoMm,
+      alturaVaoMm,
+      quantidadeVaos,
+      quantidadeDivisoesLargura,
+      buscaVidro,
+      vidroId,
+      corPerfil,
+    };
+
+    return {
+      id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
+      numero: "Novo Orçamento",
+      projeto: "Sacada frontal",
+      cliente: nomeClienteSelecionado || buscaCliente || "",
+      medidas: `${larguraNumero} x ${alturaNumero} mm`,
+      largura: larguraNumero,
+      altura: alturaNumero,
+      quantidade: quantidadeNumero,
+      modo: "Cálculo",
+      desenhoUrl: "",
+      vidro: montarDescricaoVidro(vidroSelecionado),
+      corKit: corPerfil || "Não selecionada",
+      corPerfil: corPerfil || "Não selecionada",
+      trilho: `${quantidadeDivisoesNumero} divisão(ões)`,
+      trinco: "Sacada frontal",
+      pecasDivisao: resultado.quantidadeVidrosPorVao,
+      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisões por vão: ${quantidadeDivisoesNumero}`,
+      valorTotal: totalGeralCalculado,
+      materiais: montarMateriaisCentral(),
+      origemRota: "/calculo/sacadafrontal",
+      centralDados,
+    };
+  };
+
+  const enviarParaCentralImpressao = () => {
+    try {
+      const itemCentral = montarItemCentral(centralItemId || undefined);
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? (JSON.parse(salvo) as SacadaFrontalCentralItem[]) : [];
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
+        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+        : [...lista, itemCentral];
+
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
+      const clienteCentral = nomeClienteSelecionado || buscaCliente;
+      if (clienteCentral) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteCentral);
+      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
+      window.localStorage.removeItem(chaveDraft);
+      router.push(centralItemId ? returnTo : "/central-impressao");
+    } catch (erro) {
+      console.warn("Não foi possível enviar a sacada frontal para a central:", erro);
+      setMensagemSalvo("Erro ao enviar para a central de impressão.");
+      setTimeout(() => setMensagemSalvo(""), 5000);
+    }
+  };
+
   const handleSalvar = async () => {
+    if (centralItemId) {
+      enviarParaCentralImpressao();
+      return;
+    }
+
     if (salvando) return;
     setSalvando(true);
     setMensagemSalvo("");
@@ -900,6 +1040,15 @@ const acessoriosComPrecoTabela = useMemo(() => {
                 Salvar
               </button>
 
+              <button
+                onClick={enviarParaCentralImpressao}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+              >
+                <FilePlus2 size={16} />
+                PDF+
+              </button>
+
               <PDFDownloadLink
                 document={
                   <SacadaFrontalPDF
@@ -963,7 +1112,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   Cálculo de Orçamento sacada com gradil de alumínio
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
-                  Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da tabela. O sistema arredonda o vidro, calcula perfis e barras.
+                  Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da sacada. O sistema arredonda o vidro, calcula perfis e barras.
                 </p>
               </div>
 
@@ -1041,7 +1190,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                    Vidro da tabela
+                    Cor do Vidro
                   </span>
                   <input
                     value={buscaVidro}

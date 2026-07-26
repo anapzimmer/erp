@@ -103,6 +103,52 @@ const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
   return `${prefixo} ${novoVidro}`.toUpperCase();
 };
 
+const limparDescricaoVidroMaterial = (descricao: string) =>
+  String(descricao || "")
+    .replace(/^vidro\s*/i, "")
+    .replace(/^\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?\s*/i, "")
+    .replace(/^vidro\s*/i, "")
+    .trim();
+
+const descricaoVidroItem = (item: Pick<ProjetoComposicao, "vidro" | "materiais">) => {
+  const vidroInformado = String(item.vidro || "").trim();
+  if (vidroInformado && !/nao selecionado|não selecionado|selecionar|^-$/i.test(vidroInformado)) {
+    return vidroInformado;
+  }
+
+  const vidroMaterial = item.materiais?.find((material) => /vidro/i.test(String(material.descricao || "")));
+  return limparDescricaoVidroMaterial(String(vidroMaterial?.descricao || "")) || vidroInformado || "";
+};
+
+const extrairMedidaVidroAvulso = (medida?: string) => {
+  const match = String(medida || "").match(/(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i);
+  if (!match) return { largura: 0, altura: 0 };
+  return {
+    largura: Number(match[1].replace(",", ".")) || 0,
+    altura: Number(match[2].replace(",", ".")) || 0,
+  };
+};
+
+const calcularResumoVidrosAvulsos = (item: Pick<ProjetoComposicao, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais">) => {
+  const pecas = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
+  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro) => {
+    const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
+    return total + (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
+  }, 0) || 0;
+  const areaMateriais = item.materiais?.reduce((total, material) => {
+    const unidade = String(material.unidade || "").toLowerCase();
+    if (!unidade.includes("m2") && !unidade.includes("m²")) return total;
+    return total + Number(material.qtd || 0);
+  }, 0) || 0;
+  const valor = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.valorTotal || 0), 0) || Number(item.valorTotal || 0);
+
+  return {
+    pecas,
+    area: areaMateriais || areaAvulsos,
+    valor,
+  };
+};
+
 const somarMateriais = (materiais?: ProjetoIndividualMaterial[]) =>
   (materiais || []).reduce(
     (total, material) => total + Number(material.qtd || 0) * Number(material.valorUnitario || 0),
@@ -175,6 +221,128 @@ const ehPc2fComBandeira = (projeto?: string) => /pc2fcb|2 folhas com bandeira/i.
 const ehPc4fComBandeira = (projeto?: string) => /pc4fcb|4 folhas com bandeira/i.test(String(projeto || ""));
 const ehJc2fComSacada = (projeto?: string) => /jc2fcs|sacada inferior/i.test(String(projeto || ""));
 const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(String(projeto || ""));
+const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
+const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
+const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
+const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
+
+const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+const corPerfilSvg = (cor?: string) => {
+  const corNormalizada = normalizarTexto(cor).replace(/\s+/g, "");
+  if (corNormalizada === "branco") return { fill: "#e8e8e8", stroke: "#c0c0c0" };
+  if (corNormalizada === "preto") return { fill: "#2a2a2a", stroke: "#1a1a1a" };
+  if (corNormalizada === "fosco") return { fill: "#8c8c8c", stroke: "#6b6b6b" };
+  return { fill: "#9e9e9e", stroke: "#787878" };
+};
+
+const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "altura" | "pecasDivisao" | "corPerfil" | "corKit">) => {
+  const divisoes = Math.max(1, Math.min(12, Number(item?.pecasDivisao || 1)));
+  const largura = Math.max(1, Number(item?.largura || 2000));
+  const altura = Math.max(1, Number(item?.altura || 1000));
+  const ratio = Math.min(Math.max(altura / largura, 0.3), 2);
+  const svgW = 360;
+  const padL = 40;
+  const padR = 10;
+  const padTop = 15;
+  const padBot = 40;
+  const drawW = svgW - padL - padR;
+  const drawH = Number((drawW * ratio).toFixed(2));
+  const svgH = Number((drawH + padTop + padBot).toFixed(2));
+  const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
+  const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
+  const totalPostW = (divisoes + 1) * postW;
+  const glassW = (drawW - totalPostW) / divisoes;
+  const glassH = drawH - railH * 2;
+  const x0 = padL;
+  const y0 = padTop;
+  const cor = corPerfilSvg(item?.corPerfil || item?.corKit);
+
+  const paineis = Array.from({ length: divisoes }).map((_, i) => {
+    const pX = x0 + i * (glassW + postW);
+    const gX = pX + postW;
+    return `
+      <g>
+        <rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/>
+        <rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/>
+        <rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="url(#glassGrad)" rx="1"/>
+        <rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="#7cbfb5" stroke-width="0.6" stroke-opacity="0.5" rx="1"/>
+        <line x1="${gX + glassW * 0.18}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/>
+        <line x1="${gX + glassW * 0.24}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.14}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.18"/>
+      </g>
+    `;
+  }).join("");
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+      <defs>
+        <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#b8e6e0" stop-opacity="0.35"/>
+          <stop offset="50%" stop-color="#b8e6e0" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#b8e6e0" stop-opacity="0.3"/>
+        </linearGradient>
+        <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${cor.fill}"/>
+          <stop offset="50%" stop-color="${cor.stroke}"/>
+          <stop offset="100%" stop-color="${cor.fill}"/>
+        </linearGradient>
+      </defs>
+      <rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/>
+      <rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/>
+      <rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/>
+      <rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/>
+      ${paineis}
+      <rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/>
+      <rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/>
+      <line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text>
+      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text>
+    </svg>
+  `);
+};
+
+const desenhoTecnicoUrl = (projeto?: string, item?: ProjetoComposicao) => {
+  if (ehSacadaFrontal(projeto)) {
+    return desenhoSacadaFrontalUrl(item);
+  }
+
+  if (ehFechamentoSacada(projeto)) {
+    return svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+        <rect width="320" height="220" rx="18" fill="#f8fbfd"/>
+        <rect x="48" y="30" width="224" height="158" rx="4" fill="#eef7fb" stroke="#12324d" stroke-width="5"/>
+        <line x1="48" y1="92" x2="272" y2="92" stroke="#12324d" stroke-width="5"/>
+        <line x1="104" y1="30" x2="104" y2="188" stroke="#12324d" stroke-width="3"/>
+        <line x1="160" y1="30" x2="160" y2="188" stroke="#12324d" stroke-width="3"/>
+        <line x1="216" y1="30" x2="216" y2="188" stroke="#12324d" stroke-width="3"/>
+        <rect x="48" y="188" width="224" height="10" rx="3" fill="#d5dde5" stroke="#12324d" stroke-width="3"/>
+        <text x="160" y="215" text-anchor="middle" font-family="Segoe UI, Arial" font-size="15" fill="#12324d">Fechamento de sacada</text>
+      </svg>
+    `);
+  }
+
+  if (ehPeleDeVidro(projeto)) {
+    return svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+        <rect width="320" height="220" rx="18" fill="#f8fbfd"/>
+        <rect x="58" y="28" width="204" height="160" rx="4" fill="#edf8fc" stroke="#12324d" stroke-width="5"/>
+        <line x1="126" y1="28" x2="126" y2="188" stroke="#12324d" stroke-width="4"/>
+        <line x1="194" y1="28" x2="194" y2="188" stroke="#12324d" stroke-width="4"/>
+        <line x1="58" y1="81" x2="262" y2="81" stroke="#12324d" stroke-width="4"/>
+        <line x1="58" y1="134" x2="262" y2="134" stroke="#12324d" stroke-width="4"/>
+        <path d="M72 68 L112 42 M141 120 L183 87 M204 172 L247 139" stroke="#bfe4f2" stroke-width="5" opacity="0.8"/>
+        <text x="160" y="215" text-anchor="middle" font-family="Segoe UI, Arial" font-size="15" fill="#12324d">Pele de vidro</text>
+      </svg>
+    `);
+  }
+
+  return "";
+};
 
 const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PFV1F - KIT") return "Porta de correr atrás do Vão - 1 folha";
@@ -205,6 +373,9 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (ehDeslizante6f(projeto)) return "Deslizante 6 folhas";
   if (ehJc4fComSacada(projeto)) return "Janela de correr 4 folhas com sacada inferior";
   if (ehJc2fComSacada(projeto)) return "Janela de correr 2 folhas com sacada inferior";
+  if (ehSacadaFrontal(projeto)) return "Sacada frontal";
+  if (ehFechamentoSacada(projeto)) return "Fechamento de sacada";
+  if (ehPeleDeVidro(projeto)) return "Pele de vidro";
   if (ehPc4fComBandeira(projeto)) return "Porta de correr 4 folhas com bandeira";
   if (ehPc2fComBandeira(projeto)) return "Porta de correr 2 folhas com bandeira";
   return projeto || "Projeto";
@@ -214,6 +385,9 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
   if (texto.includes("vidros avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
+  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada") || texto.includes("pele de vidro")) {
+    return Math.max(1, Number(item?.pecasDivisao || 1));
+  }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
   if (texto.includes("fixos") || texto.includes("fixo")) {
     return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
@@ -589,10 +763,10 @@ export default function CentralImpressaoPage() {
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
-      quantidade: Number(item.quantidade || 0),
-      modo: item.modo,
-      desenhoUrl: item.desenhoUrl,
-      vidro: item.vidro,
+      quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : Number(item.quantidade || 0),
+      modo: ehVidroAvulso(item.projeto) ? "" : item.modo,
+      desenhoUrl: ehSacadaFrontal(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
+      vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
       vidroBandeira: item.vidroBandeira,
       corKit: item.corPerfil || item.corKit,
       alturaAteTubo: item.alturaAteTubo,
@@ -604,7 +778,7 @@ export default function CentralImpressaoPage() {
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       medidasDetalhadas: item.medidasDetalhadas,
       vidrosAvulsos: item.vidrosAvulsos,
-      valorTotal: valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
+      valorTotal: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).valor : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
       materiais: item.materiais,
     })),
     [cliente, itens, valoresRateadosPorItem]
@@ -705,6 +879,12 @@ export default function CentralImpressaoPage() {
     const projetoTexto = item.projeto.toLowerCase();
     const rota = item.origemRota || (ehPortaGiroFixo(item.projeto)
       ? "/pgf"
+      : ehSacadaFrontal(item.projeto)
+      ? "/calculo/sacadafrontal"
+      : ehFechamentoSacada(item.projeto)
+      ? "/calculo/fechamentosacada"
+      : ehPeleDeVidro(item.projeto)
+      ? "/calculo/peledevidro"
       : ehMax(item.projeto)
       ? "/max"
       : ehJc4fComSacada(item.projeto)
@@ -1012,13 +1192,44 @@ export default function CentralImpressaoPage() {
 
             <div className="mt-5 space-y-4">
               {itens.length > 0 ? (
-                itens.map((item, index) => (
+                itens.map((item, index) => {
+                  const vidroAvulso = ehVidroAvulso(item.projeto);
+                  const resumoAvulso = vidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
+                  const desenhoCentral = ehSacadaFrontal(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
+                  const projetoTecnico = ehProjetoTecnico(item.projeto);
+                  const labelVidroPrincipal = ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+                  const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
+                    ? "Quadros"
+                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
+                    ? "Divisões"
+                    : ehBox2Fls(item.projeto)
+                    ? "Altura"
+                    : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto)
+                    ? "Projeto"
+                    : ehPortaGiroFixo(item.projeto)
+                    ? "Fechadura"
+                    : "Trilho";
+                  const labelCampoSecundario = ehPeleDeVidro(item.projeto)
+                    ? "Lajes"
+                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
+                    ? "Tipo"
+                    : ehBox2Fls(item.projeto)
+                    ? "Modelo do kit"
+                    : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto)
+                    ? "Carrinho"
+                    : ehPma(item.projeto)
+                    ? "Roldana"
+                    : ehPortaGiroFixo(item.projeto)
+                    ? "Projeto"
+                    : "Trinco";
+
+                  return (
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
                       <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
-                        {item.desenhoUrl ? (
+                        {desenhoCentral ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.desenhoUrl} alt={item.projeto} className="max-h-full max-w-full object-contain" />
+                          <img src={desenhoCentral} alt={item.projeto} className="max-h-full max-w-full object-contain" />
                         ) : (
                           <div className="text-center">
                             <Layers3 size={42} className="mx-auto text-slate-300" />
@@ -1069,56 +1280,95 @@ export default function CentralImpressaoPage() {
                         </div>
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                          <Field label="Largura">
-                            <input
-                              type="number"
-                              value={item.largura}
-                              onChange={(e) => atualizarItem(item.id, "largura", Number(e.target.value || 0))}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
-                          <Field label="Altura">
-                            <input
-                              type="number"
-                              value={item.altura}
-                              onChange={(e) => atualizarItem(item.id, "altura", Number(e.target.value || 0))}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
+                          {!vidroAvulso ? (
+                            <>
+                              <Field label="Largura">
+                                <input
+                                  type="number"
+                                  value={item.largura}
+                                  onChange={(e) => atualizarItem(item.id, "largura", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Altura">
+                                <input
+                                  type="number"
+                                  value={item.altura}
+                                  onChange={(e) => atualizarItem(item.id, "altura", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                            </>
+                          ) : null}
                           <Field label="Quantidade">
                             <input
-                              type="number"
-                              value={item.quantidade}
-                              onChange={(e) => atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
+                              type={vidroAvulso ? "text" : "number"}
+                              value={vidroAvulso ? `${resumoAvulso?.pecas || 0} peça(s)` : item.quantidade}
+                              onChange={(e) => !vidroAvulso && atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
+                              readOnly={vidroAvulso}
                               className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                             />
                           </Field>
-                          <Field label="Modo">
-                            <select
-                              value={item.modo}
-                              onChange={(e) => atualizarItem(item.id, "modo", e.target.value)}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            >
-                              <option>Kit</option>
-                              <option>Barra</option>
-                            </select>
-                          </Field>
-                          <Field label="Cor do perfil / kit">
-                            <input
-                              value={item.corPerfil || item.corKit || ""}
-                              onChange={(e) => atualizarItem(item.id, "corPerfil", e.target.value)}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
-                          <Field label={ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? "Vidro janela" : ehPc2fComBandeira(item.projeto) || ehPc4fComBandeira(item.projeto) ? "Vidro porta" : "Vidro"}>
-                            <input
-                              value={item.vidro || ""}
-                              onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
-                          {ehPc2fComBandeira(item.projeto) || ehPc4fComBandeira(item.projeto) || ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? (
-                            <Field label={ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? "Vidro sacada" : "Vidro bandeira"}>
+                          {vidroAvulso ? (
+                            <Field label="M² total">
+                              <input
+                                value={`${numeroDecimal(resumoAvulso?.area || 0)} m²`}
+                                readOnly
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {vidroAvulso ? (
+                            <Field label="Vidro">
+                              <input
+                                value={item.vidro || "Conforme relação"}
+                                readOnly
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto)) ? (
+                            <Field label="Modo">
+                              <select
+                                value={item.modo}
+                                onChange={(e) => atualizarItem(item.id, "modo", e.target.value)}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              >
+                                <option>Kit</option>
+                                <option>Barra</option>
+                              </select>
+                            </Field>
+                          ) : null}
+                          {ehSacadaFrontal(item.projeto) ? (
+                            <Field label="Peças por vão na largura">
+                              <input
+                                type="number"
+                                value={Number(item.pecasDivisao || 1)}
+                                onChange={(e) => atualizarItem(item.id, "pecasDivisao", Number(e.target.value || 1))}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {!vidroAvulso ? (
+                            <Field label={ehSacadaFrontal(item.projeto) ? "Cor do perfil" : "Cor do perfil / kit"}>
+                              <input
+                                value={item.corPerfil || item.corKit || ""}
+                                onChange={(e) => atualizarItem(item.id, "corPerfil", e.target.value)}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {!vidroAvulso ? (
+                            <Field label={ehSacadaFrontal(item.projeto) ? "Cor do vidro" : labelVidroPrincipal}>
+                              <input
+                                value={ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro || ""}
+                                onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
+                          {ehFechamentoSacada(item.projeto) || ehPc2fComBandeira(item.projeto) || ehPc4fComBandeira(item.projeto) || ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? (
+                            <Field label={ehFechamentoSacada(item.projeto) ? "Vidro superior" : ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? "Vidro sacada" : "Vidro bandeira"}>
                               <input
                                 value={item.vidroBandeira || ""}
                                 onChange={(e) => atualizarItem(item.id, "vidroBandeira", e.target.value)}
@@ -1153,8 +1403,8 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Altura" : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto) ? "Projeto" : ehPortaGiroFixo(item.projeto) ? "Fechadura" : "Trilho"}>
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                            <Field label={labelCampoPrincipal}>
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
@@ -1162,7 +1412,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(vidroAvulso || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
                             <Field label="Puxador">
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
@@ -1171,8 +1421,8 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!ehFixos(item.projeto) ? (
-                            <Field label={ehBox2Fls(item.projeto) ? "Modelo do kit" : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto) ? "Carrinho" : ehPma(item.projeto) ? "Roldana" : ehPortaGiroFixo(item.projeto) ? "Projeto" : "Trinco"}>
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || ehFixos(item.projeto)) ? (
+                            <Field label={labelCampoSecundario}>
                               <input
                                 value={item.trinco || ""}
                                 onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
@@ -1189,9 +1439,9 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          <Field label="Valor do projeto">
+                          <Field label={vidroAvulso ? "Valor total" : "Valor do projeto"}>
                             <input
-                              value={numeroDecimal(valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
+                              value={numeroDecimal(vidroAvulso ? resumoAvulso?.valor || 0 : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
                               onChange={(e) => atualizarItem(item.id, "valorTotal", parseNumero(e.target.value))}
                               readOnly={otimizacaoAplicada}
                               className={`w-full bg-transparent text-sm font-bold text-slate-700 outline-none ${otimizacaoAplicada ? "cursor-default" : ""}`}
@@ -1221,7 +1471,7 @@ export default function CentralImpressaoPage() {
                                 ))}
                               </div>
                             </div>
-                          ) : item.medidasDetalhadas ? (
+                          ) : item.medidasDetalhadas && !ehSacadaFrontal(item.projeto) ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <Field label="Medidas dos vidros">
                                 <textarea
@@ -1237,7 +1487,8 @@ export default function CentralImpressaoPage() {
                       </div>
                     </div>
                   </article>
-                ))
+                  );
+                })
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                   <p className="text-sm font-bold text-slate-600">Nenhum projeto na composição.</p>

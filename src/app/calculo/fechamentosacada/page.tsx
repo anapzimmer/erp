@@ -12,6 +12,8 @@ import { formatarPreco } from "@/utils/formatarPreco";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF";
+import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
+import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 
 type ClienteSacada = {
   id: string;
@@ -77,8 +79,17 @@ type SacadaFrontalDraft = {
   corPerfil: string;
 };
 
+type FechamentoSacadaCentralItem = CentralImpressaoItem & {
+  origemRota?: string;
+  corPerfil?: string;
+  centralDados?: SacadaFrontalDraft;
+};
+
 const CORES_PERFIL = ["Branco", "Preto", "Fosco"];
 const FECHAMENTO_SACADA_DRAFT_KEY = "fechamento-sacada-draft";
+const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
+const CENTRAL_IMPRESSAO_OBRA_KEY = "glasscode:central-impressao:obra";
 const CODIGOS_COR_PERFIL = new Set(["CAN625", "SUP626", "NYL314", "NYL042"]);
 const CODIGOS_SEMPRE_PRETO = new Set(["GUA033"]);
 const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
@@ -472,6 +483,8 @@ export default function CalculoFechamentoSacadaPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const editId = searchParams.get("edit");
+  const centralItemId = searchParams.get("centralItem");
+  const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
@@ -514,7 +527,7 @@ export default function CalculoFechamentoSacadaPage() {
   useEffect(() => {
     setDraftHidratado(false);
 
-    if (typeof window === "undefined" || editId) {
+    if (typeof window === "undefined" || editId || centralItemId) {
       setDraftHidratado(true);
       return;
     }
@@ -547,10 +560,10 @@ export default function CalculoFechamentoSacadaPage() {
     } finally {
       setDraftHidratado(true);
     }
-  }, [chaveDraft, editId]);
+  }, [centralItemId, chaveDraft, editId]);
 
   useEffect(() => {
-    if (!draftHidratado || typeof window === "undefined" || editId) {
+    if (!draftHidratado || typeof window === "undefined" || editId || centralItemId) {
       return;
     }
 
@@ -581,6 +594,7 @@ export default function CalculoFechamentoSacadaPage() {
     chaveDraft,
     clienteId,
     corPerfil,
+    centralItemId,
     draftHidratado,
     editId,
     larguraVaoMm,
@@ -745,6 +759,41 @@ export default function CalculoFechamentoSacadaPage() {
       editCarregadoRef.current = true;
     }
   }, [editId, carregandoInsumos, listaClientes.length, carregarOrcamentoParaEdicao]);
+
+  useEffect(() => {
+    if (!centralItemId || typeof window === "undefined") return;
+
+    try {
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? (JSON.parse(salvo) as FechamentoSacadaCentralItem[]) : [];
+      const item = lista.find((projeto) => projeto.id === centralItemId);
+      const dados = item?.centralDados;
+
+      if (!dados) {
+        setDraftHidratado(true);
+        return;
+      }
+
+      setClienteId(dados.clienteId || "");
+      setBuscaCliente(dados.buscaCliente || item?.cliente || "");
+      setObra(dados.obra || "");
+      setLarguraVaoMm(dados.larguraVaoMm || "");
+      setAlturaInferiorMm(dados.alturaInferiorMm || "");
+      setAlturaSuperiorMm(dados.alturaSuperiorMm || "");
+      setQuantidadeVaos(dados.quantidadeVaos || "");
+      setQuantidadeDivisoesInferior(dados.quantidadeDivisoesInferior || "");
+      setQuantidadeDivisoesSuperior(dados.quantidadeDivisoesSuperior || "");
+      setBuscaVidroInferior(dados.buscaVidroInferior || item?.vidro || "");
+      setBuscaVidroSuperior(dados.buscaVidroSuperior || item?.vidroBandeira || "");
+      setVidroIdInferior(dados.vidroIdInferior || "");
+      setVidroIdSuperior(dados.vidroIdSuperior || "");
+      setCorPerfil(dados.corPerfil || item?.corKit || "");
+      setDraftHidratado(true);
+    } catch (erro) {
+      console.warn("Não foi possível restaurar o fechamento de sacada da central:", erro);
+      setDraftHidratado(true);
+    }
+  }, [centralItemId]);
 
   useEffect(() => {
     if (!carregandoInsumos && !vidros.length) {
@@ -1185,7 +1234,114 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     [clienteId, listaClientes]
   );
 
+  const montarMateriaisCentral = (): ProjetoIndividualMaterial[] => [
+    {
+      id: "vidro-fechamento-inferior",
+      qtd: resultadoInferior.areaTotalVidro,
+      unidade: "m2",
+      descricao: `VIDRO INFERIOR ${resultadoInferior.larguraVidroMm}x${resultadoInferior.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionadoInferior)}`.toUpperCase(),
+      valorUnitario: precoVidroM2Inferior,
+    },
+    {
+      id: "vidro-fechamento-superior",
+      qtd: resultadoSuperior.areaTotalVidro,
+      unidade: "m2",
+      descricao: `VIDRO SUPERIOR ${resultadoSuperior.larguraVidroMm}x${resultadoSuperior.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionadoSuperior)}`.toUpperCase(),
+      valorUnitario: precoVidroM2Superior,
+    },
+    ...perfisComPrecoTabela.map((perfil) => ({
+      id: `perfil-${perfil.codigo}`,
+      qtd: Number(perfil.quantidadeBarras || 0),
+      unidade: "barra",
+      descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
+      valorUnitario: Number(perfil.precoBarra || 0),
+      codigoPerfil: perfil.codigo,
+      comprimentoBarra: 6000,
+      cortes: perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : [],
+    })),
+    ...[...acessoriosComPrecoTabela, ...acessoriosFechamentoSacadaTabela].map((acessorio) => ({
+      id: `acessorio-${acessorio.codigo}`,
+      qtd: acessorio.precoUnitario > 0
+        ? Number((acessorio.valorTotal / acessorio.precoUnitario).toFixed(3))
+        : Number(acessorio.quantidadePacote || acessorio.quantidade || 0),
+      unidade: acessorio.pacote ? "pacote" : "und",
+      descricao: `${acessorio.codigo} - ${acessorio.nome}`.toUpperCase(),
+      valorUnitario: Number(acessorio.precoUnitario || 0),
+    })),
+  ];
+
+  const montarItemCentral = (id?: string): FechamentoSacadaCentralItem => {
+    const centralDados: SacadaFrontalDraft = {
+      clienteId,
+      buscaCliente,
+      obra,
+      larguraVaoMm,
+      alturaInferiorMm,
+      alturaSuperiorMm,
+      quantidadeVaos,
+      quantidadeDivisoesInferior,
+      quantidadeDivisoesSuperior,
+      buscaVidroInferior,
+      buscaVidroSuperior,
+      vidroIdInferior,
+      vidroIdSuperior,
+      corPerfil,
+    };
+
+    return {
+      id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
+      numero: "Novo Orçamento",
+      projeto: "Fechamento de sacada",
+      cliente: nomeClienteSelecionado || buscaCliente || "",
+      medidas: `${larguraNumero} x ${alturaTotalNumero} mm`,
+      largura: larguraNumero,
+      altura: alturaTotalNumero,
+      quantidade: quantidadeNumero,
+      modo: "Cálculo",
+      desenhoUrl: "",
+      vidro: montarDescricaoVidro(vidroSelecionadoInferior),
+      vidroBandeira: montarDescricaoVidro(vidroSelecionadoSuperior),
+      corKit: corPerfil || "Não selecionada",
+      corPerfil: corPerfil || "Não selecionada",
+      trilho: "Fechamento de sacada",
+      trinco: `Inf. ${quantidadeDivisoesInferiorNumero} divisão(ões) | Sup. ${quantidadeDivisoesSuperiorNumero} divisão(ões)`,
+      pecasDivisao: resultadoInferior.quantidadeVidrosPorVao + resultadoSuperior.quantidadeVidrosPorVao,
+      medidasDetalhadas: `Inferior: ${resultadoInferior.larguraVidroMm} x ${resultadoInferior.alturaVidroMm} mm\nSuperior: ${resultadoSuperior.larguraVidroMm} x ${resultadoSuperior.alturaVidroMm} mm`,
+      valorTotal: totalGeralCalculado,
+      materiais: montarMateriaisCentral(),
+      origemRota: "/calculo/fechamentosacada",
+      centralDados,
+    };
+  };
+
+  const enviarParaCentralImpressao = () => {
+    try {
+      const itemCentral = montarItemCentral(centralItemId || undefined);
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? (JSON.parse(salvo) as FechamentoSacadaCentralItem[]) : [];
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
+        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+        : [...lista, itemCentral];
+
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
+      const clienteCentral = nomeClienteSelecionado || buscaCliente;
+      if (clienteCentral) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteCentral);
+      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
+      window.localStorage.removeItem(chaveDraft);
+      router.push(centralItemId ? returnTo : "/central-impressao");
+    } catch (erro) {
+      console.warn("Não foi possível enviar o fechamento de sacada para a central:", erro);
+      setMensagemSalvo("Erro ao enviar para a central de impressão.");
+      setTimeout(() => setMensagemSalvo(""), 5000);
+    }
+  };
+
   const handleSalvar = async () => {
+    if (centralItemId) {
+      enviarParaCentralImpressao();
+      return;
+    }
+
     if (salvando) return;
     setSalvando(true);
     setMensagemSalvo("");
@@ -1389,6 +1545,15 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   <Save size={16} />
                 )}
                 Salvar
+              </button>
+
+              <button
+                onClick={enviarParaCentralImpressao}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+              >
+                <FilePlus2 size={16} />
+                PDF+
               </button>
 
               <PDFDownloadLink

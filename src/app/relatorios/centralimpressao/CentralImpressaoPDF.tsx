@@ -2,7 +2,7 @@
 
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 
 export type CentralImpressaoItem = {
@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
   projectName: { fontSize: 11, fontWeight: "normal", color: "#0f2742", marginBottom: 7 },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
   info: { width: "31.8%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
+  infoAvulso: { width: "23%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
   infoWide: { width: "98%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
   infoLabel: { fontSize: 6, color: "#64748b", textTransform: "uppercase" },
   infoValue: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "normal" },
@@ -224,6 +225,154 @@ const normalizarTexto = (texto?: string | number | null) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+
+const limparDescricaoVidroMaterial = (descricao: string) =>
+  String(descricao || "")
+    .replace(/^vidro\s*/i, "")
+    .replace(/^\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?\s*/i, "")
+    .replace(/^vidro\s*/i, "")
+    .trim();
+
+const descricaoVidroItem = (item: Pick<CentralImpressaoItem, "vidro" | "materiais">) => {
+  const vidroInformado = String(item.vidro || "").trim();
+  if (vidroInformado && !/nao selecionado|não selecionado|selecionar|^-$/i.test(vidroInformado)) {
+    return vidroInformado;
+  }
+
+  const vidroMaterial = item.materiais?.find((material) => /vidro/i.test(String(material.descricao || "")));
+  return limparDescricaoVidroMaterial(String(vidroMaterial?.descricao || "")) || vidroInformado || "";
+};
+
+const extrairMedidaVidroAvulso = (medida?: string) => {
+  const match = String(medida || "").match(/(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i);
+  if (!match) return { largura: 0, altura: 0 };
+  return {
+    largura: Number(match[1].replace(",", ".")) || 0,
+    altura: Number(match[2].replace(",", ".")) || 0,
+  };
+};
+
+const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais">) => {
+  const pecas = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
+  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro) => {
+    const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
+    return total + (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
+  }, 0) || 0;
+  const areaMateriais = item.materiais?.reduce((total, material) => {
+    const unidade = String(material.unidade || "").toLowerCase();
+    if (!unidade.includes("m2") && !unidade.includes("m²")) return total;
+    return total + Number(material.qtd || 0);
+  }, 0) || 0;
+  const valor = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.valorTotal || 0), 0) || Number(item.valorTotal || 0);
+
+  return {
+    pecas,
+    area: areaMateriais || areaAvulsos,
+    valor,
+  };
+};
+
+const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
+const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
+const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
+const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
+
+const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+const corPerfilSvg = (cor?: string) => {
+  const corNormalizada = normalizarTexto(cor).replace(/\s+/g, "");
+  if (corNormalizada === "branco") return { fill: "#e8e8e8", stroke: "#c0c0c0" };
+  if (corNormalizada === "preto") return { fill: "#2a2a2a", stroke: "#1a1a1a" };
+  if (corNormalizada === "fosco") return { fill: "#8c8c8c", stroke: "#6b6b6b" };
+  return { fill: "#9e9e9e", stroke: "#787878" };
+};
+
+const desenhoSacadaFrontalUrl = (item?: Pick<CentralImpressaoItem, "largura" | "altura" | "pecasDivisao" | "corKit">) => {
+  const divisoes = Math.max(1, Math.min(12, Number(item?.pecasDivisao || 1)));
+  const largura = Math.max(1, Number(item?.largura || 2000));
+  const altura = Math.max(1, Number(item?.altura || 1000));
+  const ratio = Math.min(Math.max(altura / largura, 0.3), 2);
+  const svgW = 360;
+  const padL = 40;
+  const padR = 10;
+  const padTop = 15;
+  const padBot = 40;
+  const drawW = svgW - padL - padR;
+  const drawH = Number((drawW * ratio).toFixed(2));
+  const svgH = Number((drawH + padTop + padBot).toFixed(2));
+  const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
+  const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
+  const glassW = (drawW - (divisoes + 1) * postW) / divisoes;
+  const glassH = drawH - railH * 2;
+  const x0 = padL;
+  const y0 = padTop;
+  const cor = corPerfilSvg(item?.corKit);
+  const paineis = Array.from({ length: divisoes }).map((_, i) => {
+    const pX = x0 + i * (glassW + postW);
+    const gX = pX + postW;
+    return `<g><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="url(#glassGrad)" rx="1"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="#7cbfb5" stroke-width="0.6" stroke-opacity="0.5" rx="1"/><line x1="${gX + glassW * 0.18}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/><line x1="${gX + glassW * 0.24}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.14}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.18"/></g>`;
+  }).join("");
+
+  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}"><defs><linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b8e6e0" stop-opacity="0.35"/><stop offset="50%" stop-color="#b8e6e0" stop-opacity="0.18"/><stop offset="100%" stop-color="#b8e6e0" stop-opacity="0.3"/></linearGradient><linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${cor.fill}"/><stop offset="50%" stop-color="${cor.stroke}"/><stop offset="100%" stop-color="${cor.fill}"/></linearGradient></defs><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/>${paineis}<rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text><line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text></svg>`);
+};
+
+const desenhoTecnicoUrl = (projeto?: string, item?: CentralImpressaoItem) => {
+  if (ehSacadaFrontal(projeto)) {
+    return desenhoSacadaFrontalUrl(item);
+  }
+
+  if (ehFechamentoSacada(projeto)) {
+    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="#f8fbfd"/><rect x="48" y="30" width="224" height="158" rx="4" fill="#eef7fb" stroke="#12324d" stroke-width="5"/><line x1="48" y1="92" x2="272" y2="92" stroke="#12324d" stroke-width="5"/><line x1="104" y1="30" x2="104" y2="188" stroke="#12324d" stroke-width="3"/><line x1="160" y1="30" x2="160" y2="188" stroke="#12324d" stroke-width="3"/><line x1="216" y1="30" x2="216" y2="188" stroke="#12324d" stroke-width="3"/><rect x="48" y="188" width="224" height="10" rx="3" fill="#d5dde5" stroke="#12324d" stroke-width="3"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="#12324d">Fechamento de sacada</text></svg>`);
+  }
+
+  if (ehPeleDeVidro(projeto)) {
+    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="#f8fbfd"/><rect x="58" y="28" width="204" height="160" rx="4" fill="#edf8fc" stroke="#12324d" stroke-width="5"/><line x1="126" y1="28" x2="126" y2="188" stroke="#12324d" stroke-width="4"/><line x1="194" y1="28" x2="194" y2="188" stroke="#12324d" stroke-width="4"/><line x1="58" y1="81" x2="262" y2="81" stroke="#12324d" stroke-width="4"/><line x1="58" y1="134" x2="262" y2="134" stroke="#12324d" stroke-width="4"/><path d="M72 68 L112 42 M141 120 L183 87 M204 172 L247 139" stroke="#bfe4f2" stroke-width="5" opacity="0.8"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="#12324d">Pele de vidro</text></svg>`);
+  }
+
+  return "";
+};
+
+function SacadaFrontalDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
+  const divisoes = Math.max(1, Math.min(12, Number(item.pecasDivisao || 1)));
+  const largura = Math.max(1, Number(item.largura || 2000));
+  const altura = Math.max(1, Number(item.altura || 1000));
+  const ratio = Math.min(Math.max(altura / largura, 0.35), 1.35);
+  const svgW = 220;
+  const padL = 12;
+  const padR = 12;
+  const padTop = 12;
+  const padBot = 12;
+  const drawW = svgW - padL - padR;
+  const drawH = Math.min(86, Math.max(34, drawW * ratio));
+  const svgH = drawH + padTop + padBot;
+  const postW = Math.max(2.5, Math.min(5.5, drawW * 0.018));
+  const railH = Math.max(3.2, Math.min(6, drawH * 0.05));
+  const glassW = (drawW - (divisoes + 1) * postW) / divisoes;
+  const glassH = drawH - railH * 2;
+  const x0 = padL;
+  const y0 = padTop;
+  const cor = corPerfilSvg(item.corKit);
+
+  return (
+    <Svg width={112} height={104} viewBox={`0 0 ${svgW} ${svgH}`}>
+      <Rect x={x0} y={y0} width={drawW} height={railH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.7} />
+      <Rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.7} />
+      {Array.from({ length: divisoes }).map((_, index) => {
+        const pX = x0 + index * (glassW + postW);
+        const gX = pX + postW;
+        return (
+          <G key={`sacada-painel-${index}`}>
+            <Rect x={pX} y={y0} width={postW} height={drawH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
+            <Rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="#dff5f2" stroke="#7cbfb5" strokeWidth={0.7} />
+            <Line x1={gX + glassW * 0.2} y1={y0 + railH + 4} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.42} stroke="#ffffff" strokeWidth={1.2} />
+            <Line x1={gX + glassW * 0.34} y1={y0 + railH + 5} x2={gX + glassW * 0.2} y2={y0 + railH + glassH * 0.42} stroke="#ffffff" strokeWidth={0.7} />
+          </G>
+        );
+      })}
+      <Rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
+    </Svg>
+  );
+}
 
 const nomeEmpresaComSlogan = (nomeEmpresa: string) => {
   const slogan = "Soluções em Vidros e Ferragens";
@@ -335,6 +484,9 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
+  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada") || texto.includes("pele de vidro")) {
+    return Math.max(1, Number(item?.pecasDivisao || 1));
+  }
   if (texto.includes("fixos") || texto.includes("fixo")) {
     return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
   }
@@ -479,6 +631,7 @@ export function CentralImpressaoPDF({
             const ehPma2f4m = /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(item.projeto || "");
             const ehPma = ehPma2f || ehPma3f || ehPma4f || ehPma5f || ehPma6f || ehPma2f4m;
             const ehBox2Fls = /box2fls|box 2 folhas/i.test(item.projeto || "");
+            const ehBoxProjeto = /box2fls|boxcanto|box de canto|box 2 folhas/i.test(item.projeto || "");
             const ehDeslizante2f = /deslizante2f|deslizante 2/i.test(item.projeto || "");
             const ehDeslizante3f = /deslizante3f|deslizante 3/i.test(item.projeto || "");
             const ehDeslizante4f = /deslizante4f|deslizante 4/i.test(item.projeto || "");
@@ -488,17 +641,52 @@ export function CentralImpressaoPDF({
             const ehPc4fComBandeira = /pc4fcb|4 folhas com bandeira/i.test(item.projeto || "");
             const ehJc2fComSacada = /jc2fcs|sacada inferior/i.test(item.projeto || "");
             const ehJc4fComSacada = /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(item.projeto || "");
+            const projetoTecnico = ehProjetoTecnico(item.projeto);
+            const sacadaFrontal = ehSacadaFrontal(item.projeto);
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
             const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira || ehJc2fComSacada || ehJc4fComSacada;
+            const temSegundoVidro = temBandeira || ehFechamentoSacada(item.projeto);
             const ehJanelaComSacada = ehJc2fComSacada || ehJc4fComSacada;
             const ehVidroAvulso = /vidros avulsos/i.test(item.projeto || "");
+            const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
+            const desenhoCentral = sacadaFrontal ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
+            const vidroPrincipal = sacadaFrontal ? descricaoVidroItem(item) : item.vidro;
+            const labelVidroPrincipal = sacadaFrontal ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+            const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
+              ? "Quadros"
+              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
+              ? "Divisões"
+              : ehBox2Fls
+              ? "Altura"
+              : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f
+              ? "Projeto"
+              : ehPortaGiro
+              ? "Fechadura"
+              : "Trilho";
+            const labelCampoSecundario = ehPeleDeVidro(item.projeto)
+              ? "Lajes"
+              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
+              ? "Tipo"
+              : ehBox2Fls
+              ? "Modelo do kit"
+              : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f
+              ? "Carrinho"
+              : ehPma
+              ? "Roldana"
+              : ehPortaGiroFixo
+              ? "Projeto"
+              : ehPortaGiro
+              ? "Ferragens"
+              : "Trinco";
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
                 <View style={styles.imageWrap}>
-                  {item.desenhoUrl ? (
-                    <Image src={item.desenhoUrl} style={styles.image} />
+                  {sacadaFrontal ? (
+                    <SacadaFrontalDesenhoPDF item={item} />
+                  ) : desenhoCentral ? (
+                    <Image src={desenhoCentral} style={styles.image} />
                   ) : (
                     <View>
                       <Text style={styles.imagePlaceholderTitle}>Sem desenho</Text>
@@ -511,25 +699,60 @@ export function CentralImpressaoPDF({
                   <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
                   <Text style={styles.projectName}>{nomeProjeto}</Text>
                   <View style={styles.infoGrid}>
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Medidas</Text>
-                      <Text style={styles.infoValue}>{item.medidas}</Text>
-                    </View>
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Quantidade</Text>
-                      <Text style={styles.infoValue}>{item.quantidade}</Text>
-                    </View>
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Modo</Text>
-                      <Text style={styles.infoValue}>{item.modo}</Text>
-                    </View>
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>{ehJanelaComSacada ? "Vidro janela" : temBandeira ? "Vidro porta" : "Vidro"}</Text>
-                      <Text style={styles.infoValue}>{item.vidro || "-"}</Text>
-                    </View>
-                    {temBandeira ? (
+                    {ehVidroAvulso ? null : sacadaFrontal ? (
+                      <>
+                        <View style={styles.info}>
+                          <Text style={styles.infoLabel}>Largura</Text>
+                          <Text style={styles.infoValue}>{item.largura || 0} mm</Text>
+                        </View>
+                        <View style={styles.info}>
+                          <Text style={styles.infoLabel}>Altura</Text>
+                          <Text style={styles.infoValue}>{item.altura || 0} mm</Text>
+                        </View>
+                      </>
+                    ) : (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehJanelaComSacada ? "Vidro sacada" : "Vidro bandeira"}</Text>
+                        <Text style={styles.infoLabel}>Medidas</Text>
+                        <Text style={styles.infoValue}>{item.medidas}</Text>
+                      </View>
+                    )}
+                    <View style={ehVidroAvulso ? styles.infoAvulso : styles.info}>
+                      <Text style={styles.infoLabel}>Quantidade</Text>
+                      <Text style={styles.infoValue}>{ehVidroAvulso ? `${resumoAvulso?.pecas || 0} peça(s)` : item.quantidade}</Text>
+                    </View>
+                    {ehVidroAvulso ? (
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>M² total</Text>
+                        <Text style={styles.infoValue}>
+                          {(resumoAvulso?.area || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
+                        </Text>
+                      </View>
+                    ) : sacadaFrontal ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>Peças por vão na largura</Text>
+                        <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
+                      </View>
+                    ) : ehBoxProjeto ? null : (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>Modo</Text>
+                        <Text style={styles.infoValue}>{item.modo}</Text>
+                      </View>
+                    )}
+                    {ehVidroAvulso ? (
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>Vidro</Text>
+                        <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
+                      </View>
+                    ) : null}
+                    {!ehVidroAvulso ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>{labelVidroPrincipal}</Text>
+                        <Text style={styles.infoValue}>{vidroPrincipal || "-"}</Text>
+                      </View>
+                    ) : null}
+                    {temSegundoVidro ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>{ehFechamentoSacada(item.projeto) ? "Vidro superior" : ehJanelaComSacada ? "Vidro sacada" : "Vidro bandeira"}</Text>
                         <Text style={styles.infoValue}>{item.vidroBandeira || "-"}</Text>
                       </View>
                     ) : null}
@@ -539,10 +762,12 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{item.alturaAteTubo || 0} mm</Text>
                       </View>
                     ) : null}
-                    <View style={styles.info}>
-                      <Text style={styles.infoLabel}>Cor</Text>
-                      <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
-                    </View>
+                    {!ehVidroAvulso ? (
+                      <View style={styles.info}>
+                        <Text style={styles.infoLabel}>{sacadaFrontal ? "Cor do perfil" : ehBoxProjeto ? "Cor do kit" : "Cor"}</Text>
+                        <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
+                      </View>
+                    ) : null}
                     {temBandeira ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Tubo</Text>
@@ -555,21 +780,21 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
                       </View>
                     ) : null}
-                    {!ehJanela && !ehFixos ? (
+                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !ehJanela && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Altura" : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Projeto" : ehPortaGiro ? "Fechadura" : "Trilho"}</Text>
+                        <Text style={styles.infoLabel}>{labelCampoPrincipal}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehJanela && !ehFixos ? (
+                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Puxador</Text>
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehFixos ? (
+                    {!ehVidroAvulso && !sacadaFrontal && !ehFixos ? (
                       <View style={styles.info}>
-                        <Text style={styles.infoLabel}>{ehBox2Fls ? "Modelo do kit" : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Carrinho" : ehPma ? "Roldana" : ehPortaGiroFixo ? "Projeto" : ehPortaGiro ? "Ferragens" : "Trinco"}</Text>
+                        <Text style={styles.infoLabel}>{labelCampoSecundario}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
                       </View>
                     ) : null}
@@ -579,9 +804,9 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{item.observacao || "Padrão"}</Text>
                       </View>
                     ) : null}
-                    <View style={styles.info}>
+                    <View style={ehVidroAvulso ? styles.infoAvulso : styles.info}>
                       <Text style={styles.infoLabel}>Valor total</Text>
-                      <Text style={styles.infoValueStrong}>{moeda(item.valorTotal || 0)}</Text>
+                      <Text style={styles.infoValueStrong}>{moeda(ehVidroAvulso ? resumoAvulso?.valor || 0 : item.valorTotal || 0)}</Text>
                     </View>
                     {ehVidroAvulso && item.vidrosAvulsos?.length ? (
                       <View style={styles.vidroTable}>
@@ -600,7 +825,7 @@ export function CentralImpressaoPDF({
                           </View>
                         ))}
                       </View>
-                    ) : item.medidasDetalhadas ? (
+                    ) : item.medidasDetalhadas && !sacadaFrontal ? (
                       <View style={styles.infoWide}>
                         <Text style={styles.infoLabel}>Medidas detalhadas</Text>
                         <Text style={styles.infoMultiline}>{item.medidasDetalhadas}</Text>
