@@ -98,8 +98,13 @@ const removerCabecalhoERodape = (texto: string) => {
  * Portanto, não podemos tentar descobrir o fim do código apenas
  * pelo tamanho. Usamos a palavra que inicia a descrição como divisor.
  */
-const regexProdutoLinha =
-  /^([A-Z0-9._/-]{4,20}?)(VIDRO|ESPELHO|BOX|ACIDATO|INCOLOR|LAMINADO|REFLECTA|REFLETIVO|CRISTAL|CANELADO|BOREAL|MINI|PONTILHADO|EXTRA)\s*(.*?)(\d{1,4}(?:\.\d{3})*,\d{2})$/i
+const inicioDescricaoProduto =
+  "VIDRO|ESPELHO|BOX|ACIDATO|INCOLOR|LAMINADO|LAM\\.?|REFLECTA|REFL(?:ECTA)?|REFLETIVO|COOL(?:\\s+LITE)?|NEUTRAL|CRISTAL|CANELADO|BOREAL|MINI|PONTILHADO|EXTRA"
+
+const regexProdutoLinha = new RegExp(
+  `^([A-Z0-9._/-]{4,24}?)(${inicioDescricaoProduto})\\s*(.*?)(\\d{1,4}(?:\\.\\d{3})*,\\d{2})$`,
+  "i",
+)
 
 const interpretarLinha = (
   linhaOriginal: string,
@@ -173,7 +178,7 @@ export const extrairProdutosTabelaPdfComDiagnostico = (
   for (const linha of linhas) {
     const pareceProduto =
       /\d{1,4}(?:\.\d{3})*,\d{2}\s*$/.test(linha) &&
-      /VIDRO|ESPELHO|BOX|ACIDATO|INCOLOR/i.test(linha)
+      new RegExp(inicioDescricaoProduto, "i").test(linha)
 
     if (!pareceProduto) continue
 
@@ -205,7 +210,7 @@ export const extrairProdutosTabelaPdfComDiagnostico = (
     const textoLinear = somenteTabela
       .replace(/\s+/g, " ")
       .replace(
-        /(\d{1,4}(?:\.\d{3})*,\d{2})(?=[A-Z0-9._/-]{4,20}?(?:VIDRO|ESPELHO|BOX|ACIDATO|INCOLOR))/gi,
+        new RegExp(`(\\d{1,4}(?:\\.\\d{3})*,\\d{2})(?=[A-Z0-9._/-]{4,24}?(?:${inicioDescricaoProduto}))`, "gi"),
         "$1\n",
       )
 

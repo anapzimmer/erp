@@ -40,6 +40,7 @@ type ProdutoImportado = {
 type AcaoImportacao = "atualizar" | "vincular" | "criar" | "ignorar"
 
 type ItemRevisao = ProdutoImportado & {
+  revisaoId: string
   acao: AcaoImportacao
   vidroId: string
   sugestaoId: string
@@ -72,10 +73,22 @@ const formatarTipoImportado = (valor: string) => {
   return limpo.charAt(0).toUpperCase() + limpo.slice(1)
 }
 
+const formatarNomeImportado = (valor: string) => formatarTipoImportado(valor)
+
+const normalizarDescricaoVisivel = (valor: string) =>
+  (valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim()
+
 const descobrirCampos = (descricaoOriginal: string) => {
   const descricao = normalizar(descricaoOriginal)
+  const descricaoVisivel = normalizarDescricaoVisivel(descricaoOriginal)
+  const ehLaminado = /\bLAM(?:\.|INADO|\s|$)/.test(descricaoVisivel)
 
-  const espessuraEncontrada = descricao.match(
+  const espessuraEncontrada = descricaoVisivel.match(
     /(?:^|\s)(\d{1,2}(?:\s*[+/]\s*\d{1,2})?)\s*MM(?:\s|$)/,
   )
 
@@ -83,24 +96,26 @@ const descobrirCampos = (descricaoOriginal: string) => {
     ? `${espessuraEncontrada[1].replace(/\s/g, "").padStart(2, "0")}mm`
     : ""
 
-  const tipos = [
-    "LOW-E TEMPERADO",
-    "MODULADO TEMPERADO",
-    "LAMINADO",
-    "TEMPERADO",
-    "BISOTE",
-    "COMUM",
-    "BOX",
-  ]
+  const tiposEncontrados: string[] = []
+  if (descricao.includes("CORTADO")) tiposEncontrados.push("Cortado")
+  if (descricao.includes("LAPIDADO")) tiposEncontrados.push("Lapidado")
+  if (descricao.includes("BISOTE")) tiposEncontrados.push("Bisote")
+  if (descricao.includes("TEMPERADO") || /\bTEMP\b/.test(descricao)) tiposEncontrados.push("Temperado")
 
-  const tipo = formatarTipoImportado(tipos.find((item) => descricao.includes(item)) || "Comum")
+  const tipo = tiposEncontrados.length
+    ? formatarTipoImportado(tiposEncontrados.join(" "))
+    : "Comum"
 
   const removiveis = [
     "VIDRO",
     "ESPELHO",
     "BOX",
     "TEMPERADO",
+    "TEMP",
+    "CORTADO",
+    "LAPIDADO",
     "LAMINADO",
+    "LAM.",
     "MODULADO",
     "LOW E",
     "LOW-E",
@@ -109,19 +124,24 @@ const descobrirCampos = (descricaoOriginal: string) => {
     "COMUM",
   ]
 
-  let nome = descricao
+  const removiveisNome = ehLaminado
+    ? removiveis.filter((palavra) => palavra !== "LAMINADO" && palavra !== "LAM.")
+    : removiveis
 
-  removiveis.forEach((palavra) => {
+  let nome = ehLaminado ? descricaoVisivel : descricao
+
+  removiveisNome.forEach((palavra) => {
     nome = nome.replace(
       new RegExp(`\\b${palavra.replace("-", "[- ]?")}\\b`, "g"),
       " ",
     )
   })
 
-  nome = nome
-    .replace(/\b\d{1,2}(?:\s*[+/]\s*\d{1,2})?\s*MM\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
+  if (!ehLaminado) {
+    nome = nome.replace(/\b\d{1,2}(?:\s*[+/]\s*\d{1,2})?\s*MM\b/g, " ")
+  }
+
+  nome = nome.replace(/\s+/g, " ").trim()
 
   if (!nome) {
     nome = descricao.includes("ESPELHO")
@@ -130,9 +150,7 @@ const descobrirCampos = (descricaoOriginal: string) => {
         ? "Box"
         : "Vidro"
   } else {
-    nome = nome
-      .toLowerCase()
-      .replace(/(^|\s)\S/g, (letra) => letra.toUpperCase())
+    nome = formatarNomeImportado(nome)
   }
 
   return { nome, espessura, tipo }
@@ -220,19 +238,34 @@ export default function ImportarTabelaVidrosModal({
       vincular: itens.filter((item) => item.acao === "vincular").length,
       criar: itens.filter((item) => item.acao === "criar").length,
       ignorar: itens.filter((item) => item.acao === "ignorar").length,
-      selecionados: itens.filter((item) => item.selecionado).length,
+      selecionados: itens.filter((item) => item.selecionado && item.acao !== "ignorar").length,
     }),
     [itens],
   )
 
   if (!aberto) return null
 
-  const atualizarItem = (codigo: string, alteracoes: Partial<ItemRevisao>) => {
+  const atualizarItem = (revisaoId: string, alteracoes: Partial<ItemRevisao>) => {
     setItens((atuais) =>
       atuais.map((item) => {
-        if (item.codigo !== codigo) return item
+        if (item.revisaoId !== revisaoId) return item
 
         const novoItem = { ...item, ...alteracoes }
+
+        if (alteracoes.acao === "ignorar") {
+          novoItem.selecionado = false
+          novoItem.vidroId = ""
+          novoItem.confianca = 0
+          novoItem.precoAnterior = null
+        }
+
+        if (
+          alteracoes.acao &&
+          alteracoes.acao !== "ignorar" &&
+          alteracoes.selecionado === undefined
+        ) {
+          novoItem.selecionado = true
+        }
 
         if (alteracoes.tipo !== undefined) {
           novoItem.tipo = formatarTipoImportado(alteracoes.tipo)
@@ -267,16 +300,16 @@ export default function ImportarTabelaVidrosModal({
   }
 
   const toggleSelecionarPagina = (checked: boolean) => {
-    const codigosPagina = new Set(paginados.map((p) => p.codigo))
+    const idsPagina = new Set(paginados.map((p) => p.revisaoId))
     setItens((atuais) =>
       atuais.map((i) =>
-        codigosPagina.has(i.codigo) ? { ...i, selecionado: checked } : i,
+        idsPagina.has(i.revisaoId) ? { ...i, selecionado: checked } : i,
       ),
     )
   }
 
   const prepararRevisao = (produtos: ProdutoImportado[]) => {
-    const revisao = produtos.map<ItemRevisao>((produto) => {
+    const revisao = produtos.map<ItemRevisao>((produto, index) => {
       const porCodigo = vidros.find(
         (vidro) =>
           normalizar(vidro.codigo || "") === normalizar(produto.codigo),
@@ -285,6 +318,7 @@ export default function ImportarTabelaVidrosModal({
       if (porCodigo) {
         return {
           ...produto,
+          revisaoId: `${produto.codigo || "item"}-${index}`,
           acao: "atualizar",
           vidroId: porCodigo.id,
           sugestaoId: porCodigo.id,
@@ -306,6 +340,7 @@ export default function ImportarTabelaVidrosModal({
 
       return {
         ...produto,
+        revisaoId: `${produto.codigo || "item"}-${index}`,
         acao: temSugestaoBoa ? "vincular" : "criar",
         vidroId: temSugestaoBoa ? melhor.vidro.id : "",
         sugestaoId: temSugestaoBoa ? melhor.vidro.id : "",
@@ -396,7 +431,7 @@ export default function ImportarTabelaVidrosModal({
     setSalvando(true)
 
     try {
-      const selecionados = itens.filter((i) => i.selecionado)
+      const selecionados = itens.filter((i) => i.selecionado && i.acao !== "ignorar")
 
       for (const item of selecionados) {
         if (item.acao === "ignorar") continue
@@ -731,7 +766,7 @@ export default function ImportarTabelaVidrosModal({
 
                       return (
                         <tr
-                          key={item.codigo}
+                          key={item.revisaoId}
                           className="hover:bg-slate-50/80 transition"
                         >
                           <td className="px-1.5 py-2 text-center">
@@ -739,7 +774,7 @@ export default function ImportarTabelaVidrosModal({
                               type="checkbox"
                               checked={!!item.selecionado}
                               onChange={(e) =>
-                                atualizarItem(item.codigo, {
+                                atualizarItem(item.revisaoId, {
                                   selecionado: e.target.checked,
                                 })
                               }
@@ -760,7 +795,7 @@ export default function ImportarTabelaVidrosModal({
                               <input
                                 value={item.nome}
                                 onChange={(e) =>
-                                  atualizarItem(item.codigo, {
+                                  atualizarItem(item.revisaoId, {
                                     nome: e.target.value,
                                   })
                                 }
@@ -776,7 +811,7 @@ export default function ImportarTabelaVidrosModal({
                               <input
                                 value={item.espessura}
                                 onChange={(e) =>
-                                  atualizarItem(item.codigo, {
+                                  atualizarItem(item.revisaoId, {
                                     espessura: e.target.value,
                                   })
                                 }
@@ -792,7 +827,7 @@ export default function ImportarTabelaVidrosModal({
                               <input
                                 value={item.tipo}
                                 onChange={(e) =>
-                                  atualizarItem(item.codigo, {
+                                  atualizarItem(item.revisaoId, {
                                     tipo: e.target.value,
                                   })
                                 }
@@ -816,7 +851,7 @@ export default function ImportarTabelaVidrosModal({
                               <select
                                 value={item.acao}
                                 onChange={(e) =>
-                                  atualizarItem(item.codigo, {
+                                  atualizarItem(item.revisaoId, {
                                     acao: e.target.value as AcaoImportacao,
                                   })
                                 }
@@ -869,7 +904,7 @@ export default function ImportarTabelaVidrosModal({
                                 <select
                                   value={item.vidroId || ""}
                                   onChange={(e) =>
-                                    atualizarItem(item.codigo, {
+                                    atualizarItem(item.revisaoId, {
                                       vidroId: e.target.value,
                                     })
                                   }

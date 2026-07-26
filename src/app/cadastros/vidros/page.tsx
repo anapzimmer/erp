@@ -26,7 +26,51 @@ type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: stri
 
 // --- Utils ---
 const formatarParaBanco = (texto: string) => { if (!texto) return ""; return texto.trim().charAt(0).toUpperCase() + texto.trim().slice(1) }
+const formatarTipoVidro = (texto: string) => {
+  const limpo = (texto || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!limpo) return "";
+  return limpo.charAt(0).toUpperCase() + limpo.slice(1);
+}
 const padronizarEspessura = (valor: string) => { if (!valor) return ""; const limpo = valor.replace(/\s/g, "").toLowerCase(); const partes = limpo.split("+").map(p => p.replace(/\D/g, "").padStart(2, "0")); const partesValidas = partes.filter(p => p !== "00"); if (partesValidas.length === 0) return ""; return partesValidas.join("+") + "mm" }
+const normalizarOrdenacao = (texto: string) =>
+  (texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+const ordemTipoEspelho = (vidro: Vidro) => {
+  if (!normalizarOrdenacao(vidro.nome).includes("espelho")) return null;
+
+  const tipo = normalizarOrdenacao(vidro.tipo);
+  if (tipo.includes("cortado")) return 0;
+  if (tipo.includes("lapidado")) return 1;
+  if (tipo.includes("bisote")) return 2;
+  return 99;
+}
+const ordenarVidros = (lista: Vidro[]) =>
+  [...lista].sort((a, b) => {
+    const porNome = a.nome.localeCompare(b.nome, "pt-BR", { numeric: true, sensitivity: "base" });
+    if (porNome !== 0) return porNome;
+
+    const porEspessura = padronizarEspessura(a.espessura).localeCompare(
+      padronizarEspessura(b.espessura),
+      "pt-BR",
+      { numeric: true, sensitivity: "base" },
+    );
+    if (porEspessura !== 0) return porEspessura;
+
+    const ordemEspelhoA = ordemTipoEspelho(a);
+    const ordemEspelhoB = ordemTipoEspelho(b);
+    if (ordemEspelhoA !== null || ordemEspelhoB !== null) {
+      const porOrdemEspelho = (ordemEspelhoA ?? 99) - (ordemEspelhoB ?? 99);
+      if (porOrdemEspelho !== 0) return porOrdemEspelho;
+    }
+
+    return formatarTipoVidro(a.tipo).localeCompare(formatarTipoVidro(b.tipo), "pt-BR", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
 
 export default function VidrosPage() {
   const router = useRouter()
@@ -91,14 +135,44 @@ export default function VidrosPage() {
       { data: dataGrupos, error: errorGrupos },
       { count: totalEspeciais }
     ] = await Promise.all([
-      supabase.from("vidros").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+      supabase
+        .from("vidros")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .order("nome", { ascending: true })
+        .order("espessura", { ascending: true })
+        .order("tipo", { ascending: true }),
       supabase.from("tabelas").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
       supabase.from("vidro_precos_grupos").select("id", { head: true, count: "exact" }).eq("empresa_id", empresaId)
     ])
 
     if (errorVidros) console.error("Erro Vidros:", errorVidros);
     else {
-      setVidros(dataVidros || [])
+      const listaVidros = (dataVidros || []) as Vidro[];
+      const vidrosCorrigidos = listaVidros.map((vidro) => ({
+        ...vidro,
+        tipo: formatarTipoVidro(vidro.tipo),
+      }));
+      const pendentesCorrecao = listaVidros.filter(
+        (vidro) => vidro.tipo !== formatarTipoVidro(vidro.tipo),
+      );
+
+      if (pendentesCorrecao.length) {
+        void Promise.all(
+          pendentesCorrecao.map((vidro) =>
+            supabase
+              .from("vidros")
+              .update({ tipo: formatarTipoVidro(vidro.tipo) })
+              .eq("id", vidro.id)
+              .eq("empresa_id", empresaId),
+          ),
+        ).then((resultados) => {
+          const erro = resultados.find((resultado) => resultado.error)?.error;
+          if (erro) console.error("Erro ao padronizar tipos dos vidros:", erro.message);
+        });
+      }
+
+      setVidros(ordenarVidros(vidrosCorrigidos))
       setVidrosSelecionados(new Set())
     }
 
@@ -175,7 +249,7 @@ export default function VidrosPage() {
           try {
             const nomeFormatado = capitalizarFrase(formatarParaBanco(nome));
             const espessuraFormatada = padronizarEspessura(espessura);
-            const tipoFormatado = capitalizarFrase(formatarParaBanco(tipo));
+            const tipoFormatado = formatarTipoVidro(tipo);
             const precoFormatado = Number(preco.toString().replace(",", "."));
 
             if (isNaN(precoFormatado)) { erros++; continue; }
@@ -201,7 +275,7 @@ export default function VidrosPage() {
               if (existente.preco !== precoFormatado) {
                 const { error: errorUpdate } = await supabase
                   .from("vidros")
-                  .update({ preco: precoFormatado, ...(codigo ? { codigo } : {}) })
+                  .update({ preco: precoFormatado, tipo: tipoFormatado, ...(codigo ? { codigo } : {}) })
                   .eq("id", existente.id);
 
                 if (errorUpdate) {
@@ -449,7 +523,7 @@ export default function VidrosPage() {
     const vidroPadronizado = {
       codigo: novoVidro.codigo?.trim() ? novoVidro.codigo.trim().toUpperCase() : null,
       nome: formatarParaBanco(novoVidro.nome),
-      tipo: formatarParaBanco(novoVidro.tipo),
+      tipo: formatarTipoVidro(novoVidro.tipo),
       espessura: padronizarEspessura(novoVidro.espessura),
       preco: Number(novoVidro.preco),
       empresa_id: empresaId
