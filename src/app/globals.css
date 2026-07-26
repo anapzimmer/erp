@@ -642,6 +642,44 @@ background: linear-gradient(
   animation: cadastroModalIn 0.22s ease;
 }
 
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] {
+  padding: 1rem !important;
+}
+
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] {
+  width: calc(100vw - 32px) !important;
+  max-width: calc(100vw - 32px) !important;
+  min-width: 0 !important;
+  height: calc(100vh - 32px) !important;
+  max-height: calc(100vh - 32px) !important;
+}
+
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"][data-importador-vazio="true"] {
+  width: min(760px, calc(100vw - 32px)) !important;
+  max-width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  max-height: calc(100vh - 32px) !important;
+}
+
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] button,
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] button *,
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] footer,
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] footer * {
+  font-weight: 400 !important;
+}
+
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] h2 {
+  font-weight: 500 !important;
+}
+
+.cadastros-layout > div.fixed.inset-0[data-importador-catalogo="overlay"] > div[data-importador-catalogo="box"] input[type="checkbox"] {
+  width: 0.875rem !important;
+  min-width: 0.875rem !important;
+  height: 0.875rem !important;
+  min-height: 0.875rem !important;
+  padding: 0 !important;
+}
+
 .cadastros-layout > div.fixed.inset-0 > div > div:first-child {
   flex-shrink: 0;
   display: flex;

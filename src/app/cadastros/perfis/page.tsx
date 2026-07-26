@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { decodeCsvFile } from "@/utils/csvEncoding"
-import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Loader2, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp } from "lucide-react"
+import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Loader2, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp, CheckCircle2, CheckSquare2, ListChecks, Eraser } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import jsPDF from 'jspdf';
@@ -15,6 +15,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
+import ImportarTabelaPerfisModal from "@/components/ImportarTabelaPerfisModal"
 
 // --- 1. 🔥 TIPAGENS (Corrigindo o erro de "Perfil" e "MenuItem") ---
 type Perfil = { id: string; codigo: string; nome: string; cores: string; preco: number | null; categoria: string; empresa_id?: string }
@@ -61,9 +62,11 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const [editando, setEditando] = useState<Perfil | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [mostrarImportador, setMostrarImportador] = useState(false)
   const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
   const [dadosEmpresa, setDadosEmpresa] = useState<any>(null);
+  const [perfisSelecionados, setPerfisSelecionados] = useState<Set<string>>(new Set())
 
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
@@ -163,7 +166,10 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
       .eq("empresa_id", empresaId)
       .order("codigo", { ascending: true });
 
-    if (!error && data) setPerfis(data);
+    if (!error && data) {
+      setPerfis(data);
+      setPerfisSelecionados(new Set());
+    }
     setCarregando(false);
   };
 
@@ -423,6 +429,87 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     (filtroCategoria ? (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase()) : true)
   )
 
+  const alternarSelecaoPerfil = (id: string) => {
+    setPerfisSelecionados((atuais) => {
+      const novos = new Set(atuais)
+      if (novos.has(id)) {
+        novos.delete(id)
+      } else {
+        novos.add(id)
+      }
+      return novos
+    })
+  }
+
+  const todosFiltradosSelecionados =
+    perfisFiltrados.length > 0 &&
+    perfisFiltrados.every((perfil) => perfisSelecionados.has(perfil.id))
+
+  const alternarSelecaoFiltrados = () => {
+    setPerfisSelecionados((atuais) => {
+      const novos = new Set(atuais)
+
+      if (todosFiltradosSelecionados) {
+        perfisFiltrados.forEach((perfil) => novos.delete(perfil.id))
+      } else {
+        perfisFiltrados.forEach((perfil) => novos.add(perfil.id))
+      }
+
+      return novos
+    })
+  }
+
+  const excluirPerfisSelecionados = () => {
+    const ids = Array.from(perfisSelecionados)
+
+    if (!ids.length) {
+      setModalAviso({
+        titulo: "Nenhum perfil selecionado",
+        mensagem: "Selecione pelo menos um perfil para excluir.",
+      })
+      return
+    }
+
+    setModalAviso({
+      titulo: "Excluir perfis selecionados",
+      mensagem: `Tem certeza que deseja excluir ${ids.length} ${
+        ids.length === 1 ? "perfil" : "perfis"
+      }?`,
+      confirmar: async () => {
+        setCarregando(true)
+
+        try {
+          const { error } = await supabase
+            .from("perfis")
+            .delete()
+            .in("id", ids)
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setPerfis((atuais) =>
+            atuais.filter((perfil) => !perfisSelecionados.has(perfil.id)),
+          )
+          setPerfisSelecionados(new Set())
+
+          setModalAviso({
+            titulo: "Exclusão concluída",
+            mensagem: `${ids.length} ${
+              ids.length === 1 ? "perfil foi excluído" : "perfis foram excluídos"
+            } com sucesso.`,
+          })
+        } catch (e: any) {
+          setModalAviso({
+            titulo: "Erro",
+            mensagem: "Não foi possível excluir os perfis: " + e.message,
+          })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
   const totalPerfis = perfis.length
   const categoriasDistintas = Array.from(new Set(perfis.map(p => p.categoria).filter(Boolean))).length
   const coresDistintas = Array.from(new Set(perfis.map(p => p.cores).filter(Boolean))).length
@@ -513,131 +600,283 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
         />
 
         {/* CORPO DA PÁGINA */}
-        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl" style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}>
-                <Package size={28} />
+        <main className="cad-main-panel w-full flex-1 min-w-0 p-4 md:p-6 xl:p-8">
+          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+            <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: `${darkTertiary}12`, color: darkTertiary }}
+                >
+                  <Square size={23} strokeWidth={1.8} />
+                </div>
+
+                <div className="min-w-0">
+                  <h1
+                    className="text-2xl font-semibold tracking-tight md:text-3xl"
+                    style={{ color: darkPrimary }}
+                  >
+                    Catálogo de perfis
+                  </h1>
+                  <p className="mt-1 text-sm font-normal text-gray-500">
+                    Gerencie códigos, cores, categorias e preços dos perfis.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-black" style={{ color: lightTertiary }}>Perfis</h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{perfisFiltrados.length} de {totalPerfis} perfis cadastrados.</p>
+
+              <div className="flex flex-wrap items-center gap-2 no-print">
+                <button
+                  type="button"
+                  onClick={() => setMostrarImportador(true)}
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                  title="Importar tabela PDF, TXT ou CSV"
+                >
+                  <Upload size={17} />
+                  Importar tabela
+                </button>
+
+                <button
+                  onClick={gerarPDF}
+                  title="Gerar catálogo em PDF"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                >
+                  <Printer size={18} />
+                </button>
+
+                <button
+                  onClick={exportarCSV}
+                  title="Exportar CSV"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                >
+                  <Download size={18} />
+                </button>
+
+                <label
+                  htmlFor="importarCSVPerfis"
+                  title="Importar CSV simples"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                >
+                  <Upload size={18} />
+                  <input
+                    type="file"
+                    id="importarCSVPerfis"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={importarCSV}
+                  />
+                </label>
               </div>
             </div>
-
-            <div className="flex items-center gap-2 no-print">
-              {/* Impressora */}
-              <button onClick={gerarPDF} title="Gerar PDF" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
-                <Printer size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
-              </button>
-
-              {/* Exportar */}
-              <button onClick={exportarCSV} title="Exportar CSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center">
-                <Download size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
-              </button>
-
-              {/* Importar */}
-              <label htmlFor="importarCSV" title="Importar CSV" className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer">
-                <Upload size={20} className="text-gray-500 transition-all duration-300 group-hover:scale-110" onMouseEnter={(e) => e.currentTarget.style.color = darkTertiary} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'} />
-                <input type="file" id="importarCSV" accept=".csv" className="hidden" onChange={importarCSV} />
-              </label>
-            </div>
-          </div>
+          </section>
 
           {/* INDICADORES */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { titulo: "Total", valor: totalPerfis, icone: Layers },
-              { titulo: "Com Preço", valor: comPreco, icone: DollarSign },
+              { titulo: "Com preço", valor: comPreco, icone: DollarSign },
               { titulo: "Cores", valor: coresDistintas, icone: Palette },
-              { titulo: "Categorias", valor: categoriasDistintas, icone: Package }
-            ].map(card => (
-              <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                <card.icone className="w-7 h-7 mb-2" style={{ color: darkTertiary }} />
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
-                <p className="text-2xl font-bold" style={{ color: darkPrimary }}>{card.valor}</p>
+              { titulo: "Categorias", valor: categoriasDistintas, icone: Package },
+            ].map((card) => (
+              <div
+                key={card.titulo}
+                className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+              >
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                  style={{ color: darkTertiary, backgroundColor: `${darkTertiary}10` }}
+                >
+                  <card.icone size={19} strokeWidth={1.8} />
+                </div>
+                <div>
+                  <p className="text-xs font-normal text-gray-400">{card.titulo}</p>
+                  <p className="text-xl font-semibold" style={{ color: darkPrimary }}>
+                    {card.valor}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
 
           {/* FILTROS E AÇÕES */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-            <div className="flex flex-wrap gap-3">
-              <input
-                type="text"
-                placeholder="Nome, código ou categoria..."
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none transition-all focus:ring-2"
-                style={{ "--tw-ring-color": darkTertiary } as any}
-              />
-              <input type="text" placeholder="Cor..." value={filtroCor} onChange={e => setFiltroCor(e.target.value)} className="p-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2" style={{ "--tw-ring-color": darkTertiary } as any} />
-            </div>
+          <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="grid flex-1 gap-3 sm:grid-cols-3">
+                {[
+                  ["Nome, código ou categoria", filtroNome, setFiltroNome],
+                  ["Cor", filtroCor, setFiltroCor],
+                  ["Categoria", filtroCategoria, setFiltroCategoria],
+                ].map(([label, valor, setter]: any) => (
+                  <div key={label} className="relative">
+                    <Search
+                      size={16}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      placeholder={`Buscar por ${String(label).toLowerCase()}...`}
+                      value={valor}
+                      onChange={(e) => setter(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                      style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                    />
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={eliminarDuplicados}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
-              >
-                <Trash2 size={18} />
-                Limpar Duplicados
-              </button>
-           <button onClick={abrirModalParaNovo} className="group flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
-  style={{ backgroundColor: darkTertiary, color: darkPrimary }}><PlusCircle size={20} className="transition-all duration-300 group-hover:scale-110 animate-pulse" 
-  /> Novo Perfil</button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={eliminarDuplicados}
+                  className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50"
+                >
+                  <Eraser size={16} />
+                  Duplicados
+                </button>
+
+                <button
+                  onClick={abrirModalParaNovo}
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                >
+                  <PlusCircle size={17} />
+                  Novo perfil
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
+
+          {perfisSelecionados.size > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckSquare2 size={18} className="text-red-500" />
+                <span>
+                  <strong className="font-normal">{perfisSelecionados.size}</strong>{" "}
+                  {perfisSelecionados.size === 1 ? "item selecionado" : "itens selecionados"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setPerfisSelecionados(new Set())}
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                >
+                  Cancelar seleção
+                </button>
+                <button
+                  onClick={excluirPerfisSelecionados}
+                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                >
+                  <Trash2 size={15} />
+                  Excluir selecionados
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* TABELA */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
-            <div className="cadastro-list-head">
+          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2>Perfis cadastrados</h2>
-                <span>{perfisFiltrados.length} de {totalPerfis}</span>
+                <h2 className="text-base font-normal text-gray-700">Perfis cadastrados</h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Exibindo {perfisFiltrados.length} de {totalPerfis} produtos
+                </p>
               </div>
-              <div className="cadastro-list-badge">Catálogo</div>
+              <button
+                onClick={alternarSelecaoFiltrados}
+                disabled={!perfisFiltrados.length}
+                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+              >
+                <ListChecks size={15} />
+                {todosFiltradosSelecionados ? "Desmarcar visíveis" : "Selecionar visíveis"}
+              </button>
             </div>
-            <div className="cadastro-table-wrap">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
                 <tr>
-                  <th className="p-4 text-xs uppercase tracking-widest">Código</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Nome</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Cor</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Categoria</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Preço</th>
-                  <th className="p-4 text-xs uppercase tracking-widest text-center">Ações</th>
+                  <th className="w-14 px-5 py-3.5">
+                    <button
+                      onClick={alternarSelecaoFiltrados}
+                      disabled={!perfisFiltrados.length}
+                      className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
+                        todosFiltradosSelecionados
+                          ? "border-transparent"
+                          : "border-gray-300 bg-white"
+                      }`}
+                      style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                      aria-label="Selecionar todos os perfis visíveis"
+                    >
+                      {todosFiltradosSelecionados && (
+                        <CheckCircle2 size={15} className="text-white" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-4 py-3.5 font-normal">Código</th>
+                  <th className="px-4 py-3.5 font-normal">Nome</th>
+                  <th className="px-4 py-3.5 font-normal">Cor</th>
+                  <th className="px-4 py-3.5 font-normal">Categoria</th>
+                  <th className="px-4 py-3.5 font-normal">Preço</th>
+                  <th className="px-5 py-3.5 text-center font-normal">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {perfisFiltrados.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-gray-500 font-medium">{p.codigo}</td>
-                    <td className="p-4 text-gray-500 font-medium"><span className="text-gray-500 font-medium" style={{ color: lightTertiary }}>{p.nome}</span></td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                        style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                        {p.cores || "Padrão"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500 font-medium">{p.categoria || "Geral"}</td>
-                    <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
-                    <td className="p-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => abrirModalParaEdicao(p)} className="p-2 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                        <button onClick={() => deletarPerfil(p.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-100 text-gray-600">
+                {perfisFiltrados.map(p => {
+                  const selecionado = perfisSelecionados.has(p.id)
+
+                  return (
+                    <tr key={p.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/70"}`}>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => alternarSelecaoPerfil(p.id)}
+                          className={`flex h-5 w-5 items-center justify-center rounded border transition ${
+                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                          }`}
+                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                          aria-label={`Selecionar ${p.nome}`}
+                        >
+                          {selecionado && (
+                            <CheckCircle2 size={15} className="text-white" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3.5 text-gray-500 font-normal">{p.codigo}</td>
+                      <td className="px-4 py-3.5 text-gray-700 font-normal"><span style={{ color: lightTertiary }}>{p.nome}</span></td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-normal uppercase border"
+                          style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
+                          {p.cores || "Padrão"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-gray-500 font-normal">{p.categoria || "Geral"}</td>
+                      <td className="px-4 py-3.5 text-gray-500 font-normal" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
+                      <td className="px-5 py-3.5 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => abrirModalParaEdicao(p)} className="p-2 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                          <button onClick={() => deletarPerfil(p.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
             </div>
-          </div>
+          </section>
         </main>
       </div>
 
       {/* MODAIS */}
+      <ImportarTabelaPerfisModal
+        aberto={mostrarImportador}
+        onClose={() => setMostrarImportador(false)}
+        empresaId={empresaIdUsuario || ""}
+        perfis={perfis}
+        onConcluido={async () => {
+          if (empresaIdUsuario) await carregarDados(empresaIdUsuario)
+        }}
+      />
+
       {mostrarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] transition-all">
           <div

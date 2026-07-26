@@ -2,10 +2,12 @@
 
 import { useMemo, useRef, useState } from "react"
 import {
+  AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
   FileText,
   Lock,
   RotateCcw,
@@ -215,6 +217,7 @@ export default function ImportarTabelaVidrosModal({
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
   const [diagnosticoAberto, setDiagnosticoAberto] = useState(false)
+  const [diagnosticoCopiado, setDiagnosticoCopiado] = useState(false)
   const modalRevisaoAberta = itens.length > 0 || processando
 
   const itensFiltrados = useMemo(() => {
@@ -361,6 +364,7 @@ export default function ImportarTabelaVidrosModal({
       tamanho: `${(arquivo.size / (1024 * 1024)).toFixed(1)} MB`,
     })
     setDiagnostico("")
+    setDiagnosticoCopiado(false)
     setProcessando(true)
 
     try {
@@ -415,11 +419,9 @@ export default function ImportarTabelaVidrosModal({
       setDiagnostico(JSON.stringify(resultado.diagnostico, null, 2))
       prepararRevisao(produtos)
     } catch (e) {
-      setErro(
-        e instanceof Error
-          ? e.message
-          : "Erro inesperado ao analisar o arquivo.",
-      )
+      const mensagem = e instanceof Error ? e.message : "Erro inesperado ao analisar o arquivo."
+      setErro(mensagem)
+      setDiagnostico(mensagem)
     } finally {
       setProcessando(false)
       if (inputRef.current) inputRef.current.value = ""
@@ -463,27 +465,37 @@ export default function ImportarTabelaVidrosModal({
       await onConcluido()
       onClose()
     } catch (e) {
-      setErro(
-        e instanceof Error
-          ? e.message
-          : "Não foi possível concluir a importação.",
-      )
+      const mensagem = e instanceof Error ? e.message : "Não foi possível concluir a importação."
+      setErro(mensagem)
+      setDiagnostico(mensagem)
     } finally {
       setSalvando(false)
     }
   }
 
+  const copiarDiagnostico = async () => {
+    const texto = erro || diagnostico || `Leitura concluída com sucesso. ${itens.length} itens encontrados.`
+    await navigator.clipboard.writeText(texto)
+    setDiagnosticoCopiado(true)
+    window.setTimeout(() => setDiagnosticoCopiado(false), 1600)
+  }
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
+    <div
+      data-importador-catalogo="overlay"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]"
+    >
       <div
+        data-importador-catalogo="box"
+        data-importador-vazio={modalRevisaoAberta ? undefined : "true"}
         className="flex flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
         style={modalRevisaoAberta
           ? {
-              width: "min(1680px, calc(100vw - 72px))",
-              maxWidth: "min(1680px, calc(100vw - 72px))",
-              minWidth: "min(1180px, calc(100vw - 72px))",
-              height: "min(860px, calc(100vh - 72px))",
-              maxHeight: "calc(100vh - 72px)",
+              width: "calc(100vw - 32px)",
+              maxWidth: "calc(100vw - 32px)",
+              minWidth: "min(1180px, calc(100vw - 32px))",
+              height: "calc(100vh - 32px)",
+              maxHeight: "calc(100vh - 32px)",
             }
           : {
               width: "min(720px, calc(100vw - 32px))",
@@ -505,7 +517,7 @@ export default function ImportarTabelaVidrosModal({
               <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
                 Catálogo de vidros
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-slate-900">
+              <h2 className="mt-1 text-base font-medium text-slate-800">
                 Importar tabela de vidros
               </h2>
               <p className="text-xs text-slate-500">
@@ -524,15 +536,15 @@ export default function ImportarTabelaVidrosModal({
         </header>
 
         {/* Stepper Bar */}
-        <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-xs font-medium text-slate-500 sm:gap-6 lg:gap-10">
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 text-xs font-normal text-slate-500 sm:gap-6 lg:gap-10">
           <div className="flex items-center gap-2.5 text-slate-700">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-normal text-slate-700">
               1
             </span>
             <span>Enviar arquivo</span>
           </div>
           <div className="hidden h-px w-20 bg-slate-200 sm:block" />
-          <div className="flex items-center gap-2.5 text-slate-900 font-semibold">
+          <div className="flex items-center gap-2.5 text-slate-700">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] text-slate-700">
               2
             </span>
@@ -550,23 +562,23 @@ export default function ImportarTabelaVidrosModal({
         {/* Conteúdo Principal Scrollável */}
         <main className={`${modalRevisaoAberta ? "min-h-0 flex-1" : "flex-none"} overflow-y-auto bg-slate-50/40 p-3`}>
           {!itens.length && !processando && (
-            <div
+            <button
+              type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-slate-300 bg-white p-8 text-center transition hover:border-slate-400"
+              className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/40 text-center transition hover:border-slate-300 hover:bg-white"
             >
               <div
-                className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+                className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500"
               >
                 <Upload size={22} />
               </div>
-              <p className="text-lg font-semibold text-slate-800">
+              <p className="text-base font-medium text-slate-700">
                 Selecione a tabela do fornecedor
               </p>
-              <p className="mt-2 max-w-lg text-sm text-slate-500">
+              <p className="mt-2 max-w-lg text-sm font-normal text-slate-500">
                 PDF com texto selecionável, TXT ou CSV (até 10 MB)
               </p>
-            </div>
+            </button>
           )}
 
           <input
@@ -581,7 +593,7 @@ export default function ImportarTabelaVidrosModal({
           />
 
           {processando && (
-            <div className="flex min-h-[58vh] flex-col items-center justify-center rounded-[26px] border border-slate-200 bg-white">
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl bg-white text-center">
               <Loader2 className="mb-3 animate-spin text-slate-600" size={30} />
               <p className="text-sm font-medium text-slate-700">
                 Analisando PDF e extraindo os produtos...
@@ -590,13 +602,13 @@ export default function ImportarTabelaVidrosModal({
           )}
 
           {erro && (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-xs leading-5 text-red-600">
+            <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
               {erro}
             </div>
           )}
 
           {!!itens.length && (
-            <>
+            <div className="space-y-4">
               {/* Cards de Status e Resumo */}
               <div className="mb-5 grid grid-cols-12 gap-3">
                 {/* Card do Arquivo */}
@@ -606,7 +618,7 @@ export default function ImportarTabelaVidrosModal({
                       <CheckCircle2 size={18} />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-800">
+                      <p className="text-xs font-normal text-slate-800">
                         Arquivo enviado com sucesso
                       </p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -617,7 +629,7 @@ export default function ImportarTabelaVidrosModal({
                   <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
-                    className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 transition"
+                    className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-normal text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
                   >
                     <Upload size={13} />
                     Trocar
@@ -627,50 +639,49 @@ export default function ImportarTabelaVidrosModal({
                 {/* Cards de Contagem */}
                 <div className="col-span-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 2xl:col-span-9">
                   <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                    <p className="text-[11px] font-medium text-slate-500">
+                    <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
+                      <span className="h-2 w-2 rounded-full bg-slate-400" />
                       Total de itens
-                    </p>
-                    <p className="mt-1.5 text-lg font-medium text-slate-800">
-                      {resumo.total}
-                    </p>
+                    </div>
+                    <p className="mt-1.5 text-lg font-normal text-slate-800">{resumo.total}</p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
                       <span className="h-2 w-2 rounded-full bg-emerald-500" />
                       Atualizar
                     </div>
-                    <p className="mt-1.5 text-lg font-medium text-slate-800">
+                    <p className="mt-1.5 text-lg font-normal text-slate-800">
                       {resumo.atualizar}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
                       <span className="h-2 w-2 rounded-full bg-blue-500" />
                       Vincular
                     </div>
-                    <p className="mt-1.5 text-lg font-medium text-slate-800">
+                    <p className="mt-1.5 text-lg font-normal text-slate-800">
                       {resumo.vincular}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
                       <span className="h-2 w-2 rounded-full bg-purple-500" />
                       Criar
                     </div>
-                    <p className="mt-1.5 text-lg font-medium text-slate-800">
+                    <p className="mt-1.5 text-lg font-normal text-slate-800">
                       {resumo.criar}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
                       Ignorar
                     </div>
-                    <p className="mt-1.5 text-lg font-medium text-slate-800">
+                    <p className="mt-1.5 text-lg font-normal text-slate-800">
                       {resumo.ignorar}
                     </p>
                   </div>
@@ -678,7 +689,7 @@ export default function ImportarTabelaVidrosModal({
               </div>
 
               {/* Controles de Filtro e Seleção */}
-              <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(420px,1fr)_auto] xl:items-center">
+              <div className="grid gap-3 xl:grid-cols-[minmax(420px,1fr)_auto] xl:items-center">
                 <div className="relative w-full">
                   <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -688,7 +699,7 @@ export default function ImportarTabelaVidrosModal({
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     placeholder="Buscar por código, descrição ou nome..."
-                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-400"
                   />
                 </div>
 
@@ -696,7 +707,7 @@ export default function ImportarTabelaVidrosModal({
                   <button
                     type="button"
                     onClick={() => toggleSelecionarPagina(true)}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-normal text-slate-600 hover:bg-slate-50"
                   >
                     <CheckCircle2 size={13} />
                     Selecionar página
@@ -704,7 +715,7 @@ export default function ImportarTabelaVidrosModal({
                   <button
                     type="button"
                     onClick={() => toggleSelecionarTodos(true)}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-normal text-slate-600 hover:bg-slate-50"
                   >
                     <CheckCircle2 size={13} />
                     Selecionar todos
@@ -712,7 +723,7 @@ export default function ImportarTabelaVidrosModal({
                   <button
                     type="button"
                     onClick={() => toggleSelecionarTodos(false)}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-normal text-slate-600 hover:bg-slate-50"
                   >
                     <RotateCcw size={13} />
                     Limpar seleção
@@ -720,7 +731,7 @@ export default function ImportarTabelaVidrosModal({
                   <button
                     type="button"
                     onClick={() => setItens([])}
-                    className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                    className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-normal text-red-600 hover:bg-red-50"
                   >
                     <Trash2 size={13} />
                     Limpar tudo
@@ -729,12 +740,24 @@ export default function ImportarTabelaVidrosModal({
               </div>
 
               {/* Tabela de Produtos com Scroll Horizontal */}
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="max-h-[56vh] overflow-y-auto">
-                <table className="w-full table-fixed border-collapse text-left text-[10px]">
-                  <thead>
-                    <tr className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-[9px] font-medium uppercase tracking-wide text-slate-500">
-                      <th className="w-[3%] px-1.5 py-2 text-center">
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="min-h-[360px] max-h-[calc(100vh-470px)] overflow-auto">
+                <table className="w-full min-w-[1650px] table-fixed border-collapse text-left text-xs">
+                  <colgroup>
+                    <col className="w-10" />
+                    <col className="w-[110px]" />
+                    <col className="w-[330px]" />
+                    <col className="w-[170px]" />
+                    <col className="w-[95px]" />
+                    <col className="w-[135px]" />
+                    <col className="w-[135px]" />
+                    <col className="w-[150px]" />
+                    <col className="w-[100px]" />
+                    <col className="w-[385px]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 text-center">
                         <input
                           type="checkbox"
                           className="h-3.5 w-3.5 rounded border-slate-300 accent-slate-600"
@@ -747,15 +770,15 @@ export default function ImportarTabelaVidrosModal({
                           }
                         />
                       </th>
-                      <th className="w-[7%] px-1.5 py-2">Código</th>
-                      <th className="w-[24%] px-1.5 py-2">Descrição</th>
-                      <th className="w-[13%] px-1.5 py-2">Nome</th>
-                      <th className="w-[6%] px-1.5 py-2">Esp.</th>
-                      <th className="w-[8%] px-1.5 py-2">Tipo</th>
-                      <th className="w-[7%] px-1.5 py-2">Preço</th>
-                      <th className="w-[9%] px-1.5 py-2">Ação</th>
-                      <th className="w-[6%] px-1.5 py-2 text-center">Conf.</th>
-                      <th className="w-[17%] px-1.5 py-2">Vinculação</th>
+                      <th className="px-3 py-3 font-normal">Código</th>
+                      <th className="px-3 py-3 font-normal">Descrição</th>
+                      <th className="px-3 py-3 font-normal">Nome</th>
+                      <th className="px-3 py-3 font-normal">Esp.</th>
+                      <th className="px-3 py-3 font-normal">Tipo</th>
+                      <th className="px-3 py-3 font-normal">Preço</th>
+                      <th className="px-3 py-3 font-normal">Ação</th>
+                      <th className="px-3 py-3 text-center font-normal">Conf.</th>
+                      <th className="px-3 py-3 font-normal">Vinculação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -769,7 +792,7 @@ export default function ImportarTabelaVidrosModal({
                           key={item.revisaoId}
                           className="hover:bg-slate-50/80 transition"
                         >
-                          <td className="px-1.5 py-2 text-center">
+                           <td className="px-3 py-2 text-center">
                             <input
                               type="checkbox"
                               checked={!!item.selecionado}
@@ -782,15 +805,15 @@ export default function ImportarTabelaVidrosModal({
                             />
                           </td>
 
-                          <td className="break-all px-1.5 py-2 text-[11px] font-normal text-slate-800">
+                          <td className="break-all px-3 py-2 font-normal text-slate-800">
                             {item.codigo}
                           </td>
 
-                          <td className="px-1.5 py-2 text-[11px] text-slate-600" title={item.descricao}>
+                          <td className="px-3 py-2 text-slate-600" title={item.descricao}>
                             <span className="line-clamp-3 break-words leading-[1.25rem]">{item.descricao}</span>
                           </td>
 
-                          <td className="px-1.5 py-2 text-[11px] text-slate-700">
+                          <td className="px-3 py-2 text-slate-700">
                             {item.acao === "criar" ? (
                               <input
                                 value={item.nome}
@@ -799,14 +822,14 @@ export default function ImportarTabelaVidrosModal({
                                     nome: e.target.value,
                                   })
                                 }
-                                className="w-full min-w-0 rounded-lg border border-slate-200 px-1.5 py-1.5 text-[11px] outline-none focus:border-slate-400"
+                                className="w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
                               />
                             ) : (
                               item.nome || "—"
                             )}
                           </td>
 
-                          <td className="px-1.5 py-2 text-[11px] text-slate-700">
+                          <td className="px-3 py-2 text-slate-700">
                             {item.acao === "criar" ? (
                               <input
                                 value={item.espessura}
@@ -815,14 +838,14 @@ export default function ImportarTabelaVidrosModal({
                                     espessura: e.target.value,
                                   })
                                 }
-                                className="w-full min-w-0 rounded-lg border border-slate-200 px-1.5 py-1.5 text-[11px] outline-none focus:border-slate-400"
+                                className="w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
                               />
                             ) : (
                               item.espessura || "—"
                             )}
                           </td>
 
-                          <td className="px-1.5 py-2 text-[11px] text-slate-700">
+                          <td className="px-3 py-2 text-slate-700">
                             {item.acao === "criar" ? (
                               <input
                                 value={item.tipo}
@@ -831,14 +854,14 @@ export default function ImportarTabelaVidrosModal({
                                     tipo: e.target.value,
                                   })
                                 }
-                                className="w-full min-w-0 rounded-lg border border-slate-200 px-1.5 py-1.5 text-[11px] outline-none focus:border-slate-400"
+                                className="w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
                               />
                             ) : (
                               item.tipo || "—"
                             )}
                           </td>
 
-                          <td className="px-1.5 py-2 text-[11px] font-normal">
+                          <td className="px-3 py-2 font-normal">
                             <span className="rounded-md bg-slate-100 px-1.5 py-1 text-slate-700">
                               {item.preco.toLocaleString("pt-BR", {
                                 minimumFractionDigits: 2,
@@ -846,7 +869,7 @@ export default function ImportarTabelaVidrosModal({
                             </span>
                           </td>
 
-                          <td className="px-1.5 py-2">
+                          <td className="px-3 py-2">
                             <div className="relative w-full min-w-0">
                               <select
                                 value={item.acao}
@@ -855,7 +878,7 @@ export default function ImportarTabelaVidrosModal({
                                     acao: e.target.value as AcaoImportacao,
                                   })
                                 }
-                                className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-4 pr-5 text-[10px] font-normal text-slate-700 outline-none focus:border-slate-300"
+                                className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-4 pr-7 text-xs font-normal text-slate-700 outline-none focus:border-slate-400"
                               >
                                 <option value="atualizar">Atualizar</option>
                                 <option value="vincular">Vincular</option>
@@ -880,7 +903,7 @@ export default function ImportarTabelaVidrosModal({
                             </div>
                           </td>
 
-                          <td className="px-1.5 py-2 text-center">
+                          <td className="px-3 py-2 text-center">
                             {item.confianca > 0 && item.acao !== "criar" ? (
                               <span
                                 className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
@@ -898,7 +921,7 @@ export default function ImportarTabelaVidrosModal({
                             )}
                           </td>
 
-                          <td className="px-1.5 py-2">
+                          <td className="px-3 py-2">
                             {item.acao === "vincular" || item.acao === "atualizar" ? (
                               <div className="flex flex-col gap-1">
                                 <select
@@ -908,7 +931,7 @@ export default function ImportarTabelaVidrosModal({
                                       vidroId: e.target.value,
                                     })
                                   }
-                                  className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5 text-[9px] text-slate-700 outline-none focus:border-slate-400"
+                                  className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-normal text-slate-700 outline-none focus:border-slate-400"
                                 >
                                   <option value="">Selecione para vincular...</option>
                                   {vidros.map((v) => (
@@ -1010,76 +1033,67 @@ export default function ImportarTabelaVidrosModal({
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </main>
 
         {/* Rodapé do Modal */}
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-6">
-          <div>
-            {diagnostico && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setDiagnosticoAberto(!diagnosticoAberto)}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-slate-900"
-                >
-                  Diagnóstico da extração
-                  <ChevronDown
-                    size={14}
-                    className={`transition ${diagnosticoAberto ? "rotate-180" : ""}`}
-                  />
-                </button>
-                <p className="text-[11px] text-slate-400">
-                  Informações técnicas sobre a leitura do arquivo
-                </p>
-
-                {diagnosticoAberto && (
-                  <div className="absolute bottom-full left-0 mb-2 w-96 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-                    <textarea
-                      readOnly
-                      value={diagnostico}
-                      className="h-40 w-full rounded-lg bg-slate-50 p-2 font-mono text-[10px] text-slate-600 outline-none"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={() => setDiagnosticoAberto((atual) => !atual)}
+            className="flex items-center gap-2 text-sm font-normal text-slate-600"
+          >
+            Diagnóstico da extração
+            <ChevronDown size={15} className={diagnosticoAberto ? "rotate-180" : ""} />
+          </button>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-slate-400 mr-2">
-              <Lock size={12} /> Seus dados estão seguros
+            <span className="hidden items-center gap-1 text-xs text-slate-400 md:flex">
+              <Lock size={13} /> Seus dados estão seguros
             </span>
 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 px-5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-normal text-slate-600 hover:bg-slate-50"
             >
               Cancelar
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-200 px-5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Voltar
             </button>
 
             {!!itens.length && (
               <button
                 type="button"
-                disabled={salvando}
+                disabled={!resumo.selecionados || salvando}
                 onClick={() => void confirmarImportacao()}
-                className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-normal text-white disabled:opacity-50"
               >
                 {salvando && <Loader2 size={14} className="animate-spin" />}
                 Importar selecionados ({resumo.selecionados})
               </button>
             )}
           </div>
+          {diagnosticoAberto && (diagnostico || erro || itens.length > 0) ? (
+            <div className={`w-full rounded-xl border p-4 ${erro ? "border-red-100 bg-red-50" : "border-emerald-100 bg-emerald-50"}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  {erro ? <AlertCircle size={16} className="mt-0.5 text-red-500" /> : <CheckCircle2 size={16} className="mt-0.5 text-emerald-600" />}
+                  <div>
+                    <p className={`text-sm font-normal ${erro ? "text-red-700" : "text-emerald-700"}`}>
+                      {erro ? "Não foi possível concluir a leitura." : `Leitura concluída com sucesso. ${itens.length} itens encontrados.`}
+                    </p>
+                    {erro ? <p className="mt-1 text-xs text-red-600">{erro}</p> : null}
+                  </div>
+                </div>
+                <button type="button" onClick={() => void copiarDiagnostico()} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50" title="Copiar diagnóstico">
+                  <Copy size={14} />
+                </button>
+              </div>
+              {diagnostico && !erro ? (
+                <pre className="mt-3 max-h-36 overflow-auto rounded-lg bg-white/70 p-3 text-[11px] text-slate-500">{diagnostico}</pre>
+              ) : null}
+              {diagnosticoCopiado ? <p className="mt-2 text-xs text-slate-500">Diagnóstico copiado.</p> : null}
+            </div>
+          ) : null}
         </footer>
       </div>
     </div>

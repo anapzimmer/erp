@@ -262,103 +262,115 @@ if (branding) {
           handleSignOut={handleLogout}
         />
 
-        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
-          {/* HEADER DA SEÇÃO */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl" style={{ backgroundColor: `${theme.tertiary}15`, color: theme.tertiary }}>
-                <Briefcase size={32} />
+        <main className="cad-main-panel flex-1 min-w-0 p-4 md:p-8 xl:p-10">
+          <section className="mb-10 rounded-[24px] border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${theme.tertiary}15`, color: theme.tertiary }}>
+                  <Briefcase size={23} />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: theme.primary }}>Catálogo de serviços</h1>
+                  <p className="mt-1 text-sm font-normal text-gray-500">Gerencie serviços, unidades e preços.</p>
+                </div>
               </div>
+            </div>
+          </section>
+
+          <section className="mb-8 grid gap-3 md:grid-cols-4">
+            {[
+              { label: "Total", value: servicos.length, icon: Layers },
+              { label: "M²", value: servicos.filter(s => s.unidade === "m²").length, icon: Square },
+              { label: "Unitário", value: servicos.filter(s => s.unidade === "unitário").length, icon: Package },
+              { label: "Metro linear", value: servicos.filter(s => s.unidade === "metro_linear").length, icon: Wrench },
+            ].map(item => (
+              <div key={item.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${theme.tertiary}12`, color: theme.tertiary }}>
+                    <item.icon size={18} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-normal text-gray-400">{item.label}</p>
+                    <p className="text-xl font-semibold" style={{ color: theme.primary }}>{item.value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="mb-8 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:max-w-xl">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome..."
+                  value={filtroNome}
+                  onChange={e => setFiltroNome(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                  style={{ "--tw-ring-color": `${theme.tertiary}25` } as any}
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setEditando(null);
+                  setNovoServico({
+                    nome: "",
+                    unidade: "m²",
+                    preco: 0,
+                    empresa_id: empresaIdUsuario || ""
+                  });
+                  setMostrarModal(true);
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: theme.tertiary, color: theme.primary }}
+              >
+                <PlusCircle size={17} /> Novo serviço
+              </button>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: theme.primary }}>Serviços</h1>
-                <p className="text-gray-500 text-sm font-medium">{servicosFiltrados.length} de {servicos.length} serviços cadastrados.</p>
+                <h2 className="text-base font-normal text-gray-700">Serviços cadastrados</h2>
+                <p className="mt-0.5 text-xs text-gray-400">Exibindo {servicosFiltrados.length} de {servicos.length} serviços</p>
               </div>
             </div>
-          </div>
-
-          {/* INDICADORES */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-              <Layers className="w-7 h-7 mb-2" style={{ color: theme.tertiary }} />
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</h3>
-              <p className="text-2xl font-bold" style={{ color: theme.primary }}>{servicos.length}</p>
-            </div>
-          </div>
-
-          {/* FILTROS E AÇÃO */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Pesquisar serviço..."
-                value={filtroNome}
-                onChange={e => setFiltroNome(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all"
-                style={{ "--tw-ring-color": theme.tertiary } as any}
-              />
-            </div>
-
-            <button
-              onClick={() => {
-                setEditando(null);
-                setNovoServico({
-                  nome: "",
-                  unidade: "m²",
-                  preco: 0,
-                  empresa_id: empresaIdUsuario || ""
-                });
-                setMostrarModal(true);
-              }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95"
-              style={{ backgroundColor: theme.tertiary, color: theme.primary }}
-            >
-              <PlusCircle size={18} /> Novo Serviço
-            </button>
-          </div>
-
-          {/* TABELA */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="cadastro-list-head">
-              <div>
-                <h2>Serviços cadastrados</h2>
-                <span>{servicosFiltrados.length} de {servicos.length}</span>
-              </div>
-              <div className="cadastro-list-badge">Relação</div>
-            </div>
-            <div className="cadastro-table-wrap">
-            <table className="w-full text-sm text-left">
-              <thead style={{ backgroundColor: theme.primary, color: theme.secondary }}>
-                <tr>
-                  <th className="p-4 uppercase tracking-widest text-xs">Serviço</th>
-                  <th className="p-4 uppercase tracking-widest text-xs">Unidade</th>
-                  <th className="p-4 uppercase tracking-widest text-xs">Preço</th>
-                  <th className="p-4 uppercase tracking-widest text-xs text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {servicosFiltrados.map(s => (
-                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-gray-500 font-medium">{s.nome}</td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                        style={{ color: theme.tertiary, borderColor: `${theme.tertiary}44`, backgroundColor: `${theme.tertiary}11` }}>
-                        {s.unidade}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500 font-medium" style={{ color: theme.primary }}>{formatarPreco(s.preco)}</td>
-                    <td className="p-4">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => { setEditando(s); setNovoServico(s); setMostrarModal(true); }} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: theme.primary }}><Edit2 size={18} /></button>
-                        <button onClick={() => deletarServico(s.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3.5 font-normal">Serviço</th>
+                    <th className="px-4 py-3.5 font-normal">Unidade</th>
+                    <th className="px-4 py-3.5 font-normal">Preço base</th>
+                    <th className="px-4 py-3.5 text-center font-normal">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {servicosFiltrados.map(s => (
+                    <tr key={s.id} className="transition-colors hover:bg-gray-50/80">
+                      <td className="px-4 py-3.5 text-gray-700">{s.nome}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
+                          style={{ color: theme.tertiary, borderColor: `${theme.tertiary}33`, backgroundColor: `${theme.tertiary}10` }}>
+                          {s.unidade}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-gray-700">{formatarPreco(s.preco)}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => { setEditando(s); setNovoServico(s); setMostrarModal(true); }} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: theme.primary }}><Edit2 size={17} /></button>
+                          <button onClick={() => deletarServico(s.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </section>
         </main>
       </div>
 

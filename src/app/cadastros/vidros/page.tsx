@@ -912,7 +912,7 @@ const logoLight = branding?.logo_light || null;
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <CheckSquare2 size={18} className="text-red-500" />
                 <span>
-                  <strong className="font-semibold">
+                  <strong className="font-normal">
                     {vidrosSelecionados.size}
                   </strong>{" "}
                   {vidrosSelecionados.size === 1
@@ -924,13 +924,13 @@ const logoLight = branding?.logo_light || null;
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setVidrosSelecionados(new Set())}
-                  className="rounded-xl px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-white"
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
                 >
                   Cancelar seleção
                 </button>
                 <button
                   onClick={excluirVidrosSelecionados}
-                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-600"
+                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
                 >
                   <Trash2 size={15} />
                   Excluir selecionados
@@ -943,7 +943,7 @@ const logoLight = branding?.logo_light || null;
           <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-700">
+                <h2 className="text-base font-normal text-gray-700">
                   Vidros cadastrados
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-400">
@@ -954,7 +954,7 @@ const logoLight = branding?.logo_light || null;
               <button
                 onClick={alternarSelecaoFiltrados}
                 disabled={!vidrosFiltrados.length}
-                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
               >
                 <ListChecks size={15} />
                 {todosFiltradosSelecionados
@@ -971,23 +971,28 @@ const logoLight = branding?.logo_light || null;
                       <button
                         onClick={alternarSelecaoFiltrados}
                         disabled={!vidrosFiltrados.length}
-                        className="flex h-5 w-5 items-center justify-center rounded border border-gray-300 bg-white transition"
+                        className={`flex h-5 w-5 items-center justify-center rounded border transition ${
+                          todosFiltradosSelecionados
+                            ? "border-transparent"
+                            : "border-gray-300 bg-white"
+                        }`}
+                        style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
                         aria-label="Selecionar todos os itens visíveis"
                       >
                         {todosFiltradosSelecionados && (
                           <CheckCircle2
                             size={15}
-                            style={{ color: theme.menuIconColor }}
+                            className="text-white"
                           />
                         )}
                       </button>
                     </th>
-                    <th className="px-4 py-3.5 font-medium">Código</th>
-                    <th className="px-4 py-3.5 font-medium">Nome</th>
-                    <th className="px-4 py-3.5 font-medium">Espessura</th>
-                    <th className="px-4 py-3.5 font-medium">Tipo</th>
-                    <th className="px-4 py-3.5 font-medium">Preço base</th>
-                    <th className="px-5 py-3.5 text-center font-medium">
+                    <th className="px-4 py-3.5 font-normal">Código</th>
+                    <th className="px-4 py-3.5 font-normal">Nome</th>
+                    <th className="px-4 py-3.5 font-normal">Espessura</th>
+                    <th className="px-4 py-3.5 font-normal">Tipo</th>
+                    <th className="px-4 py-3.5 font-normal">Preço base</th>
+                    <th className="px-5 py-3.5 text-center font-normal">
                       Ações
                     </th>
                   </tr>
@@ -1009,31 +1014,34 @@ const logoLight = branding?.logo_light || null;
                         <td className="px-5 py-3.5">
                           <button
                             onClick={() => alternarSelecaoVidro(vidro.id)}
-                            className="flex h-5 w-5 items-center justify-center rounded border border-gray-300 bg-white transition"
+                            className={`flex h-5 w-5 items-center justify-center rounded border transition ${
+                              selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                            }`}
+                            style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
                             aria-label={`Selecionar ${vidro.nome}`}
                           >
                             {selecionado && (
                               <CheckCircle2
                                 size={15}
-                                style={{ color: theme.menuIconColor }}
+                                className="text-white"
                               />
                             )}
                           </button>
                         </td>
 
                         <td className="px-4 py-3.5">
-                          <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium uppercase text-gray-500">
+                          <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-normal uppercase text-gray-500">
                             {vidro.codigo || "Sem código"}
                           </span>
                         </td>
 
-                        <td className="px-4 py-3.5 font-medium text-gray-700">
+                        <td className="px-4 py-3.5 font-normal text-gray-700">
                           {vidro.nome}
                         </td>
                         <td className="px-4 py-3.5">{vidro.espessura}</td>
                         <td className="px-4 py-3.5">{vidro.tipo}</td>
                         <td
-                          className="px-4 py-3.5 font-medium"
+                          className="px-4 py-3.5 font-normal"
                           style={{ color: theme.menuBackgroundColor }}
                         >
                           {formatarPreco(vidro.preco)}

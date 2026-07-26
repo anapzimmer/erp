@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { decodeCsvFile } from "@/utils/csvEncoding"
-import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square } from "lucide-react"
+import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -13,6 +13,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
+import ImportarTabelaCatalogoModal from "@/components/ImportarTabelaCatalogoModal"
 
 // --- TIPAGENS ---
 type Kit = {
@@ -90,6 +91,7 @@ export default function KitsPage() {
   const [editando, setEditando] = useState<Kit | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [mostrarImportador, setMostrarImportador] = useState(false)
   const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
   const [filtroNome, setFiltroNome] = useState("")
@@ -501,26 +503,38 @@ export default function KitsPage() {
           handleSignOut={handleLogout}
         />
 
-        <main className="cad-main-panel p-4 md:p-8 xl:p-10 flex-1 min-w-0">
-          {/* HEADER SEÇÃO */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-4">
-              <div
-                className="p-4 rounded-2xl shadow-inner"
-                style={{ backgroundColor: `${darkTertiary}15`, color: darkTertiary }}
-              >
-                <Boxes size={32} />
+        <main className="cad-main-panel w-full flex-1 min-w-0 p-4 md:p-6 xl:p-8">
+          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+            <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: `${darkTertiary}12`, color: darkTertiary }}
+                >
+                  <Square size={23} strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: darkPrimary }}>
+                    Catálogo de kits
+                  </h1>
+                  <p className="mt-1 text-sm font-normal text-gray-500">
+                    Gerencie modelos, medidas, cores e preços dos kits.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: lightTertiary }}>
-                  Kits
-                </h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">{kitsFiltrados.length} de {kits.length} kits cadastrados.</p>
-              </div>
-            </div>
-            {/* AÇÕES PADRONIZADAS */}
-            <div className="flex gap-2 no-print">
-              {/* Botão Imprimir PDF */}
+
+              <div className="flex flex-wrap items-center gap-2 no-print">
+                <button
+                  type="button"
+                  onClick={() => setMostrarImportador(true)}
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                  title="Importar tabela PDF, TXT ou CSV"
+                >
+                  <Upload size={17} />
+                  Importar tabela
+                </button>
+
               {isClient && (
                 <PDFDownloadLink
                   document={
@@ -538,49 +552,32 @@ export default function KitsPage() {
                   }
                   fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
                   title="Imprimir Catálogo"
-                  className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
                 >
                   {({ loading }) => (
                     loading ? (
                       <Loader2 size={20} className="animate-spin text-gray-400" />
                     ) : (
-                      <Printer
-                        size={20}
-                        className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                        onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                      />
+                      <Printer size={18} />
                     )
                   )}
                 </PDFDownloadLink>
               )}
 
-              {/* Botão Exportar CSV */}
               <button
                 onClick={handleExportarCSV}
-                title="Exportar Planilha"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                title="Exportar CSV"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
               >
-                <Download
-                  size={20}
-                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                />
+                <Download size={18} />
               </button>
 
-              {/* Botão Importar CSV */}
               <label
                 htmlFor="importarCSV"
-                title="Importar Planilha"
-                className="group p-2.5 rounded-xl bg-white border border-gray-100 cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                title="Importar CSV simples"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
               >
-                <Upload
-                  size={20}
-                  className="text-gray-500 transition-all duration-300 group-hover:scale-110"
-                  onMouseEnter={(e) => e.currentTarget.style.color = theme.menuIconColor}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                />
+                <Upload size={18} />
                 <input
                   type="file"
                   id="importarCSV"
@@ -590,116 +587,134 @@ export default function KitsPage() {
                 />
               </label>
             </div>
-          </div>
+            </div>
+          </section>
 
           {/* INDICADORES */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 cards-indicadores">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 cards-indicadores">
             {[
               { titulo: "Total", valor: kits.length, icone: Layers },
-              { titulo: "Com Preço", valor: kits.filter(k => k.preco).length, icone: DollarSign },
+              { titulo: "Com preço", valor: kits.filter(k => k.preco).length, icone: DollarSign },
               { titulo: "Cores", valor: new Set(kits.map(k => k.cores)).size, icone: Palette },
               { titulo: "Categorias", valor: new Set(kits.map(k => k.categoria)).size, icone: Package }
             ].map(card => (
-              <div key={card.titulo} className="cad-metric-card bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                <card.icone className="w-7 h-7 mb-2" style={{ color: darkTertiary }} />
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{card.titulo}</h3>
-                <p className="text-2xl font-bold" style={{ color: darkPrimary }}>{card.valor}</p>
+              <div key={card.titulo} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: darkTertiary, backgroundColor: `${darkTertiary}10` }}>
+                  <card.icone size={19} strokeWidth={1.8} />
+                </div>
+                <div>
+                  <p className="text-xs font-normal text-gray-400">{card.titulo}</p>
+                  <p className="text-xl font-semibold" style={{ color: darkPrimary }}>{card.valor}</p>
+                </div>
               </div>
             ))}
           </div>
 
           {/* FILTROS E AÇÃO */}
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap filtros-sessao">
-            <div className="flex flex-wrap gap-3 flex-1">
-              <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm filtros-sessao">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="grid flex-1 gap-3 sm:grid-cols-2">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
-                  placeholder="Pesquisar por nome ou categoria..."
+                  placeholder="Buscar por nome ou categoria..."
                   value={filtroNome}
                   onChange={e => setFiltroNome(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all"
-                  style={{ "--tw-ring-color": darkTertiary } as any}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                  style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
                 />
               </div>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Filtrar por cor..."
+                placeholder="Buscar por cor..."
                 value={filtroCor}
                 onChange={e => setFiltroCor(e.target.value)}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white outline-none focus:ring-2 transition-all w-full md:w-48"
-                style={{ "--tw-ring-color": darkTertiary } as any}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
               />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 no-print">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
-                <Trash2 size={18} /> Limpar Duplicados
+            <div className="flex flex-wrap items-center gap-2 no-print">
+              <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50">
+                <Eraser size={16} /> Duplicados
               </button>
               <button
                 onClick={() => {
                   abrirModalParaNovo();
                 }}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-xs tracking-wider shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
                 style={{ backgroundColor: darkTertiary, color: darkPrimary }}
               >
-                <PlusCircle size={18} /> Novo Kit
+                <PlusCircle size={17} /> Novo kit
               </button>
             </div>
           </div>
+          </section>
 
           {/* TABELA */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
-            <div className="cadastro-list-head">
+          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2>Kits cadastrados</h2>
-                <span>{kitsFiltrados.length} de {kits.length}</span>
+                <h2 className="text-base font-normal text-gray-700">Kits cadastrados</h2>
+                <p className="mt-0.5 text-xs text-gray-400">Exibindo {kitsFiltrados.length} de {kits.length} produtos</p>
               </div>
-              <div className="cadastro-list-badge">Catálogo</div>
             </div>
-            <div className="cadastro-table-wrap">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead style={{ backgroundColor: darkPrimary, color: darkSecondary }}>
-                <tr>
-                  <th className="p-4 text-xs uppercase tracking-widest">Nome do Kit</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Largura (mm)</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Altura (mm)</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Cor</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Categoria</th>
-                  <th className="p-4 text-xs uppercase tracking-widest">Preço Base</th>
-                  <th className="p-4 text-xs uppercase tracking-widest text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {kitsFiltrados.map(k => (
-                  <tr key={k.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-gray-500 font-medium" style={{ color: lightTertiary }}>{k.nome}</td>
-                    <td className="p-4 text-gray-500 font-medium">{k.largura}</td>
-                    <td className="p-4 text-gray-500 font-medium">{k.altura}</td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase border"
-                        style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
-                        {k.cores || "Padrão"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500 font-medium">{k.categoria || "Geral"}</td>
-                    <td className="p-4 text-gray-500 font-medium" style={{ color: darkPrimary }}>
-                      {k.preco ? formatarPreco(k.preco) : "-"}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => abrirModalParaEdicao(k)} className="p-2.5 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                        <button onClick={() => deletarKit(k.id)} className="p-2.5 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3.5 font-normal">Nome do kit</th>
+                    <th className="px-4 py-3.5 font-normal">Largura</th>
+                    <th className="px-4 py-3.5 font-normal">Altura</th>
+                    <th className="px-4 py-3.5 font-normal">Cor</th>
+                    <th className="px-4 py-3.5 font-normal">Categoria</th>
+                    <th className="px-4 py-3.5 font-normal">Preço base</th>
+                    <th className="px-4 py-3.5 text-center font-normal">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {kitsFiltrados.map(k => (
+                    <tr key={k.id} className="transition-colors hover:bg-gray-50/80">
+                      <td className="px-4 py-3.5 text-gray-700">{k.nome}</td>
+                      <td className="px-4 py-3.5 text-gray-600">{k.largura}</td>
+                      <td className="px-4 py-3.5 text-gray-600">{k.altura}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
+                          style={{ color: darkTertiary, borderColor: `${darkTertiary}33`, backgroundColor: `${darkTertiary}10` }}>
+                          {k.cores || "Padrão"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-gray-600">{k.categoria || "Geral"}</td>
+                      <td className="px-4 py-3.5 text-gray-700">
+                        {k.preco ? formatarPreco(k.preco) : "-"}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => abrirModalParaEdicao(k)} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={17} /></button>
+                          <button onClick={() => deletarKit(k.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </section>
         </main>
       </div>
+
+      <ImportarTabelaCatalogoModal
+        aberto={mostrarImportador}
+        tipo="kits"
+        empresaId={empresaIdUsuario || ""}
+        existentes={kits}
+        onClose={() => setMostrarImportador(false)}
+        onConcluido={carregarDados}
+      />
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
