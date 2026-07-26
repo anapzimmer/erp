@@ -481,13 +481,24 @@ export default function ImportarTabelaPerfisModal({
                               <select
                                 value={item.acao}
                                 onChange={(e) => atualizarItem(item.revisaoId, { acao: e.target.value as AcaoImportacao })}
-                                className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-7 text-xs outline-none focus:border-slate-400"
+                                className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-4 pr-7 text-xs font-normal text-slate-700 outline-none focus:border-slate-400"
                               >
                                 <option value="atualizar">Atualizar</option>
                                 <option value="vincular">Vincular</option>
                                 <option value="criar">Criar</option>
                                 <option value="ignorar">Ignorar</option>
                               </select>
+                              <span
+                                className={`absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${
+                                  item.acao === "atualizar"
+                                    ? "bg-emerald-500"
+                                    : item.acao === "vincular"
+                                      ? "bg-blue-500"
+                                      : item.acao === "criar"
+                                        ? "bg-purple-500"
+                                        : "bg-amber-500"
+                                }`}
+                              />
                               <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                             </div>
                             {item.precoAnterior !== null && (

@@ -6,7 +6,7 @@ import { decodeCsvFile } from "@/utils/csvEncoding"
 import { AlertCircle, CheckCircle2, ChevronDown, Copy, FileText, Loader2, Lock, Search, Upload, X } from "lucide-react"
 
 type TipoCatalogo = "kits" | "ferragens"
-type AcaoImportacao = "atualizar" | "criar" | "ignorar"
+type AcaoImportacao = "atualizar" | "vincular" | "criar" | "ignorar"
 
 type ItemRevisao = {
   revisaoId: string
@@ -225,6 +225,7 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
   const resumo = useMemo(() => ({
     total: itens.length,
     atualizar: itens.filter((item) => item.acao === "atualizar").length,
+    vincular: itens.filter((item) => item.acao === "vincular").length,
     criar: itens.filter((item) => item.acao === "criar").length,
     ignorar: itens.filter((item) => item.acao === "ignorar").length,
     selecionados: itens.filter((item) => item.selecionado && item.acao !== "ignorar").length,
@@ -307,6 +308,10 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
     try {
       const selecionados = itens.filter((item) => item.selecionado && item.acao !== "ignorar")
       for (const item of selecionados) {
+        if (item.acao === "vincular" && !item.id) {
+          throw new Error(`Selecione uma vinculação para ${item.nome}.`)
+        }
+
         const payload = tipo === "ferragens"
           ? {
               codigo: item.codigo.toUpperCase().trim(),
@@ -327,7 +332,7 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
               empresa_id: empresaId,
             }
 
-        if (item.acao === "atualizar" && item.id) {
+        if ((item.acao === "atualizar" || item.acao === "vincular") && item.id) {
           const { error } = await supabase.from(tipo).update(payload).eq("id", item.id).eq("empresa_id", empresaId)
           if (error) throw error
         } else {
@@ -428,10 +433,11 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
                     Trocar
                   </button>
                 </div>
-                <div className="col-span-12 grid grid-cols-2 gap-3 sm:grid-cols-4 2xl:col-span-9">
+                <div className="col-span-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 2xl:col-span-9">
                   {[
                     ["Total de itens", resumo.total, "bg-slate-400"],
                     ["Atualizar", resumo.atualizar, "bg-emerald-500"],
+                    ["Vincular", resumo.vincular, "bg-blue-500"],
                     ["Criar", resumo.criar, "bg-purple-500"],
                     ["Ignorar", resumo.ignorar, "bg-amber-500"],
                   ].map(([label, valor, cor]) => (
@@ -457,27 +463,29 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
 
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <div className="min-h-[360px] max-h-[calc(100vh-430px)] overflow-auto">
-                  <table className="w-full min-w-[1300px] table-fixed text-left text-xs">
+                  <table className="w-full min-w-[1500px] table-fixed text-left text-xs">
                     <colgroup>
-                      {tipo === "ferragens" ? <col className="w-[120px]" /> : null}
                       <col className="w-10" />
-                      <col className="w-[360px]" />
+                      {tipo === "ferragens" ? <col className="w-[110px]" /> : null}
+                      <col className={tipo === "kits" ? "w-[360px]" : "w-[310px]"} />
                       {tipo === "kits" ? <><col className="w-[120px]" /><col className="w-[120px]" /></> : null}
-                      <col className="w-[170px]" />
-                      <col className="w-[190px]" />
+                      <col className="w-[160px]" />
+                      <col className="w-[180px]" />
                       <col className="w-[135px]" />
                       <col className="w-[150px]" />
+                      <col className="w-[455px]" />
                     </colgroup>
                     <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                       <tr>
-                        <th className="px-3 py-3"></th>
+                        <th className="w-10 px-3 py-3"></th>
                         {tipo === "ferragens" ? <th className="px-3 py-3 font-normal">Código</th> : null}
-                        <th className="px-3 py-3 font-normal">Nome</th>
+                        <th className="px-3 py-3 font-normal">Descrição</th>
                         {tipo === "kits" ? <><th className="px-3 py-3 font-normal">Largura</th><th className="px-3 py-3 font-normal">Altura</th></> : null}
                         <th className="px-3 py-3 font-normal">Cor</th>
                         <th className="px-3 py-3 font-normal">Categoria</th>
                         <th className="px-3 py-3 font-normal">Preço</th>
                         <th className="px-3 py-3 font-normal">Ação</th>
+                        <th className="px-3 py-3 font-normal">Vinculação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -499,13 +507,45 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
                           <td className="px-3 py-2"><input value={String(item.preco).replace(".", ",")} onChange={(e) => atualizarItem(item.revisaoId, { preco: moedaParaNumero(e.target.value) })} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-right outline-none focus:border-slate-400" /></td>
                           <td className="px-3 py-2">
                             <div className="relative">
-                              <select value={item.acao} onChange={(e) => atualizarItem(item.revisaoId, { acao: e.target.value as AcaoImportacao })} className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-7 text-xs outline-none focus:border-slate-400">
+                              <select value={item.acao} onChange={(e) => atualizarItem(item.revisaoId, { acao: e.target.value as AcaoImportacao })} className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-4 pr-7 text-xs font-normal text-slate-700 outline-none focus:border-slate-400">
                                 <option value="atualizar">Atualizar</option>
+                                <option value="vincular">Vincular</option>
                                 <option value="criar">Criar</option>
                                 <option value="ignorar">Ignorar</option>
                               </select>
+                              <span
+                                className={`absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${
+                                  item.acao === "atualizar"
+                                    ? "bg-emerald-500"
+                                    : item.acao === "vincular"
+                                      ? "bg-blue-500"
+                                      : item.acao === "criar"
+                                        ? "bg-purple-500"
+                                        : "bg-amber-500"
+                                }`}
+                              />
                               <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                             </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            {item.acao === "atualizar" || item.acao === "vincular" ? (
+                              <select
+                                value={item.id || ""}
+                                onChange={(e) => atualizarItem(item.revisaoId, { id: e.target.value })}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-normal text-slate-700 outline-none focus:border-slate-400"
+                              >
+                                <option value="">{tipo === "kits" ? "Selecionar kit..." : "Selecionar ferragem..."}</option>
+                                {existentes.map((registro) => (
+                                  <option key={registro.id} value={registro.id}>
+                                    {tipo === "ferragens"
+                                      ? `${registro.codigo || ""} - ${registro.nome || ""} - ${registro.cores || "Padrão"}`
+                                      : `${registro.nome || ""} - ${registro.cores || "Padrão"}`}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
                           </td>
                         </tr>
                       ))}
