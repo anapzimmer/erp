@@ -52,7 +52,26 @@ const normalizar = (texto: string | null | undefined) =>
     .toLowerCase()
     .trim()
 
-const coresConhecidas = ["BRANCO", "BRANCA", "PRETO", "PRETA", "FOSCO", "BRONZE", "GOLD", "CROMADO", "ROSE", "NATURAL"]
+const coresConhecidas = [
+  "NATURAL FOSCO",
+  "ACO INOX ESCOVADO",
+  "ANOD.BRONZE 1001",
+  "GOLD FOSCO",
+  "GOLD 27",
+  "BRILHANTE",
+  "BRANCO",
+  "BRANCA",
+  "PRETO",
+  "PRETA",
+  "FOSCO",
+  "BRONZE",
+  "GOLD",
+  "CROMADO",
+  "ROSE",
+  "NATURAL",
+  "ONIX",
+  "CORAL",
+]
 
 const separarCorDescricao = (descricaoOriginal: string) => {
   let descricao = descricaoOriginal.replace(/\s+/g, " ").trim()
@@ -106,23 +125,190 @@ const extrairDimensoes = (texto: string) => {
   }
 }
 
+const normalizarMedidaKitBox = (valor: string | number) => {
+  const numero = typeof valor === "number" ? valor : moedaParaNumero(String(valor))
+  if (!numero) return 0
+  return Math.round(numero <= 50 ? numero * 1000 : numero * 10)
+}
+
+const extrairDimensoesKitBox = (descricao: string) => {
+  const texto = descricao.toUpperCase().replace(/\s+/g, " ").trim()
+  const ehCanto = /\bCANTO\b|\bC1\b/.test(texto)
+  const ehQuadrado = /\bQUADRADO\b/.test(texto)
+  const ehEvidence = /\bEVIDENCE\b/.test(texto)
+  const ehSacada = /\bKIT SACADA\b|P\/KIT SACADA/.test(texto)
+
+  const medidaAlturaLargura = texto.match(/\b(\d{1,2}(?:[,.]\d{1,2})?)\s*A\s*[xX]\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*L\b/)
+  if (medidaAlturaLargura) {
+    return {
+      largura: normalizarMedidaKitBox(medidaAlturaLargura[2]),
+      altura: normalizarMedidaKitBox(medidaAlturaLargura[1]),
+    }
+  }
+
+  if (ehSacada) {
+    const medidaSacada = texto.match(/\b(\d{1,2}[,.]\d{2})\b/)
+    if (medidaSacada) {
+      return {
+        largura: normalizarMedidaKitBox(medidaSacada[1]),
+        altura: 2500,
+      }
+    }
+  }
+
+  const medidaTripla = texto.match(/\b(\d{2,3})\s*[xX]\s*(\d{2,3})\s*[xX]\s*(\d{2,3})\b/)
+  if (medidaTripla) {
+    return {
+      largura: normalizarMedidaKitBox(Number(medidaTripla[2]) + Number(medidaTripla[3])),
+      altura: normalizarMedidaKitBox(medidaTripla[1]),
+    }
+  }
+
+  const medidaDupla = texto.match(/\b(\d{1,2}(?:[,.]\d{1,2})?|\d{2,3})\s*(?:MT|M)?\s*[xX]\s*(\d{1,2}(?:[,.]\d{1,2})?|\d{2,3})\s*(?:MT|M)?\b/)
+  if (medidaDupla) {
+    const primeira = normalizarMedidaKitBox(medidaDupla[1])
+    const segunda = normalizarMedidaKitBox(medidaDupla[2])
+    if (ehQuadrado && primeira >= 2500) return { largura: segunda, altura: primeira }
+    return { largura: primeira, altura: segunda }
+  }
+
+  const medidaMetro = texto.match(/\b(\d{1,2}[,.]\d{1,2})\s*MT\b/)
+  if (medidaMetro) {
+    const lado = normalizarMedidaKitBox(medidaMetro[1])
+    return { largura: ehCanto ? lado * 2 : lado, altura: ehEvidence ? 3000 : 1900 }
+  }
+
+  const medidaF1C1 = texto.match(/\b[CF]\d\D+(\d{2,3})\b/)
+  if (medidaF1C1) {
+    const lado = normalizarMedidaKitBox(medidaF1C1[1])
+    return { largura: ehCanto ? lado * 2 : lado, altura: ehQuadrado ? 3000 : 1900 }
+  }
+
+  const dimensoes = extrairDimensoes(texto)
+  return {
+    largura: dimensoes.largura,
+    altura: dimensoes.altura || (ehQuadrado || ehEvidence ? 3000 : 0),
+  }
+}
+
+const interpretarKitImportado = (codigo: string, descricaoOriginal: string, preco: number, index: number): ItemRevisao | null => {
+  const { descricao, cor } = separarCorDescricao(descricaoOriginal)
+  const descricaoNormalizada = normalizar(descricao)
+  const ehItemKit =
+    /^KIT\b/i.test(descricao) ||
+    descricaoNormalizada.includes("kit sacada") ||
+    descricaoNormalizada.includes("p/kit sacada") ||
+    /^CONJ\.?\s+ACESSORIOS\s+KIT\s+SACADA/i.test(descricao) ||
+    /^FECHADURA\b/i.test(descricao) ||
+    /^ESTACIONAMENTO\b/i.test(descricao)
+
+  if (!ehItemKit) return null
+  const dimensoes = extrairDimensoesKitBox(descricao)
+  const ehItemSacada =
+    descricaoNormalizada.includes("kit sacada") ||
+    descricaoNormalizada.includes("p/kit sacada") ||
+    descricaoNormalizada.startsWith("estacionamento")
+  const categoria = ehItemSacada
+    ? "Kit Sacada"
+    : descricaoNormalizada.includes("kit janela")
+      ? "Kit Janela"
+      : descricaoNormalizada.includes("kit porta")
+        ? "Kit Porta"
+        : "Kit"
+
+  return {
+    revisaoId: `${codigo || "kit"}-${index}`,
+    codigo: codigo.toUpperCase().trim(),
+    nome: formatarTexto(descricao),
+    cores: cor,
+    categoria,
+    largura: dimensoes.largura,
+    altura: dimensoes.altura || (ehItemSacada ? 0 : 1900),
+    preco,
+    acao: "criar",
+    selecionado: true,
+  }
+}
+
+const separarCodigoDescricaoKit = (texto: string) => {
+  const textoLimpo = texto.replace(/\s+/g, " ").trim()
+  const inicioDescricao = "(?:KIT\\b|CONJ\\.?\\s+|FECHADURA\\b|ESTACIONAMENTO\\b|PERFIL\\b)"
+  const comEspaco = textoLimpo.match(new RegExp(`^([A-Z0-9._/-]{3,32})\\s+(${inicioDescricao}.+)$`, "i"))
+  if (comEspaco) return { codigo: comEspaco[1], descricao: comEspaco[2] }
+
+  const colado = textoLimpo.match(new RegExp(`^([A-Z0-9._/-]{3,32}?)(${inicioDescricao}.+)$`, "i"))
+  if (colado) return { codigo: colado[1], descricao: colado[2] }
+
+  return { codigo: "", descricao: textoLimpo }
+}
+
+const regexPrecoFinal = /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,.]\d{2})$/
+
+const separarPrecoLinhaPdf = (linha: string, tipo: TipoCatalogo) => {
+  const texto = linha.replace(/\s+/g, " ").trim()
+
+  if (tipo === "kits") {
+    const corNumerada = texto.match(/^(.*\b(?:GOLD 27|ANOD\.BRONZE 1001))\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})$/i)
+    if (corNumerada) {
+      return {
+        semPreco: corNumerada[1].trim(),
+        preco: moedaParaNumero(corNumerada[2]),
+      }
+    }
+  }
+
+  const precoMatch = texto.match(regexPrecoFinal)
+  if (!precoMatch) return null
+
+  return {
+    semPreco: texto.slice(0, precoMatch.index).trim(),
+    preco: moedaParaNumero(precoMatch[1]),
+  }
+}
+
+const extrairEntradasKitSacada = (texto: string) => {
+  const textoLinear = texto.replace(/\r/g, "\n").replace(/\n+/g, "\n")
+  const inicioDescricao = "(?:KIT\\b|CONJ\\.?\\s+ACESSORIOS\\b|FECHADURA\\b|ESTACIONAMENTO\\b)"
+  const proximoItem = `[A-Z0-9._/-]{3,32}?${inicioDescricao}`
+  const regex = new RegExp(
+    `([A-Z0-9._/-]{3,32}?${inicioDescricao}[\\s\\S]*?)(\\d{1,3}(?:\\.\\d{3})*,\\d{2}|\\d+[,.]\\d{2})(?=\\s*${proximoItem}|\\s*$)`,
+    "gi",
+  )
+  const entradas: string[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(textoLinear)) !== null) {
+    entradas.push(`${match[1]}${match[2]}`.replace(/\s+/g, " ").trim())
+  }
+
+  return entradas
+}
+
 const extrairLinhasPdf = (texto: string, tipo: TipoCatalogo) => {
   const inicioDescricaoFerragem =
     "PARAFUSO|CHUMBADOR|PORCA|SUPORTE|FECHADURA|ROLDANA|PUXADOR|TRINCO|CAPUCHINHO|CILINDRO|PLACA|CONTRA|DOBRADICA|DOBRADIÇA|CANOPLA|TAMPA|TAPA|NYLON|KIT|CORRIMAO|CORRIMÃO|PONTALETE|PERFIL|CAPA|TRILHO|TUBO|CANTONEIRA|BARRA|GUIA"
 
-  return texto
+  const inicioDescricaoFerragemCompleto = `${inicioDescricaoFerragem}|CONJ\\.?\\s+ACESSORIOS|ESTACIONAMENTO`
+
+  const linhasBase = texto
     .split(/\r?\n/)
     .map((linha) => linha.trim())
     .filter((linha) => /\d+[,.]\d{2}$/.test(linha))
+
+  const linhas = Array.from(new Map([
+    ...linhasBase,
+    ...(tipo === "kits" || tipo === "ferragens" ? extrairEntradasKitSacada(texto) : []),
+  ].map((linha) => [linha.replace(/\s+/g, " ").trim(), linha])).values())
+
+  return linhas
     .map((linha, index): ItemRevisao | null => {
-      const precoMatch = linha.match(/(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,.]\d{2})$/)
-      if (!precoMatch) return null
-      const preco = moedaParaNumero(precoMatch[1])
-      const semPreco = linha.slice(0, precoMatch.index).trim()
+      const precoLinha = separarPrecoLinhaPdf(linha, tipo)
+      if (!precoLinha) return null
+      const { preco, semPreco } = precoLinha
 
       if (tipo === "ferragens") {
         const partes = semPreco.match(
-          new RegExp(`^([A-Z0-9._/-]{3,24}?)(${inicioDescricaoFerragem})(.*)$`, "i"),
+          new RegExp(`^([A-Z0-9._/-]{3,24}?)(${inicioDescricaoFerragemCompleto})(.*)$`, "i"),
         )
         if (!partes) return null
         const { descricao, cor } = separarCorDescricao(`${partes[2]} ${partes[3]}`)
@@ -140,19 +326,10 @@ const extrairLinhasPdf = (texto: string, tipo: TipoCatalogo) => {
         }
       }
 
-      const dimensoes = extrairDimensoes(semPreco)
-      return {
-        revisaoId: `kit-${index}`,
-        codigo: "",
-        nome: formatarTexto(semPreco),
-        cores: "Padrão",
-        categoria: "Kit",
-        largura: dimensoes.largura,
-        altura: dimensoes.altura,
-        preco,
-        acao: "criar",
-        selecionado: true,
-      }
+      const partesKit = separarCodigoDescricaoKit(semPreco)
+      const kitInterpretado = interpretarKitImportado(partesKit.codigo, partesKit.descricao, preco, index)
+      if (kitInterpretado) return kitInterpretado
+      return null
     })
     .filter(Boolean) as ItemRevisao[]
 }
@@ -190,16 +367,30 @@ const extrairItensTabela = (texto: string, tipo: TipoCatalogo) => {
 
     const nome = colunas[idx("nome", "descricao", "kit") >= 0 ? idx("nome", "descricao", "kit") : 0] || ""
     if (!nome) return null
+    const codigo = colunas[idx("produto", "codigo", "cod") >= 0 ? idx("produto", "codigo", "cod") : 0] || ""
+    const preco = moedaParaNumero(colunas[idx("preco", "valor") >= 0 ? idx("preco", "valor") : 5] || "")
+    const kitInterpretado = interpretarKitImportado(codigo, nome, preco, index)
+    if (kitInterpretado) {
+      const larguraColuna = Number(colunas[idx("largura")]) || 0
+      const alturaColuna = Number(colunas[idx("altura")]) || 0
+      return {
+        ...kitInterpretado,
+        largura: larguraColuna || kitInterpretado.largura,
+        altura: alturaColuna || kitInterpretado.altura,
+        cores: formatarTexto(colunas[idx("cor", "cores") >= 0 ? idx("cor", "cores") : 3] || kitInterpretado.cores),
+        categoria: formatarTexto(colunas[idx("categoria", "grupo") >= 0 ? idx("categoria", "grupo") : 4] || kitInterpretado.categoria),
+      }
+    }
     const dimensoes = extrairDimensoes(nome)
     return {
       revisaoId: `kit-${index}`,
-      codigo: "",
+      codigo: codigo.toUpperCase().trim(),
       nome: formatarTexto(nome),
       largura: Number(colunas[idx("largura")]) || dimensoes.largura,
       altura: Number(colunas[idx("altura")]) || dimensoes.altura,
       cores: formatarTexto(colunas[idx("cor", "cores") >= 0 ? idx("cor", "cores") : 3] || "Padrão"),
       categoria: formatarTexto(colunas[idx("categoria", "grupo") >= 0 ? idx("categoria", "grupo") : 4] || "Kit"),
-      preco: moedaParaNumero(colunas[idx("preco", "valor") >= 0 ? idx("preco", "valor") : 5] || ""),
+      preco,
       acao: "criar",
       selecionado: true,
     }
@@ -245,7 +436,10 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
     setItens(lista.map((item, index) => {
       const existente = tipo === "ferragens"
         ? existentes.find((f) => normalizar(f.codigo) === normalizar(item.codigo) && normalizar(f.cores || "Padrão") === normalizar(item.cores || "Padrão"))
-        : existentes.find((k) => normalizar(k.nome) === normalizar(item.nome) && normalizar(k.cores || "Padrão") === normalizar(item.cores || "Padrão"))
+        : existentes.find((k) => {
+            if (item.codigo && k.codigo && normalizar(k.codigo) === normalizar(item.codigo)) return true
+            return normalizar(k.nome) === normalizar(item.nome) && normalizar(k.cores || "Padrão") === normalizar(item.cores || "Padrão")
+          })
 
       return {
         ...item,
@@ -278,9 +472,17 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
         texto = await decodeCsvFile(arquivo)
       }
 
+      const linhasComPreco = texto.split(/\r?\n/).map((linha) => linha.trim()).filter((linha) => /\d+[,.]\d{2}$/.test(linha)).length
+      const entradasSacada = tipo === "kits" || tipo === "ferragens" ? extrairEntradasKitSacada(texto).length : 0
       const encontrados = arquivoPdf ? extrairLinhasPdf(texto, tipo) : extrairItensTabela(texto, tipo)
       if (!encontrados.length) throw new Error("Não encontramos itens com descrição e preço nesse arquivo.")
-      setDiagnostico(JSON.stringify({ totalProdutos: encontrados.length, arquivo: arquivo.name }, null, 2))
+      setDiagnostico(JSON.stringify({
+        arquivo: arquivo.name,
+        linhasComPreco,
+        entradasSacada,
+        itensImportados: encontrados.length,
+        codigos: encontrados.map((item) => item.codigo).filter(Boolean),
+      }, null, 2))
       prepararRevisao(encontrados)
     } catch (e) {
       const mensagem = e instanceof Error ? e.message : "Erro inesperado ao analisar o arquivo."
@@ -302,6 +504,11 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
     }))
   }
 
+  const erroDeConflito = (error: any) =>
+    error?.code === "23505" ||
+    error?.status === 409 ||
+    String(error?.message || "").toLowerCase().includes("duplicate key")
+
   const confirmarImportacao = async () => {
     setErro("")
     setSalvando(true)
@@ -322,6 +529,7 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
               empresa_id: empresaId,
             }
           : {
+              codigo: item.codigo.toUpperCase().trim(),
               nome: formatarTexto(item.nome),
               largura: Number(item.largura) || 0,
               altura: Number(item.altura) || 0,
@@ -334,10 +542,47 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
 
         if ((item.acao === "atualizar" || item.acao === "vincular") && item.id) {
           const { error } = await supabase.from(tipo).update(payload).eq("id", item.id).eq("empresa_id", empresaId)
-          if (error) throw error
+          if (error) {
+            if (tipo === "kits" && erroDeConflito(error)) {
+              const payloadSeguro = {
+                codigo: item.codigo.toUpperCase().trim(),
+                largura: Number(item.largura) || 0,
+                altura: Number(item.altura) || 0,
+                preco_por_cor: null,
+                preco: Number(item.preco) || null,
+                empresa_id: empresaId,
+              }
+              const { error: retryError } = await supabase.from(tipo).update(payloadSeguro).eq("id", item.id).eq("empresa_id", empresaId)
+              if (retryError) throw retryError
+            } else {
+              throw error
+            }
+          }
         } else {
           const { error } = await supabase.from(tipo).insert([payload])
-          if (error) throw error
+          if (error) {
+            if (tipo === "kits" && erroDeConflito(error)) {
+              const existente = existentes.find((k) => {
+                if (item.codigo && k.codigo && normalizar(k.codigo) === normalizar(item.codigo)) return true
+                return normalizar(k.nome) === normalizar(item.nome) && normalizar(k.cores || "Padrão") === normalizar(item.cores || "Padrão")
+              })
+
+              if (!existente?.id) throw error
+
+              const payloadSeguro = {
+                codigo: item.codigo.toUpperCase().trim(),
+                largura: Number(item.largura) || 0,
+                altura: Number(item.altura) || 0,
+                preco_por_cor: null,
+                preco: Number(item.preco) || null,
+                empresa_id: empresaId,
+              }
+              const { error: retryError } = await supabase.from(tipo).update(payloadSeguro).eq("id", existente.id).eq("empresa_id", empresaId)
+              if (retryError) throw retryError
+            } else {
+              throw error
+            }
+          }
         }
       }
 
@@ -466,7 +711,7 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
                   <table className="w-full min-w-[1500px] table-fixed text-left text-xs">
                     <colgroup>
                       <col className="w-10" />
-                      {tipo === "ferragens" ? <col className="w-[110px]" /> : null}
+                      <col className="w-[120px]" />
                       <col className={tipo === "kits" ? "w-[360px]" : "w-[310px]"} />
                       {tipo === "kits" ? <><col className="w-[120px]" /><col className="w-[120px]" /></> : null}
                       <col className="w-[160px]" />
@@ -478,7 +723,7 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
                     <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                       <tr>
                         <th className="w-10 px-3 py-3"></th>
-                        {tipo === "ferragens" ? <th className="px-3 py-3 font-normal">Código</th> : null}
+                        <th className="px-3 py-3 font-normal">Código</th>
                         <th className="px-3 py-3 font-normal">Descrição</th>
                         {tipo === "kits" ? <><th className="px-3 py-3 font-normal">Largura</th><th className="px-3 py-3 font-normal">Altura</th></> : null}
                         <th className="px-3 py-3 font-normal">Cor</th>
@@ -494,7 +739,13 @@ export default function ImportarTabelaCatalogoModal({ aberto, tipo, empresaId, e
                           <td className="px-3 py-2 text-center">
                             <input type="checkbox" checked={item.selecionado} onChange={(e) => atualizarItem(item.revisaoId, { selecionado: e.target.checked })} className="h-3.5 w-3.5 rounded border-slate-300 accent-slate-600" />
                           </td>
-                          {tipo === "ferragens" ? <td className="px-3 py-2 text-slate-800">{item.codigo}</td> : null}
+                          <td className="px-3 py-2">
+                            <input
+                              value={item.codigo}
+                              onChange={(e) => atualizarItem(item.revisaoId, { codigo: e.target.value.toUpperCase() })}
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 uppercase text-slate-800 outline-none focus:border-slate-200 focus:bg-white"
+                            />
+                          </td>
                           <td className="px-3 py-2"><input value={item.nome} onChange={(e) => atualizarItem(item.revisaoId, { nome: e.target.value })} className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white" /></td>
                           {tipo === "kits" ? (
                             <>

@@ -44,6 +44,7 @@ type FerragemTabela = {
 };
 
 type KitTabela = {
+  codigo?: string | null;
   nome: string;
   largura?: number | null;
   altura?: number | null;
@@ -412,10 +413,57 @@ const resolverKitPorNomeECor = (
   };
 };
 
+const resolverKitPorCodigoOuNomeECor = (
+  kitsTabela: KitTabela[],
+  codigoAlvo: string,
+  termoAlvo: string,
+  corUsar?: string
+): { codigo: string; nome: string; preco: number; corEncontrada: string } => {
+  const codigoNormalizado = normalizarCodigo(codigoAlvo);
+  const termoNormalizado = normalizarTextoComparacao(termoAlvo).replace(/\s+/g, " ").trim();
+  const termoBuscaAmpla = normalizarBuscaAmpla(termoAlvo);
+  const corNormalizada = normalizarTextoComparacao(corUsar);
+
+  const candidatos = kitsTabela.filter((kit) => {
+    const codigoKit = normalizarCodigo(kit.codigo);
+    const nomeKit = normalizarTextoComparacao(kit.nome).replace(/\s+/g, " ").trim();
+    const nomeBuscaAmpla = normalizarBuscaAmpla(kit.nome);
+    return (codigoNormalizado && (codigoKit === codigoNormalizado || codigoKit.startsWith(codigoNormalizado)))
+      || nomeKit === termoNormalizado
+      || nomeKit.includes(termoNormalizado)
+      || termoNormalizado.includes(nomeKit)
+      || nomeBuscaAmpla === termoBuscaAmpla
+      || nomeBuscaAmpla.includes(termoBuscaAmpla)
+      || termoBuscaAmpla.includes(nomeBuscaAmpla);
+  });
+
+  if (candidatos.length === 0) {
+    return { codigo: codigoAlvo, nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
+  }
+
+  const escolher = (lista: KitTabela[]) =>
+    lista.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) || lista[0];
+
+  const escolhido = corNormalizada
+    ? escolher(candidatos.filter((kit) => atendeCor(kit.cores, corNormalizada)))
+    : escolher(candidatos);
+
+  if (!escolhido) {
+    return { codigo: codigoAlvo, nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
+  }
+
+  return {
+    codigo: escolhido.codigo || codigoAlvo,
+    nome: escolhido.nome || termoAlvo,
+    preco: normalizarPrecoFerragem(escolhido.preco_por_cor ?? escolhido.preco),
+    corEncontrada: escolhido.cores || corUsar || "Padrão",
+  };
+};
+
 const obterFaixaKitSacada = (larguraVaoMm: number) => {
   if (larguraVaoMm <= 3050) return "3,05";
   if (larguraVaoMm <= 4050) return "4,05";
-  return "6,05";
+  return "6,10";
 };
 
 export default function CalculoFechamentoSacadaPage() {
@@ -565,7 +613,7 @@ export default function CalculoFechamentoSacadaPage() {
         supabase.from("vidros").select("id, nome, espessura, tipo, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("perfis").select("codigo, nome, cores, preco").eq("empresa_id", empresaId).order("codigo", { ascending: true }),
         supabase.from("ferragens").select("*").eq("empresa_id", empresaId).order("nome", { ascending: true }),
-        supabase.from("kits").select("nome, largura, altura, categoria, cores, preco_por_cor, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+        supabase.from("kits").select("codigo, nome, largura, altura, categoria, cores, preco_por_cor, preco").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome", { ascending: true }),
         supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
       ]);
@@ -615,7 +663,7 @@ export default function CalculoFechamentoSacadaPage() {
           acktsKts.map((f) => ({ codigo: f.codigo, nome: f.nome, cores: f.cores, preco: f.preco, tipo_preco: typeof f.preco }))
         );
         if (acktsKts.length === 0) {
-          console.warn("[SACADA][ACKTS] Nenhum item ACKTS/ESCA57/FECKTS encontrado na tabela de ferragens!");
+          console.warn("[SACADA][ACKTS] Nenhum item ACKTS/ESCA57/FECKTS encontrado na tabela de ferragens. O conjunto ACKTS tambem pode vir da tabela de kits.");
         }
 
         const codigosAlvo = ["NYL", "TAM", "NYLON", "TAMPA"];
@@ -915,10 +963,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
   const codigoFitaVedacao = corPerfilNormalizada === "preto" ? "ESCA57-PT" : "ESCA57-CZ";
   const codigoFechadura = corPerfilNormalizada === "preto" ? "FECKTS-PT" : "FECKTS-BC";
   const codigoConjuntoAcessorios = faixaKit === "3,05"
-    ? "ACKTS305"
+    ? "ACKTS3025"
     : faixaKit === "4,05"
-      ? "ACKTS405"
-      : "ACKTS605";
+      ? "ACKTS4025"
+      : "ACKTS6025";
 
   const perimetroVidroSuperiorMm = (resultadoSuperior.larguraVidroMm * 2) + (resultadoSuperior.alturaVidroMm * 2);
   const metragemFitaNecessaria = Number(((perimetroVidroSuperiorMm * resultadoSuperior.quantidadeTotalVidros) / 1000).toFixed(2));
@@ -969,11 +1017,12 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       : null;
     const ferragemConjunto = ehConjuntoAcessorios
       ? (() => {
-          // 1º tenta pelo código com cor, 2º pelo nome parcial
+          const porKit = resolverKitPorCodigoOuNomeECor(kitsTabela, codigoConjuntoAcessorios, nomeConjuntoAcessorios, corPerfil || "Preto");
+          if (porKit.preco > 0) return porKit;
           const porCodigo = resolverFerragemPorCodigoECor(ferragensTabela, codigoConjuntoAcessorios, nome, corPerfil || "Preto");
-          if (porCodigo.preco > 0) return porCodigo;
+          if (porCodigo.preco > 0) return { codigo: `${codigoConjuntoAcessorios}-${sufixoCorKit}`, nome, ...porCodigo };
           const porNome = resolverFerragemPorNome(ferragensTabela, nomeConjuntoAcessorios, corPerfil || "Preto");
-          return { preco: porNome.preco, corEncontrada: corPerfil || "Preto" };
+          return { codigo: `${codigoConjuntoAcessorios}-${sufixoCorKit}`, nome, preco: porNome.preco, corEncontrada: corPerfil || "Preto" };
         })()
       : null;
     const kitSemRolamento = ehKitSemRolamento
@@ -998,7 +1047,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
         : ehFitaVedacao
         ? (ferragemFita?.codigo || codigoFitaVedacao)
         : ehConjuntoAcessorios
-        ? `${codigoConjuntoAcessorios}-${sufixoCorKit}`
+        ? (ferragemConjunto?.codigo || `${codigoConjuntoAcessorios}-${sufixoCorKit}`)
         : ehKitSemRolamento
           ? `KTS4025-${sufixoCorKit}`
           : (ferragemPorNome?.codigo || "-"),

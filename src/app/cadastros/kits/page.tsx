@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { decodeCsvFile } from "@/utils/csvEncoding"
-import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser } from "lucide-react"
+import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser, Tag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -18,6 +18,7 @@ import ImportarTabelaCatalogoModal from "@/components/ImportarTabelaCatalogoModa
 // --- TIPAGENS ---
 type Kit = {
   id: number;
+  codigo?: string | null;
   nome: string;
   largura: number;
   altura: number;
@@ -37,6 +38,7 @@ const padronizarTexto = (texto: string | null) => {
 };
 
 const criarKitVazio = (): KitFormData => ({
+  codigo: "",
   nome: "",
   largura: 0,
   altura: 0,
@@ -243,6 +245,7 @@ export default function KitsPage() {
 
     setCarregando(true);
     const dadosParaSalvar = {
+      codigo: novoKit.codigo?.toUpperCase().trim() || null,
       nome: padronizarTexto(novoKit.nome),
       largura: Number(novoKit.largura),
       altura: Number(novoKit.altura),
@@ -389,14 +392,15 @@ export default function KitsPage() {
         setModalAviso({ titulo: "Aviso", mensagem: "Não há dados para exportar." });
         return;
       }
-      const cabecalhos = ["Nome", "Largura (mm)", "Altura (mm)", "Cor", "Categoria", "Preço"];
+      const cabecalhos = ["Código", "Nome", "Largura (mm)", "Altura (mm)", "Cor", "Categoria", "Preço"];
       const linhas = kits.map(kit => [
-        `"${kit.nome}"`,                                     // Coluna 1: Nome
-        kit.largura,                                         // Coluna 2: Largura
-        kit.altura,                                          // Coluna 3: Altura
-        `"${kit.cores || "Padrão"}"`,                        // Coluna 4: Cor
-        `"${kit.categoria || "Geral"}"`,                     // Coluna 5: Categoria
-        (kit.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) // Coluna 6: Preço
+        `"${kit.codigo || ""}"`,
+        `"${kit.nome}"`,
+        kit.largura,
+        kit.altura,
+        `"${kit.cores || "Padrão"}"`,
+        `"${kit.categoria || "Geral"}"`,
+        (kit.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
       ]);
 
       // 3. MONTAR CONTEÚDO COM PONTO E VÍRGULA
@@ -479,6 +483,7 @@ export default function KitsPage() {
 
   const kitsFiltrados = kits.filter(k => {
     const matchesBusca = k.nome.toLowerCase().includes(filtroNome.toLowerCase()) ||
+      (k.codigo || "").toLowerCase().includes(filtroNome.toLowerCase()) ||
       (k.categoria || "").toLowerCase().includes(filtroNome.toLowerCase());
     const matchesCor = (k.cores || "").toLowerCase().includes(filtroCor.toLowerCase());
     return matchesBusca && matchesCor;
@@ -664,9 +669,10 @@ export default function KitsPage() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
                   <tr>
+                    <th className="px-4 py-3.5 font-normal">Código</th>
                     <th className="px-4 py-3.5 font-normal">Nome do kit</th>
                     <th className="px-4 py-3.5 font-normal">Largura</th>
                     <th className="px-4 py-3.5 font-normal">Altura</th>
@@ -679,6 +685,11 @@ export default function KitsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {kitsFiltrados.map(k => (
                     <tr key={k.id} className="transition-colors hover:bg-gray-50/80">
+                      <td className="px-4 py-3.5">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-normal uppercase text-slate-600">
+                          {k.codigo || "-"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3.5 text-gray-700">{k.nome}</td>
                       <td className="px-4 py-3.5 text-gray-600">{k.largura}</td>
                       <td className="px-4 py-3.5 text-gray-600">{k.altura}</td>
@@ -718,53 +729,73 @@ export default function KitsPage() {
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {editando ? "Editar Kit" : "Novo Kit"}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
+          <div className="flex max-h-[92vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] transition-all">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                  Catálogo de kits
+                </p>
+                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                  {editando ? "Editar Kit" : "Cadastrar Kit"}
                 </h2>
-                <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200"></div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Informe os dados principais e, se precisar, preços diferentes por tabela.
+                </p>
               </div>
-              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
-                <X size={16} />
+              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-5">
-              <div>
-                <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do Kit</label>
-                <input
-                  type="text"
-                  value={novoKit.nome}
-                  onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-blue-300"
-                />
-                <p className="mt-2 text-[11px] text-gray-400">
-                  Se o nome tiver algo como 1200x2100 8mm, a largura e a altura são sugeridas automaticamente, mas você pode alterar os campos abaixo.
-                </p>
-                <p className="mt-1 text-[11px] text-gray-400">
-                  Kits com o mesmo nome não podem ter referências diferentes.
-                </p>
-                <button
-                  type="button"
-                  onClick={aplicarMedidasDoNome}
-                  className="mt-2 text-[11px] font-semibold"
-                  style={{ color: darkTertiary }}
-                >
-                  Reaplicar medidas do nome
-                </button>
-                {espessuraDetectada && (
-                  <p className="mt-1 text-[11px] font-semibold" style={{ color: darkTertiary }}>
-                    Espessura detectada no nome: {espessuraDetectada}
-                  </p>
-                )}
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+              <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+              <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700">Dados do kit</h3>
+                    <p className="mt-1 text-xs text-slate-500">Campos principais para seleção e cálculo.</p>
+                  </div>
+                  <Square size={18} className="text-slate-300" />
+                </div>
 
-              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: F1-120-BC"
+                      value={novoKit.codigo || ""}
+                      onChange={e => setNovoKit({ ...novoKit, codigo: e.target.value.toUpperCase() })}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do kit *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Kit janela 1,20A x 1,50L 4F"
+                      value={novoKit.nome}
+                      onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    />
+                    <div className="mt-2 px-1 text-[11px] leading-relaxed text-slate-400">
+                      Medidas podem ser sugeridas pelo nome do kit.
+                      <button type="button" onClick={aplicarMedidasDoNome} className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                        Reaplicar medidas
+                      </button>
+                      {espessuraDetectada && (
+                        <span className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                          Espessura: {espessuraDetectada}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                 <div>
-                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Largura (mm)</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Largura (mm)</label>
                   <input
                     type="number"
                     value={novoKit.largura}
@@ -772,11 +803,12 @@ export default function KitsPage() {
                       larguraManualRef.current = true;
                       setNovoKit({ ...novoKit, largura: Number(e.target.value) });
                     }}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Altura (mm)</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Altura (mm)</label>
                   <input
                     type="number"
                     value={novoKit.altura}
@@ -784,57 +816,85 @@ export default function KitsPage() {
                       alturaManualRef.current = true;
                       setNovoKit({ ...novoKit, altura: Number(e.target.value) });
                     }}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cores</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
                   <input
                     type="text"
                     value={novoKit.cores || ""}
                     onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
                   <input
                     type="text"
                     value={novoKit.categoria || ""}
                     onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 transition-all focus:border-blue-300"
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-1 block ml-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço de Venda</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base</label>
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
+                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    >
+                      <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
                   <input
                     type="number"
                     step="0.01"
                     value={novoKit.preco ?? ""}
                     onChange={e => setNovoKit({ ...novoKit, preco: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 transition-all focus:border-blue-300"
+                        className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
                   />
+                    </div>
+                  </div>
                 </div>
+              </section>
+                <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Tabelas de preço</h3>
+                      <p className="mt-1 text-xs text-slate-500">Valores específicos por grupo de cliente.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-lime-200 bg-lime-50 px-3 py-2 text-xs font-semibold text-lime-600"
+                      title="Recurso reservado para preços especiais"
+                    >
+                      <PlusCircle size={14} />
+                      Adicionar
+                    </button>
+                  </div>
+                  <div className="flex min-h-[172px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-7 text-center">
+                    <Tag size={22} className="text-slate-300" />
+                    <p className="mt-4 text-sm font-medium text-slate-500">Nenhum preço especial cadastrado.</p>
+                    <p className="mt-2 max-w-[210px] text-xs leading-relaxed text-slate-400">
+                      O sistema usará o preço base para todos os clientes.
+                    </p>
+                  </div>
+                </section>
               </div>
             </div>
 
-            <div className="flex justify-end items-center gap-3 border-t border-slate-100 px-5 py-4">
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
               <button onClick={() => {
                 setMostrarModal(false);
                 larguraManualRef.current = false;
                 alturaManualRef.current = false;
                 ultimaDeteccaoRef.current = { largura: null, altura: null };
                 setEspessuraDetectada("");
-              }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50">Descartar</button>
-              <button onClick={salvarKit} disabled={carregando} className="rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: darkPrimary }}>
-                {carregando ? "Salvando..." : (editando ? "Salvar Alterações" : "Cadastrar Kit")}
+              }} className="rounded-2xl bg-slate-100 px-7 py-3 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-200">Cancelar</button>
+              <button onClick={salvarKit} disabled={carregando} className="rounded-2xl px-8 py-3 text-sm font-semibold shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: "#FFFFFF" }}>
+                {carregando ? "Processando..." : (editando ? "Atualizar" : "Salvar Kit")}
               </button>
             </div>
           </div>
