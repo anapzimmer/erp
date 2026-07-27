@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, ChevronDown, Settings, Palette, LogOut } from "lucide-react";
+import { Building2, ChevronDown, Settings, Palette, LogOut, TableProperties } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -338,6 +338,16 @@ export default function Header({
                   style={{ color: theme.contentTextLightBg }}
                 >
                   <Palette size={16} /> Identidade Visual
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/admin/tabelas");
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-black/5"
+                  style={{ color: theme.contentTextLightBg }}
+                >
+                  <TableProperties size={16} /> Tabelas
                 </button>
                 <button
                   onClick={async (e) => {

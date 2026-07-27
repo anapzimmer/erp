@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Palette, UploadCloud, Save, Image as ImageIcon, Sun, Moon } from "lucide-react";
+import { Brush, Image as ImageIcon, MonitorCog, Moon, Palette, Save, Sun, UploadCloud } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/context/ThemeContext";
 import Image from "next/image";
@@ -208,21 +208,21 @@ const handleSave = async () => {
 
     return (
       <div className="flex flex-col gap-2">
-        <label className="text-xs font-semibold text-gray-500">{label}</label>
-        <div className="flex items-center gap-2 border border-gray-100 rounded-xl p-2 bg-white">
+        <label className="text-xs font-medium text-slate-500">{label}</label>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
           <input
             type="color"
             value={validHex}
             onChange={handleChange}
             onBlur={handleBlur}
-            className="w-10 h-10 rounded-lg cursor-pointer border-0"
+            className="h-9 w-9 cursor-pointer rounded-lg border-0"
           />
           <input
             type="text"
             value={localColor}
             onChange={handleChange}
             onBlur={handleBlur}
-            className="font-mono text-sm w-full outline-none text-gray-800"
+            className="w-full bg-transparent font-mono text-sm text-slate-700 outline-none"
             style={{ backgroundColor: 'transparent' }}
           />
         </div>
@@ -274,60 +274,92 @@ const handleSave = async () => {
         />
 
         <main className="p-4 md:p-8 flex-1">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-4xl font-black" style={{ color: contentTextLightBg }}>Identidade Visual</h1>
-            <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Configure logos e cores do sistema.</p>
+          <div
+            className="mb-6 rounded-[24px] border p-6 md:p-8 shadow-sm"
+            style={{ backgroundColor: contentTextDarkBg, borderColor: `${contentTextLightBg}14` }}
+          >
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+                  style={{ backgroundColor: `${menuIconColor}14`, borderColor: `${menuIconColor}2E`, color: menuIconColor }}
+                >
+                  <Palette size={22} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `${contentTextLightBg}8A` }}>
+                    Configurações
+                  </p>
+                  <h1 className="mt-1 text-2xl font-semibold md:text-3xl" style={{ color: contentTextLightBg }}>
+                    Identidade Visual
+                  </h1>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                    Ajuste logos, cores do menu, botões, textos e modais usados em todo o sistema.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold shadow-sm transition-all disabled:opacity-70 sm:w-auto"
+                style={{ backgroundColor: buttonDarkBg, color: buttonDarkText, boxShadow: `0 12px 28px ${buttonDarkBg}24` }}
+              >
+                <Save size={17} />
+                {loading ? "Salvando..." : "Salvar identidade"}
+              </button>
+            </div>
           </div>
 
-          {/* 🔥 Borda removida aqui (border-gray-100 adicionada para suavidade) */}
-          <div className="p-4 md:p-8 rounded-3xl shadow-sm bg-white space-y-8">
+          <div
+            className="space-y-5 rounded-[24px] border p-5 md:p-6 shadow-sm"
+            style={{ backgroundColor: contentTextDarkBg, borderColor: `${contentTextLightBg}14` }}
+          >
 
-            {/* SEÇÃO LOGOS */}
-            <section className="space-y-6">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-                <ImageIcon className="text-[#39B89F]" /> Logotipos
-              </h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="border border-gray-100 rounded-2xl p-4 md:p-6 bg-gray-50">
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4">
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
+                <ImageIcon size={19} style={{ color: menuIconColor }} />
+                <h2 className="text-lg font-semibold text-slate-800">Logotipos</h2>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                  <label className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-700">
                     <Sun size={18} className="text-amber-500" /> Para Fundos Claros
                   </label>
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-full h-24 md:h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden bg-white">
+                    <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white">
                       {logoLight ? <Image src={logoLight} alt="Logo Claro" width={150} height={100} className="max-h-16 md:max-h-24 object-contain" /> : <UploadCloud className="text-gray-400" size={30} />}
                     </div>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setLogoLight)} className="text-xs md:text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all duration-200 " />
+                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setLogoLight)} className="text-xs text-slate-500 file:mr-3 file:rounded-xl file:border file:border-slate-200 file:bg-white file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-50" />
                   </div>
                 </div>
 
-                <div className="border border-gray-100 rounded-2xl p-4 md:p-6" style={{ backgroundColor: menuBackgroundColor }}>
-                  <label className="flex items-center gap-2 text-sm font-bold text-white mb-4">
+                <div className="rounded-2xl border p-4 md:p-5" style={{ backgroundColor: menuBackgroundColor, borderColor: `${menuTextColor}1F` }}>
+                  <label className="mb-4 flex items-center gap-2 text-sm font-medium text-white">
                     <Moon size={18} className="text-sky-300" /> Para Fundos Escuros
                   </label>
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-full h-24 md:h-32 border-2 border-dashed border-white/20 rounded-xl flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${menuBackgroundColor}80` }}>
+                    <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/25" style={{ backgroundColor: `${menuBackgroundColor}80` }}>
                       {logoDark ? <Image src={logoDark} alt="Logo Escuro" width={150} height={100} className="max-h-16 md:max-h-24 object-contain" /> : <UploadCloud className="text-white/50" size={30} />}
                     </div>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setLogoDark)} className=" text-xs md:text-sm text-white/70 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 transition-all duration-200 " />
+                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setLogoDark)} className="text-xs text-white/70 file:mr-3 file:rounded-xl file:border file:border-white/15 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/20" />
                   </div>
                 </div>
               </div>
             </section>
 
-            <hr className="border-gray-100" />
+            <hr className="border-slate-100" />
 
-            {/* SEÇÃO CORES MINIMALISTA */}
-            <section className="space-y-12">
-              <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                <Palette className="text-gray-400" size={20} />
-                <h2 className="text-lg font-semibold text-gray-800">Cores do Sistema</h2>
+            <section className="space-y-8">
+              <div className="flex items-center gap-3">
+                <MonitorCog size={19} className="text-slate-400" />
+                <h2 className="text-lg font-semibold text-slate-800">Cores do Sistema</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
 
-                {/* Ambiente */}
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Ambiente</h3>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Ambiente</h3>
                   <div className="space-y-4">
                     <ColorInput label="Fundo Geral" color={screenBackgroundColor} setter={setScreenBackgroundColor} />
                     <ColorInput label="Texto Principal" color={contentTextLightBg} setter={setContentTextLightBg} />
@@ -335,9 +367,8 @@ const handleSave = async () => {
                   </div>
                 </div>
 
-                {/* Navegação */}
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Barra Lateral</h3>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Barra Lateral</h3>
                   <div className="space-y-4">
                     <ColorInput label="Fundo Sidebar" color={menuBackgroundColor} setter={setMenuBackgroundColor} />
                     <ColorInput label="Texto" color={menuTextColor} setter={setMenuTextColor} />
@@ -346,19 +377,18 @@ const handleSave = async () => {
                   </div>
                 </div>
 
-                {/* Ações */}
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Botões Principais</h3>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Botões Principais</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 space-y-2">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase">Primário</p>
+                      <p className="text-[10px] font-medium uppercase text-slate-400">Primário</p>
                       <div className="flex gap-2">
                         <ColorInput label="Fundo" color={buttonDarkBg} setter={setButtonDarkBg} />
                         <ColorInput label="Letra" color={buttonDarkText} setter={setButtonDarkText} />
                       </div>
                     </div>
                     <div className="col-span-2 space-y-2 pt-2">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase">Secundário</p>
+                      <p className="text-[10px] font-medium uppercase text-slate-400">Secundário</p>
                       <div className="flex gap-2">
                         <ColorInput label="Fundo" color={buttonLightBg} setter={setButtonLightBg} />
                         <ColorInput label="Letra" color={buttonLightText} setter={setButtonLightText} />
@@ -367,10 +397,9 @@ const handleSave = async () => {
                   </div>
                 </div>
 
-                {/* Feedback (Ocupa a largura toda) */}
-                <div className="md:col-span-2 lg:col-span-3 pt-8 border-t border-gray-50">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-8">Modais e Mensagens</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 md:col-span-2 xl:col-span-3">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Modais e Mensagens</h3>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
                     <ColorInput label="Fundo" color={modalBackgroundColor} setter={setModalBackgroundColor} />
                     <ColorInput label="Texto" color={modalTextColor} setter={setModalTextColor} />
                     <ColorInput label="Botão" color={modalButtonBackgroundColor} setter={setModalButtonBackgroundColor} />
@@ -382,21 +411,6 @@ const handleSave = async () => {
                 </div>
               </div>
             </section>
-
-            <div className="pt-6 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="flex items-center gap-2 font-bold px-8 py-4 rounded-2xl transition-all disabled:opacity-70 w-full sm:w-auto justify-center shadow-lg hover:scale-[1.02] active:scale-95"
-                style={{
-                  backgroundColor: buttonDarkBg,
-                  color: buttonDarkText // 👈 Correção: Agora o texto segue o estado
-                }}
-              >
-                <Save size={18} />
-                {loading ? "Salvando..." : "Aplicar Nova Identidade"}
-              </button>
-            </div>
           </div>
         </main>
       </div>

@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { PlusCircle, Trash2, Percent, Check, Search, ArrowLeft, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText, Link2, Sparkles, X, AlertTriangle } from "lucide-react"
+import { PlusCircle, Trash2, Percent, Check, Search, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText, Link2, Sparkles, X, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 // 🔥 IMPORTANTE: Importar o hook de tema
 import { useTheme } from "@/context/ThemeContext"
@@ -839,26 +839,57 @@ const { error } = await supabase
       handleSignOut={handleSignOut}
     />
 
-        {/* CONTEÚDO ESPECÍFICO */}
         <main className="p-4 md:p-8 flex-1">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => router.back()} className="p-2 rounded-xl bg-white border border-gray-100 hover:bg-gray-50">
-              <ArrowLeft size={20} className="text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-2xl md:text-4xl font-black" style={{ color: theme.contentTextLightBg }}>Gestão de Preços</h1>
-              <p className="text-gray-500 mt-1 font-medium text-sm md:text-base">Gerencie tabelas e reajustes de preços dos vidros.</p>
+          <div
+            className="mb-6 rounded-[24px] border p-6 md:p-8 shadow-sm"
+            style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}
+          >
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+                  style={{ backgroundColor: `${theme.menuIconColor}14`, borderColor: `${theme.menuIconColor}2E`, color: theme.menuIconColor }}
+                >
+                  <TableProperties size={22} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `${theme.contentTextLightBg}8A` }}>
+                    Configurações
+                  </p>
+                  <h1 className="mt-1 text-2xl font-semibold md:text-3xl" style={{ color: theme.contentTextLightBg }}>Tabelas</h1>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                    Gerencie tabelas de preço, vincule vidros e aplique reajustes sem sair do padrão visual do sistema.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 lg:w-[430px]">
+                {[
+                  { label: "Tabelas", valor: tabelas.length },
+                  { label: "Vidros", valor: vidros.length },
+                  { label: "Itens", valor: itensTabela.length },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border px-4 py-3"
+                    style={{ backgroundColor: `${theme.screenBackgroundColor}B8`, borderColor: `${theme.contentTextLightBg}12` }}
+                  >
+                    <p className="text-[11px] font-medium text-slate-500">{item.label}</p>
+                    <p className="mt-1 text-xl font-semibold" style={{ color: theme.contentTextLightBg }}>{item.valor}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="mb-6 p-4 md:p-5 rounded-2xl border border-dashed border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style={{ backgroundColor: theme.contentTextDarkBg }}>
+          <div className="mb-5 flex flex-col gap-4 rounded-[22px] border p-4 md:flex-row md:items-center md:justify-between md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
             <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${theme.menuIconColor}18`, color: theme.menuIconColor }}>
-                <FileText size={22} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: `${theme.menuIconColor}12`, borderColor: `${theme.menuIconColor}26`, color: theme.menuIconColor }}>
+                <FileText size={19} />
               </div>
               <div>
-                <h2 className="font-bold" style={{ color: theme.contentTextLightBg }}>Importar tabela pelo relatório TXT</h2>
-                <p className="text-sm text-gray-500 mt-1">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
+                <h2 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>Importar tabela pelo relatório TXT</h2>
+                <p className="mt-1 text-sm text-slate-500">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
               </div>
             </div>
 
@@ -877,39 +908,35 @@ const { error } = await supabase
               type="button"
               onClick={() => arquivoTabelaRef.current?.click()}
               disabled={carregando}
-              className="px-5 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50 shrink-0"
-              style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
+              className="flex shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold shadow-sm transition hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: theme.menuBackgroundColor, color: theme.contentTextDarkBg, boxShadow: `0 12px 28px ${theme.menuBackgroundColor}24` }}
             >
               <Upload size={18} />
               {carregando ? "Importando..." : "Enviar tabela TXT"}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
 
-            {/* COLUNA ESQUERDA - GRUPOS */}
-            <div className="md:col-span-1 p-6 rounded-3xl border border-gray-100 shadow-sm h-fit" style={{ backgroundColor: theme.contentTextDarkBg }}>
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.contentTextLightBg }}>
-                <Layers3 size={20} style={{ color: theme.menuIconColor }} /> Grupos de Preço
+            <div className="h-fit rounded-[22px] border p-5 shadow-sm xl:col-span-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
+              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold" style={{ color: theme.contentTextLightBg }}>
+                <Layers3 size={18} style={{ color: theme.menuIconColor }} /> Grupos de Preço
               </h2>
 
-              {/* 🔥 INPUT E BOTÃO DE ADICIONAR INTEGRADOS */}
               <div className="relative mb-5 group/add">
                 <input
                   type="text"
                   value={nomeNovaTabela}
                   onChange={e => setNomeNovaTabela(e.target.value)}
                   placeholder="Nova tabela..."
-                  // 🔥 Aumentei o padding direito (pr-16) para o texto não ficar embaixo do botão
-                  className="w-full p-2.5 pr-16 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none"
+                  className="w-full rounded-2xl border border-slate-200 bg-white p-3 pr-14 text-sm outline-none focus:border-slate-300"
                 />
                 <button
                   onClick={criarTabela}
-                  // 🔥 REMOVI 'opacity-0' E 'group-hover/add:opacity-100' PARA FICAR VISÍVEL SEMPRE
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-300 shrink-0"
-                  style={{ backgroundColor: theme.menuBackgroundColor, color: "#FFF" }}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-xl p-2 transition-all duration-200"
+                  style={{ backgroundColor: theme.menuBackgroundColor, color: theme.contentTextDarkBg }}
                 >
-                  <PlusCircle size={20} />
+                  <PlusCircle size={18} />
                 </button>
               </div>
 
@@ -919,13 +946,12 @@ const { error } = await supabase
                   return (
                   <div
                     key={t.id}
-                    className={`w-full group text-left p-3.5 rounded-xl font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-gray-50'
+                    className={`w-full group text-left p-3 rounded-2xl text-sm font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-slate-50'
                       }`}
                     style={{
-                      // Se selecionado, usa a cor do tema com transparência, senão transparente
                       backgroundColor: tabelaSelecionada?.id === t.id ? `${theme.menuBackgroundColor}15` : 'transparent',
                       color: tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : 'inherit',
-                      border: `1px solid ${tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : '#E5E7EB'}`
+                      border: `1px solid ${tabelaSelecionada?.id === t.id ? `${theme.menuBackgroundColor}80` : '#E2E8F0'}`
                     }}
                   >
                     {editandoEstaTabela ? (
@@ -969,7 +995,7 @@ const { error } = await supabase
                         </>
                       ) : (
                         <>
-                          {tabelaSelecionada?.id === t.id && <Check size={18} className="text-blue-600" />}
+                          {tabelaSelecionada?.id === t.id && <Check size={17} style={{ color: theme.menuIconColor }} />}
 
                           <button
                             type="button"
@@ -1002,19 +1028,18 @@ const { error } = await supabase
               </div>
             </div>
 
-            {/* COLUNA DIREITA - ITENS */}
-            <div className="md:col-span-3 p-6 rounded-3xl border border-gray-100 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg }}>
+            <div className="rounded-[22px] border p-5 shadow-sm xl:col-span-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
               {tabelaSelecionada ? (
                 <>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+                  <div className="mb-5 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Tabela Selecionada</p>
-                      <h2 className="text-3xl font-extrabold" style={{ color: theme.contentTextLightBg }}>{tabelaSelecionada.nome}</h2>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Tabela selecionada</p>
+                      <h2 className="mt-1 text-2xl font-semibold" style={{ color: theme.contentTextLightBg }}>{tabelaSelecionada.nome}</h2>
                     </div>
-                    <div className="flex gap-2 items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
                       <div className="relative">
                         <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                        <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 p-2.5 pl-9 border border-gray-200 rounded-xl text-sm font-bold" />
+                        <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 rounded-xl border border-slate-200 bg-white p-2.5 pl-9 text-sm font-semibold" />
                       </div>
                       <button
                         onClick={() => setModalConfirmacao({
@@ -1025,7 +1050,7 @@ const { error } = await supabase
                           labelCancelar: "Cancelar",
                         })}
                         disabled={carregando}
-                        className="px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm transition hover:opacity-90 disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
                         style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
                       >
                         {carregando ? "Processando..." : "Reajustar %"}
@@ -1033,15 +1058,15 @@ const { error } = await supabase
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="mb-5 grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:grid-cols-12">
                     <div className="md:col-span-5 relative">
                       <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                      <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full p-2.5 pl-10 rounded-xl border border-gray-200 text-sm" />
+                      <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full rounded-xl border border-slate-200 bg-white p-2.5 pl-10 text-sm" />
                     </div>
                     <select
                       value={novoVidroId}
                       onChange={e => setNovoVidroId(e.target.value)}
-                      className="md:col-span-4 p-2.5 rounded-xl border border-gray-200 text-sm bg-white"
+                      className="rounded-xl border border-slate-200 bg-white p-2.5 text-sm md:col-span-4"
                     >
                       <option value="">Selecione o Vidro</option>
                       {vidrosFiltrados.map(v => (
@@ -1050,13 +1075,12 @@ const { error } = await supabase
                     </select>
                     <div className="md:col-span-2 relative">
                       <DollarSign size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                      <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full p-2.5 pl-8 rounded-xl border border-gray-200 text-sm" />
+                      <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full rounded-xl border border-slate-200 bg-white p-2.5 pl-8 text-sm" />
                     </div>
                     <button
                       onClick={adicionarVidroATabela}
                       disabled={carregando}
-                      className="md:col-span-1 p-2.5 rounded-xl text-sm font-semibold flex items-center justify-center transition hover:opacity-90 disabled:opacity-50"
-                      // Troquei menuBackgroundColor por menuIconColor (Turquesa)
+                      className="flex items-center justify-center rounded-xl p-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 md:col-span-1"
                       style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
                     >
                       {carregando ? (
@@ -1070,23 +1094,22 @@ const { error } = await supabase
                     </button>
                   </div>
 
-                  <div className="overflow-x-auto mt-6">
+                  <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-100">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="border-b border-gray-100">
-                          <th className="text-left py-4 px-2 text-xs font-black uppercase tracking-wider opacity-50" style={{ color: theme.modalTextColor }}>Vidro / Especificação</th>
-                          <th className="text-center py-4 px-2 text-xs font-black uppercase tracking-wider opacity-50" style={{ color: theme.modalTextColor }}>Preço (R$)</th>
-                          <th className="text-right py-4 px-2 text-xs font-black uppercase tracking-wider opacity-50" style={{ color: theme.modalTextColor }}>Ações</th>
+                        <tr className="border-b border-slate-100 bg-slate-50">
+                          <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Vidro / Especificação</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Preço (R$)</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {itensTabela.map((item) => (
-                          <tr key={item.id} className="border-b border-gray-50 group hover:bg-gray-50/50 transition-all">
-                            <td className="py-4 px-2">
+                          <tr key={item.id} className="group border-b border-slate-100 transition-all hover:bg-slate-50/70">
+                            <td className="px-4 py-4">
                               <div className="flex flex-col">
-                                {/* Trocamos text-gray-800 pelo style com a cor do tema */}
                                 <span
-                                  className="font-bold text-sm"
+                                  className="text-sm font-medium"
                                   style={{ color: theme.contentTextLightBg }}
                                 >
                                   {item.vidros?.nome}
@@ -1097,7 +1120,7 @@ const { error } = await supabase
                               </div>
                             </td>
 
-                            <td className="py-4 px-2 text-center">
+                            <td className="px-4 py-4 text-center">
                               {editandoItemId === item.id ? (
                                 <div className="flex items-center justify-center gap-2">
                                   <input
@@ -1118,14 +1141,14 @@ const { error } = await supabase
                                   </button>
                                 </div>
                               ) : (
-                                <span className="font-bold text-sm" style={{ color: theme.contentTextLightBg }}>
+                                <span className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
                                   R$ {item.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                               )}
                             </td>
 
-                            <td className="py-4 px-2 text-right">
-                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <td className="px-4 py-4 text-right">
+                              <div className="flex justify-end gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                                 <button
                                   onClick={() => iniciarEdicao(item)}
                                   className="p-2 hover:bg-white rounded-lg shadow-sm text-gray-400 hover:text-blue-500 transition-all"
@@ -1153,9 +1176,9 @@ const { error } = await supabase
                   </div>
                 </>
               ) : (
-                <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-                  <TableProperties size={50} className="mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg font-semibold">Nenhuma tabela selecionada</p>
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-20 text-center text-slate-500">
+                  <TableProperties size={44} className="mx-auto mb-4 text-slate-400" />
+                  <p className="text-base font-semibold">Nenhuma tabela selecionada</p>
                   <p className="text-sm">Selecione um grupo de preço ao lado para gerenciar.</p>
                 </div>
               )}
