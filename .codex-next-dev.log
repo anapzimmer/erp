@@ -1,0 +1,30 @@
+
+> dev
+> next dev --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.5:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 1711ms
+○ Compiling / ...
+ GET / 200 in 4.0s (compile: 3.8s, render: 184ms)
+ GET / 200 in 5.4s (compile: 5.2s, render: 194ms)
+○ Compiling /cadastros/vidros ...
+ GET /cadastros/vidros 200 in 3.8s (compile: 3.4s, render: 434ms)
+ GET / 200 in 43ms (compile: 18ms, render: 26ms)
+ GET /matriz-projetos 200 in 565ms (compile: 504ms, render: 60ms)
+ GET /central-impressao 200 in 1329ms (compile: 1241ms, render: 88ms)
+ GET /calculo/peledevidro 200 in 1171ms (compile: 1041ms, render: 130ms)
+ GET /pfv1f-kit 200 in 1395ms (compile: 1316ms, render: 79ms)
+ GET /calculo/calculovidro 200 in 1283ms (compile: 1100ms, render: 183ms)
+ GET /calculo/peledevidro 200 in 45ms (compile: 12ms, render: 33ms)
+ GET /calculo/peledevidro 200 in 27ms (compile: 3ms, render: 24ms)
+ GET /calculo/peledevidro 200 in 25ms (compile: 3ms, render: 22ms)
+ GET /calculo/peledevidro 200 in 26ms (compile: 3ms, render: 23ms)
+ GET /calculo/peledevidro 200 in 29ms (compile: 3ms, render: 26ms)
+ GET /calculo/peledevidro 200 in 32ms (compile: 3ms, render: 29ms)
+ GET / 200 in 42ms (compile: 10ms, render: 32ms)
+ GET /calculo/fechamentosacada 200 in 782ms (compile: 757ms, render: 25ms)

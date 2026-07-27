@@ -404,7 +404,7 @@ export default function FerragensPage() {
       setGerandoPDF(true);
 
       const { pdf } = await import('@react-pdf/renderer');
-      const { FerragensPDF } = await import('../../relatorios/ferragens/FerragensPDF');
+      const { FerragensPDF } = await import('../../../relatorios/ferragens/FerragensPDF');
 
       // LIMPEZA PARA O PDF FICAR BONITO:
       const dadosLimpos = ferragens.map(f => ({
@@ -850,4 +850,6 @@ export default function FerragensPage() {
     </div>
   )
 }
+
+
 

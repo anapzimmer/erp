@@ -30,7 +30,7 @@ import {
   UserRound,
   Wrench,
 } from "lucide-react";
-import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../relatorios/projetoindividual/ProjetoIndividualPDF";
+import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 
 type ClienteCadastro = {
   id: string;
