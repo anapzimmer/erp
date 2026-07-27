@@ -12,6 +12,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ThemeLoader from "@/components/ThemeLoader"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
+const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
+const CENTRAL_IMPRESSAO_OBRA_KEY = "glasscode:central-impressao:obra";
+
+const criarId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random());
+
+const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
 type ShapeStyle = {
   width: number;
   height: number;
@@ -113,6 +122,99 @@ function getShapeStyle(
   return shape;
 }
 
+const numeroMedida = (valor: number) => Math.round(Number(valor || 0)).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+
+const descricaoVidroSemPrefixo = (descricao?: string) =>
+  String(descricao || "Espelho").replace(/^vidro\s+/i, "").trim();
+
+const calcularAreaItemEspelho = (item: any) => {
+  if (Number(item.m2 || 0) > 0) return Number(item.m2 || 0);
+  const largura = Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 0);
+  const altura = Number(item.alturaReal || String(item.medidas || "").split("x")[1] || 0);
+  const qtd = Number(item.quantidade || 1);
+  return (largura * altura * qtd) / 1_000_000;
+};
+
+const quantidadePecasEspelho = (item: any) => {
+  const divisoes = Math.max(1, Number(item.divisoesLargura || 1)) * Math.max(1, Number(item.divisoesAltura || 1));
+  return Math.max(1, Number(item.quantidade || 1)) * divisoes;
+};
+
+const medidaPecaEspelho = (item: any) => {
+  const largura = Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 0);
+  const altura = Number(item.alturaReal || String(item.medidas || "").split("x")[1] || 0);
+  const divL = Math.max(1, Number(item.divisoesLargura || 1));
+  const divA = Math.max(1, Number(item.divisoesAltura || 1));
+  return `${numeroMedida(largura / divL)}x${numeroMedida(altura / divA)}`;
+};
+
+const gerarDesenhoEspelhosUrl = (itens: any[]) => {
+  const larguraSvg = 620;
+  const alturaCard = 210;
+  const espacamento = 22;
+  const alturaSvg = Math.max(260, itens.length * alturaCard + 40);
+
+  const desenhos = itens.map((item, index) => {
+    const larguraReal = Math.max(1, Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 1));
+    const alturaReal = Math.max(1, Number(item.alturaReal || String(item.medidas || "").split("x")[1] || 1));
+    const tipoVisual = String(item.tipoVisual || "padrao");
+    const escala = Math.min(230 / larguraReal, 150 / alturaReal);
+    const w = Math.max(52, Math.round(larguraReal * escala));
+    const h = Math.max(52, Math.round(alturaReal * escala));
+    const x = Math.round((larguraSvg - w) / 2);
+    const y = 26 + index * alturaCard;
+    const labelY = y + h + 26;
+    const fill = "#dbe6ee";
+    const stroke = "#6f8190";
+    const qtdPecas = quantidadePecasEspelho(item);
+    const medida = medidaPecaEspelho(item);
+
+    if (tipoVisual.includes("jogo")) {
+      const divL = Math.max(1, Number(item.divisoesLargura || 1));
+      const divA = Math.max(1, Number(item.divisoesAltura || 1));
+      const gap = 5;
+      const cellW = (w - gap * (divL - 1)) / divL;
+      const cellH = (h - gap * (divA - 1)) / divA;
+      const pecas = Array.from({ length: divL * divA }).map((_, i) => {
+        const col = i % divL;
+        const row = Math.floor(i / divL);
+        return `<rect x="${x + col * (cellW + gap)}" y="${y + row * (cellH + gap)}" width="${cellW}" height="${cellH}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="2" />`;
+      }).join("");
+
+      return `
+        <g>
+          ${pecas}
+          <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="18" font-weight="600" fill="#0f2742">${qtdPecas} peça(s) - ${medida} mm</text>
+        </g>
+      `;
+    }
+
+    const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval") ? Math.min(w, h) / 2 : tipoVisual.includes("capsula") ? Math.min(w, h) / 3 : 8;
+    const bisote = tipoVisual.includes("bisote")
+      ? `<rect x="${x + 12}" y="${y + 12}" width="${Math.max(0, w - 24)}" height="${Math.max(0, h - 24)}" rx="${Math.max(4, rx - 8)}" fill="none" stroke="#f8fafc" stroke-width="3" />`
+      : "";
+    const led = tipoVisual.includes("led")
+      ? `<rect x="${x + 16}" y="${y + 16}" width="${Math.max(0, w - 32)}" height="${Math.max(0, h - 32)}" rx="${Math.max(4, rx - 12)}" fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="8 8" opacity="0.9" />`
+      : "";
+
+    return `
+      <g>
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${tipoVisual.includes("bisote") ? 10 : 3}" />
+        ${bisote}
+        ${led}
+        <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="18" font-weight="600" fill="#0f2742">${qtdPecas} peça(s) - ${medida} mm</text>
+      </g>
+    `;
+  }).join("");
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${larguraSvg}" height="${alturaSvg}" viewBox="0 0 ${larguraSvg} ${alturaSvg}">
+      <rect width="100%" height="100%" fill="#f8fafc"/>
+      ${desenhos}
+    </svg>
+  `);
+};
+
 export default function CalculoEspelhosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,6 +239,7 @@ export default function CalculoEspelhosPage() {
   const [acabamentoId, setAcabamentoId] = useState("");
   const [listaItens, setListaItens] = useState<any[]>([]);
   const [showModalPDF, setShowModalPDF] = useState(false);
+  const [showModalCentral, setShowModalCentral] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
   const [nomeObra, setNomeObra] = useState("");
   const [divisoesLargura, setDivisoesLargura] = useState(1);
@@ -392,6 +495,7 @@ export default function CalculoEspelhosPage() {
       descricao: descricaoFinal,
       medidas: `${largura}x${altura}`,
       quantidade: quantidade,
+      m2: calculoAtual.m2,
       total: calculoAtual.total,
 
       // 🔥 ESSENCIAL PARA O PDF
@@ -411,6 +515,85 @@ export default function CalculoEspelhosPage() {
     setTimeout(() => {
       larguraInputRef.current?.focus();
     }, 10);
+  };
+
+  const enviarParaCentralImpressao = (comDesenho: boolean) => {
+    if (listaItens.length === 0) {
+      setModalAvisoTitulo("Atenção");
+      setModalAvisoMensagem("Adicione pelo menos um espelho antes de enviar para a central de impressão.");
+      setShowModalAviso(true);
+      return;
+    }
+
+    const totalPecas = listaItens.reduce((total, item) => total + quantidadePecasEspelho(item), 0);
+    const areaTotal = listaItens.reduce((total, item) => total + calcularAreaItemEspelho(item), 0);
+    const valorTotal = listaItens.reduce((total, item) => total + Number(item.total || 0), 0);
+
+    const vidrosAvulsos = listaItens.map((item) => ({
+      id: criarId(),
+      quantidade: quantidadePecasEspelho(item),
+      medida: medidaPecaEspelho(item),
+      vidro: descricaoVidroSemPrefixo(item.descricao),
+      valorTotal: Number(item.total || 0),
+    }));
+
+    const materiais = listaItens.map((item) => {
+      const area = calcularAreaItemEspelho(item);
+      const valorUnitario = area > 0 ? Number(item.total || 0) / area : 0;
+
+      return {
+        id: criarId(),
+        qtd: Number(area.toFixed(3)),
+        unidade: "m2",
+        descricao: `ESPELHO ${medidaPecaEspelho(item)} ${descricaoVidroSemPrefixo(item.descricao)}`.toUpperCase(),
+        valorUnitario,
+      };
+    });
+
+    const medidasDetalhadas = listaItens
+      .map((item, index) => `${index + 1}. ${quantidadePecasEspelho(item)} peça(s) - ${descricaoVidroSemPrefixo(item.descricao)} - ${medidaPecaEspelho(item)}`)
+      .join("\n");
+
+    const itemCentral = {
+      id: criarId(),
+      numero: ultimoNumeroGerado || "novo",
+      projeto: "Espelhos avulsos",
+      cliente: nomeCliente,
+      medidas: `${totalPecas} peça(s) | ${areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`,
+      largura: 0,
+      altura: 0,
+      quantidade: 1,
+      modo: "Espelho",
+      desenhoUrl: comDesenho ? gerarDesenhoEspelhosUrl(listaItens) : "",
+      vidro: "Conforme relação",
+      corKit: "",
+      corPerfil: "",
+      trilho: "",
+      puxador: "",
+      tamanhoPuxador: "",
+      trinco: "",
+      pecasDivisao: totalPecas,
+      medidasDetalhadas,
+      vidrosAvulsos,
+      valorTotal,
+      materiais,
+      origemRota: "/calculo/espelhos",
+    };
+
+    try {
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? JSON.parse(salvo) : [];
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, itemCentral]));
+      if (nomeCliente) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, nomeCliente);
+      if (nomeObra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, nomeObra);
+      setShowModalCentral(false);
+      router.push("/central-impressao");
+    } catch (erro) {
+      console.warn("Não foi possível enviar os espelhos para a central de impressão:", erro);
+      setModalAvisoTitulo("Erro ao enviar");
+      setModalAvisoMensagem("Não foi possível enviar os espelhos para a central de impressão.");
+      setShowModalAviso(true);
+    }
   };
 
   // --- FUNÇÃO RenderPreview ATUALIZADA (Correção Semi-Oval) ---
@@ -653,6 +836,14 @@ export default function CalculoEspelhosPage() {
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Salvar Orçamento
+              </button>
+
+              <button
+                onClick={() => setShowModalCentral(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
+                title="Enviar para a central de impressão"
+              >
+                PDF+
               </button>
 
               {/* Ícone discreto para PDF */}
@@ -1060,6 +1251,41 @@ export default function CalculoEspelhosPage() {
                   )}
                 </PDFDownloadLink>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showModalCentral && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Central de impressão</p>
+                <h3 className="mt-1 text-lg font-semibold text-[#0f2742]">Enviar espelhos</h3>
+                <p className="mt-1 text-sm text-slate-500">Escolha como este orçamento deve aparecer na central e no PDF.</p>
+              </div>
+              <button onClick={() => setShowModalCentral(false)} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-3 p-6 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => enviarParaCentralImpressao(true)}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+              >
+                <p className="text-sm font-semibold text-[#0f2742]">Com desenho</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">Leva a miniatura criada pelo sistema junto com a relação dos espelhos.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => enviarParaCentralImpressao(false)}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-blue-200 hover:bg-blue-50"
+              >
+                <p className="text-sm font-semibold text-[#0f2742]">Sem desenho</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">Envia como avulso, igual aos vidros, mostrando peças, medidas e valores.</p>
+              </button>
             </div>
           </div>
         </div>

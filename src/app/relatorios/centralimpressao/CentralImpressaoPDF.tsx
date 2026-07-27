@@ -627,6 +627,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<CentralImpressaoItem, "largura"
 const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressaoItem, "pecasDivisao" | "puxador" | "tamanhoPuxador" | "trinco">) => {
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
+  if (texto.includes("vidros avulsos") || texto.includes("espelhos avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
@@ -665,7 +666,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   return 1;
 };
 
-const ehVidroAvulso = (projeto?: string) => /vidros avulsos/i.test(String(projeto || ""));
+const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
 
 export function CentralImpressaoPDF({
   itens,
@@ -796,7 +797,7 @@ export function CentralImpressaoPDF({
             const fechamentoSacada = ehFechamentoSacada(item.projeto);
             const temSegundoVidro = temBandeira || fechamentoSacada;
             const ehJanelaComSacada = ehJc2fComSacada || ehJc4fComSacada;
-            const ehVidroAvulso = /vidros avulsos/i.test(item.projeto || "");
+            const ehVidroAvulso = /(vidros|espelhos) avulsos/i.test(item.projeto || "");
             const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
             const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
@@ -843,7 +844,7 @@ export function CentralImpressaoPDF({
                   ) : (
                     <View>
                       <Text style={styles.imagePlaceholderTitle}>Sem desenho</Text>
-                      <Text style={styles.imagePlaceholderText}>Vidros avulsos</Text>
+                      <Text style={styles.imagePlaceholderText}>Itens avulsos</Text>
                     </View>
                   )}
                 </View>

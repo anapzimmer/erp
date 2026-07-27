@@ -208,7 +208,7 @@ const ehPma5f = (projeto?: string) => /pma5f|m[aã]o amiga 5/i.test(String(proje
 const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(projeto || ""));
 const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
 const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
-const ehVidroAvulso = (projeto?: string) => /vidros avulsos/i.test(String(projeto || ""));
+const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehBoxCanto3f = (projeto?: string) => /boxcanto3f|box de canto 3/i.test(String(projeto || ""));
 const ehBoxCanto = (projeto?: string) => /boxcanto|box de canto/i.test(String(projeto || ""));
@@ -544,7 +544,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<ProjetoComposicao, "largura" | 
 const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposicao, "pecasDivisao" | "puxador" | "tamanhoPuxador" | "trinco">) => {
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
-  if (texto.includes("vidros avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
+  if (texto.includes("vidros avulsos") || texto.includes("espelhos avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
   }
@@ -1404,7 +1404,7 @@ export default function CentralImpressaoPage() {
                             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                               Sem desenho
                             </p>
-                            <p className="mt-1 text-sm text-slate-500">Vidros avulsos</p>
+                            <p className="mt-1 text-sm text-slate-500">Itens avulsos</p>
                           </div>
                         )}
                       </div>
