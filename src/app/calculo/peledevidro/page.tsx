@@ -734,8 +734,11 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
       desenhoUrl: "",
       vidro: montarDescricaoVidro(vidroSelecionado),
       corKit: "Padrão",
-      trilho: `${qH} x ${qV} quadros`,
-      trinco: `${lajes} laje(s)`,
+      trilho: String(qH),
+      trinco: String(qV),
+      alturaAteTubo: lajes,
+      puxador: String(fixos),
+      tamanhoPuxador: String(moveis),
       pecasDivisao: Math.max(qH * qV, 1),
       medidasDetalhadas: `Quadro: ${formatarNumero(resultado.larguraQuadroMm, 0)} x ${formatarNumero(resultado.alturaQuadroMm, 0)} mm\nTotal de quadros: ${resultado.totalQuadros}\nFixos: ${fixos} | Móveis: ${moveis}`,
       valorTotal: totalGeral,
@@ -1047,7 +1050,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                   <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
-                      Vidro da tabela
+                      Vidro da fachada
                     </span>
                     <input
                       value={buscaVidro}

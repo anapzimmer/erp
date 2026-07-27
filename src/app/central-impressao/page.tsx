@@ -306,39 +306,183 @@ const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "alt
   `);
 };
 
+const numeroCampoFechamento = (valor: unknown, padrao = 1) => {
+  const direto = Number(valor || 0);
+  if (Number.isFinite(direto) && direto > 0) return direto;
+  const encontrado = String(valor || "").match(/\d+/);
+  return encontrado ? Number(encontrado[0]) : padrao;
+};
+
+const alturaSuperiorFechamento = (item?: Pick<ProjetoComposicao, "altura" | "alturaAteTubo" | "tamanhoPuxador">) => {
+  const direta = Number(item?.tamanhoPuxador || 0);
+  if (Number.isFinite(direta) && direta > 0) return direta;
+  const total = Number(item?.altura || 0);
+  const inferior = Number(item?.alturaAteTubo || 0);
+  return total > inferior ? total - inferior : 0;
+};
+
+const desenhoFechamentoSacadaUrl = (item?: Pick<ProjetoComposicao, "largura" | "altura" | "alturaAteTubo" | "tamanhoPuxador" | "trilho" | "trinco" | "corPerfil" | "corKit">) => {
+  const largura = Math.max(1, Math.round(Number(item?.largura || 2000)));
+  const alturaInferior = Math.max(1, Math.round(Number(item?.alturaAteTubo || Math.round(Number(item?.altura || 2000) / 2))));
+  const alturaSuperior = Math.max(1, Math.round(alturaSuperiorFechamento(item) || alturaInferior));
+  const divisoesInferior = Math.max(1, Math.min(12, numeroCampoFechamento(item?.trilho, 1)));
+  const divisoesSuperior = Math.max(1, Math.min(12, numeroCampoFechamento(item?.trinco, divisoesInferior)));
+  const totalAltura = alturaInferior + alturaSuperior;
+  const svgW = 360;
+  const padL = 40;
+  const padR = 10;
+  const padTop = 15;
+  const padBot = 40;
+  const drawW = svgW - padL - padR;
+  const ratio = Math.min(Math.max((totalAltura / largura) * 1.46, 0.62), 2.45);
+  const drawH = Math.min(drawW * ratio, 180);
+  const svgH = drawH + padTop + padBot;
+  const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
+  const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
+  const areaUtilH = Math.max(drawH - railH * 3, 60);
+  const moduloSupH = areaUtilH * (alturaSuperior / totalAltura);
+  const moduloInfH = areaUtilH * (alturaInferior / totalAltura);
+  const x0 = padL;
+  const y0 = padTop;
+  const yModuloSup = y0 + railH;
+  const yMeio = yModuloSup + moduloSupH;
+  const yModuloInf = yMeio + railH;
+  const yBase = yModuloInf + moduloInfH;
+  const corPerfilNorm = normalizarTexto(item?.corPerfil || item?.corKit).replace(/\s+/g, "");
+  const corAluminio = corPerfilNorm === "branco" ? "#e8e8e8" : corPerfilNorm === "preto" ? "#5f666d" : corPerfilNorm === "fosco" ? "#a3a9af" : "#9e9e9e";
+  const corAluminioBorda = corPerfilNorm === "branco" ? "#c0c0c0" : corPerfilNorm === "preto" ? "#4f555b" : corPerfilNorm === "fosco" ? "#8f959a" : "#787878";
+  const renderModulo = (modulo: "SUP" | "INF", yModulo: number, moduloH: number, divisoes: number, larguraVidroMm: number, fill: string, stroke: string) => {
+    const totalPostW = (divisoes + 1) * postW;
+    const glassW = (drawW - totalPostW) / divisoes;
+    const glassH = Math.max(moduloH, 10);
+    const showLabelInside = divisoes <= 8 && glassW > 28;
+    const paineis = Array.from({ length: divisoes }, (_, index) => {
+      const pX = x0 + index * (glassW + postW);
+      const gX = pX + postW;
+      return `
+        <g>
+          <rect x="${pX}" y="${yModulo}" width="${postW}" height="${glassH}" fill="${corAluminio}" rx="0.5"/>
+          <rect x="${pX}" y="${yModulo}" width="${postW}" height="${glassH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.4" rx="0.5"/>
+          <rect x="${gX}" y="${yModulo}" width="${glassW}" height="${glassH}" fill="${fill}" fill-opacity="0.35" rx="1"/>
+          <rect x="${gX}" y="${yModulo}" width="${glassW}" height="${glassH}" fill="none" stroke="${stroke}" stroke-width="0.6" stroke-opacity="0.5" rx="1"/>
+          <line x1="${gX + glassW * 0.18}" y1="${yModulo + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${yModulo + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/>
+          ${showLabelInside ? `<text x="${gX + glassW / 2}" y="${yModulo + glassH / 2 + 3}" text-anchor="middle" font-size="${glassW > 55 ? 7.5 : 6}" fill="#4a7a73" opacity="0.55" font-weight="600" font-family="Segoe UI, Arial">${larguraVidroMm}</text>` : ""}
+        </g>
+      `;
+    }).join("");
+    const pFinal = x0 + divisoes * (glassW + postW);
+    return `
+      <g>
+        ${paineis}
+        <rect x="${pFinal}" y="${yModulo}" width="${postW}" height="${glassH}" fill="${corAluminio}" rx="0.5"/>
+        <rect x="${pFinal}" y="${yModulo}" width="${postW}" height="${glassH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.4" rx="0.5"/>
+        <text x="${x0 + 3}" y="${yModulo + 11}" font-size="8" fill="#0f2742" opacity="0.55" font-weight="700" font-family="Segoe UI, Arial">${modulo}</text>
+      </g>
+    `;
+  };
+  const larguraVidroSuperior = Math.round(largura / divisoesSuperior);
+  const larguraVidroInferior = Math.round(largura / divisoesInferior);
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+      <defs>
+        <linearGradient id="railGradFechamento" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${corAluminio}"/>
+          <stop offset="50%" stop-color="${corAluminioBorda}"/>
+          <stop offset="100%" stop-color="${corAluminio}"/>
+        </linearGradient>
+      </defs>
+      <rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="url(#railGradFechamento)" rx="1.5"/>
+      <rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.5" rx="1.5"/>
+      <rect x="${x0}" y="${yMeio}" width="${drawW}" height="${railH}" fill="url(#railGradFechamento)" rx="1.5"/>
+      <rect x="${x0}" y="${yMeio}" width="${drawW}" height="${railH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.5" rx="1.5"/>
+      <rect x="${x0}" y="${yBase}" width="${drawW}" height="${railH}" fill="url(#railGradFechamento)" rx="1.5"/>
+      <rect x="${x0}" y="${yBase}" width="${drawW}" height="${railH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.5" rx="1.5"/>
+      ${renderModulo("SUP", yModuloSup, moduloSupH, divisoesSuperior, larguraVidroSuperior, "#b8dff2", "#7fb7d4")}
+      ${renderModulo("INF", yModuloInf, moduloInfH, divisoesInferior, larguraVidroInferior, "#b8e6e0", "#7cbfb5")}
+      <line x1="${x0}" y1="${yBase + railH + 14}" x2="${x0 + drawW}" y2="${yBase + railH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0}" y1="${yBase + railH + 10}" x2="${x0}" y2="${yBase + railH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 + drawW}" y1="${yBase + railH + 10}" x2="${x0 + drawW}" y2="${yBase + railH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="${x0 + drawW / 2}" y="${yBase + railH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Segoe UI, Arial">${largura} mm</text>
+      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${yBase + railH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${yBase + railH}" x2="${x0 - 6}" y2="${yBase + railH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Segoe UI, Arial" transform="translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)">${totalAltura} mm</text>
+    </svg>
+  `);
+};
+
+const desenhoPeleDeVidroUrl = (item?: Pick<ProjetoComposicao, "largura" | "altura" | "trilho" | "trinco" | "vidro">) => {
+  const nH = Math.max(1, Math.min(12, numeroCampoFechamento(item?.trilho, 1)));
+  const nV = Math.max(1, Math.min(12, numeroCampoFechamento(item?.trinco, 1)));
+  const largura = Math.max(1, Math.round(Number(item?.largura || 2000)));
+  const altura = Math.max(1, Math.round(Number(item?.altura || 2000)));
+  const svgW = 280;
+  const padL = 22;
+  const padR = 22;
+  const padTop = 18;
+  const padBot = 18;
+  const drawW = svgW - padL - padR;
+  const ratio = Math.min(Math.max(altura / largura, 0.9), 1.55);
+  const drawH = Math.min(drawW * ratio, 260);
+  const svgH = drawH + padTop + padBot;
+  const mullionW = Math.max(2, Math.min(6, drawW * 0.012));
+  const glassW = (drawW - (nH + 1) * mullionW) / nH;
+  const glassH = (drawH - (nV + 1) * mullionW) / nV;
+  const x0 = padL;
+  const y0 = padTop;
+  const corAluminio = "#f7fafc";
+  const corAluminioBorda = "#b8c2cc";
+  const corVidroFill = "#eef8fb";
+  const corVidroStroke = "#bfd8e5";
+  const paineis = Array.from({ length: nV }, (_, row) =>
+    Array.from({ length: nH }, (_, col) => {
+      const x = x0 + mullionW + col * (glassW + mullionW);
+      const y = y0 + mullionW + row * (glassH + mullionW);
+      return `
+        <g>
+          <rect x="${x}" y="${y}" width="${glassW}" height="${glassH}" fill="${corVidroFill}" fill-opacity="0.9" stroke="${corVidroStroke}" stroke-opacity="0.55" stroke-width="0.6" rx="1"/>
+          <line x1="${x + glassW * 0.18}" y1="${y + glassH * 0.07}" x2="${x + glassW * 0.08}" y2="${y + glassH * 0.4}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.65"/>
+        </g>
+      `;
+    }).join("")
+  ).join("");
+  const verticais = Array.from({ length: nH + 1 }, (_, index) => {
+    const x = x0 + index * (glassW + mullionW);
+    return `<rect x="${x}" y="${y0}" width="${mullionW}" height="${drawH}" fill="url(#pvRailGradCentral)" stroke="${corAluminioBorda}" stroke-width="0.4" rx="0.5"/>`;
+  }).join("");
+  const horizontais = Array.from({ length: nV + 1 }, (_, index) => {
+    const y = y0 + index * (glassH + mullionW);
+    return `<rect x="${x0}" y="${y}" width="${drawW}" height="${mullionW}" fill="url(#pvRailGradCentral)" stroke="${corAluminioBorda}" stroke-width="0.4" rx="0.5"/>`;
+  }).join("");
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+      <defs>
+        <linearGradient id="pvRailGradCentral" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${corAluminio}"/>
+          <stop offset="50%" stop-color="${corAluminioBorda}"/>
+          <stop offset="100%" stop-color="${corAluminio}"/>
+        </linearGradient>
+      </defs>
+      ${paineis}
+      ${verticais}
+      ${horizontais}
+    </svg>
+  `);
+};
+
 const desenhoTecnicoUrl = (projeto?: string, item?: ProjetoComposicao) => {
   if (ehSacadaFrontal(projeto)) {
     return desenhoSacadaFrontalUrl(item);
   }
 
   if (ehFechamentoSacada(projeto)) {
-    return svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
-        <rect width="320" height="220" rx="18" fill="#f8fbfd"/>
-        <rect x="48" y="30" width="224" height="158" rx="4" fill="#eef7fb" stroke="#12324d" stroke-width="5"/>
-        <line x1="48" y1="92" x2="272" y2="92" stroke="#12324d" stroke-width="5"/>
-        <line x1="104" y1="30" x2="104" y2="188" stroke="#12324d" stroke-width="3"/>
-        <line x1="160" y1="30" x2="160" y2="188" stroke="#12324d" stroke-width="3"/>
-        <line x1="216" y1="30" x2="216" y2="188" stroke="#12324d" stroke-width="3"/>
-        <rect x="48" y="188" width="224" height="10" rx="3" fill="#d5dde5" stroke="#12324d" stroke-width="3"/>
-        <text x="160" y="215" text-anchor="middle" font-family="Segoe UI, Arial" font-size="15" fill="#12324d">Fechamento de sacada</text>
-      </svg>
-    `);
+    return desenhoFechamentoSacadaUrl(item);
   }
 
   if (ehPeleDeVidro(projeto)) {
-    return svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
-        <rect width="320" height="220" rx="18" fill="#f8fbfd"/>
-        <rect x="58" y="28" width="204" height="160" rx="4" fill="#edf8fc" stroke="#12324d" stroke-width="5"/>
-        <line x1="126" y1="28" x2="126" y2="188" stroke="#12324d" stroke-width="4"/>
-        <line x1="194" y1="28" x2="194" y2="188" stroke="#12324d" stroke-width="4"/>
-        <line x1="58" y1="81" x2="262" y2="81" stroke="#12324d" stroke-width="4"/>
-        <line x1="58" y1="134" x2="262" y2="134" stroke="#12324d" stroke-width="4"/>
-        <path d="M72 68 L112 42 M141 120 L183 87 M204 172 L247 139" stroke="#bfe4f2" stroke-width="5" opacity="0.8"/>
-        <text x="160" y="215" text-anchor="middle" font-family="Segoe UI, Arial" font-size="15" fill="#12324d">Pele de vidro</text>
-      </svg>
-    `);
+    return desenhoPeleDeVidroUrl(item);
   }
 
   return "";
@@ -381,11 +525,30 @@ const nomeProjetoVisivel = (projeto?: string) => {
   return projeto || "Projeto";
 };
 
-const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposicao, "pecasDivisao" | "tamanhoPuxador" | "trinco">) => {
+const totalQuadrosPeleDeVidro = (item?: Pick<ProjetoComposicao, "pecasDivisao" | "puxador" | "tamanhoPuxador">) => {
+  return Math.max(1, Number(item?.pecasDivisao || 1));
+};
+
+const totalQuadrosPeleDeVidroComVaos = (item?: Pick<ProjetoComposicao, "quantidade" | "pecasDivisao" | "puxador" | "tamanhoPuxador">) => {
+  return Math.max(1, Number(item?.quantidade || 1)) * totalQuadrosPeleDeVidro(item);
+};
+
+const medidasDetalhadasPeleDeVidro = (item: Pick<ProjetoComposicao, "largura" | "altura" | "trilho" | "trinco" | "puxador" | "tamanhoPuxador" | "pecasDivisao" | "medidasDetalhadas">) => {
+  const medidaSalva = String(item.medidasDetalhadas || "").match(/Quadro:\s*([^\n]+)/i)?.[1];
+  const larguraQuadro = numeroCampoFechamento(item.trilho, 0) > 0 ? Math.round(Number(item.largura || 0) / numeroCampoFechamento(item.trilho, 1)) : 0;
+  const alturaQuadro = numeroCampoFechamento(item.trinco, 0) > 0 ? Math.round(Number(item.altura || 0) / numeroCampoFechamento(item.trinco, 1)) : 0;
+  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} x ${alturaQuadro.toLocaleString("pt-BR")} mm`;
+  return `Quadro: ${medida}\nTotal de quadros: ${totalQuadrosPeleDeVidro(item)}\nFixos: ${numeroCampoFechamento(item.puxador, 0)} | Móveis: ${numeroCampoFechamento(item.tamanhoPuxador, 0)}`;
+};
+
+const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposicao, "pecasDivisao" | "puxador" | "tamanhoPuxador" | "trinco">) => {
   const texto = String(projeto || "").toLowerCase();
   const variacao = String(item?.trinco || "").toLowerCase();
   if (texto.includes("vidros avulsos")) return Math.max(1, Number(item?.pecasDivisao || 1));
-  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada") || texto.includes("pele de vidro")) {
+  if (texto.includes("pele de vidro")) {
+    return totalQuadrosPeleDeVidro(item);
+  }
+  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
@@ -434,6 +597,9 @@ const extrairCodigoPerfil = (material: ProjetoIndividualMaterial) =>
 
 const modoProjetoEhBarra = (item: Pick<ProjetoComposicao, "modo">) =>
   String(item.modo || "").toLowerCase().includes("barra");
+
+const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "modo" | "projeto">) =>
+  modoProjetoEhBarra(item) || ehBox2Fls(item.projeto) || ehBoxCanto(item.projeto) || ehBoxCanto3f(item.projeto);
 
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {
@@ -491,7 +657,7 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
   const grupos = new Map<string, { codigo: string; descricao: string; comprimentoBarra: number; cortes: number[]; barrasOriginais: number; valorUnitario: number }>();
 
   itens.forEach((item) => {
-    if (!modoProjetoEhBarra(item)) return;
+    if (!itemParticipaOtimizacaoBarras(item)) return;
 
     item.materiais?.forEach((material) => {
       if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
@@ -740,7 +906,7 @@ export default function CentralImpressaoPage() {
 
     itens.forEach((item) => {
       const valorOriginal = Number(item.valorTotal || 0);
-      if (!otimizacaoAplicada || !modoProjetoEhBarra(item) || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
+      if (!otimizacaoAplicada || !itemParticipaOtimizacaoBarras(item) || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
         mapa.set(item.id, valorOriginal);
         return;
       }
@@ -765,7 +931,7 @@ export default function CentralImpressaoPage() {
       altura: Number(item.altura || 0),
       quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : Number(item.quantidade || 0),
       modo: ehVidroAvulso(item.projeto) ? "" : item.modo,
-      desenhoUrl: ehSacadaFrontal(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
+      desenhoUrl: ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
       vidroBandeira: item.vidroBandeira,
       corKit: item.corPerfil || item.corKit,
@@ -1195,8 +1361,10 @@ export default function CentralImpressaoPage() {
                 itens.map((item, index) => {
                   const vidroAvulso = ehVidroAvulso(item.projeto);
                   const resumoAvulso = vidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
-                  const desenhoCentral = ehSacadaFrontal(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
+                  const fechamentoSacada = ehFechamentoSacada(item.projeto);
+                  const peleDeVidro = ehPeleDeVidro(item.projeto);
                   const projetoTecnico = ehProjetoTecnico(item.projeto);
+                  const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
                   const labelVidroPrincipal = ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
                   const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
                     ? "Quadros"
@@ -1282,7 +1450,7 @@ export default function CentralImpressaoPage() {
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           {!vidroAvulso ? (
                             <>
-                              <Field label="Largura">
+                              <Field label={fechamentoSacada || peleDeVidro ? "Largura do vão" : "Largura"}>
                                 <input
                                   type="number"
                                   value={item.largura}
@@ -1290,7 +1458,8 @@ export default function CentralImpressaoPage() {
                                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                                 />
                               </Field>
-                              <Field label="Altura">
+                              {!fechamentoSacada ? (
+                              <Field label={peleDeVidro ? "Altura do vão" : "Altura"}>
                                 <input
                                   type="number"
                                   value={item.altura}
@@ -1298,17 +1467,20 @@ export default function CentralImpressaoPage() {
                                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                                 />
                               </Field>
+                              ) : null}
                             </>
                           ) : null}
-                          <Field label="Quantidade">
-                            <input
-                              type={vidroAvulso ? "text" : "number"}
-                              value={vidroAvulso ? `${resumoAvulso?.pecas || 0} peça(s)` : item.quantidade}
-                              onChange={(e) => !vidroAvulso && atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
-                              readOnly={vidroAvulso}
-                              className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
-                            />
-                          </Field>
+                          {!(fechamentoSacada || peleDeVidro) ? (
+                            <Field label="Quantidade">
+                              <input
+                                type={vidroAvulso ? "text" : "number"}
+                                value={vidroAvulso ? `${resumoAvulso?.pecas || 0} peça(s)` : item.quantidade}
+                                onChange={(e) => !vidroAvulso && atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
+                                readOnly={vidroAvulso}
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : null}
                           {vidroAvulso ? (
                             <Field label="M² total">
                               <input
@@ -1327,7 +1499,138 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto)) ? (
+                          {peleDeVidro ? (
+                            <>
+                              <Field label="Qtd. de fachadas">
+                                <input
+                                  type="number"
+                                  value={item.quantidade}
+                                  onChange={(e) => atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quadros horizontal">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.trilho, 1)}
+                                  onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quadros vertical">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.trinco, 1)}
+                                  onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quantidade de lajes">
+                                <input
+                                  type="number"
+                                  value={Number(item.alturaAteTubo || 0)}
+                                  onChange={(e) => atualizarItem(item.id, "alturaAteTubo", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quadros fixos">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.puxador, 0)}
+                                  onChange={(e) => atualizarItem(item.id, "puxador", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quadros móveis">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.tamanhoPuxador, 0)}
+                                  onChange={(e) => atualizarItem(item.id, "tamanhoPuxador", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quantidade de quadros">
+                                <input
+                                  readOnly
+                                  value={totalQuadrosPeleDeVidroComVaos(item)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Vidro da fachada">
+                                <input
+                                  value={descricaoVidroItem(item)}
+                                  onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                            </>
+                          ) : null}
+                          {fechamentoSacada ? (
+                            <>
+                              <Field label="Altura da sacada inferior">
+                                <input
+                                  type="number"
+                                  value={item.alturaAteTubo || 0}
+                                  onChange={(e) => atualizarItem(item.id, "alturaAteTubo", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Altura da sacada superior">
+                                <input
+                                  type="number"
+                                  value={alturaSuperiorFechamento(item)}
+                                  onChange={(e) => atualizarItem(item.id, "tamanhoPuxador", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Quantidade de vão">
+                                <input
+                                  type="number"
+                                  value={item.quantidade}
+                                  onChange={(e) => atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Divisão da parte de baixo">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.trilho, 1)}
+                                  onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Divisão da parte de cima">
+                                <input
+                                  type="number"
+                                  value={numeroCampoFechamento(item.trinco, 1)}
+                                  onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Cor do perfil">
+                                <input
+                                  value={item.corPerfil || item.corKit || ""}
+                                  onChange={(e) => atualizarItem(item.id, "corPerfil", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Vidro inferior">
+                                <input
+                                  value={item.vidro || ""}
+                                  onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                              <Field label="Vidro de cima">
+                                <input
+                                  value={item.vidroBandeira || ""}
+                                  onChange={(e) => atualizarItem(item.id, "vidroBandeira", e.target.value)}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                            </>
+                          ) : null}
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro) ? (
                             <Field label="Modo">
                               <select
                                 value={item.modo}
@@ -1349,7 +1652,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!vidroAvulso ? (
+                          {!(vidroAvulso || fechamentoSacada || peleDeVidro) ? (
                             <Field label={ehSacadaFrontal(item.projeto) ? "Cor do perfil" : "Cor do perfil / kit"}>
                               <input
                                 value={item.corPerfil || item.corKit || ""}
@@ -1358,7 +1661,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!vidroAvulso ? (
+                          {!(vidroAvulso || fechamentoSacada || peleDeVidro) ? (
                             <Field label={ehSacadaFrontal(item.projeto) ? "Cor do vidro" : labelVidroPrincipal}>
                               <input
                                 value={ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro || ""}
@@ -1367,7 +1670,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {ehFechamentoSacada(item.projeto) || ehPc2fComBandeira(item.projeto) || ehPc4fComBandeira(item.projeto) || ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? (
+                          {(!fechamentoSacada && (ehPc2fComBandeira(item.projeto) || ehPc4fComBandeira(item.projeto) || ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto))) ? (
                             <Field label={ehFechamentoSacada(item.projeto) ? "Vidro superior" : ehJc2fComSacada(item.projeto) || ehJc4fComSacada(item.projeto) ? "Vidro sacada" : "Vidro bandeira"}>
                               <input
                                 value={item.vidroBandeira || ""}
@@ -1403,7 +1706,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
                             <Field label={labelCampoPrincipal}>
                               <input
                                 value={item.trilho || ""}
@@ -1421,7 +1724,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || ehFixos(item.projeto)) ? (
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto)) ? (
                             <Field label={labelCampoSecundario}>
                               <input
                                 value={item.trinco || ""}
@@ -1471,13 +1774,13 @@ export default function CentralImpressaoPage() {
                                 ))}
                               </div>
                             </div>
-                          ) : item.medidasDetalhadas && !ehSacadaFrontal(item.projeto) ? (
+                          ) : (peleDeVidro || item.medidasDetalhadas) && !ehSacadaFrontal(item.projeto) ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <Field label="Medidas dos vidros">
                                 <textarea
                                   value={item.medidasDetalhadas}
                                   onChange={(e) => atualizarItem(item.id, "medidasDetalhadas", e.target.value)}
-                                  rows={Math.min(6, Math.max(3, item.medidasDetalhadas.split("\n").length))}
+                                  rows={Math.min(6, Math.max(3, (item.medidasDetalhadas || "").split("\n").length))}
                                   className="w-full resize-none bg-transparent text-sm font-normal leading-6 text-slate-700 outline-none"
                                 />
                               </Field>

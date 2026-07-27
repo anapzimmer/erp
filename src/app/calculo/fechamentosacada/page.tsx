@@ -1303,8 +1303,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       vidroBandeira: montarDescricaoVidro(vidroSelecionadoSuperior),
       corKit: corPerfil || "Não selecionada",
       corPerfil: corPerfil || "Não selecionada",
-      trilho: "Fechamento de sacada",
-      trinco: `Inf. ${quantidadeDivisoesInferiorNumero} divisão(ões) | Sup. ${quantidadeDivisoesSuperiorNumero} divisão(ões)`,
+      alturaAteTubo: alturaInferiorNumero,
+      tamanhoPuxador: String(alturaSuperiorNumero),
+      trilho: String(quantidadeDivisoesInferiorNumero),
+      trinco: String(quantidadeDivisoesSuperiorNumero),
       pecasDivisao: resultadoInferior.quantidadeVidrosPorVao + resultadoSuperior.quantidadeVidrosPorVao,
       medidasDetalhadas: `Inferior: ${resultadoInferior.larguraVidroMm} x ${resultadoInferior.alturaVidroMm} mm\nSuperior: ${resultadoSuperior.larguraVidroMm} x ${resultadoSuperior.alturaVidroMm} mm`,
       valorTotal: totalGeralCalculado,
@@ -2022,7 +2024,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     // Ajuste visual para evitar aparência achatada no preview.
                     const ratioBase = alt / larg;
                     const ratio = Math.min(Math.max(ratioBase * 1.46, 0.62), 2.45);
-                    const drawH = drawW * ratio;
+                    const drawH = Math.min(drawW * ratio, 230);
                     const svgH = drawH + padTop + padBot;
 
                     const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
