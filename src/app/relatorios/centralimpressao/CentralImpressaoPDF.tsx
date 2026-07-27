@@ -275,6 +275,7 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
+const ehEspelhoComDesenho = (projeto?: string) => /^espelhos?$/i.test(String(projeto || "").trim());
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
 
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -499,6 +500,70 @@ function PeleDeVidroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         return <Rect key={`pv-h-${index}`} x={x0} y={y} width={drawW} height={mullionW} fill={perfilFill} stroke={perfilStroke} strokeWidth={0.35} />;
       })}
     </Svg>
+  );
+}
+
+function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
+  const largura = Math.max(1, Number(item.largura || 1));
+  const altura = Math.max(1, Number(item.altura || 1));
+  const divL = Math.max(1, numeroCampoFechamento(item.trilho, 1));
+  const divA = Math.max(1, numeroCampoFechamento(item.tamanhoPuxador, 1));
+  const tipoVisual = String(item.puxador || "padrao");
+  const escala = Math.min(90 / largura, 78 / altura);
+  const w = Math.max(34, Math.min(92, largura * escala));
+  const h = Math.max(34, Math.min(82, altura * escala));
+  const x = (112 - w) / 2;
+  const y = 10;
+  const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval")
+    ? Math.min(w, h) / 2
+    : tipoVisual.includes("capsula")
+    ? Math.min(w, h) / 3
+    : 4;
+
+  if (tipoVisual.includes("jogo") && (divL > 1 || divA > 1)) {
+    const gap = 2;
+    const cellW = (w - gap * (divL - 1)) / divL;
+    const cellH = (h - gap * (divA - 1)) / divA;
+
+    return (
+      <View>
+        <Svg width={112} height={96} viewBox="0 0 112 96">
+          {Array.from({ length: divL * divA }).map((_, index) => {
+            const col = index % divL;
+            const row = Math.floor(index / divL);
+            return (
+              <Rect
+                key={`espelho-jogo-${index}`}
+                x={x + col * (cellW + gap)}
+                y={y + row * (cellH + gap)}
+                width={cellW}
+                height={cellH}
+                rx={3}
+                fill="#e8f1f6"
+                stroke="#8fa1ae"
+                strokeWidth={1.2}
+              />
+            );
+          })}
+        </Svg>
+        <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <Svg width={112} height={96} viewBox="0 0 112 96">
+        <Rect x={x} y={y} width={w} height={h} rx={rx} fill="#e8f1f6" stroke="#8fa1ae" strokeWidth={tipoVisual.includes("bisote") ? 5 : 1.8} />
+        {tipoVisual.includes("bisote") ? (
+          <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(2, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} />
+        ) : null}
+        {tipoVisual.includes("led") ? (
+          <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(2, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" />
+        ) : null}
+      </Svg>
+      <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
+    </View>
   );
 }
 

@@ -554,36 +554,68 @@ export default function CalculoEspelhosPage() {
       .map((item, index) => `${index + 1}. ${quantidadePecasEspelho(item)} peça(s) - ${descricaoVidroSemPrefixo(item.descricao)} - ${medidaPecaEspelho(item)}`)
       .join("\n");
 
-    const itemCentral = {
-      id: criarId(),
-      numero: ultimoNumeroGerado || "novo",
-      projeto: "Espelhos avulsos",
-      cliente: nomeCliente,
-      medidas: `${totalPecas} peça(s) | ${areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`,
-      largura: 0,
-      altura: 0,
-      quantidade: 1,
-      modo: "Espelho",
-      desenhoUrl: comDesenho ? gerarDesenhoEspelhosUrl(listaItens) : "",
-      vidro: "Conforme relação",
-      corKit: "",
-      corPerfil: "",
-      trilho: "",
-      puxador: "",
-      tamanhoPuxador: "",
-      trinco: "",
-      pecasDivisao: totalPecas,
-      medidasDetalhadas,
-      vidrosAvulsos,
-      valorTotal,
-      materiais,
-      origemRota: "/calculo/espelhos",
-    };
+    const itensCentral = comDesenho
+      ? listaItens.map((item) => ({
+        id: criarId(),
+        numero: ultimoNumeroGerado || "novo",
+        projeto: "Espelhos",
+        cliente: nomeCliente,
+        medidas: `${Number(item.larguraReal || 0)} x ${Number(item.alturaReal || 0)} mm`,
+        largura: Number(item.larguraReal || 0),
+        altura: Number(item.alturaReal || 0),
+        quantidade: quantidadePecasEspelho(item),
+        modo: "Espelho",
+        desenhoUrl: gerarDesenhoEspelhosUrl([item]),
+        vidro: descricaoVidroSemPrefixo(item.descricao),
+        corKit: "",
+        corPerfil: "",
+        trilho: String(item.divisoesLargura || 1),
+        puxador: String(item.tipoVisual || "padrao"),
+        tamanhoPuxador: String(item.divisoesAltura || 1),
+        trinco: "",
+        pecasDivisao: quantidadePecasEspelho(item),
+        medidasDetalhadas: "",
+        vidrosAvulsos: [],
+        valorTotal: Number(item.total || 0),
+        materiais: [{
+          id: criarId(),
+          qtd: Number(calcularAreaItemEspelho(item).toFixed(3)),
+          unidade: "m2",
+          descricao: `ESPELHO ${medidaPecaEspelho(item)} ${descricaoVidroSemPrefixo(item.descricao)}`.toUpperCase(),
+          valorUnitario: calcularAreaItemEspelho(item) > 0 ? Number(item.total || 0) / calcularAreaItemEspelho(item) : 0,
+        }],
+        origemRota: "/calculo/espelhos",
+      }))
+      : [{
+        id: criarId(),
+        numero: ultimoNumeroGerado || "novo",
+        projeto: "Espelhos avulsos",
+        cliente: nomeCliente,
+        medidas: `${totalPecas} peça(s) | ${areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`,
+        largura: 0,
+        altura: 0,
+        quantidade: 1,
+        modo: "Espelho",
+        desenhoUrl: "",
+        vidro: "Conforme relação",
+        corKit: "",
+        corPerfil: "",
+        trilho: "",
+        puxador: "",
+        tamanhoPuxador: "",
+        trinco: "",
+        pecasDivisao: totalPecas,
+        medidasDetalhadas,
+        vidrosAvulsos,
+        valorTotal,
+        materiais,
+        origemRota: "/calculo/espelhos",
+      }];
 
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? JSON.parse(salvo) : [];
-      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, itemCentral]));
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, ...itensCentral]));
       if (nomeCliente) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, nomeCliente);
       if (nomeObra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, nomeObra);
       setShowModalCentral(false);

@@ -209,6 +209,7 @@ const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(proje
 const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
 const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
 const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
+const ehEspelhoComDesenho = (projeto?: string) => /^espelhos?$/i.test(String(projeto || "").trim());
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehBoxCanto3f = (projeto?: string) => /boxcanto3f|box de canto 3/i.test(String(projeto || ""));
 const ehBoxCanto = (projeto?: string) => /boxcanto|box de canto/i.test(String(projeto || ""));
@@ -520,6 +521,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (ehSacadaFrontal(projeto)) return "Sacada frontal";
   if (ehFechamentoSacada(projeto)) return "Fechamento de sacada";
   if (ehPeleDeVidro(projeto)) return "Pele de vidro";
+  if (ehEspelhoComDesenho(projeto)) return "Espelho";
   if (ehPc4fComBandeira(projeto)) return "Porta de correr 4 folhas com bandeira";
   if (ehPc2fComBandeira(projeto)) return "Porta de correr 2 folhas com bandeira";
   return projeto || "Projeto";
@@ -1360,12 +1362,13 @@ export default function CentralImpressaoPage() {
               {itens.length > 0 ? (
                 itens.map((item, index) => {
                   const vidroAvulso = ehVidroAvulso(item.projeto);
+                  const espelhoComDesenho = ehEspelhoComDesenho(item.projeto);
                   const resumoAvulso = vidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
                   const fechamentoSacada = ehFechamentoSacada(item.projeto);
                   const peleDeVidro = ehPeleDeVidro(item.projeto);
                   const projetoTecnico = ehProjetoTecnico(item.projeto);
                   const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
-                  const labelVidroPrincipal = ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+                  const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
                   const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
                     ? "Quadros"
                     : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
@@ -1630,7 +1633,7 @@ export default function CentralImpressaoPage() {
                               </Field>
                             </>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro) ? (
                             <Field label="Modo">
                               <select
                                 value={item.modo}
@@ -1652,7 +1655,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || fechamentoSacada || peleDeVidro) ? (
+                          {!(vidroAvulso || espelhoComDesenho || fechamentoSacada || peleDeVidro) ? (
                             <Field label={ehSacadaFrontal(item.projeto) ? "Cor do perfil" : "Cor do perfil / kit"}>
                               <input
                                 value={item.corPerfil || item.corKit || ""}
@@ -1715,7 +1718,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(vidroAvulso || espelhoComDesenho || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
                             <Field label="Puxador">
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
@@ -1724,7 +1727,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto)) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto)) ? (
                             <Field label={labelCampoSecundario}>
                               <input
                                 value={item.trinco || ""}
