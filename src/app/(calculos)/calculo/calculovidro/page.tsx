@@ -1063,7 +1063,7 @@ useEffect(() => {
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
     const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-    const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+    const areaCobrada = areaM2;
 
     const valorTotalVidro = areaCobrada * precoVidroM2;
 
@@ -1173,7 +1173,7 @@ useEffect(() => {
 
         // 3. Refazer o cálculo de área
         const areaM2 = (lCalc / 1000) * (aCalc / 1000);
-        const areaCobrada = areaM2 < 0.25 ? 0.25 : areaM2;
+        const areaCobrada = areaM2;
 
         // 4. Calcular novos valores
         const novoValorVidroTotal = areaCobrada * precoVidroM2;
