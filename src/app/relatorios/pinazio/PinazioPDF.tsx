@@ -186,27 +186,26 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
   colDesc: {
-    width: "24%",
+    width: "43%",
   },
   colMedidas: {
-    width: "14%",
-    textAlign: "center",
-  },
-  colDivisoes: {
-    width: "12%",
-    textAlign: "center",
-  },
-  colPinazio: {
-    width: "12%",
+    width: "15%",
     textAlign: "center",
   },
   colQtd: {
-    width: "7%",
+    width: "8%",
     textAlign: "center",
   },
   colTotal: {
-    width: "18%",
+    width: "21%",
     textAlign: "right",
+    paddingRight: 8,
+  },
+  detalhePinazio: {
+    marginTop: 3,
+    fontSize: 6.5,
+    color: "#667785",
+    lineHeight: 1.3,
   },
   resumo: {
     marginTop: 15,
@@ -364,7 +363,6 @@ export function PinazioPDF({
             style={[
               styles.tableHeader,
               {
-                marginRight: 10,
                 backgroundColor: themeColor,
               },
             ]}
@@ -372,8 +370,6 @@ export function PinazioPDF({
             <Text style={[styles.tableColHeader, styles.colImagem]}>Desenho</Text>
             <Text style={[styles.tableColHeader, styles.colDesc]}>Vidro / Pinázio</Text>
             <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas</Text>
-            <Text style={[styles.tableColHeader, styles.colDivisoes]}>Divisões</Text>
-            <Text style={[styles.tableColHeader, styles.colPinazio]}>Pinázio</Text>
             <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
             <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
           </View>
@@ -399,19 +395,23 @@ export function PinazioPDF({
                 />
               </View>
 
-              <Text
-                style={[
-                  styles.tableCol,
-                  styles.colDesc,
-                  { color: contentColor },
-                ]}
-              >
-                {item.descricao}
-                {item.pinazioNome ? `\n${item.pinazioNome}` : ""}
-                {Number(item.precoMetroPinazio || 0) > 0
-                  ? ` — ${formatarMoeda(Number(item.precoMetroPinazio))}/ml`
-                  : ""}
-              </Text>
+              <View style={[styles.tableCol, styles.colDesc]}>
+                <Text style={{ color: contentColor }}>
+                  {item.descricao}
+                </Text>
+
+                <Text style={styles.detalhePinazio}>
+                  {item.pinazioNome || "Pinázio"}
+                  {Number(item.precoMetroPinazio || 0) > 0
+                    ? ` - ${formatarMoeda(Number(item.precoMetroPinazio))}/metro linear`
+                    : ""}
+                </Text>
+
+                <Text style={styles.detalhePinazio}>
+                  Divisões: {Math.max(1, Number(item.divisoesLargura || 1))} x {Math.max(1, Number(item.divisoesAltura || 1))}
+                  {` | Pinázio: ${formatarMetroLinear(obterMetroLinearTotal(item))} metro linear`}
+                </Text>
+              </View>
 
               <Text
                 style={[
@@ -421,26 +421,6 @@ export function PinazioPDF({
                 ]}
               >
                 {obterMedidas(item)} mm
-              </Text>
-
-              <Text
-                style={[
-                  styles.tableCol,
-                  styles.colDivisoes,
-                  { color: contentColor },
-                ]}
-              >
-                {Math.max(1, Number(item.divisoesLargura || 1))} x {Math.max(1, Number(item.divisoesAltura || 1))}
-              </Text>
-
-              <Text
-                style={[
-                  styles.tableCol,
-                  styles.colPinazio,
-                  { color: contentColor },
-                ]}
-              >
-                {formatarMetroLinear(obterMetroLinearTotal(item))} ml
               </Text>
 
               <Text

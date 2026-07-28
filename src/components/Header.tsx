@@ -47,6 +47,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "Espelhos", href: "/calculo/espelhos" },
       { label: "Vidros", href: "/calculo/calculovidro" },
+      { label: "Pinázio", href: "/calculo/pinazio" },
       { label: "Sacada Frontal", href: "/calculo/sacadafrontal" },
       { label: "Fechamento Sacada", href: "/calculo/fechamentosacada" },
       { label: "Pele de Vidro", href: "/calculo/peledevidro" },
