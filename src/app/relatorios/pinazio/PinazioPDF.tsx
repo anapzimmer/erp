@@ -32,6 +32,7 @@ export interface ItemPinazioPDF {
   metroLinearPinazioTotal?: number;
   valorVidro?: number;
   valorPinazio?: number;
+  pinazioId?: string;
   pinazioNome?: string;
   pinazioCor?: "branco" | "preto" | "nogal";
   precoMetroPinazio?: number;
@@ -311,7 +312,7 @@ export function PinazioPDF({
         >
           <View style={styles.headerLeft}>
             <Text style={[styles.tituloRelatorio, { color: themeColor }]}> 
-              Orçamento de Vidros com Pinázio
+              Orçamento de Vidros
             </Text>
 
             {numeroOrcamento ? (
@@ -368,7 +369,7 @@ export function PinazioPDF({
             ]}
           >
             <Text style={[styles.tableColHeader, styles.colImagem]}>Desenho</Text>
-            <Text style={[styles.tableColHeader, styles.colDesc]}>Vidro / Pinázio</Text>
+            <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição</Text>
             <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas</Text>
             <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
             <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
@@ -400,17 +401,26 @@ export function PinazioPDF({
                   {item.descricao}
                 </Text>
 
-                <Text style={styles.detalhePinazio}>
-                  {item.pinazioNome || "Pinázio"}
-                  {Number(item.precoMetroPinazio || 0) > 0
-                    ? ` - ${formatarMoeda(Number(item.precoMetroPinazio))}/metro linear`
-                    : ""}
-                </Text>
+                {item.pinazioId === "sem-pinazio" ||
+                obterMetroLinearTotal(item) <= 0 ? (
+                  <Text style={styles.detalhePinazio}>
+                    Sem Pinázio — cálculo somente do vidro
+                  </Text>
+                ) : (
+                  <>
+                    <Text style={styles.detalhePinazio}>
+                      {item.pinazioNome || "Pinázio"}
+                      {Number(item.precoMetroPinazio || 0) > 0
+                        ? ` - ${formatarMoeda(Number(item.precoMetroPinazio))}/ml`
+                        : ""}
+                    </Text>
 
-                <Text style={styles.detalhePinazio}>
-                  Divisões: {Math.max(1, Number(item.divisoesLargura || 1))} x {Math.max(1, Number(item.divisoesAltura || 1))}
-                  {` | Pinázio: ${formatarMetroLinear(obterMetroLinearTotal(item))} metro linear`}
-                </Text>
+                    <Text style={styles.detalhePinazio}>
+                      Divisões: {Math.max(1, Number(item.divisoesLargura || 1))} x {Math.max(1, Number(item.divisoesAltura || 1))}
+                      {` | Pinázio: ${formatarMetroLinear(obterMetroLinearTotal(item))} ml`}
+                    </Text>
+                  </>
+                )}
               </View>
 
               <Text
@@ -457,12 +467,14 @@ export function PinazioPDF({
             </Text>
           </View>
 
-          <View style={styles.resumoLinha}>
-            <Text style={styles.resumoLabel}>Total de Pinázio:</Text>
-            <Text style={[styles.resumoValor, { color: contentColor }]}> 
-              {formatarMetroLinear(totalMetroLinear)} ml
-            </Text>
-          </View>
+          {totalMetroLinear > 0 ? (
+            <View style={styles.resumoLinha}>
+              <Text style={styles.resumoLabel}>Total de Pinázio:</Text>
+              <Text style={[styles.resumoValor, { color: contentColor }]}> 
+                {formatarMetroLinear(totalMetroLinear)} ml
+              </Text>
+            </View>
+          ) : null}
 
           <View style={[styles.resumoLinha, { marginTop: 5 }]}> 
             <Text style={styles.totalLabel}>Valor total:</Text>
@@ -474,9 +486,9 @@ export function PinazioPDF({
 
         <View style={styles.observacao}>
           <Text>
-            O vidro é calculado em sua medida total. As divisões informadas são
-            usadas exclusivamente para calcular o metro linear das barras
-            internas de Pinázio.
+            O vidro é calculado em sua medida total. Quando houver Pinázio,
+            as divisões informadas serão usadas exclusivamente para calcular
+            o metro linear das barras internas.
           </Text>
         </View>
 

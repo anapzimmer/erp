@@ -59,6 +59,7 @@ type OpcaoPinazio = {
 };
 
 const OPCOES_PINAZIO: OpcaoPinazio[] = [
+  { id: "sem-pinazio", nome: "Sem Pinázio", preco: 0, cor: "branco" },
   { id: "8x18-branco", nome: "Pinázio 8x18mm Branco", preco: 55, cor: "branco" },
   { id: "8x25-branco", nome: "Pinázio 8x25mm Branco", preco: 65, cor: "branco" },
   { id: "8x25-preto", nome: "Pinázio 8x25mm Preto", preco: 65, cor: "preto" },
@@ -204,10 +205,8 @@ export default function CalculoPinazioPage() {
   const [quantidade, setQuantidade] = useState(1);
   const [vidrosDB, setVidrosDB] = useState<any[]>([]);
   const [vidroId, setVidroId] = useState("");
-  const [acabamentoId, setAcabamentoId] = useState(OPCOES_PINAZIO[0].id);
-  const [precoMetroPinazio, setPrecoMetroPinazio] = useState(
-    String(OPCOES_PINAZIO[0].preco)
-  );
+  const [acabamentoId, setAcabamentoId] = useState("8x18-branco");
+  const [precoMetroPinazio, setPrecoMetroPinazio] = useState("55");
   const [listaItens, setListaItens] = useState<any[]>([]);
   const [showModalPDF, setShowModalPDF] = useState(false);
   const [showModalCentral, setShowModalCentral] = useState(false);
@@ -405,8 +404,13 @@ export default function CalculoPinazioPage() {
       (item) => item.id === acabamentoId
     );
 
-    const divisoesL = Math.max(1, Number(divisoesLargura));
-    const divisoesA = Math.max(1, Number(divisoesAltura));
+    const semPinazio = acabamentoId === "sem-pinazio";
+    const divisoesL = semPinazio
+      ? 1
+      : Math.max(1, Number(divisoesLargura));
+    const divisoesA = semPinazio
+      ? 1
+      : Math.max(1, Number(divisoesAltura));
 
     if (!vidro || lOriginal <= 0 || aOriginal <= 0) {
       return {
@@ -425,17 +429,21 @@ export default function CalculoPinazioPage() {
     const valorVidroUnitario = areaVidroM2 * Number(vidro.preco || 0);
 
     // As divisões são usadas apenas para calcular as linhas internas do Pinázio.
-    const metroLinearUnitario = calcularMetroLinearPinazio(
-      lOriginal,
-      aOriginal,
-      divisoesL,
-      divisoesA
-    );
+    const metroLinearUnitario = semPinazio
+      ? 0
+      : calcularMetroLinearPinazio(
+          lOriginal,
+          aOriginal,
+          divisoesL,
+          divisoesA
+        );
 
-    const precoMetroInformado = Math.max(
-      0,
-      parseFloat(String(precoMetroPinazio).replace(",", ".")) || 0
-    );
+    const precoMetroInformado = semPinazio
+      ? 0
+      : Math.max(
+          0,
+          parseFloat(String(precoMetroPinazio).replace(",", ".")) || 0
+        );
 
     const quantidadeValida = Math.max(1, Number(quantidade) || 1);
     const valorPinazioUnitario =
@@ -478,15 +486,21 @@ export default function CalculoPinazioPage() {
       OPCOES_PINAZIO.find((item) => item.id === acabamentoId) ||
       OPCOES_PINAZIO[0];
 
+    const semPinazio = pinazioSelecionado.id === "sem-pinazio";
+    const divisoesItemLargura = semPinazio ? 1 : divisoesLargura;
+    const divisoesItemAltura = semPinazio ? 1 : divisoesAltura;
+
     const desenhoUrl = gerarDesenhoPinazioUrl({
       largura: Number(largura),
       altura: Number(altura),
-      divisoesLargura,
-      divisoesAltura,
+      divisoesLargura: divisoesItemLargura,
+      divisoesAltura: divisoesItemAltura,
       cor: pinazioSelecionado.cor,
     });
 
-    const descricaoFinal = `${vSel?.nome || "Vidro"} ${vSel?.espessura || ""} ${vSel?.tipo || ""} - ${pinazioSelecionado.nome}`
+    const descricaoFinal = semPinazio
+      ? `${vSel?.nome || "Vidro"} ${vSel?.espessura || ""} ${vSel?.tipo || ""}`
+      : `${vSel?.nome || "Vidro"} ${vSel?.espessura || ""} ${vSel?.tipo || ""} - ${pinazioSelecionado.nome}`
       .replace(/\s+/g, " ")
       .trim();
 
@@ -507,10 +521,12 @@ export default function CalculoPinazioPage() {
       pinazioId: pinazioSelecionado.id,
       pinazioNome: pinazioSelecionado.nome,
       pinazioCor: pinazioSelecionado.cor,
-      precoMetroPinazio: Math.max(
-        0,
-        Number(String(precoMetroPinazio).replace(",", ".")) || 0
-      ),
+      precoMetroPinazio: semPinazio
+        ? 0
+        : Math.max(
+            0,
+            Number(String(precoMetroPinazio).replace(",", ".")) || 0
+          ),
       designUrl: desenhoUrl,
       desenhoUrl,
       valorVidro: calculoAtual.valorVidro,
@@ -562,14 +578,24 @@ export default function CalculoPinazioPage() {
       const metroLinear = Number(item.metroLinearPinazioTotal || 0);
       const vidroDescricao = descricaoVidroSemPrefixo(item.descricao);
 
+      const materialVidro = {
+        id: criarId(),
+        qtd: Number(area.toFixed(3)),
+        unidade: "m2",
+        descricao: `VIDRO ${item.medidas} ${vidroDescricao}`.toUpperCase(),
+        valorUnitario: area > 0 ? Number(item.valorVidro || 0) / area : 0,
+      };
+
+      if (
+        item.pinazioId === "sem-pinazio" ||
+        metroLinear <= 0 ||
+        Number(item.valorPinazio || 0) <= 0
+      ) {
+        return [materialVidro];
+      }
+
       return [
-        {
-          id: criarId(),
-          qtd: Number(area.toFixed(3)),
-          unidade: "m2",
-          descricao: `VIDRO ${item.medidas} ${vidroDescricao}`.toUpperCase(),
-          valorUnitario: area > 0 ? Number(item.valorVidro || 0) / area : 0,
-        },
+        materialVidro,
         {
           id: criarId(),
           qtd: Number(metroLinear.toFixed(3)),
@@ -582,7 +608,9 @@ export default function CalculoPinazioPage() {
 
     const medidasDetalhadas = listaItens
       .map((item, index) =>
-        `${index + 1}. ${item.quantidade} peça(s) - ${item.medidas} mm - ${item.pinazioNome || "Pinázio"} - divisões ${item.divisoesLargura} x ${item.divisoesAltura} - ${Number(item.metroLinearPinazioTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ml`
+        item.pinazioId === "sem-pinazio"
+          ? `${index + 1}. ${item.quantidade} peça(s) - ${item.medidas} mm - Sem Pinázio`
+          : `${index + 1}. ${item.quantidade} peça(s) - ${item.medidas} mm - ${item.pinazioNome || "Pinázio"} - divisões ${item.divisoesLargura} x ${item.divisoesAltura} - ${Number(item.metroLinearPinazioTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ml`
       )
       .join("\n");
 
@@ -890,9 +918,10 @@ export default function CalculoPinazioPage() {
                       <input
                         type="number"
                         min="1"
-                        value={divisoesLargura}
+                        value={acabamentoId === "sem-pinazio" ? 1 : divisoesLargura}
+                        disabled={acabamentoId === "sem-pinazio"}
                         onChange={(e) => setDivisoesLargura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -903,9 +932,10 @@ export default function CalculoPinazioPage() {
                       <input
                         type="number"
                         min="1"
-                        value={divisoesAltura}
+                        value={acabamentoId === "sem-pinazio" ? 1 : divisoesAltura}
+                        disabled={acabamentoId === "sem-pinazio"}
                         onChange={(e) => setDivisoesAltura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -954,11 +984,12 @@ export default function CalculoPinazioPage() {
                             {item.nome}
                           </span>
                           <span className="block text-xs text-gray-400 mt-1">
-                            {item.preco.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}{" "}
-                            por metro linear
+                            {item.id === "sem-pinazio"
+                              ? "Calcula somente o vidro"
+                              : `${item.preco.toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })} por metro linear`}
                           </span>
                         </div>
 
@@ -969,6 +1000,11 @@ export default function CalculoPinazioPage() {
                           onChange={() => {
                             setAcabamentoId(item.id);
                             setPrecoMetroPinazio(String(item.preco));
+
+                            if (item.id === "sem-pinazio") {
+                              setDivisoesLargura(1);
+                              setDivisoesAltura(1);
+                            }
                           }}
                           className="w-5 h-5"
                           style={{ accentColor: theme.menuIconColor }}
@@ -989,18 +1025,20 @@ export default function CalculoPinazioPage() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={precoMetroPinazio}
+                      value={acabamentoId === "sem-pinazio" ? "0" : precoMetroPinazio}
+                      disabled={acabamentoId === "sem-pinazio"}
                       onChange={(event) =>
                         setPrecoMetroPinazio(event.target.value)
                       }
-                      className="w-full bg-transparent p-3 text-sm font-semibold text-gray-700 outline-none"
+                      className="w-full bg-transparent p-3 text-sm font-semibold text-gray-700 outline-none disabled:text-gray-400 disabled:cursor-not-allowed"
                     />
                     <span className="text-xs text-gray-400">/ml</span>
                   </div>
 
                   <p className="mt-2 text-xs text-gray-400">
-                    Você pode alterar este preço somente para o item que está
-                    sendo calculado.
+                    {acabamentoId === "sem-pinazio"
+                      ? "Nesta opção será cobrado somente o valor do vidro."
+                      : "Você pode alterar este preço somente para o item que está sendo calculado."}
                   </p>
                 </div>
               </div>
@@ -1037,7 +1075,7 @@ export default function CalculoPinazioPage() {
                     </span>
 
                     <span>
-                      Pinázio:{" "}
+                      {acabamentoId === "sem-pinazio" ? "Pinázio:" : "Pinázio:"}{" "}
                       <strong className="text-gray-700">
                         {calculoAtual.valorPinazio.toLocaleString("pt-BR", {
                           style: "currency",
@@ -1181,7 +1219,7 @@ export default function CalculoPinazioPage() {
                                     String(
                                       item.precoMetroPinazio ??
                                         opcaoItem?.preco ??
-                                        OPCOES_PINAZIO[0].preco
+                                        55
                                     )
                                   );
 
