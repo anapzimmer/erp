@@ -1064,7 +1064,7 @@ export default function CalculoPinazioPage() {
           </div>
         </Header>
 
-        <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
+        <nav className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
             <button
               type="button"
