@@ -19,8 +19,16 @@ type ProjetoComposicao = CentralImpressaoItem & {
   valorTotal?: number;
   trilho?: string;
   alturaAteTubo?: number;
+  alturaPeitoril?: number;
+  alturaJanela?: number;
+  alturaBandeira?: number;
+  alturaTotal?: number;
+  vidroPeitoril?: string;
+  vidroJanela?: string;
   vidroBandeira?: string;
   tuboPerfil?: string;
+  tubo?: string;
+  temTrinco?: boolean;
   puxador?: string;
   tamanhoPuxador?: string;
   trinco?: string;
@@ -228,6 +236,7 @@ const ehPc2fComBandeira = (projeto?: string) => /pc2fcb|2 folhas com bandeira/i.
 const ehPc4fComBandeira = (projeto?: string) => /pc4fcb|4 folhas com bandeira/i.test(String(projeto || ""));
 const ehJc2fComSacada = (projeto?: string) => /jc2fcs|sacada inferior/i.test(String(projeto || ""));
 const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(String(projeto || ""));
+const ehJc4fcbs = (projeto?: string) => /jc4fcbs|janela.*4.*folhas.*peitoril.*bandeira|janela.*peitoril.*sacada/i.test(String(projeto || ""));
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
@@ -606,6 +615,8 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   if (texto.includes("deslizante4f") || texto.includes("deslizante 4")) return 4;
   if (texto.includes("deslizante5f") || texto.includes("deslizante 5")) return 5;
   if (texto.includes("deslizante6f") || texto.includes("deslizante 6")) return 6;
+if (texto.includes("jc4fcbs") ||texto.includes("janela 4 folhas com peitoril e bandeira") ||texto.includes("janela de correr com bandeira e peitoril")) {
+  return 12;}
   if (texto.includes("jc4fcs") || texto.includes("janela 4 folhas com sacada inferior") || texto.includes("janela de correr 4 folhas com sacada inferior")) return 6;
   if (texto.includes("jc2fcs") || texto.includes("janela 2 folhas com sacada inferior") || texto.includes("janela de correr 2 folhas com sacada inferior")) return 3;
   if (texto.includes("pc4fcb") || texto.includes("4 folhas com bandeira")) return 6;
@@ -1100,6 +1111,8 @@ export default function CentralImpressaoPage() {
       ? "/calculo/peledevidro"
       : ehMax(item.projeto)
       ? "/max"
+      : ehJc4fcbs(item.projeto)
+      ? "/jc4fcbs"
       : ehJc4fComSacada(item.projeto)
       ? "/jc4fcs"
       : ehJc2fComSacada(item.projeto)
@@ -1413,6 +1426,7 @@ export default function CentralImpressaoPage() {
                   const peleDeVidro = ehPeleDeVidro(item.projeto);
                   const pinazio = ehItemPinazio(item);
                   const projetoTecnico = ehProjetoTecnico(item.projeto);
+                  const janelaComPeitorilBandeira = ehJc4fcbs(item.projeto);
                   const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
                   const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
                   const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
@@ -1439,6 +1453,280 @@ export default function CentralImpressaoPage() {
                     : ehPortaGiroFixo(item.projeto)
                     ? "Projeto"
                     : "Trinco";
+
+                  if (janelaComPeitorilBandeira) {
+                    return (
+                      <article
+                        key={item.id}
+                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row">
+                          <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
+                            {desenhoCentral ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={desenhoCentral}
+                                alt={item.projeto}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            ) : (
+                              <div className="text-center">
+                                <Layers3
+                                  size={42}
+                                  className="mx-auto text-slate-300"
+                                />
+                                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                  Sem desenho
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                                  Projeto {index + 1}
+                                </p>
+                                <h2 className="mt-1 text-xl font-normal text-[#0f2742]">
+                                  Janela de correr com bandeira e peitoril
+                                </h2>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => copiarItem(item)}
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                                  title="Copiar e alterar medida"
+                                >
+                                  <Copy size={16} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => editarItem(item)}
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-100 hover:bg-blue-50 hover:text-blue-600"
+                                  title="Editar projeto"
+                                >
+                                  <PencilLine size={16} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removerItem(item.id)}
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
+                                  title="Remover projeto"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                              <Field label="Largura">
+                                <input
+                                  type="number"
+                                  value={item.largura}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "largura",
+                                      Number(e.target.value || 0)
+                                    )
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Altura peitoril">
+                                <input
+                                  type="number"
+                                  value={Number(item.alturaPeitoril || 0)}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "alturaPeitoril",
+                                      Number(e.target.value || 0)
+                                    )
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Altura janela">
+                                <input
+                                  type="number"
+                                  value={Number(item.alturaJanela || 0)}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "alturaJanela",
+                                      Number(e.target.value || 0)
+                                    )
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Altura total">
+                                <input
+                                  type="number"
+                                  value={Number(item.alturaTotal || item.altura || 0)}
+                                  onChange={(e) => {
+                                    const valor = Number(e.target.value || 0);
+                                    atualizarItem(item.id, "alturaTotal", valor);
+                                    atualizarItem(item.id, "altura", valor);
+                                  }}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Quantidade">
+                                <input
+                                  type="number"
+                                  value={item.quantidade}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "quantidade",
+                                      Number(e.target.value || 0)
+                                    )
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Modo">
+                                <select
+                                  value={item.modo || "Barra"}
+                                  onChange={(e) =>
+                                    atualizarItem(item.id, "modo", e.target.value)
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                >
+                                  <option>Kit</option>
+                                  <option>Barra</option>
+                                </select>
+                              </Field>
+
+                              <Field label="Cor do kit / perfil">
+                                <input
+                                  value={item.corPerfil || item.corKit || ""}
+                                  onChange={(e) => {
+                                    atualizarItem(
+                                      item.id,
+                                      "corPerfil",
+                                      e.target.value
+                                    );
+                                    atualizarItem(
+                                      item.id,
+                                      "corKit",
+                                      e.target.value
+                                    );
+                                  }}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Vidro peitoril">
+                                <input
+                                  value={item.vidroPeitoril || item.vidro || ""}
+                                  onChange={(e) => {
+                                    atualizarItem(
+                                      item.id,
+                                      "vidroPeitoril",
+                                      e.target.value
+                                    );
+                                    atualizarItem(
+                                      item.id,
+                                      "vidro",
+                                      e.target.value
+                                    );
+                                  }}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Vidro janela / bandeira">
+                                <input
+                                  value={
+                                    item.vidroJanela ||
+                                    item.vidroBandeira ||
+                                    ""
+                                  }
+                                  onChange={(e) => {
+                                    atualizarItem(
+                                      item.id,
+                                      "vidroJanela",
+                                      e.target.value
+                                    );
+                                    atualizarItem(
+                                      item.id,
+                                      "vidroBandeira",
+                                      e.target.value
+                                    );
+                                  }}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Tubo">
+                                <input
+                                  value={item.tuboPerfil || item.tubo || ""}
+                                  onChange={(e) => {
+                                    atualizarItem(
+                                      item.id,
+                                      "tuboPerfil",
+                                      e.target.value
+                                    );
+                                    atualizarItem(
+                                      item.id,
+                                      "tubo",
+                                      e.target.value
+                                    );
+                                  }}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Trinco">
+                                <input
+                                  value={item.trinco || "Sem trinco"}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "trinco",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+
+                              <Field label="Valor">
+                                <input
+                                  value={numeroDecimal(
+                                    valoresRateadosPorItem.get(item.id) ??
+                                      Number(item.valorTotal || 0)
+                                  )}
+                                  onChange={(e) =>
+                                    atualizarItem(
+                                      item.id,
+                                      "valorTotal",
+                                      parseNumero(e.target.value)
+                                    )
+                                  }
+                                  readOnly={otimizacaoAplicada}
+                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                />
+                              </Field>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  }
 
                   return (
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -2064,4 +2352,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
-

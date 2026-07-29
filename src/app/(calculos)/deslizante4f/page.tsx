@@ -295,6 +295,12 @@ export default function Deslizante4FPage() {
   const [listaVidrosAberta, setListaVidrosAberta] = useState(false);
   const [vidroAtivoIndex, setVidroAtivoIndex] = useState(0);
   const vidroInputRef = useRef<HTMLInputElement>(null);
+
+  // Durante a abertura de um orçamento salvo, os materiais devem ser
+  // restaurados exatamente como foram gravados. Esta ref impede que os
+  // efeitos automáticos adicionem novamente perfis e ferragens.
+  const carregandoMateriaisSalvosRef = useRef(false);
+
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
@@ -387,6 +393,8 @@ export default function Deslizante4FPage() {
         return;
       }
 
+      carregandoMateriaisSalvosRef.current = true;
+
       setDados((atual) => ({
         ...atual,
         projeto: "Deslizante 4 folhas",
@@ -404,7 +412,12 @@ export default function Deslizante4FPage() {
       }));
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
+
+      window.setTimeout(() => {
+        carregandoMateriaisSalvosRef.current = false;
+      }, 0);
     } catch (erro) {
+      carregandoMateriaisSalvosRef.current = false;
       console.warn("Não foi possível carregar o projeto da central de impressão:", erro);
       setMensagemSistema({
         tipo: "erro",
@@ -483,7 +496,7 @@ export default function Deslizante4FPage() {
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
     const larguraFixaMedida = 0;
-    const larguraMovelMedida = (Number(dados.largura || 0) + 30) / 4;
+    const larguraMovelMedida = Number(dados.largura || 0) / 4;
     const alturaFixaMedida = 0;
     const alturaMovelMedida = Math.max(0, Number(dados.altura || 0));
     const larguraFixa = 0;
@@ -694,7 +707,7 @@ export default function Deslizante4FPage() {
     const espessura = obterEspessuraVidro(dados.vidro);
     const largura = Number(dados.largura || 0);
     const altura = Number(dados.altura || 0);
-    const larguraVidro = Number(formatarMedidaPeca((largura + 30) / 4));
+    const larguraVidro = Number(formatarMedidaPeca(largura / 4));
     const projetoComFixo = normalizarTexto(dados.trilho).includes("fixo");
     const cortesTrilho = projetoComFixo ? 3 : 4;
 
@@ -931,6 +944,7 @@ export default function Deslizante4FPage() {
 
 
   useEffect(() => {
+    if (carregandoMateriaisSalvosRef.current) return;
     if (!dados.vidro || dados.vidro === "Escolher") return;
 
     const vidroNome = dados.vidro
@@ -938,7 +952,7 @@ export default function Deslizante4FPage() {
       .trim();
 
     const medidaVidroMovel = `${formatarMedidaPeca(calculoVidro.larguraMovelMedida)}x${formatarMedidaPeca(calculoVidro.alturaMovelMedida)}`;
-    const descricaoVidroMovel = `VIDRO MOVEL 2 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL 4 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
@@ -958,6 +972,8 @@ export default function Deslizante4FPage() {
   }, [calculoVidro.alturaMovelMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
+    if (carregandoMateriaisSalvosRef.current) return;
+
     setMateriais((lista) => {
       const itensManuais = lista.filter((item) => {
         const descricao = normalizarTexto(item.descricao);
@@ -969,6 +985,8 @@ export default function Deslizante4FPage() {
   }, [codigosFerragensAutomaticas, ferragensAutomaticas, perfisAutomaticos]);
 
   useEffect(() => {
+    if (carregandoMateriaisSalvosRef.current) return;
+
     setMateriais((lista) => {
       const filtrada = lista.filter((item) => !normalizarTexto(item.descricao).includes("tubo"));
       return filtrada.length === lista.length ? lista : filtrada;
@@ -1100,6 +1118,8 @@ export default function Deslizante4FPage() {
       return;
     }
 
+    carregandoMateriaisSalvosRef.current = true;
+
     setDados((atual) => ({
       ...atual,
       ...(itens.dados || {}),
@@ -1108,6 +1128,10 @@ export default function Deslizante4FPage() {
       projeto: "Deslizante 4 folhas",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
+
+    window.setTimeout(() => {
+      carregandoMateriaisSalvosRef.current = false;
+    }, 0);
   }, [editId, returnTo, router]);
 
   useEffect(() => {
@@ -2010,7 +2034,3 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
-
-
-
-

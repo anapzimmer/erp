@@ -1733,7 +1733,8 @@ export default function JC4FCSPage() {
                             className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             Adicionar item
-                          </button>
+                          </button>
+
                         </div>
                       </div>
 
