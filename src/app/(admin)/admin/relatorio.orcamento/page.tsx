@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
 import { supabase } from "@/lib/supabaseClient"
+import { PinazioPDF } from "@/app/relatorios/pinazio/PinazioPDF";
 import {
     Search,
     Calendar,
@@ -43,10 +44,33 @@ type OrcamentoItem = {
     tipo?: string;
     acabamento?: string;
     servicos?: string;
-    medidaReal: string;
-    medidaCalc: string;
+    medidaReal?: string;
+    medidaCalc?: string;
     qtd: number;
     total: number;
+
+    largura?: number;
+    altura?: number;
+    medidas?: string;
+    quantidade?: number;
+
+    divisoesLargura?: number;
+    divisoesAltura?: number;
+
+    pinazioId?: string;
+    pinazioNome?: string;
+    pinazioCor?: "branco" | "preto" | "nogal";
+    precoMetroPinazio?: number;
+    metroLinearPinazio?: number;
+    metroLinearPinazioTotal?: number;
+    valorPinazio?: number;
+    valorVidro?: number;
+    vidro?: string;
+    precoVidroAplicado?: number;
+
+    designUrl?: string;
+    desenhoUrl?: string;
+
     planoCorte?: Array<{
         numero: number;
         cortes: number[];
@@ -54,8 +78,10 @@ type OrcamentoItem = {
         sobraMm: number;
     }>;
 };
+
 type Orcamento = {
     id: string;
+    tipo?: string | null;
     numero_formatado?: string | null;
     cliente_nome: string;
     obra_referencia?: string | null;
@@ -153,6 +179,103 @@ type SacadaPerfisProp = Parameters<typeof SacadaFrontalPDF>[0]["perfis"];
 type SacadaAcessoriosProp = Parameters<typeof SacadaFrontalPDF>[0]["acessorios"];
 type RelatorioObraProp = Parameters<typeof RelatorioObraPDF>[0]["relatorioObra"];
 type OtimizacaoGlobalProp = Parameters<typeof RelatorioObraPDF>[0]["otimizacaoGlobal"];
+
+const extrairMedidasPinazio = (item: OrcamentoItem) => {
+    const larguraInformada = Number(item.largura || 0);
+    const alturaInformada = Number(item.altura || 0);
+
+    if (larguraInformada > 0 && alturaInformada > 0) {
+        return {
+            largura: larguraInformada,
+            altura: alturaInformada,
+        };
+    }
+
+    const textoMedidas = String(
+        item.medidas ||
+        item.medidaReal ||
+        item.medidaCalc ||
+        ""
+    );
+
+    const correspondencia = textoMedidas.match(
+        /(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/i
+    );
+
+    if (!correspondencia) {
+        return {
+            largura: 0,
+            altura: 0,
+        };
+    }
+
+    return {
+        largura: Number(correspondencia[1].replace(",", ".")) || 0,
+        altura: Number(correspondencia[2].replace(",", ".")) || 0,
+    };
+};
+
+const normalizarItemPinazioParaPreview = (
+    item: OrcamentoItem,
+    index: number
+) => {
+    const medidas = extrairMedidasPinazio(item);
+    const quantidade = Math.max(
+        1,
+        Number(item.quantidade || item.qtd || 1)
+    );
+
+    const descricaoVidro = String(
+        item.vidro ||
+        item.descricao ||
+        "Vidro não informado"
+    )
+        .replace(/\s*-\s*Pinázio.*$/i, "")
+        .trim();
+
+    return {
+        id: item.id || `pinazio-${index}`,
+        descricao: descricaoVidro,
+        vidro: descricaoVidro,
+        medidas:
+            item.medidas ||
+            `${medidas.largura}x${medidas.altura}`,
+        largura: medidas.largura,
+        altura: medidas.altura,
+        larguraReal: medidas.largura,
+        alturaReal: medidas.altura,
+        quantidade,
+        qtd: quantidade,
+        divisoesLargura: Math.max(
+            1,
+            Number(item.divisoesLargura || 1)
+        ),
+        divisoesAltura: Math.max(
+            1,
+            Number(item.divisoesAltura || 1)
+        ),
+        pinazioId: item.pinazioId,
+        pinazioNome: item.pinazioNome,
+        pinazioCor: item.pinazioCor,
+        precoMetroPinazio: Number(
+            item.precoMetroPinazio || 0
+        ),
+        metroLinearPinazio: Number(
+            item.metroLinearPinazio || 0
+        ),
+        metroLinearPinazioTotal: Number(
+            item.metroLinearPinazioTotal || 0
+        ),
+        valorVidro: Number(item.valorVidro || 0),
+        valorPinazio: Number(item.valorPinazio || 0),
+        precoVidroAplicado: Number(
+            item.precoVidroAplicado || 0
+        ),
+        designUrl: item.designUrl,
+        desenhoUrl: item.desenhoUrl,
+        total: Number(item.total || 0),
+    };
+};
 
 export default function RelatorioOrcamento() {
     const router = useRouter()
@@ -448,13 +571,53 @@ export default function RelatorioOrcamento() {
         setDataFim("");
     };
 
-    const handleEditarOrcamento = (orc: Orcamento) => {
+   const handleEditarOrcamento = (orc: Orcamento) => {
         const numero = String(orc.numero_formatado || "");
+
+        const itensObj =
+            orc.itens && !Array.isArray(orc.itens)
+                ? orc.itens
+                : undefined;
+
+        const tipoItem =
+            typeof itensObj?.tipo === "string"
+                ? itensObj.tipo
+                : "";
+
+        const itensArray = Array.isArray(orc.itens)
+            ? orc.itens
+            : [];
+
+        const possuiItemPinazio = itensArray.some((item) =>
+            Boolean(
+                item.pinazioId ||
+                item.pinazioNome ||
+                Number(item.metroLinearPinazioTotal || 0) > 0
+            )
+        );
+
+        const tipoOrcamento = String(
+            orc.tipo ||
+            tipoItem ||
+            ""
+        ).toLowerCase();
+
         const ehSacada = /^SAC/i.test(numero);
-        const ehEspelho = /^OR(?!C)/i.test(numero);
-        const itensObj = orc.itens && !Array.isArray(orc.itens) ? orc.itens : undefined;
-        const tipoItem = typeof itensObj?.tipo === "string" ? itensObj.tipo : "";
-        const returnTo = encodeURIComponent("/admin/relatorio.orcamento");
+        const ehPinazio =
+            tipoOrcamento === "pinazio" ||
+            possuiItemPinazio;
+
+        const ehEspelho =
+            !ehPinazio &&
+            (
+                tipoOrcamento === "espelhos" ||
+                tipoOrcamento === "espelho" ||
+                /^OR(?!C)/i.test(numero)
+            );
+
+        const returnTo = encodeURIComponent(
+            "/admin/relatorio.orcamento"
+        );
 
         const rotasPorTipo: Record<string, string> = {
             fechamento_sacada: `/calculo/fechamentosacada?edit=${orc.id}&returnTo=${returnTo}`,
@@ -499,17 +662,26 @@ export default function RelatorioOrcamento() {
             deslizante5f: `/deslizante5f?edit=${orc.id}&returnTo=${returnTo}`,
             deslizante6f: `/deslizante6f?edit=${orc.id}&returnTo=${returnTo}`,
             orcamento_projetos: `/central-impressao?edit=${orc.id}`,
+            pinazio: `/calculo/pinazio?edit=${orc.id}&returnTo=${returnTo}`,
         };
 
-        let rotaEdicao = rotasPorTipo[tipoItem];
+        let rotaEdicao =
+            rotasPorTipo[tipoOrcamento] ||
+            rotasPorTipo[tipoItem];
 
         if (!rotaEdicao) {
-            if (ehSacada) {
-                rotaEdicao = `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`;
+            if (ehPinazio) {
+                rotaEdicao =
+                    `/calculo/pinazio?edit=${orc.id}&returnTo=${returnTo}`;
+            } else if (ehSacada) {
+                rotaEdicao =
+                    `/calculo/sacadafrontal?edit=${orc.id}&returnTo=${returnTo}`;
             } else if (ehEspelho) {
-                rotaEdicao = `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`;
+                rotaEdicao =
+                    `/calculo/espelhos?edit=${orc.id}&returnTo=${returnTo}`;
             } else {
-                rotaEdicao = `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
+                rotaEdicao =
+                    `/calculo/calculovidro?edit=${orc.id}&returnTo=${returnTo}`;
             }
         }
 
@@ -550,6 +722,12 @@ export default function RelatorioOrcamento() {
         ? itensPersistidos.tempera.itens
         : [];
     const ehSacadaVisualizar = /^SAC/i.test(String(orcamentoParaVisualizar?.numero_formatado || ""));
+
+    // Pinázio é o único orçamento exibido com um desenho independente
+    // para cada medida. Não há agrupamento ou relação consolidada.
+    const itensPinazioPreview = itens.map(
+        normalizarItemPinazioParaPreview
+    );
 
     return (
         <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -923,7 +1101,7 @@ export default function RelatorioOrcamento() {
                         <div className="p-4 border-b bg-gray-50">
                             <div className="flex justify-between items-center gap-4">
                                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
-                                    Visualização: {(/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) ? "OR-" : "ORC-"}{orcamentoParaVisualizar?.numero_formatado?.replace(/^(OR|ORC)-/, '')}
+                                    Visualização: {orcamentoParaVisualizar?.numero_formatado || "Sem número"}
                                 </h3>
                                 <button
                                     onClick={() => setShowPDFModal(false)}
@@ -1337,8 +1515,71 @@ export default function RelatorioOrcamento() {
                                                 />
                                             );
                                         }
+
+                                        const tipoOrcamentoPreview = String(
+                                            orcamentoParaVisualizar?.tipo ||
+                                            tipo ||
+                                            ""
+                                        ).toLowerCase();
+
+                                        const possuiItemPinazioPreview =
+                                            itens.some((item) =>
+                                                Boolean(
+                                                    item.pinazioId ||
+                                                    item.pinazioNome ||
+                                                    Number(
+                                                        item.metroLinearPinazioTotal || 0
+                                                    ) > 0
+                                                )
+                                            );
+
+                                        const ehPinazioPreview =
+                                            tipoOrcamentoPreview === "pinazio" ||
+                                            possuiItemPinazioPreview;
+
+                                        if (ehPinazioPreview) {
+    return (
+        <PinazioPDF
+            itens={
+                itensPinazioPreview as Parameters<
+                    typeof PinazioPDF
+                >[0]["itens"]
+            }
+            nomeEmpresa={nomeEmpresa}
+            themeColor={theme.contentTextLightBg}
+            textColor={theme.contentTextLightBg}
+            nomeCliente={
+                orcamentoParaVisualizar?.cliente_nome || ""
+            }
+            nomeObra={
+                orcamentoParaVisualizar?.obra_referencia ||
+                undefined
+            }
+            valorTotal={
+                Number(
+                    orcamentoParaVisualizar?.valor_total
+                ) || 0
+            }
+            logoUrl={
+                logoEmpresaPdf ||
+                theme.logoLightUrl ||
+                undefined
+            }
+            numeroOrcamento={
+                orcamentoParaVisualizar
+                    ?.numero_formatado ??
+                undefined
+            }
+        />
+    );
+}
                                         // Espelhos
-                                        if (/^OR(?!C)/i.test(orcamentoParaVisualizar?.numero_formatado || "")) {
+                                        if (
+                                            !ehPinazioPreview &&
+                                            /^OR(?!C)/i.test(
+                                                orcamentoParaVisualizar?.numero_formatado || ""
+                                            )
+                                        ) {
                                             return (
                                                 <EspelhosPDF
                                                     itens={itens}
@@ -1356,7 +1597,11 @@ export default function RelatorioOrcamento() {
                                         // Vidros
                                         return (
                                             <CalculoVidroPDF
-                                                itens={itens}
+                                                itens={
+                                                    itens as unknown as Parameters<
+                                                        typeof CalculoVidroPDF
+                                                    >[0]["itens"]
+                                                }
                                                 nomeEmpresa={nomeEmpresa}
                                                 themeColor={theme.contentTextLightBg}
                                                 textColor={theme.contentTextLightBg}

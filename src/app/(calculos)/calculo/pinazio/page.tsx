@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
-import { Plus, Calculator, Trash2, ReceiptText, Save, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList } from "lucide-react"
+import { Plus, Calculator, Trash2, ReceiptText, Save, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRoundSearch, FileText, FolderOpen, BadgeDollarSign } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { PinazioPDF } from '@/app/relatorios/pinazio/PinazioPDF'
@@ -215,6 +215,12 @@ export default function CalculoPinazioPage() {
   const [divisoesLargura, setDivisoesLargura] = useState(1);
   const [divisoesAltura, setDivisoesAltura] = useState(1);
   const [showModalSalvar, setShowModalSalvar] = useState(false)
+  const [showModalCliente, setShowModalCliente] = useState(false);
+  const [clientesDB, setClientesDB] = useState<any[]>([]);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [clienteSelecionadoId, setClienteSelecionadoId] = useState("");
+  const [precosCliente, setPrecosCliente] = useState<Record<string, number>>({});
+  const [carregandoClientes, setCarregandoClientes] = useState(false);
   const [showModalAviso, setShowModalAviso] = useState(false);
   const [modalAvisoTitulo, setModalAvisoTitulo] = useState("Atenção");
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
@@ -243,6 +249,159 @@ export default function CalculoPinazioPage() {
 
     carregarDados();
   }, []);
+
+  useEffect(() => {
+    if (!empresaId) return;
+
+    const carregarClientes = async () => {
+      setCarregandoClientes(true);
+
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone, email, cidade")
+        .eq("empresa_id", empresaId)
+        .order("nome");
+
+      if (error) {
+        console.error("Erro ao carregar clientes:", error);
+        setClientesDB([]);
+      } else {
+        setClientesDB(data || []);
+      }
+
+      setCarregandoClientes(false);
+    };
+
+    carregarClientes();
+  }, [empresaId]);
+
+  const carregarPrecosDoCliente = async (clienteId: string) => {
+    if (!clienteId) {
+      setPrecosCliente({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("vidro_precos_clientes")
+      .select("vidro_id, preco")
+      .eq("cliente_id", clienteId);
+
+    if (error) {
+      console.error("Erro ao carregar preços personalizados do cliente:", error);
+      setPrecosCliente({});
+      return;
+    }
+
+    const mapa = (data || []).reduce<Record<string, number>>((acc, item) => {
+      const preco = Number(item.preco);
+      if (item.vidro_id && Number.isFinite(preco)) {
+        acc[String(item.vidro_id)] = preco;
+      }
+      return acc;
+    }, {});
+
+    setPrecosCliente(mapa);
+  };
+
+  const selecionarCliente = async (cliente: any) => {
+    setClienteSelecionadoId(String(cliente.id));
+    setNomeCliente(cliente.nome || "");
+    setBuscaCliente("");
+    setShowModalCliente(false);
+    await carregarPrecosDoCliente(String(cliente.id));
+  };
+
+  const limparClienteSelecionado = () => {
+    setClienteSelecionadoId("");
+    setNomeCliente("");
+    setPrecosCliente({});
+    setBuscaCliente("");
+  };
+
+  const iniciarNovoOrcamento = () => {
+    const possuiDados =
+      listaItens.length > 0 ||
+      Boolean(nomeCliente) ||
+      Boolean(nomeObra) ||
+      Boolean(largura) ||
+      Boolean(altura) ||
+      Boolean(ultimoNumeroGerado);
+
+    if (
+      possuiDados &&
+      !window.confirm(
+        "Iniciar um novo orçamento? Os dados que ainda não foram salvos serão apagados."
+      )
+    ) {
+      return;
+    }
+
+    // Remove o rascunho atual e qualquer rascunho da tela de novo orçamento.
+    sessionStorage.removeItem(draftKey);
+    sessionStorage.removeItem(
+      `orcamento_pinazio_draft_${empresaId || "sem_empresa"}_novo`
+    );
+
+    // Limpa também os dados temporários enviados para a Central de Impressão.
+    localStorage.removeItem(CENTRAL_IMPRESSAO_KEY);
+    localStorage.removeItem(CENTRAL_IMPRESSAO_CLIENTE_KEY);
+    localStorage.removeItem(CENTRAL_IMPRESSAO_OBRA_KEY);
+
+    setListaItens([]);
+    setNomeCliente("");
+    setClienteSelecionadoId("");
+    setPrecosCliente({});
+    setBuscaCliente("");
+    setNomeObra("");
+    setLargura("");
+    setAltura("");
+    setQuantidade(1);
+    setDivisoesLargura(1);
+    setDivisoesAltura(1);
+    setAcabamentoId("8x18-branco");
+    setPrecoMetroPinazio("55");
+    setUltimoNumeroGerado("");
+
+    if (vidrosDB.length > 0) {
+      setVidroId(String(vidrosDB[0].id));
+    } else {
+      setVidroId("");
+    }
+
+    setShowModalCliente(false);
+    setShowModalPDF(false);
+    setShowModalCentral(false);
+    setShowModalSalvar(false);
+    setShowModalAviso(false);
+    setShowModalSucesso(false);
+
+    // Sai do modo de edição para que o próximo salvamento crie outro orçamento.
+    if (editId) {
+      router.replace("/calculo/pinazio");
+    }
+
+    window.setTimeout(() => larguraInputRef.current?.focus(), 50);
+  };
+
+  const clientesFiltrados = useMemo(() => {
+    const termo = buscaCliente.trim().toLocaleLowerCase("pt-BR");
+    if (!termo) return clientesDB;
+
+    return clientesDB.filter((cliente) =>
+      [cliente.nome, cliente.telefone, cliente.email, cliente.cidade]
+        .filter(Boolean)
+        .some((valor) =>
+          String(valor).toLocaleLowerCase("pt-BR").includes(termo)
+        )
+    );
+  }, [clientesDB, buscaCliente]);
+
+  const obterPrecoVidro = (vidro: any) => {
+    const personalizado = precosCliente[String(vidro?.id)];
+    return Number.isFinite(personalizado)
+      ? personalizado
+      : Number(vidro?.preco || 0);
+  };
 
   const buscarOrcamentoParaEdicao = async (id: string) => {
     try {
@@ -286,6 +445,10 @@ export default function CalculoPinazioPage() {
 
       const draft = JSON.parse(raw);
       setNomeCliente(draft.nomeCliente || "");
+      setClienteSelecionadoId(draft.clienteSelecionadoId || "");
+      if (draft.clienteSelecionadoId) {
+        carregarPrecosDoCliente(String(draft.clienteSelecionadoId));
+      }
       setNomeObra(draft.nomeObra || "");
       setLargura(draft.largura || "");
       setAltura(draft.altura || "");
@@ -334,6 +497,7 @@ export default function CalculoPinazioPage() {
 
     const payload = {
       nomeCliente,
+      clienteSelecionadoId,
       nomeObra,
       largura,
       altura,
@@ -352,6 +516,7 @@ export default function CalculoPinazioPage() {
     empresaId,
     draftKey,
     nomeCliente,
+    clienteSelecionadoId,
     nomeObra,
     largura,
     altura,
@@ -426,7 +591,8 @@ export default function CalculoPinazioPage() {
     const lCalc = Math.ceil(lOriginal / 50) * 50;
     const aCalc = Math.ceil(aOriginal / 50) * 50;
     const areaVidroM2 = (lCalc * aCalc) / 1_000_000;
-    const valorVidroUnitario = areaVidroM2 * Number(vidro.preco || 0);
+    const precoVidroAplicado = obterPrecoVidro(vidro);
+    const valorVidroUnitario = areaVidroM2 * precoVidroAplicado;
 
     // As divisões são usadas apenas para calcular as linhas internas do Pinázio.
     const metroLinearUnitario = semPinazio
@@ -458,6 +624,7 @@ export default function CalculoPinazioPage() {
       metroLinearPinazio: metroLinearUnitario * quantidadeValida,
       metroLinearPinazioUnitario: metroLinearUnitario,
       precoMetroPinazio: precoMetroInformado,
+      precoVidroAplicado,
       valorVidroUnitario,
       valorPinazioUnitario,
       valorVidro: valorVidroTotal,
@@ -471,6 +638,7 @@ export default function CalculoPinazioPage() {
     vidroId,
     acabamentoId,
     vidrosDB,
+    precosCliente,
     precoMetroPinazio,
     divisoesLargura,
     divisoesAltura,
@@ -529,6 +697,9 @@ export default function CalculoPinazioPage() {
           ),
       designUrl: desenhoUrl,
       desenhoUrl,
+      precoVidroAplicado: calculoAtual.precoVidroAplicado,
+      clienteId: clienteSelecionadoId || null,
+      clienteNome: nomeCliente || "",
       valorVidro: calculoAtual.valorVidro,
       valorPinazio: calculoAtual.valorPinazio,
       total: calculoAtual.total,
@@ -546,141 +717,215 @@ export default function CalculoPinazioPage() {
   const enviarParaCentralImpressao = () => {
     if (listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");
-      setModalAvisoMensagem("Adicione pelo menos um item antes de enviar para a central de impressão.");
+      setModalAvisoMensagem(
+        "Adicione pelo menos um item antes de enviar para a central de impressão."
+      );
       setShowModalAviso(true);
       return;
     }
 
-    const totalPecas = listaItens.reduce(
-      (total, item) => total + Math.max(1, Number(item.quantidade || 1)),
-      0
-    );
-    const areaTotal = listaItens.reduce(
-      (total, item) => total + calcularAreaItemVidro(item),
-      0
-    );
-    const valorTotal = listaItens.reduce(
-      (total, item) => total + Number(item.total || 0),
-      0
-    );
+    /*
+     * Cada medida do Pinázio vira um projeto independente na Central.
+     * Não enviamos mais um projeto genérico com "Conforme relação".
+     */
+    const itensCentral = listaItens.map((item, index) => {
+      const larguraItem = Number(
+        item.larguraReal || item.largura || 0
+      );
+      const alturaItem = Number(
+        item.alturaReal || item.altura || 0
+      );
+      const quantidadeItem = Math.max(
+        1,
+        Number(item.quantidade || item.qtd || 1)
+      );
 
-    const vidrosAvulsos = listaItens.map((item) => ({
-      id: criarId(),
-      quantidade: Math.max(1, Number(item.quantidade || 1)),
-      medida: `${numeroMedida(item.larguraReal)}x${numeroMedida(item.alturaReal)}`,
-      vidro: descricaoVidroSemPrefixo(item.descricao),
-      valorTotal: Number(item.total || 0),
-    }));
+      const areaItem = calcularAreaItemVidro(item);
+      const metroLinearItem = Number(
+        item.metroLinearPinazioTotal || 0
+      );
 
-    const materiais = listaItens.flatMap((item) => {
-      const area = calcularAreaItemVidro(item);
-      const qtd = Math.max(1, Number(item.quantidade || 1));
-      const metroLinear = Number(item.metroLinearPinazioTotal || 0);
-      const vidroDescricao = descricaoVidroSemPrefixo(item.descricao);
+      const vidroDescricao = descricaoVidroSemPrefixo(
+        item.vidro || item.descricao || "Vidro"
+      )
+        .replace(/\s*-\s*Pinázio.*$/i, "")
+        .trim();
+
+      const descricaoPinazio =
+        item.pinazioId === "sem-pinazio"
+          ? "Sem Pinázio"
+          : item.pinazioNome || "Pinázio";
 
       const materialVidro = {
         id: criarId(),
-        qtd: Number(area.toFixed(3)),
+        qtd: Number(areaItem.toFixed(3)),
         unidade: "m2",
-        descricao: `VIDRO ${item.medidas} ${vidroDescricao}`.toUpperCase(),
-        valorUnitario: area > 0 ? Number(item.valorVidro || 0) / area : 0,
+        descricao: `VIDRO ${numeroMedida(larguraItem)} X ${numeroMedida(
+          alturaItem
+        )} ${vidroDescricao}`.toUpperCase(),
+        valorUnitario:
+          areaItem > 0
+            ? Number(item.valorVidro || 0) / areaItem
+            : 0,
       };
 
-      if (
+      const materiaisItem =
         item.pinazioId === "sem-pinazio" ||
-        metroLinear <= 0 ||
+        metroLinearItem <= 0 ||
         Number(item.valorPinazio || 0) <= 0
-      ) {
-        return [materialVidro];
-      }
+          ? [materialVidro]
+          : [
+              materialVidro,
+              {
+                id: criarId(),
+                qtd: Number(metroLinearItem.toFixed(3)),
+                unidade: "ml",
+                descricao: `${descricaoPinazio} - DIVISÕES ${Math.max(
+                  1,
+                  Number(item.divisoesLargura || 1)
+                )} X ${Math.max(
+                  1,
+                  Number(item.divisoesAltura || 1)
+                )}`.toUpperCase(),
+                valorUnitario: Number(
+                  item.precoMetroPinazio || 0
+                ),
+              },
+            ];
 
-      return [
-        materialVidro,
-        {
-          id: criarId(),
-          qtd: Number(metroLinear.toFixed(3)),
-          unidade: "ml",
-          descricao: `${item.pinazioNome || "PINÁZIO"} - ${item.divisoesLargura} X ${item.divisoesAltura} - ${qtd} PEÇA(S)`.toUpperCase(),
-          valorUnitario: Number(item.precoMetroPinazio || 0),
-        },
-      ];
+      return {
+        id: criarId(),
+        numero: ultimoNumeroGerado || "novo",
+        projeto: "Vidro Insulado com Pinázio",
+        cliente: nomeCliente,
+
+        // Campos exibidos diretamente no cartão da Central.
+        medidas: `${numeroMedida(larguraItem)} x ${numeroMedida(
+          alturaItem
+        )} mm`,
+        largura: larguraItem,
+        altura: alturaItem,
+        quantidade: quantidadeItem,
+        modo: "Vidro",
+        vidro: vidroDescricao,
+        valorTotal: Number(item.total || 0),
+
+        // Dados próprios do Pinázio.
+        divisoesLargura: Math.max(
+          1,
+          Number(item.divisoesLargura || 1)
+        ),
+        divisoesAltura: Math.max(
+          1,
+          Number(item.divisoesAltura || 1)
+        ),
+        pinazioId: item.pinazioId,
+        pinazioNome: descricaoPinazio,
+        pinazioCor: item.pinazioCor,
+        precoMetroPinazio: Number(
+          item.precoMetroPinazio || 0
+        ),
+        metroLinearPinazio: Number(
+          item.metroLinearPinazio || 0
+        ),
+        metroLinearPinazioTotal: metroLinearItem,
+        valorVidro: Number(item.valorVidro || 0),
+        valorPinazio: Number(item.valorPinazio || 0),
+
+        // Cada medida leva exatamente o seu próprio desenho.
+        desenhoUrl: String(
+          item.designUrl || item.desenhoUrl || ""
+        ),
+        designUrl: String(
+          item.designUrl || item.desenhoUrl || ""
+        ),
+
+        // Compatibilidade com a Central, sem criar relação agrupada.
+        corKit: "",
+        corPerfil: "",
+        trilho: "",
+        puxador: "",
+        tamanhoPuxador: "",
+        trinco: "",
+        pecasDivisao: quantidadeItem,
+        medidasDetalhadas: "",
+        vidrosAvulsos: [],
+        materiais: materiaisItem,
+        origemRota: "/calculo/pinazio",
+        origemTipo: "pinazio-individual",
+        indiceOrigem: index + 1,
+      };
     });
 
-    const medidasDetalhadas = listaItens
-      .map((item, index) =>
-        item.pinazioId === "sem-pinazio"
-          ? `${index + 1}. ${item.quantidade} peça(s) - ${item.medidas} mm - Sem Pinázio`
-          : `${index + 1}. ${item.quantidade} peça(s) - ${item.medidas} mm - ${item.pinazioNome || "Pinázio"} - divisões ${item.divisoesLargura} x ${item.divisoesAltura} - ${Number(item.metroLinearPinazioTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ml`
-      )
-      .join("\n");
-
-    const itemCentral = {
-      id: criarId(),
-      numero: ultimoNumeroGerado || "novo",
-      projeto: "Vidros com Pinázio",
-      cliente: nomeCliente,
-      medidas: `${totalPecas} peça(s) | ${areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`,
-      largura: 0,
-      altura: 0,
-      quantidade: 1,
-      modo: "Pinázio",
-      desenhoUrl:
-        listaItens.length === 1
-          ? String(listaItens[0].designUrl || listaItens[0].desenhoUrl || "")
-          : "",
-      vidro: "Conforme relação",
-      corKit: "",
-      corPerfil: "",
-      trilho: "",
-      puxador: "",
-      tamanhoPuxador: "",
-      trinco: "",
-      pecasDivisao: totalPecas,
-      medidasDetalhadas,
-      vidrosAvulsos,
-      valorTotal,
-      materiais,
-      origemRota: "/calculo/pinazio",
-    };
-
     try {
-      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
-      const lista = salvo ? JSON.parse(salvo) : [];
+      const salvo = window.localStorage.getItem(
+        CENTRAL_IMPRESSAO_KEY
+      );
+      const listaBruta = salvo ? JSON.parse(salvo) : [];
+      const lista = Array.isArray(listaBruta)
+        ? listaBruta.filter((projeto: any) => {
+            const ehPinazioGenericoAntigo =
+              String(projeto?.origemRota || "") ===
+                "/calculo/pinazio" &&
+              Number(projeto?.largura || 0) === 0 &&
+              Number(projeto?.altura || 0) === 0 &&
+              String(projeto?.vidro || "")
+                .toLowerCase()
+                .includes("conforme relação");
+
+            return !ehPinazioGenericoAntigo;
+          })
+        : [];
+
       window.localStorage.setItem(
         CENTRAL_IMPRESSAO_KEY,
-        JSON.stringify([...lista, itemCentral])
+        JSON.stringify([...lista, ...itensCentral])
       );
 
       if (nomeCliente) {
-        window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, nomeCliente);
+        window.localStorage.setItem(
+          CENTRAL_IMPRESSAO_CLIENTE_KEY,
+          nomeCliente
+        );
       }
 
       if (nomeObra) {
-        window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, nomeObra);
+        window.localStorage.setItem(
+          CENTRAL_IMPRESSAO_OBRA_KEY,
+          nomeObra
+        );
       }
 
       setShowModalCentral(false);
       router.push("/central-impressao");
     } catch (erro) {
-      console.warn("Não foi possível enviar o Pinázio para a central de impressão:", erro);
+      console.warn(
+        "Não foi possível enviar o Pinázio para a central de impressão:",
+        erro
+      );
       setModalAvisoTitulo("Erro ao enviar");
-      setModalAvisoMensagem("Não foi possível enviar o Pinázio para a central de impressão.");
+      setModalAvisoMensagem(
+        "Não foi possível enviar o Pinázio para a central de impressão."
+      );
       setShowModalAviso(true);
     }
   };
 
-  // --- PRÉ-VISUALIZAÇÃO DO PINÁZIO ---
+  // --- PRÉ-VISUALIZAÇÃO DO VIDRO COM PINÁZIO ---
   const RenderPreview = useMemo(() => {
     const opcaoSelecionada =
       OPCOES_PINAZIO.find((item) => item.id === acabamentoId) ||
+      OPCOES_PINAZIO.find((item) => item.id === "8x18-branco") ||
       OPCOES_PINAZIO[0];
+
+    const semPinazio = acabamentoId === "sem-pinazio";
 
     return (
       <MiniProjetoPinazio
         largura={Number(largura) || 100}
         altura={Number(altura) || 100}
-        divisoesLargura={divisoesLargura}
-        divisoesAltura={divisoesAltura}
+        divisoesLargura={semPinazio ? 1 : divisoesLargura}
+        divisoesAltura={semPinazio ? 1 : divisoesAltura}
         cor={opcaoSelecionada.cor}
         tamanhoMaximo={360}
       />
@@ -809,40 +1054,92 @@ export default function CalculoPinazioPage() {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
         >
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Pinázio</h1>
-              <span className="text-xs text-gray-800 "># {ultimoNumeroGerado || "NOVO"}</span>
-            </div>
-
-            {/* ÁREA DE AÇÕES DISCRETAS */}
-            <div className="ml-6 flex items-center gap-3 animate-fade-in">
-              <button
-                onClick={() => setShowModalSalvar(true)}
-                className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Salvar Orçamento
-              </button>
-
-              <button
-                onClick={() => setShowModalCentral(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
-                title="Enviar para a central de impressão"
-              >
-                PDF+
-              </button>
-
-              {/* Ícone discreto para PDF */}
-              <button
-                onClick={() => setShowModalPDF(true)}
-                className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
-              >
-                <Printer size={20} />
-              </button>
-            </div>
+          <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+            <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+              Orçamento Pinázio
+            </h1>
+            <span className="text-xs text-gray-800">
+              # {ultimoNumeroGerado || "NOVO"}
+            </span>
           </div>
         </Header>
+
+        <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+            <button
+              type="button"
+              onClick={iniciarNovoOrcamento}
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#0f2742] transition hover:bg-slate-50"
+              title="Limpar os dados e iniciar um novo orçamento"
+            >
+              <Plus size={17} />
+              Orçamento
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowModalCliente(true)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                clienteSelecionadoId
+                  ? "border border-slate-300 bg-slate-100 text-[#0f2742]"
+                  : "border border-transparent text-[#0f2742] hover:bg-slate-50"
+              }`}
+            >
+              <UserRoundSearch size={17} />
+              {nomeCliente || "Cliente"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowModalPDF(true)}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+            >
+              <Printer size={17} />
+              Imprimir
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/admin/relatorio.orcamento')}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+            >
+              <FolderOpen size={17} />
+              Projetos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowModalCentral(true)}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+            >
+              <FileText size={17} />
+              PDF+
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowModalSalvar(true)}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+            >
+              <Save size={17} />
+              Salvar
+            </button>
+          </div>
+
+          {clienteSelecionadoId && (
+            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-slate-600">
+              <BadgeDollarSign size={14} />
+              Preços personalizados de <strong>{nomeCliente}</strong> aplicados quando cadastrados.
+              <button
+                type="button"
+                onClick={limparClienteSelecionado}
+                className="ml-1 font-semibold text-[#0f2742] underline underline-offset-2"
+              >
+                remover
+              </button>
+            </div>
+          )}
+        </nav>
 
 
         <main className="p-4 md:p-8 flex-1 overflow-y-auto">
@@ -950,10 +1247,24 @@ export default function CalculoPinazioPage() {
                     >
                       {vidrosDB.map(v => (
                         <option key={v.id} value={v.id}>
-                          {v.nome} {v.espessura} - {v.tipo} ({Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²)
+                          {v.nome} {v.espessura} - {v.tipo} ({obterPrecoVidro(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²{precosCliente[String(v.id)] !== undefined ? " • cliente" : ""})
                         </option>
                       ))}
                     </select>
+
+                    {clienteSelecionadoId && (
+                      <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                        <BadgeDollarSign size={14} />
+                        {precosCliente[String(vidroId)] !== undefined
+                          ? `Preço especial de ${nomeCliente}: ${obterPrecoVidro(
+                              vidrosDB.find((vidro) => String(vidro.id) === String(vidroId))
+                            ).toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}/m²`
+                          : `Este vidro usa o preço padrão; ${nomeCliente} não possui valor específico cadastrado.`}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1277,6 +1588,105 @@ export default function CalculoPinazioPage() {
       </div>
 
       {/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
+      {showModalCliente && (
+        <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 p-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                  Tabela personalizada
+                </p>
+                <h3 className="mt-1 text-xl font-semibold text-[#0f2742]">
+                  Buscar cliente
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Ao escolher um cliente, os preços especiais de vidro serão aplicados automaticamente.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowModalCliente(false)}
+                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="relative">
+                <UserRoundSearch
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  autoFocus
+                  value={buscaCliente}
+                  onChange={(event) => setBuscaCliente(event.target.value)}
+                  placeholder="Buscar por nome, telefone, e-mail ou cidade..."
+                  className="w-full rounded-2xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-slate-400"
+                />
+              </div>
+
+              <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+                {carregandoClientes ? (
+                  <div className="py-10 text-center text-sm text-slate-400">
+                    Carregando clientes...
+                  </div>
+                ) : clientesFiltrados.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400">
+                    Nenhum cliente encontrado.
+                  </div>
+                ) : (
+                  clientesFiltrados.map((cliente) => (
+                    <button
+                      key={cliente.id}
+                      type="button"
+                      onClick={() => selecionarCliente(cliente)}
+                      className="flex w-full items-center justify-between rounded-2xl border border-slate-100 px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#0f2742]">
+                          {cliente.nome}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-400">
+                          {[cliente.telefone, cliente.email, cliente.cidade]
+                            .filter(Boolean)
+                            .join(" • ") || "Sem dados adicionais"}
+                        </p>
+                      </div>
+                      <span className="ml-4 text-xs font-semibold text-blue-700">
+                        Selecionar
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-5 flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => {
+                    limparClienteSelecionado();
+                    setShowModalCliente(false);
+                  }}
+                  className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  Orçamento sem cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModalCliente(false)}
+                  className="flex-1 rounded-xl bg-[#1e3a5a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2a527d]"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModalPDF && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div

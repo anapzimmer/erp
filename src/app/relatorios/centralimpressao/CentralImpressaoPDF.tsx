@@ -4,6 +4,7 @@
 import React from "react";
 import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
+import MiniProjetoPinazioPDF from "@/components/desenhos/MiniProjetoPinazioPDF";
 
 export type CentralImpressaoItem = {
   id: string;
@@ -36,6 +37,13 @@ export type CentralImpressaoItem = {
     valorTotal: number;
   }>;
   valorTotal?: number;
+  origemRota?: string;
+  origemTipo?: string;
+  pinazioId?: string;
+  pinazioNome?: string;
+  pinazioCor?: "branco" | "preto" | "nogal";
+  divisoesLargura?: number;
+  divisoesAltura?: number;
   materiais?: ProjetoIndividualMaterial[];
 };
 
@@ -278,6 +286,35 @@ const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto
 const ehEspelhoComDesenho = (projeto?: string) => /^espelhos?$/i.test(String(projeto || "").trim());
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
 
+const ehItemPinazio = (
+  item?: Pick<
+    CentralImpressaoItem,
+    "projeto" | "origemRota" | "origemTipo" | "pinazioId" | "pinazioNome"
+  >
+) =>
+  String(item?.origemTipo || "") === "pinazio-individual" ||
+  String(item?.origemRota || "").includes("/calculo/pinazio") ||
+  /pin[aá]zio/i.test(String(item?.projeto || "")) ||
+  Boolean(item?.pinazioId || item?.pinazioNome);
+
+const formatarPinazioItem = (
+  item: Pick<CentralImpressaoItem, "pinazioId" | "pinazioNome" | "pinazioCor">
+) => {
+  if (item.pinazioId === "sem-pinazio") return "Sem Pinázio";
+
+  const nome = String(item.pinazioNome || "Pinázio").trim();
+  const cor = String(item.pinazioCor || "").trim();
+
+  if (!cor || normalizarTexto(nome).includes(normalizarTexto(cor))) {
+    return nome;
+  }
+
+  const corFormatada =
+    cor.charAt(0).toUpperCase() + cor.slice(1).toLowerCase();
+
+  return `${nome} - ${corFormatada}`;
+};
+
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
 const corPerfilSvg = (cor?: string) => {
@@ -500,6 +537,121 @@ function PeleDeVidroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         return <Rect key={`pv-h-${index}`} x={x0} y={y} width={drawW} height={mullionW} fill={perfilFill} stroke={perfilStroke} strokeWidth={0.35} />;
       })}
     </Svg>
+  );
+}
+
+function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
+  const largura = Math.max(1, Number(item.largura || 1));
+  const altura = Math.max(1, Number(item.altura || 1));
+  const divL = Math.max(1, Number(item.divisoesLargura || 1));
+  const divA = Math.max(1, Number(item.divisoesAltura || 1));
+
+  const escala = Math.min(90 / largura, 76 / altura);
+  const w = Math.max(36, Math.min(94, largura * escala));
+  const h = Math.max(34, Math.min(80, altura * escala));
+  const x = (112 - w) / 2;
+  const y = 8;
+
+  const corNormalizada = normalizarTexto(item.pinazioCor);
+  const corLinha =
+    corNormalizada === "preto"
+      ? "#222222"
+      : corNormalizada === "nogal"
+        ? "#79543a"
+        : "#f8fafc";
+
+  const corContorno =
+    corNormalizada === "branco"
+      ? "#94a3b8"
+      : corNormalizada === "nogal"
+        ? "#5d3c28"
+        : "#111827";
+
+  const semPinazio = item.pinazioId === "sem-pinazio";
+
+  return (
+    <View>
+      <Svg width={112} height={92} viewBox="0 0 112 92">
+        <Rect
+          x={x}
+          y={y}
+          width={w}
+          height={h}
+          rx={3}
+          fill="#e8f4f7"
+          stroke="#718596"
+          strokeWidth={1.2}
+        />
+
+        <Line
+          x1={x + w * 0.12}
+          y1={y + h * 0.18}
+          x2={x + w * 0.38}
+          y2={y + h * 0.06}
+          stroke="#ffffff"
+          strokeWidth={2.2}
+          opacity={0.65}
+        />
+
+        {!semPinazio
+          ? Array.from({ length: Math.max(0, divL - 1) }).map((_, index) => {
+              const linhaX = x + (w / divL) * (index + 1);
+
+              return (
+                <G key={`pinazio-v-${index}`}>
+                  <Line
+                    x1={linhaX}
+                    y1={y}
+                    x2={linhaX}
+                    y2={y + h}
+                    stroke={corContorno}
+                    strokeWidth={2.2}
+                  />
+                  <Line
+                    x1={linhaX}
+                    y1={y}
+                    x2={linhaX}
+                    y2={y + h}
+                    stroke={corLinha}
+                    strokeWidth={1.3}
+                  />
+                </G>
+              );
+            })
+          : null}
+
+        {!semPinazio
+          ? Array.from({ length: Math.max(0, divA - 1) }).map((_, index) => {
+              const linhaY = y + (h / divA) * (index + 1);
+
+              return (
+                <G key={`pinazio-h-${index}`}>
+                  <Line
+                    x1={x}
+                    y1={linhaY}
+                    x2={x + w}
+                    y2={linhaY}
+                    stroke={corContorno}
+                    strokeWidth={2.2}
+                  />
+                  <Line
+                    x1={x}
+                    y1={linhaY}
+                    x2={x + w}
+                    y2={linhaY}
+                    stroke={corLinha}
+                    strokeWidth={1.3}
+                  />
+                </G>
+              );
+            })
+          : null}
+      </Svg>
+
+      <Text style={styles.imagePlaceholderText}>
+        {item.largura || 0} x {item.altura || 0} mm
+      </Text>
+    </View>
   );
 }
 
@@ -857,6 +1009,7 @@ export function CentralImpressaoPDF({
             const projetoTecnico = ehProjetoTecnico(item.projeto);
             const sacadaFrontal = ehSacadaFrontal(item.projeto);
             const peleDeVidro = ehPeleDeVidro(item.projeto);
+            const pinazio = ehItemPinazio(item);
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
             const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira || ehJc2fComSacada || ehJc4fComSacada;
             const fechamentoSacada = ehFechamentoSacada(item.projeto);
@@ -898,7 +1051,25 @@ export function CentralImpressaoPDF({
             return (
               <View key={item.id} style={styles.card} wrap={false}>
                 <View style={styles.imageWrap}>
-                  {sacadaFrontal ? (
+                  {pinazio ? (
+                    <MiniProjetoPinazioPDF
+                      largura={Number(item.largura || 100)}
+                      altura={Number(item.altura || 100)}
+                      divisoesLargura={
+                        item.pinazioId === "sem-pinazio"
+                          ? 1
+                          : Math.max(1, Number(item.divisoesLargura || 1))
+                      }
+                      divisoesAltura={
+                        item.pinazioId === "sem-pinazio"
+                          ? 1
+                          : Math.max(1, Number(item.divisoesAltura || 1))
+                      }
+                      cor={item.pinazioCor || "branco"}
+                      width={112}
+                      height={104}
+                    />
+                  ) : sacadaFrontal ? (
                     <SacadaFrontalDesenhoPDF item={item} />
                   ) : fechamentoSacada ? (
                     <FechamentoSacadaDesenhoPDF item={item} />
@@ -1039,7 +1210,7 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoLabel}>Peças por vão na largura</Text>
                         <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
                       </View>
-                    ) : ehBoxProjeto ? null : (
+                    ) : ehBoxProjeto || pinazio ? null : (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Modo</Text>
                         <Text style={styles.infoValue}>{item.modo}</Text>
@@ -1051,7 +1222,7 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !fechamentoSacada && !peleDeVidro ? (
+                    {!ehVidroAvulso && !fechamentoSacada && !peleDeVidro && !pinazio ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelVidroPrincipal}</Text>
                         <Text style={styles.infoValue}>{vidroPrincipal || "-"}</Text>
@@ -1069,7 +1240,32 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{item.alturaAteTubo || 0} mm</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !fechamentoSacada && !peleDeVidro ? (
+                    {pinazio ? (
+                      <View style={styles.infoWide}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: 10,
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Vidro</Text>
+                            <Text style={styles.infoValue}>
+                              {descricaoVidroItem(item) || item.vidro || "-"}
+                            </Text>
+                          </View>
+
+                          <View style={{ width: 82, alignItems: "flex-end" }}>
+                            <Text style={styles.infoLabel}>Valor</Text>
+                            <Text style={styles.infoValue}>
+                              {moeda(Number(item.valorTotal || 0))}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ) : !ehVidroAvulso && !fechamentoSacada && !peleDeVidro ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{sacadaFrontal ? "Cor do perfil" : ehBoxProjeto ? "Cor do kit" : "Cor"}</Text>
                         <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
@@ -1087,19 +1283,19 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos ? (
+                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoPrincipal}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
+                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && !pinazio && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Puxador</Text>
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehFixos ? (
+                    {!ehVidroAvulso && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoSecundario}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
@@ -1111,10 +1307,12 @@ export function CentralImpressaoPDF({
                         <Text style={styles.infoValue}>{item.observacao || "Padrão"}</Text>
                       </View>
                     ) : null}
-                    <View style={ehVidroAvulso ? styles.infoAvulso : styles.info}>
-                      <Text style={styles.infoLabel}>Valor total</Text>
-                      <Text style={styles.infoValueStrong}>{moeda(ehVidroAvulso ? resumoAvulso?.valor || 0 : item.valorTotal || 0)}</Text>
-                    </View>
+                    {!pinazio ? (
+                      <View style={ehVidroAvulso ? styles.infoAvulso : styles.info}>
+                        <Text style={styles.infoLabel}>Valor total</Text>
+                        <Text style={styles.infoValueStrong}>{moeda(ehVidroAvulso ? resumoAvulso?.valor || 0 : item.valorTotal || 0)}</Text>
+                      </View>
+                    ) : null}
                     {ehVidroAvulso && item.vidrosAvulsos?.length ? (
                       <View style={styles.vidroTable}>
                         <View style={styles.vidroHeader}>
@@ -1215,4 +1413,3 @@ export function CentralImpressaoPDF({
     </Document>
   );
 }
-

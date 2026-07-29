@@ -28,6 +28,12 @@ type ProjetoComposicao = CentralImpressaoItem & {
   medidasDetalhadas?: string;
   pecasDivisao?: number;
   origemRota?: string;
+  origemTipo?: string;
+  pinazioId?: string;
+  pinazioNome?: string;
+  pinazioCor?: "branco" | "preto" | "nogal";
+  divisoesLargura?: number;
+  divisoesAltura?: number;
   materiais?: ProjetoIndividualMaterial[];
 };
 
@@ -226,6 +232,35 @@ const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(proj
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
+
+const ehItemPinazio = (
+  item?: Pick<
+    ProjetoComposicao,
+    "projeto" | "origemRota" | "origemTipo" | "pinazioId" | "pinazioNome"
+  >
+) =>
+  String(item?.origemTipo || "") === "pinazio-individual" ||
+  String(item?.origemRota || "").includes("/calculo/pinazio") ||
+  /pin[aá]zio/i.test(String(item?.projeto || "")) ||
+  Boolean(item?.pinazioId || item?.pinazioNome);
+
+const formatarPinazioItem = (
+  item: Pick<ProjetoComposicao, "pinazioId" | "pinazioNome" | "pinazioCor">
+) => {
+  if (item.pinazioId === "sem-pinazio") return "Sem Pinázio";
+
+  const nome = String(item.pinazioNome || "Pinázio").trim();
+  const cor = String(item.pinazioCor || "").trim();
+
+  if (!cor || normalizarTexto(nome).includes(normalizarTexto(cor))) {
+    return nome;
+  }
+
+  const corFormatada =
+    cor.charAt(0).toUpperCase() + cor.slice(1).toLowerCase();
+
+  return `${nome} - ${corFormatada}`;
+};
 
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
@@ -947,6 +982,16 @@ export default function CentralImpressaoPage() {
       medidasDetalhadas: item.medidasDetalhadas,
       vidrosAvulsos: item.vidrosAvulsos,
       valorTotal: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).valor : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
+
+      // Dados necessários para o PDF reproduzir exatamente o desenho do Pinázio.
+      origemRota: item.origemRota,
+      origemTipo: item.origemTipo,
+      pinazioId: item.pinazioId,
+      pinazioNome: item.pinazioNome,
+      pinazioCor: item.pinazioCor,
+      divisoesLargura: Number(item.divisoesLargura || 1),
+      divisoesAltura: Number(item.divisoesAltura || 1),
+
       materiais: item.materiais,
     })),
     [cliente, itens, valoresRateadosPorItem]
@@ -1366,6 +1411,7 @@ export default function CentralImpressaoPage() {
                   const resumoAvulso = vidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
                   const fechamentoSacada = ehFechamentoSacada(item.projeto);
                   const peleDeVidro = ehPeleDeVidro(item.projeto);
+                  const pinazio = ehItemPinazio(item);
                   const projetoTecnico = ehProjetoTecnico(item.projeto);
                   const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
                   const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
@@ -1633,7 +1679,7 @@ export default function CentralImpressaoPage() {
                               </Field>
                             </>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || pinazio) ? (
                             <Field label="Modo">
                               <select
                                 value={item.modo}
@@ -1655,7 +1701,15 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || fechamentoSacada || peleDeVidro) ? (
+                          {pinazio ? (
+                            <Field label="Pinázio">
+                              <input
+                                value={formatarPinazioItem(item)}
+                                readOnly
+                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                              />
+                            </Field>
+                          ) : !(vidroAvulso || espelhoComDesenho || fechamentoSacada || peleDeVidro) ? (
                             <Field label={ehSacadaFrontal(item.projeto) ? "Cor do perfil" : "Cor do perfil / kit"}>
                               <input
                                 value={item.corPerfil || item.corKit || ""}
@@ -1709,7 +1763,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
                             <Field label={labelCampoPrincipal}>
                               <input
                                 value={item.trilho || ""}
@@ -1718,7 +1772,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto)) ? (
+                          {!(vidroAvulso || espelhoComDesenho || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
                             <Field label="Puxador">
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
@@ -1727,7 +1781,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto)) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || pinazio) ? (
                             <Field label={labelCampoSecundario}>
                               <input
                                 value={item.trinco || ""}
@@ -2010,6 +2064,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
-
-
 
