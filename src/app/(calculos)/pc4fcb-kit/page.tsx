@@ -1,4 +1,5 @@
-﻿"use client";
+﻿//app/src/app/(calculos)/pc4fcb-kit/page.tsx
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -961,7 +962,7 @@ export default function PC4FCBKitPage() {
 
   const codigosFerragensAutomaticas = useMemo(
     () => [
-      "VT66", "VT10", "3530AROU-CIL", "3530DP", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P",
+      "VT66", "VT10", "3530AROU-CIL", "3530P", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P",
     ].map(normalizarTexto),
     []
   );
@@ -978,7 +979,7 @@ export default function PC4FCBKitPage() {
 
     const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> = [
       { codigo: "3530AROU-CIL", multiplicador: 1, ignorarCor: true },
-      { codigo: "3530DP", multiplicador: 1 },
+      { codigo: "3530P", multiplicador: 1 },
       { codigo: "3534", multiplicador: 1 },
     ];
 
@@ -1890,7 +1891,8 @@ export default function PC4FCBKitPage() {
                             className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             Adicionar item
-                          </button>
+                          </button>
+
                         </div>
                       </div>
 

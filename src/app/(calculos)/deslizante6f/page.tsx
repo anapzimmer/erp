@@ -483,7 +483,7 @@ export default function Deslizante6FPage() {
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
     const larguraFixaMedida = 0;
-    const larguraMovelMedida = (Number(dados.largura || 0) + 50) / 6;
+    const larguraMovelMedida = (Number(dados.largura || 0)) / 6;
     const alturaFixaMedida = 0;
     const alturaMovelMedida = Math.max(0, Number(dados.altura || 0));
     const larguraFixa = 0;
@@ -694,7 +694,7 @@ export default function Deslizante6FPage() {
     const espessura = obterEspessuraVidro(dados.vidro);
     const largura = Number(dados.largura || 0);
     const altura = Number(dados.altura || 0);
-    const larguraVidro = Number(formatarMedidaPeca((largura + 50) / 6));
+    const larguraVidro = Number(formatarMedidaPeca((largura) / 6));
     const projetoComFixo = normalizarTexto(dados.trilho).includes("fixo");
     const cortesTrilho = projetoComFixo ? 5 : 6;
 
@@ -938,7 +938,7 @@ export default function Deslizante6FPage() {
       .trim();
 
     const medidaVidroMovel = `${formatarMedidaPeca(calculoVidro.larguraMovelMedida)}x${formatarMedidaPeca(calculoVidro.alturaMovelMedida)}`;
-    const descricaoVidroMovel = `VIDRO MOVEL 2 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL 6 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {

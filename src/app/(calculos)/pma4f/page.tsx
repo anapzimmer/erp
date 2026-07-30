@@ -260,7 +260,7 @@ export default function PMA4FPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "PMA4F",
+    projeto: "Projeto Mão amiga 4 Folhas",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
@@ -1554,7 +1554,8 @@ export default function PMA4FPage() {
                             className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
                           >
                             Adicionar item
-                          </button>
+                          </button>
+
                         </div>
                       </div>
 
