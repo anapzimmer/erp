@@ -120,6 +120,18 @@ const projetos = [
     barraHref: "/jc2f-barra",
     descricao: "Projeto individual para orçamento por kit.",
   },
+    {
+  id: "jc4fcbs",
+  nome: "Janela de correr - 4 folhas com peitoril e bandeira",
+  titulo: "Cálculo por barra com tubo, peitoril e bandeira",
+  categoria: "Janelas",
+  status: "Disponível",
+  imagem: "/desenhos/JC4FCBS_semtrinco.png",
+  kitHref: "/jc4fcbs",
+  kitLabel: "Calcular",
+  descricao:
+    "Projeto individual para janela de correr com 4 folhas, peitoril inferior, bandeira superior e tubo selecionável.",
+},
   {
     id: "pg",
     nome: "Porta de giro",

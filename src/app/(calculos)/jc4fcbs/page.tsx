@@ -1929,7 +1929,7 @@ useEffect(() => {
                             <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
                                     <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between">
                                       <SectionTitle>Relação de materiais</SectionTitle>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
                                         <button
                                           type="button"
                                           onClick={novoProjeto}
