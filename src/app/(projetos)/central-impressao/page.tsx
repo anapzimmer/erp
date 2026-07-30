@@ -1,4 +1,5 @@
-﻿"use client";
+﻿//app/(projetos)/central-impressao/page.tsx
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";

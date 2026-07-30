@@ -1,4 +1,5 @@
-﻿"use client";
+﻿//app/(projetos)/central-impressao/page.tsx
+"use client";
 
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
@@ -755,62 +756,462 @@ const ordemPerfilOtimizado = (perfil: Pick<CentralOtimizacaoPerfil, "codigo" | "
   return 120;
 };
 
+type TipoMaterialRelacao = "vidros" | "kits" | "perfis" | "ferragens";
+
 type MaterialConsolidado = {
   chave: string;
+  codigo: string;
   descricao: string;
   unidade: string;
   qtd: number;
   valorTotal: number;
 };
 
-const classificarMaterialRelacao = (material: ProjetoIndividualMaterial) => {
-  const descricao = normalizarTexto(material.descricao);
-  const unidade = normalizarTexto(material.unidade);
-  if (descricao.includes("vidro") || unidade.includes("m2")) return "vidros";
-  if (descricao.includes("kit")) return "kits";
+const normalizarUnidadeMaterial = (unidade?: string | null) => {
+  const texto = normalizarTexto(unidade)
+    .replace(/\s+/g, "")
+    .replace(/[²]/g, "2");
+
   if (
-    unidade.includes("barra") ||
+    texto === "m2" ||
+    texto === "mt2" ||
+    texto === "metroquadrado" ||
+    texto === "metrosquadrados"
+  ) {
+    return "m²";
+  }
+
+  if (
+    texto === "m" ||
+    texto === "mt" ||
+    texto === "mts" ||
+    texto === "metro" ||
+    texto === "metros"
+  ) {
+    return "m";
+  }
+
+  if (
+    texto === "und" ||
+    texto === "un" ||
+    texto === "unid" ||
+    texto === "unidade" ||
+    texto === "unidades" ||
+    texto === "pc" ||
+    texto === "pca" ||
+    texto === "peca" ||
+    texto === "pecas"
+  ) {
+    return "und";
+  }
+
+  if (
+    texto === "barra" ||
+    texto === "barras" ||
+    texto === "br"
+  ) {
+    return "barra";
+  }
+
+  if (
+    texto === "rolo" ||
+    texto === "rolos"
+  ) {
+    return "rolo";
+  }
+
+  if (
+    texto === "pacote" ||
+    texto === "pacotes" ||
+    texto === "pct"
+  ) {
+    return "pacote";
+  }
+
+  if (
+    texto === "kit" ||
+    texto === "kits"
+  ) {
+    return "kit";
+  }
+
+  if (
+    texto === "kg" ||
+    texto === "quilo" ||
+    texto === "quilos"
+  ) {
+    return "kg";
+  }
+
+  return String(unidade || "und").trim().toLowerCase() || "und";
+};
+
+const normalizarCodigoMaterial = (codigo?: string | null) =>
+  String(codigo || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9-]/g, "");
+
+const normalizarDescricaoMaterial = (descricao?: string | null) =>
+  String(descricao || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+
+const numeroSeguro = (valor: unknown) => {
+  const numeroConvertido = Number(valor);
+  return Number.isFinite(numeroConvertido) ? numeroConvertido : 0;
+};
+
+const classificarMaterialRelacao = (
+  material: ProjetoIndividualMaterial
+): TipoMaterialRelacao => {
+  const descricao = normalizarTexto(material.descricao).trim();
+  const unidade = normalizarUnidadeMaterial(material.unidade);
+  const codigo = normalizarCodigoMaterial(material.codigoPerfil);
+
+  /*
+   * 1. Ferragens e acessórios precisam ser identificados antes dos vidros.
+   * Exemplo: "SUPORTE FIXAÇÃO VIDRO" contém a palavra vidro,
+   * mas continua sendo um acessório.
+   */
+  const termosFerragem = [
+    "suporte",
+    "fixacao",
+    "presilha",
+    "ancoragem",
+    "chumbador",
+    "prisioneiro",
+    "parafuso",
+    "porca",
+    "bucha",
+    "tapa furo",
+    "tampa nylon",
+    "canopla",
+    "dobradica",
+    "fecho",
+    "fechadura",
+    "cilindro",
+    "contrafecho",
+    "contra v/a",
+    "placa fech",
+    "braco",
+    "roldana",
+    "rodizio",
+    "puxador",
+    "macaneta",
+    "trinco",
+    "guarnicao",
+    "borracha",
+    "escova",
+    "fita",
+    "silicone",
+    "cola",
+    "arruela",
+    "mola",
+    "pino",
+    "conector",
+    "terminal",
+  ];
+
+  const prefixosFerragem = [
+    "SUP",
+    "PRE",
+    "ANC",
+    "CHU",
+    "PAR",
+    "POR",
+    "BRA",
+    "FEC",
+    "PUX",
+    "GUA",
+    "FITA",
+    "NYL",
+    "CAN",
+  ];
+
+  const ehFerragemPorDescricao = termosFerragem.some((termo) =>
+    descricao.includes(termo)
+  );
+
+  const ehFerragemPorCodigo = prefixosFerragem.some((prefixo) =>
+    codigo.startsWith(prefixo)
+  );
+
+  if (ehFerragemPorDescricao || ehFerragemPorCodigo) {
+    return "ferragens";
+  }
+
+  /* Kits completos vendidos como um único conjunto. */
+  if (
+    unidade === "kit" ||
+    descricao.includes("kit box") ||
+    descricao.includes("kit porta") ||
+    descricao.includes("kit janela") ||
+    descricao.includes("kit sacada") ||
+    descricao.includes("kit completo")
+  ) {
+    return "kits";
+  }
+
+  /* Perfis, tubos, trilhos e barras de alumínio. */
+  if (
+    unidade === "barra" ||
+    descricao.includes("perfil") ||
     descricao.includes("tubo") ||
     descricao.includes("cantoneira") ||
-    /\bvt\d+/i.test(String(material.codigoPerfil || material.descricao || ""))
-  ) return "perfis";
+    descricao.includes("trilho") ||
+    descricao.includes("corrimao") ||
+    descricao.includes("prolongamento") ||
+    /^(VT|FC|CL|CT|GR)\d+/i.test(codigo)
+  ) {
+    return "perfis";
+  }
+
+  /*
+   * Vidro é identificado principalmente pela unidade m².
+   * A descrição precisa começar como vidro ou espelho; apenas conter
+   * a palavra "vidro" não é suficiente.
+   */
+  if (
+    unidade === "m²" ||
+    descricao.startsWith("vidro ") ||
+    descricao.startsWith("espelho ") ||
+    descricao.startsWith("laminado ") ||
+    descricao.startsWith("temperado ")
+  ) {
+    return "vidros";
+  }
+
+  /* Todo material não identificado fica como ferragem/acessório. */
   return "ferragens";
 };
 
-const consolidarMateriais = (itens: CentralImpressaoItem[], tipo: "vidros" | "kits" | "perfis" | "ferragens") => {
+const criarChaveMaterial = (
+  codigo: string,
+  descricao: string,
+  unidade: string
+) => {
+  const codigoChave = normalizarCodigoMaterial(codigo);
+  const descricaoChave = normalizarTexto(descricao)
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const unidadeChave = normalizarUnidadeMaterial(unidade);
+
+  /*
+   * O código é usado junto com a descrição.
+   * Assim, materiais com códigos diferentes não são unidos por engano.
+   */
+  return `${codigoChave || "SEM-CODIGO"}|${descricaoChave}|${unidadeChave}`;
+};
+
+const adicionarMaterialConsolidado = (
+  grupos: Map<string, MaterialConsolidado>,
+  material: {
+    codigo?: string;
+    descricao?: string;
+    unidade?: string;
+    qtd?: number;
+    valorUnitario?: number;
+    valorTotal?: number;
+  }
+) => {
+  const codigo = normalizarCodigoMaterial(material.codigo);
+  const descricao = normalizarDescricaoMaterial(material.descricao);
+  const unidade = normalizarUnidadeMaterial(material.unidade);
+  const qtd = numeroSeguro(material.qtd);
+
+  if (!descricao || qtd <= 0) {
+    return;
+  }
+
+  const valorTotalInformado = numeroSeguro(material.valorTotal);
+  const valorUnitario = numeroSeguro(material.valorUnitario);
+
+  const valorTotal =
+    valorTotalInformado > 0
+      ? valorTotalInformado
+      : qtd * valorUnitario;
+
+  const chave = criarChaveMaterial(codigo, descricao, unidade);
+
+  const atual = grupos.get(chave) || {
+    chave,
+    codigo,
+    descricao,
+    unidade,
+    qtd: 0,
+    valorTotal: 0,
+  };
+
+  atual.qtd += qtd;
+  atual.valorTotal += valorTotal;
+
+  grupos.set(chave, atual);
+};
+
+const consolidarMateriais = (
+  itens: CentralImpressaoItem[],
+  tipo: TipoMaterialRelacao
+) => {
   const grupos = new Map<string, MaterialConsolidado>();
 
   itens.forEach((item) => {
-    item.materiais?.forEach((material) => {
-      if (classificarMaterialRelacao(material) !== tipo) return;
+    /*
+     * Materiais normalmente enviados por cada página de cálculo.
+     */
+    (item.materiais || []).forEach((material) => {
+      if (classificarMaterialRelacao(material) !== tipo) {
+        return;
+      }
 
-      const descricao = String(material.descricao || "").trim().toUpperCase();
-      const unidade = String(material.unidade || "").trim() || "und";
-      const chave = `${descricao}|${unidade}`;
-      const atual = grupos.get(chave) || { chave, descricao, unidade, qtd: 0, valorTotal: 0 };
-      atual.qtd += Number(material.qtd || 0);
-      atual.valorTotal += Number(material.qtd || 0) * Number(material.valorUnitario || 0);
-      grupos.set(chave, atual);
+      adicionarMaterialConsolidado(grupos, {
+        codigo: material.codigoPerfil,
+        descricao: material.descricao,
+        unidade: material.unidade,
+        qtd: numeroSeguro(material.qtd),
+        valorUnitario: numeroSeguro(material.valorUnitario),
+      });
     });
+
+    /*
+     * Segurança adicional para vidros e espelhos avulsos.
+     * Eles passam a entrar na relação mesmo que a página de origem
+     * não tenha preenchido item.materiais.
+     */
+    if (tipo === "vidros" && item.vidrosAvulsos?.length) {
+      item.vidrosAvulsos.forEach((vidro) => {
+        const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
+        const quantidade = numeroSeguro(vidro.quantidade);
+
+        const areaTotal =
+          largura > 0 && altura > 0
+            ? (largura * altura * quantidade) / 1_000_000
+            : 0;
+
+        if (areaTotal <= 0) {
+          return;
+        }
+
+        adicionarMaterialConsolidado(grupos, {
+          descricao: `VIDRO ${vidro.medida} ${vidro.vidro}`,
+          unidade: "m²",
+          qtd: areaTotal,
+          valorTotal: numeroSeguro(vidro.valorTotal),
+        });
+      });
+    }
   });
 
-  return Array.from(grupos.values()).sort((a, b) => a.descricao.localeCompare(b.descricao, "pt-BR", { numeric: true }));
+  return Array.from(grupos.values()).sort((a, b) => {
+    const comparacaoDescricao = a.descricao.localeCompare(
+      b.descricao,
+      "pt-BR",
+      { numeric: true }
+    );
+
+    if (comparacaoDescricao !== 0) {
+      return comparacaoDescricao;
+    }
+
+    return a.codigo.localeCompare(b.codigo, "pt-BR", {
+      numeric: true,
+    });
+  });
 };
 
-const consolidarPerfisOtimizados = (otimizacaoPerfis: CentralOtimizacaoPerfil[]) =>
+const consolidarPerfisOtimizados = (
+  otimizacaoPerfis: CentralOtimizacaoPerfil[]
+): MaterialConsolidado[] =>
   [...otimizacaoPerfis]
     .sort((a, b) => {
       const ordemA = ordemPerfilOtimizado(a);
       const ordemB = ordemPerfilOtimizado(b);
-      return ordemA === ordemB ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }) : ordemA - ordemB;
+
+      return ordemA === ordemB
+        ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true })
+        : ordemA - ordemB;
     })
-    .map((perfil) => ({
-      chave: `${perfil.codigo}|${perfil.descricao}`,
-      descricao: `${perfil.descricao} - ${perfil.barrasOriginais || 0} PARA ${perfil.barras.length} BARRA(S)`.toUpperCase(),
-      unidade: "barra",
-      qtd: perfil.barras.length,
-      valorTotal: Number(perfil.valorOtimizado || 0),
-    }));
+    .map((perfil) => {
+      const codigo = normalizarCodigoMaterial(perfil.codigo);
+      const descricaoBase =
+        normalizarDescricaoMaterial(perfil.descricao) ||
+        codigo ||
+        "PERFIL";
+
+      const barrasOriginais = Math.max(
+        0,
+        numeroSeguro(perfil.barrasOriginais)
+      );
+
+      const barrasOtimizadas = perfil.barras.length;
+
+      const descricao = `${codigo ? `${codigo} - ` : ""}${descricaoBase} - ${barrasOriginais} PARA ${barrasOtimizadas} BARRA(S)`;
+
+      return {
+        chave: criarChaveMaterial(codigo, descricao, "barra"),
+        codigo,
+        descricao,
+        unidade: "barra",
+        qtd: barrasOtimizadas,
+        valorTotal: numeroSeguro(perfil.valorOtimizado),
+      };
+    });
+
+const combinarPerfisComOtimizacao = (
+  perfisNormais: MaterialConsolidado[],
+  perfisOtimizados: MaterialConsolidado[]
+) => {
+  if (!perfisOtimizados.length) {
+    return perfisNormais;
+  }
+
+  const codigosOtimizados = new Set(
+    perfisOtimizados
+      .map((perfil) => normalizarCodigoMaterial(perfil.codigo))
+      .filter(Boolean)
+  );
+
+  /*
+   * Mantém os perfis normais que não participaram da otimização.
+   * Antes, qualquer otimização substituía toda a relação de perfis.
+   */
+  const perfisNaoOtimizados = perfisNormais.filter((perfil) => {
+    const codigo = normalizarCodigoMaterial(perfil.codigo);
+
+    if (!codigo) {
+      return true;
+    }
+
+    return !codigosOtimizados.has(codigo);
+  });
+
+  return [...perfisOtimizados, ...perfisNaoOtimizados].sort((a, b) =>
+    a.descricao.localeCompare(b.descricao, "pt-BR", {
+      numeric: true,
+    })
+  );
+};
+
+const quantidadeUsaDecimal = (unidade?: string) => {
+  const unidadeNormalizada = normalizarUnidadeMaterial(unidade);
+
+  return [
+    "m²",
+    "m",
+    "kg",
+  ].includes(unidadeNormalizada);
+};
+
+const formatarQuantidadeMaterial = (
+  quantidade: number,
+  unidade?: string
+) => {
+  const casas = quantidadeUsaDecimal(unidade) ? 2 : 0;
+  return numero(quantidade, casas);
+};
 
 const calcularAreaVidrosItem = (item: CentralImpressaoItem) => {
   const areaMateriais = item.materiais?.reduce((total, material) => {
@@ -913,12 +1314,19 @@ export function CentralImpressaoPDF({
     const ordemB = ordemPerfilOtimizado(b);
     return ordemA === ordemB ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }) : ordemA - ordemB;
   });
-  const relacaoVidros = consolidarMateriais(itens, "vidros");
-  const relacaoKits = consolidarMateriais(itens, "kits");
-  const relacaoPerfis = otimizacaoOrdenada.length > 0
-    ? consolidarPerfisOtimizados(otimizacaoOrdenada)
-    : consolidarMateriais(itens, "perfis");
-  const relacaoFerragens = consolidarMateriais(itens, "ferragens");
+const relacaoVidros = consolidarMateriais(itens, "vidros");
+const relacaoKits = consolidarMateriais(itens, "kits");
+
+const relacaoPerfisNormais = consolidarMateriais(itens, "perfis");
+const relacaoPerfisOtimizados =
+  consolidarPerfisOtimizados(otimizacaoOrdenada);
+
+const relacaoPerfis = combinarPerfisComOtimizacao(
+  relacaoPerfisNormais,
+  relacaoPerfisOtimizados
+);
+
+const relacaoFerragens = consolidarMateriais(itens, "ferragens");
 
   const renderRelacaoGrupo = (titulo: string, materiais: MaterialConsolidado[]) => (
     materiais.length > 0 ? (
@@ -930,14 +1338,31 @@ export function CentralImpressaoPDF({
           <Text style={styles.relationCellUnit}>UND</Text>
           <Text style={styles.relationCellValue}>TOTAL</Text>
         </View>
-        {materiais.map((material) => (
-          <View key={material.chave} style={styles.relationRow} wrap={false}>
-            <Text style={styles.relationCellQty}>{material.unidade.toLowerCase().includes("m2") ? numero(material.qtd) : numero(material.qtd, 0)}</Text>
-            <Text style={styles.relationCellDesc}>{material.descricao}</Text>
-            <Text style={styles.relationCellUnit}>{material.unidade}</Text>
-            <Text style={styles.relationCellValue}>{moeda(material.valorTotal)}</Text>
-          </View>
-        ))}
+        {materiais.map((material) => {
+          const codigoNormalizado = normalizarCodigoMaterial(material.codigo);
+          const descricaoNormalizada = normalizarDescricaoMaterial(material.descricao);
+          const descricaoJaTemCodigo =
+            Boolean(codigoNormalizado) &&
+            descricaoNormalizada.startsWith(codigoNormalizado);
+
+          const descricaoExibicao =
+            codigoNormalizado && !descricaoJaTemCodigo
+              ? `${codigoNormalizado} - ${material.descricao}`
+              : material.descricao;
+
+          return (
+            <View key={material.chave} style={styles.relationRow} wrap={false}>
+              <Text style={styles.relationCellQty}>
+                {formatarQuantidadeMaterial(material.qtd, material.unidade)}
+              </Text>
+              <Text style={styles.relationCellDesc}>{descricaoExibicao}</Text>
+              <Text style={styles.relationCellUnit}>{material.unidade}</Text>
+              <Text style={styles.relationCellValue}>
+                {moeda(material.valorTotal)}
+              </Text>
+            </View>
+          );
+        })}
         <View style={styles.relationTotalRow} wrap={false}>
           <Text style={styles.relationTotalLabel}>Total {titulo.toLowerCase()}</Text>
           <Text style={styles.relationTotalValue}>
@@ -1403,7 +1828,14 @@ export function CentralImpressaoPDF({
         ) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Vidros", relacaoVidros) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Kits", relacaoKits) : null}
-        {somenteRelacaoObra ? renderRelacaoGrupo(otimizacaoOrdenada.length > 0 ? "Perfis otimizados" : "Perfis", relacaoPerfis) : null}
+      {somenteRelacaoObra
+  ? renderRelacaoGrupo(
+      otimizacaoOrdenada.length > 0
+        ? "Perfis — relação otimizada"
+        : "Perfis",
+      relacaoPerfis
+    )
+  : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Ferragens", relacaoFerragens) : null}
 
         <Text style={styles.footer} fixed>
