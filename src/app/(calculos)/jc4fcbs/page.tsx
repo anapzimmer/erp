@@ -1,3 +1,4 @@
+//app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -602,6 +603,8 @@ export default function PC4FCBSPage() {
     },
     [clienteSelecionado, precosVidroGrupos]
   );
+
+  
 
   const precoVidroPeitoril = obterPrecoVidro(vidroPeitorilSelecionado);
   const precoVidroJanela = obterPrecoVidro(vidroJanelaSelecionado);
@@ -1591,14 +1594,15 @@ export default function PC4FCBSPage() {
               }
               onClick={salvarOrcamento}
             />
-            <MenuItem
-              icon={<Settings size={18} />}
-              label="Configurações"
-            />
-            <MenuItem
-              icon={<HelpCircle size={18} />}
-              label="Ajuda"
-            />
+        <MenuItem
+  icon={<Settings size={18} />}
+  label="Configurações"
+/>
+
+<MenuItem
+  icon={<HelpCircle size={18} />}
+  label="Ajuda"
+/>
           </nav>
         </aside>
 

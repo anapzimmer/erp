@@ -29,6 +29,7 @@ const rotasProjetos = new Set([
   "/jc2fcs-kit",
   "/jc4f-barra",
   "/jc4f-kit",
+  "/jc4fcbs",
   "/jc4fcs",
   "/jc4fcs-kit",
   "/max",
@@ -73,6 +74,7 @@ const nomeProjetoPorRota = (rota: string) => {
     "/pg2f": "Porta de giro 2 folhas",
     "/pgf": "Porta de giro com fixo lateral",
     "/pma2f4m": "Mao amiga 2 fixas + 4 moveis",
+    "/jc4fcbs": "Janela 4 folhas com peitoril e bandeira",
   };
 
   if (nomes[rota]) return nomes[rota];
@@ -206,6 +208,47 @@ const topicosGerais: TopicoAjuda[] = [
 
 const topicosPorPerfil = (rota: string): TopicoAjuda[] => {
   const topicos: TopicoAjuda[] = [];
+
+  if (rota === "/jc4fcbs") {
+  topicos.push(
+    {
+      categoria: "JC4FCBS",
+      titulo: "Como preencher as alturas",
+      texto:
+        "Informe a altura do peitoril, a altura da janela e a altura total. A altura da bandeira é calculada automaticamente.",
+    },
+    {
+      categoria: "JC4FCBS",
+      titulo: "Quantidade de peças",
+      texto:
+        "Cada vão possui 12 peças: 4 no peitoril, 2 folhas fixas, 2 folhas móveis e 4 peças na bandeira.",
+    },
+    {
+      categoria: "JC4FCBS",
+      titulo: "Divisão da largura",
+      texto:
+        "A largura do peitoril, das folhas fixas e da bandeira usa a largura total dividida por 4.",
+    },
+    {
+      categoria: "JC4FCBS",
+      titulo: "Vidros do projeto",
+      texto:
+        "O vidro do peitoril pode ser diferente do vidro usado na janela e na bandeira.",
+    },
+    {
+      categoria: "JC4FCBS",
+      titulo: "Tubo e cor",
+      texto:
+        "Escolha primeiro a cor do material e depois selecione o tubo cadastrado nessa mesma cor.",
+    },
+    {
+      categoria: "JC4FCBS",
+      titulo: "Trinco",
+      texto:
+        "A opção com trinco altera as ferragens e também o desenho do projeto.",
+    }
+  );
+}
 
   if (rota.includes("fixo-bandeira")) {
     topicos.push(
