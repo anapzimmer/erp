@@ -640,6 +640,8 @@ export default function RelatorioOrcamento() {
             jc2fcs_kit: `/jc2fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4f_kit: `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4f_barra: `/jc4f-barra?edit=${orc.id}&returnTo=${returnTo}`,
+           jc4fcbs: `/jc4fcbs?edit=${orc.id}&returnTo=${returnTo}`,
+jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4fcs: `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`,
             jc4fcs_kit: `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             pg_1f: `/pg?edit=${orc.id}&returnTo=${returnTo}`,

@@ -556,6 +556,156 @@ export default function PC4FCBSPage() {
     }
   }, [centralItemId]);
 
+useEffect(() => {
+  if (!editId) return;
+
+  let ativo = true;
+
+  const carregarOrcamentoSalvo = async () => {
+    try {
+      const { data: orcamento, error } = await supabase
+        .from("orcamentos")
+        .select(
+          "id, numero_formatado, cliente_nome, obra_referencia, itens"
+        )
+        .eq("id", editId)
+        .single();
+
+      if (error) throw error;
+      if (!ativo || !orcamento) return;
+
+      const itensSalvos =
+        orcamento.itens &&
+        typeof orcamento.itens === "object" &&
+        !Array.isArray(orcamento.itens)
+          ? (orcamento.itens as PC4FCBSOrcamentoPersistido)
+          : null;
+
+      if (!itensSalvos) {
+        setMensagemSistema({
+          tipo: "erro",
+          titulo: "Orçamento inválido",
+          mensagem:
+            "Não foi possível encontrar os dados deste orçamento.",
+        });
+        return;
+      }
+
+      if (
+        itensSalvos.tipo &&
+        itensSalvos.tipo !== "jc4fcbs" &&
+        itensSalvos.tipo !== "pc4fcbs"
+      ) {
+        setMensagemSistema({
+          tipo: "aviso",
+          titulo: "Orçamento incompatível",
+          mensagem:
+            "Este orçamento não pertence ao projeto JC4FCBS.",
+          aoFechar: () => router.push(returnTo),
+        });
+        return;
+      }
+
+      const dadosSalvos = itensSalvos.dados || {};
+
+      setDados((atual) => ({
+        ...atual,
+        ...dadosSalvos,
+
+        projeto:
+          dadosSalvos.projeto ||
+          "Janela de correr com bandeira e peitoril",
+
+        numero:
+          orcamento.numero_formatado ||
+          dadosSalvos.numero ||
+          atual.numero,
+
+        cliente:
+          orcamento.cliente_nome ||
+          dadosSalvos.cliente ||
+          atual.cliente,
+
+        largura: Number(dadosSalvos.largura || 0),
+
+        alturaTotal: Number(
+          dadosSalvos.alturaTotal ||
+          dadosSalvos.altura ||
+          0
+        ),
+
+        altura: Number(
+          dadosSalvos.alturaTotal ||
+          dadosSalvos.altura ||
+          0
+        ),
+
+        alturaPeitoril: Number(
+          dadosSalvos.alturaPeitoril || 0
+        ),
+
+        alturaJanela: Number(
+          dadosSalvos.alturaJanela || 0
+        ),
+
+        quantidade: Number(
+          dadosSalvos.quantidade || 1
+        ),
+
+        vidroPeitoril:
+          dadosSalvos.vidroPeitoril ||
+          dadosSalvos.vidro ||
+          "Escolher",
+
+        vidroJanelaBandeira:
+          dadosSalvos.vidroJanelaBandeira ||
+          "Escolher",
+
+        corKit:
+          dadosSalvos.corKit ||
+          "Escolher",
+
+        tuboPerfil:
+          dadosSalvos.tuboPerfil ||
+          "Escolher",
+
+        trinco:
+          dadosSalvos.trinco ||
+          "Sem trinco",
+      }));
+
+      setMateriais(
+        Array.isArray(itensSalvos.materiais)
+          ? itensSalvos.materiais
+          : []
+      );
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar orçamento JC4FCBS:",
+        erro
+      );
+
+      if (!ativo) return;
+
+      setMensagemSistema({
+        tipo: "erro",
+        titulo: "Erro ao carregar",
+        mensagem:
+          erro instanceof Error
+            ? erro.message
+            : "Não foi possível carregar os dados do orçamento.",
+        aoFechar: () => router.push(returnTo),
+      });
+    }
+  };
+
+  carregarOrcamentoSalvo();
+
+  return () => {
+    ativo = false;
+  };
+}, [editId, returnTo, router]);
+
   const alturaBandeira = Math.max(
     0,
     Number(dados.alturaTotal || 0) -
