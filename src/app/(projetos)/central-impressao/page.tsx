@@ -1197,25 +1197,49 @@ export default function CentralImpressaoPage() {
   };
 
   const gerarNumeroOrcamento = async () => {
-    const dataAtual = new Date();
-    const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-    let query = supabase
-      .from("orcamentos")
-      .select("numero_formatado")
-      .like("numero_formatado", `${prefixoData}%`)
-      .order("numero_formatado", { ascending: false })
-      .limit(1);
+  if (!empresaId) {
+    throw new Error("Empresa não encontrada.");
+  }
 
-    if (empresaId) query = query.eq("empresa_id", empresaId);
+  const dataAtual = new Date();
 
-    const { data, error } = await query;
-    if (error) throw error;
+  const prefixoData =
+    `ORC${dataAtual.getFullYear().toString().slice(-2)}` +
+    `${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
 
-    const ultimo = data?.[0]?.numero_formatado;
-    const sequencia = ultimo ? Number(String(ultimo).slice(-2)) + 1 : 1;
-    return `${prefixoData}${sequencia.toString().padStart(2, "0")}`;
-  };
+  const { data, error } = await supabase
+    .from("orcamentos")
+    .select("numero_formatado")
+    .eq("empresa_id", empresaId)
+    .like("numero_formatado", `${prefixoData}%`);
 
+  if (error) {
+    throw error;
+  }
+
+  let maiorSequencia = 0;
+
+  for (const orcamento of data || []) {
+    const numero = String(orcamento.numero_formatado || "");
+
+    const parteSequencial = numero.slice(prefixoData.length);
+    const sequencia = Number.parseInt(parteSequencial, 10);
+
+    if (
+      Number.isFinite(sequencia) &&
+      sequencia > maiorSequencia
+    ) {
+      maiorSequencia = sequencia;
+    }
+  }
+
+  const proximaSequencia = maiorSequencia + 1;
+
+  return (
+    `${prefixoData}` +
+    `${proximaSequencia.toString().padStart(3, "0")}`
+  );
+};
   const salvarOrcamento = async () => {
     if (!empresaId) {
       setMensagem("Empresa não encontrada para salvar o Orçamento.");

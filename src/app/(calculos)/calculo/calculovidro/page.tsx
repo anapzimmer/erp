@@ -1368,18 +1368,33 @@ useEffect(() => {
       } else {
         const dataAtual = new Date();
         const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
-        const { data: ultimos } = await supabase
-          .from('orcamentos')
-          .select('numero_formatado')
-          .like('numero_formatado', `${prefixoData}%`)
-          .order('numero_formatado', { ascending: false })
-          .limit(1);
+const { data: ultimos, error: erroBuscaNumero } = await supabase
+  .from("orcamentos")
+  .select("numero_formatado")
+  .eq("empresa_id", empresaId)
+  .like("numero_formatado", `${prefixoData}%`);
 
-        let seq = 1;
-        if (ultimos && ultimos.length > 0) {
-          seq = parseInt(ultimos[0].numero_formatado.slice(-2)) + 1;
-        }
-        numeroFinal = `${prefixoData}${seq.toString().padStart(2, '0')}`;
+if (erroBuscaNumero) {
+  throw erroBuscaNumero;
+}
+
+let maiorSequencia = 0;
+
+for (const orcamento of ultimos || []) {
+  const numero = String(orcamento.numero_formatado || "");
+
+  const parteSequencial = numero.slice(prefixoData.length);
+  const sequencia = Number.parseInt(parteSequencial, 10);
+
+  if (Number.isFinite(sequencia) && sequencia > maiorSequencia) {
+    maiorSequencia = sequencia;
+  }
+}
+
+const proximaSequencia = maiorSequencia + 1;
+
+numeroFinal =
+  `${prefixoData}${proximaSequencia.toString().padStart(3, "0")}`;
       }
 
       // 2. Cálculos Totais
