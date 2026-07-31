@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
-import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList } from "lucide-react"
+import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRound, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
@@ -843,6 +843,26 @@ export default function CalculoEspelhosPage() {
     }
   };
 
+  const handleNovoOrcamento = () => {
+    if (editId) {
+      sessionStorage.removeItem(draftKey);
+      router.push("/calculo/espelhos");
+      return;
+    }
+
+    setNomeCliente("");
+    setNomeObra("");
+    setLargura("");
+    setAltura("");
+    setQuantidade(1);
+    setDivisoesLargura(1);
+    setDivisoesAltura(1);
+    setListaItens([]);
+    setUltimoNumeroGerado("");
+    sessionStorage.removeItem(draftKey);
+    setTimeout(() => larguraInputRef.current?.focus(), 50);
+  };
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* Conteúdo Principal */}
@@ -854,41 +874,85 @@ export default function CalculoEspelhosPage() {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
         >
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Espelho</h1>
-              <span className="text-xs text-gray-800 "># {ultimoNumeroGerado || "NOVO"}</span>
-            </div>
-
-            {/* ÁREA DE AÇÕES DISCRETAS */}
-            <div className="ml-6 flex items-center gap-3 animate-fade-in">
-              <button
-                onClick={() => setShowModalSalvar(true)}
-                className="flex items-center gap-2 px-5 py-2 bg-[#1e3a5a] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a527d] transition-all active:scale-95 shadow-lg shadow-[#1e3a5a]/20"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Salvar Orçamento
-              </button>
-
-              <button
-                onClick={() => setShowModalCentral(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
-                title="Enviar para a central de impressão"
-              >
-                PDF+
-              </button>
-
-              {/* Ícone discreto para PDF */}
-              <button
-                onClick={() => setShowModalPDF(true)}
-                className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
-              >
-                <Printer size={20} />
-              </button>
-            </div>
+          <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+            <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Espelho</h1>
+            <span className="text-xs font-bold text-gray-800"># {ultimoNumeroGerado || "NOVO"}</span>
           </div>
         </Header>
 
+        <div className="relative z-10 w-full border-b border-slate-200 bg-white shadow-sm">
+          <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
+            <button
+              type="button"
+              onClick={handleNovoOrcamento}
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              <Plus size={18} />
+              Orçamento
+            </button>
+
+            <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+              <UserRound size={18} />
+              <span className="sr-only">Cliente</span>
+              <input
+                id="cliente-orcamento"
+                type="text"
+                placeholder="Nome do cliente"
+                className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:font-normal placeholder:text-slate-400 md:w-56"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                aria-label="Cliente do orçamento"
+              />
+            </label>
+
+            <PDFDownloadLink
+              document={
+                <EspelhosPDF
+                  itens={listaItens}
+                  nomeEmpresa={nomeEmpresa}
+                  logoUrl={theme.logoLightUrl || "/glasscode.png"}
+                  themeColor={theme.contentTextLightBg}
+                  nomeCliente={nomeCliente}
+                  nomeObra=""
+                  numeroOrcamento={ultimoNumeroGerado}
+                />
+              }
+              fileName={`Orçamento_${nomeCliente?.replace(/[^a-z0-9]/gi, "") || "cliente"}.pdf`}
+            >
+              {({ loading }) => (
+                <button
+                  type="button"
+                  disabled={loading || listaItens.length === 0}
+                  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Printer size={18} />
+                  {loading ? "Gerando..." : "Imprimir"}
+                </button>
+              )}
+            </PDFDownloadLink>
+
+            <button
+              type="button"
+              onClick={() => setShowModalCentral(true)}
+              disabled={listaItens.length === 0}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Enviar para a central de impressão"
+            >
+              <FileText size={18} />
+              PDF+
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSalvarOrcamento}
+              disabled={listaItens.length === 0}
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Save size={18} />
+              Salvar
+            </button>
+          </div>
+        </div>
 
         <main className="p-4 md:p-8 flex-1 overflow-y-auto">
           {/* O header antigo foi removido daqui */}

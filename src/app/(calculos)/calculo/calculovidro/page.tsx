@@ -1808,8 +1808,8 @@ numeroFinal =
   </div>
 </Header>
 
-<div className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white shadow-sm">
-  <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 md:px-8">
+<div className="relative z-10 w-full border-b border-slate-200 bg-white shadow-sm">
+  <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
 
     <button
       type="button"
@@ -1820,21 +1820,37 @@ numeroFinal =
       Orçamento
     </button>
 
-    <button
-      type="button"
-      onClick={() => {
-        const campo = document.getElementById("cliente-orcamento");
-        campo?.focus();
-        campo?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-    >
+    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
       <UserRound size={18} />
-      Cliente
-    </button>
+      <span className="sr-only">Cliente</span>
+      <select
+        id="cliente-orcamento"
+        className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none md:w-56"
+        value={clienteId}
+        onChange={(e) => setClienteId(e.target.value)}
+        aria-label="Cliente do orçamento"
+      >
+        <option value="">Selecione o cliente</option>
+        {listaClientes.map((cliente) => (
+          <option key={cliente.id} value={cliente.id}>
+            {cliente.nome}
+          </option>
+        ))}
+      </select>
+    </label>
+
+    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+      <FolderOpen size={18} />
+      <span className="sr-only">Obra</span>
+      <input
+        type="text"
+        placeholder="Identificação da obra"
+        className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:font-normal placeholder:text-slate-400 md:w-56"
+        value={obra}
+        onChange={(e) => setObra(e.target.value)}
+        aria-label="Obra do orçamento"
+      />
+    </label>
 
     <PDFDownloadLink
       document={
@@ -1935,26 +1951,6 @@ numeroFinal =
   </div>
 </div>
         <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
-          {/* IDENTIFICAÇÃO: CLIENTE E OBRA */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2 px-3 border-r border-gray-100">
-              <span className="text-xs font-bold text-gray-400 uppercase">Cliente:</span>
-             <select
-  id="cliente-orcamento"
-  className="flex-1 p-2 outline-none text-sm bg-transparent"
-  value={clienteId}
-  onChange={(e) => setClienteId(e.target.value)}
->
-                <option value="">Selecione o cliente</option>
-                {listaClientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 px-3">
-              <span className="text-xs font-bold text-gray-400 uppercase">Obra:</span>
-              <input type="text" placeholder="Identificação da obra" className="flex-1 p-2 outline-none text-sm" value={obra} onChange={(e) => setObra(e.target.value)} />
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
