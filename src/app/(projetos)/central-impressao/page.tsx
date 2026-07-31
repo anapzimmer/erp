@@ -893,7 +893,9 @@ export default function CentralImpressaoPage() {
 
       const lista = carregarLista();
       setItens(lista);
-      setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo Orçamento");
+      // Em uma composição nova, não reutiliza um número antigo salvo no
+      // navegador. O efeito abaixo consulta o banco e prepara a sequência atual.
+      setNumeroOrcamento("Novo Orçamento");
       setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || lista[0]?.cliente || "");
       setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
       setUsarOtimizacao(window.localStorage.getItem(CENTRAL_USAR_OTIMIZACAO_KEY) === "1");
@@ -1304,11 +1306,12 @@ export default function CentralImpressaoPage() {
     try {
       setSalvando(true);
       setMensagem("");
-      const numeroFinal = numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
+      let numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
         ? numeroOrcamento
         : await gerarNumeroOrcamento();
-      const payload = {
-        numero_formatado: numeroFinal,
+
+      const montarPayload = (numero: string) => ({
+        numero_formatado: numero,
         cliente_nome: cliente || "Consumidor",
         obra_referencia: obra || "Projetos",
         itens: {
@@ -1325,11 +1328,24 @@ export default function CentralImpressaoPage() {
         peso_total: 0,
         empresa_id: empresaId,
         theme_color: theme.menuIconColor || "#07385a",
-      };
+      });
 
-      const { error } = editId
+      let payload = montarPayload(numeroFinal);
+
+      let { error } = editId
         ? await supabase.from("orcamentos").update(payload).eq("id", editId)
         : await supabase.from("orcamentos").insert([payload]);
+
+      // Em um orçamento novo, uma sequência antiga pode ter ficado salva no
+      // navegador ou dois usuários podem salvar ao mesmo tempo. Nessa situação,
+      // consulta novamente o banco e repete uma vez com o próximo número livre.
+      if (!editId && error?.code === "23505") {
+        numeroFinal = await gerarNumeroOrcamento();
+        payload = montarPayload(numeroFinal);
+        const novaTentativa = await supabase.from("orcamentos").insert([payload]);
+        error = novaTentativa.error;
+      }
+
       if (error) throw error;
 
       // O orçamento já foi confirmado no banco. A composição temporária pode
@@ -1339,8 +1355,22 @@ export default function CentralImpressaoPage() {
       setMensagem(`Orçamento ${numeroFinal} salvo com sucesso.`);
       router.push(`/admin/relatorio.orcamento?filtro=${encodeURIComponent(numeroFinal)}`);
     } catch (erro) {
-      const texto = erro instanceof Error ? erro.message : "Erro desconhecido";
-      setMensagem(`Não foi possível salvar o Orçamento. ${texto}`);
+      const erroSupabase = (typeof erro === "object" && erro !== null ? erro : {}) as {
+        message?: string;
+        details?: string;
+        hint?: string;
+        code?: string;
+      };
+      const texto = erroSupabase.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
+      const detalhes = [erroSupabase.details, erroSupabase.hint, erroSupabase.code].filter(Boolean).join(" | ");
+
+      console.error("Erro ao salvar composição do orçamento:", {
+        message: texto,
+        details: erroSupabase.details || null,
+        hint: erroSupabase.hint || null,
+        code: erroSupabase.code || null,
+      });
+      setMensagem(`Não foi possível salvar o Orçamento. ${texto}${detalhes ? ` (${detalhes})` : ""}`);
     } finally {
       setSalvando(false);
     }

@@ -954,24 +954,31 @@ export default function PMA4FPage() {
   };
 
   const gerarNumeroOrcamento = async () => {
+    if (!empresaId) {
+      throw new Error("Empresa não encontrada para gerar o número do orçamento.");
+    }
+
     const dataAtual = new Date();
-    const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-    let query = supabase
+    const prefixoData =
+      `OR${dataAtual.getDate().toString().padStart(2, "0")}` +
+      `${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
+
+    const { data: orcamentosDoDia, error } = await supabase
       .from("orcamentos")
       .select("numero_formatado")
       .like("numero_formatado", `${prefixoData}%`)
-      .order("numero_formatado", { ascending: false })
-      .limit(1);
+      .eq("empresa_id", empresaId);
 
-    if (empresaId) {
-      query = query.eq("empresa_id", empresaId);
-    }
-
-    const { data: ultimos, error } = await query;
     if (error) throw error;
 
-    const ultimoNumero = ultimos?.[0]?.numero_formatado;
-    const proximaSequencia = ultimoNumero ? Number(String(ultimoNumero).slice(-2)) + 1 : 1;
+    const maiorSequencia = (orcamentosDoDia || []).reduce((maior, orcamento) => {
+      const numero = String(orcamento.numero_formatado || "");
+      const sequencia = Number.parseInt(numero.slice(prefixoData.length), 10);
+
+      return Number.isFinite(sequencia) ? Math.max(maior, sequencia) : maior;
+    }, 0);
+
+    const proximaSequencia = maiorSequencia + 1;
     return `${prefixoData}${proximaSequencia.toString().padStart(2, "0")}`;
   };
 
@@ -1128,10 +1135,20 @@ export default function PMA4FPage() {
         aoFechar: () => router.push(returnTo),
       });
     } catch (erro) {
-      const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
+      const erroSupabase = (typeof erro === "object" && erro !== null ? erro : {}) as {
+        message?: string;
+        details?: string;
+        hint?: string;
+        code?: string;
+      };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar Orçamento PMA4F:", erro);
+      console.error("Erro ao salvar Orçamento PMA4F:", {
+        message: mensagem,
+        details: erroSupabase.details || null,
+        hint: erroSupabase.hint || null,
+        code: erroSupabase.code || null,
+      });
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
