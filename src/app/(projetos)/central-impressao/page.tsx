@@ -1,7 +1,7 @@
 ﻿//app/(projetos)/central-impressao/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -101,6 +101,12 @@ const normalizarTexto = (texto?: string | number | null) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+
+const sanitizarNomeArquivo = (valor: string) =>
+  valor
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
@@ -639,6 +645,31 @@ const carregarLista = (): ProjetoComposicao[] => {
   } catch {
     return [];
   }
+};
+
+const limparRascunhosDosProjetos = () => {
+  const ehRascunhoDeOrcamento = (chave: string) => {
+    const chaveNormalizada = chave.toLowerCase();
+
+    return (
+      (chaveNormalizada.startsWith("glasscode:") &&
+        (chaveNormalizada.includes(":rascunho") || chaveNormalizada.includes(":draft"))) ||
+      (chaveNormalizada.startsWith("orcamento_") && chaveNormalizada.includes("_draft_"))
+    );
+  };
+
+  const limparStorage = (storage: Storage) => {
+    const chavesParaRemover = Array.from({ length: storage.length }, (_, index) => storage.key(index))
+      .filter(
+        (chave): chave is string =>
+          typeof chave === "string" && ehRascunhoDeOrcamento(chave)
+      );
+
+    chavesParaRemover.forEach((chave) => storage.removeItem(chave));
+  };
+
+  limparStorage(window.localStorage);
+  limparStorage(window.sessionStorage);
 };
 
 const extrairCodigoPerfil = (material: ProjetoIndividualMaterial) =>
@@ -1196,7 +1227,7 @@ export default function CentralImpressaoPage() {
     setImprimirOtimizacao(false);
   };
 
-  const gerarNumeroOrcamento = async () => {
+  const gerarNumeroOrcamento = useCallback(async () => {
   if (!empresaId) {
     throw new Error("Empresa não encontrada.");
   }
@@ -1204,7 +1235,7 @@ export default function CentralImpressaoPage() {
   const dataAtual = new Date();
 
   const prefixoData =
-    `ORC${dataAtual.getFullYear().toString().slice(-2)}` +
+    `OR${dataAtual.getDate().toString().padStart(2, "0")}` +
     `${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
 
   const { data, error } = await supabase
@@ -1237,9 +1268,29 @@ export default function CentralImpressaoPage() {
 
   return (
     `${prefixoData}` +
-    `${proximaSequencia.toString().padStart(3, "0")}`
+    `${proximaSequencia.toString().padStart(2, "0")}`
   );
-};
+}, [empresaId]);
+
+  useEffect(() => {
+    if (!rascunhoCarregado || editId || !empresaId) return;
+    if (numeroOrcamento && numeroOrcamento !== "Novo Orçamento") return;
+
+    let ativo = true;
+
+    gerarNumeroOrcamento()
+      .then((numero) => {
+        if (ativo) setNumeroOrcamento(numero);
+      })
+      .catch((erro) => {
+        console.warn("Não foi possível preparar o número do orçamento:", erro);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [editId, empresaId, gerarNumeroOrcamento, numeroOrcamento, rascunhoCarregado]);
+
   const salvarOrcamento = async () => {
     if (!empresaId) {
       setMensagem("Empresa não encontrada para salvar o Orçamento.");
@@ -1253,7 +1304,7 @@ export default function CentralImpressaoPage() {
     try {
       setSalvando(true);
       setMensagem("");
-      const numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
+      const numeroFinal = numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
         ? numeroOrcamento
         : await gerarNumeroOrcamento();
       const payload = {
@@ -1281,7 +1332,10 @@ export default function CentralImpressaoPage() {
         : await supabase.from("orcamentos").insert([payload]);
       if (error) throw error;
 
-      setNumeroOrcamento(numeroFinal);
+      // O orçamento já foi confirmado no banco. A composição temporária pode
+      // ser encerrada para que o próximo orçamento comece totalmente vazio.
+      limparRascunhosDosProjetos();
+      limparTudo();
       setMensagem(`Orçamento ${numeroFinal} salvo com sucesso.`);
       router.push(`/admin/relatorio.orcamento?filtro=${encodeURIComponent(numeroFinal)}`);
     } catch (erro) {
@@ -1376,7 +1430,7 @@ export default function CentralImpressaoPage() {
                   <>
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
-                      fileName={`composicao_projetos_${new Date().toISOString().slice(0, 10)}.pdf`}
+                      fileName={`${sanitizarNomeArquivo(`Orçamento N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
                       style={{ backgroundColor: theme.menuBackgroundColor }}
                     >
@@ -1389,7 +1443,7 @@ export default function CentralImpressaoPage() {
                     </PDFDownloadLink>
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfis} somenteRelacaoObra />}
-                      fileName={`relacao_obra_${new Date().toISOString().slice(0, 10)}.pdf`}
+                      fileName={`${sanitizarNomeArquivo(`Relação da obra N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                     >
                       {({ loading: gerando }) => (
