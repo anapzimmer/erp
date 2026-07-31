@@ -1,4 +1,6 @@
-﻿"use client"
+﻿//app/src/app/%28cadastros%29/cadastros/vidros/page.tsx
+
+"use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
@@ -458,7 +460,9 @@ export default function VidrosPage() {
         } finally {
           setCarregando(false)
         }
+        
       },
+   
     })
   }
 
@@ -491,15 +495,26 @@ export default function VidrosPage() {
         mensagem: "Todos os vidros foram excluídos com sucesso.",
         tipo: "sucesso",
       })
-    } catch (e: any) {
-      setModalAviso({
-        titulo: "Erro",
-        mensagem: "Não foi possível limpar o catálogo: " + e.message,
-        tipo: "erro",
-      })
-    } finally {
-      setCarregando(false)
-    }
+   } catch (e: any) {
+  let titulo = "Erro ao salvar";
+  let mensagem = "Ocorreu um erro inesperado.";
+
+  if (e.message?.includes("vidros_empresa_codigo_unique")) {
+    titulo = "Código já cadastrado";
+    mensagem =
+      "Já existe um vidro cadastrado com este código.\n\nEscolha outro código ou edite o vidro já existente.";
+  } else {
+    mensagem = e.message;
+  }
+
+  setModalAviso({
+    titulo,
+    mensagem,
+    tipo: "erro",
+  });
+} finally {
+  setCarregando(false);
+}
   }
 
   const limparTodosOsVidros = () => {

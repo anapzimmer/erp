@@ -8,7 +8,21 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import Header from "@/components/Header"
-import { Wrench, X, Printer, Trash2, Plus, Calculator, Sparkles, ClipboardList, Edit2 } from "lucide-react"
+import {
+  Wrench,
+  X,
+  Printer,
+  Trash2,
+  Plus,
+  Calculator,
+  Sparkles,
+  ClipboardList,
+  Edit2,
+  UserRound,
+  FolderOpen,
+  FileText,
+  Save,
+} from "lucide-react";
 import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
@@ -1778,110 +1792,159 @@ numeroFinal =
 
       <div className="flex-1 flex flex-col w-full min-w-0">
 
-        <Header
+       <Header
+  nomeEmpresa={nomeEmpresa}
+  usuarioEmail={user?.email || ""}
+  handleSignOut={handleLogout}
+>
+  <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
+    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+      Orçamento
+    </span>
+
+    <span className="text-xs text-gray-800 font-bold">
+      # {ultimoNumeroGerado || "NOVO"}
+    </span>
+  </div>
+</Header>
+
+<div className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white shadow-sm">
+  <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 md:px-8">
+
+    <button
+      type="button"
+      onClick={handleNovoOrcamento}
+      className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+    >
+      <Plus size={18} />
+      Orçamento
+    </button>
+
+    <button
+      type="button"
+      onClick={() => {
+        const campo = document.getElementById("cliente-orcamento");
+        campo?.focus();
+        campo?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+    >
+      <UserRound size={18} />
+      Cliente
+    </button>
+
+    <PDFDownloadLink
+      document={
+        <CalculoVidroPDF
+          itens={itens.map((item) => ({
+            ...item,
+            tipo: item.tipo || "",
+            acabamento: item.acabamento || "",
+            servicos: item.servicos || "",
+          }))}
           nomeEmpresa={nomeEmpresa}
-          usuarioEmail={user?.email || ""}
-          handleSignOut={handleLogout}
+          logoUrl={
+            "logoLightUrl" in theme
+              ? theme.logoLightUrl || undefined
+              : undefined
+          }
+          themeColor={theme.contentTextLightBg}
+          nomeCliente={
+            listaClientes.find(
+              (cliente) => String(cliente.id) === String(clienteId)
+            )?.nome || "Não selecionado"
+          }
+          nomeObra={obra}
+          pesoTotal={itens.reduce(
+            (total, item) => total + calcularPesoItem(item),
+            0
+          )}
+          metragemTotal={itens.reduce((total, item) => {
+            const [larguraItem, alturaItem] = item.medidaCalc
+              .split("x")
+              .map((valor) => parseInt(valor));
+
+            return (
+              total +
+              (larguraItem / 1000) *
+                (alturaItem / 1000) *
+                item.qtd
+            );
+          }, 0)}
+          valorTotal={itens.reduce(
+            (total, item) => total + item.total,
+            0
+          )}
+          totalPecas={itens.reduce(
+            (total, item) => total + Number(item.qtd),
+            0
+          )}
+        />
+      }
+      fileName={`Orçamento ${
+        listaClientes.find(
+          (cliente) => String(cliente.id) === String(clienteId)
+        )?.nome || "Geral"
+      }.pdf`}
+    >
+      {({ loading }) => (
+        <button
+          type="button"
+          disabled={loading || itens.length === 0}
+          className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {/* Conteúdo dinâmico que aparece ao lado da logo no Header */}
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-              <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento</h1>
-              <span className="text-xs text-gray-800 font-bold"># {ultimoNumeroGerado || "NOVO"}</span>
-            </div>
+          <Printer size={18} />
+          {loading ? "Gerando..." : "Imprimir"}
+        </button>
+      )}
+    </PDFDownloadLink>
 
-            {/* ÁREA DE AÇÕES DISCRETAS */}
-            <div className="ml-6 flex items-center gap-2 animate-fade-in">
-              <button
-                onClick={handleNovoOrcamento}
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all hover:border-slate-300 hover:text-slate-700"
-              >
-                <Plus size={14} />
-                Novo Orçamento
-              </button>
+    <button
+  type="button"
+  onClick={() => router.push("/matriz-projetos")}
+  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+  title="Abrir matriz de projetos"
+>
+  <FolderOpen size={18} />
+  Projetos
+</button>
 
-              {itens.length > 0 && (
-                <button
-                  onClick={handleSalvarOrcamento}
-                  className="flex items-center gap-2 rounded-full border border-[#1e3a5a]/15 bg-[#1e3a5a]/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#1e3a5a] transition-all hover:border-[#1e3a5a]/30 hover:bg-[#1e3a5a]/10"
-                >
-                  <div className="h-1.5 w-1.5 rounded-full bg-[#1e3a5a]/55" />
-                  Salvar Orçamento
-                </button>
-              )}
-              {itens.length > 0 && (
-                <button
-                  onClick={enviarParaCentralImpressao}
-                  className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100"
-                  title="Enviar medidas e relação de vidros para a central de impressão"
-                >
-                  <ClipboardList size={14} />
-                  PDF+
-                </button>
-              )}
-            </div>
+    <button
+      type="button"
+      onClick={enviarParaCentralImpressao}
+      disabled={itens.length === 0}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <FileText size={18} />
+      PDF+
+    </button>
 
+    <button
+      type="button"
+      onClick={handleSalvarOrcamento}
+      disabled={itens.length === 0}
+      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Save size={18} />
+      Salvar
+    </button>
 
-            {/* --- BOTÃO PDF CORRIGIDO --- */}
-            <PDFDownloadLink
-              document={
-                <CalculoVidroPDF
-                  // GARANTA QUE O MAP REPASSE OS CAMPOS NOVOS:
-                  itens={itens.map((item) => ({
-                    ...item,
-                    // Caso seu objeto original use nomes diferentes, ajuste aqui:
-                    tipo: item.tipo || "",
-                    acabamento: item.acabamento || "",
-                    servicos: item.servicos || ""
-                  }))}
-                  nomeEmpresa={nomeEmpresa}
-                  logoUrl={"logoLightUrl" in theme ? theme.logoLightUrl || undefined : undefined}
-                  themeColor={theme.contentTextLightBg}
-                  nomeCliente={listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || "Não selecionado"}
-                  nomeObra={obra}
-
-                  // Cálculo do Peso Total seguindo a lógica do seu rodapé
-                  pesoTotal={itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)}
-
-                  // Cálculo da Metragem Total (M² de Cobrança) - Alinhado com o rodapé
-                  metragemTotal={itens.reduce((acc: number, item) => {
-                    const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
-                    return acc + ((l / 1000) * (a / 1000) * item.qtd);
-                  }, 0)}
-
-                  // Adicionado: Valor Total do Pedido (importante para o PDF bater com a tela)
-                  valorTotal={itens.reduce((acc: number, i) => acc + i.total, 0)}
-
-                  // Adicionado: Total de Peças
-                  totalPecas={itens.reduce((acc: number, i) => acc + Number(i.qtd), 0)}
-                />
-              }
-              fileName={`Orçamento ${listaClientes.find((c) => String(c.id) === String(clienteId))?.nome || 'Geral'
-                } - N° ${Date.now().toString().slice(-6)}.pdf`}
-            >
-              {({ loading }) => (
-                <button
-                  className="flex items-center gap-2 p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-all ml-2"
-                  title="Gerar PDF"
-                  disabled={loading || itens.length === 0} // Desabilita se estiver carregando ou sem itens
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                  ) : (
-                    <Printer size={20} />
-                  )}
-                </button>
-              )}
-            </PDFDownloadLink>
-          </div>
-        </Header>
-
+  </div>
+</div>
         <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
           {/* IDENTIFICAÇÃO: CLIENTE E OBRA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 px-3 border-r border-gray-100">
               <span className="text-xs font-bold text-gray-400 uppercase">Cliente:</span>
-              <select className="flex-1 p-2 outline-none text-sm bg-transparent" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+             <select
+  id="cliente-orcamento"
+  className="flex-1 p-2 outline-none text-sm bg-transparent"
+  value={clienteId}
+  onChange={(e) => setClienteId(e.target.value)}
+>
                 <option value="">Selecione o cliente</option>
                 {listaClientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
