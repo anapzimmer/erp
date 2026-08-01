@@ -376,7 +376,11 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
     try {
       if (editando) {
-        const { error } = await supabase.from("perfis").update(perfilFormatado).eq("id", editando.id)
+        const { error } = await supabase
+          .from("perfis")
+          .update(perfilFormatado)
+          .eq("id", editando.id)
+          .eq("empresa_id", empresaIdUsuario)
         if (error) throw error
       } else {
         const { error } = await supabase.from("perfis").insert([perfilFormatado])
@@ -396,7 +400,11 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       titulo: "Confirmar Exclusão",
       mensagem: "Tem certeza que deseja excluir este perfil?",
       confirmar: async () => {
-        const { error } = await supabase.from("perfis").delete().eq("id", id)
+        const { error } = await supabase
+          .from("perfis")
+          .delete()
+          .eq("id", id)
+          .eq("empresa_id", empresaIdUsuario)
         if (error) {
           setModalAviso({ titulo: "Erro", mensagem: "Erro ao excluir: " + error.message });
         } else {

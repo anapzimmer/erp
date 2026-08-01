@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
 const WARNING_THRESHOLD_MS = 5 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "glasscode:last-activity-at";
 
 const formatarTempoRestante = (ms: number) => {
   const totalSegundos = Math.max(Math.ceil(ms / 1000), 0);
@@ -40,16 +41,19 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
     // --- LÓGICA DE AUTO-LOGOUT POR INATIVIDADE (1 hora) ---
     let timeout: ReturnType<typeof setTimeout> | null = null;
     let intervaloAviso: ReturnType<typeof setInterval> | null = null;
-    let ultimoEventoEmMs = Date.now();
+    let ultimoEventoEmMs = Number(window.localStorage.getItem(LAST_ACTIVITY_KEY)) || Date.now();
     let fazendoLogout = false;
 
     const logout = async () => {
       if (fazendoLogout) return;
       fazendoLogout = true;
       setTempoRestanteAvisoMs(null);
+      window.localStorage.removeItem(LAST_ACTIVITY_KEY);
       await supabase.auth.signOut();
       router.push("/login");
     };
+
+    const sessaoExpirada = () => Date.now() - ultimoEventoEmMs >= IDLE_TIMEOUT_MS;
 
     const atualizarAviso = () => {
       const inativoPor = Date.now() - ultimoEventoEmMs;
@@ -81,7 +85,12 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
     };
 
     const registrarAtividade = () => {
+      if (sessaoExpirada()) {
+        logout();
+        return;
+      }
       ultimoEventoEmMs = Date.now();
+      window.localStorage.setItem(LAST_ACTIVITY_KEY, String(ultimoEventoEmMs));
       setTempoRestanteAvisoMs(null);
       agendarLogout();
       atualizarAviso();
@@ -105,6 +114,10 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        if (sessaoExpirada()) {
+          logout();
+          return;
+        }
         registrarAtividade();
       }
     };
@@ -112,6 +125,10 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     intervaloAviso = setInterval(() => {
+      if (sessaoExpirada()) {
+        logout();
+        return;
+      }
       atualizarAviso();
     }, 1000);
 

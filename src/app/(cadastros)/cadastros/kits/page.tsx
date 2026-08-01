@@ -259,7 +259,11 @@ export default function KitsPage() {
     try {
       let error;
       if (editando) {
-        const { error: err } = await supabase.from("kits").update(dadosParaSalvar).eq("id", editando.id);
+        const { error: err } = await supabase
+          .from("kits")
+          .update(dadosParaSalvar)
+          .eq("id", editando.id)
+          .eq("empresa_id", empresaIdUsuario);
         error = err;
       } else {
         const { error: err } = await supabase.from("kits").insert([dadosParaSalvar]);
@@ -287,7 +291,11 @@ export default function KitsPage() {
       mensagem: "Tem certeza que deseja excluir este kit? Esta ação não pode ser desfeita.",
       confirmar: async () => {
         try {
-          const { error } = await supabase.from("kits").delete().eq("id", id);
+          const { error } = await supabase
+            .from("kits")
+            .delete()
+            .eq("id", id)
+            .eq("empresa_id", empresaIdUsuario);
           if (error) throw error;
           setKits(prev => prev.filter(k => k.id !== id));
         } catch (e: any) {

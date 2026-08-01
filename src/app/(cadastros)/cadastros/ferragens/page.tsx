@@ -192,7 +192,8 @@ export default function FerragensPage() {
         const { error: err } = await supabase
           .from("ferragens")
           .update(dadosParaSalvar)
-          .eq("id", editando.id);
+          .eq("id", editando.id)
+          .eq("empresa_id", empresaIdUsuario);
         error = err;
       } else {
         const { error: err } = await supabase
@@ -230,7 +231,8 @@ export default function FerragensPage() {
           const { error } = await supabase
             .from("ferragens")
             .delete()
-            .eq("id", id);
+            .eq("id", id)
+            .eq("empresa_id", empresaIdUsuario);
           if (error) throw error;
           setFerragens(prev => prev.filter(f => f.id !== id));
         } catch (e: unknown) {
