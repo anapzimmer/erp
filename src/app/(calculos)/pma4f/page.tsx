@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import {
   AlertTriangle,
   Calendar,
@@ -954,32 +955,7 @@ export default function PMA4FPage() {
   };
 
   const gerarNumeroOrcamento = async () => {
-    if (!empresaId) {
-      throw new Error("Empresa não encontrada para gerar o número do orçamento.");
-    }
-
-    const dataAtual = new Date();
-    const prefixoData =
-      `OR${dataAtual.getDate().toString().padStart(2, "0")}` +
-      `${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-
-    const { data: orcamentosDoDia, error } = await supabase
-      .from("orcamentos")
-      .select("numero_formatado")
-      .like("numero_formatado", `${prefixoData}%`)
-      .eq("empresa_id", empresaId);
-
-    if (error) throw error;
-
-    const maiorSequencia = (orcamentosDoDia || []).reduce((maior, orcamento) => {
-      const numero = String(orcamento.numero_formatado || "");
-      const sequencia = Number.parseInt(numero.slice(prefixoData.length), 10);
-
-      return Number.isFinite(sequencia) ? Math.max(maior, sequencia) : maior;
-    }, 0);
-
-    const proximaSequencia = maiorSequencia + 1;
-    return `${prefixoData}${proximaSequencia.toString().padStart(2, "0")}`;
+    return gerarNumeroOrcamentoPadrao(supabase);
   };
 
   const carregarOrcamentoParaEdicao = useCallback(async () => {

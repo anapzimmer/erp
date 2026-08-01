@@ -595,6 +595,23 @@ export default function RelatorioOrcamento() {
                 Number(item.metroLinearPinazioTotal || 0) > 0
             )
         );
+        const possuiItemEspelho = itensArray.some((item) => {
+            const itemEspelho = item as OrcamentoItem & {
+                tipoVisual?: string;
+                larguraReal?: number;
+                alturaReal?: number;
+                divisoesLargura?: number;
+                divisoesAltura?: number;
+            };
+
+            return Boolean(
+                itemEspelho.tipoVisual ||
+                itemEspelho.larguraReal ||
+                itemEspelho.alturaReal ||
+                itemEspelho.divisoesLargura ||
+                itemEspelho.divisoesAltura
+            );
+        });
 
         const tipoOrcamento = String(
             orc.tipo ||
@@ -602,7 +619,9 @@ export default function RelatorioOrcamento() {
             ""
         ).toLowerCase();
 
-        const ehSacada = /^SAC/i.test(numero);
+        const ehSacada =
+            /^SAC/i.test(numero) ||
+            tipoOrcamento === "sacada_frontal";
         const ehPinazio =
             tipoOrcamento === "pinazio" ||
             possuiItemPinazio;
@@ -612,7 +631,7 @@ export default function RelatorioOrcamento() {
             (
                 tipoOrcamento === "espelhos" ||
                 tipoOrcamento === "espelho" ||
-                /^OR(?!C)/i.test(numero)
+                possuiItemEspelho
             );
 
         const returnTo = encodeURIComponent(
@@ -723,7 +742,9 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
     const itensTemperaVisualizacao = Array.isArray(itensPersistidos?.tempera?.itens)
         ? itensPersistidos.tempera.itens
         : [];
-    const ehSacadaVisualizar = /^SAC/i.test(String(orcamentoParaVisualizar?.numero_formatado || ""));
+    const ehSacadaVisualizar =
+        /^SAC/i.test(String(orcamentoParaVisualizar?.numero_formatado || "")) ||
+        String(itensPersistidos?.tipo || orcamentoParaVisualizar?.tipo || "").toLowerCase() === "sacada_frontal";
 
     // Pinázio é o único orçamento exibido com um desenho independente
     // para cada medida. Não há agrupamento ou relação consolidada.

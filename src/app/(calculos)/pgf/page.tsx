@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import {
   AlertTriangle,
   Calendar,
@@ -959,25 +960,7 @@ export default function PGFPage() {
   };
 
   const gerarNumeroOrcamento = async () => {
-    const dataAtual = new Date();
-    const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-    let query = supabase
-      .from("orcamentos")
-      .select("numero_formatado")
-      .like("numero_formatado", `${prefixoData}%`)
-      .order("numero_formatado", { ascending: false })
-      .limit(1);
-
-    if (empresaId) {
-      query = query.eq("empresa_id", empresaId);
-    }
-
-    const { data: ultimos, error } = await query;
-    if (error) throw error;
-
-    const ultimoNumero = ultimos?.[0]?.numero_formatado;
-    const proximaSequencia = ultimoNumero ? Number(String(ultimoNumero).slice(-2)) + 1 : 1;
-    return `${prefixoData}${proximaSequencia.toString().padStart(2, "0")}`;
+    return gerarNumeroOrcamentoPadrao(supabase);
   };
 
   const carregarOrcamentoParaEdicao = useCallback(async () => {

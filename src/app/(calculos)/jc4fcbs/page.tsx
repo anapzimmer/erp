@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import {
   AlertTriangle,
   Calendar,
@@ -1371,33 +1372,7 @@ useEffect(() => {
   };
 
   const gerarNumeroOrcamento = async () => {
-    const dataAtual = new Date();
-    const prefixo = `ORC${dataAtual
-      .getFullYear()
-      .toString()
-      .slice(-2)}${String(dataAtual.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
-
-    let query = supabase
-      .from("orcamentos")
-      .select("numero_formatado")
-      .like("numero_formatado", `${prefixo}%`)
-      .order("numero_formatado", { ascending: false })
-      .limit(1);
-
-    if (empresaId) query = query.eq("empresa_id", empresaId);
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    const ultimo = data?.[0]?.numero_formatado;
-    const sequencia = ultimo
-      ? Number(String(ultimo).slice(-2)) + 1
-      : 1;
-
-    return `${prefixo}${String(sequencia).padStart(2, "0")}`;
+    return gerarNumeroOrcamentoPadrao(supabase);
   };
 
   const salvarOrcamento = async () => {

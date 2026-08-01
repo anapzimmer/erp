@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext"
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero"
 import Header from "@/components/Header"
 import {
   Wrench,
@@ -1380,35 +1381,7 @@ useEffect(() => {
         const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
         numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
       } else {
-        const dataAtual = new Date();
-        const prefixoData = `ORC${dataAtual.getFullYear().toString().slice(-2)}${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}`;
-const { data: ultimos, error: erroBuscaNumero } = await supabase
-  .from("orcamentos")
-  .select("numero_formatado")
-  .eq("empresa_id", empresaId)
-  .like("numero_formatado", `${prefixoData}%`);
-
-if (erroBuscaNumero) {
-  throw erroBuscaNumero;
-}
-
-let maiorSequencia = 0;
-
-for (const orcamento of ultimos || []) {
-  const numero = String(orcamento.numero_formatado || "");
-
-  const parteSequencial = numero.slice(prefixoData.length);
-  const sequencia = Number.parseInt(parteSequencial, 10);
-
-  if (Number.isFinite(sequencia) && sequencia > maiorSequencia) {
-    maiorSequencia = sequencia;
-  }
-}
-
-const proximaSequencia = maiorSequencia + 1;
-
-numeroFinal =
-  `${prefixoData}${proximaSequencia.toString().padStart(3, "0")}`;
+        numeroFinal = await gerarNumeroOrcamentoPadrao(supabase);
       }
 
       // 2. Cálculos Totais

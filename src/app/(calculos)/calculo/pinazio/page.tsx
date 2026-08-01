@@ -5,6 +5,7 @@ import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { Plus, Calculator, Trash2, ReceiptText, Save, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRoundSearch, FileText, FolderOpen, BadgeDollarSign } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { PinazioPDF } from '@/app/relatorios/pinazio/PinazioPDF'
 import Header from "@/components/Header"
@@ -20,35 +21,7 @@ const criarId = () =>
 
 
 async function gerarNumeroOrcamento() {
-  const hoje = new Date();
-  const prefixoData = `OR${hoje.getFullYear().toString().slice(-2)}${String(
-    hoje.getMonth() + 1
-  ).padStart(2, "0")}`;
-
-  const { data: ultimos, error } = await supabase
-    .from("orcamentos")
-    .select("numero_formatado")
-    .like("numero_formatado", `${prefixoData}%`)
-    .order("numero_formatado", { ascending: false })
-    .limit(1);
-
-  if (error) {
-    console.error("Erro ao buscar último número do orçamento:", error);
-  }
-
-  let sequencia = 1;
-
-  if (ultimos && ultimos.length > 0) {
-    const ultimaSequencia = Number(
-      String(ultimos[0].numero_formatado || "").slice(-3)
-    );
-
-    if (Number.isFinite(ultimaSequencia)) {
-      sequencia = ultimaSequencia + 1;
-    }
-  }
-
-  return `${prefixoData}${String(sequencia).padStart(3, "0")}`;
+  return gerarNumeroOrcamentoPadrao(supabase);
 }
 
 type OpcaoPinazio = {

@@ -12,6 +12,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { CentralImpressaoPDF, type CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import { supabase } from "@/lib/supabaseClient";
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 
 type ProjetoComposicao = CentralImpressaoItem & {
   largura: number;
@@ -1230,49 +1231,8 @@ export default function CentralImpressaoPage() {
   };
 
   const gerarNumeroOrcamento = useCallback(async () => {
-  if (!empresaId) {
-    throw new Error("Empresa não encontrada.");
-  }
-
-  const dataAtual = new Date();
-
-  const prefixoData =
-    `OR${dataAtual.getDate().toString().padStart(2, "0")}` +
-    `${(dataAtual.getMonth() + 1).toString().padStart(2, "0")}`;
-
-  const { data, error } = await supabase
-    .from("orcamentos")
-    .select("numero_formatado")
-    .eq("empresa_id", empresaId)
-    .like("numero_formatado", `${prefixoData}%`);
-
-  if (error) {
-    throw error;
-  }
-
-  let maiorSequencia = 0;
-
-  for (const orcamento of data || []) {
-    const numero = String(orcamento.numero_formatado || "");
-
-    const parteSequencial = numero.slice(prefixoData.length);
-    const sequencia = Number.parseInt(parteSequencial, 10);
-
-    if (
-      Number.isFinite(sequencia) &&
-      sequencia > maiorSequencia
-    ) {
-      maiorSequencia = sequencia;
-    }
-  }
-
-  const proximaSequencia = maiorSequencia + 1;
-
-  return (
-    `${prefixoData}` +
-    `${proximaSequencia.toString().padStart(2, "0")}`
-  );
-}, [empresaId]);
+    return gerarNumeroOrcamentoPadrao(supabase);
+  }, []);
 
   useEffect(() => {
     if (!rascunhoCarregado || editId || !empresaId) return;

@@ -5,6 +5,7 @@ import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRound, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
 import Header from "@/components/Header"
@@ -29,22 +30,7 @@ type ShapeStyle = {
 };
 
 async function gerarNumeroOrcamento() {
-  const hoje = new Date();
-  const prefixoData = `OR${hoje.getFullYear().toString().slice(-2)}${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-
-  const { data: ultimos } = await supabase
-    .from("orcamentos")
-    .select("numero_formatado")
-    .like("numero_formatado", `${prefixoData}%`)
-    .order("numero_formatado", { ascending: false })
-    .limit(1);
-
-  let seq = 1;
-  if (ultimos && ultimos.length > 0) {
-    seq = parseInt(String(ultimos[0].numero_formatado).slice(-3), 10) + 1;
-  }
-
-  return `${prefixoData}${String(seq).padStart(3, "0")}`;
+  return gerarNumeroOrcamentoPadrao(supabase);
 }
 
 function getShapeStyle(
