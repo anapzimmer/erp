@@ -887,6 +887,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       quadrosVertical={qV}
                       quantidadeLajes={lajes}
                       quantidadeFachadas={fachadas}
+                      quadrosFixos={fixos}
+                      quadrosMoveis={moveis}
                       vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
                       areaVidro={resultado.areaVidro}
                       totalVidro={totalVidro}
@@ -1461,4 +1463,3 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
     </div>
   );
 }
-

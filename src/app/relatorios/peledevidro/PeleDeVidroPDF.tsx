@@ -1,315 +1,580 @@
-//app/relatorios/peledevidro/PeleDeVidroPDF.tsx
+// app/relatorios/peledevidro/PeleDeVidroPDF.tsx
 "use client";
+
 import React from "react";
-import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import {
+  Document,
+  G,
+  Image,
+  Line,
+  Page,
+  Rect,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 
 interface PerfilPDF {
-    nome: string;
-    codigo: string;
-    unidade: string;
-    kgmt: number | string;
-    metroLinear: number;
-    barras: number;
-    kgTotal: number;
-    precoBarra: number;
-    valorTotal: number;
+  nome: string;
+  codigo: string;
+  unidade: string;
+  kgmt: number | string;
+  metroLinear: number;
+  barras: number;
+  kgTotal: number;
+  precoBarra: number;
+  valorTotal: number;
 }
 
 interface AcessorioPDF {
-    nome: string;
-    codigo: string;
-    unidade: string;
-    quantidade: number;
-    precoUnitario: number;
-    valorTotal: number;
+  nome: string;
+  codigo: string;
+  unidade: string;
+  quantidade: number;
+  precoUnitario: number;
+  valorTotal: number;
 }
 
 interface PeleDeVidroPDFProps {
-    nomeEmpresa: string;
-    logoUrl?: string | null;
-    themeColor: string;
-    textColor?: string;
-    nomeCliente: string;
-    nomeObra: string;
-    numeroOrcamento?: string;
-    larguraVaoMm: number;
-    alturaVaoMm: number;
-    quadrosHorizontal: number;
-    quadrosVertical: number;
-    quantidadeLajes: number;
-    quantidadeFachadas: number;
-    quadrosFixos?: number;
-    quadrosMoveis?: number;
-    vidroDescricao: string;
-    areaVidro: number;
-    totalVidro: number;
-    perfis: PerfilPDF[];
-    acessorios: AcessorioPDF[];
-    totalPerfis: number;
-    totalAcessorios: number;
-    totalGeral: number;
+  nomeEmpresa: string;
+  logoUrl?: string | null;
+  themeColor: string;
+  textColor?: string;
+  nomeCliente: string;
+  nomeObra: string;
+  numeroOrcamento?: string;
+  larguraVaoMm: number;
+  alturaVaoMm: number;
+  quadrosHorizontal: number;
+  quadrosVertical: number;
+  quantidadeLajes: number;
+  quantidadeFachadas: number;
+  quadrosFixos?: number;
+  quadrosMoveis?: number;
+  vidroDescricao: string;
+  areaVidro: number;
+  totalVidro: number;
+  perfis: PerfilPDF[];
+  acessorios: AcessorioPDF[];
+  totalPerfis: number;
+  totalAcessorios: number;
+  totalGeral: number;
 }
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtMoeda = (valor: number) =>
+  Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+const fmtNumero = (valor: number, casas = 2) =>
+  Number(valor || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: casas,
+  });
 
 const styles = StyleSheet.create({
-    page: { padding: 40, backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: PDF_HEADER_LAYOUT.marginBottom,
-        paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
-        borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
-    },
-    headerLeft: { flexDirection: "column", flex: 1 },
-    titulo: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: "bold", textTransform: "uppercase" },
-    data: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: "#666", marginTop: 6 },
-    logo: { width: PDF_HEADER_LAYOUT.logoWidth, height: PDF_HEADER_LAYOUT.logoHeight, objectFit: "contain", objectPosition: "right" },
-
-    clientObraBox: {
-        backgroundColor: "#EFEFEF",
-        padding: 10,
-        borderRadius: 6,
-        marginBottom: 10,
-    },
-    clientObraLine: {
-        flexDirection: "row",
-        gap: 12,
-    },
-    clientObraItem: { flex: 1 },
-    plainInfoList: {
-        marginBottom: 12,
-        gap: 4,
-    },
-    plainInfoText: {
-        fontSize: 9,
-        color: "#1C415B",
-    },
-    label: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
-    value: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
-
-    sectionTitle: { fontSize: 11, fontWeight: "bold", marginTop: 18, marginBottom: 6 },
-
-    table: { width: "100%", marginTop: 4 },
-    tableHeader: { flexDirection: "row" },
-    tableRow: { flexDirection: "row", borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: "center", minHeight: 26 },
-    thCell: { padding: 5, color: "#153047", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
-    tdCell: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: "#1C415B" },
-
-    summaryContainer: { marginTop: 24, borderTopWidth: 1, borderTopColor: "#F0F0F0", paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-    summaryItem: { flexDirection: "column", alignItems: "flex-start" },
-    summaryLabel: { fontSize: 6, color: "#999", textTransform: "uppercase", marginBottom: 2 },
-    summaryValue: { fontSize: 10, fontWeight: "bold", color: "#1C415B" },
-    totalBox: { textAlign: "right" },
-    totalLabel: { fontSize: 7, color: "#999", textTransform: "uppercase" },
-    totalValue: { fontSize: 16, fontWeight: "bold" },
-    footer: { position: "absolute", bottom: 20, left: 40, right: 40, textAlign: "center", fontSize: 8, color: "#999", paddingTop: 10, borderTopWidth: 0.5, borderTopColor: "#DDD" },
+  page: {
+    paddingTop: 34,
+    paddingHorizontal: 36,
+    paddingBottom: 54,
+    backgroundColor: "#ffffff",
+    color: "#153047",
+    fontFamily: "Helvetica",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    borderBottomWidth: 1,
+    borderBottomColor: "#d9e2ea",
+    paddingBottom: 12,
+    marginBottom: 12,
+  },
+  headerText: { flex: 1, paddingRight: 18 },
+  title: {
+    fontSize: 15,
+    color: "#153047",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
+  logo: {
+    width: 118,
+    height: 42,
+    objectFit: "contain",
+    objectPosition: "right",
+  },
+  infoStrip: {
+    flexDirection: "row",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#dce5ed",
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 12,
+  },
+  infoBox: { flex: 1 },
+  label: {
+    fontSize: 6.5,
+    color: "#718398",
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
+  valueStrong: { fontSize: 9, color: "#153047", fontWeight: "bold" },
+  mainGrid: { flexDirection: "column", gap: 10, marginBottom: 12 },
+  drawingBox: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#dce5ed",
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: "#ffffff",
+  },
+  drawingTitle: {
+    fontSize: 9,
+    color: "#153047",
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  dataBox: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#dce5ed",
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: "#ffffff",
+  },
+  dataTitle: {
+    fontSize: 9,
+    color: "#153047",
+    fontWeight: "bold",
+    marginBottom: 7,
+  },
+  dataGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  dataItem: {
+    width: "31.8%",
+    borderTopWidth: 1,
+    borderTopColor: "#e8eef3",
+    paddingTop: 5,
+    minHeight: 30,
+  },
+  dataItemWide: {
+    width: "48%",
+    borderTopWidth: 1,
+    borderTopColor: "#e8eef3",
+    paddingTop: 5,
+    minHeight: 30,
+  },
+  sectionTitle: {
+    fontSize: 10,
+    color: "#153047",
+    fontWeight: "bold",
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  table: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#dce5ed",
+    borderRadius: 7,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#e8eef3",
+    minHeight: 24,
+    alignItems: "center",
+  },
+  headerRow: {
+    flexDirection: "row",
+    minHeight: 22,
+    alignItems: "center",
+    backgroundColor: "#f3f6f9",
+  },
+  th: {
+    padding: 4,
+    fontSize: 6.5,
+    color: "#153047",
+    textTransform: "uppercase",
+    fontWeight: "bold",
+  },
+  td: { padding: 4, fontSize: 7.5, color: "#153047" },
+  perfilCodigo: { width: "9%" },
+  perfilNome: { width: "19%" },
+  perfilUn: { width: "7%", textAlign: "center" },
+  perfilKgMt: { width: "9%", textAlign: "right" },
+  perfilMetro: { width: "10%", textAlign: "right" },
+  perfilBarras: { width: "9%", textAlign: "right" },
+  perfilKgTotal: { width: "10%", textAlign: "right" },
+  perfilPreco: { width: "13%", textAlign: "right" },
+  perfilTotal: { width: "14%", textAlign: "right" },
+  acessCodigo: { width: "12%" },
+  acessNome: { width: "38%" },
+  acessUn: { width: "10%", textAlign: "center" },
+  acessQtd: { width: "10%", textAlign: "right" },
+  acessPreco: { width: "15%", textAlign: "right" },
+  acessTotal: { width: "15%", textAlign: "right" },
+  groupTotalLabel: {
+    flex: 1,
+    padding: 5,
+    fontSize: 8,
+    color: "#153047",
+    textAlign: "right",
+    textTransform: "uppercase",
+    fontWeight: "bold",
+  },
+  groupTotalValue: {
+    width: "15%",
+    padding: 5,
+    fontSize: 8,
+    color: "#153047",
+    textAlign: "right",
+    fontWeight: "bold",
+  },
+  totals: {
+    flexDirection: "row",
+    gap: 7,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#dce5ed",
+    paddingTop: 10,
+  },
+  totalBox: { flex: 1 },
+  totalLabel: {
+    fontSize: 6.5,
+    color: "#718398",
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  totalValue: {
+    fontSize: 10,
+    color: "#153047",
+    fontWeight: "normal",
+  },
+  totalValueStrong: {
+    fontSize: 13,
+    color: "#153047",
+    fontWeight: "bold",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: 36,
+    right: 36,
+    textAlign: "center",
+    fontSize: 10,
+    color: "#8a9aab",
+    borderTopWidth: 0.5,
+    borderTopColor: "#dce5ed",
+    paddingTop: 8,
+  },
 });
 
 export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
-    const c = props.textColor || props.themeColor;
-    const dataGeracao = new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    }).format(new Date());
+  const svgW = 430;
+  const pad = 16;
+  const drawW = svgW - pad * 2;
+  const ratio = Math.min(
+    Math.max(Number(props.alturaVaoMm || 1000) / Number(props.larguraVaoMm || 2000), 0.35),
+    0.78,
+  );
+  const drawH = Math.round(drawW * ratio);
+  const svgH = drawH + pad * 2 + 18;
+  const x0 = pad;
+  const y0 = pad;
+  const rail = 8;
+  const side = 6;
+  const qH = Math.max(Math.floor(props.quadrosHorizontal || 1), 1);
+  const qV = Math.max(Math.floor(props.quadrosVertical || 1), 1);
+  const glassW = drawW - side * 2;
+  const glassH = drawH - rail * 2;
+  const panelW = glassW / qH;
+  const panelH = glassH / qV;
+  const totalKg = props.perfis.reduce(
+    (acc, perfil) => acc + Number(perfil.kgTotal || 0),
+    0,
+  );
 
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Orçamento Pele de Vidro</Text>
+            <Text style={styles.subtitle}>
+              {props.numeroOrcamento
+                ? `N. orçamento: ${props.numeroOrcamento} - `
+                : ""}
+              Emissão: {new Date().toLocaleDateString("pt-BR")}
+            </Text>
+          </View>
 
-    return (
-        <Document>
-            <Page size="A4" style={styles.page}>
-                {/* Header */}
-                <View style={[styles.header, { borderBottomColor: props.themeColor }]}>
-                    <View style={styles.headerLeft}>
-                                                <Text style={[styles.titulo, { color: props.themeColor }]}>Orçamento Pele de Vidro</Text>
-                                                {props.numeroOrcamento && (
-                                                    <Text style={[styles.label, { color: props.themeColor, fontSize: 11, fontWeight: "bold", marginTop: 4 }]}>Nº Orçamento: {props.numeroOrcamento}</Text>
-                                                )}
-                                                <Text style={styles.data}>Emissão em: {dataGeracao}</Text>
-                    </View>
-                    {props.logoUrl && <Image src={props.logoUrl} style={styles.logo} />}
-                </View>
+          {props.logoUrl ? (
+            <Image src={props.logoUrl} style={styles.logo} />
+          ) : (
+            <Text style={styles.title}>{props.nomeEmpresa}</Text>
+          )}
+        </View>
 
-                {/* Box Cliente/Obra */}
-                <View style={styles.clientObraBox}>
-                    <View style={styles.clientObraLine}>
-                        <View style={styles.clientObraItem}>
-                            <Text style={styles.label}>Cliente</Text>
-                            <Text style={[styles.value, { color: c }]}>{props.nomeCliente || "Não informado"}</Text>
-                        </View>
-                        <View style={styles.clientObraItem}>
-                            <Text style={styles.label}>Obra / Referência</Text>
-                            <Text style={[styles.value, { color: c }]}>{props.nomeObra || "Geral"}</Text>
-                        </View>
-                    </View>
-                </View>
+        <View style={styles.infoStrip}>
+          <View style={styles.infoBox}>
+            <Text style={styles.label}>Cliente</Text>
+            <Text style={styles.valueStrong}>
+              {props.nomeCliente || "Não informado"}
+            </Text>
+          </View>
+          <View style={styles.infoBox}>
+            <Text style={styles.label}>Obra / Referência</Text>
+            <Text style={styles.value}>{props.nomeObra || "Geral"}</Text>
+          </View>
+          <View style={styles.infoBox}>
+            <Text style={styles.label}>Projeto</Text>
+            <Text style={styles.value}>Pele de vidro</Text>
+          </View>
+        </View>
 
-                {/* Preview do desenho */}
-                {(() => {
-                    // Parâmetros para o preview SVG
-                    const sw = 460;
-                    const sl = 28;
-                    const sr = 8;
-                    const st = 6;
-                    const sb = 14;
-                    const cw = sw - sl - sr;
-                    const rat = Math.min(Math.max(props.alturaVaoMm / (props.larguraVaoMm || 1), 0.25), 1.2);
-                    const ch = cw * rat;
-                    const sh = ch + st + sb;
-                    const pw = Math.max(1.5, Math.min(4, cw * 0.01));
-                    const rh = Math.max(2.5, Math.min(6, ch * 0.025));
-                    const qH = Math.max(props.quadrosHorizontal, 1);
-                    const qV = Math.max(props.quadrosVertical, 1);
-                    const gw = (cw - (qH + 1) * pw) / qH;
-                    const gh = (ch - rh * 2) / qV;
-                    const x0 = sl;
-                    const y0 = st;
-                    const dw = 500;
-                    const dh = dw * (sh / sw);
-                    return (
-                        <View wrap={false} style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>
-                            <Text style={{ fontSize: 9, fontWeight: "bold", color: props.themeColor, marginBottom: 5, alignSelf: "flex-start" }}>Vista Frontal</Text>
-                            <Svg viewBox={`0 0 ${sw} ${sh}`} style={{ width: dw, height: dh }}>
-                                <Rect x={x0} y={y0} width={cw} height={rh} fill="#d8d8d8" />
-                                <Rect x={x0} y={y0} width={cw} height={rh} fill="none" stroke="#b0b0b0" strokeWidth={0.4} />
-                                <Rect x={x0} y={y0 + ch - rh} width={cw} height={rh} fill="#d8d8d8" />
-                                <Rect x={x0} y={y0 + ch - rh} width={cw} height={rh} fill="none" stroke="#b0b0b0" strokeWidth={0.4} />
-                                {Array.from({ length: qH }).map((_, i) => {
-                                    const pX = x0 + i * (gw + pw);
-                                    const gX = pX + pw;
-                                    return (
-                                        <G key={i}>
-                                            <Rect x={pX} y={y0} width={pw} height={ch} fill="#d8d8d8" />
-                                            <Rect x={pX} y={y0} width={pw} height={ch} fill="none" stroke="#b0b0b0" strokeWidth={0.3} />
-                                            {Array.from({ length: qV }).map((_, j) => {
-                                                const gY = y0 + rh + j * gh;
-                                                return (
-                                                    <G key={j}>
-                                                        <Rect x={gX} y={gY} width={gw} height={gh} fill="#ddf2ee" />
-                                                        <Rect x={gX} y={gY} width={gw} height={gh} fill="none" stroke="#88bbb2" strokeWidth={0.4} />
-                                                    </G>
-                                                );
-                                            })}
-                                        </G>
-                                    );
-                                })}
-                                <Rect x={x0 + qH * (gw + pw)} y={y0} width={pw} height={ch} fill="#d8d8d8" />
-                                <Rect x={x0 + qH * (gw + pw)} y={y0} width={pw} height={ch} fill="none" stroke="#b0b0b0" strokeWidth={0.3} />
-                                <Line x1={x0} y1={y0 + ch + 6} x2={x0 + cw} y2={y0 + ch + 6} stroke="#999999" strokeWidth={0.3} />
-                                <Line x1={x0} y1={y0 + ch + 3} x2={x0} y2={y0 + ch + 9} stroke="#999999" strokeWidth={0.3} />
-                                <Line x1={x0 + cw} y1={y0 + ch + 3} x2={x0 + cw} y2={y0 + ch + 9} stroke="#999999" strokeWidth={0.3} />
-                                <Line x1={x0 - 6} y1={y0} x2={x0 - 6} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
-                                <Line x1={x0 - 9} y1={y0} x2={x0 - 3} y2={y0} stroke="#999999" strokeWidth={0.3} />
-                                <Line x1={x0 - 9} y1={y0 + ch} x2={x0 - 3} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
-                            </Svg>
-                            <Text style={{ fontSize: 7, color: "#777777", marginTop: 3 }}>
-                                Vão: {props.larguraVaoMm} x {props.alturaVaoMm} mm · {qH} quadros H · {qV} quadros V
-                            </Text>
-                        </View>
-                    );
-                })()}
+        <View style={styles.mainGrid} wrap={false}>
+          <View style={styles.drawingBox}>
+            <Text style={styles.drawingTitle}>Vista frontal</Text>
+            <Svg
+              viewBox={`0 0 ${svgW} ${svgH}`}
+              width="100%"
+              height={210}
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <Rect
+                x={x0}
+                y={y0}
+                width={drawW}
+                height={drawH}
+                fill="#ffffff"
+                stroke="#d6e0e8"
+                strokeWidth={0.8}
+              />
 
-                {/* Perfis */}
-                <Text style={[styles.sectionTitle, { color: props.themeColor }]}>Perfis de Alumínio</Text>
-                <View style={styles.table}>
-                    <View style={[styles.tableHeader, { backgroundColor: props.themeColor }]}>
-                        <Text style={[styles.thCell, { width: "10%" }]}>Código</Text>
-                        <Text style={[styles.thCell, { width: "18%" }]}>Perfil</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "center" }]}>Un</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>KG/MT</Text>
-                        <Text style={[styles.thCell, { width: "12%", textAlign: "right" }]}>Metro</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>Barras</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>KG total</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>Preço</Text>
-                        <Text style={[styles.thCell, { width: "10%", textAlign: "right" }]}>Total</Text>
-                    </View>
-                    {props.perfis.map((p, i) => (
-                        <View key={`p-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-                            <Text style={[styles.tdCell, { width: "10%" }]}>{p.codigo}</Text>
-                            <Text style={[styles.tdCell, { width: "18%" }]}>{p.nome}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "center" }]}>{p.unidade}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{p.kgmt}</Text>
-                            <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{typeof p.metroLinear === "number" ? p.metroLinear.toLocaleString("pt-BR") : p.metroLinear}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{p.barras}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{typeof p.kgTotal === "number" ? p.kgTotal.toFixed(2) : p.kgTotal}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{fmt(p.precoBarra)}</Text>
-                            <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}>{fmt(p.valorTotal)}</Text>
-                        </View>
-                    ))}
-                    {/* Linha de total de kg das barras */}
-                    <View style={[styles.tableRow, { backgroundColor: "#f7f7f7" }]}>
-                        <Text style={[styles.tdCell, { width: "10%" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "18%" }]}>Total KG das barras</Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "center" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "right", fontWeight: "bold" }]}> {
-                           props.perfis.reduce((acc, p) => acc + (typeof p.kgTotal === "number" ? p.kgTotal : 0), 0).toFixed(2)
-                        } </Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}></Text>
-                        <Text style={[styles.tdCell, { width: "10%", textAlign: "right" }]}></Text>
-                    </View>
-                </View>
+              {Array.from({ length: qH }).map((_, col) =>
+                Array.from({ length: qV }).map((__, row) => {
+                  const x = x0 + side + panelW * col;
+                  const y = y0 + rail + panelH * row;
+                  return (
+                    <G key={`painel-${col}-${row}`}>
+                      <Rect
+                        x={x}
+                        y={y}
+                        width={panelW}
+                        height={panelH}
+                        fill="#edf8ff"
+                        stroke="#a9bfce"
+                        strokeWidth={0.5}
+                      />
+                      <Line
+                        x1={x + panelW * 0.14}
+                        y1={y + panelH * 0.9}
+                        x2={x + panelW * 0.72}
+                        y2={y + panelH * 0.1}
+                        stroke="#ffffff"
+                        strokeWidth={3}
+                      />
+                      <Line
+                        x1={x + panelW * 0.34}
+                        y1={y + panelH * 0.86}
+                        x2={x + panelW * 0.92}
+                        y2={y + panelH * 0.15}
+                        stroke="#ffffff"
+                        strokeWidth={1.6}
+                      />
+                    </G>
+                  );
+                }),
+              )}
 
-                {/* Acessórios */}
-                <Text style={[styles.sectionTitle, { color: props.themeColor }]}>Acessórios / Ferragens</Text>
-                <View style={styles.table}>
-                    <View style={[styles.tableHeader, { backgroundColor: props.themeColor }]}>
-                        <Text style={[styles.thCell, { width: "12%" }]}>Código</Text>
-                        <Text style={[styles.thCell, { width: "34%" }]}>Acessório</Text>
-                        <Text style={[styles.thCell, { width: "12%" }]}>Un</Text>
-                        <Text style={[styles.thCell, { width: "12%", textAlign: "right" }]}>Qtd</Text>
-                        <Text style={[styles.thCell, { width: "15%", textAlign: "right" }]}>Preço</Text>
-                        <Text style={[styles.thCell, { width: "15%", textAlign: "right" }]}>Total</Text>
-                    </View>
-                    {props.acessorios.map((a, i) => (
-                        <View key={`a-${i}`} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(i) }]}>
-                            <Text style={[styles.tdCell, { width: "12%" }]}>{a.codigo}</Text>
-                            <Text style={[styles.tdCell, { width: "34%" }]}>{a.nome}</Text>
-                            <Text style={[styles.tdCell, { width: "12%" }]}>{a.unidade}</Text>
-                            <Text style={[styles.tdCell, { width: "12%", textAlign: "right" }]}>{a.quantidade}</Text>
-                            <Text style={[styles.tdCell, { width: "15%", textAlign: "right" }]}>{fmt(a.precoUnitario)}</Text>
-                            <Text style={[styles.tdCell, { width: "15%", textAlign: "right" }]}>{fmt(a.valorTotal)}</Text>
-                        </View>
-                    ))}
-                </View>
+              {Array.from({ length: Math.max(qH - 1, 0) }).map((_, index) => {
+                const x = x0 + side + panelW * (index + 1);
+                return (
+                  <Rect
+                    key={`montante-${index}`}
+                    x={x - side / 2}
+                    y={y0}
+                    width={side}
+                    height={drawH}
+                    fill="#eef2f5"
+                    stroke="#b5c0ca"
+                    strokeWidth={0.8}
+                  />
+                );
+              })}
 
-                {/* Resumo */}
-                <View style={styles.summaryContainer}>
-                    <View style={{ flexDirection: "row", gap: 20 }}>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Área total de vidro</Text>
-                            <Text style={[styles.summaryValue, { color: c }]}>{props.areaVidro.toFixed(3)} m²</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Total vidro</Text>
-                            <Text style={[styles.summaryValue, { color: c }]}>{fmt(props.totalVidro)}</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Total perfis</Text>
-                            <Text style={[styles.summaryValue, { color: c }]}>{fmt(props.totalPerfis)}</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Total acessórios</Text>
-                            <Text style={[styles.summaryValue, { color: c }]}>{fmt(props.totalAcessorios)}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.totalBox}>
-                        <Text style={styles.totalLabel}>Valor Total</Text>
-                        <Text style={[styles.totalValue, { color: props.themeColor }]}>{fmt(props.totalGeral)}</Text>
-                    </View>
-                </View>
+              {Array.from({ length: Math.max(qV - 1, 0) }).map((_, index) => {
+                const y = y0 + rail + panelH * (index + 1);
+                return (
+                  <Rect
+                    key={`travessa-${index}`}
+                    x={x0}
+                    y={y - rail / 2}
+                    width={drawW}
+                    height={rail}
+                    fill="#eef2f5"
+                    stroke="#b5c0ca"
+                    strokeWidth={0.8}
+                  />
+                );
+              })}
 
-                <Text
-                    style={styles.footer}
-                    render={({ pageNumber, totalPages }) => buildPdfFooterText(props.nomeEmpresa, pageNumber, totalPages)}
-                    fixed
-                />
-            </Page>
-        </Document>
-    );
+              <Rect x={x0} y={y0} width={drawW} height={rail} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
+              <Rect x={x0} y={y0 + drawH - rail} width={drawW} height={rail} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
+              <Rect x={x0} y={y0} width={side} height={drawH} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
+              <Rect x={x0 + drawW - side} y={y0} width={side} height={drawH} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
+
+              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke="#6aa6d8" strokeWidth={0.7} />
+              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 10, fill: "#153047" }}>
+                {props.larguraVaoMm} mm
+              </Text>
+            </Svg>
+          </View>
+
+          <View style={styles.dataBox}>
+            <Text style={styles.dataTitle}>Dados do projeto</Text>
+            <View style={styles.dataGrid}>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Largura do vão</Text>
+                <Text style={styles.value}>{props.larguraVaoMm} mm</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Altura do vão</Text>
+                <Text style={styles.value}>{props.alturaVaoMm} mm</Text>
+              </View>
+               <View style={styles.dataItem}>
+                <Text style={styles.label}>Fachadas</Text>
+                <Text style={styles.value}>{props.quantidadeFachadas}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Quadros horizontais</Text>
+                <Text style={styles.value}>{props.quadrosHorizontal}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Quadros verticais</Text>
+                <Text style={styles.value}>{props.quadrosVertical}</Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Lajes</Text>
+                <Text style={styles.value}>{props.quantidadeLajes}</Text>
+              </View>
+             
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Quadros fixos</Text>
+                <Text style={styles.value}>
+                  {props.quadrosFixos !== undefined ? props.quadrosFixos : "Não informado"}
+                </Text>
+              </View>
+              <View style={styles.dataItem}>
+                <Text style={styles.label}>Quadros móveis</Text>
+                <Text style={styles.value}>
+                  {props.quadrosMoveis !== undefined ? props.quadrosMoveis : "Não informado"}
+                </Text>
+              </View>
+              <View style={styles.dataItemWide}>
+                <Text style={styles.label}>Vidro selecionado</Text>
+                <Text style={styles.value}>
+                  {props.vidroDescricao || "Não informado"}
+                </Text>
+              </View>
+              <View style={styles.dataItemWide}>
+                <Text style={styles.label}>Área total de vidro</Text>
+                <Text style={styles.value}>{fmtNumero(props.areaVidro, 3)} m²</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Perfis de alumínio</Text>
+        <View style={styles.table}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.th, styles.perfilCodigo]}>Código</Text>
+            <Text style={[styles.th, styles.perfilNome]}>Perfil</Text>
+            <Text style={[styles.th, styles.perfilUn]}>Un</Text>
+            <Text style={[styles.th, styles.perfilKgMt]}>KG/MT</Text>
+            <Text style={[styles.th, styles.perfilMetro]}>Metro</Text>
+            <Text style={[styles.th, styles.perfilBarras]}>Barras</Text>
+            <Text style={[styles.th, styles.perfilKgTotal]}>KG total</Text>
+            <Text style={[styles.th, styles.perfilPreco]}>Preço</Text>
+            <Text style={[styles.th, styles.perfilTotal]}>Total</Text>
+          </View>
+          {props.perfis.map((perfil, index) => (
+            <View key={`perfil-${perfil.codigo}-${index}`} style={styles.row} wrap={false}>
+              <Text style={[styles.td, styles.perfilCodigo]}>{perfil.codigo}</Text>
+              <Text style={[styles.td, styles.perfilNome]}>{perfil.nome}</Text>
+              <Text style={[styles.td, styles.perfilUn]}>{perfil.unidade}</Text>
+              <Text style={[styles.td, styles.perfilKgMt]}>{perfil.kgmt}</Text>
+              <Text style={[styles.td, styles.perfilMetro]}>{fmtNumero(perfil.metroLinear, 2)}</Text>
+              <Text style={[styles.td, styles.perfilBarras]}>{fmtNumero(perfil.barras, 0)}</Text>
+              <Text style={[styles.td, styles.perfilKgTotal]}>{fmtNumero(perfil.kgTotal, 2)}</Text>
+              <Text style={[styles.td, styles.perfilPreco]}>{fmtMoeda(perfil.precoBarra)}</Text>
+              <Text style={[styles.td, styles.perfilTotal]}>{fmtMoeda(perfil.valorTotal)}</Text>
+            </View>
+          ))}
+          <View style={styles.row} wrap={false}>
+            <Text style={styles.groupTotalLabel}>Total KG: {fmtNumero(totalKg, 2)} | Total dos perfis</Text>
+            <Text style={styles.groupTotalValue}>{fmtMoeda(props.totalPerfis)}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Acessórios / ferragens</Text>
+        <View style={styles.table}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.th, styles.acessCodigo]}>Código</Text>
+            <Text style={[styles.th, styles.acessNome]}>Acessório</Text>
+            <Text style={[styles.th, styles.acessUn]}>Un</Text>
+            <Text style={[styles.th, styles.acessQtd]}>Qtd</Text>
+            <Text style={[styles.th, styles.acessPreco]}>Preço</Text>
+            <Text style={[styles.th, styles.acessTotal]}>Total</Text>
+          </View>
+          {props.acessorios.map((acessorio, index) => (
+            <View key={`acessorio-${acessorio.codigo}-${index}`} style={styles.row} wrap={false}>
+              <Text style={[styles.td, styles.acessCodigo]}>{acessorio.codigo}</Text>
+              <Text style={[styles.td, styles.acessNome]}>{acessorio.nome}</Text>
+              <Text style={[styles.td, styles.acessUn]}>{acessorio.unidade}</Text>
+              <Text style={[styles.td, styles.acessQtd]}>{fmtNumero(acessorio.quantidade, 0)}</Text>
+              <Text style={[styles.td, styles.acessPreco]}>{fmtMoeda(acessorio.precoUnitario)}</Text>
+              <Text style={[styles.td, styles.acessTotal]}>{fmtMoeda(acessorio.valorTotal)}</Text>
+            </View>
+          ))}
+          <View style={styles.row} wrap={false}>
+            <Text style={styles.groupTotalLabel}>Total das ferragens</Text>
+            <Text style={styles.groupTotalValue}>{fmtMoeda(props.totalAcessorios)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.totals} wrap={false}>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Área total</Text>
+            <Text style={styles.totalValue}>{fmtNumero(props.areaVidro, 3)} m²</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Valor vidro</Text>
+            <Text style={styles.totalValue}>{fmtMoeda(props.totalVidro)}</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Valor perfis</Text>
+            <Text style={styles.totalValue}>{fmtMoeda(props.totalPerfis)}</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Valor ferragens</Text>
+            <Text style={styles.totalValue}>{fmtMoeda(props.totalAcessorios)}</Text>
+          </View>
+          <View style={styles.totalBox}>
+            <Text style={styles.totalLabel}>Valor total</Text>
+            <Text style={styles.totalValueStrong}>{fmtMoeda(props.totalGeral)}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.footer}>
+          {props.nomeEmpresa || "Glass Code"} - Soluções em Vidros e Ferragens
+        </Text>
+      </Page>
+    </Document>
+  );
 }
-
