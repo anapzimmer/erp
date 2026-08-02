@@ -85,6 +85,9 @@ const fmtNumero = (valor: number, casas = 2) =>
     maximumFractionDigits: casas,
   });
 
+const textoMinusculo = (texto?: string | null) =>
+  String(texto || "").toLocaleLowerCase("pt-BR");
+
 /*
  * ESTILOS CLONADOS DA SACADA COM TORRE.
  * Os únicos estilos extras são os dois usados no total de cada grupo.
@@ -132,7 +135,7 @@ const styles = StyleSheet.create({
   },
   infoBox: { flex: 1 },
   label: {
-    fontSize: 6.5,
+    fontSize: 8,
     color: "#718398",
     textTransform: "uppercase",
     marginBottom: 3,
@@ -213,12 +216,16 @@ const styles = StyleSheet.create({
   },
   th: {
     padding: 5,
-    fontSize: 8,
+    fontSize: 9,
     color: "#153047",
     textTransform: "uppercase",
     fontWeight: "bold",
   },
-  td: { padding: 5, fontSize: 9, color: "#153047" },
+  td: {
+    padding: 5,
+    fontSize: 10,
+    color: "#153047",
+  },
   colQtd: { width: "12%", textAlign: "center" },
   colDesc: { width: "46%" },
   colUn: { width: "11%", textAlign: "center" },
@@ -228,7 +235,7 @@ const styles = StyleSheet.create({
   groupTotalLabel: {
     width: "84%",
     padding: 5,
-    fontSize: 8,
+    fontSize: 10,
     color: "#153047",
     textAlign: "right",
     textTransform: "uppercase",
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
   groupTotalValue: {
     width: "16%",
     padding: 5,
-    fontSize: 8,
+    fontSize: 10,
     color: "#153047",
     textAlign: "right",
     fontWeight: "bold",
@@ -253,18 +260,18 @@ const styles = StyleSheet.create({
   },
   totalBox: { flex: 1 },
   totalLabel: {
-    fontSize: 6.5,
+    fontSize: 8,
     color: "#718398",
     textTransform: "uppercase",
     marginBottom: 3,
   },
   totalValue: {
-    fontSize: 10,
+    fontSize: 8,
     color: "#153047",
     fontWeight: "normal",
   },
   totalValueStrong: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#153047",
     fontWeight: "bold",
   },
@@ -274,7 +281,7 @@ const styles = StyleSheet.create({
     left: 36,
     right: 36,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: 8,
     color: "#8a9aab",
     borderTopWidth: 0.5,
     borderTopColor: "#dce5ed",
@@ -323,7 +330,7 @@ export function SacadaFrontalPDF({
   const materiaisPerfis = perfis.map((perfil, index) => ({
     id: `perfil-${perfil.codigo}-${index}`,
     qtd: Number(perfil.quantidadeBarras || 0),
-    descricao: `${perfil.nome}${perfil.codigo ? ` (${perfil.codigo})` : ""}`,
+    descricao: textoMinusculo(`${perfil.nome}${perfil.codigo ? ` (${perfil.codigo})` : ""}`),
     unidade: "barra",
     valorUnitario: Number(perfil.precoBarra || 0),
     valorTotal: Number(perfil.valorTotal || 0),
@@ -333,7 +340,7 @@ export function SacadaFrontalPDF({
     ...listaAcessoriosGuardaCorpo.map((item, index) => ({
       id: `acessorio-gc-${item.codigo}-${index}`,
       qtd: Number(item.quantidadePacote ?? item.quantidade ?? 0),
-      descricao: `${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`,
+      descricao: textoMinusculo(`${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`),
       unidade: "un",
       valorUnitario: Number(item.precoUnitario || 0),
       valorTotal: Number(item.valorTotal || 0),
@@ -341,7 +348,7 @@ export function SacadaFrontalPDF({
     ...listaAcessoriosFechamento.map((item, index) => ({
       id: `acessorio-fech-${item.codigo}-${index}`,
       qtd: Number(item.quantidadePacote ?? item.quantidade ?? 0),
-      descricao: `${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`,
+      descricao: textoMinusculo(`${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`),
       unidade: "un",
       valorUnitario: Number(item.precoUnitario || 0),
       valorTotal: Number(item.valorTotal || 0),
