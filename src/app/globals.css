@@ -49,6 +49,33 @@ textarea {
   font-family: inherit;
 }
 
+/*
+ * Tom visual mais leve para o ERP.
+ * Muitas telas antigas usam font-bold/font-black como padrão de interface.
+ * Mantemos hierarquia, mas reduzimos o peso para o sistema ficar menos carregado.
+ */
+.font-black,
+.font-extrabold {
+  font-weight: 650 !important;
+}
+
+.font-bold {
+  font-weight: 600 !important;
+}
+
+.font-semibold {
+  font-weight: 500 !important;
+}
+
+th.font-bold,
+th.font-semibold,
+thead .font-bold,
+thead .font-semibold,
+label.font-semibold,
+label.font-bold {
+  font-weight: 500 !important;
+}
+
 .cadastros-layout {
   font-family: var(--font-app);
   color: var(--gc-text-light);
