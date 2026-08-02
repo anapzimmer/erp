@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { decodeCsvFile } from "@/utils/csvEncoding"
-import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser, Tag } from "lucide-react"
+import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser, Tag, CheckCircle2, CheckSquare2, ListChecks } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -94,10 +94,11 @@ export default function KitsPage() {
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [mostrarImportador, setMostrarImportador] = useState(false)
-  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
+  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void; tipo?: "sucesso" | "erro" | "aviso" } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
+  const [kitsSelecionados, setKitsSelecionados] = useState<Set<number>>(new Set())
   const [isClient, setIsClient] = useState(false);
   const [espessuraDetectada, setEspessuraDetectada] = useState("");
   const larguraManualRef = useRef(false);
@@ -495,6 +496,99 @@ export default function KitsPage() {
     return matchesBusca && matchesCor;
   });
 
+  const alternarSelecaoKit = (id: number) => {
+    setKitsSelecionados((atuais) => {
+      const novos = new Set(atuais)
+      if (novos.has(id)) {
+        novos.delete(id)
+      } else {
+        novos.add(id)
+      }
+      return novos
+    })
+  }
+
+  const todosFiltradosSelecionados =
+    kitsFiltrados.length > 0 &&
+    kitsFiltrados.every((kit) => kitsSelecionados.has(kit.id))
+
+  const alternarSelecaoFiltrados = () => {
+    setKitsSelecionados((atuais) => {
+      const novos = new Set(atuais)
+      if (todosFiltradosSelecionados) {
+        kitsFiltrados.forEach((kit) => novos.delete(kit.id))
+      } else {
+        kitsFiltrados.forEach((kit) => novos.add(kit.id))
+      }
+      return novos
+    })
+  }
+
+  const excluirKitsSelecionados = () => {
+    const ids = Array.from(kitsSelecionados)
+
+    if (!ids.length) {
+      setModalAviso({
+        titulo: "Nenhum kit selecionado",
+        mensagem: "Selecione pelo menos um kit para excluir.",
+        tipo: "aviso",
+      })
+      return
+    }
+
+    setModalAviso({
+      titulo: "Excluir kits selecionados",
+      mensagem: `Tem certeza que deseja excluir ${ids.length} ${ids.length === 1 ? "kit" : "kits"}?`,
+      tipo: "aviso",
+      confirmar: async () => {
+        setCarregando(true)
+        try {
+          const { error } = await supabase
+            .from("kits")
+            .delete()
+            .in("id", ids)
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setKits((atuais) => atuais.filter((kit) => !kitsSelecionados.has(kit.id)))
+          setKitsSelecionados(new Set())
+        } catch (e: any) {
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir os kits: " + e.message, tipo: "erro" })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
+  const limparTodosOsKits = () => {
+    setModalAviso({
+      titulo: "Limpar todo o catálogo",
+      mensagem: `Esta ação excluirá permanentemente todos os ${kits.length} kits cadastrados. Deseja continuar?`,
+      tipo: "aviso",
+      confirmar: async () => {
+        if (!empresaIdUsuario) return
+        setCarregando(true)
+        try {
+          const { error } = await supabase
+            .from("kits")
+            .delete()
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setKits([])
+          setKitsSelecionados(new Set())
+        } catch (e: any) {
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível limpar o catálogo: " + e.message, tipo: "erro" })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
   return (
     <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
       {/* SIDEBAR */}
@@ -654,6 +748,13 @@ export default function KitsPage() {
                 <Eraser size={16} /> Duplicados
               </button>
               <button
+                onClick={limparTodosOsKits}
+                className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+              >
+                <Trash2 size={16} />
+                Limpar tudo
+              </button>
+              <button
                 onClick={() => {
                   abrirModalParaNovo();
                 }}
@@ -666,6 +767,34 @@ export default function KitsPage() {
           </div>
           </section>
 
+          {kitsSelecionados.size > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckSquare2 size={18} className="text-red-500" />
+                <span>
+                  <strong className="font-normal">{kitsSelecionados.size}</strong>{" "}
+                  {kitsSelecionados.size === 1 ? "item selecionado" : "itens selecionados"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setKitsSelecionados(new Set())}
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                >
+                  Cancelar seleção
+                </button>
+                <button
+                  onClick={excluirKitsSelecionados}
+                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                >
+                  <Trash2 size={15} />
+                  Excluir selecionados
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TABELA */}
           <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -673,11 +802,32 @@ export default function KitsPage() {
                 <h2 className="text-base font-normal text-gray-700">Kits cadastrados</h2>
                 <p className="mt-0.5 text-xs text-gray-400">Exibindo {kitsFiltrados.length} de {kits.length} produtos</p>
               </div>
+              <button
+                onClick={alternarSelecaoFiltrados}
+                disabled={!kitsFiltrados.length}
+                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+              >
+                <ListChecks size={15} />
+                {todosFiltradosSelecionados ? "Desmarcar visíveis" : "Selecionar visíveis"}
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
                   <tr>
+                    <th className="w-14 px-5 py-3.5">
+                      <button
+                        onClick={alternarSelecaoFiltrados}
+                        disabled={!kitsFiltrados.length}
+                        className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
+                          todosFiltradosSelecionados ? "border-transparent" : "border-gray-300 bg-white"
+                        }`}
+                        style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                        aria-label="Selecionar todos os kits visíveis"
+                      >
+                        {todosFiltradosSelecionados && <CheckCircle2 size={15} className="text-white" />}
+                      </button>
+                    </th>
                     <th className="px-4 py-3.5 font-normal">Código</th>
                     <th className="px-4 py-3.5 font-normal">Nome do kit</th>
                     <th className="px-4 py-3.5 font-normal">Largura</th>
@@ -689,8 +839,23 @@ export default function KitsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {kitsFiltrados.map(k => (
-                    <tr key={k.id} className="transition-colors hover:bg-gray-50/80">
+                  {kitsFiltrados.map(k => {
+                    const selecionado = kitsSelecionados.has(k.id)
+
+                    return (
+                    <tr key={k.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => alternarSelecaoKit(k.id)}
+                          className={`flex h-5 w-5 items-center justify-center rounded border transition ${
+                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                          }`}
+                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                          aria-label={`Selecionar ${k.nome}`}
+                        >
+                          {selecionado && <CheckCircle2 size={15} className="text-white" />}
+                        </button>
+                      </td>
                       <td className="px-4 py-3.5">
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-normal uppercase text-slate-600">
                           {k.codigo || "-"}
@@ -716,7 +881,7 @@ export default function KitsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

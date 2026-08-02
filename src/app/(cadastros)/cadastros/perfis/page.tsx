@@ -518,6 +518,36 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     })
   }
 
+  const limparTodosOsPerfis = () => {
+    setModalAviso({
+      titulo: "Limpar todo o catálogo",
+      mensagem: `Esta ação excluirá permanentemente todos os ${perfis.length} perfis cadastrados. Deseja continuar?`,
+      confirmar: async () => {
+        if (!empresaIdUsuario) return
+        setCarregando(true)
+
+        try {
+          const { error } = await supabase
+            .from("perfis")
+            .delete()
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setPerfis([])
+          setPerfisSelecionados(new Set())
+        } catch (e: any) {
+          setModalAviso({
+            titulo: "Erro",
+            mensagem: "Não foi possível limpar o catálogo: " + e.message,
+          })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
   const totalPerfis = perfis.length
   const categoriasDistintas = Array.from(new Set(perfis.map(p => p.categoria).filter(Boolean))).length
   const coresDistintas = Array.from(new Set(perfis.map(p => p.cores).filter(Boolean))).length
@@ -739,6 +769,14 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 >
                   <Eraser size={16} />
                   Duplicados
+                </button>
+
+                <button
+                  onClick={limparTodosOsPerfis}
+                  className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                  Limpar tudo
                 </button>
 
                 <button

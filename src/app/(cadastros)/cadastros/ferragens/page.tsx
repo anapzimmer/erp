@@ -8,7 +8,7 @@ import {
   Wrench, Printer,
   Layers, Palette, Package, Trash2, Edit2,
   PlusCircle, X, Download, Upload, Search,
-  DollarSign, ArrowUp, Square, Eraser, Tag
+  DollarSign, ArrowUp, Square, Eraser, Tag, CheckCircle2, CheckSquare2, ListChecks
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext";
@@ -109,10 +109,11 @@ export default function FerragensPage() {
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [mostrarImportador, setMostrarImportador] = useState(false)
-  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void } | null>(null)
+  const [modalAviso, setModalAviso] = useState<{ titulo: string; mensagem: string; confirmar?: () => void; tipo?: "sucesso" | "erro" | "aviso" } | null>(null)
   const [modalCarregando, setModalCarregando] = useState(false);
   const [filtroNome, setFiltroNome] = useState("")
   const [filtroCor, setFiltroCor] = useState("")
+  const [ferragensSelecionadas, setFerragensSelecionadas] = useState<Set<string>>(new Set())
   useEffect(() => { /* client guard */ }, []);
 
   // --- EFEITOS ---
@@ -454,6 +455,101 @@ export default function FerragensPage() {
     return matchesBusca && matchesCor;
   });
 
+  const alternarSelecaoFerragem = (id: string) => {
+    setFerragensSelecionadas((atuais) => {
+      const novos = new Set(atuais)
+      if (novos.has(id)) {
+        novos.delete(id)
+      } else {
+        novos.add(id)
+      }
+      return novos
+    })
+  }
+
+  const todosFiltradosSelecionados =
+    ferragensFiltradas.length > 0 &&
+    ferragensFiltradas.every((ferragem) => ferragensSelecionadas.has(ferragem.id))
+
+  const alternarSelecaoFiltrados = () => {
+    setFerragensSelecionadas((atuais) => {
+      const novos = new Set(atuais)
+      if (todosFiltradosSelecionados) {
+        ferragensFiltradas.forEach((ferragem) => novos.delete(ferragem.id))
+      } else {
+        ferragensFiltradas.forEach((ferragem) => novos.add(ferragem.id))
+      }
+      return novos
+    })
+  }
+
+  const excluirFerragensSelecionadas = () => {
+    const ids = Array.from(ferragensSelecionadas)
+
+    if (!ids.length) {
+      setModalAviso({
+        titulo: "Nenhuma ferragem selecionada",
+        mensagem: "Selecione pelo menos uma ferragem para excluir.",
+        tipo: "aviso",
+      })
+      return
+    }
+
+    setModalAviso({
+      titulo: "Excluir ferragens selecionadas",
+      mensagem: `Tem certeza que deseja excluir ${ids.length} ${ids.length === 1 ? "ferragem" : "ferragens"}?`,
+      tipo: "aviso",
+      confirmar: async () => {
+        setCarregando(true)
+        try {
+          const { error } = await supabase
+            .from("ferragens")
+            .delete()
+            .in("id", ids)
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setFerragens((atuais) => atuais.filter((ferragem) => !ferragensSelecionadas.has(ferragem.id)))
+          setFerragensSelecionadas(new Set())
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível excluir as ferragens: " + msg, tipo: "erro" })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
+  const limparTodasAsFerragens = () => {
+    setModalAviso({
+      titulo: "Limpar todo o catálogo",
+      mensagem: `Esta ação excluirá permanentemente todas as ${ferragens.length} ferragens cadastradas. Deseja continuar?`,
+      tipo: "aviso",
+      confirmar: async () => {
+        if (!empresaIdUsuario) return
+        setCarregando(true)
+        try {
+          const { error } = await supabase
+            .from("ferragens")
+            .delete()
+            .eq("empresa_id", empresaIdUsuario)
+
+          if (error) throw error
+
+          setFerragens([])
+          setFerragensSelecionadas(new Set())
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setModalAviso({ titulo: "Erro", mensagem: "Não foi possível limpar o catálogo: " + msg, tipo: "erro" })
+        } finally {
+          setCarregando(false)
+        }
+      },
+    })
+  }
+
   return (
     <div className="cadastros-layout flex min-h-screen" style={{ backgroundColor: lightPrimary }}>
     <Sidebar
@@ -596,6 +692,13 @@ export default function FerragensPage() {
               <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50">
                 <Eraser size={16} /> Duplicados
               </button>
+              <button
+                onClick={limparTodasAsFerragens}
+                className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+              >
+                <Trash2 size={16} />
+                Limpar tudo
+              </button>
               <button onClick={() => {
                 setEditando(null); setNovaFerragem({
                   codigo: "", nome: "", cores: "", preco: null, categoria: "",
@@ -608,6 +711,34 @@ export default function FerragensPage() {
           </div>
           </section>
 
+          {ferragensSelecionadas.size > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckSquare2 size={18} className="text-red-500" />
+                <span>
+                  <strong className="font-normal">{ferragensSelecionadas.size}</strong>{" "}
+                  {ferragensSelecionadas.size === 1 ? "item selecionado" : "itens selecionados"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFerragensSelecionadas(new Set())}
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                >
+                  Cancelar seleção
+                </button>
+                <button
+                  onClick={excluirFerragensSelecionadas}
+                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                >
+                  <Trash2 size={15} />
+                  Excluir selecionados
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TABELA ATUALIZADA */}
           <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -615,11 +746,32 @@ export default function FerragensPage() {
                 <h2 className="text-base font-normal text-gray-700">Ferragens cadastradas</h2>
                 <p className="mt-0.5 text-xs text-gray-400">Exibindo {ferragensFiltradas.length} de {ferragens.length} produtos</p>
               </div>
+              <button
+                onClick={alternarSelecaoFiltrados}
+                disabled={!ferragensFiltradas.length}
+                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+              >
+                <ListChecks size={15} />
+                {todosFiltradosSelecionados ? "Desmarcar visíveis" : "Selecionar visíveis"}
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
                   <tr>
+                    <th className="w-14 px-5 py-3.5">
+                      <button
+                        onClick={alternarSelecaoFiltrados}
+                        disabled={!ferragensFiltradas.length}
+                        className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
+                          todosFiltradosSelecionados ? "border-transparent" : "border-gray-300 bg-white"
+                        }`}
+                        style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                        aria-label="Selecionar todas as ferragens visíveis"
+                      >
+                        {todosFiltradosSelecionados && <CheckCircle2 size={15} className="text-white" />}
+                      </button>
+                    </th>
                     <th className="px-4 py-3.5 font-normal">Código</th>
                     <th className="px-4 py-3.5 font-normal">Nome</th>
                     <th className="px-4 py-3.5 font-normal">Cor</th>
@@ -629,8 +781,23 @@ export default function FerragensPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {ferragensFiltradas.map(f => (
-                    <tr key={f.id} className="transition-colors hover:bg-gray-50/80">
+                  {ferragensFiltradas.map(f => {
+                    const selecionado = ferragensSelecionadas.has(f.id)
+
+                    return (
+                    <tr key={f.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => alternarSelecaoFerragem(f.id)}
+                          className={`flex h-5 w-5 items-center justify-center rounded border transition ${
+                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                          }`}
+                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                          aria-label={`Selecionar ${f.nome}`}
+                        >
+                          {selecionado && <CheckCircle2 size={15} className="text-white" />}
+                        </button>
+                      </td>
                       <td className="px-4 py-3.5 text-gray-600">{f.codigo}</td>
                       <td className="px-4 py-3.5 text-gray-700">{f.nome}</td>
                       <td className="px-4 py-3.5">
@@ -650,7 +817,7 @@ export default function FerragensPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
