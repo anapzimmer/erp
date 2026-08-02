@@ -769,7 +769,10 @@ export default function Box2FlsPage() {
 
   useEffect(() => {
     if (listaVidrosAberta) {
-      window.setTimeout(() => vidroInputRef.current?.focus(), 0);
+      window.setTimeout(() => {
+        vidroInputRef.current?.focus();
+        vidroInputRef.current?.select();
+      }, 0);
     }
   }, [listaVidrosAberta]);
 
@@ -1453,6 +1456,7 @@ export default function Box2FlsPage() {
                               <button
                                 type="button"
                                 onClick={() => setListaVidrosAberta(true)}
+                                onFocus={() => setListaVidrosAberta(true)}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown" || e.key === "Enter") {
                                     e.preventDefault();

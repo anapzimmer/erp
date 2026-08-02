@@ -903,13 +903,19 @@ export default function PC2FCBKitPage() {
 
   useEffect(() => {
     if (listaVidrosAberta) {
-      window.setTimeout(() => vidroInputRef.current?.focus(), 0);
+      window.setTimeout(() => {
+        vidroInputRef.current?.focus();
+        vidroInputRef.current?.select();
+      }, 0);
     }
   }, [listaVidrosAberta]);
 
   useEffect(() => {
     if (listaVidrosBandeiraAberta) {
-      window.setTimeout(() => vidroBandeiraInputRef.current?.focus(), 0);
+      window.setTimeout(() => {
+        vidroBandeiraInputRef.current?.focus();
+        vidroBandeiraInputRef.current?.select();
+      }, 0);
     }
   }, [listaVidrosBandeiraAberta]);
 
@@ -1635,6 +1641,7 @@ export default function PC2FCBKitPage() {
                               <button
                                 type="button"
                                 onClick={() => setListaVidrosAberta(true)}
+                                onFocus={() => setListaVidrosAberta(true)}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown" || e.key === "Enter") {
                                     e.preventDefault();
@@ -1712,6 +1719,7 @@ export default function PC2FCBKitPage() {
                               <button
                                 type="button"
                                 onClick={() => setListaVidrosBandeiraAberta(true)}
+                                onFocus={() => setListaVidrosBandeiraAberta(true)}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown" || e.key === "Enter") {
                                     e.preventDefault();
