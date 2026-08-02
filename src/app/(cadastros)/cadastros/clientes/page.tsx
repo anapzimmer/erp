@@ -380,8 +380,7 @@ export default function ClientesPage() {
         .limit(1);
 
       if (documento) {
-        const { data: duplicados } = editando
-          ? await consultaDuplicado.neq("id", editando.id)
+        const { data: duplicados } = editando ? await consultaDuplicado.neq("id", editando.id)
           : await consultaDuplicado;
 
         if (duplicados?.length) {
@@ -389,8 +388,7 @@ export default function ClientesPage() {
         }
       }
 
-      const resultado = editando
-        ? await supabase.from("clientes").update(payload).eq("id", editando.id).eq("empresa_id", empresaId)
+      const resultado = editando ? await supabase.from("clientes").update(payload).eq("id", editando.id).eq("empresa_id", empresaId)
         : await supabase.from("clientes").insert([{ ...payload, empresa_id: empresaId }]);
 
       if (resultado.error) throw resultado.error;
@@ -412,7 +410,7 @@ export default function ClientesPage() {
   const excluirCliente = (cliente: Cliente) => {
     setModalAviso({
       titulo: "Excluir cliente",
-      mensagem: `Tem certeza que deseja excluir ${cliente.nome}?`,
+      mensagem: `Tem certeza que deseja excluir ${cliente.nome}x`,
       confirmar: async () => {
         const { error } = await supabase
           .from("clientes")
@@ -744,7 +742,7 @@ export default function ClientesPage() {
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center gap-2"><Building2 size={18} className="text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Configurações comerciais</h3></div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Campo label="Rota *" value={form.rota} onChange={(valor) => setForm((atual) => ({ ...atual, rota: valor }))} placeholder="Ex.: 05 ou Rota Oeste" />
+                    <Campo label="Rota *" value={form.rota} onChange={(valor) => setForm((atual) => ({ ...atual, rota: valor }))} placeholder="Ex.:: 05 ou Rota Oeste" />
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-slate-600">Tabela de preços</label>
                       <select value={form.grupo_preco_id || ""} onChange={(e) => setForm((atual) => ({ ...atual, grupo_preco_id: e.target.value || null }))} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none">

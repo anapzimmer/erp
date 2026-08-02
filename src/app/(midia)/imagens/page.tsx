@@ -77,7 +77,7 @@ function toBase64Data(file: File): Promise<{ base64Data: string; previewUrl: str
         return;
       }
 
-      const mimeMatch = meta.match(/data:(.*?);base64/);
+      const mimeMatch = meta.match(/data:(.*x);base64/);
       const mimeType = mimeMatch?.[1] || file.type || "image/png";
 
       resolve({
@@ -214,8 +214,7 @@ export default function ImagensPage() {
                       type="button"
                       onClick={() => setPrompt(preset.prompt)}
                       className={`rounded-xl border px-3 py-1.5 text-[11px] font-bold transition-all ${
-                        isActive
-                          ? "border-sky-300 bg-sky-50 text-sky-700"
+                        isActive ? "border-sky-300 bg-sky-50 text-sky-700"
                           : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
                       }`}
                     >

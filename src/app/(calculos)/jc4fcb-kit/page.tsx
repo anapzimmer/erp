@@ -1,3 +1,4 @@
+//app/src/app/(calculos)/jc4fcb-kit/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -54,6 +55,17 @@ type PrecoVidroGrupo = {
   preco: number;
 };
 
+type KitCadastro = {
+  id: string;
+  nome: string;
+  largura?: number | null;
+  altura?: number | null;
+  categoria?: string | null;
+  cores?: string | null;
+  preco_por_cor?: Record<string, number> | null;
+  preco?: number | null;
+  empresa_id: string;
+};
 
 type PerfilCadastro = {
   id: string;
@@ -84,10 +96,16 @@ type FerragemCadastro = {
   empresa_id?: string | null;
 };
 
-type Deslizante2FOrcamentoPersistido = {
+type JC4FCBDados = Omit<ProjetoIndividualDados, "materiais"> & {
+  alturaAteTubo: number;
+  vidroBandeira: string;
+  tuboPerfil: string;
+};
+
+type JC4FCBKitOrcamentoPersistido = {
   tipo?: string;
   modo?: string;
-  dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
+  dados?: Partial<JC4FCBDados>;
   materiais?: ProjetoIndividualMaterial[];
 };
 
@@ -105,6 +123,9 @@ type CentralImpressaoProjetoItem = {
   vidro?: string;
   corKit?: string;
   corPerfil?: string;
+  alturaAteTubo?: number;
+  vidroBandeira?: string;
+  tuboPerfil?: string;
   trilho?: string;
   puxador?: string;
   tamanhoPuxador?: string;
@@ -132,39 +153,16 @@ const numero = (valor: number, casas = 2) =>
 const parseNumeroPtBr = (valor: string) => Number(valor.replace(/\./g, "").replace(",", ".") || 0);
 
 const ehUnidadeM2 = (unidade?: string) => normalizarTexto(unidade).includes("m2");
-const ehUnidadeMetro = (unidade?: string) => normalizarTexto(unidade) === "m";
 
 const formatarQtdMaterial = (qtd: number, unidade?: string) =>
-  ehUnidadeM2(unidade) || ehUnidadeMetro(unidade) ? numero(qtd) : String(Number(qtd || 0));
+  ehUnidadeM2(unidade) ? numero(qtd) : String(Number(qtd || 0));
 
 const parseQtdMaterial = (valor: string, unidade?: string) =>
-  ehUnidadeM2(unidade) || ehUnidadeMetro(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
+  ehUnidadeM2(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
 
 const limitarNumero4Digitos = (valor: string) => {
   const somenteDigitos = valor.replace(/\D/g, "").slice(0, 4);
   return Number(somenteDigitos || 0);
-};
-
-const formatarMedidaPeca = (valor: number) =>
-  String(Math.max(0, Math.trunc(Number(valor || 0)))).slice(0, 4);
-
-const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
-  const barras: number[] = [];
-  const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
-
-  cortes.forEach((corte) => {
-    const indice = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
-    if (indice >= 0) {
-      barras[indice] += corte;
-    } else {
-      barras.push(corte);
-    }
-  });
-
-  return barras.length;
 };
 
 const hojePtBr = () => new Date().toLocaleDateString("pt-BR");
@@ -180,43 +178,8 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   cortes: parcial?.cortes,
 });
 
-const agruparMateriaisMesmoPerfil = (materiais: ProjetoIndividualMaterial[]) => {
-  const agrupados = new Map<string, ProjetoIndividualMaterial>();
-
-  materiais.forEach((material) => {
-    const chave = [
-      normalizarTexto(material.codigoPerfil || material.descricao),
-      normalizarTexto(material.unidade),
-      Number(material.valorUnitario || 0),
-      Number(material.comprimentoBarra || 0),
-    ].join("|");
-    const existente = agrupados.get(chave);
-
-    if (!existente) {
-      agrupados.set(chave, { ...material, cortes: material.cortes ? [...material.cortes] : undefined });
-      return;
-    }
-
-    const cortes = [...(existente.cortes || []), ...(material.cortes || [])];
-    const unidade = normalizarTexto(material.unidade);
-    const comprimentoBarra = Number(material.comprimentoBarra || existente.comprimentoBarra || 6000);
-
-    agrupados.set(chave, {
-      ...existente,
-      qtd: unidade.includes("barra") ? calcularBarrasPorCortes(cortes, comprimentoBarra)
-        : Number(existente.qtd || 0) + Number(material.qtd || 0),
-      cortes: cortes.length > 0 ? cortes : undefined,
-    });
-  });
-
-  return Array.from(agrupados.values());
-};
-
-const projetoOpcoes = ["Janela", "Porta"];
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
-const puxadorOpcoes = ["Sem puxador", "Com puxador"];
-const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
-const carrinhoOpcoes = ["Simples", "Inteiro"];
+const trincoOpcoes = ["Sem trinco", "Com trinco"];
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -224,6 +187,15 @@ const normalizarTexto = (texto?: string | number | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+const codigoFerragemCompativel = (codigoCadastro: string, codigoBase: string) => {
+  if (!codigoCadastro || !codigoBase) return false;
+  if (codigoCadastro === codigoBase) return true;
+  if (codigoCadastro.replace(/[^a-z0-9]/g, "") === codigoBase.replace(/[^a-z0-9]/g, "")) return true;
+  if (codigoCadastro.startsWith(`${codigoBase}-`)) return true;
+  if (!codigoCadastro.startsWith(codigoBase)) return false;
+  const sufixo = codigoCadastro.slice(codigoBase.length);
+  return /^[a-z]{1,8}$/.test(sufixo);
+};
 
 const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
   const descricao = normalizarTexto(descricaoOriginal);
@@ -242,7 +214,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
 
   return 3;
 };
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:deslizante2f:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:jc4fcb-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -257,18 +229,20 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
 };
 
-const desenhoDeslizante2F = (carrinho?: string, puxador?: string) => {
-  const carrinhoInteiro = normalizarTexto(carrinho).includes("inteiro");
-  const comPuxador = puxador === "Com puxador";
+const desenhoJanelaBandeira4F = (trinco?: string) =>
+  trinco === "Com trinco" ? "/desenhos/jc4fcb-comtrinco.png" : "/desenhos/jc4fcb-semtrinco.png";
 
-  if (carrinhoInteiro) {
-    return comPuxador ? "/desenhos/deslizante-2fls-ci-completo.png" : "/desenhos/deslizante-2fls-ci-simples.png";
-  }
-
-  return comPuxador ? "/desenhos/deslizante-2fls-cs-completo.png" : "/desenhos/deslizante-2fls-cs-simples.png";
+const formatarDescricaoTubo = (perfil: Pick<PerfilCadastro, "codigo" | "nome" | "nome_completo">) => {
+  const codigo = String(perfil.codigo || "").trim().toUpperCase();
+  const nome = String(perfil.nome_completo || perfil.nome || "").trim().toLocaleLowerCase("pt-BR");
+  const descricao = nome ? nome.charAt(0).toLocaleUpperCase("pt-BR") + nome.slice(1) : "";
+  return `${codigo}${descricao ? ` - ${descricao}` : ""}`;
 };
 
-export default function Deslizante2FPage() {
+const formatarDescricaoTuboMaterial = (perfil: Pick<PerfilCadastro, "codigo" | "nome" | "nome_completo">) =>
+  formatarDescricaoTubo(perfil).toLocaleUpperCase("pt-BR");
+
+export default function JC4FCBKitPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -288,7 +262,11 @@ export default function Deslizante2FPage() {
   const [listaVidrosAberta, setListaVidrosAberta] = useState(false);
   const [vidroAtivoIndex, setVidroAtivoIndex] = useState(0);
   const vidroInputRef = useRef<HTMLInputElement>(null);
+  const [listaVidrosBandeiraAberta, setListaVidrosBandeiraAberta] = useState(false);
+  const [vidroBandeiraAtivoIndex, setVidroBandeiraAtivoIndex] = useState(0);
+  const vidroBandeiraInputRef = useRef<HTMLInputElement>(null);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
+  const [kits, setKits] = useState<KitCadastro[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
@@ -299,21 +277,24 @@ export default function Deslizante2FPage() {
     mensagem: string;
     aoFechar?: () => void;
   } | null>(null);
-  const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "Deslizante 2 folhas",
+  const [dados, setDados] = useState<JC4FCBDados>({
+    projeto: "Janela de correr 4 folhas com bandeira - Kit",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
     largura: 0,
     altura: 0,
+    alturaAteTubo: 0,
     quantidade: 1,
-    trilho: "Janela",
+    trilho: "Escolher",
     vidro: "Escolher",
+    vidroBandeira: "Escolher",
     corKit: "Escolher",
+    tuboPerfil: "Escolher",
     puxador: "Sem puxador",
     tamanhoPuxador: "Escolher",
-    trinco: "Simples",
-    observacao: "",
+    trinco: "Sem trinco",
+    observacao: "Imagem ilustrativa do projeto",
   });
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
 
@@ -328,7 +309,7 @@ export default function Deslizante2FPage() {
 
       if (salvo) {
         const rascunho = JSON.parse(salvo) as {
-          dados?: Partial<Omit<ProjetoIndividualDados, "materiais">>;
+          dados?: Partial<JC4FCBDados>;
           materiais?: ProjetoIndividualMaterial[];
         };
 
@@ -382,18 +363,21 @@ export default function Deslizante2FPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "Deslizante 2 folhas",
+        projeto: "Janela de correr 4 folhas com bandeira - Kit",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         largura: Number(item.largura || 0),
         altura: Number(item.altura || 0),
+        alturaAteTubo: Number(item.alturaAteTubo || 0),
         quantidade: Number(item.quantidade || 1),
-        trilho: item.trilho || "Janela",
+        trilho: item.trilho || "Escolher",
         vidro: item.vidro || "Escolher",
+        vidroBandeira: item.vidroBandeira || "Escolher",
         corKit: item.corPerfil || item.corKit || "Escolher",
+        tuboPerfil: item.tuboPerfil || "Escolher",
         puxador: item.puxador || "Sem puxador",
         tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
-        trinco: item.trinco || "Simples",
+        trinco: item.trinco || "Sem trinco",
       }));
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
@@ -413,7 +397,7 @@ export default function Deslizante2FPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * 2;
+  const totalVidros = Number(dados.quantidade || 0) * 6;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => item.descricao.toLowerCase().includes("vidro"))
@@ -452,6 +436,11 @@ export default function Deslizante2FPage() {
     if (!termo) return vidros.slice(0, 8);
     return vidros.filter((vidro) => formatarVidroCadastro(vidro).toLowerCase().includes(termo)).slice(0, 8);
   }, [dados.vidro, vidros]);
+  const vidrosBandeiraFiltrados = useMemo(() => {
+    const termo = dados.vidroBandeira.trim().toLowerCase();
+    if (!termo || dados.vidroBandeira === "Escolher") return vidros.slice(0, 8);
+    return vidros.filter((vidro) => formatarVidroCadastro(vidro).toLowerCase().includes(termo)).slice(0, 8);
+  }, [dados.vidroBandeira, vidros]);
   const clienteSelecionado = useMemo(
     () => clientes.find((cliente) => cliente.nome === dados.cliente) || null,
     [clientes, dados.cliente]
@@ -459,6 +448,10 @@ export default function Deslizante2FPage() {
   const vidroSelecionado = useMemo(
     () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
     [dados.vidro, vidros]
+  );
+  const vidroBandeiraSelecionado = useMemo(
+    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidroBandeira) || null,
+    [dados.vidroBandeira, vidros]
   );
   const precoVidroM2 = useMemo(() => {
     if (!vidroSelecionado) return 0;
@@ -472,19 +465,39 @@ export default function Deslizante2FPage() {
 
     return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
+  const precoVidroBandeiraM2 = useMemo(() => {
+    if (!vidroBandeiraSelecionado) return 0;
+
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
+        (preco) =>
+          String(preco.vidro_id) === String(vidroBandeiraSelecionado.id) &&
+          String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
+      )
+      : null;
+
+    return Number(precoGrupo?.preco ?? vidroBandeiraSelecionado.preco ?? 0);
+  }, [clienteSelecionado, precosVidroGrupos, vidroBandeiraSelecionado]);
   const calculoVidro = useMemo(() => {
     const quantidadeVaos = Number(dados.quantidade || 0);
-    const larguraFixaMedida = 0;
-    const larguraMovelMedida = (Number(dados.largura || 0) + 10) / 2;
-    const alturaFixaMedida = 0;
-    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0));
-    const larguraFixa = 0;
+    const larguraFixaMedida = Number(dados.largura || 0) / 4;
+    const larguraMovelMedida = larguraFixaMedida + 50;
+    const alturaBruta = Number(dados.altura || 0);
+    const alturaAteTubo = Number(dados.alturaAteTubo || 0);
+    const alturaPorta = alturaAteTubo > 0 ? Math.min(alturaAteTubo, alturaBruta) : alturaBruta;
+    const alturaBandeiraMedida = Math.max(0, alturaBruta - alturaPorta);
+    const larguraBandeiraMedida = Number(dados.largura || 0) / 2;
+    const alturaFixaMedida = Math.max(0, alturaPorta - 60);
+    const alturaMovelMedida = Math.max(0, alturaPorta - 20);
+    const larguraFixa = arredondar5cm(larguraFixaMedida);
     const larguraMovel = arredondar5cm(larguraMovelMedida);
-    const alturaFixa = 0;
+    const alturaFixa = arredondar5cm(alturaFixaMedida);
     const alturaMovel = arredondar5cm(alturaMovelMedida);
-    const areaFixa = 0;
+    const larguraBandeira = arredondar5cm(larguraBandeiraMedida);
+    const alturaBandeira = arredondar5cm(alturaBandeiraMedida);
+    const areaFixa = (larguraFixa * alturaFixa * 2 * quantidadeVaos) / 1_000_000;
     const areaMovel = (larguraMovel * alturaMovel * 2 * quantidadeVaos) / 1_000_000;
-    const areaTotalCobrada = areaMovel;
+    const areaBandeira = (larguraBandeira * alturaBandeira * 2 * quantidadeVaos) / 1_000_000;
+    const areaTotalCobrada = areaFixa + areaMovel + areaBandeira;
 
     return {
       larguraCalculo: larguraMovel,
@@ -493,15 +506,21 @@ export default function Deslizante2FPage() {
       alturaFixa,
       larguraMovel,
       alturaMovel,
+      larguraBandeira,
+      alturaBandeira,
       larguraFixaMedida,
       alturaFixaMedida,
       larguraMovelMedida,
       alturaMovelMedida,
+      larguraBandeiraMedida,
+      alturaBandeiraMedida,
+      alturaPorta,
       areaFixa: Number(areaFixa.toFixed(3)),
       areaMovel: Number(areaMovel.toFixed(3)),
+      areaBandeira: Number(areaBandeira.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
-  }, [dados.altura, dados.largura, dados.quantidade]);
+  }, [dados.altura, dados.alturaAteTubo, dados.largura, dados.quantidade]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -517,9 +536,9 @@ export default function Deslizante2FPage() {
     );
   };
 
-  const atualizarCampo = <K extends keyof Omit<ProjetoIndividualDados, "materiais">>(
+  const atualizarCampo = <K extends keyof JC4FCBDados>(
     campo: K,
-    valor: Omit<ProjetoIndividualDados, "materiais">[K]
+    valor: JC4FCBDados[K]
   ) => setDados((atual) => ({ ...atual, [campo]: valor }));
 
   const atualizarMaterial = <K extends keyof ProjetoIndividualMaterial>(
@@ -550,6 +569,12 @@ export default function Deslizante2FPage() {
     setVidroAtivoIndex?.(0);
   };
 
+  const selecionarVidroBandeira = (vidro: VidroCadastro) => {
+    atualizarCampo("vidroBandeira", formatarVidroCadastro(vidro));
+    setListaVidrosBandeiraAberta(false);
+    setVidroBandeiraAtivoIndex?.(0);
+  };
+
   const obterEspessuraVidro = (texto: string) => {
     const match = texto.match(/(\d{1,2})\s*mm/i);
     return match ? Number(match[1]) : 0;
@@ -571,32 +596,60 @@ export default function Deslizante2FPage() {
     return normalizarTexto(perfil.cores).includes(corSelecionada);
   }, [dados.corKit]);
 
-  const buscarPerfilPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
+  const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
     return perfis.find((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && (opcoes?.ignorarCor || perfilCorrespondeCor(perfil));
+      return codigoOk && perfilCorrespondeCor(perfil);
     }) || null;
   }, [perfilCorrespondeCor, perfis]);
 
-  const buscarPerfilPorCodigoPreferencial = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
-    const codigoNormalizado = normalizarTexto(codigo);
-    const perfilExato = perfis.find((perfil) =>
-      normalizarTexto(perfil.codigo) === codigoNormalizado &&
-      (opcoes?.ignorarCor || perfilCorrespondeCor(perfil))
-    );
+  const calcularBarrasPorCortes = (cortes: number[], comprimentoBarra = 6000) => {
+    const barras: number[] = [];
 
-    return perfilExato || buscarPerfilPorCodigo(codigo, opcoes);
-  }, [buscarPerfilPorCodigo, perfilCorrespondeCor, perfis]);
+    cortes
+      .filter((corte) => Number(corte || 0) > 0)
+      .sort((a, b) => b - a)
+      .forEach((corte) => {
+        const barraIndex = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
+        if (barraIndex >= 0) {
+          barras[barraIndex] += corte;
+        } else {
+          barras.push(corte);
+        }
+      });
+
+    return Math.max(1, barras.length);
+  };
+
+  const criarPerfilBarraPorCadastro = useCallback((perfil: PerfilCadastro, comprimentoMm: number, quantidadeCortes: number) => {
+    const quantidadeProjeto = Number(dados.quantidade || 0);
+    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0))
+      .filter((corte) => corte > 0);
+    const ehTubo = normalizarTexto(`${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`).includes("tubo");
+
+    if (!perfil || cortes.length === 0) return null;
+
+    return criarMaterial({
+      qtd: calcularBarrasPorCortes(cortes, 6000),
+      unidade: "barra",
+      descricao: ehTubo ? formatarDescricaoTuboMaterial(perfil)
+        : `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
+      valorUnitario: Number(perfil.preco || 0),
+      codigoPerfil: perfil.codigo,
+      comprimentoBarra: 6000,
+      cortes,
+    });
+  }, [dados.quantidade]);
 
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    const perfil = buscarPerfilPorCodigoPreferencial(codigo);
-    const totalUsadoMm = Number(comprimentoMm || 0) * Number(quantidadeCortes || 0) * quantidadeProjeto;
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0));
+    const perfil = buscarPerfilPorCodigo(codigo);
+    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0))
+      .filter((corte) => corte > 0);
 
-    if (!perfil || totalUsadoMm <= 0) return null;
+    if (!perfil || cortes.length === 0) return null;
 
     return criarMaterial({
       qtd: calcularBarrasPorCortes(cortes, 6000),
@@ -607,97 +660,109 @@ export default function Deslizante2FPage() {
       comprimentoBarra: 6000,
       cortes,
     });
-  }, [buscarPerfilPorCodigoPreferencial, dados.quantidade]);
-
-  const distribuirTrilhosDeslizante = useCallback((cortesOriginais: number[]) => {
-    const barras: Array<{ comprimento: 6000 | 7000; usado: number }> = [];
-    const cortes = cortesOriginais
-      .map((corte) => Math.ceil(Number(corte || 0)))
-      .filter((corte) => corte > 0)
-      .sort((a, b) => b - a);
-
-    cortes.forEach((corte, indice) => {
-      const barraExistente = barras
-        .map((barra, barraIndice) => ({ barra, barraIndice, sobra: barra.comprimento - barra.usado - corte }))
-        .filter(({ sobra }) => sobra >= 0)
-        .sort((a, b) => a.sobra - b.sobra)[0];
-
-      if (barraExistente) {
-        barras[barraExistente.barraIndice].usado += corte;
-        return;
-      }
-
-      const existeProximoCorteCompativel7000 = cortes
-        .slice(indice + 1)
-        .some((proximoCorte) => corte + proximoCorte > 6000 && corte + proximoCorte <= 7000);
-      const comprimento: 6000 | 7000 = corte > 6000 || existeProximoCorteCompativel7000 ? 7000 : 6000;
-      barras.push({ comprimento, usado: corte });
-    });
-
-    return {
-      barras6000: barras.filter((barra) => barra.comprimento === 6000).length,
-      barras7000: barras.filter((barra) => barra.comprimento === 7000).length,
-    };
-  }, []);
-
-  const criarTrilhoDeslizanteInteligente = useCallback((codigo6000: string, codigo7000: string, comprimentoMm: number, quantidadeCortes: number) => {
-    const quantidadeProjeto = Number(dados.quantidade || 0);
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0));
-    const { barras6000, barras7000 } = distribuirTrilhosDeslizante(cortes);
-
-    return [
-      { codigo: codigo6000, quantidade: barras6000, comprimentoBarra: 6000 },
-      { codigo: codigo7000, quantidade: barras7000, comprimentoBarra: 7000 },
-    ].map(({ codigo, quantidade, comprimentoBarra }) => {
-      const perfil = buscarPerfilPorCodigoPreferencial(codigo);
-      if (!perfil || quantidade <= 0) return null;
-
-      return criarMaterial({
-        qtd: quantidade,
-        unidade: "barra",
-        descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
-        valorUnitario: Number(perfil.preco || 0),
-        codigoPerfil: perfil.codigo,
-        comprimentoBarra,
-        cortes,
-      });
-    }).filter((item): item is ProjetoIndividualMaterial => Boolean(item));
-  }, [buscarPerfilPorCodigoPreferencial, dados.quantidade, distribuirTrilhosDeslizante]);
-
-  const criarPerfilMetroLinear = useCallback((codigo: string, comprimentoMm: number) => {
-    const quantidadeProjeto = Number(dados.quantidade || 0);
-    const perfil = buscarPerfilPorCodigo(codigo, { ignorarCor: true });
-    const metragem = (Number(comprimentoMm || 0) / 1000) * quantidadeProjeto;
-
-    if (!perfil || metragem <= 0) return null;
-
-    return criarMaterial({
-      qtd: metragem,
-      unidade: "m",
-      descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
-      valorUnitario: Number(perfil.preco || 0),
-      codigoPerfil: perfil.codigo,
-      cortes: Array.from({ length: quantidadeProjeto }, () => Number(comprimentoMm || 0)),
-    });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
-  const perfisAutomaticos = useMemo(() => {
+  const agruparMateriaisMesmoPerfil = (itens: Array<ProjetoIndividualMaterial | null>) => {
+    const agrupados = new Map<string, ProjetoIndividualMaterial>();
+
+    itens
+      .filter((item): item is ProjetoIndividualMaterial => Boolean(item))
+      .forEach((item) => {
+        const chave = normalizarTexto(item.codigoPerfil || item.descricao);
+        const atual = agrupados.get(chave);
+        if (!atual) {
+          agrupados.set(chave, { ...item, cortes: [...(item.cortes || [])] });
+          return;
+        }
+
+        const cortes = [...(atual.cortes || []), ...(item.cortes || [])];
+        agrupados.set(chave, {
+          ...atual,
+          cortes,
+          qtd: calcularBarrasPorCortes(cortes, atual.comprimentoBarra || 6000),
+        });
+      });
+
+    return Array.from(agrupados.values());
+  };
+
+  const tuboOpcoes = useMemo(() => {
+    const opcoes = perfis
+      .filter((perfil) => {
+        const texto = normalizarTexto(`${perfil.codigo} ${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`);
+        return perfilCorrespondeCor(perfil) && (texto.includes("tubo retangular") || texto.includes("tubo quadrado"));
+      })
+      .map(formatarDescricaoTubo);
+
+    return ["Escolher", ...Array.from(new Set(opcoes))];
+  }, [perfilCorrespondeCor, perfis]);
+
+  const perfilTuboSelecionado = useMemo(() => {
+    if (!dados.tuboPerfil || dados.tuboPerfil === "Escolher") return null;
+    const codigoSelecionado = dados.tuboPerfil.split("-")[0]?.trim();
+    if (!codigoSelecionado) return null;
+    return buscarPerfilPorCodigo(codigoSelecionado);
+  }, [buscarPerfilPorCodigo, dados.tuboPerfil]);
+
+  const kitSelecionado = useMemo(() => {
     const espessura = obterEspessuraVidro(dados.vidro);
+    const categoriaEsperada =
+      espessura === 10 ? "Kit Porta"
+        : espessura === 6 || espessura === 8 ? "Kit Janela"
+          : "";
+
+    if (!categoriaEsperada) return null;
+
+    const corAtual = normalizarTexto(dados.corKit);
+    const larguraKitNecessaria = Number(dados.largura || 0);
+    const alturaKitNecessaria = Number(calculoVidro.alturaPorta || dados.altura || 0);
+
+    if (!corAtual || corAtual === "escolher" || larguraKitNecessaria <= 0 || alturaKitNecessaria <= 0) return null;
+
+    const kitsFiltrados = kits.filter((kit) => {
+      const categoriaOk = normalizarTexto(kit.categoria).includes(normalizarTexto(categoriaEsperada));
+      const corOk = normalizarTexto(kit.cores) === corAtual;
+      const nomeNormalizado = normalizarTexto(kit.nome);
+      const folhasOk = nomeNormalizado.includes("4f");
+      return categoriaOk && corOk && folhasOk;
+    });
+
+    if (kitsFiltrados.length === 0) return null;
+
+    return kitsFiltrados
+      .filter((kit) =>
+        Number(kit.largura || 0) >= larguraKitNecessaria &&
+        Number(kit.altura || 0) >= alturaKitNecessaria
+      )
+      .sort((a, b) => {
+        const diferencaA =
+          Math.abs(Number(a.largura || 0) - larguraKitNecessaria) +
+          Math.abs(Number(a.altura || 0) - alturaKitNecessaria);
+        const diferencaB =
+          Math.abs(Number(b.largura || 0) - larguraKitNecessaria) +
+          Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
+
+        return diferencaA - diferencaB;
+      })[0] || null;
+  }, [calculoVidro.alturaPorta, dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
+
+  const perfisAutomaticos = useMemo(() => {
+    const espessuraBandeira = obterEspessuraVidro(dados.vidroBandeira);
     const largura = Number(dados.largura || 0);
     const altura = Number(dados.altura || 0);
+    const alturaBandeira = Number(calculoVidro.alturaBandeiraMedida || 0);
 
     if (dados.corKit === "Escolher" || largura <= 0 || altura <= 0) return [];
 
-    const codigoPerfilU = espessura === 10 ? "VT10" : espessura === 8 ? "VT66" : "";
+    const codigoUBandeira = espessuraBandeira === 10 ? "VT10" : [8, 6].includes(espessuraBandeira) ? "VT66" : "";
 
     return agruparMateriaisMesmoPerfil([
-      ...criarTrilhoDeslizanteInteligente("BCSTY002", "BCSTY002-7", largura, 2),
-      ...criarTrilhoDeslizanteInteligente("BCSTY003", "BCSTY003-7", largura, 2),
-      criarPerfilBarra("STY106", altura, 2),
-      codigoPerfilU ? criarPerfilBarra(codigoPerfilU, altura, 2) : null,
-      normalizarTexto(dados.trinco).includes("inteiro") ? criarPerfilMetroLinear("3000", largura) : null,
-    ].filter((item): item is ProjetoIndividualMaterial => Boolean(item)));
-  }, [criarPerfilBarra, criarPerfilMetroLinear, criarTrilhoDeslizanteInteligente, dados.altura, dados.corKit, dados.largura, dados.trinco, dados.vidro]);
+      codigoUBandeira ? criarPerfilBarra(codigoUBandeira, largura, 2) : null,
+      codigoUBandeira ? criarPerfilBarra(codigoUBandeira, alturaBandeira, 2) : null,
+      perfilTuboSelecionado ? criarPerfilBarraPorCadastro(perfilTuboSelecionado, largura, 1) : null,
+      perfilTuboSelecionado ? criarPerfilBarraPorCadastro(perfilTuboSelecionado, alturaBandeira, 1) : null,
+    ]);
+  }, [calculoVidro.alturaBandeiraMedida, criarPerfilBarra, criarPerfilBarraPorCadastro, dados.altura, dados.corKit, dados.largura, dados.vidroBandeira, perfilTuboSelecionado]);
 
 
   useEffect(() => {
@@ -712,6 +777,7 @@ export default function Deslizante2FPage() {
         { data: clientesData, error: clientesError },
         { data: vidrosData, error: vidrosError },
         { data: precosVidroData, error: precosVidroError },
+        { data: kitsData, error: kitsError },
         { data: perfisData, error: perfisError },
         { data: ferragensData, error: ferragensError },
       ] = await Promise.all([
@@ -730,6 +796,11 @@ export default function Deslizante2FPage() {
         supabase
           .from("vidro_precos_grupos")
           .select("vidro_id, grupo_preco_id, preco")
+          .eq("empresa_id", empresaId),
+
+        supabase
+          .from("kits")
+          .select("id, nome, largura, altura, categoria, cores, preco_por_cor, preco, empresa_id")
           .eq("empresa_id", empresaId),
 
         supabase
@@ -773,6 +844,7 @@ export default function Deslizante2FPage() {
           setDados((atual) => ({
             ...atual,
             vidro: atual.vidro === "Fume 10mm" ? formatarVidroCadastro(lista[0]) : atual.vidro,
+            vidroBandeira: atual.vidroBandeira === "Fume 10mm" ? formatarVidroCadastro(lista[0]) : atual.vidroBandeira,
           }));
         }
       }
@@ -789,6 +861,13 @@ export default function Deslizante2FPage() {
         setFerragens([]);
       } else {
         setFerragens((ferragensData || []) as FerragemCadastro[]);
+      }
+
+      if (kitsError) {
+        console.error("Erro ao carregar kits:", kitsError);
+        setKits([]);
+      } else {
+        setKits((kitsData || []) as KitCadastro[]);
       }
 
       if (perfisError) {
@@ -825,10 +904,20 @@ export default function Deslizante2FPage() {
   }, [dados.vidro]);
 
   useEffect(() => {
+    setVidroBandeiraAtivoIndex?.(0);
+  }, [dados.vidroBandeira]);
+
+  useEffect(() => {
     if (listaVidrosAberta) {
       window.setTimeout(() => vidroInputRef.current?.focus(), 0);
     }
   }, [listaVidrosAberta]);
+
+  useEffect(() => {
+    if (listaVidrosBandeiraAberta) {
+      window.setTimeout(() => vidroBandeiraInputRef.current?.focus(), 0);
+    }
+  }, [listaVidrosBandeiraAberta]);
 
   const corFerragemSelecionada = normalizarTexto(dados.corKit);
 
@@ -848,17 +937,18 @@ export default function Deslizante2FPage() {
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return buscarFerragem((texto, ferragem) => {
+    return buscarFerragem((_, ferragem) => {
       const codigoFerragem = normalizarTexto(ferragem.codigo);
       const codigoInterno = normalizarTexto(ferragem.codigo_interno);
-      return codigoFerragem === codigoNormalizado || codigoInterno === codigoNormalizado || texto.includes(codigoNormalizado);
+      return codigoFerragemCompativel(codigoFerragem, codigoNormalizado) || codigoFerragemCompativel(codigoInterno, codigoNormalizado);
     }, opcoes);
   }, [buscarFerragem]);
 
   const codigosFerragensAutomaticas = useMemo(
     () => [
-      "BCSTY002", "BCSTY002-7", "BCSTY003", "BCSTY003-7", "STY106", "VT10", "VT66", "3000",
-      "3001", "1561", "3530AROU-CIL", "3530DP", "3230DP", "PUXBC30", "PUXBC60", "PUXBC80",
+      "VT49A", "VT50A", "VT45", "VT65", "VT66", "VT16",
+      "VT51A", "VT52", "VT05", "VT13", "VT10", "VT15", "VT17", "VT47",
+      "1125A", "KTJ3", "1560", "1335", "1038.C",
     ].map(normalizarTexto),
     []
   );
@@ -866,51 +956,49 @@ export default function Deslizante2FPage() {
   const ferragensAutomaticas = useMemo(() => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     if (quantidadeProjeto <= 0 || dados.corKit === "Escolher") return [];
-    const codigoPuxador =
-      dados.tamanhoPuxador === "600mm" ? "PUXBC60"
-        : dados.tamanhoPuxador === "800mm" ? "PUXBC80"
-          : "PUXBC30";
-    const carrinhoInteiro = normalizarTexto(dados.trinco).includes("inteiro");
-    const projetoJanela = normalizarTexto(dados.trilho).includes("janela");
+    const espessura = obterEspessuraVidro(dados.vidro);
 
-    const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean; alternativas?: string[]; codigoExibicao?: string }> = [];
+    const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> = [
+      { codigo: "1560", multiplicador: 1 },
+      { codigo: "KTJ3", multiplicador: 1 },
+    ];
 
-    if (projetoJanela) {
-      regras.push({ codigo: "1561", multiplicador: 2 });
-    } else {
+    if (espessura === 8 || espessura === 10) regras.push({ codigo: "1125A", multiplicador: 4, ignorarCor: true });
+
+    if (dados.trinco === "Com trinco") {
       regras.push(
-        { codigo: "3530AROU-CIL", multiplicador: 2, ignorarCor: true },
-        { codigo: "3530DP", multiplicador: 2 },
-        { codigo: "3230DP", alternativas: ["3230D"], codigoExibicao: "3230DP", multiplicador: 2 }
+        { codigo: "1335", multiplicador: 2 },
+        { codigo: "1038.C", multiplicador: 2 }
       );
     }
 
-    if (!carrinhoInteiro) {
-      regras.push({ codigo: "3001", multiplicador: 4});
-    }
-
-    if (dados.puxador === "Com puxador") {
-      regras.push({ codigo: codigoPuxador, multiplicador: 2 });
-    }
-
-    const itensAutomaticos = regras
-      .map(({ codigo, multiplicador, ignorarCor, alternativas = [], codigoExibicao }) => {
-        const ferragem = [codigo, ...alternativas]
-          .map((codigoBusca) => buscarFerragemPorCodigo(codigoBusca, { ignorarCor }))
-          .find(Boolean);
+    return regras
+      .map(({ codigo, multiplicador, ignorarCor }) => {
+        const ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
         if (!ferragem) return null;
 
         return criarMaterial({
           qtd: quantidadeProjeto * multiplicador,
           unidade: "und",
-          descricao: montarDescricaoComCor(codigoExibicao || ferragem.codigo, ferragem.nome, ferragem.cores),
+          descricao: montarDescricaoComCor(ferragem.codigo, ferragem.nome, ferragem.cores),
           valorUnitario: Number(ferragem.preco || 0),
         });
       })
       .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
+  }, [buscarFerragemPorCodigo, dados.corKit, dados.quantidade, dados.trinco, dados.vidro]);
 
-    return itensAutomaticos;
-  }, [buscarFerragemPorCodigo, dados.corKit, dados.puxador, dados.quantidade, dados.tamanhoPuxador, dados.trilho, dados.trinco]);
+  const kitAutomatico = useMemo(() => {
+    if (!kitSelecionado) return [];
+
+    return [
+      criarMaterial({
+        qtd: Number(dados.quantidade || 0),
+        unidade: "und",
+        descricao: `${kitSelecionado.nome}${kitSelecionado.cores ? ` | ${kitSelecionado.cores}` : ""}`.toUpperCase(),
+        valorUnitario: Number(kitSelecionado.preco || 0),
+      }),
+    ];
+  }, [dados.quantidade, kitSelecionado]);
 
 
   useEffect(() => {
@@ -919,9 +1007,15 @@ export default function Deslizante2FPage() {
     const vidroNome = dados.vidro
       .replace(/^vidro\s+/i, "")
       .trim();
+    const vidroBandeiraNome = dados.vidroBandeira && dados.vidroBandeira !== "Escolher" ? dados.vidroBandeira.replace(/^vidro\s+/i, "").trim()
+      : "";
 
-    const medidaVidroMovel = `${formatarMedidaPeca(calculoVidro.larguraMovelMedida)}x${formatarMedidaPeca(calculoVidro.alturaMovelMedida)}`;
-    const descricaoVidroMovel = `VIDRO MOVEL 2 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const medidaVidroFixo = `${calculoVidro.larguraFixaMedida}x${calculoVidro.alturaFixaMedida}`;
+    const medidaVidroMovel = `${calculoVidro.larguraMovelMedida}x${calculoVidro.alturaMovelMedida}`;
+    const medidaVidroBandeira = `${calculoVidro.larguraBandeiraMedida}x${calculoVidro.alturaBandeiraMedida}`;
+    const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroBandeira = `VIDRO BANDEIRA ${medidaVidroBandeira} ${vidroBandeiraNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
@@ -929,38 +1023,48 @@ export default function Deslizante2FPage() {
         return !descricao.startsWith("vidro");
       });
 
+      const vidroFixo = criarMaterial({
+        qtd: calculoVidro.areaFixa,
+        unidade: "m2",
+        descricao: descricaoVidroFixo,
+        valorUnitario: precoVidroM2,
+      });
+
       const vidroMovel = criarMaterial({
-        qtd: calculoVidro.areaTotalCobrada,
+        qtd: calculoVidro.areaMovel,
         unidade: "m2",
         descricao: descricaoVidroMovel,
         valorUnitario: precoVidroM2,
       });
 
-      return [vidroMovel, ...semVidrosAutomaticos];
+      const vidroBandeira = vidroBandeiraNome && calculoVidro.areaBandeira > 0 ? criarMaterial({
+          qtd: calculoVidro.areaBandeira,
+          unidade: "m2",
+          descricao: descricaoVidroBandeira,
+          valorUnitario: precoVidroBandeiraM2,
+        })
+        : null;
+
+      return [vidroFixo, vidroMovel, vidroBandeira, ...semVidrosAutomaticos]
+        .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
     });
-  }, [calculoVidro.alturaMovelMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaBandeira, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2]);
 
   useEffect(() => {
     setMateriais((lista) => {
       const itensManuais = lista.filter((item) => {
         const descricao = normalizarTexto(item.descricao);
-        return !descricao.includes("kit") && !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
+        const ehTuboAutomatico = descricao.includes("tubo retangular") || descricao.includes("tubo quadrado");
+        return !ehTuboAutomatico && !descricao.includes("kit") && !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
       });
 
-      return [...itensManuais, ...perfisAutomaticos, ...ferragensAutomaticas];
+      return [...itensManuais, ...kitAutomatico, ...perfisAutomaticos, ...ferragensAutomaticas];
     });
-  }, [codigosFerragensAutomaticas, ferragensAutomaticas, perfisAutomaticos]);
-
-  useEffect(() => {
-    setMateriais((lista) => {
-      const filtrada = lista.filter((item) => !normalizarTexto(item.descricao).includes("tubo"));
-      return filtrada.length === lista.length ? lista : filtrada;
-    });
-  }, [materiais]);
+  }, [codigosFerragensAutomaticas, ferragensAutomaticas, kitAutomatico, perfisAutomaticos]);
 
   const novoProjeto = () => {
     if (editId) {
-      router.push("/deslizante2f");
+      router.push("/jc4fcb-kit");
       return;
     }
 
@@ -971,42 +1075,48 @@ export default function Deslizante2FPage() {
       cliente: "",
       largura: 0,
       altura: 0,
+      alturaAteTubo: 0,
       quantidade: 1,
-      trilho: "Janela",
+      trilho: "Escolher",
       vidro: "Escolher",
+      vidroBandeira: "Escolher",
       corKit: "Escolher",
+      tuboPerfil: "Escolher",
       puxador: "Sem puxador",
       tamanhoPuxador: "Escolher",
-      trinco: "Simples",
+      trinco: "Sem trinco",
     }));
 
     setMateriais([]);
   };
 
   const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = desenhoDeslizante2F(dados.trinco, dados.puxador);
+    const desenhoUrl = desenhoJanelaBandeira4F(dados.trinco);
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "deslizante2f",
+      projeto: "Janela de correr 4 folhas com bandeira - Kit",
       cliente: dados.cliente || "",
       medidas: `${Number(dados.largura || 0)} ? ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
+      alturaAteTubo: Number(dados.alturaAteTubo || 0),
       quantidade: Number(dados.quantidade || 0),
-      modo: "Barra",
+      modo: "Kit",
       desenhoUrl,
       vidro: dados.vidro || "",
+      vidroBandeira: dados.vidroBandeira || "",
       corKit: dados.corKit || "",
       corPerfil: dados.corKit || "",
-      trilho: dados.trilho || "",
-      puxador: dados.puxador || "",
-      tamanhoPuxador: dados.tamanhoPuxador || "",
+      tuboPerfil: dados.tuboPerfil || "",
+      trilho: "",
+      puxador: "",
+      tamanhoPuxador: "",
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/deslizante2f",
+      origemRota: "/jc4fcb-kit",
     };
   };
 
@@ -1044,7 +1154,7 @@ export default function Deslizante2FPage() {
       .single();
 
     if (error) {
-      console.error("Erro ao carregar orcamento Deslizante 2 folhas:", error);
+      console.error("Erro ao carregar Orçamento PC2F:", error);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao carregar",
@@ -1053,12 +1163,12 @@ export default function Deslizante2FPage() {
       return;
     }
 
-    const itens = orcamento?.itens as Deslizante2FOrcamentoPersistido | null;
-    if (itens?.tipo !== "deslizante2f") {
+    const itens = orcamento?.itens as JC4FCBKitOrcamentoPersistido | null;
+    if (itens?.tipo !== "jc4fcb_kit") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este orçamento não pertence ao Deslizante 2 folhas.",
+        mensagem: "Este Orçamento não pertence ao jc4fcb - KIT.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -1069,7 +1179,7 @@ export default function Deslizante2FPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
-      projeto: "Deslizante 2 folhas",
+      projeto: "Janela de correr 4 folhas com bandeira - Kit",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
   }, [editId, returnTo, router]);
@@ -1144,9 +1254,9 @@ export default function Deslizante2FPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "Deslizante 2 folhas",
+        projeto: "Janela de correr 4 folhas com bandeira - Kit",
       };
-      const itensPersistidos: Deslizante2FOrcamentoPersistido & {
+      const itensPersistidos: JC4FCBKitOrcamentoPersistido & {
         resumo: {
           areaTotal: number;
           totalVidros: number;
@@ -1156,8 +1266,8 @@ export default function Deslizante2FPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "deslizante2f",
-        modo: "barra",
+        tipo: "jc4fcb_kit",
+        modo: "kit",
         dados: dadosAtualizados,
         materiais,
         resumo: {
@@ -1199,7 +1309,7 @@ export default function Deslizante2FPage() {
       const erroSupabase = erro as { message?: string; details?: string; hint?: string; code?: string };
       const mensagem = erroSupabase?.message || (erro instanceof Error ? erro.message : "Erro desconhecido");
       const detalhes = [erroSupabase?.details, erroSupabase?.hint, erroSupabase?.code].filter(Boolean).join(" | ");
-      console.error("Erro ao salvar orcamento Deslizante 2 folhas:", erro);
+      console.error("Erro ao salvar Orçamento jc4fcb - KIT:", erro);
       setMensagemSistema({
         tipo: "erro",
         titulo: "Erro ao salvar",
@@ -1219,6 +1329,13 @@ export default function Deslizante2FPage() {
       preco: Number(perfil.preco || 0),
     }));
 
+    const itensKits = kits.map((kit) => ({
+      id: `kit-${kit.id}`,
+      tipo: "kit" as const,
+      descricao: `${kit.nome}${kit.cores ? ` | ${kit.cores}` : ""}`.toUpperCase(),
+      preco: Number(kit.preco || 0),
+    }));
+
     const itensFerragens = ferragens.map((ferragem) => ({
       id: `ferragem-${ferragem.id}`,
       tipo: "ferragem" as const,
@@ -1226,8 +1343,8 @@ export default function Deslizante2FPage() {
       preco: Number(ferragem.preco || 0),
     }));
 
-    return [...itensPerfis, ...itensFerragens];
-  }, [perfis, ferragens]);
+    return [...itensPerfis, ...itensKits, ...itensFerragens];
+  }, [perfis, kits, ferragens]);
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
@@ -1391,7 +1508,7 @@ export default function Deslizante2FPage() {
                         key={label}
                         tabIndex={-1}
                         document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
-                        fileName={`deslizante2f_${dados.numero || "novo"}.pdf`}
+                        fileName={`jc4fcb_kit_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
                         {() => (
@@ -1437,7 +1554,7 @@ export default function Deslizante2FPage() {
                   <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
                     <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
-                      <ProjetoDrawing carrinho={dados.trinco || "Simples"} comPuxador={dados.puxador === "Com puxador"} />
+                      <ProjetoDrawing trinco={dados.trinco} />
                     </div>
                   </section>
 
@@ -1462,6 +1579,14 @@ export default function Deslizante2FPage() {
                         />
 
                         <DataInput
+                          icon={<MoveVertical size={24} strokeWidth={1.6} />}
+                          label="Altura até o tubo"
+                          value={dados.alturaAteTubo}
+                          suffix="mm"
+                          onChange={(v) => atualizarCampo("alturaAteTubo", v)}
+                        />
+
+                        <DataInput
                           icon={<Copy size={24} strokeWidth={1.6} />}
                           label="Quantidade"
                           value={dados.quantidade}
@@ -1472,7 +1597,7 @@ export default function Deslizante2FPage() {
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cor do vidro</span>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vidro janela</span>
                             {listaVidrosAberta ? (
                               <input
                                 ref={vidroInputRef}
@@ -1544,57 +1669,106 @@ export default function Deslizante2FPage() {
                             </div>
                           )}
                         </label>
-                        <OptionInput
-                          icon={<RailSymbol size={24} strokeWidth={1.6} />}
-                          label="Projeto"
-                          value={dados.trilho}
-                          options={projetoOpcoes}
-                          onChange={(v) => atualizarCampo("trilho", v)}
-                        />
+                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+                          <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
+                            <Layers3 size={24} strokeWidth={1.6} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vidro bandeira</span>
+                            {listaVidrosBandeiraAberta ? (
+                              <input
+                                ref={vidroBandeiraInputRef}
+                                value={dados.vidroBandeira}
+                                onChange={(e) => {
+                                  atualizarCampo("vidroBandeira", e.target.value);
+                                  setVidroBandeiraAtivoIndex?.(0);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    setVidroBandeiraAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(vidrosBandeiraFiltrados.length - 1, 0)));
+                                  } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    setVidroBandeiraAtivoIndex?.((atual) => Math.max(atual - 1, 0));
+                                  } else if (e.key === "Enter" && vidrosBandeiraFiltrados[vidroBandeiraAtivoIndex]) {
+                                    e.preventDefault();
+                                    selecionarVidroBandeira(vidrosBandeiraFiltrados[vidroBandeiraAtivoIndex]);
+                                  } else if (e.key === "Escape") {
+                                    setListaVidrosBandeiraAberta(false);
+                                  }
+                                }}
+                                onBlur={() => window.setTimeout(() => setListaVidrosBandeiraAberta(false), 250)}
+                                disabled={carregandoVidros}
+                                className="mt-1 w-full bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                                placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setListaVidrosBandeiraAberta(true)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "ArrowDown" || e.key === "Enter") {
+                                    e.preventDefault();
+                                    setListaVidrosBandeiraAberta(true);
+                                  }
+                                }}
+                                className="mt-1 block w-full truncate rounded-lg bg-transparent p-0 text-left text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+                              >
+                                {dados.vidroBandeira || "Digite o vidro"}
+                              </button>
+                            )}
+                          </span>
+                          {listaVidrosBandeiraAberta && (
+                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                              {carregandoVidros ? (
+                                <div className="px-3 py-2 font-medium text-slate-500">Carregando vidros...</div>
+                              ) : vidrosBandeiraFiltrados.length > 0 ? (
+                                vidrosBandeiraFiltrados.map((vidro, index) => (
+                                  <button
+                                    key={vidro.id}
+                                    type="button"
+                                    tabIndex={-1}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      selecionarVidroBandeira(vidro);
+                                    }}
+                                    onMouseEnter={() => setVidroBandeiraAtivoIndex?.(index)}
+                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroBandeiraAtivoIndex ? "bg-[#07385a]/10"
+                                        : "bg-transparent hover:bg-[#07385a]/10"
+                                      }`}
+                                  >
+                                    {formatarVidroCadastro(vidro)}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 font-medium text-slate-500">Nenhum vidro encontrado</div>
+                              )}
+                            </div>
+                          )}
+                        </label>
 
                         <OptionInput
                           icon={<Palette size={24} strokeWidth={1.6} />}
-                          label="Cor do perfil"
+                          label="Cor do kit"
                           value={dados.corKit}
                           options={corKitOpcoes}
                           onChange={(v) => atualizarCampo("corKit", v)}
                         />
 
                         <OptionInput
-                          icon={<Wrench size={24} strokeWidth={1.6} />}
-                          label="Puxador"
-                          value={dados.puxador || "Sem puxador"}
-                          options={puxadorOpcoes}
-                          onChange={(v) => {
-                            atualizarCampo("puxador", v);
-
-                            if (v === "Sem puxador") {
-                              atualizarCampo("tamanhoPuxador", "Escolher");
-                            }
-
-                            if (
-                              v === "Com puxador" &&
-                              dados.tamanhoPuxador === "Escolher"
-                            ) {
-                              atualizarCampo("tamanhoPuxador", "300mm");
-                            }
-                          }}
-                        />
-
-                        <OptionInput
-                          icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
-                          label="Furação do puxador"
-                          value={dados.tamanhoPuxador || "Escolher"}
-                          options={tamanhoPuxadorOpcoes}
-                          disabled={dados.puxador !== "Com puxador"}
-                          onChange={(v) => atualizarCampo("tamanhoPuxador", v)}
+                          icon={<Settings size={24} strokeWidth={1.6} />}
+                          label="Tubo"
+                          value={dados.tuboPerfil}
+                          options={tuboOpcoes}
+                          disabled={dados.corKit === "Escolher"}
+                          onChange={(v) => atualizarCampo("tuboPerfil", v)}
                         />
 
                         <OptionInput
                           icon={<Settings size={24} strokeWidth={1.6} />}
-                          label="Carrinho"
-                          value={dados.trinco || "Simples"}
-                          options={carrinhoOpcoes}
+                          label="Trinco"
+                          value={dados.trinco || "Sem trinco"}
+                          options={trincoOpcoes}
                           onChange={(v) => atualizarCampo("trinco", v)}
                         />
                       </div>
@@ -1709,7 +1883,7 @@ export default function Deslizante2FPage() {
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
                   <SummaryCard icon={<RailSymbol size={30} />} label="Valor perfis" value={moeda(valorPerfis)} detail="Perfis" tone="blue" />
-                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Acessórios" tone="orange" />
+                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessórios" tone="orange" />
                   <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="Orçamento total" tone="emerald" />
                 </section>
               </div>
@@ -1862,8 +2036,8 @@ function OptionInput({
           onChange={(e) => onChange(e.target.value)}
           className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80 disabled:cursor-not-allowed"
         >
-          {options.map((opcao) => (
-            <option key={opcao} value={opcao}>
+          {options.map((opcao, index) => (
+            <option key={`${opcao}-${index}`} value={opcao}>
               {opcao}
             </option>
           ))}
@@ -1955,8 +2129,8 @@ function DescricaoMaterialInput({
   );
 }
 
-function ProjetoDrawing({ carrinho, comPuxador }: { carrinho: string; comPuxador: boolean }) {
-  const desenhoSrc = desenhoDeslizante2F(carrinho, comPuxador ? "Com puxador" : "Sem puxador");
+function ProjetoDrawing({ trinco }: { trinco?: string }) {
+  const desenhoSrc = desenhoJanelaBandeira4F(trinco);
 
   return (
     <div className="flex h-[350px] w-full items-center justify-center sm:h-[410px]" role="img" aria-label="Desenho ilustrativo do projeto">
@@ -1990,7 +2164,5 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
-
-
 
 

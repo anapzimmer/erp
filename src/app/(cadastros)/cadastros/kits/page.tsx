@@ -49,8 +49,8 @@ const criarKitVazio = (): KitFormData => ({
 });
 
 const extrairDadosDoNomeKit = (nome: string) => {
-  const dimensoesMatch = nome.match(/(\d{2,5})\s*(?:mm)?\s*[xX]\s*(\d{2,5})\s*(?:mm)?/);
-  const espessuraMatch = nome.match(/(\d+(?:\+\d+)?)\s*mm\b/i);
+  const dimensoesMatch = nome.match(/(\d{2,5})\s*(?:mm)x\s*[xX]\s*(\d{2,5})\s*(?:mm)x/);
+  const espessuraMatch = nome.match(/(\d+(?:\+\d+)x)\s*mm\b/i);
 
   return {
     largura: dimensoesMatch ? Number(dimensoesMatch[1]) : null,
@@ -114,14 +114,12 @@ export default function KitsPage() {
       largura:
         dados.largura !== null &&
         !larguraManualRef.current &&
-        (prev.largura === 0 || prev.largura === ultimaDeteccaoRef.current.largura)
-          ? dados.largura
+        (prev.largura === 0 || prev.largura === ultimaDeteccaoRef.current.largura) ? dados.largura
           : prev.largura,
       altura:
         dados.altura !== null &&
         !alturaManualRef.current &&
-        (prev.altura === 0 || prev.altura === ultimaDeteccaoRef.current.altura)
-          ? dados.altura
+        (prev.altura === 0 || prev.altura === ultimaDeteccaoRef.current.altura) ? dados.altura
           : prev.altura,
     }));
 
@@ -288,7 +286,7 @@ export default function KitsPage() {
   const deletarKit = (id: number) => {
     setModalAviso({
       titulo: "Confirmar Exclusão",
-      mensagem: "Tem certeza que deseja excluir este kit? Esta ação não pode ser desfeita.",
+      mensagem: "Tem certeza que deseja excluir este kitx Esta ação não pode ser desfeita.",
       confirmar: async () => {
         try {
           const { error } = await supabase
@@ -312,7 +310,7 @@ export default function KitsPage() {
     setModalCarregando(true);
     try {
         const conteudo = await decodeCsvFile(file);
-        const linhas = conteudo.split(/\r?\n/).filter(l => l.trim() !== "");
+        const linhas = conteudo.split(/\rx\n/).filter(l => l.trim() !== "");
 
         // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
         const cabecalho = linhas[0].toLowerCase();
@@ -438,7 +436,7 @@ export default function KitsPage() {
   const eliminarDuplicados = () => {
     setModalAviso({
       titulo: "Eliminar Duplicados",
-      mensagem: "Remover kits com mesmo NOME e COR?",
+      mensagem: "Remover kits com mesmo NOME e CORx",
       confirmar: async () => {
         const jaVistos = new Set();
         const idsDeletar: number[] = [];
@@ -772,7 +770,7 @@ export default function KitsPage() {
                     <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
                     <input
                       type="text"
-                      placeholder="Ex: F1-120-BC"
+                      placeholder="E?: F1-120-BC"
                       value={novoKit.codigo || ""}
                       onChange={e => setNovoKit({ ...novoKit, codigo: e.target.value.toUpperCase() })}
                       className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -783,7 +781,7 @@ export default function KitsPage() {
                     <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do kit *</label>
                     <input
                       type="text"
-                      placeholder="Ex: Kit janela 1,20A x 1,50L 4F"
+                      placeholder="E?: Kit janela 1,20A ? 1,50L 4F"
                       value={novoKit.nome}
                       onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"

@@ -52,6 +52,7 @@ export type CentralOtimizacaoPerfil = {
   codigo: string;
   descricao: string;
   comprimentoBarra: number;
+  origem?: GrupoOrigemPerfil;
   barras: number[][];
   totalCortes: number;
   barrasOriginais?: number;
@@ -196,22 +197,33 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   relationTitle: { fontSize: 10, fontWeight: "bold", color: "#0f2742", marginBottom: 6 },
-  relationSubtitle: { fontSize: 8, fontWeight: "bold", color: "#0f2742", marginTop: 6, marginBottom: 4 },
+  relationSubtitle: { fontSize: 8, fontWeight: "normal", color: "#0f2742", marginTop: 6, marginBottom: 4 },
   relationHeader: {
     flexDirection: "row",
-    backgroundColor: "#07385a",
-    color: "#ffffff",
+    backgroundColor: "#f1f5f9",
+    color: "#475569",
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "#e2e8f0",
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
   relationRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
   relationTotalRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#cbd5e1", marginTop: 2 },
-  relationCellQty: { width: "15%", padding: 4, fontSize: 7, textAlign: "center" },
-  relationCellDesc: { width: "55%", padding: 4, fontSize: 7 },
-  relationCellUnit: { width: "12%", padding: 4, fontSize: 7, textAlign: "center" },
-  relationCellValue: { width: "18%", padding: 4, fontSize: 7, textAlign: "right" },
-  relationTotalLabel: { width: "82%", padding: 4, fontSize: 7, textAlign: "right", color: "#64748b", fontWeight: "bold" },
-  relationTotalValue: { width: "18%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742", fontWeight: "bold" },
+  relationCellQty: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
+  relationCellDesc: { width: "48%", padding: 4, fontSize: 7, color: "#0f2742" },
+  relationCellUnit: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
+  relationCellUnitPrice: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
+  relationCellValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
+  relationGlassCellQty: { width: "9%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
+  relationGlassCellMeasure: { width: "17%", padding: 4, fontSize: 7, color: "#0f2742" },
+  relationGlassCellDesc: { width: "34%", padding: 4, fontSize: 7, color: "#0f2742" },
+  relationGlassCellArea: { width: "10%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
+  relationGlassCellUnitPrice: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
+  relationGlassCellValue: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
+  relationTotalLabel: { width: "84%", padding: 4, fontSize: 7, textAlign: "right", color: "#64748b", fontWeight: "bold" },
+  relationTotalValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742", fontWeight: "bold" },
   footer: {
     position: "absolute",
     left: 24,
@@ -238,7 +250,7 @@ const normalizarTexto = (texto?: string | number | null) =>
 const limparDescricaoVidroMaterial = (descricao: string) =>
   String(descricao || "")
     .replace(/^vidro\s*/i, "")
-    .replace(/^\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?\s*/i, "")
+    .replace(/^\d+(?:[.,]\d+)x\s*x\s*\d+(?:[.,]\d+)x\s*/i, "")
     .replace(/^vidro\s*/i, "")
     .trim();
 
@@ -253,7 +265,7 @@ const descricaoVidroItem = (item: Pick<CentralImpressaoItem, "vidro" | "materiai
 };
 
 const extrairMedidaVidroAvulso = (medida?: string) => {
-  const match = String(medida || "").match(/(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i);
+  const match = String(medida || "").match(/(\d+(?:[.,]\d+)x)\s*x\s*(\d+(?:[.,]\d+)x)/i);
   if (!match) return { largura: 0, altura: 0 };
   return {
     largura: Number(match[1].replace(",", ".")) || 0,
@@ -284,7 +296,7 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
-const ehEspelhoComDesenho = (projeto?: string) => /^espelhos?$/i.test(String(projeto || "").trim());
+const ehEspelhoComDesenho = (projeto?: string) => /^espelhosx$/i.test(String(projeto || "").trim());
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
 
 const ehItemPinazio = (
@@ -555,17 +567,13 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 
   const corNormalizada = normalizarTexto(item.pinazioCor);
   const corLinha =
-    corNormalizada === "preto"
-      ? "#222222"
-      : corNormalizada === "nogal"
-        ? "#79543a"
+    corNormalizada === "preto" ? "#222222"
+      : corNormalizada === "nogal" ? "#79543a"
         : "#f8fafc";
 
   const corContorno =
-    corNormalizada === "branco"
-      ? "#94a3b8"
-      : corNormalizada === "nogal"
-        ? "#5d3c28"
+    corNormalizada === "branco" ? "#94a3b8"
+      : corNormalizada === "nogal" ? "#5d3c28"
         : "#111827";
 
   const semPinazio = item.pinazioId === "sem-pinazio";
@@ -594,8 +602,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
           opacity={0.65}
         />
 
-        {!semPinazio
-          ? Array.from({ length: Math.max(0, divL - 1) }).map((_, index) => {
+        {!semPinazio ? Array.from({ length: Math.max(0, divL - 1) }).map((_, index) => {
               const linhaX = x + (w / divL) * (index + 1);
 
               return (
@@ -621,8 +628,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
             })
           : null}
 
-        {!semPinazio
-          ? Array.from({ length: Math.max(0, divA - 1) }).map((_, index) => {
+        {!semPinazio ? Array.from({ length: Math.max(0, divA - 1) }).map((_, index) => {
               const linhaY = y + (h / divA) * (index + 1);
 
               return (
@@ -650,7 +656,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
       </Svg>
 
       <Text style={styles.imagePlaceholderText}>
-        {item.largura || 0} x {item.altura || 0} mm
+        {item.largura || 0} ? {item.altura || 0} mm
       </Text>
     </View>
   );
@@ -667,10 +673,8 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const h = Math.max(34, Math.min(82, altura * escala));
   const x = (112 - w) / 2;
   const y = 10;
-  const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval")
-    ? Math.min(w, h) / 2
-    : tipoVisual.includes("capsula")
-    ? Math.min(w, h) / 3
+  const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval") ? Math.min(w, h) / 2
+    : tipoVisual.includes("capsula") ? Math.min(w, h) / 3
     : 4;
 
   if (tipoVisual.includes("jogo") && (divL > 1 || divA > 1)) {
@@ -699,7 +703,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
             );
           })}
         </Svg>
-        <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
+        <Text style={styles.imagePlaceholderText}>{item.largura} ? {item.altura} mm</Text>
       </View>
     );
   }
@@ -715,15 +719,14 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
           <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(2, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" />
         ) : null}
       </Svg>
-      <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
+      <Text style={styles.imagePlaceholderText}>{item.largura} ? {item.altura} mm</Text>
     </View>
   );
 }
 
 const nomeEmpresaComSlogan = (nomeEmpresa: string) => {
   const slogan = "Soluções em Vidros e Ferragens";
-  return normalizarTexto(nomeEmpresa).includes(normalizarTexto(slogan))
-    ? nomeEmpresa
+  return normalizarTexto(nomeEmpresa).includes(normalizarTexto(slogan)) ? nomeEmpresa
     : `${nomeEmpresa} - ${slogan}`;
 };
 
@@ -749,7 +752,7 @@ const codigoMaterialNormalizado = (codigo?: string) => normalizarTexto(codigo).r
 const ordemPerfilOtimizado = (perfil: Pick<CentralOtimizacaoPerfil, "codigo" | "descricao">) => {
   const codigo = codigoMaterialNormalizado(perfil.codigo);
   const descricao = normalizarTexto(perfil.descricao);
-  const indiceCodigo = ORDEM_PERFIS_OTIMIZADOS.findIndex((item) => codigoMaterialNormalizado(item) === codigo);
+  const indiceCodigo = ORDEM_PERFIS_OTIMIZADOS.findIndex?.((item) => codigoMaterialNormalizado(item) === codigo);
   if (indiceCodigo >= 0) return indiceCodigo;
   if (descricao.includes("tubo")) return 100;
   if (descricao.includes("cantoneira")) return 110;
@@ -757,6 +760,7 @@ const ordemPerfilOtimizado = (perfil: Pick<CentralOtimizacaoPerfil, "codigo" | "
 };
 
 type TipoMaterialRelacao = "vidros" | "kits" | "perfis" | "ferragens";
+type GrupoOrigemPerfil = "projetos" | "sacada-frontal" | "pele-de-vidro" | "fechamento-sacada";
 
 type MaterialConsolidado = {
   chave: string;
@@ -764,6 +768,11 @@ type MaterialConsolidado = {
   descricao: string;
   unidade: string;
   qtd: number;
+  medida?: string;
+  vidroDescricao?: string;
+  pecas?: number;
+  areaM2?: number;
+  valorUnitario: number;
   valorTotal: number;
 };
 
@@ -1007,6 +1016,81 @@ const criarChaveMaterial = (
   return `${codigoChave || "SEM-CODIGO"}|${descricaoChave}|${unidadeChave}`;
 };
 
+const removerCodigoDuplicadoDescricao = (codigo: string, descricao: string) => {
+  const codigoNormalizado = normalizarCodigoMaterial(codigo);
+  let descricaoLimpa = normalizarDescricaoMaterial(descricao);
+
+  if (codigoNormalizado) {
+    const codigoEscapado = codigoNormalizado.replace(/[.*+x^${}()|[\]\\]/g, "\\$&");
+    const codigoFlexivel = codigoNormalizado
+      .split("")
+      .map((caractere) => caractere.replace(/[.*+x^${}()|[\]\\]/g, "\\$&"))
+      .join("[\\s-]*");
+
+    let anterior = "";
+    while (anterior !== descricaoLimpa) {
+      anterior = descricaoLimpa;
+      descricaoLimpa = descricaoLimpa
+        .replace(new RegExp(`^${codigoEscapado}\\s*-\\s*`, "i"), "")
+        .replace(new RegExp(`^${codigoEscapado}\\s+`, "i"), "")
+        .replace(new RegExp(`^${codigoFlexivel}\\s*-\\s*`, "i"), "")
+        .replace(new RegExp(`^${codigoFlexivel}\\s+`, "i"), "");
+    }
+  }
+
+  return codigoNormalizado ? `${codigoNormalizado} - ${descricaoLimpa || codigoNormalizado}`
+    : descricaoLimpa;
+};
+
+const extrairVidroRelacao = (descricao: string) => {
+  const descricaoLimpa = normalizarDescricaoMaterial(descricao)
+    .replace(/^(VIDRO|ESPELHO)\s+/i, "")
+    .trim();
+
+  const medidaMatch = descricaoLimpa.match(/(\d{2,5})\s*[xX]\s*(\d{2,5})\s*(?:MM)x/i);
+
+  if (!medidaMatch) {
+    return {
+      medida: "-",
+      vidroDescricao: descricaoLimpa || normalizarDescricaoMaterial(descricao),
+    };
+  }
+
+  const medida = `${medidaMatch[1]} ? ${medidaMatch[2]} mm`;
+  const vidroDescricao =
+    descricaoLimpa
+      .replace(medidaMatch[0], "")
+      .replace(/\s+/g, " ")
+      .trim() || "VIDRO";
+
+  return { medida, vidroDescricao };
+};
+
+const inferirPecasVidroMaterial = (
+  material: ProjetoIndividualMaterial,
+  item: CentralImpressaoItem,
+  totalVidrosDoItem: number
+) => {
+  const descricao = normalizarTexto(material.descricao);
+  const matchPecas =
+    descricao.match(/(?:^|\D)(\d+)\s*(?:peca|pecas|un|und)\b/i) ||
+    descricao.match(/x\s*(\d+)\s*(?:peca|pecas)\b/i);
+
+  if (matchPecas?.[1]) {
+    return Number(matchPecas[1]) * Math.max(1, Number(item.quantidade || 1));
+  }
+
+  const pecasProjeto =
+    Math.max(1, Number(item.quantidade || 1)) *
+    multiplicadorPecasProjeto(item.projeto, item);
+
+  if (totalVidrosDoItem <= 1) {
+    return pecasProjeto;
+  }
+
+  return Math.max(1, Math.round(pecasProjeto / totalVidrosDoItem));
+};
+
 const adicionarMaterialConsolidado = (
   grupos: Map<string, MaterialConsolidado>,
   material: {
@@ -1014,12 +1098,18 @@ const adicionarMaterialConsolidado = (
     descricao?: string;
     unidade?: string;
     qtd?: number;
+    medida?: string;
+    vidroDescricao?: string;
+    pecas?: number;
+    areaM2?: number;
     valorUnitario?: number;
     valorTotal?: number;
   }
 ) => {
   const codigo = normalizarCodigoMaterial(material.codigo);
-  const descricao = normalizarDescricaoMaterial(material.descricao);
+  const descricaoBase = normalizarDescricaoMaterial(material.descricao);
+  const descricao = codigo ? removerCodigoDuplicadoDescricao(codigo, descricaoBase)
+    : descricaoBase;
   const unidade = normalizarUnidadeMaterial(material.unidade);
   const qtd = numeroSeguro(material.qtd);
 
@@ -1031,9 +1121,16 @@ const adicionarMaterialConsolidado = (
   const valorUnitario = numeroSeguro(material.valorUnitario);
 
   const valorTotal =
-    valorTotalInformado > 0
-      ? valorTotalInformado
+    valorTotalInformado > 0 ? valorTotalInformado
       : qtd * valorUnitario;
+
+  const detalhesVidro =
+    material.medida || material.vidroDescricao ? {
+          medida: material.medida,
+          vidroDescricao: material.vidroDescricao,
+        }
+      : unidade === "m²" ? extrairVidroRelacao(descricao)
+        : {};
 
   const chave = criarChaveMaterial(codigo, descricao, unidade);
 
@@ -1043,10 +1140,18 @@ const adicionarMaterialConsolidado = (
     descricao,
     unidade,
     qtd: 0,
+    medida: detalhesVidro.medida,
+    vidroDescricao: detalhesVidro.vidroDescricao,
+    pecas: 0,
+    areaM2: 0,
+    valorUnitario: 0,
     valorTotal: 0,
   };
 
   atual.qtd += qtd;
+  atual.pecas = numeroSeguro(atual.pecas) + numeroSeguro(material.pecas);
+  atual.areaM2 = numeroSeguro(atual.areaM2) + numeroSeguro(material.areaM2);
+  atual.valorUnitario = valorUnitario > 0 ? valorUnitario : atual.valorUnitario;
   atual.valorTotal += valorTotal;
 
   grupos.set(chave, atual);
@@ -1054,24 +1159,39 @@ const adicionarMaterialConsolidado = (
 
 const consolidarMateriais = (
   itens: CentralImpressaoItem[],
-  tipo: TipoMaterialRelacao
+  tipo: TipoMaterialRelacao,
+  filtroItem?: (item: CentralImpressaoItem) => boolean
 ) => {
   const grupos = new Map<string, MaterialConsolidado>();
 
   itens.forEach((item) => {
+    if (filtroItem && !filtroItem(item)) {
+      return;
+    }
+
     /*
      * Materiais normalmente enviados por cada página de cálculo.
      */
-    (item.materiais || []).forEach((material) => {
+    const materiaisDoTipo = (item.materiais || []).filter(
+      (material) => classificarMaterialRelacao(material) === tipo
+    );
+
+    materiaisDoTipo.forEach((material) => {
       if (classificarMaterialRelacao(material) !== tipo) {
         return;
       }
+
+      const qtd = numeroSeguro(material.qtd);
 
       adicionarMaterialConsolidado(grupos, {
         codigo: material.codigoPerfil,
         descricao: material.descricao,
         unidade: material.unidade,
-        qtd: numeroSeguro(material.qtd),
+        qtd,
+        pecas:
+          tipo === "vidros" ? inferirPecasVidroMaterial(material, item, materiaisDoTipo.length)
+            : undefined,
+        areaM2: tipo === "vidros" ? qtd : undefined,
         valorUnitario: numeroSeguro(material.valorUnitario),
       });
     });
@@ -1087,8 +1207,7 @@ const consolidarMateriais = (
         const quantidade = numeroSeguro(vidro.quantidade);
 
         const areaTotal =
-          largura > 0 && altura > 0
-            ? (largura * altura * quantidade) / 1_000_000
+          largura > 0 && altura > 0 ? (largura * altura * quantidade) / 1_000_000
             : 0;
 
         if (areaTotal <= 0) {
@@ -1099,6 +1218,10 @@ const consolidarMateriais = (
           descricao: `VIDRO ${vidro.medida} ${vidro.vidro}`,
           unidade: "m²",
           qtd: areaTotal,
+          medida: vidro.medida,
+          vidroDescricao: vidro.vidro,
+          pecas: quantidade,
+          areaM2: areaTotal,
           valorTotal: numeroSeguro(vidro.valorTotal),
         });
       });
@@ -1122,16 +1245,43 @@ const consolidarMateriais = (
   });
 };
 
+const origemPerfilItem = (item: CentralImpressaoItem): GrupoOrigemPerfil => {
+  if (ehSacadaFrontal(item.projeto)) return "sacada-frontal";
+  if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
+  if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
+  return "projetos";
+};
+
+const consolidarPerfisPorOrigem = (
+  itens: CentralImpressaoItem[],
+  origem: GrupoOrigemPerfil
+) => consolidarMateriais(
+  itens,
+  "perfis",
+  (item) => origemPerfilItem(item) === origem
+);
+
+const consolidarMateriaisPorOrigem = (
+  itens: CentralImpressaoItem[],
+  tipo: TipoMaterialRelacao,
+  origem: GrupoOrigemPerfil
+) => consolidarMateriais(
+  itens,
+  tipo,
+  (item) => origemPerfilItem(item) === origem
+);
+
 const consolidarPerfisOtimizados = (
-  otimizacaoPerfis: CentralOtimizacaoPerfil[]
+  otimizacaoPerfis: CentralOtimizacaoPerfil[],
+  origem?: GrupoOrigemPerfil
 ): MaterialConsolidado[] =>
   [...otimizacaoPerfis]
+    .filter((perfil) => !origem || (perfil.origem || "projetos") === origem)
     .sort((a, b) => {
       const ordemA = ordemPerfilOtimizado(a);
       const ordemB = ordemPerfilOtimizado(b);
 
-      return ordemA === ordemB
-        ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true })
+      return ordemA === ordemB ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true })
         : ordemA - ordemB;
     })
     .map((perfil) => {
@@ -1141,14 +1291,9 @@ const consolidarPerfisOtimizados = (
         codigo ||
         "PERFIL";
 
-      const barrasOriginais = Math.max(
-        0,
-        numeroSeguro(perfil.barrasOriginais)
-      );
-
       const barrasOtimizadas = perfil.barras.length;
 
-      const descricao = `${codigo ? `${codigo} - ` : ""}${descricaoBase} - ${barrasOriginais} PARA ${barrasOtimizadas} BARRA(S)`;
+      const descricao = removerCodigoDuplicadoDescricao(codigo, descricaoBase);
 
       return {
         chave: criarChaveMaterial(codigo, descricao, "barra"),
@@ -1156,6 +1301,7 @@ const consolidarPerfisOtimizados = (
         descricao,
         unidade: "barra",
         qtd: barrasOtimizadas,
+        valorUnitario: numeroSeguro(perfil.valorUnitario),
         valorTotal: numeroSeguro(perfil.valorOtimizado),
       };
     });
@@ -1238,7 +1384,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<CentralImpressaoItem, "largura"
   const medidaSalva = String(item.medidasDetalhadas || "").match(/Quadro:\s*([^\n]+)/i)?.[1];
   const larguraQuadro = numeroCampoFechamento(item.trilho, 0) > 0 ? Math.round(Number(item.largura || 0) / numeroCampoFechamento(item.trilho, 1)) : 0;
   const alturaQuadro = numeroCampoFechamento(item.trinco, 0) > 0 ? Math.round(Number(item.altura || 0) / numeroCampoFechamento(item.trinco, 1)) : 0;
-  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} x ${alturaQuadro.toLocaleString("pt-BR")} mm`;
+  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} ? ${alturaQuadro.toLocaleString("pt-BR")} mm`;
   return `Quadro: ${medida}\nTotal de quadros: ${totalQuadrosPeleDeVidro(item)}\nFixos: ${numeroCampoFechamento(item.puxador, 0)} | Móveis: ${numeroCampoFechamento(item.tamanhoPuxador, 0)}`;
 };
 
@@ -1317,46 +1463,109 @@ export function CentralImpressaoPDF({
 const relacaoVidros = consolidarMateriais(itens, "vidros");
 const relacaoKits = consolidarMateriais(itens, "kits");
 
-const relacaoPerfisNormais = consolidarMateriais(itens, "perfis");
-const relacaoPerfisOtimizados =
-  consolidarPerfisOtimizados(otimizacaoOrdenada);
-
-const relacaoPerfis = combinarPerfisComOtimizacao(
-  relacaoPerfisNormais,
-  relacaoPerfisOtimizados
+const relacaoPerfisProjetosNormais = consolidarPerfisPorOrigem(itens, "projetos");
+const relacaoPerfisProjetos = combinarPerfisComOtimizacao(
+  relacaoPerfisProjetosNormais,
+  consolidarPerfisOtimizados(otimizacaoOrdenada, "projetos")
 );
 
-const relacaoFerragens = consolidarMateriais(itens, "ferragens");
+const relacaoPerfisSacadaFrontal = combinarPerfisComOtimizacao(
+  consolidarPerfisPorOrigem(itens, "sacada-frontal"),
+  consolidarPerfisOtimizados(otimizacaoOrdenada, "sacada-frontal")
+);
+const relacaoPerfisPeleDeVidro = combinarPerfisComOtimizacao(
+  consolidarPerfisPorOrigem(itens, "pele-de-vidro"),
+  consolidarPerfisOtimizados(otimizacaoOrdenada, "pele-de-vidro")
+);
+const relacaoPerfisFechamentoSacada = combinarPerfisComOtimizacao(
+  consolidarPerfisPorOrigem(itens, "fechamento-sacada"),
+  consolidarPerfisOtimizados(otimizacaoOrdenada, "fechamento-sacada")
+);
+const relacaoFerragensPeleDeVidro = consolidarMateriaisPorOrigem(itens, "ferragens", "pele-de-vidro");
+const relacaoFerragensFechamentoSacada = consolidarMateriaisPorOrigem(itens, "ferragens", "fechamento-sacada");
+const relacaoFerragensSacadaFrontal = consolidarMateriaisPorOrigem(itens, "ferragens", "sacada-frontal");
+const relacaoFerragensProjetos = consolidarMateriaisPorOrigem(itens, "ferragens", "projetos");
+const possuiRelacaoObra =
+  relacaoVidros.length > 0 ||
+  relacaoPerfisProjetos.length > 0 ||
+  relacaoPerfisSacadaFrontal.length > 0 ||
+  relacaoPerfisPeleDeVidro.length > 0 ||
+  relacaoPerfisFechamentoSacada.length > 0 ||
+  relacaoKits.length > 0 ||
+  relacaoFerragensPeleDeVidro.length > 0 ||
+  relacaoFerragensFechamentoSacada.length > 0 ||
+  relacaoFerragensSacadaFrontal.length > 0 ||
+  relacaoFerragensProjetos.length > 0;
 
-  const renderRelacaoGrupo = (titulo: string, materiais: MaterialConsolidado[]) => (
+  const renderRelacaoGrupo = (
+    titulo: string,
+    materiais: MaterialConsolidado[],
+    opcoes?: { vidros?: boolean }
+  ) => (
     materiais.length > 0 ? (
       <View style={styles.relationSection}>
         <Text style={styles.relationSubtitle}>{titulo}</Text>
         <View style={styles.relationHeader}>
-          <Text style={styles.relationCellQty}>QTD</Text>
-          <Text style={styles.relationCellDesc}>DESCRIÇÃO</Text>
-          <Text style={styles.relationCellUnit}>UND</Text>
-          <Text style={styles.relationCellValue}>TOTAL</Text>
+          {opcoes?.vidros ? (
+            <>
+              <Text style={styles.relationGlassCellQty}>QTD</Text>
+              <Text style={styles.relationGlassCellMeasure}>MEDIDA</Text>
+              <Text style={styles.relationGlassCellDesc}>VIDRO</Text>
+              <Text style={styles.relationGlassCellArea}>M²</Text>
+              <Text style={styles.relationGlassCellUnitPrice}>VALOR UNIT.</Text>
+              <Text style={styles.relationGlassCellValue}>TOTAL</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.relationCellQty}>QTD</Text>
+              <Text style={styles.relationCellDesc}>DESCRIÇÃO</Text>
+              <Text style={styles.relationCellUnit}>UND</Text>
+              <Text style={styles.relationCellUnitPrice}>VALOR UNIT.</Text>
+              <Text style={styles.relationCellValue}>TOTAL</Text>
+            </>
+          )}
         </View>
         {materiais.map((material) => {
-          const codigoNormalizado = normalizarCodigoMaterial(material.codigo);
-          const descricaoNormalizada = normalizarDescricaoMaterial(material.descricao);
-          const descricaoJaTemCodigo =
-            Boolean(codigoNormalizado) &&
-            descricaoNormalizada.startsWith(codigoNormalizado);
+          const descricaoExibicao = removerCodigoDuplicadoDescricao(
+            material.codigo,
+            material.descricao
+          );
+          const areaM2 = numeroSeguro(material.areaM2) || material.qtd;
+          const valorUnitario = opcoes?.vidros ? areaM2 > 0 ? material.valorTotal / areaM2
+              : material.valorUnitario
+            : material.valorUnitario || (material.qtd > 0 ? material.valorTotal / material.qtd : 0);
 
-          const descricaoExibicao =
-            codigoNormalizado && !descricaoJaTemCodigo
-              ? `${codigoNormalizado} - ${material.descricao}`
-              : material.descricao;
-
-          return (
+          return opcoes?.vidros ? (
+            <View key={material.chave} style={styles.relationRow} wrap={false}>
+              <Text style={styles.relationGlassCellQty}>
+                {numero(numeroSeguro(material.pecas) || material.qtd, 0)}
+              </Text>
+              <Text style={styles.relationGlassCellMeasure}>
+                {material.medida || "-"}
+              </Text>
+              <Text style={styles.relationGlassCellDesc}>
+                {material.vidroDescricao || descricaoExibicao}
+              </Text>
+              <Text style={styles.relationGlassCellArea}>
+                {numero(areaM2, 2)}
+              </Text>
+              <Text style={styles.relationGlassCellUnitPrice}>
+                {moeda(valorUnitario)}
+              </Text>
+              <Text style={styles.relationGlassCellValue}>
+                {moeda(material.valorTotal)}
+              </Text>
+            </View>
+          ) : (
             <View key={material.chave} style={styles.relationRow} wrap={false}>
               <Text style={styles.relationCellQty}>
                 {formatarQuantidadeMaterial(material.qtd, material.unidade)}
               </Text>
               <Text style={styles.relationCellDesc}>{descricaoExibicao}</Text>
               <Text style={styles.relationCellUnit}>{material.unidade}</Text>
+              <Text style={styles.relationCellUnitPrice}>
+                {moeda(valorUnitario)}
+              </Text>
               <Text style={styles.relationCellValue}>
                 {moeda(material.valorTotal)}
               </Text>
@@ -1446,31 +1655,19 @@ const relacaoFerragens = consolidarMateriais(itens, "ferragens");
             const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
             const vidroPrincipal = sacadaFrontal ? descricaoVidroItem(item) : item.vidro;
             const labelVidroPrincipal = sacadaFrontal ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
-            const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
-              ? "Quadros"
-              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
-              ? "Divisões"
-              : ehBox2Fls
-              ? "Altura"
-              : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f
-              ? "Projeto"
-              : ehPortaGiro
-              ? "Fechadura"
+            const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
+              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
+              : ehBox2Fls ? "Altura"
+              : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Projeto"
+              : ehPortaGiro ? "Fechadura"
               : "Trilho";
-            const labelCampoSecundario = ehPeleDeVidro(item.projeto)
-              ? "Lajes"
-              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
-              ? "Tipo"
-              : ehBox2Fls
-              ? "Modelo do kit"
-              : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f
-              ? "Carrinho"
-              : ehPma
-              ? "Roldana"
-              : ehPortaGiroFixo
-              ? "Projeto"
-              : ehPortaGiro
-              ? "Ferragens"
+            const labelCampoSecundario = ehPeleDeVidro(item.projeto) ? "Lajes"
+              : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Tipo"
+              : ehBox2Fls ? "Modelo do kit"
+              : ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Carrinho"
+              : ehPma ? "Roldana"
+              : ehPortaGiroFixo ? "Projeto"
+              : ehPortaGiro ? "Ferragens"
               : "Trinco";
 
             return (
@@ -1481,13 +1678,11 @@ const relacaoFerragens = consolidarMateriais(itens, "ferragens");
                       largura={Number(item.largura || 100)}
                       altura={Number(item.altura || 100)}
                       divisoesLargura={
-                        item.pinazioId === "sem-pinazio"
-                          ? 1
+                        item.pinazioId === "sem-pinazio" ? 1
                           : Math.max(1, Number(item.divisoesLargura || 1))
                       }
                       divisoesAltura={
-                        item.pinazioId === "sem-pinazio"
-                          ? 1
+                        item.pinazioId === "sem-pinazio" ? 1
                           : Math.max(1, Number(item.divisoesAltura || 1))
                       }
                       cor={item.pinazioCor || "branco"}
@@ -1805,7 +2000,7 @@ const relacaoFerragens = consolidarMateriais(itens, "ferragens");
             {otimizacaoOrdenada.map((perfil) => (
               <View key={`${perfil.codigo}-${perfil.descricao}`} style={styles.optCard} wrap={false}>
                 <Text style={styles.optName}>
-                  {perfil.descricao} - {perfil.barrasOriginais || 0} para {perfil.barras.length} barra(s) - {moeda(Number(perfil.valorOtimizado || 0))}
+                  {perfil.descricao} - {moeda(Number(perfil.valorOtimizado || 0))}
                 </Text>
                 {perfil.barras.map((barra, index) => {
                   const usado = barra.reduce((soma, corte) => soma + corte, 0);
@@ -1820,23 +2015,26 @@ const relacaoFerragens = consolidarMateriais(itens, "ferragens");
           </View>
         ) : null}
 
-        {somenteRelacaoObra && (relacaoVidros.length > 0 || relacaoKits.length > 0 || relacaoPerfis.length > 0 || relacaoFerragens.length > 0) ? (
+        {somenteRelacaoObra && possuiRelacaoObra ? (
           <View style={styles.relationSection} wrap={false}>
             <Text style={styles.relationTitle}>Relação da obra</Text>
-            <Text style={styles.optLine}>Materiais consolidados por descrição.</Text>
+            <Text style={styles.optLine}>Materiais consolidados por descrição e separados por origem do orçamento.</Text>
           </View>
         ) : null}
-        {somenteRelacaoObra ? renderRelacaoGrupo("Vidros", relacaoVidros) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Vidros", relacaoVidros, { vidros: true }) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Perfis pele de vidro", relacaoPerfisPeleDeVidro) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Perfis fechamento de sacada", relacaoPerfisFechamentoSacada) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Perfis de sacada", relacaoPerfisSacadaFrontal) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo(
+              "Perfis engenharia",
+              relacaoPerfisProjetos
+            )
+          : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Kits", relacaoKits) : null}
-      {somenteRelacaoObra
-  ? renderRelacaoGrupo(
-      otimizacaoOrdenada.length > 0
-        ? "Perfis — relação otimizada"
-        : "Perfis",
-      relacaoPerfis
-    )
-  : null}
-        {somenteRelacaoObra ? renderRelacaoGrupo("Ferragens", relacaoFerragens) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da pele de vidro", relacaoFerragensPeleDeVidro) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens do fechamento de sacada", relacaoFerragensFechamentoSacada) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da sacada", relacaoFerragensSacadaFrontal) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da engenharia", relacaoFerragensProjetos) : null}
 
         <Text style={styles.footer} fixed>
           Orçamentos Projetos gerado pelo Glass Code

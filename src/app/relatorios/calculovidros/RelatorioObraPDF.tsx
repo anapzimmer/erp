@@ -51,8 +51,8 @@ const temCodigoPerfil = (texto: string, codigo: string) =>
 
 const getPesoEspessuraPerfil = (codigo?: string | null, nome?: string | null) => {
   const texto = normalizarPerfil(codigo, nome).replace(",", ".")
-  if (/(^|\D)10\s*mm?\b/.test(texto) || texto.includes("10mm")) return 0
-  if (/(^|\D)0?8\s*mm?\b/.test(texto) || texto.includes("08mm") || texto.includes("8mm")) return 1
+  if (/(^|\D)10\s*mmx\b/.test(texto) || texto.includes("10mm")) return 0
+  if (/(^|\D)0x8\s*mmx\b/.test(texto) || texto.includes("08mm") || texto.includes("8mm")) return 1
   if (ehPerfilU(texto) && temCodigoPerfil(texto, "vt10")) return 0
   if (ehPerfilU(texto) && temCodigoPerfil(texto, "vt66")) return 1
   return 2
@@ -85,7 +85,7 @@ const getPesoTipoPerfil = (codigo?: string | null, nome?: string | null, espessu
     return ordemTipoPerfil.indexOf("perfil u")
   }
 
-  const index = ordemTipoPerfil.findIndex((termo) => texto.includes(termo))
+  const index = ordemTipoPerfil.findIndex?.((termo) => texto.includes(termo))
   return index >= 0 ? index : ordemTipoPerfil.length
 }
 

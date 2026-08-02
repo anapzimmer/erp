@@ -29,6 +29,8 @@ const rotasProjetos = new Set([
   "/jc2fcs-kit",
   "/jc4f-barra",
   "/jc4f-kit",
+  "/jc4fcb",
+  "/jc4fcb-kit",
   "/jc4fcbs",
   "/jc4fcs",
   "/jc4fcs-kit",
@@ -74,6 +76,8 @@ const nomeProjetoPorRota = (rota: string) => {
     "/pg2f": "Porta de giro 2 folhas",
     "/pgf": "Porta de giro com fixo lateral",
     "/pma2f4m": "Mao amiga 2 fixas + 4 moveis",
+    "/jc4fcb": "Janela 4 folhas com bandeira",
+    "/jc4fcb-kit": "Janela 4 folhas com bandeira",
     "/jc4fcbs": "Janela 4 folhas com peitoril e bandeira",
   };
 
@@ -82,6 +86,7 @@ const nomeProjetoPorRota = (rota: string) => {
   if (rota.includes("pfv2f")) return "Porta fora vao 2 folhas";
   if (rota.includes("pc2fcb")) return "Porta de correr 2 folhas com bandeira";
   if (rota.includes("pc4fcb")) return "Porta de correr 4 folhas com bandeira";
+  if (rota.includes("jc4fcb")) return "Janela de correr 4 folhas com bandeira";
   if (rota.includes("pc2f")) return "Porta de correr 2 folhas";
   if (rota.includes("pc4f")) return "Porta de correr 4 folhas";
   if (rota.includes("jc2fcs")) return "Janela 2 folhas com sacada";
@@ -111,7 +116,7 @@ const topicosGerais: TopicoAjuda[] = [
   },
   {
     categoria: "Medidas",
-    titulo: "Medida real x medida de cobranca",
+    titulo: "Medida real ? medida de cobranca",
     texto: "A descricao do vidro procura mostrar a medida real da peca calculada. Para cobranca em m2, o sistema pode arredondar a medida para cima conforme a regra de vidro, normalmente de 5 em 5 cm.",
   },
   {

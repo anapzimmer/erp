@@ -24,7 +24,7 @@ export default function UpdatePasswordPage() {
     const minLength = pass.length >= 6; // 🔥 Ajustado para 6
     const hasUpper = /[A-Z]/.test(pass);
     const hasNumber = /[0-9]/.test(pass);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    const hasSpecial = /[!@#$%^&*(),.x":{}|<>]/.test(pass);
 
     if (!minLength) return "A senha deve ter no mínimo 6 caracteres.";
     if (!hasUpper) return "Inclua pelo menos uma letra maiúscula.";

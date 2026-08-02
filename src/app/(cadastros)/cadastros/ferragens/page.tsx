@@ -225,7 +225,7 @@ export default function FerragensPage() {
   const deletarFerragem = (id: string) => {
     setModalAviso({
       titulo: "Confirmar Exclusão",
-      mensagem: "Tem certeza que deseja excluir esta ferragem? Esta ação não pode ser desfeita.",
+      mensagem: "Tem certeza que deseja excluir esta ferragemx Esta ação não pode ser desfeita.",
       confirmar: async () => {
         try {
           const { error } = await supabase
@@ -292,11 +292,11 @@ export default function FerragensPage() {
         const delimiter = (headerRow.match(/;/g)?.length || 0) >= (headerRow.match(/,/g)?.length || 0) ? ";" : ",";
         const headers = splitCsvLine(headerRow, delimiter).map(normalizarCabecalho);
 
-        const idxCodigo = headers.findIndex((h) => h === "codigo" || h === "cod" || h === "codigo item");
-        const idxNome = headers.findIndex((h) => h === "nome" || h === "descricao" || h === "ferragem");
-        const idxCores = headers.findIndex((h) => h === "cor" || h === "cores");
-        const idxPreco = headers.findIndex((h) => h === "preco" || h === "valor" || h === "preco unitario");
-        const idxCategoria = headers.findIndex((h) => h === "categoria" || h === "grupo");
+        const idxCodigo = headers.findIndex?.((h) => h === "codigo" || h === "cod" || h === "codigo item");
+        const idxNome = headers.findIndex?.((h) => h === "nome" || h === "descricao" || h === "ferragem");
+        const idxCores = headers.findIndex?.((h) => h === "cor" || h === "cores");
+        const idxPreco = headers.findIndex?.((h) => h === "preco" || h === "valor" || h === "preco unitario");
+        const idxCategoria = headers.findIndex?.((h) => h === "categoria" || h === "grupo");
 
         const dados = rows.slice(1);
 
@@ -381,7 +381,7 @@ export default function FerragensPage() {
   const eliminarDuplicados = () => {
     setModalAviso({
       titulo: "Eliminar Duplicados",
-      mensagem: "Remover ferragens com mesmo CÓDIGO e COR?",
+      mensagem: "Remover ferragens com mesmo CÓDIGO e CORx",
       confirmar: async () => {
         const jaVistos = new Set();
         const idsDeletar: string[] = [];
@@ -711,7 +711,7 @@ export default function FerragensPage() {
                   <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
                   <input
                     type="text"
-                    placeholder="Ex: 3530P"
+                    placeholder="E?: 3530P"
                     value={novaFerragem.codigo}
                     onChange={e => setNovaFerragem({ ...novaFerragem, codigo: e.target.value.toUpperCase() })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -722,7 +722,7 @@ export default function FerragensPage() {
                   <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
                   <input
                     type="text"
-                    placeholder="Ex: Preto"
+                    placeholder="E?: Preto"
                     value={novaFerragem.cores}
                     onChange={e => setNovaFerragem({ ...novaFerragem, cores: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -733,7 +733,7 @@ export default function FerragensPage() {
                   <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome da ferragem *</label>
                   <input
                     type="text"
-                    placeholder="Ex: Placa da fechadura"
+                    placeholder="E?: Placa da fechadura"
                     value={novaFerragem.nome}
                     onChange={e => setNovaFerragem({ ...novaFerragem, nome: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"

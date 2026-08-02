@@ -193,8 +193,7 @@ export function SacadaFrontalPDF({
           const sb = 14;
           const cw = sw - sl - sr;
           const larguraBase = larguraVaoMm > 0 ? larguraVaoMm : 1000;
-          const alturaBase = temModulosSupInf
-            ? (alturaInferiorMm || 0) + (alturaSuperiorMm || 0)
+          const alturaBase = temModulosSupInf ? (alturaInferiorMm || 0) + (alturaSuperiorMm || 0)
             : (alturaVaoMm > 0 ? alturaVaoMm : 1100);
           const rat = Math.min(Math.max(alturaBase / larguraBase, 0.45), 1.1);
           const ch = cw * rat;
@@ -214,11 +213,9 @@ export function SacadaFrontalPDF({
           const alturaSupBase = Math.max(alturaSuperiorMm || 0, 0);
           const alturaInfBase = Math.max(alturaInferiorMm || 0, 0);
           const areaUtilH = Math.max(ch - rh * 3, 40);
-          const moduloSupH = temModulosSupInf
-            ? areaUtilH * (alturaSupBase / Math.max(alturaBase, 1))
+          const moduloSupH = temModulosSupInf ? areaUtilH * (alturaSupBase / Math.max(alturaBase, 1))
             : 0;
-          const moduloInfH = temModulosSupInf
-            ? areaUtilH * (alturaInfBase / Math.max(alturaBase, 1))
+          const moduloInfH = temModulosSupInf ? areaUtilH * (alturaInfBase / Math.max(alturaBase, 1))
             : 0;
 
           const renderModulo = (
@@ -313,8 +310,7 @@ export function SacadaFrontalPDF({
                 <Line x1={x0 - 9} y1={y0 + ch} x2={x0 - 3} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
               </Svg>
               <Text style={{ fontSize: 7, color: "#777777", marginTop: 3 }}>
-                {temModulosSupInf
-                  ? `Vão: ${larguraVaoMm} × ${alturaBase} mm  ·  SUP: ${larguraVidroSuperiorMm ?? "–"} × ${alturaVidroSuperiorMm ?? "–"} mm (${divSup} peça(s)/vão)  ·  INF: ${larguraVidroInferiorMm ?? "–"} × ${alturaVidroInferiorMm ?? "–"} mm (${divInf} peça(s)/vão)${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`
+                {temModulosSupInf ? `Vão: ${larguraVaoMm} × ${alturaBase} mm  ·  SUP: ${larguraVidroSuperiorMm ?? "–"} × ${alturaVidroSuperiorMm ?? "–"} mm (${divSup} peça(s)/vão)  ·  INF: ${larguraVidroInferiorMm ?? "–"} × ${alturaVidroInferiorMm ?? "–"} mm (${divInf} peça(s)/vão)${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`
                   : `Vão: ${larguraVaoMm} × ${alturaVaoMm} mm  ·  Vidro: ${larguraVidroMm ?? "–"} × ${alturaVidroMm ?? "–"} mm  ·  ${divisoesPorVao} peça(s)/vão${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`}
               </Text>
             </View>

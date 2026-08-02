@@ -122,6 +122,18 @@ type CentralImpressaoProjetoItem = {
   valorTotal?: number;
   materiais?: ProjetoIndividualMaterial[];
   origemRota?: string;
+  loteId?: string;
+  loteSeq?: number;
+  loteTotal?: number;
+  loteObservacao?: string;
+};
+
+type LinhaLote = {
+  id: string;
+  largura: number;
+  altura: number;
+  quantidade: number;
+  observacao?: string;
 };
 
 const formatarVidroCadastro = (vidro: VidroCadastro) => {
@@ -175,7 +187,7 @@ const normalizarTexto = (texto?: string | number | null) =>
 
 const descricaoTemCodigo = (descricao: string, codigo: string) => {
   const descricaoNormalizada = normalizarTexto(descricao);
-  const codigoNormalizado = normalizarTexto(codigo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const codigoNormalizado = normalizarTexto(codigo).replace(/[.*+x^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`(^|[^a-z0-9])${codigoNormalizado}($|[^a-z0-9])`).test(descricaoNormalizada);
 };
 
@@ -217,6 +229,7 @@ export default function JC4FKitPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId } = useAuth();
   const { theme } = useTheme();
@@ -243,6 +256,16 @@ export default function JC4FKitPage() {
     mensagem: string;
     aoFechar?: () => void;
   } | null>(null);
+  const [linhasLote, setLinhasLote] = useState<LinhaLote[]>(() =>
+    Array.from({ length: 3 }, () => ({
+      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()),
+      largura: 0,
+      altura: 0,
+      quantidade: 1,
+      observacao: "",
+    }))
+  );
+  const [loteAberto, setLoteAberto] = useState(Boolean(centralLoteId));
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
     projeto: "JC4F - KIT",
     numero: "005412",
@@ -262,7 +285,7 @@ export default function JC4FKitPage() {
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
 
   useEffect(() => {
-    if (editId || centralItemId) {
+    if (editId || centralItemId || centralLoteId) {
       setRascunhoRestaurado(true);
       return;
     }
@@ -289,10 +312,10 @@ export default function JC4FKitPage() {
     } finally {
       setRascunhoRestaurado(true);
     }
-  }, [centralItemId, editId]);
+  }, [centralItemId, centralLoteId, editId]);
 
   useEffect(() => {
-    if (!rascunhoRestaurado || editId || centralItemId) return;
+    if (!rascunhoRestaurado || editId || centralItemId || centralLoteId) return;
 
     try {
       window.localStorage.setItem(
@@ -302,7 +325,7 @@ export default function JC4FKitPage() {
     } catch (erro) {
       console.warn("Nao foi possivel salvar o rascunho do projeto individual:", erro);
     }
-  }, [centralItemId, dados, editId, materiais, rascunhoRestaurado]);
+  }, [centralItemId, centralLoteId, dados, editId, materiais, rascunhoRestaurado]);
 
   useEffect(() => {
     if (!centralItemId) return;
@@ -349,6 +372,65 @@ export default function JC4FKitPage() {
       });
     }
   }, [centralItemId, returnTo, router]);
+
+  useEffect(() => {
+    if (!centralLoteId) return;
+
+    try {
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? JSON.parse(salvo) as CentralImpressaoProjetoItem[] : [];
+      const itensLote = lista
+        .filter((item) => item.loteId === centralLoteId)
+        .sort((a, b) => Number(a.loteSeq || 0) - Number(b.loteSeq || 0));
+
+      if (!itensLote.length) {
+        setMensagemSistema({
+          tipo: "aviso",
+          titulo: "Lote não encontrado",
+          mensagem: "Não foi possível localizar este lote na central de impressão.",
+          aoFechar: () => router.push(returnTo),
+        });
+        return;
+      }
+
+      const primeiro = itensLote[0];
+
+      setDados((atual) => ({
+        ...atual,
+        projeto: "JC4F - KIT",
+        numero: primeiro.numero || atual.numero,
+        cliente: primeiro.cliente || atual.cliente,
+        largura: Number(primeiro.largura || 0),
+        altura: Number(primeiro.altura || 0),
+        quantidade: Number(primeiro.quantidade || 1),
+        trilho: primeiro.trilho || "Escolher",
+        vidro: primeiro.vidro || "Escolher",
+        corKit: primeiro.corPerfil || primeiro.corKit || "Escolher",
+        puxador: primeiro.puxador || "Sem puxador",
+        tamanhoPuxador: primeiro.tamanhoPuxador || "Escolher",
+        trinco: primeiro.trinco === "Com trinco" ? "Com trinco" : "Sem trinco",
+      }));
+
+      setLinhasLote(
+        itensLote.map((item) => ({
+          id: item.id,
+          largura: Number(item.largura || 0),
+          altura: Number(item.altura || 0),
+          quantidade: Number(item.quantidade || 1),
+          observacao: item.loteObservacao || "",
+        }))
+      );
+      setLoteAberto(true);
+    } catch (erro) {
+      console.warn("Não foi possível carregar o lote da central de impressão:", erro);
+      setMensagemSistema({
+        tipo: "erro",
+        titulo: "Erro ao carregar lote",
+        mensagem: "Não foi possível carregar este lote para edição.",
+        aoFechar: () => router.push(returnTo),
+      });
+    }
+  }, [centralLoteId, returnTo, router]);
 
   const projetoPdf: ProjetoIndividualDados = useMemo(() => ({ ...dados, materiais }), [dados, materiais]);
   const totalMateriais = useMemo(
@@ -405,8 +487,7 @@ export default function JC4FKitPage() {
   const precoVidroM2 = useMemo(() => {
     if (!vidroSelecionado) return 0;
 
-    const precoGrupo = clienteSelecionado?.grupo_preco_id
-      ? precosVidroGrupos.find(
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
         (preco) =>
           String(preco.vidro_id) === String(vidroSelecionado.id) &&
           String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
@@ -415,12 +496,13 @@ export default function JC4FKitPage() {
 
     return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
-  const calculoVidro = useMemo(() => {
-    const quantidadeVaos = Number(dados.quantidade || 0);
-    const larguraFixaMedida = Number(dados.largura || 0) / 4;
-    const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - 60);
+
+  const calcularVidroProjeto = useCallback((dadosProjeto: Pick<Omit<ProjetoIndividualDados, "materiais">, "largura" | "altura" | "quantidade">) => {
+    const quantidadeVaos = Number(dadosProjeto.quantidade || 0);
+    const larguraFixaMedida = Number(dadosProjeto.largura || 0) / 4;
+    const alturaFixaMedida = Math.max(0, Number(dadosProjeto.altura || 0) - 60);
     const larguraMovelMedida = larguraFixaMedida + 50;
-    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - 20);
+    const alturaMovelMedida = Math.max(0, Number(dadosProjeto.altura || 0) - 20);
     const larguraFixa = arredondar5cm(larguraFixaMedida);
     const alturaFixa = arredondar5cm(alturaFixaMedida);
     const larguraMovel = arredondar5cm(larguraMovelMedida);
@@ -444,13 +526,71 @@ export default function JC4FKitPage() {
       areaMovel: Number(areaMovel.toFixed(3)),
       areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
     };
-  }, [dados.altura, dados.largura, dados.quantidade]);
+  }, []);
+
+  const calculoVidro = useMemo(
+    () => calcularVidroProjeto(dados),
+    [calcularVidroProjeto, dados]
+  );
+
+  const precoVidroPorNome = useCallback((nomeVidro: string) => {
+    const vidro = vidros.find((item) => formatarVidroCadastro(item) === nomeVidro);
+    if (!vidro) return 0;
+
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
+        (preco) =>
+          String(preco.vidro_id) === String(vidro.id) &&
+          String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
+      )
+      : null;
+
+    return Number(precoGrupo?.preco ?? vidro.preco ?? 0);
+  }, [clienteSelecionado, precosVidroGrupos, vidros]);
+
+  const selecionarKitParaDados = useCallback((dadosProjeto: Pick<Omit<ProjetoIndividualDados, "materiais">, "largura" | "altura" | "vidro" | "corKit">) => {
+    const espessura = obterEspessuraVidro(dadosProjeto.vidro);
+    const categoriaEsperada =
+      espessura === 10 ? "Kit Porta"
+        : espessura === 6 || espessura === 8 ? "Kit Janela"
+          : "";
+
+    if (!categoriaEsperada) return null;
+
+    const corAtual = String(dadosProjeto.corKit || "").toLowerCase();
+    const larguraKitNecessaria = Number(dadosProjeto.largura || 0);
+    const alturaKitNecessaria = Number(dadosProjeto.altura || 0);
+
+    const kitsFiltrados = kits.filter((kit) => {
+      const textoKit = `${kit.nome || ""} ${kit.categoria || ""}`.toLowerCase();
+      const categoriaOk = textoKit.includes(categoriaEsperada.toLowerCase());
+      const quatroFolhasOk = /\b4\s*f\b|\b4\s*folhasx\b|4f/.test(textoKit);
+      const corOk = String(kit.cores || "").toLowerCase() === corAtual;
+
+      return categoriaOk && quatroFolhasOk && corOk;
+    });
+
+    return kitsFiltrados
+      .filter((kit) =>
+        Number(kit.largura || 0) >= larguraKitNecessaria &&
+        Number(kit.altura || 0) >= alturaKitNecessaria
+      )
+      .sort((a, b) => {
+        const diferencaA =
+          Math.abs(Number(a.largura || 0) - larguraKitNecessaria) +
+          Math.abs(Number(a.altura || 0) - alturaKitNecessaria);
+
+        const diferencaB =
+          Math.abs(Number(b.largura || 0) - larguraKitNecessaria) +
+          Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
+
+        return diferencaA - diferencaB;
+      })[0] || null;
+  }, [kits]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
       lista.map((material) =>
-        material.id === idMaterial
-          ? {
+        material.id === idMaterial ? {
             ...material,
             descricao: item.descricao,
             unidade: item.tipo === "perfil" ? "barra" : "und",
@@ -485,13 +625,13 @@ export default function JC4FKitPage() {
   const selecionarCliente = (cliente: ClienteCadastro) => {
     atualizarCampo("cliente", cliente.nome);
     setListaClientesAberta(false);
-    setClienteAtivoIndex(0);
+    setClienteAtivoIndex?.(0);
   };
 
   const selecionarVidro = (vidro: VidroCadastro) => {
     atualizarCampo("vidro", formatarVidroCadastro(vidro));
     setListaVidrosAberta(false);
-    setVidroAtivoIndex(0);
+    setVidroAtivoIndex?.(0);
   };
 
   const obterEspessuraVidro = (texto: string) => {
@@ -502,10 +642,8 @@ export default function JC4FKitPage() {
   const kitSelecionado = useMemo(() => {
     const espessura = obterEspessuraVidro(dados.vidro);
     const categoriaEsperada =
-      espessura === 10
-        ? "Kit Porta"
-        : espessura === 6 || espessura === 8
-          ? "Kit Janela"
+      espessura === 10 ? "Kit Porta"
+        : espessura === 6 || espessura === 8 ? "Kit Janela"
           : "";
 
     if (!categoriaEsperada) return null;
@@ -518,7 +656,7 @@ export default function JC4FKitPage() {
     const kitsFiltrados = kits.filter((kit) => {
       const textoKit = `${kit.nome || ""} ${kit.categoria || ""}`.toLowerCase();
       const categoriaOk = textoKit.includes(categoriaEsperada.toLowerCase());
-      const quatroFolhasOk = /\b4\s*f\b|\b4\s*folhas?\b|4f/.test(textoKit);
+      const quatroFolhasOk = /\b4\s*f\b|\b4\s*folhasx\b|4f/.test(textoKit);
 
       const corOk = String(kit.cores || "").toLowerCase() === corAtual;
 
@@ -670,7 +808,7 @@ export default function JC4FKitPage() {
   }, [empresaId]);
 
   useEffect(() => {
-    setClienteAtivoIndex(0);
+    setClienteAtivoIndex?.(0);
   }, [dados.cliente]);
 
   useEffect(() => {
@@ -680,7 +818,7 @@ export default function JC4FKitPage() {
   }, [listaClientesAberta]);
 
   useEffect(() => {
-    setVidroAtivoIndex(0);
+    setVidroAtivoIndex?.(0);
   }, [dados.vidro]);
 
   useEffect(() => {
@@ -716,6 +854,91 @@ export default function JC4FKitPage() {
         descricaoTemCodigo(codigoInterno, codigoNormalizado);
     }, opcoes);
   }, [buscarFerragem]);
+
+  const buscarFerragemPorCodigoECor = useCallback((codigo: string, cor: string) => {
+    const codigoNormalizado = normalizarTexto(codigo);
+    const corNormalizada = normalizarTexto(cor);
+
+    return ferragens.find((ferragem) => {
+      const codigoFerragem = normalizarTexto(ferragem.codigo);
+      const codigoInterno = normalizarTexto(ferragem.codigo_interno);
+      const codigoOk =
+        codigoFerragem === codigoNormalizado ||
+        codigoInterno === codigoNormalizado ||
+        descricaoTemCodigo(codigoFerragem, codigoNormalizado) ||
+        descricaoTemCodigo(codigoInterno, codigoNormalizado);
+
+      if (!codigoOk) return false;
+      if (!corNormalizada || corNormalizada === "escolher") return false;
+
+      return normalizarTexto(ferragem.cores).includes(corNormalizada);
+    }) || null;
+  }, [ferragens]);
+
+  const gerarMateriaisAutomaticos = useCallback((dadosProjeto: Omit<ProjetoIndividualDados, "materiais">) => {
+    const lista: ProjetoIndividualMaterial[] = [];
+    const calculo = calcularVidroProjeto(dadosProjeto);
+    const precoVidro = precoVidroPorNome(dadosProjeto.vidro);
+    const vidroNome = String(dadosProjeto.vidro || "")
+      .replace(/^vidro\s+/i, "")
+      .trim();
+
+    if (vidroNome && dadosProjeto.vidro !== "Escolher") {
+      lista.push(
+        criarMaterial({
+          qtd: calculo.areaFixa,
+          unidade: "m2",
+          descricao: `VIDRO FIXO ${calculo.larguraFixaMedida}x${calculo.alturaFixaMedida} ${vidroNome.toUpperCase()}`,
+          valorUnitario: precoVidro,
+        }),
+        criarMaterial({
+          qtd: calculo.areaMovel,
+          unidade: "m2",
+          descricao: `VIDRO MOVEL ${calculo.larguraMovelMedida}x${calculo.alturaMovelMedida} ${vidroNome.toUpperCase()}`,
+          valorUnitario: precoVidro,
+        })
+      );
+    }
+
+    const kit = selecionarKitParaDados(dadosProjeto);
+    if (kit) {
+      lista.push(
+        criarMaterial({
+          qtd: Number(dadosProjeto.quantidade || 1),
+          unidade: "und",
+          descricao: kit.nome.toUpperCase(),
+          valorUnitario: Number(kit.preco || 0),
+        })
+      );
+    }
+
+    const regrasFerragens: Array<{ codigo: string; multiplicador: number }> = [
+      { codigo: "1560", multiplicador: 1 },
+    ];
+
+    if (dadosProjeto.trinco === "Com trinco") {
+      regrasFerragens.push(
+        { codigo: "1335", multiplicador: 2 },
+        { codigo: "1038.C-BC", multiplicador: 2 }
+      );
+    }
+
+    regrasFerragens.forEach(({ codigo, multiplicador }) => {
+      const ferragem = buscarFerragemPorCodigoECor(codigo, dadosProjeto.corKit);
+      if (!ferragem) return;
+
+      lista.push(
+        criarMaterial({
+          qtd: Number(dadosProjeto.quantidade || 0) * multiplicador,
+          unidade: "und",
+          descricao: montarDescricaoComCor(ferragem.codigo, ferragem.nome, ferragem.cores),
+          valorUnitario: Number(ferragem.preco || 0),
+        })
+      );
+    });
+
+    return lista;
+  }, [buscarFerragemPorCodigoECor, calcularVidroProjeto, precoVidroPorNome, selecionarKitParaDados]);
 
   const codigosFerragensAutomaticas = useMemo(
     () => [
@@ -775,7 +998,7 @@ export default function JC4FKitPage() {
     const precoKit = Number(kitSelecionado.preco || 0);
 
     setMateriais((lista) => {
-      const indiceKit = lista.findIndex((item) =>
+      const indiceKit = lista.findIndex?.((item) =>
         item.descricao.toLowerCase().includes("kit")
       );
 
@@ -875,32 +1098,44 @@ export default function JC4FKitPage() {
     setMateriais([]);
   };
 
-  const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const desenhoUrl = dados.trinco === "Com trinco"
-      ? "/desenhos/janela4fls-comtrinco.png"
+  const montarItemCentral = (
+    id?: string,
+    dadosProjeto: Omit<ProjetoIndividualDados, "materiais"> = dados,
+    materiaisProjeto: ProjetoIndividualMaterial[] = materiais,
+    lote?: { id: string; seq: number; total: number; observacao?: string }
+  ): CentralImpressaoProjetoItem => {
+    const totalProjeto = materiaisProjeto.reduce(
+      (soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0),
+      0
+    );
+    const desenhoUrl = dadosProjeto.trinco === "Com trinco" ? "/desenhos/janela4fls-comtrinco.png"
       : "/desenhos/janela4fls-semtrinco.png";
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
-      numero: dados.numero || "novo",
+      numero: dadosProjeto.numero || "novo",
       projeto: "Janela de correr 4 folhas",
-      cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
-      largura: Number(dados.largura || 0),
-      altura: Number(dados.altura || 0),
-      quantidade: Number(dados.quantidade || 0),
+      cliente: dadosProjeto.cliente || "",
+      medidas: `${Number(dadosProjeto.largura || 0)} ? ${Number(dadosProjeto.altura || 0)} mm`,
+      largura: Number(dadosProjeto.largura || 0),
+      altura: Number(dadosProjeto.altura || 0),
+      quantidade: Number(dadosProjeto.quantidade || 0),
       modo: "Kit",
       desenhoUrl,
-      vidro: dados.vidro || "",
-      corKit: dados.corKit || "",
-      corPerfil: dados.corKit || "",
-      trilho: dados.trilho || "",
-      puxador: dados.puxador || "",
-      tamanhoPuxador: dados.tamanhoPuxador || "",
-      trinco: dados.trinco || "",
-      valorTotal: Number(totalMateriais || 0),
-      materiais,
+      vidro: dadosProjeto.vidro || "",
+      corKit: dadosProjeto.corKit || "",
+      corPerfil: dadosProjeto.corKit || "",
+      trilho: dadosProjeto.trilho || "",
+      puxador: dadosProjeto.puxador || "",
+      tamanhoPuxador: dadosProjeto.tamanhoPuxador || "",
+      trinco: dadosProjeto.trinco || "",
+      valorTotal: Number(totalProjeto || 0),
+      materiais: materiaisProjeto,
       origemRota: "/jc4f-kit",
+      loteId: lote?.id,
+      loteSeq: lote?.seq,
+      loteTotal: lote?.total,
+      loteObservacao: lote?.observacao,
     };
   };
 
@@ -910,8 +1145,7 @@ export default function JC4FKitPage() {
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = atual ? JSON.parse(atual) as CentralImpressaoProjetoItem[] : [];
-      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
-        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId) ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
         : [...lista, itemCentral];
 
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
@@ -923,6 +1157,107 @@ export default function JC4FKitPage() {
     }
 
     router.push(centralItemId ? returnTo : "/central-impressao");
+  };
+
+  const atualizarLinhaLote = <K extends keyof LinhaLote>(
+    id: string,
+    campo: K,
+    valor: LinhaLote[K]
+  ) => {
+    setLinhasLote((lista) =>
+      lista.map((linha) =>
+        linha.id === id ? { ...linha, [campo]: valor } : linha
+      )
+    );
+  };
+
+  const adicionarLinhaLote = () => {
+    setLinhasLote((lista) => [
+      ...lista,
+      {
+        id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        largura: 0,
+        altura: 0,
+        quantidade: 1,
+        observacao: "",
+      },
+    ]);
+  };
+
+  const removerLinhaLote = (id: string) => {
+    setLinhasLote((lista) => lista.filter((linha) => linha.id !== id));
+  };
+
+  const enviarLoteParaCentralImpressao = () => {
+    const linhasValidas = linhasLote.filter(
+      (linha) =>
+        Number(linha.largura || 0) > 0 &&
+        Number(linha.altura || 0) > 0 &&
+        Number(linha.quantidade || 0) > 0
+    );
+
+    if (!linhasValidas.length) {
+      setMensagemSistema({
+        tipo: "aviso",
+        titulo: "Lote sem medidas",
+        mensagem: "Preencha ao menos uma linha com largura, altura e quantidade.",
+      });
+      return;
+    }
+
+    if (!dados.vidro || dados.vidro === "Escolher" || !dados.corKit || dados.corKit === "Escolher") {
+      setMensagemSistema({
+        tipo: "aviso",
+        titulo: "Escolhas incompletas",
+        mensagem: "Selecione o vidro e a cor do kit antes de enviar o lote.",
+      });
+      return;
+    }
+
+    const loteId = centralLoteId || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `lote-${Date.now()}`);
+    const itensLote = linhasValidas.map((linha, index) => {
+      const dadosLinha: Omit<ProjetoIndividualDados, "materiais"> = {
+        ...dados,
+        largura: Number(linha.largura || 0),
+        altura: Number(linha.altura || 0),
+        quantidade: Number(linha.quantidade || 0),
+        observacao: linha.observacao || dados.observacao,
+      };
+      const materiaisLinha = gerarMateriaisAutomaticos(dadosLinha);
+      return montarItemCentral(
+        centralLoteId ? linha.id : undefined,
+        dadosLinha,
+        materiaisLinha,
+        {
+          id: loteId,
+          seq: index + 1,
+          total: linhasValidas.length,
+          observacao: linha.observacao,
+        }
+      );
+    });
+
+    try {
+      const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = atual ? JSON.parse(atual) as CentralImpressaoProjetoItem[] : [];
+      const listaSemLoteAtual = centralLoteId ? lista.filter((item) => item.loteId !== centralLoteId)
+        : lista;
+
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...listaSemLoteAtual, ...itensLote]));
+      if (dados.cliente) {
+        window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, dados.cliente);
+      }
+    } catch (erro) {
+      console.warn("Não foi possível enviar o lote para a central de impressão:", erro);
+      setMensagemSistema({
+        tipo: "erro",
+        titulo: "Erro ao enviar lote",
+        mensagem: "Não foi possível enviar as medidas em lote para a central de impressão.",
+      });
+      return;
+    }
+
+    router.push(centralLoteId ? returnTo : "/central-impressao");
   };
 
   const gerarNumeroOrcamento = async () => {
@@ -980,8 +1315,7 @@ export default function JC4FKitPage() {
         const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
         const lista = salvo ? JSON.parse(salvo) as CentralImpressaoProjetoItem[] : [];
         const itemAtualizado = montarItemCentral(centralItemId);
-        const proximaLista = lista.some((item) => item.id === centralItemId)
-          ? lista.map((item) => item.id === centralItemId ? itemAtualizado : item)
+        const proximaLista = lista.some((item) => item.id === centralItemId) ? lista.map((item) => item.id === centralItemId ? itemAtualizado : item)
           : [...lista, itemAtualizado];
 
         window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
@@ -1067,8 +1401,7 @@ export default function JC4FKitPage() {
         theme_color: theme.menuIconColor || "#07385a",
       };
 
-      const { error } = editId
-        ? await supabase.from("orcamentos").update(payload).eq("id", editId)
+      const { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
         : await supabase.from("orcamentos").insert([payload]);
 
       if (error) throw error;
@@ -1123,10 +1456,10 @@ export default function JC4FKitPage() {
   }, [perfis, kits, ferragens]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#f3f6f9] text-[#0f2742]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
       <div className="flex min-h-screen w-full">
-        <div className="flex min-h-screen w-full flex-col bg-[#f3f6f9]">
-          <header className="grid shrink-0 grid-cols-1 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,0.9fr)_minmax(520px,1.5fr)]">
+        <div className="flex min-h-screen w-full flex-col bg-transparent">
+          <header className="mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
             <div className="flex items-center">
               <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
@@ -1150,12 +1483,12 @@ export default function JC4FKitPage() {
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[300px] border-0 bg-transparent p-0 text-[17px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
@@ -1167,7 +1500,7 @@ export default function JC4FKitPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
@@ -1179,7 +1512,7 @@ export default function JC4FKitPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
@@ -1190,15 +1523,15 @@ export default function JC4FKitPage() {
                       tabIndex={-1}
                       onChange={(e) => {
                         atualizarCampo("cliente", e.target.value);
-                        setClienteAtivoIndex(0);
+                        setClienteAtivoIndex?.(0);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "ArrowDown") {
                           e.preventDefault();
-                          setClienteAtivoIndex((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
+                          setClienteAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
                         } else if (e.key === "ArrowUp") {
                           e.preventDefault();
-                          setClienteAtivoIndex((atual) => Math.max(atual - 1, 0));
+                          setClienteAtivoIndex?.((atual) => Math.max(atual - 1, 0));
                         } else if (e.key === "Enter" && clientesFiltrados[clienteAtivoIndex]) {
                           e.preventDefault();
                           selecionarCliente(clientesFiltrados[clienteAtivoIndex]);
@@ -1246,7 +1579,7 @@ export default function JC4FKitPage() {
                               e.stopPropagation();
                               selecionarCliente(cliente);
                             }}
-                            onMouseEnter={() => setClienteAtivoIndex(index)}
+                            onMouseEnter={() => setClienteAtivoIndex?.(index)}
                             onClick={() => selecionarCliente(cliente)}
                             className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === clienteAtivoIndex ? "bg-[#07385a]/10" : "bg-transparent hover:bg-[#07385a]/10"
                               }`}
@@ -1265,8 +1598,8 @@ export default function JC4FKitPage() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="w-full shrink-0 border-b border-slate-200 bg-white">
-              <nav className="flex flex-row gap-2 overflow-x-auto px-4 py-2 sm:px-6">
+            <aside className="mx-4 mt-3 w-auto shrink-0 rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur sm:mx-6">
+              <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
                 {[
                   { label: "Orçamento", icon: ClipboardList, ativo: true },
                   { label: "Imprimir", icon: Printer },
@@ -1276,7 +1609,7 @@ export default function JC4FKitPage() {
                   { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
                 ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-[#07385a]/15 bg-[#07385a]/5 text-[#07385a]" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50"}`;
+                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-emerald-200 bg-emerald-50 text-[#07385a] shadow-sm" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white"}`;
 
                   if (label === "Imprimir") {
                     return (
@@ -1325,19 +1658,19 @@ export default function JC4FKitPage() {
             </aside>
 
             <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-[#f3f6f9] p-4">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
+                  <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-3 flex min-h-[300px] items-center justify-center sm:min-h-[390px] xl:min-h-[380px]">
+                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
                       <ProjetoDrawing comTrinco={dados.trinco === "Com trinco"} />
                     </div>
                   </section>
 
                   <div className="space-y-4">
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                       <SectionTitle>Dados do projeto</SectionTitle>
-                      <div className="mt-4 grid overflow-visible md:grid-cols-3">
+                      <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Largura"
@@ -1360,7 +1693,7 @@ export default function JC4FKitPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
                           <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
@@ -1372,15 +1705,15 @@ export default function JC4FKitPage() {
                                 value={dados.vidro}
                                 onChange={(e) => {
                                   atualizarCampo("vidro", e.target.value);
-                                  setVidroAtivoIndex(0);
+                                  setVidroAtivoIndex?.(0);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown") {
                                     e.preventDefault();
-                                    setVidroAtivoIndex((atual) => Math.min(atual + 1, Math.max(vidrosFiltrados.length - 1, 0)));
+                                    setVidroAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(vidrosFiltrados.length - 1, 0)));
                                   } else if (e.key === "ArrowUp") {
                                     e.preventDefault();
-                                    setVidroAtivoIndex((atual) => Math.max(atual - 1, 0));
+                                    setVidroAtivoIndex?.((atual) => Math.max(atual - 1, 0));
                                   } else if (e.key === "Enter" && vidrosFiltrados[vidroAtivoIndex]) {
                                     e.preventDefault();
                                     selecionarVidro(vidrosFiltrados[vidroAtivoIndex]);
@@ -1390,7 +1723,7 @@ export default function JC4FKitPage() {
                                 }}
                                 onBlur={() => window.setTimeout(() => setListaVidrosAberta(false), 250)}
                                 disabled={carregandoVidros}
-                                className="mt-0.5 w-full bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                                className="mt-1 w-full bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
                                 placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
                               />
                             ) : (
@@ -1403,7 +1736,7 @@ export default function JC4FKitPage() {
                                     setListaVidrosAberta(true);
                                   }
                                 }}
-                                className="mt-0.5 block w-full truncate rounded-md bg-transparent p-0 text-left text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+                                className="mt-1 block w-full truncate rounded-lg bg-transparent p-0 text-left text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
                               >
                                 {dados.vidro || "Digite o vidro"}
                               </button>
@@ -1423,9 +1756,8 @@ export default function JC4FKitPage() {
                                       e.preventDefault();
                                       selecionarVidro(vidro);
                                     }}
-                                    onMouseEnter={() => setVidroAtivoIndex(index)}
-                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroAtivoIndex
-                                        ? "bg-[#07385a]/10"
+                                    onMouseEnter={() => setVidroAtivoIndex?.(index)}
+                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroAtivoIndex ? "bg-[#07385a]/10"
                                         : "bg-transparent hover:bg-[#07385a]/10"
                                       }`}
                                   >
@@ -1456,7 +1788,115 @@ export default function JC4FKitPage() {
                       </div>
                     </section>
 
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <SectionTitle>Lote rápido</SectionTitle>
+                          <p className="mt-2 text-xs font-medium text-slate-500">
+                            Usa o vidro, cor do kit e trinco selecionados acima.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setLoteAberto((aberto) => !aberto)}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#0f2742] shadow-sm hover:bg-slate-50"
+                          >
+                            {loteAberto ? "Fechar lote" : "Abrir lote"}
+                          </button>
+                          {loteAberto ? (
+                            <>
+                          <button
+                            type="button"
+                            onClick={adicionarLinhaLote}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#0f2742] shadow-sm hover:bg-slate-50"
+                          >
+                            Adicionar linha
+                          </button>
+                          <button
+                            type="button"
+                            onClick={enviarLoteParaCentralImpressao}
+                            className="rounded-xl bg-[#07385a] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#0a466f]"
+                          >
+                            Enviar lote PDF+
+                          </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {centralLoteId ? (
+                        <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                          Editando lote existente. Ao enviar, as linhas antigas deste lote serão substituídas.
+                        </div>
+                      ) : null}
+
+                      {loteAberto ? (
+                      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+                        <div className="grid min-w-[720px] grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <div className="px-3 py-2">Largura</div>
+                          <div className="px-3 py-2">Altura</div>
+                          <div className="px-3 py-2">Qtd.</div>
+                          <div className="px-3 py-2">Observação</div>
+                          <div className="px-3 py-2 text-center">Ação</div>
+                        </div>
+                        {linhasLote.map((linha, index) => (
+                          <div
+                            key={linha.id}
+                            className="grid min-w-[720px] grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] items-center border-t border-slate-200 text-sm"
+                          >
+                            <div className="px-3 py-2">
+                              <input
+                                value={linha.largura || ""}
+                                onChange={(event) => atualizarLinhaLote(linha.id, "largura", limitarNumero4Digitos(event.target.value))}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                                placeholder="mm"
+                                inputMode="numeric"
+                              />
+                            </div>
+                            <div className="px-3 py-2">
+                              <input
+                                value={linha.altura || ""}
+                                onChange={(event) => atualizarLinhaLote(linha.id, "altura", limitarNumero4Digitos(event.target.value))}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                                placeholder="mm"
+                                inputMode="numeric"
+                              />
+                            </div>
+                            <div className="px-3 py-2">
+                              <input
+                                value={linha.quantidade || ""}
+                                onChange={(event) => atualizarLinhaLote(linha.id, "quantidade", limitarNumero4Digitos(event.target.value))}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                                placeholder="Qtd."
+                                inputMode="numeric"
+                              />
+                            </div>
+                            <div className="px-3 py-2">
+                              <input
+                                value={linha.observacao || ""}
+                                onChange={(event) => atualizarLinhaLote(linha.id, "observacao", event.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                                placeholder={`Medida ${index + 1}`}
+                              />
+                            </div>
+                            <div className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => removerLinhaLote(linha.id)}
+                                className="rounded-lg border border-red-100 px-2 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"
+                                aria-label="Remover linha"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      ) : null}
+                    </section>
+
+                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <SectionTitle>Relação de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
@@ -1477,18 +1917,18 @@ export default function JC4FKitPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
-                          <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
-                          <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
+                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
                           <div className="px-3 py-3 text-center" />
-                          <div className="border-r border-white/20 px-3 py-3 text-right">Valor unit.</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-right">Valor unit.</div>
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
                         {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
+                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
                             <div className="px-3 py-2.5">
                               <input
                                 type="text"
@@ -1537,9 +1977,9 @@ export default function JC4FKitPage() {
                         ))}
                       </div>
 
-                      <div className="mt-3 flex items-center justify-end gap-5">
-                        <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do Orçamento</p>
-                        <div className="rounded-lg bg-[#18bd72] px-8 py-3 text-xl font-bold text-white shadow-lg shadow-emerald-900/10">
+                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total do Orçamento</p>
+                        <div className="rounded-2xl bg-[#18bd72] px-7 py-3 text-xl font-semibold text-white shadow-lg shadow-emerald-900/10">
                           {moeda(totalMateriais)}
                         </div>
                       </div>
@@ -1547,7 +1987,7 @@ export default function JC4FKitPage() {
                   </div>
                 </div>
 
-                <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] md:grid-cols-3 xl:grid-cols-6">
                   <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
@@ -1576,16 +2016,12 @@ export default function JC4FKitPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor:
-                    mensagemSistema.tipo === "sucesso"
-                      ? `${theme.modalIconSuccessColor || "#18bd72"}14`
-                      : mensagemSistema.tipo === "erro"
-                        ? `${theme.modalIconErrorColor || "#dc2626"}14`
+                    mensagemSistema.tipo === "sucesso" ? `${theme.modalIconSuccessColor || "#18bd72"}14`
+                      : mensagemSistema.tipo === "erro" ? `${theme.modalIconErrorColor || "#dc2626"}14`
                         : `${theme.modalIconWarningColor || "#d97706"}14`,
                   color:
-                    mensagemSistema.tipo === "sucesso"
-                      ? theme.modalIconSuccessColor || "#18bd72"
-                      : mensagemSistema.tipo === "erro"
-                        ? theme.modalIconErrorColor || "#dc2626"
+                    mensagemSistema.tipo === "sucesso" ? theme.modalIconSuccessColor || "#18bd72"
+                      : mensagemSistema.tipo === "erro" ? theme.modalIconErrorColor || "#dc2626"
                         : theme.modalIconWarningColor || "#d97706",
                 }}
               >
@@ -1623,8 +2059,8 @@ export default function JC4FKitPage() {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-sm font-bold uppercase tracking-wide text-[#0f2742]">{children}</h2>
-      <div className="mt-3 h-[2px] w-9 rounded-full bg-[#18bd72]" />
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0f2742]">{children}</h2>
+      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -1645,7 +2081,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
@@ -1661,9 +2097,9 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[64px] min-w-0 rounded-md bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
-          {suffix && <span className="text-sm font-semibold leading-tight text-[#10253f]">{suffix}</span>}
+          {suffix && <span className="text-sm font-medium leading-tight text-slate-500">{suffix}</span>}
         </span>
       </span>
     </label>
@@ -1689,7 +2125,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
+      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -1707,7 +2143,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
+          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>

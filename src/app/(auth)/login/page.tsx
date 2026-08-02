@@ -157,8 +157,7 @@ const LoginPage = () => {
         "success"
       );
    } catch (err: unknown) {
-  const message = err instanceof Error
-    ? err.message
+  const message = err instanceof Error ? err.message
     : "Não foi possível enviar o e-mail.";
 
   showModal("Erro", message);
@@ -180,7 +179,7 @@ const LoginPage = () => {
     if (!/[0-9]/.test(pass)) {
       return "A senha deve conter pelo menos um número.";
     }
-    if (!/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(pass)) {
+    if (!/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>x,./`~]/.test(pass)) {
       return "A senha deve conter pelo menos um caractere especial.";
     }
     return "";
@@ -303,8 +302,7 @@ const LoginPage = () => {
               type="submit"
               disabled={loading}
               className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg 
-    ${loading
-                  ? 'bg-[#1C415B] text-white btn-processing cursor-wait'
+    ${loading ? 'bg-[#1C415B] text-white btn-processing cursor-wait'
                   : 'bg-[#1C415B] hover:bg-[#39B89F] text-white shadow-[#1C415B]/20 hover:shadow-[#39B89F]/20'
                 }`}
             >
@@ -328,7 +326,7 @@ const LoginPage = () => {
                 onClick={() => setShowSignup(true)}
                 className="text-sm font-bold text-[#1C415B] hover:text-[#39B89F] transition-colors"
               >
-                Não tem conta? <span className="text-[#39B89F]">Criar Acesso</span>
+                Não tem contax <span className="text-[#39B89F]">Criar Acesso</span>
               </button>
               <button
                 type="button"
@@ -458,7 +456,7 @@ const LoginPage = () => {
                   <li className={`flex items-center gap-2 ${/[0-9]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
                     <span>•</span> <span>Pelo menos 1 número</span>
                   </li>
-                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>?,./`~]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
+                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>x,./`~]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
                     <span>•</span> <span>Pelo menos 1 caractere especial</span>
                   </li>
                 </ul>

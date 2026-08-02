@@ -57,10 +57,8 @@ export async function POST(request: Request) {
     const modulo = await import("pdf-parse/lib/pdf-parse.js")
 
     const pdfParse =
-      typeof modulo.default === "function"
-        ? modulo.default
-        : typeof modulo === "function"
-          ? modulo
+      typeof modulo.default === "function" ? modulo.default
+        : typeof modulo === "function" ? modulo
           : null
 
     if (!pdfParse) {
@@ -97,8 +95,7 @@ export async function POST(request: Request) {
     console.error("ERRO NA IMPORTAÇÃO DO PDF:", error)
 
     const detalhe =
-      error instanceof Error
-        ? `${error.name}: ${error.message}`
+      error instanceof Error ? `${error.name}: ${error.message}`
         : String(error)
 
     return NextResponse.json(

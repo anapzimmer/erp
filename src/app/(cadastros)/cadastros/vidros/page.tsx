@@ -301,7 +301,7 @@ export default function VidrosPage() {
                 }]);
 
               if (errorInsert) {
-                console.error("Erro no Insert (403?):", errorInsert.message);
+                console.error("Erro no Insert (403x):", errorInsert.message);
                 erros++;
               } else {
                 inseridos++;
@@ -331,7 +331,7 @@ export default function VidrosPage() {
   const limparDuplicados = () => {
     setModalAviso({
       titulo: "Limpar Duplicados",
-      mensagem: "Tem certeza? Isso manterá apenas o maior preço para vidros com o mesmo Nome, Espessura e Tipo, e apagará os outros.",
+      mensagem: "Tem certezax Isso manterá apenas o maior preço para vidros com o mesmo Nome, Espessura e Tipo, e apagará os outros.",
       confirmar: async () => {
         setCarregando(true);
         try {
@@ -418,7 +418,7 @@ export default function VidrosPage() {
       titulo: "Excluir vidros selecionados",
       mensagem: `Tem certeza que deseja excluir ${ids.length} ${
         ids.length === 1 ? "vidro" : "vidros"
-      }? Os preços especiais associados também serão removidos.`,
+      }x Os preços especiais associados também serão removidos.`,
       tipo: "aviso",
       confirmar: async () => {
         setCarregando(true)
@@ -583,7 +583,7 @@ export default function VidrosPage() {
 
   const deletarVidro = (id: string) => {
     setModalAviso({
-      titulo: "Confirmar Exclusão", mensagem: "Tem certeza que deseja excluir este vidro? Isso removerá preços especiais associados.", confirmar: async () => {
+      titulo: "Confirmar Exclusão", mensagem: "Tem certeza que deseja excluir este vidrox Isso removerá preços especiais associados.", confirmar: async () => {
         await supabase.from("vidro_precos_grupos").delete().eq("vidro_id", id)
         const { error } = await supabase.from("vidros").delete().eq("id", id)
         if (error) setModalAviso({ titulo: "Erro", mensagem: "Erro ao excluir: " + error.message }); else { setVidros(prev => prev.filter(v => v.id !== id)); setModalAviso(null); }
@@ -930,8 +930,7 @@ const logoLight = branding?.logo_light || null;
                   <strong className="font-normal">
                     {vidrosSelecionados.size}
                   </strong>{" "}
-                  {vidrosSelecionados.size === 1
-                    ? "item selecionado"
+                  {vidrosSelecionados.size === 1 ? "item selecionado"
                     : "itens selecionados"}
                 </span>
               </div>
@@ -972,8 +971,7 @@ const logoLight = branding?.logo_light || null;
                 className="flex items-center gap-2 self-start rounded-xl border border-gray-200 px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
               >
                 <ListChecks size={15} />
-                {todosFiltradosSelecionados
-                  ? "Desmarcar visíveis"
+                {todosFiltradosSelecionados ? "Desmarcar visíveis"
                   : "Selecionar visíveis"}
               </button>
             </div>
@@ -987,8 +985,7 @@ const logoLight = branding?.logo_light || null;
                         onClick={alternarSelecaoFiltrados}
                         disabled={!vidrosFiltrados.length}
                         className={`flex h-5 w-5 items-center justify-center rounded border transition ${
-                          todosFiltradosSelecionados
-                            ? "border-transparent"
+                          todosFiltradosSelecionados ? "border-transparent"
                             : "border-gray-300 bg-white"
                         }`}
                         style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
@@ -1021,8 +1018,7 @@ const logoLight = branding?.logo_light || null;
                       <tr
                         key={vidro.id}
                         className={`transition ${
-                          selecionado
-                            ? "bg-emerald-50/40"
+                          selecionado ? "bg-emerald-50/40"
                             : "hover:bg-gray-50/70"
                         }`}
                       >
@@ -1153,7 +1149,7 @@ const logoLight = branding?.logo_light || null;
                       <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
                       <input
                         type="text"
-                        placeholder="Ex: INC08TE"
+                        placeholder="E?: INC08TE"
                         value={novoVidro.codigo || ""}
                         onChange={e => setNovoVidro({ ...novoVidro, codigo: e.target.value.toUpperCase() })}
                         className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -1178,7 +1174,7 @@ const logoLight = branding?.logo_light || null;
                       <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do vidro *</label>
                       <input
                         type="text"
-                        placeholder="Ex: Vidro Temperado"
+                        placeholder="E?: Vidro Temperado"
                         value={novoVidro.nome}
                         onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })}
                         className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"

@@ -100,11 +100,10 @@ export default function GestaoPrecosPage() {
     Number(valor.replace(/\./g, "").replace(",", "."));
 
   const interpretarArquivoTabela = (conteudo: string) => {
-    const linhas = conteudo.split(/\r?\n/);
+    const linhas = conteudo.split(/\rx\n/);
     const linhaTabela = linhas.find((linha) => /^\s*TABELA\s+/i.test(linha));
 
-    const nomeTabela = linhaTabela
-      ? linhaTabela
+    const nomeTabela = linhaTabela ? linhaTabela
           .replace(/^\s*TABELA\s+/i, "")
           .replace(/\s+-\s+[^-]+\s*$/, "")
           .trim()
@@ -114,7 +113,7 @@ export default function GestaoPrecosPage() {
 
     for (const linha of linhas) {
       const correspondencia = linha.match(
-        /^\s*(\S+)\s+(.+?)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+_{3,}/
+        /^\s*(\S+)\s+(.+x)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+_{3,}/
       );
 
       if (!correspondencia) continue;
@@ -132,9 +131,8 @@ export default function GestaoPrecosPage() {
 
   const extrairDadosDescricao = (descricao: string) => {
     const descricaoLimpa = descricao.trim().replace(/\s+/g, " ");
-    const espessuraEncontrada = descricaoLimpa.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})?)\s*MM\b/i);
-    const espessura = espessuraEncontrada
-      ? espessuraEncontrada[1].replace(/\s/g, "").split("+").map((p) => p.padStart(2, "0")).join("+") + "mm"
+    const espessuraEncontrada = descricaoLimpa.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})x)\s*MM\b/i);
+    const espessura = espessuraEncontrada ? espessuraEncontrada[1].replace(/\s/g, "").split("+").map((p) => p.padStart(2, "0")).join("+") + "mm"
       : "";
 
     const tiposConhecidos = ["temperado", "laminado", "comum", "espelho", "aramado", "insulado"];
@@ -142,7 +140,7 @@ export default function GestaoPrecosPage() {
     const tipo = tipoEncontrado ? tipoEncontrado.charAt(0).toUpperCase() + tipoEncontrado.slice(1) : "";
 
     const nome = descricaoLimpa
-      .replace(/\b\d{1,2}(?:\s*\+\s*\d{1,2})?\s*MM\b/gi, "")
+      .replace(/\b\d{1,2}(?:\s*\+\s*\d{1,2})x\s*MM\b/gi, "")
       .replace(new RegExp(`\\b(${tiposConhecidos.join("|")})\\b`, "gi"), "")
       .replace(/\s+/g, " ")
       .trim();
@@ -162,7 +160,7 @@ export default function GestaoPrecosPage() {
     const palavrasVidro = vidro.nome.toUpperCase().split(/\s+/).map(normalizarTexto).filter(Boolean);
     pontos += palavrasVidro.filter((palavra) => palavrasDescricao.has(palavra)).length * 12;
 
-    const espessuraDescricao = item.descricao.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})?)\s*MM\b/i)?.[1]?.replace(/\s/g, "");
+    const espessuraDescricao = item.descricao.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})x)\s*MM\b/i)?.[1]?.replace(/\s/g, "");
     const espessuraVidro = vidro.espessura.replace(/\D|mm/gi, "");
     if (espessuraDescricao && normalizarTexto(espessuraDescricao) === normalizarTexto(espessuraVidro)) pontos += 25;
 
@@ -482,7 +480,7 @@ export default function GestaoPrecosPage() {
       console.log("Resultado da exclusão:", diagnostico);
 
       if (tabelaDepois) {
-        throw new Error(`O Supabase encontrou a tabela, mas bloqueou o DELETE por política RLS. Registros afetados: ${tabelasRemovidas ?? 0}. Execute o SQL database/tabelas_rls_fix.sql no Supabase.`);
+        throw new Error(`O Supabase encontrou a tabela, mas bloqueou o DELETE por política RLS. Registros afetados: ${tabelasRemovidas ?? 0}. Execute o SQL database/tabelas_rls_fi?.sql no Supabase.`);
       }
 
       setTabelas(prev => prev.filter(t => t.id !== tabela.id));
@@ -1010,7 +1008,7 @@ const { error } = await supabase
                             type="button"
                             onClick={() => setModalConfirmacao({
                               titulo: "Confirmar exclusão",
-                              mensagem: `Deseja excluir a tabela \"${t.nome}\"? Esta ação não pode ser desfeita.`,
+                              mensagem: `Deseja excluir a tabela \"${t.nome}\"x Esta ação não pode ser desfeita.`,
                               confirmar: () => excluirTabela(t),
                               labelConfirmar: "Excluir",
                               labelCancelar: "Cancelar",
@@ -1207,8 +1205,7 @@ const { error } = await supabase
             <div className="overflow-y-auto p-4 md:p-6 space-y-4">
               {importacaoPendente.pendentes.map((item, indice) => {
                 const selecionado = vidros.find((v) => v.id === item.vidroSelecionadoId);
-                const incompleto = item.acao === "vincular"
-                  ? !item.vidroSelecionadoId
+                const incompleto = item.acao === "vincular" ? !item.vidroSelecionadoId
                   : item.acao === "criar" && (!item.novoNome || !item.novaEspessura || !item.novoTipo);
 
                 return (
@@ -1270,14 +1267,12 @@ const { error } = await supabase
       )}
 
       <CadastrosAvisoModal
-        aviso={modalSucessoAberto.aberto
-          ? {
+        aviso={modalSucessoAberto.aberto ? {
             titulo: "Operação concluída",
             mensagem: modalSucessoAberto.mensagem,
             tipo: "sucesso",
           }
-          : modalAvisoAberto.aberto
-            ? {
+          : modalAvisoAberto.aberto ? {
               titulo: "Atenção",
               mensagem: modalAvisoAberto.mensagem,
               tipo: "aviso",

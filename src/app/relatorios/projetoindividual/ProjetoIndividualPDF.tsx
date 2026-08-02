@@ -93,11 +93,11 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#ffffff",
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
-    marginBottom: 10,
+    borderColor: "#e2e8f0",
+    marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
@@ -123,26 +123,26 @@ const styles = StyleSheet.create({
   metaGreen: { color: "#009b55" },
   titleRow: {
     backgroundColor: "#ffffff",
-    borderRadius: 8,
+    borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
-    marginBottom: 10,
+    borderColor: "#e2e8f0",
+    marginBottom: 12,
   },
   titleLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase" },
   title: { fontSize: 12, color: "#0f2742", fontWeight: "normal", marginTop: 3 },
   grid: { flexDirection: "row", gap: 10, marginBottom: 10 },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
-    padding: 8,
+    borderColor: "#e2e8f0",
+    padding: 10,
   },
   drawingCard: { width: "32%" },
   dataCard: { width: "68%" },
-  sectionTitle: { fontSize: 10, color: "#0f2742", fontWeight: "bold", textTransform: "uppercase" },
+  sectionTitle: { fontSize: 9, color: "#0f2742", fontWeight: "normal", textTransform: "uppercase" },
   titleLine: { width: 22, height: 2, backgroundColor: "#00a85a", marginTop: 8, marginBottom: 12 },
   drawingBox: { height: 190, alignItems: "center", justifyContent: "center" },
   drawingImage: { width: 140, maxHeight: 180, objectFit: "contain" },
@@ -159,21 +159,20 @@ const styles = StyleSheet.create({
   dataValue: { fontSize: 11, color: "#0f2742", fontWeight: "normal" },
   tableCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
-    padding: 8,
+    borderColor: "#e2e8f0",
+    padding: 10,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#07385a",
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 8,
     minHeight: 24,
     alignItems: "center",
   },
-  th: { color: "#ffffff", fontSize: 8, fontWeight: "bold", textTransform: "uppercase", paddingHorizontal: 6 },
-  tr: { flexDirection: "row", minHeight: 28, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
+  th: { color: "#475569", fontSize: 8, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
+  tr: { flexDirection: "row", minHeight: 28, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#eef2f7" },
   td: { fontSize: 8.5, color: "#0f2742", paddingHorizontal: 6 },
   colQtd: { width: "10%", textAlign: "center" },
   colDesc: { width: "50%" },
@@ -184,13 +183,131 @@ const styles = StyleSheet.create({
     width: "31.8%",
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#dbe4ee",
-    borderRadius: 9,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
     padding: 8,
   },
   summaryLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase" },
   summaryValue: { fontSize: 10.5, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
   footer: { position: "absolute", left: 28, right: 28, bottom: 14, fontSize: 7, color: "#94a3b8", textAlign: "center" },
+  premiumPage: {
+    padding: 24,
+    fontFamily: "Helvetica",
+    backgroundColor: "#ffffff",
+    color: "#0f2742",
+  },
+  premiumHeader: {
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  premiumLogo: { width: 140, maxHeight: 42, objectFit: "contain", objectPosition: "left" },
+  premiumBrandName: { fontSize: 18, fontWeight: "bold", color: "#10253f" },
+  premiumBrandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
+  premiumProjectWrap: { flex: 1, paddingHorizontal: 16, alignItems: "center" },
+  premiumProjectLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase", letterSpacing: 1.2 },
+  premiumProjectName: { fontSize: 13, color: "#10253f", fontWeight: "normal", marginTop: 4 },
+  premiumMeta: { flexDirection: "row", gap: 8 },
+  premiumMetaBox: { borderLeftWidth: 1, borderLeftColor: "#e2e8f0", paddingLeft: 8, minWidth: 66 },
+  premiumMetaLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
+  premiumMetaValue: { fontSize: 9, color: "#009b55", fontWeight: "normal" },
+  premiumMainGrid: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  premiumDrawingCard: {
+    width: "34%",
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 10,
+  },
+  premiumInfoCard: {
+    width: "66%",
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 10,
+  },
+  premiumSectionTitle: { fontSize: 9, color: "#0f2742", fontWeight: "normal", textTransform: "uppercase", letterSpacing: 0.8 },
+  premiumLine: { width: 24, height: 2, backgroundColor: "#18bd72", marginTop: 7, marginBottom: 10 },
+  premiumDrawingBox: {
+    height: 180,
+    borderRadius: 10,
+    backgroundColor: "#f8fafc",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  premiumDrawingImage: { width: 150, maxHeight: 170, objectFit: "contain" },
+  premiumInfoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  premiumInfoItem: {
+    width: "31.8%",
+    minHeight: 46,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    padding: 8,
+  },
+  premiumInfoLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 5 },
+  premiumInfoValue: { fontSize: 9.5, color: "#0f2742", fontWeight: "normal" },
+  premiumValueCard: { backgroundColor: "#ecfdf5", borderColor: "#bbf7d0" },
+  premiumValueText: { fontSize: 11, color: "#0f2742", fontWeight: "bold" },
+  premiumTitleRow: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 12,
+  },
+  premiumTitleLabel: { fontSize: 7, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 },
+  premiumTitleValue: { fontSize: 12, color: "#0f2742", fontWeight: "normal", marginTop: 4 },
+  premiumTableCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 10,
+    marginBottom: 10,
+  },
+  premiumTableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#f1f5f9",
+    borderRadius: 8,
+    minHeight: 24,
+    alignItems: "center",
+  },
+  premiumTh: { color: "#475569", fontSize: 7.2, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
+  premiumTr: { flexDirection: "row", minHeight: 27, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#eef2f7" },
+  premiumTd: { fontSize: 8, color: "#0f2742", paddingHorizontal: 6 },
+  premiumColQtd: { width: "10%", textAlign: "center" },
+  premiumColMedida: { width: "18%" },
+  premiumColVidro: { width: "42%" },
+  premiumColM2: { width: "12%", textAlign: "right" },
+  premiumColTotal: { width: "18%", textAlign: "right" },
+  premiumColDesc: { width: "48%" },
+  premiumColUn: { width: "10%", textAlign: "center" },
+  premiumColUnit: { width: "16%", textAlign: "right" },
+  premiumSummary: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  premiumSummaryBox: {
+    width: "31.7%",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    padding: 9,
+  },
+  premiumSummaryTotal: { borderColor: "#18bd72", backgroundColor: "#ffffff" },
+  premiumSummaryLabel: { fontSize: 6.7, color: "#64748b", textTransform: "uppercase" },
+  premiumSummaryValue: { fontSize: 10.5, color: "#0f2742", fontWeight: "normal", marginTop: 5 },
+  premiumSummaryValueStrong: { fontSize: 12, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
 });
 
 export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFProps) {
@@ -248,8 +365,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const larguraSacadaJc4f = arredondar5cm(Number(dados.largura || 0) / 2);
   const larguraFixaPc2f = arredondar5cm(Number(dados.largura || 0) / 2);
   const larguraMovelPc2f = arredondar5cm(larguraFixaPc2f + 50);
-  const alturaPortaPc2fComBandeira = dados.alturaAteTubo && Number(dados.alturaAteTubo) > 0
-    ? Math.min(Number(dados.alturaAteTubo), Number(dados.altura || 0))
+  const alturaPortaPc2fComBandeira = dados.alturaAteTubo && Number(dados.alturaAteTubo) > 0 ? Math.min(Number(dados.alturaAteTubo), Number(dados.altura || 0))
     : Number(dados.altura || 0);
   const alturaBandeiraPc2f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - alturaPortaPc2fComBandeira));
   const larguraBandeiraPc2f = arredondar5cm(Number(dados.largura || 0));
@@ -258,8 +374,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const alturaMovelPc2f = arredondar5cm(Math.max(0, alturaReferenciaPc2f - (dados.trilho === "Embutido" ? 0 : 20)));
   const larguraFixaPc4f = arredondar5cm(Number(dados.largura || 0) / 4);
   const larguraMovelPc4f = arredondar5cm(larguraFixaPc4f + 50);
-  const alturaPortaPc4fComBandeira = dados.alturaAteTubo && Number(dados.alturaAteTubo) > 0
-    ? Math.min(Number(dados.alturaAteTubo), Number(dados.altura || 0))
+  const alturaPortaPc4fComBandeira = dados.alturaAteTubo && Number(dados.alturaAteTubo) > 0 ? Math.min(Number(dados.alturaAteTubo), Number(dados.altura || 0))
     : Number(dados.altura || 0);
   const alturaBandeiraPc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - alturaPortaPc4fComBandeira));
   const larguraBandeiraPc4f = arredondar5cm(Number(dados.largura || 0) / 2);
@@ -311,58 +426,33 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const larguraBaseVidro = ehDuasFolhas ? Number(dados.largura || 0) / 2 : Number(dados.largura || 0);
   const larguraVidro = arredondar5cm(larguraBaseVidro + 50);
   const alturaVidro = arredondar5cm(Number(dados.altura || 0) + (dados.trilho === "Embutido" ? 70 : 50));
-  const areaTotal = ehJc4fComSacada
-    ? Number((((larguraFixaJc4fSacada * alturaFixaJc4fSacada * 2 * quantidadeVaos) + (larguraMovelJc4fSacada * alturaMovelJc4fSacada * 2 * quantidadeVaos) + (larguraSacadaJc4f * alturaSacadaJc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehJc2fComSacada
-    ? Number((((larguraFixaJc2fSacada * alturaFixaJc2fSacada * quantidadeVaos) + (larguraMovelJc2fSacada * alturaMovelJc2fSacada * quantidadeVaos) + (larguraSacadaJc2f * alturaSacadaJc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehJanelaCorrer
-    ? Number((((larguraFixaJc * alturaFixaJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos) + (larguraMovelJc * alturaMovelJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehDeslizante2f
-      ? Number(((larguraDeslizante2f * alturaDeslizante2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehDeslizante3f
-      ? Number(((larguraDeslizante3f * alturaDeslizante3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehDeslizante4f
-      ? Number(((larguraDeslizante4f * alturaDeslizante4f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehDeslizante5f
-      ? Number(((larguraDeslizante5f * alturaDeslizante5f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehDeslizante6f
-      ? Number(((larguraDeslizante6f * alturaDeslizante6f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehFixos
-      ? Number(((larguraFixos * alturaFixos * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma2f4m
-      ? Number(((larguraPma2f4m * alturaPma2f4m * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma6f
-      ? Number(((larguraPma6f * alturaPma6f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma5f
-      ? Number(((larguraPma5f * alturaPma5f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma4f
-      ? Number(((larguraPma4f * alturaPma4f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma3f
-      ? Number(((larguraPma3f * alturaPma3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehPma2f
-      ? Number(((larguraPma2f * alturaPma2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
-    : ehBoxCanto || ehBoxCanto3f
-      ? dados.materiais
+  const areaTotal = ehJc4fComSacada ? Number((((larguraFixaJc4fSacada * alturaFixaJc4fSacada * 2 * quantidadeVaos) + (larguraMovelJc4fSacada * alturaMovelJc4fSacada * 2 * quantidadeVaos) + (larguraSacadaJc4f * alturaSacadaJc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehJc2fComSacada ? Number((((larguraFixaJc2fSacada * alturaFixaJc2fSacada * quantidadeVaos) + (larguraMovelJc2fSacada * alturaMovelJc2fSacada * quantidadeVaos) + (larguraSacadaJc2f * alturaSacadaJc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehJanelaCorrer ? Number((((larguraFixaJc * alturaFixaJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos) + (larguraMovelJc * alturaMovelJc4f * (ehJanelaCorrer2Folhas ? 1 : 2) * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehDeslizante2f ? Number(((larguraDeslizante2f * alturaDeslizante2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehDeslizante3f ? Number(((larguraDeslizante3f * alturaDeslizante3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehDeslizante4f ? Number(((larguraDeslizante4f * alturaDeslizante4f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehDeslizante5f ? Number(((larguraDeslizante5f * alturaDeslizante5f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehDeslizante6f ? Number(((larguraDeslizante6f * alturaDeslizante6f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehFixos ? Number(((larguraFixos * alturaFixos * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma2f4m ? Number(((larguraPma2f4m * alturaPma2f4m * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma6f ? Number(((larguraPma6f * alturaPma6f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma5f ? Number(((larguraPma5f * alturaPma5f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma4f ? Number(((larguraPma4f * alturaPma4f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma3f ? Number(((larguraPma3f * alturaPma3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehPma2f ? Number(((larguraPma2f * alturaPma2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
+    : ehBoxCanto || ehBoxCanto3f ? dados.materiais
         .filter((item) => item.descricao.toLowerCase().includes("vidro") || item.unidade.toLowerCase().includes("m2"))
         .reduce((soma, item) => soma + Number(item.qtd || 0), 0)
-    : ehBox2Fls
-      ? Number((((larguraFixaBox2Fls * alturaFixaBox2Fls * quantidadeVaos) + (larguraMovelBox2Fls * alturaMovelBox2Fls * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPc2fComBandeira
-      ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos) + (larguraBandeiraPc2f * alturaBandeiraPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPc2f
-      ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPc4fComBandeira
-      ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos) + (larguraBandeiraPc4f * alturaBandeiraPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPc4f
-      ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehMax
-      ? Number((((larguraVidroMax * alturaVidroMax * quantidadeVaos) + (maxUnico ? 0 : larguraVidroFixoMax * alturaVidroFixoMax * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPortaGiroFixo
-      ? Number((((larguraPortaGiroFixo * alturaPortaGiroFixo * quantidadeVaos) + (larguraFixoPortaGiro * alturaPortaGiroFixo * quantidadeVaos)) / 1_000_000).toFixed(3))
-    : ehPortaGiro2Folhas
-      ? Number(((larguraPortaGiro2Folhas * alturaPortaGiro2Folhas * quantidadeVaos * 2) / 1_000_000).toFixed(3))
-    : ehPortaGiro
-      ? Number(((larguraPortaGiro * alturaPortaGiro * quantidadeVaos) / 1_000_000).toFixed(3))
+    : ehBox2Fls ? Number((((larguraFixaBox2Fls * alturaFixaBox2Fls * quantidadeVaos) + (larguraMovelBox2Fls * alturaMovelBox2Fls * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPc2fComBandeira ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos) + (larguraBandeiraPc2f * alturaBandeiraPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPc2f ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPc4fComBandeira ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos) + (larguraBandeiraPc4f * alturaBandeiraPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPc4f ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehMax ? Number((((larguraVidroMax * alturaVidroMax * quantidadeVaos) + (maxUnico ? 0 : larguraVidroFixoMax * alturaVidroFixoMax * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPortaGiroFixo ? Number((((larguraPortaGiroFixo * alturaPortaGiroFixo * quantidadeVaos) + (larguraFixoPortaGiro * alturaPortaGiroFixo * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehPortaGiro2Folhas ? Number(((larguraPortaGiro2Folhas * alturaPortaGiro2Folhas * quantidadeVaos * 2) / 1_000_000).toFixed(3))
+    : ehPortaGiro ? Number(((larguraPortaGiro * alturaPortaGiro * quantidadeVaos) / 1_000_000).toFixed(3))
     : Number(((larguraVidro * alturaVidro * quantidadePecasVidro) / 1_000_000).toFixed(3));
   const total = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorVidros = dados.materiais
@@ -385,310 +475,342 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
     })
     .map(({ item }) => item);
   const totalVidros = quantidadePecasVidro;
-  const nomeProjeto = ehJc4fComSacada
-    ? "Janela de correr 4 folhas com sacada inferior"
-    : ehJc2fComSacada
-    ? "Janela de correr 2 folhas com sacada inferior"
-    : ehJanelaCorrer4Folhas
-    ? "Janela de correr 4 folhas"
-    : ehJanelaCorrer2Folhas
-      ? "Janela de correr 2 folhas"
-    : ehPc2fComBandeira
-      ? "Porta de correr 2 folhas com bandeira"
-    : ehPc2f
-      ? "Porta de correr 2 folhas"
-    : ehPc4fComBandeira
-      ? "Porta de correr 4 folhas com bandeira"
-    : ehPc4f
-      ? "Porta de correr 4 folhas"
-    : ehPortaGiroFixo
-      ? "Porta de giro com fixo lateral"
-    : ehPortaGiro2Folhas
-      ? "Porta de giro - 2 folhas"
-    : ehPortaGiro
-      ? "Porta de giro - 1 folha"
-    : ehFixos
-      ? "Fixos"
-    : ehPma2f4m
-      ? "Mão Amiga 2 fixas + 4 móveis"
-    : ehPma6f
-      ? "Mão Amiga 6 folhas"
-    : ehPma5f
-      ? "Mão Amiga 5 folhas"
-    : ehPma4f
-      ? "Mão Amiga 4 folhas"
-    : ehPma3f
-      ? "Mão Amiga 3 folhas"
-    : ehPma2f
-      ? "Mão Amiga 2 folhas"
-    : ehBoxCanto3f
-      ? "Box de canto 3 folhas"
-    : ehBoxCanto
-      ? "Box de canto"
-    : ehBox2Fls
-      ? "Box 2 folhas"
-    : ehDeslizante2f
-      ? "Deslizante 2 folhas"
-    : ehDeslizante3f
-      ? "Deslizante 3 folhas"
-    : ehDeslizante4f
-      ? "Deslizante 4 folhas"
-    : ehDeslizante5f
-      ? "Deslizante 5 folhas"
-    : ehDeslizante6f
-      ? "Deslizante 6 folhas"
-    : ehDuasFolhas
-      ? "Porta de correr atrás do vão - 2 folhas"
-      : projetoNormalizado.includes("pfv1f")
-        ? "Porta de correr atrás do Vão - 1 folha"
+  const nomeProjeto = ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior"
+    : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior"
+    : ehJanelaCorrer4Folhas ? "Janela de correr 4 folhas"
+    : ehJanelaCorrer2Folhas ? "Janela de correr 2 folhas"
+    : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira"
+    : ehPc2f ? "Porta de correr 2 folhas"
+    : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira"
+    : ehPc4f ? "Porta de correr 4 folhas"
+    : ehPortaGiroFixo ? "Porta de giro com fixo lateral"
+    : ehPortaGiro2Folhas ? "Porta de giro - 2 folhas"
+    : ehPortaGiro ? "Porta de giro - 1 folha"
+    : ehFixos ? "Fixos"
+    : ehPma2f4m ? "Mão Amiga 2 fixas + 4 móveis"
+    : ehPma6f ? "Mão Amiga 6 folhas"
+    : ehPma5f ? "Mão Amiga 5 folhas"
+    : ehPma4f ? "Mão Amiga 4 folhas"
+    : ehPma3f ? "Mão Amiga 3 folhas"
+    : ehPma2f ? "Mão Amiga 2 folhas"
+    : ehBoxCanto3f ? "Box de canto 3 folhas"
+    : ehBoxCanto ? "Box de canto"
+    : ehBox2Fls ? "Box 2 folhas"
+    : ehDeslizante2f ? "Deslizante 2 folhas"
+    : ehDeslizante3f ? "Deslizante 3 folhas"
+    : ehDeslizante4f ? "Deslizante 4 folhas"
+    : ehDeslizante5f ? "Deslizante 5 folhas"
+    : ehDeslizante6f ? "Deslizante 6 folhas"
+    : ehDuasFolhas ? "Porta de correr atrás do vão - 2 folhas"
+      : projetoNormalizado.includes("pfv1f") ? "Porta de correr atrás do Vão - 1 folha"
     : dados.projeto || "Projeto individual";
   const desenhoFixos = pecasFixos === 1 ? "/desenhos/fixo-1folha.png" : `/desenhos/fixo-${pecasFixos}folhas.png`;
-  const desenhoPma2f = String(dados.trilho || "").toLowerCase().includes("kit pia")
-    ? "/desenhos/pma-2fs-kitpia.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/pma-2fs-completo.png"
+  const desenhoPma2f = String(dados.trilho || "").toLowerCase().includes("kit pia") ? "/desenhos/pma-2fs-kitpia.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/pma-2fs-completo.png"
       : "/desenhos/pma-2fs-simples.png";
-  const desenhoPma3f = normalizarTexto(dados.trilho).includes("todas")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/pma-3fs-completo.png"
+  const desenhoPma3f = normalizarTexto(dados.trilho).includes("todas") ? dados.puxador === "Com puxador" ? "/desenhos/pma-3fs-completo.png"
       : "/desenhos/pma-3fs-simples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/pma-12fs-completo.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/pma-12fs-completo.png"
       : "/desenhos/pma-12fs-simples.png";
-  const desenhoPma4f = normalizarTexto(dados.trilho).includes("todas")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/pma-4fs-completo.png"
+  const desenhoPma4f = normalizarTexto(dados.trilho).includes("todas") ? dados.puxador === "Com puxador" ? "/desenhos/pma-4fs-completo.png"
       : "/desenhos/pma-4fs-simples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/pma-13fs-completo.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/pma-13fs-completo.png"
       : "/desenhos/pma-13fs-simples.png";
-  const desenhoPma5f = normalizarTexto(dados.trilho).includes("todas")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/pma-5fs-completo.png"
+  const desenhoPma5f = normalizarTexto(dados.trilho).includes("todas") ? dados.puxador === "Com puxador" ? "/desenhos/pma-5fs-completo.png"
       : "/desenhos/pma-5fs-simples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/pma-14fs-completo.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/pma-14fs-completo.png"
       : "/desenhos/pma-14fs-simples.png";
-  const desenhoPma6f = normalizarTexto(dados.trilho).includes("todas")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/pma-6fs-completo.png"
+  const desenhoPma6f = normalizarTexto(dados.trilho).includes("todas") ? dados.puxador === "Com puxador" ? "/desenhos/pma-6fs-completo.png"
       : "/desenhos/pma-6fs-simples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/pma-15fs-completo.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/pma-15fs-completo.png"
       : "/desenhos/pma-15fs-simples.png";
-  const desenhoPma2f4m = dados.puxador === "Com puxador"
-    ? "/desenhos/pma-24fs-completo.png"
+  const desenhoPma2f4m = dados.puxador === "Com puxador" ? "/desenhos/pma-24fs-completo.png"
     : "/desenhos/pma-24fs-simples.png";
   const modeloBoxNormalizado = normalizarTexto(dados.trinco);
-  const desenhoBox2Fls = modeloBoxNormalizado.includes("evidence") || modeloBoxNormalizado.includes("elegance")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/box-eleganceduplo.png"
+  const desenhoBox2Fls = modeloBoxNormalizado.includes("evidence") || modeloBoxNormalizado.includes("elegance") ? dados.puxador === "Com puxador" ? "/desenhos/box-eleganceduplo.png"
       : "/desenhos/box-elegancesimples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/box-padraopuxador.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/box-padraopuxador.png"
       : "/desenhos/box-padrao.png";
-  const desenhoDeslizante2f = normalizarTexto(dados.trinco).includes("inteiro")
-    ? dados.puxador === "Com puxador"
-      ? "/desenhos/deslizante-2fls-ci-completo.png"
+  const desenhoDeslizante2f = normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-2fls-ci-completo.png"
       : "/desenhos/deslizante-2fls-ci-simples.png"
-    : dados.puxador === "Com puxador"
-      ? "/desenhos/deslizante-2fls-cs-completo.png"
+    : dados.puxador === "Com puxador" ? "/desenhos/deslizante-2fls-cs-completo.png"
       : "/desenhos/deslizante-2fls-cs-simples.png";
-  const desenhoDeslizante3f = normalizarTexto(dados.trilho).includes("fixo")
-    ? normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-12fls-ci-completo.png"
+  const desenhoDeslizante3f = normalizarTexto(dados.trilho).includes("fixo") ? normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-12fls-ci-completo.png"
         : "/desenhos/deslizante-12fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-12fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-12fls-cs-completo.png"
         : "/desenhos/deslizante-12fls-cs-simples.png"
-    : normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-3fls-ci-completo.png"
+    : normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-3fls-ci-completo.png"
         : "/desenhos/deslizante-3fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-3fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-3fls-cs-completo.png"
         : "/desenhos/deslizante-3fls-cs-simples.png";
-  const desenhoDeslizante4f = normalizarTexto(dados.trilho).includes("fixo")
-    ? normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-13fls-ci-completo.png"
+  const desenhoDeslizante4f = normalizarTexto(dados.trilho).includes("fixo") ? normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-13fls-ci-completo.png"
         : "/desenhos/deslizante-13fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-13fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-13fls-cs-completo.png"
         : "/desenhos/deslizante-13fls-cs-simples.png"
-    : normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-4fls-ci-completo.png"
+    : normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-4fls-ci-completo.png"
         : "/desenhos/deslizante-4fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-4fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-4fls-cs-completo.png"
         : "/desenhos/deslizante-4fls-cs-simples.png";
-  const desenhoDeslizante5f = normalizarTexto(dados.trilho).includes("fixo")
-    ? normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-14fls-ci-completo.png"
+  const desenhoDeslizante5f = normalizarTexto(dados.trilho).includes("fixo") ? normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-14fls-ci-completo.png"
         : "/desenhos/deslizante-14fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-14fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-14fls-cs-completo.png"
         : "/desenhos/deslizante-14fls-cs-simples.png"
-    : normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-5fls-ci-completo.png"
+    : normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-5fls-ci-completo.png"
         : "/desenhos/deslizante-5fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-5fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-5fls-cs-completo.png"
         : "/desenhos/deslizante-5fls-cs-simples.png";
-  const desenhoDeslizante6f = normalizarTexto(dados.trilho).includes("fixo")
-    ? normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-15fls-ci-completo.png"
+  const desenhoDeslizante6f = normalizarTexto(dados.trilho).includes("fixo") ? normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-15fls-ci-completo.png"
         : "/desenhos/deslizante-15fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-15fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-15fls-cs-completo.png"
         : "/desenhos/deslizante-15fls-cs-simples.png"
-    : normalizarTexto(dados.trinco).includes("inteiro")
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-6fls-ci-completo.png"
+    : normalizarTexto(dados.trinco).includes("inteiro") ? dados.puxador === "Com puxador" ? "/desenhos/deslizante-6fls-ci-completo.png"
         : "/desenhos/deslizante-6fls-ci-simples.png"
-      : dados.puxador === "Com puxador"
-        ? "/desenhos/deslizante-6fls-cs-completo.png"
+      : dados.puxador === "Com puxador" ? "/desenhos/deslizante-6fls-cs-completo.png"
         : "/desenhos/deslizante-6fls-cs-simples.png";
-  const desenhoSrc = ehFixos
-    ? desenhoFixos
-    : ehBoxCanto3f
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/box-canto3fcp.png"
+  const desenhoSrc = ehFixos ? desenhoFixos
+    : ehBoxCanto3f ? dados.puxador === "Com puxador" ? "/desenhos/box-canto3fcp.png"
         : "/desenhos/box-canto3f.png"
-    : ehBoxCanto
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/box-canto4fpd.png"
+    : ehBoxCanto ? dados.puxador === "Com puxador" ? "/desenhos/box-canto4fpd.png"
         : "/desenhos/box-canto4f.png"
-    : ehBox2Fls
-      ? desenhoBox2Fls
-    : ehDeslizante2f
-      ? desenhoDeslizante2f
-    : ehDeslizante3f
-      ? desenhoDeslizante3f
-    : ehDeslizante4f
-      ? desenhoDeslizante4f
-    : ehDeslizante5f
-      ? desenhoDeslizante5f
-    : ehDeslizante6f
-      ? desenhoDeslizante6f
-    : ehPma2f4m
-      ? desenhoPma2f4m
-    : ehPma6f
-      ? desenhoPma6f
-    : ehPma5f
-      ? desenhoPma5f
-    : ehPma4f
-      ? desenhoPma4f
-    : ehPma3f
-      ? desenhoPma3f
-    : ehPma2f
-      ? desenhoPma2f
-    : ehJc4fComSacada
-      ? dados.trinco === "Com trinco"
-        ? "/desenhos/janela-bct-trinco-4fls.png"
+    : ehBox2Fls ? desenhoBox2Fls
+    : ehDeslizante2f ? desenhoDeslizante2f
+    : ehDeslizante3f ? desenhoDeslizante3f
+    : ehDeslizante4f ? desenhoDeslizante4f
+    : ehDeslizante5f ? desenhoDeslizante5f
+    : ehDeslizante6f ? desenhoDeslizante6f
+    : ehPma2f4m ? desenhoPma2f4m
+    : ehPma6f ? desenhoPma6f
+    : ehPma5f ? desenhoPma5f
+    : ehPma4f ? desenhoPma4f
+    : ehPma3f ? desenhoPma3f
+    : ehPma2f ? desenhoPma2f
+    : ehJc4fComSacada ? dados.trinco === "Com trinco" ? "/desenhos/janela-bct-trinco-4fls.png"
         : "/desenhos/janela-bst-trinco-4fls.png"
-    : ehJc2fComSacada
-      ? dados.trinco === "Com trinco"
-        ? "/desenhos/janela-bct-trinco-2fls.png"
+    : ehJc2fComSacada ? dados.trinco === "Com trinco" ? "/desenhos/janela-bct-trinco-2fls.png"
         : "/desenhos/janela-bst-trinco-2fls.png"
-    : ehJanelaCorrer4Folhas
-    ? dados.trinco === "Com trinco"
-      ? "/desenhos/janela4fls-comtrinco.png"
+    : ehJanelaCorrer4Folhas ? dados.trinco === "Com trinco" ? "/desenhos/janela4fls-comtrinco.png"
       : "/desenhos/janela4fls-semtrinco.png"
-    : ehJanelaCorrer2Folhas
-      ? dados.trinco === "Com trinco"
-        ? "/desenhos/projeto2f-trinco.png"
+    : ehJanelaCorrer2Folhas ? dados.trinco === "Com trinco" ? "/desenhos/projeto2f-trinco.png"
         : "/desenhos/projeto2f-simples.png"
-    : ehPc2fComBandeira
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/portaband2fls-completa.png"
-        : dados.trinco !== "Sem trinco"
-          ? "/desenhos/portaband2fls-simples.png"
+    : ehPc2fComBandeira ? dados.puxador === "Com puxador" ? "/desenhos/portaband2fls-completa.png"
+        : dados.trinco !== "Sem trinco" ? "/desenhos/portaband2fls-simples.png"
           : "/desenhos/portaband2fls.png"
-    : ehPc4fComBandeira
-      ? dados.puxador === "Com puxador" && String(dados.trinco || "").includes("+ 1520")
-        ? "/desenhos/portaband4fls-completa.png"
-        : dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco"
-          ? "/desenhos/portaband4fls-puxadoretrinco.png"
-          : dados.puxador === "Com puxador"
-            ? "/desenhos/portaband4fls-puxador.png"
-            : String(dados.trinco || "").includes("+ 1520")
-              ? "/desenhos/portaband4fls-trincoechave.png"
-              : dados.trinco !== "Sem trinco"
-                ? "/desenhos/portaband4fls-trinco.png"
+    : ehPc4fComBandeira ? dados.puxador === "Com puxador" && String(dados.trinco || "").includes("+ 1520") ? "/desenhos/portaband4fls-completa.png"
+        : dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco" ? "/desenhos/portaband4fls-puxadoretrinco.png"
+          : dados.puxador === "Com puxador" ? "/desenhos/portaband4fls-puxador.png"
+            : String(dados.trinco || "").includes("+ 1520") ? "/desenhos/portaband4fls-trincoechave.png"
+              : dados.trinco !== "Sem trinco" ? "/desenhos/portaband4fls-trinco.png"
                 : "/desenhos/portaband4fls-simples.png"
-    : ehPc2f
-      ? dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco"
-        ? "/desenhos/projeto2fls-trincoepuxador.png"
-        : dados.puxador === "Com puxador"
-          ? "/desenhos/projeto2f-puxador.png"
+    : ehPc2f ? dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco" ? "/desenhos/projeto2fls-trincoepuxador.png"
+        : dados.puxador === "Com puxador" ? "/desenhos/projeto2f-puxador.png"
           : "/desenhos/projeto2f-simples.png"
-    : ehPc4f
-      ? dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco"
-        ? "/desenhos/porta4fls-completo.png"
-        : dados.puxador === "Com puxador"
-          ? "/desenhos/porta4fls-puxador.png"
-          : dados.trinco !== "Sem trinco"
-            ? "/desenhos/porta4fls-comtrincos.png"
+    : ehPc4f ? dados.puxador === "Com puxador" && dados.trinco !== "Sem trinco" ? "/desenhos/porta4fls-completo.png"
+        : dados.puxador === "Com puxador" ? "/desenhos/porta4fls-puxador.png"
+          : dados.trinco !== "Sem trinco" ? "/desenhos/porta4fls-comtrincos.png"
             : "/desenhos/porta4fls-simples.png"
-    : ehMax
-      ? dados.trinco === "Max com tubo"
-        ? "/desenhos/max-tubo.png"
-        : dados.trinco === "Max bandeira"
-          ? "/desenhos/max-unica vv.png"
-          : dados.trinco === "Max V/V"
-            ? "/desenhos/max-vv.png"
+    : ehMax ? dados.trinco === "Max com tubo" ? "/desenhos/max-tubo.png"
+        : dados.trinco === "Max bandeira" ? "/desenhos/max-unica vv.png"
+          : dados.trinco === "Max V/V" ? "/desenhos/max-vv.png"
             : "/desenhos/max-unica.png"
-    : ehPortaGiroFixo
-      ? normalizarTexto(dados.trinco).includes("vidro / vidro") || normalizarTexto(dados.trinco).includes("vidro vidro")
-        ? dados.trilho === "1520TA"
-          ? dados.puxador === "Com puxador"
-            ? "/desenhos/pgf-macpuxador.png"
+    : ehPortaGiroFixo ? normalizarTexto(dados.trinco).includes("vidro / vidro") || normalizarTexto(dados.trinco).includes("vidro vidro") ? dados.trilho === "1520TA" ? dados.puxador === "Com puxador" ? "/desenhos/pgf-macpuxador.png"
             : "/desenhos/pgf-mac.png"
-          : dados.puxador === "Com puxador"
-            ? "/desenhos/pgf-simplespuxador.png"
+          : dados.puxador === "Com puxador" ? "/desenhos/pgf-simplespuxador.png"
             : "/desenhos/pgf-simples.png"
-        : dados.trilho === "1520TA"
-          ? dados.puxador === "Com puxador"
-            ? "/desenhos/pg-macpuxador.png"
+        : dados.trilho === "1520TA" ? dados.puxador === "Com puxador" ? "/desenhos/pg-macpuxador.png"
             : "/desenhos/pg-mac.png"
-          : dados.puxador === "Com puxador"
-            ? "/desenhos/pg-simplespuxador.png"
+          : dados.puxador === "Com puxador" ? "/desenhos/pg-simplespuxador.png"
             : "/desenhos/pg-simples.png"
-    : ehPortaGiro2Folhas
-      ? dados.puxador === "Com puxador"
-        ? "/desenhos/portagiro-2flscompleto.png"
+    : ehPortaGiro2Folhas ? dados.puxador === "Com puxador" ? "/desenhos/portagiro-2flscompleto.png"
         : "/desenhos/portagiro-2fls.png"
-    : ehPortaGiro
-      ? String(dados.trinco || "").toLowerCase().includes("dobradi")
-        ? dados.trilho === "Sem fechadura"
-          ? "/desenhos/portagirodob-1flssimples.png"
-          : dados.trilho === "1520TA" && dados.puxador === "Com puxador"
-            ? "/desenhos/portagirodob-1fls1520tacompleto.png"
-            : dados.trilho === "1520TA"
-              ? "/desenhos/portagirodob-1fls1520ta.png"
-              : dados.puxador === "Com puxador"
-                ? "/desenhos/portagirodob-1flscompleto.png"
+    : ehPortaGiro ? String(dados.trinco || "").toLowerCase().includes("dobradi") ? dados.trilho === "Sem fechadura" ? "/desenhos/portagirodob-1flssimples.png"
+          : dados.trilho === "1520TA" && dados.puxador === "Com puxador" ? "/desenhos/portagirodob-1fls1520tacompleto.png"
+            : dados.trilho === "1520TA" ? "/desenhos/portagirodob-1fls1520ta.png"
+              : dados.puxador === "Com puxador" ? "/desenhos/portagirodob-1flscompleto.png"
                 : "/desenhos/portagirodob-1fls.png"
-        : dados.trilho === "1520TA" && dados.puxador === "Com puxador"
-          ? "/desenhos/portagiro-1fls1520tacompleto.png"
-          : dados.trilho === "1520TA"
-            ? "/desenhos/portagiro-1fls1520ta.png"
-            : dados.puxador === "Com puxador"
-              ? "/desenhos/portagiro-1flscompleto.png"
+        : dados.trilho === "1520TA" && dados.puxador === "Com puxador" ? "/desenhos/portagiro-1fls1520tacompleto.png"
+          : dados.trilho === "1520TA" ? "/desenhos/portagiro-1fls1520ta.png"
+            : dados.puxador === "Com puxador" ? "/desenhos/portagiro-1flscompleto.png"
               : "/desenhos/portagiro-1fls.png"
-    : dados.puxador === "Com puxador"
-      ? ehDuasFolhas
-        ? "/desenhos/portaforavao-2flscompleto.png"
+    : dados.puxador === "Com puxador" ? ehDuasFolhas ? "/desenhos/portaforavao-2flscompleto.png"
         : "/desenhos/portaforavao-1flscompleto.png"
-      : ehDuasFolhas
-        ? "/desenhos/portaforavao-2fls.png"
+      : ehDuasFolhas ? "/desenhos/portaforavao-2fls.png"
         : "/desenhos/portaforavao-1fls.png";
+
+  const ehPdfPremiumJc4f = ehJanelaCorrer4Folhas && !ehJanelaComSacada;
+  const materiaisVidroPremium = materiaisOrdenados.filter((item) => normalizarTexto(item.descricao).includes("vidro"));
+  const materiaisComplementaresPremium = materiaisOrdenados.filter((item) => !normalizarTexto(item.descricao).includes("vidro"));
+  const medidaDescricao = (descricao: string) => {
+    const medida = descricao.match(/(\d+(?:[,.]\d+)x)\s*x\s*(\d+(?:[,.]\d+)x)/i);
+    return medida ? `${medida[1]} ? ${medida[2]} mm` : `${dados.largura || 0} ? ${dados.altura || 0} mm`;
+  };
+  const vidroDescricao = (descricao: string) =>
+    descricao
+      .replace(/vidro\s+fixo/i, "")
+      .replace(/vidro\s+movel/i, "")
+      .replace(/vidro\s+móvel/i, "")
+      .replace(/(\d+(?:[,.]\d+)x)\s*x\s*(\d+(?:[,.]\d+)x)/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const qtdPecasVidroPremium = (descricao: string) =>
+    normalizarTexto(descricao).includes("vidro fixo") || normalizarTexto(descricao).includes("vidro movel") ? Math.max(0, Number(dados.quantidade || 0) * 2)
+      : Number(dados.quantidade || 0);
+
+  if (ehPdfPremiumJc4f) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.premiumPage}>
+          <View style={styles.premiumHeader}>
+            <View style={styles.brand}>
+              {logoUrl ? (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image src={logoUrl} style={styles.premiumLogo} />
+              ) : (
+                <View>
+                  <Text style={styles.premiumBrandName}>Glass Code</Text>
+                  <Text style={styles.premiumBrandSub}>Projetos em vidros e ferragens</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.premiumMeta}>
+              <View style={styles.premiumMetaBox}>
+                <Text style={styles.premiumMetaLabel}>Nº orçamento</Text>
+                <Text style={styles.premiumMetaValue}>{dados.numero || "-"}</Text>
+              </View>
+              <View style={styles.premiumMetaBox}>
+                <Text style={styles.premiumMetaLabel}>Data</Text>
+                <Text style={styles.premiumMetaValue}>{dados.data || "-"}</Text>
+              </View>
+              <View style={styles.premiumMetaBox}>
+                <Text style={styles.premiumMetaLabel}>Cliente</Text>
+                <Text style={styles.premiumMetaValue}>{dados.cliente || "-"}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.premiumTitleRow}>
+            <Text style={styles.premiumTitleLabel}>Projeto</Text>
+            <Text style={styles.premiumTitleValue}>{nomeProjeto}</Text>
+          </View>
+
+          <View style={styles.premiumMainGrid}>
+            <View style={styles.premiumDrawingCard}>
+              <Text style={styles.premiumSectionTitle}>Desenho ilustrativo</Text>
+              <View style={styles.premiumLine} />
+              <View style={styles.premiumDrawingBox}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={desenhoSrc} style={styles.premiumDrawingImage} />
+              </View>
+            </View>
+
+            <View style={styles.premiumInfoCard}>
+              <Text style={styles.premiumSectionTitle}>Dados do projeto</Text>
+              <View style={styles.premiumLine} />
+              <View style={styles.premiumInfoGrid}>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Largura</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.largura || 0} mm</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Altura</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.altura || 0} mm</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Quantidade</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.quantidade || 0} vão(s)</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Vidro</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.vidro || "-"}</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Cor do material</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.corKit || "-"}</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Trinco</Text>
+                  <Text style={styles.premiumInfoValue}>{dados.trinco || "-"}</Text>
+                </View>
+                <View style={styles.premiumInfoItem}>
+                  <Text style={styles.premiumInfoLabel}>Modo</Text>
+                  <Text style={styles.premiumInfoValue}>{normalizarTexto(dados.projeto).includes("kit") ? "Kit" : "Barra"}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.premiumTableCard} wrap={false}>
+            <Text style={styles.premiumSectionTitle}>Vidros do projeto</Text>
+            <View style={styles.premiumLine} />
+            <View style={styles.premiumTableHeader}>
+              <Text style={[styles.premiumTh, styles.premiumColQtd]}>Qtd</Text>
+              <Text style={[styles.premiumTh, styles.premiumColMedida]}>Medida</Text>
+              <Text style={[styles.premiumTh, styles.premiumColVidro]}>Vidro</Text>
+              <Text style={[styles.premiumTh, styles.premiumColM2]}>m²</Text>
+              <Text style={[styles.premiumTh, styles.premiumColTotal]}>Total</Text>
+            </View>
+            {materiaisVidroPremium.map((item) => (
+              <View key={item.id} style={styles.premiumTr} wrap={false}>
+                <Text style={[styles.premiumTd, styles.premiumColQtd]}>{Number(qtdPecasVidroPremium(item.descricao) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColMedida]}>{medidaDescricao(item.descricao)}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item.descricao) || dados.vidro || "-"}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColM2]}>{numero(item.qtd)}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.premiumTableCard}>
+            <Text style={styles.premiumSectionTitle}>Relação de materiais</Text>
+            <View style={styles.premiumLine} />
+            <View style={styles.premiumTableHeader}>
+              <Text style={[styles.premiumTh, styles.premiumColQtd]}>Qtd</Text>
+              <Text style={[styles.premiumTh, styles.premiumColDesc]}>Produto / descrição</Text>
+              <Text style={[styles.premiumTh, styles.premiumColUn]}>Und</Text>
+              <Text style={[styles.premiumTh, styles.premiumColUnit]}>Unit.</Text>
+              <Text style={[styles.premiumTh, styles.premiumColTotal]}>Total</Text>
+            </View>
+            {materiaisComplementaresPremium.map((item) => (
+              <View key={item.id} style={styles.premiumTr} wrap={false}>
+                <Text style={[styles.premiumTd, styles.premiumColQtd]}>{quantidade(item.qtd, item.unidade)}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColDesc]}>{item.descricao}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColUn]}>{item.unidade}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColUnit]}>{moeda(item.valorUnitario)}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.premiumSummary} wrap={false}>
+            <View style={styles.premiumSummaryBox}>
+              <Text style={styles.premiumSummaryLabel}>Área total</Text>
+              <Text style={styles.premiumSummaryValue}>{numero(areaTotal)} m²</Text>
+            </View>
+            <View style={styles.premiumSummaryBox}>
+              <Text style={styles.premiumSummaryLabel}>Qtd. peças</Text>
+              <Text style={styles.premiumSummaryValue}>{numero(totalVidros)}</Text>
+            </View>
+            <View style={styles.premiumSummaryBox}>
+              <Text style={styles.premiumSummaryLabel}>Valor vidro</Text>
+              <Text style={styles.premiumSummaryValue}>{moeda(valorVidros)}</Text>
+            </View>
+            <View style={styles.premiumSummaryBox}>
+              <Text style={styles.premiumSummaryLabel}>Valor kit/perfis</Text>
+              <Text style={styles.premiumSummaryValue}>{moeda(valorKitPerfis)}</Text>
+            </View>
+            <View style={styles.premiumSummaryBox}>
+              <Text style={styles.premiumSummaryLabel}>Valor ferragens</Text>
+              <Text style={styles.premiumSummaryValue}>{moeda(valorFerragens)}</Text>
+            </View>
+            <View style={[styles.premiumSummaryBox, styles.premiumSummaryTotal]}>
+              <Text style={styles.premiumSummaryLabel}>Valor total</Text>
+              <Text style={styles.premiumSummaryValueStrong}>{moeda(total)}</Text>
+            </View>
+          </View>
+          <Text style={styles.footer}>Projeto individual gerado pelo Glass Code</Text>
+        </Page>
+      </Document>
+    );
+  }
 
   return (
     <Document>

@@ -183,14 +183,12 @@ export default function AcabamentosPage() {
 
                 // Se for porcentagem, preço é 0, senão é o valor digitado
                 preco:
-                    novoAcabamento.tipo_calculo === "porcentagem"
-                        ? 0
+                    novoAcabamento.tipo_calculo === "porcentagem" ? 0
                         : Number(novoAcabamento.preco) || 0,
 
                 // Se for porcentagem, o valor digitado vai para porcentagem_aumento
                 porcentagem_aumento:
-                    novoAcabamento.tipo_calculo === "porcentagem"
-                        ? Number(novoAcabamento.preco) || 0
+                    novoAcabamento.tipo_calculo === "porcentagem" ? Number(novoAcabamento.preco) || 0
                         : 0,
 
                 sobra_largura: Number(novoAcabamento.sobra_largura) || 0,
@@ -373,15 +371,13 @@ export default function AcabamentosPage() {
                                             <td className="px-4 py-3.5 text-gray-700">
                                                 {s.nome}
                                                 {(s.sobra_largura > 0 || s.sobra_altura > 0) && (
-                                                    <span className="block text-xs text-gray-400">+{s.sobra_largura}cm x +{s.sobra_altura}cm</span>
+                                                    <span className="block text-xs text-gray-400">+{s.sobra_largura}cm ? +{s.sobra_altura}cm</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3.5"><span className="rounded-full border px-2.5 py-1 text-[11px] font-normal" style={{ color: theme.tertiary, borderColor: `${theme.tertiary}33`, backgroundColor: `${theme.tertiary}10` }}>{s.tipo_calculo}</span></td>
                                             <td className="px-4 py-3.5 text-gray-700">
-                                                {s.tipo_calculo === 'porcentagem'
-                                                    ? `${s.porcentagem_aumento ?? 0}%`
-                                                    : s.tipo_calculo === 'm2'
-                                                        ? `${formatarPreco(s.preco)} / m²` // <--- Adicionado
+                                                {s.tipo_calculo === 'porcentagem' ? `${s.porcentagem_aumento ?? 0}%`
+                                                    : s.tipo_calculo === 'm2' ? `${formatarPreco(s.preco)} / m²` // <--- Adicionado
                                                         : formatarPreco(s.preco)}
                                             </td>
 
@@ -395,8 +391,7 @@ export default function AcabamentosPage() {
                                                             setEditando(s);
                                                             setNovoAcabamento({
                                                                 ...s,
-                                                                preco: s.tipo_calculo === 'porcentagem'
-                                                                    ? (s.porcentagem_aumento ?? 0)
+                                                                preco: s.tipo_calculo === 'porcentagem' ? (s.porcentagem_aumento ?? 0)
                                                                     : (s.preco ?? 0),
 
                                                                 bordasSelecionadas: s.bordasSelecionadas ?? [s.tipo_visual?.split('-')[0] || 'lapidado'],
@@ -505,8 +500,7 @@ export default function AcabamentosPage() {
                                             onClick={() => {
                                                 // Se já tem lapidado, remove, senão adiciona
                                                 const bordas = novoAcabamento.bordasSelecionadas || [];
-                                                const novasBordas = bordas.includes('lapidado')
-                                                    ? bordas.filter(b => b !== 'lapidado')
+                                                const novasBordas = bordas.includes('lapidado') ? bordas.filter(b => b !== 'lapidado')
                                                     : [...bordas, 'lapidado'];
                                                 setNovoAcabamento({ ...novoAcabamento, bordasSelecionadas: novasBordas } as any);
                                             }}
@@ -520,8 +514,7 @@ export default function AcabamentosPage() {
                                             type="button"
                                             onClick={() => {
                                                 const bordas = novoAcabamento.bordasSelecionadas || [];
-                                                const novasBordas = bordas.includes('bisote')
-                                                    ? bordas.filter(b => b !== 'bisote')
+                                                const novasBordas = bordas.includes('bisote') ? bordas.filter(b => b !== 'bisote')
                                                     : [...bordas, 'bisote'];
                                                 setNovoAcabamento({ ...novoAcabamento, bordasSelecionadas: novasBordas } as any);
                                             }}
@@ -552,7 +545,7 @@ export default function AcabamentosPage() {
                                                 })
                                             }}
                                             className={`col-span-2 flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all 
-    ${novoAcabamento.formatoSelecionado === 'jogo' // VERIFICAÇÃO: usa 'jogo'
+    ${novoAcabamento.formatoSelecionado === 'jogo'
                                                     ? 'border-blue-500 bg-blue-50'
                                                     : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
                                         >
@@ -580,8 +573,7 @@ export default function AcabamentosPage() {
                                                             setNovoAcabamento({ ...novoAcabamento, formatoSelecionado: opt.value as any })
                                                         }}
                                                         className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all 
-                                ${novoAcabamento.formatoSelecionado === opt.value
-                                                                ? 'border-blue-500 bg-blue-50'
+                                ${novoAcabamento.formatoSelecionado === opt.value ? 'border-blue-500 bg-blue-50'
                                                                 : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
                                                     >
                                                         <div className={`${opt.size ?? 'w-12 h-12'} bg-white ${opt.className}`}></div>
@@ -630,7 +622,7 @@ export default function AcabamentosPage() {
                                     Excluir Acabamento
                                 </h3>
                                 <p className="mt-1 text-sm leading-6 text-gray-500">
-                                    Tem certeza que deseja excluir o acabamento <span className="font-medium text-gray-700">{acabamentoParaExcluir.nome}</span>?
+                                    Tem certeza que deseja excluir o acabamento <span className="font-medium text-gray-700">{acabamentoParaExcluir.nome}</span>x
                                 </p>
                             </div>
                         </div>

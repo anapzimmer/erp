@@ -177,7 +177,7 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const eliminarDuplicados = () => {
     setModalAviso({
       titulo: "Eliminar Duplicados",
-      mensagem: "Tem certeza que deseja remover perfis que tenham o MESMO CÓDIGO e a MESMA COR? Manteremos apenas o primeiro registro de cada combinação.",
+      mensagem: "Tem certeza que deseja remover perfis que tenham o MESMO CÓDIGO e a MESMA CORx Manteremos apenas o primeiro registro de cada combinação.",
       confirmar: async () => {
         setCarregando(true);
         try {
@@ -258,7 +258,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const text = await decodeCsvFile(file);
 
       // Divide linhas e ignora o cabeçalho
-      const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0).slice(1);
+      const rows = text.split(/\rx\n/).filter(row => row.trim().length > 0).slice(1);
       
       let importados = 0;
 
@@ -398,7 +398,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const deletarPerfil = (id: string) => {
     setModalAviso({
       titulo: "Confirmar Exclusão",
-      mensagem: "Tem certeza que deseja excluir este perfil?",
+      mensagem: "Tem certeza que deseja excluir este perfilx",
       confirmar: async () => {
         const { error } = await supabase
           .from("perfis")
@@ -482,7 +482,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       titulo: "Excluir perfis selecionados",
       mensagem: `Tem certeza que deseja excluir ${ids.length} ${
         ids.length === 1 ? "perfil" : "perfis"
-      }?`,
+      }x`,
       confirmar: async () => {
         setCarregando(true)
 
@@ -808,8 +808,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                       onClick={alternarSelecaoFiltrados}
                       disabled={!perfisFiltrados.length}
                       className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
-                        todosFiltradosSelecionados
-                          ? "border-transparent"
+                        todosFiltradosSelecionados ? "border-transparent"
                           : "border-gray-300 bg-white"
                       }`}
                       style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
@@ -928,7 +927,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
                   <input
                     type="text"
-                    placeholder="Ex: VT66"
+                    placeholder="E?: VT66"
                     value={novoPerfil.codigo}
                     onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -939,7 +938,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
                   <input
                     type="text"
-                    placeholder="Ex: Alumínio"
+                    placeholder="E?: Alumínio"
                     value={novoPerfil.cores}
                     onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -950,7 +949,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do perfil *</label>
                   <input
                     type="text"
-                    placeholder="Ex: Trilho superior"
+                    placeholder="E?: Trilho superior"
                     value={novoPerfil.nome}
                     onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
@@ -962,7 +961,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
                   <input
                     type="text"
-                    placeholder="Ex: Trilho"
+                    placeholder="E?: Trilho"
                     value={novoPerfil.categoria}
                     onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"

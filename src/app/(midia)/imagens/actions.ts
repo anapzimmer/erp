@@ -44,7 +44,7 @@ export async function analyzeImageWithGemini(input: AnalyzeImageInput): Promise<
   const endpoint =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-  const response = await fetch(`${endpoint}?key=${apiKey}`, {
+  const response = await fetch(`${endpoint}xkey=${apiKey}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

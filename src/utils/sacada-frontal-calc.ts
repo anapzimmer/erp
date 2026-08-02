@@ -56,7 +56,7 @@ const ACESSORIOS_PADRAO = [
   "Suporte fixacao corrimao",
   "Suporte fixacao vidro",
   "Guarnicao",
-  "Parafuso 1/4 x 5/8",
+  "Parafuso 1/4 ? 5/8",
   "Porca 1/4",
   "Tampa nylon 3/4",
   "Tapa furo 3/8",

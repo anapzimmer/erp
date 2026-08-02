@@ -426,7 +426,7 @@ export default function Dashboard() {
     {
       titulo: "Ver relatórios",
       descricao: "Acompanhar resultados",
-      href: "/admin/relatorio.orcamento?periodo=30d",
+      href: "/admin/relatorio.orcamentoxperiodo=30d",
       icon: BarChart3,
     },
   ];
@@ -586,8 +586,7 @@ export default function Dashboard() {
                       className="mt-2 text-xs font-semibold"
                       style={{ color: card.cor }}
                     >
-                      {carregandoResumo
-                        ? "Atualizando informações..."
+                      {carregandoResumo ? "Atualizando informações..."
                         : card.descricao}
                     </p>
                   </div>
@@ -854,8 +853,7 @@ export default function Dashboard() {
                         className="mt-1 text-lg font-semibold"
                         style={{ color: theme.contentTextLightBg }}
                       >
-                        {carregandoResumo
-                          ? "—"
+                        {carregandoResumo ? "—"
                           : formatarMoeda(resumo.faturamentoHoje)}
                       </p>
                     </div>
@@ -919,7 +917,7 @@ export default function Dashboard() {
               </div>
 
               <Link
-                href="/admin/relatorio.orcamento?periodo=30d"
+                href="/admin/relatorio.orcamentoxperiodo=30d"
                 className="group flex items-center gap-1 text-xs font-medium"
                 style={{ color: theme.menuBackgroundColor }}
               >
@@ -976,8 +974,7 @@ export default function Dashboard() {
                         style={{
                           color: theme.menuBackgroundColor,
                           backgroundColor:
-                            index === 0
-                              ? `${theme.menuBackgroundColor}14`
+                            index === 0 ? `${theme.menuBackgroundColor}14`
                               : `${theme.menuBackgroundColor}09`,
                         }}
                       >
@@ -989,8 +986,7 @@ export default function Dashboard() {
                           className="truncate text-sm font-medium"
                           style={{ color: theme.contentTextLightBg }}
                         >
-                          {item.numero_formatado
-                            ? `Orçamento ${item.numero_formatado}`
+                          {item.numero_formatado ? `Orçamento ${item.numero_formatado}`
                             : "Orçamento sem número"}
                         </p>
                         <p

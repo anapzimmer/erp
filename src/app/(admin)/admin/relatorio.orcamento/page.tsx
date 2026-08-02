@@ -199,7 +199,7 @@ const extrairMedidasPinazio = (item: OrcamentoItem) => {
     );
 
     const correspondencia = textoMedidas.match(
-        /(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/i
+        /(\d+(?:[.,]\d+)x)\s*[xX×]\s*(\d+(?:[.,]\d+)x)/i
     );
 
     if (!correspondencia) {
@@ -522,16 +522,13 @@ export default function RelatorioOrcamento() {
     const fimPeriodo = dataFim ? parseDataInputLocal(dataFim) : null;
 
     const inicioPeriodoTs = inicioPeriodo ? inicioPeriodo.getTime() : null;
-    const fimPeriodoTs = fimPeriodo
-        ? new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), fimPeriodo.getDate(), 23, 59, 59, 999).getTime()
+    const fimPeriodoTs = fimPeriodo ? new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), fimPeriodo.getDate(), 23, 59, 59, 999).getTime()
         : null;
 
-    const periodoInicioFinal = inicioPeriodoTs != null && fimPeriodoTs != null
-        ? Math.min(inicioPeriodoTs, fimPeriodoTs)
+    const periodoInicioFinal = inicioPeriodoTs != null && fimPeriodoTs != null ? Math.min(inicioPeriodoTs, fimPeriodoTs)
         : inicioPeriodoTs;
 
-    const periodoFimFinal = inicioPeriodoTs != null && fimPeriodoTs != null
-        ? Math.max(inicioPeriodoTs, fimPeriodoTs)
+    const periodoFimFinal = inicioPeriodoTs != null && fimPeriodoTs != null ? Math.max(inicioPeriodoTs, fimPeriodoTs)
         : fimPeriodoTs;
 
     const orcamentosFiltrados = orcamentos.filter(orc => {
@@ -575,17 +572,14 @@ export default function RelatorioOrcamento() {
         const numero = String(orc.numero_formatado || "");
 
         const itensObj =
-            orc.itens && !Array.isArray(orc.itens)
-                ? orc.itens
+            orc.itens && !Array.isArray(orc.itens) ? orc.itens
                 : undefined;
 
         const tipoItem =
-            typeof itensObj?.tipo === "string"
-                ? itensObj.tipo
+            typeof itensObj?.tipo === "string" ? itensObj.tipo
                 : "";
 
-        const itensArray = Array.isArray(orc.itens)
-            ? orc.itens
+        const itensArray = Array.isArray(orc.itens) ? orc.itens
             : [];
 
         const possuiItemPinazio = itensArray.some((item) =>
@@ -659,8 +653,10 @@ export default function RelatorioOrcamento() {
             jc2fcs_kit: `/jc2fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4f_kit: `/jc4f-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4f_barra: `/jc4f-barra?edit=${orc.id}&returnTo=${returnTo}`,
-           jc4fcbs: `/jc4fcbs?edit=${orc.id}&returnTo=${returnTo}`,
-jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcb: `/jc4fcb?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcb_kit: `/jc4fcb-kit?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcbs: `/jc4fcbs?edit=${orc.id}&returnTo=${returnTo}`,
+            jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             jc4fcs: `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`,
             jc4fcs_kit: `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             pg_1f: `/pg?edit=${orc.id}&returnTo=${returnTo}`,
@@ -718,29 +714,21 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
     }
 
     const itensRaw = orcamentoParaVisualizar?.itens;
-    const itensPersistidos = (!Array.isArray(itensRaw) && itensRaw && typeof itensRaw === "object")
-        ? itensRaw as OrcamentoCalculoprojetoPersistido
+    const itensPersistidos = (!Array.isArray(itensRaw) && itensRaw && typeof itensRaw === "object") ? itensRaw as OrcamentoCalculoprojetoPersistido
         : null;
     const ehOrcamentoCalculoprojeto = itensPersistidos?.tipo === "calculoprojeto";
-    const itens: OrcamentoItem[] = Array.isArray(itensRaw)
-        ? itensRaw
-        : Array.isArray(itensPersistidos?.comercial?.itens)
-            ? itensPersistidos.comercial.itens
+    const itens: OrcamentoItem[] = Array.isArray(itensRaw) ? itensRaw
+        : Array.isArray(itensPersistidos?.comercial?.itens) ? itensPersistidos.comercial.itens
             : [];
-    const metragemTotalVisualizacao = ehOrcamentoCalculoprojeto
-        ? Number(itensPersistidos?.comercial?.metragemTotal) || 0
+    const metragemTotalVisualizacao = ehOrcamentoCalculoprojeto ? Number(itensPersistidos?.comercial?.metragemTotal) || 0
         : Number(orcamentoParaVisualizar?.metragem_total) || 0;
-    const totalPecasVisualizacao = ehOrcamentoCalculoprojeto
-        ? Number(itensPersistidos?.comercial?.totalPecas) || itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0)
+    const totalPecasVisualizacao = ehOrcamentoCalculoprojeto ? Number(itensPersistidos?.comercial?.totalPecas) || itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0)
         : Number(orcamentoParaVisualizar?.total_pecas) || itens.reduce((acc, item) => acc + Number(item.qtd || 0), 0);
-    const relatorioTecnicoVisualizacao = Array.isArray(itensPersistidos?.tecnico?.relatorioObra)
-        ? itensPersistidos.tecnico.relatorioObra
+    const relatorioTecnicoVisualizacao = Array.isArray(itensPersistidos?.tecnico?.relatorioObra) ? itensPersistidos.tecnico.relatorioObra
         : [];
-    const otimizacaoTecnicaVisualizacao = Array.isArray(itensPersistidos?.tecnico?.otimizacaoGlobal)
-        ? itensPersistidos.tecnico.otimizacaoGlobal
+    const otimizacaoTecnicaVisualizacao = Array.isArray(itensPersistidos?.tecnico?.otimizacaoGlobal) ? itensPersistidos.tecnico.otimizacaoGlobal
         : [];
-    const itensTemperaVisualizacao = Array.isArray(itensPersistidos?.tempera?.itens)
-        ? itensPersistidos.tempera.itens
+    const itensTemperaVisualizacao = Array.isArray(itensPersistidos?.tempera?.itens) ? itensPersistidos.tempera.itens
         : [];
     const ehSacadaVisualizar =
         /^SAC/i.test(String(orcamentoParaVisualizar?.numero_formatado || "")) ||
@@ -1098,7 +1086,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                     warning: theme.modalIconWarningColor,
                 }}
             />
-            {/* TOAST DISCRETO - PADR?O ERP */}
+            {/* TOAST DISCRETO - PADRxO ERP */}
             {showToast && (
                 <div className="fixed bottom-8 right-8 z-110 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div
@@ -1146,8 +1134,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                             type="button"
                                             onClick={() => setTipoPreviewCalculoprojeto(aba.id as "comercial" | "tecnico" | "tempera")}
                                             className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
-                                            style={tipoPreviewCalculoprojeto === aba.id
-                                                ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
+                                            style={tipoPreviewCalculoprojeto === aba.id ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
                                                 : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
                                         >
                                             {aba.label}
@@ -1162,8 +1149,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
                                     {/* PDF da Pele de Vidro */}
                                     {(() => {
-                                        const itensRaw = (orcamentoParaVisualizar?.itens && !Array.isArray(orcamentoParaVisualizar.itens))
-                                            ? orcamentoParaVisualizar.itens as Record<string, unknown>
+                                        const itensRaw = (orcamentoParaVisualizar?.itens && !Array.isArray(orcamentoParaVisualizar.itens)) ? orcamentoParaVisualizar.itens as Record<string, unknown>
                                             : {};
                                         if (ehOrcamentoCalculoprojeto) {
                                             if (tipoPreviewCalculoprojeto === "tecnico") {
@@ -1198,28 +1184,20 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
                                         if (tipo === "orcamento_projetos") {
                                             const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
-                                            const projetosOrigem = Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0
-                                                ? dadosProjetos.projetosOtimizados
+                                            const projetosOrigem = Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0 ? dadosProjetos.projetosOtimizados
                                                 : dadosProjetos.projetos;
-                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(projetosOrigem)
-                                                ? projetosOrigem.map((item, index) => ({
+                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(projetosOrigem) ? projetosOrigem.map((item, index) => ({
                                                     id: String(item.id || index),
                                                     numero: String(item.numero || orcamentoParaVisualizar?.numero_formatado || ""),
-                                                    projeto: item.projeto === "PFV1F - KIT"
-                                                        ? "Porta de correr atrás do Vão - 1 folha"
-                                                        : item.projeto === "PFV2F - KIT"
-                                                            ? "Porta de correr atrás do vão - 2 folhas"
-                                                            : item.projeto === "PC2F - KIT"
-                                                                ? "Porta de correr 2 folhas"
-                                                            : item.projeto === "PC4F - KIT"
-                                                                ? "Porta de correr 4 folhas"
-                                                            : item.projeto === "JC4F - KIT"
-                                                                ? "Janela de correr 4 folhas"
-                                                                : item.projeto === "JC2F - KIT"
-                                                                    ? "Janela de correr 2 folhas"
+                                                    projeto: item.projeto === "PFV1F - KIT" ? "Porta de correr atrás do Vão - 1 folha"
+                                                        : item.projeto === "PFV2F - KIT" ? "Porta de correr atrás do vão - 2 folhas"
+                                                            : item.projeto === "PC2F - KIT" ? "Porta de correr 2 folhas"
+                                                            : item.projeto === "PC4F - KIT" ? "Porta de correr 4 folhas"
+                                                            : item.projeto === "JC4F - KIT" ? "Janela de correr 4 folhas"
+                                                                : item.projeto === "JC2F - KIT" ? "Janela de correr 2 folhas"
                                                             : String(item.projeto || "Projeto"),
                                                     cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || item.cliente || ""),
-                                                    medidas: item.medidas || `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
+                                                    medidas: item.medidas || `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`,
                                                     largura: Number(item.largura || 0),
                                                     altura: Number(item.altura || 0),
                                                     quantidade: Number(item.quantidade || 0),
@@ -1242,8 +1220,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                                     materiais: item.materiais,
                                                 }))
                                                 : [];
-                                            const otimizacaoPerfis = Array.isArray(dadosProjetos.otimizacaoPerfis)
-                                                ? dadosProjetos.otimizacaoPerfis as CentralOtimizacaoPerfil[]
+                                            const otimizacaoPerfis = Array.isArray(dadosProjetos.otimizacaoPerfis) ? dadosProjetos.otimizacaoPerfis as CentralOtimizacaoPerfil[]
                                                 : [];
 
                                             return (
@@ -1259,19 +1236,17 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc4fcs" || tipo === "jc4fcs_kit" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "jc2fcs" || tipo === "jc2fcs_kit" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "pgf" || tipo === "max" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "boxcanto3f" || tipo === "boxcanto" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
-                                            const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object"
-                                                ? itensRaw.dados as Partial<ProjetoIndividualDados>
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "jc4fcb" || tipo === "jc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc4fcs" || tipo === "jc4fcs_kit" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "jc2fcs" || tipo === "jc2fcs_kit" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "pgf" || tipo === "max" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "boxcanto3f" || tipo === "boxcanto" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
+                                            const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object" ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
-                                            const materiaisPdf = Array.isArray(itensRaw.materiais)
-                                                ? itensRaw.materiais as ProjetoIndividualDados["materiais"]
+                                            const materiaisPdf = Array.isArray(itensRaw.materiais) ? itensRaw.materiais as ProjetoIndividualDados["materiais"]
                                                 : [];
 
                                             return (
                                                 <ProjetoIndividualPDF
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
-                                                        projeto: String(dadosPdf.projeto || (tipo === "max" ? "MAX" : tipo === "pgf" ? "Porta de giro com fixo lateral" : tipo === "jc4fcs" || tipo === "jc4fcs_kit" ? "Janela de correr 4 folhas com sacada inferior" : tipo === "jc2fcs" || tipo === "jc2fcs_kit" ? "Janela de correr 2 folhas com sacada inferior" : tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "boxcanto3f" ? "Box de canto 3 folhas" : tipo === "boxcanto" ? "Box de canto" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
+                                                        projeto: String(dadosPdf.projeto || (tipo === "max" ? "MAX" : tipo === "pgf" ? "Porta de giro com fixo lateral" : tipo === "jc4fcb" || tipo === "jc4fcb_kit" ? "Janela de correr 4 folhas com bandeira" : tipo === "jc4fcs" || tipo === "jc4fcs_kit" ? "Janela de correr 4 folhas com sacada inferior" : tipo === "jc2fcs" || tipo === "jc2fcs_kit" ? "Janela de correr 2 folhas com sacada inferior" : tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "boxcanto3f" ? "Box de canto 3 folhas" : tipo === "boxcanto" ? "Box de canto" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),
                                                         numero: orcamentoParaVisualizar?.numero_formatado || String(dadosPdf.numero || ""),
                                                         data: String(dadosPdf.data || new Date(orcamentoParaVisualizar?.created_at || Date.now()).toLocaleDateString("pt-BR")),
                                                         cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosPdf.cliente || ""),
@@ -1397,11 +1372,9 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
 
                                             const perfisRaw = Array.isArray(sacadaData.perfis) ? sacadaData.perfis as Array<Record<string, unknown>> : [];
                                             const acessRaw = Array.isArray(sacadaData.acessorios) ? sacadaData.acessorios as Array<Record<string, unknown>> : [];
-                                            const acessGuardaRaw = Array.isArray(sacadaData.acessoriosGuardaCorpo)
-                                                ? sacadaData.acessoriosGuardaCorpo as Array<Record<string, unknown>>
+                                            const acessGuardaRaw = Array.isArray(sacadaData.acessoriosGuardaCorpo) ? sacadaData.acessoriosGuardaCorpo as Array<Record<string, unknown>>
                                                 : [];
-                                            const acessFechamentoRaw = Array.isArray(sacadaData.acessoriosFechamentoSacadaSuperior)
-                                                ? sacadaData.acessoriosFechamentoSacadaSuperior as Array<Record<string, unknown>>
+                                            const acessFechamentoRaw = Array.isArray(sacadaData.acessoriosFechamentoSacadaSuperior) ? sacadaData.acessoriosFechamentoSacadaSuperior as Array<Record<string, unknown>>
                                                 : [];
 
                                             const perfisArr: SacadaPerfisProp = perfisRaw.map((p) => ({
@@ -1447,7 +1420,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                                     divisoesPorVao={divGeral}
                                                     corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
                                                     vidroDescricao={String(sacadaData.vidroDescricao || "")}
-                                                    medidaVidro={String(sacadaData.medidaVidro || `Inf: ${larguraVidroInferior} x ${alturaVidroInferior} mm | Sup: ${larguraVidroSuperior} x ${alturaVidroSuperior} mm`)}
+                                                    medidaVidro={String(sacadaData.medidaVidro || `Inf: ${larguraVidroInferior} ? ${alturaVidroInferior} mm | Sup: ${larguraVidroSuperior} ? ${alturaVidroSuperior} mm`)}
                                                     areaTotal={areaTotal}
                                                     totalVidro={totalVidro}
                                                     perfis={perfisArr}
@@ -1524,7 +1497,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                                     divisoesPorVao={divVao}
                                                     corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
                                                     vidroDescricao={String(sacadaData.vidroDescricao || "")}
-                                                    medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
+                                                    medidaVidro={`${sacResult.larguraVidroMm} ? ${sacResult.alturaVidroMm} mm`}
                                                     areaTotal={sacResult.areaTotalVidro}
                                                     totalVidro={totalVidro}
                                                     perfis={perfisArr}
@@ -1599,7 +1572,7 @@ jc4fcbs_kit: `/jc4fcbs-kit?edit=${orc.id}&returnTo=${returnTo}`,
                                         // Espelhos
                                         if (
                                             !ehPinazioPreview &&
-                                            /^OR(?!C)/i.test(
+                                            /^OR(x!C)/i.test(
                                                 orcamentoParaVisualizar?.numero_formatado || ""
                                             )
                                         ) {

@@ -36,6 +36,7 @@ import type {
   ProjetoIndividualDados,
   ProjetoIndividualMaterial,
 } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
+import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { JC4FCBSPDF } from "../../relatorios/jc4fcbs/JC4FCBSPDF";
 
 type ClienteCadastro = {
@@ -190,8 +191,7 @@ const obterEspessuraVidro = (texto?: string | null) => {
 
 const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
-  const espessura = vidro.espessura
-    ? String(vidro.espessura).replace(/\s*mm$/i, "")
+  const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "")
     : "";
   if (espessura) partes.push(`${espessura}mm`);
   return partes.join(" ");
@@ -201,8 +201,7 @@ const criarMaterial = (
   parcial?: Partial<ProjetoIndividualMaterial>
 ): ProjetoIndividualMaterial => ({
   id:
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
+    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID()
       : String(Date.now() + Math.random()),
   qtd: parcial?.qtd ?? 1,
   unidade: parcial?.unidade ?? "und",
@@ -224,7 +223,7 @@ const calcularBarrasPorCortes = (
     .sort((a, b) => b - a);
 
   cortes.forEach((corte) => {
-    const indice = barras.findIndex(
+    const indice = barras.findIndex?.(
       (usado) => usado + corte <= comprimentoBarra
     );
 
@@ -257,8 +256,7 @@ const montarDescricaoComCor = (
 };
 
 const desenhoPC4FCBS = (trinco?: string) =>
-  trinco === "Com trinco"
-    ? "/desenhos/JC4FCBS_comtrinco.png"
+  trinco === "Com trinco" ? "/desenhos/JC4FCBS_comtrinco.png"
     : "/desenhos/JC4FCBS_semtrinco.png";
 
 const codigoCompativel = (codigoCadastro: string, codigoBase: string) => {
@@ -329,6 +327,7 @@ export default function PC4FCBSPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const centralLoteId = searchParams.get("loteId");
   const returnTo =
     searchParams.get("returnTo") || "/admin/relatorio.orcamento";
 
@@ -521,8 +520,7 @@ export default function PC4FCBSPage() {
 
     try {
       const salvo = localStorage.getItem(CENTRAL_KEY);
-      const lista = salvo
-        ? (JSON.parse(salvo) as CentralImpressaoProjetoItem[])
+      const lista = salvo ? (JSON.parse(salvo) as CentralImpressaoProjetoItem[])
         : [];
       const item = lista.find((registro) => registro.id === centralItemId);
 
@@ -578,8 +576,7 @@ useEffect(() => {
       const itensSalvos =
         orcamento.itens &&
         typeof orcamento.itens === "object" &&
-        !Array.isArray(orcamento.itens)
-          ? (orcamento.itens as PC4FCBSOrcamentoPersistido)
+        !Array.isArray(orcamento.itens) ? (orcamento.itens as PC4FCBSOrcamentoPersistido)
           : null;
 
       if (!itensSalvos) {
@@ -676,8 +673,7 @@ useEffect(() => {
       }));
 
       setMateriais(
-        Array.isArray(itensSalvos.materiais)
-          ? itensSalvos.materiais
+        Array.isArray(itensSalvos.materiais) ? itensSalvos.materiais
           : []
       );
     } catch (erro) {
@@ -692,8 +688,7 @@ useEffect(() => {
         tipo: "erro",
         titulo: "Erro ao carregar",
         mensagem:
-          erro instanceof Error
-            ? erro.message
+          erro instanceof Error ? erro.message
             : "Não foi possível carregar os dados do orçamento.",
         aoFechar: () => router.push(returnTo),
       });
@@ -741,8 +736,7 @@ useEffect(() => {
     (vidro: VidroCadastro | null) => {
       if (!vidro) return 0;
 
-      const precoGrupo = clienteSelecionado?.grupo_preco_id
-        ? precosVidroGrupos.find(
+      const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
             (preco) =>
               String(preco.vidro_id) === String(vidro.id) &&
               String(preco.grupo_preco_id) ===
@@ -933,10 +927,8 @@ useEffect(() => {
     }
 
     const codigosLargura =
-      espessuraJanela === 10
-        ? ["VT51A", "VT52A", "VT05", "VT13"]
-        : espessuraJanela === 8
-          ? ["VT49A", "VT50A", "VT45", "VT63"]
+      espessuraJanela === 10 ? ["VT51A", "VT52A", "VT05", "VT13"]
+        : espessuraJanela === 8 ? ["VT49A", "VT50A", "VT45", "VT63"]
           : [];
 
     const codigoAlturaDuasPecas =
@@ -952,16 +944,13 @@ useEffect(() => {
       criarPerfilComCortes(codigo, [largura])
     );
 
-    const perfilAlturaDuasPecas = codigoAlturaDuasPecas
-      ? criarPerfilComCortes(codigoAlturaDuasPecas, [alturaJanela, alturaJanela])
+    const perfilAlturaDuasPecas = codigoAlturaDuasPecas ? criarPerfilComCortes(codigoAlturaDuasPecas, [alturaJanela, alturaJanela])
       : null;
 
-    const perfilAlturaUnica = codigoAlturaUnica
-      ? criarPerfilComCortes(codigoAlturaUnica, [alturaJanela])
+    const perfilAlturaUnica = codigoAlturaUnica ? criarPerfilComCortes(codigoAlturaUnica, [alturaJanela])
       : null;
 
-    const cortesU = codigoU
-      ? [
+    const cortesU = codigoU ? [
           ...Array.from({ length: 4 }, () => alturaPeitoril),
           ...Array.from({ length: 2 }, () => Number(alturaBandeira || 0)),
           ...Array.from({ length: 2 }, () => alturaJanela),
@@ -1288,8 +1277,7 @@ useEffect(() => {
   ): CentralImpressaoProjetoItem => ({
     id:
       id ||
-      (typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
+      (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID()
         : String(Date.now())),
     numero: dados.numero,
     projeto: "Janela de correr com bandeira e peitoril",
@@ -1303,7 +1291,7 @@ useEffect(() => {
     alturaBandeira: Number(alturaBandeira || 0),
     quantidade: Number(dados.quantidade || 0),
 
-    medidas: `${dados.largura} x ${dados.alturaTotal} mm`,
+    medidas: `${dados.largura} ? ${dados.alturaTotal} mm`,
     modo: "Barra",
     desenhoUrl: desenhoPC4FCBS(dados.trinco),
 
@@ -1334,8 +1322,7 @@ useEffect(() => {
   const enviarParaCentral = () => {
     try {
       const salvo = localStorage.getItem(CENTRAL_KEY);
-      const lista = salvo
-        ? (JSON.parse(salvo) as CentralImpressaoProjetoItem[])
+      const lista = salvo ? (JSON.parse(salvo) as CentralImpressaoProjetoItem[])
         : [];
       const novoItem = montarItemCentral(
         centralItemId || undefined
@@ -1343,8 +1330,7 @@ useEffect(() => {
 
       const proximaLista =
         centralItemId &&
-        lista.some((item) => item.id === centralItemId)
-          ? lista.map((item) =>
+        lista.some((item) => item.id === centralItemId) ? lista.map((item) =>
               item.id === centralItemId ? novoItem : item
             )
           : [...lista, novoItem];
@@ -1374,6 +1360,17 @@ useEffect(() => {
   const gerarNumeroOrcamento = async () => {
     return gerarNumeroOrcamentoPadrao(supabase);
   };
+  const loteRapido = useLoteRapidoProjetos({
+    centralLoteId,
+    centralItemId,
+    returnTo,
+    dados,
+    materiais,
+    setDados,
+    setMensagemSistema,
+    montarItemCentral,
+    onNavigate: router.push,
+  });
 
   const salvarOrcamento = async () => {
     if (centralItemId) {
@@ -1399,8 +1396,7 @@ useEffect(() => {
     try {
       setSalvandoOrcamento(true);
 
-      const numeroFinal = editId
-        ? dados.numero
+      const numeroFinal = editId ? dados.numero
         : await gerarNumeroOrcamento();
 
       const dadosAtualizados = {
@@ -1428,8 +1424,7 @@ useEffect(() => {
         theme_color: theme.menuIconColor || "#07385a",
       };
 
-      const { error } = editId
-        ? await supabase
+      const { error } = editId ? await supabase
             .from("orcamentos")
             .update(payload)
             .eq("id", editId)
@@ -1441,8 +1436,7 @@ useEffect(() => {
 
       setMensagemSistema({
         tipo: "sucesso",
-        titulo: editId
-          ? "Orçamento atualizado"
+        titulo: editId ? "Orçamento atualizado"
           : "Orçamento salvo",
         mensagem: `Orçamento ${numeroFinal} salvo com sucesso.`,
         aoFechar: () => router.push(returnTo),
@@ -1452,8 +1446,7 @@ useEffect(() => {
         tipo: "erro",
         titulo: "Erro ao salvar",
         mensagem:
-          erro instanceof Error
-            ? erro.message
+          erro instanceof Error ? erro.message
             : "Não foi possível salvar.",
       });
     } finally {
@@ -1528,8 +1521,7 @@ useEffect(() => {
   ) => {
     setMateriais((lista) =>
       lista.map((material) =>
-        material.id === idMaterial
-          ? {
+        material.id === idMaterial ? {
               ...material,
               descricao: item.descricao,
               unidade:
@@ -1554,8 +1546,7 @@ useEffect(() => {
       formatarVidroCadastro(vidro)
         .toLowerCase()
         .includes(
-          dados.vidroPeitoril === "Escolher"
-            ? ""
+          dados.vidroPeitoril === "Escolher" ? ""
             : dados.vidroPeitoril.toLowerCase()
         )
     )
@@ -1566,17 +1557,16 @@ useEffect(() => {
       formatarVidroCadastro(vidro)
         .toLowerCase()
         .includes(
-          dados.vidroJanelaBandeira === "Escolher"
-            ? ""
+          dados.vidroJanelaBandeira === "Escolher" ? ""
             : dados.vidroJanelaBandeira.toLowerCase()
         )
     )
     .slice(0, 8);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#f3f6f9] text-[#0f2742]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
       <div className="flex min-h-screen w-full flex-col">
-        <header className="grid shrink-0 grid-cols-1 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,0.9fr)_minmax(520px,1.5fr)]">
+        <header className="mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
           <div className="flex h-[54px] items-center">
             {logoUsuario ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -1731,9 +1721,9 @@ useEffect(() => {
           </nav>
         </aside>
 
-        <section className="flex-1 bg-[#f3f6f9] p-4">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="flex-1 bg-transparent p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
+            <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
               <SectionTitle>Desenho ilustrativo</SectionTitle>
               <div className="mt-3 flex min-h-[390px] items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1746,10 +1736,10 @@ useEffect(() => {
             </section>
 
             <div className="space-y-4">
-              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                 <SectionTitle>Dados do projeto</SectionTitle>
 
-                <div className="mt-4 grid overflow-visible md:grid-cols-3">
+                <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                   <DataInput
                     icon={<MoveHorizontal size={24} />}
                     label="Largura"
@@ -1901,6 +1891,17 @@ useEffect(() => {
                 )}
               </section>
 
+              <LoteRapidoProjetos
+                aberto={loteRapido.aberto}
+                editando={loteRapido.editando}
+                linhas={loteRapido.linhas}
+                onAlternar={loteRapido.alternar}
+                onAdicionar={loteRapido.adicionarLinha}
+                onRemover={loteRapido.removerLinha}
+                onAtualizar={loteRapido.atualizarLinha}
+                onEnviar={loteRapido.enviar}
+              />
+
                             <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
                                     <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between">
                                       <SectionTitle>Relação de materiais</SectionTitle>
@@ -1924,12 +1925,12 @@ useEffect(() => {
                                     </div>
 
                                     <div className="mt-4 overflow-x-auto overflow-y-visible border-y border-slate-200">
-                                      <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
-                                        <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
-                                        <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
-                                        <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
+                                      <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
+                                        <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
+                                        <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
                                         <div className="px-3 py-3 text-center" />
-                                        <div className="border-r border-white/20 px-3 py-3 text-right">Valor unit.</div>
+                                        <div className="border-r border-slate-200/80 px-3 py-3 text-right">Valor unit.</div>
                                         <div className="px-3 py-3 text-center" />
                                         <div className="px-3 py-3 text-right">Valor total</div>
                                       </div>
@@ -1984,8 +1985,8 @@ useEffect(() => {
                                     </div>
 
                                     <div className="flex items-center justify-end gap-5 px-4 py-3">
-                                      <p className="text-sm font-bold uppercase text-[#0f2742]">Valor total do Orçamento</p>
-                                      <div className="rounded-lg bg-[#18bd72] px-8 py-3 text-xl font-bold text-white shadow-lg shadow-emerald-900/10">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total do Orçamento</p>
+                                      <div className="rounded-2xl bg-[#18bd72] px-7 py-3 text-xl font-semibold text-white shadow-lg shadow-emerald-900/10">
                                         {moeda(totalMateriais)}
                                       </div>
                                     </div>
@@ -1993,7 +1994,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+          <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] md:grid-cols-3 xl:grid-cols-6">
             <SummaryCard
               icon={<Grid2X2 size={30} />}
               label="Área total"
@@ -2104,7 +2105,7 @@ function HeaderField({
   green?: boolean;
 }) {
   return (
-    <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+    <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
       <span className="text-slate-500">{icon}</span>
       <div>
         <label className="block text-[10px] font-semibold uppercase text-slate-500">
@@ -2138,8 +2139,7 @@ function MenuItem({
       type="button"
       onClick={onClick}
       className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors ${
-        active
-          ? "border-[#07385a]/15 bg-[#07385a]/5 text-[#07385a]"
+        active ? "border-[#07385a]/15 bg-[#07385a]/5 text-[#07385a]"
           : "border-transparent text-slate-600 hover:bg-slate-50"
       }`}
     >
@@ -2155,7 +2155,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       <h2 className="text-sm font-bold uppercase tracking-wide text-[#0f2742]">
         {children}
       </h2>
-      <div className="mt-3 h-[2px] w-9 rounded-full bg-[#18bd72]" />
+      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -2174,7 +2174,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         {icon}
       </span>
@@ -2203,7 +2203,7 @@ function DataInput({
             onChange={(e) =>
               onChange(limitarNumero4Digitos(e.target.value))
             }
-            className="w-[64px] min-w-0 rounded-md bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
 
           {suffix && (
@@ -2238,7 +2238,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
+      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -2274,7 +2274,7 @@ function OptionInput({
             }
           }}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
+          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>
@@ -2321,7 +2321,7 @@ function GlassField({
   }, [open]);
 
   return (
-    <label className="relative flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+    <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         <Layers size={24} />
       </span>

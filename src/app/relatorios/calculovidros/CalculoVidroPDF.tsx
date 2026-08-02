@@ -169,8 +169,7 @@ export function CalculoVidroPDF({
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
     const ehRelatorioVidrosAvulsos = !itens.some(ehCabecalhoProjeto) && !itens.some(ehPerfilConsolidado);
     const mostrarColunaPrecoM2Un =
-        typeof exibirColunaPrecoM2Un === 'boolean'
-            ? exibirColunaPrecoM2Un
+        typeof exibirColunaPrecoM2Un === 'boolean' ? exibirColunaPrecoM2Un
             : !itens.some(ehCabecalhoProjeto);
     const comprimentoBarraItem = (item: ItemVidro) => parseInt(String(item.medidaReal || '').replace(/\D/g, ''), 10) || 0;
     const quantidadePecasTotal = itens.reduce((total, item) => {
@@ -214,8 +213,7 @@ export function CalculoVidroPDF({
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '');
 
-        return normalizar(descricao).includes(normalizar(tipo))
-            ? descricao
+        return normalizar(descricao).includes(normalizar(tipo)) ? descricao
             : `${descricao} - ${tipo}`;
     };
 
@@ -233,25 +231,17 @@ export function CalculoVidroPDF({
         );
     };
 
-    const colDescOverride = ehRelatorioVidrosAvulsos
-        ? { width: '38%' as const }
-        : mostrarColunaPrecoM2Un
-            ? {}
+    const colDescOverride = ehRelatorioVidrosAvulsos ? { width: '38%' as const }
+        : mostrarColunaPrecoM2Un ? {}
             : { width: '48%' as const };
-    const colQtdOverride = ehRelatorioVidrosAvulsos
-        ? { width: '10%' as const }
-        : mostrarColunaPrecoM2Un
-            ? {}
+    const colQtdOverride = ehRelatorioVidrosAvulsos ? { width: '10%' as const }
+        : mostrarColunaPrecoM2Un ? {}
             : { width: '10%' as const };
-    const colVaoOverride = ehRelatorioVidrosAvulsos
-        ? { width: '18%' as const }
-        : mostrarColunaPrecoM2Un
-            ? {}
+    const colVaoOverride = ehRelatorioVidrosAvulsos ? { width: '18%' as const }
+        : mostrarColunaPrecoM2Un ? {}
             : { width: '22%' as const };
-    const colTotalOverride = ehRelatorioVidrosAvulsos
-        ? { width: '16%' as const }
-        : mostrarColunaPrecoM2Un
-            ? {}
+    const colTotalOverride = ehRelatorioVidrosAvulsos ? { width: '16%' as const }
+        : mostrarColunaPrecoM2Un ? {}
             : { width: '20%' as const };
     const colPrecoUnitarioOverride = ehRelatorioVidrosAvulsos ? { width: '18%' as const } : {};
 
@@ -294,7 +284,7 @@ export function CalculoVidroPDF({
                             <>
                                 <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Projeto</Text>
                                 <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vaos</Text>
-                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg x Alt</Text>
+                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg ? Alt</Text>
                             </>
                         )}
                         {mostrarColunaPrecoM2Un && (
@@ -306,10 +296,8 @@ export function CalculoVidroPDF({
                     {itens.map((item, index) => (
                         <View key={item.id} style={[
                             styles.tableRow,
-                            ehCabecalhoProjeto(item)
-                                ? styles.rowCabecalhoProjeto
-                                : ehPerfilConsolidado(item)
-                                    ? styles.rowPerfilConsolidado
+                            ehCabecalhoProjeto(item) ? styles.rowCabecalhoProjeto
+                                : ehPerfilConsolidado(item) ? styles.rowPerfilConsolidado
                                     : { backgroundColor: getPdfZebraRowBackground(index) }
                         ]} wrap={false}> 
 

@@ -410,13 +410,12 @@ export function PinazioPDF({
                   <>
                     <Text style={styles.detalhePinazio}>
                       {item.pinazioNome || "Pinázio"}
-                      {Number(item.precoMetroPinazio || 0) > 0
-                        ? ` - ${formatarMoeda(Number(item.precoMetroPinazio))}/ml`
+                      {Number(item.precoMetroPinazio || 0) > 0 ? ` - ${formatarMoeda(Number(item.precoMetroPinazio))}/ml`
                         : ""}
                     </Text>
 
                     <Text style={styles.detalhePinazio}>
-                      Divisões: {Math.max(1, Number(item.divisoesLargura || 1))} x {Math.max(1, Number(item.divisoesAltura || 1))}
+                      Divisões: {Math.max(1, Number(item.divisoesLargura || 1))} ? {Math.max(1, Number(item.divisoesAltura || 1))}
                       {` | Pinázio: ${formatarMetroLinear(obterMetroLinearTotal(item))} ml`}
                     </Text>
                   </>

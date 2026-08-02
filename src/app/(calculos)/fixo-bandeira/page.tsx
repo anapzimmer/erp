@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -33,6 +33,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
+import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 
 type ClienteCadastro = {
   id: string;
@@ -210,6 +211,7 @@ export default function FixoBandeiraPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId } = useAuth();
   const { theme } = useTheme();
@@ -517,8 +519,7 @@ export default function FixoBandeiraPage() {
   const precoVidroM2 = useMemo(() => {
     if (!vidroSelecionado) return 0;
 
-    const precoGrupo = clienteSelecionado?.grupo_preco_id
-      ? precosVidroGrupos.find(
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
         (preco) =>
           String(preco.vidro_id) === String(vidroSelecionado.id) &&
           String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
@@ -530,8 +531,7 @@ export default function FixoBandeiraPage() {
   const precoVidroBandeiraM2 = useMemo(() => {
     if (!vidroBandeiraSelecionado) return 0;
 
-    const precoGrupo = clienteSelecionado?.grupo_preco_id
-      ? precosVidroGrupos.find(
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
         (preco) =>
           String(preco.vidro_id) === String(vidroBandeiraSelecionado.id) &&
           String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
@@ -578,8 +578,7 @@ export default function FixoBandeiraPage() {
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
       lista.map((material) =>
-        material.id === idMaterial
-          ? {
+        material.id === idMaterial ? {
             ...material,
             descricao: item.descricao,
             unidade: item.tipo === "perfil" ? "barra" : "und",
@@ -614,19 +613,19 @@ export default function FixoBandeiraPage() {
   const selecionarCliente = (cliente: ClienteCadastro) => {
     atualizarCampo("cliente", cliente.nome);
     setListaClientesAberta(false);
-    setClienteAtivoIndex(0);
+    setClienteAtivoIndex?.(0);
   };
 
   const selecionarVidro = (vidro: VidroCadastro) => {
     atualizarCampo("vidro", formatarVidroCadastro(vidro));
     setListaVidrosAberta(false);
-    setVidroAtivoIndex(0);
+    setVidroAtivoIndex?.(0);
   };
 
   const selecionarVidroBandeira = (vidro: VidroCadastro) => {
     atualizarCampo("vidroBandeira", formatarVidroCadastro(vidro));
     setListaVidrosBandeiraAberta(false);
-    setVidroBandeiraAtivoIndex(0);
+    setVidroBandeiraAtivoIndex?.(0);
   };
 
   const obterEspessuraVidro = (texto: string) => {
@@ -859,7 +858,7 @@ export default function FixoBandeiraPage() {
   }, [empresaId]);
 
   useEffect(() => {
-    setClienteAtivoIndex(0);
+    setClienteAtivoIndex?.(0);
   }, [dados.cliente]);
 
   useEffect(() => {
@@ -869,7 +868,7 @@ export default function FixoBandeiraPage() {
   }, [listaClientesAberta]);
 
   useEffect(() => {
-    setVidroAtivoIndex(0);
+    setVidroAtivoIndex?.(0);
   }, [dados.vidro]);
 
   useEffect(() => {
@@ -879,7 +878,7 @@ export default function FixoBandeiraPage() {
   }, [listaVidrosAberta]);
 
   useEffect(() => {
-    setVidroBandeiraAtivoIndex(0);
+    setVidroBandeiraAtivoIndex?.(0);
   }, [dados.vidroBandeira]);
 
   useEffect(() => {
@@ -891,11 +890,9 @@ export default function FixoBandeiraPage() {
 
 
   useEffect(() => {
-    const vidroNome = dados.vidro && dados.vidro !== "Escolher"
-      ? dados.vidro.replace(/^vidro\s+/i, "").trim()
+    const vidroNome = dados.vidro && dados.vidro !== "Escolher" ? dados.vidro.replace(/^vidro\s+/i, "").trim()
       : "";
-    const vidroBandeiraNome = dados.vidroBandeira && dados.vidroBandeira !== "Escolher"
-      ? dados.vidroBandeira.replace(/^vidro\s+/i, "").trim()
+    const vidroBandeiraNome = dados.vidroBandeira && dados.vidroBandeira !== "Escolher" ? dados.vidroBandeira.replace(/^vidro\s+/i, "").trim()
       : "";
 
     const medidaVidro = `${calculoVidro.larguraMedida}x${calculoVidro.alturaMedida}`;
@@ -903,8 +900,7 @@ export default function FixoBandeiraPage() {
     const descricaoVidro = `VIDRO INFERIOR ${medidaVidro} ${vidroNome.toUpperCase()}`;
     const descricaoVidroBandeira = `VIDRO BANDEIRA ${medidaVidroBandeira} ${vidroBandeiraNome.toUpperCase()}`;
 
-    const vidroInferior = vidroNome && calculoVidro.areaInferior > 0
-      ? criarMaterial({
+    const vidroInferior = vidroNome && calculoVidro.areaInferior > 0 ? criarMaterial({
         qtd: calculoVidro.areaInferior,
         unidade: "m2",
         descricao: descricaoVidro,
@@ -912,8 +908,7 @@ export default function FixoBandeiraPage() {
       })
       : null;
 
-    const vidroBandeira = vidroBandeiraNome && calculoVidro.areaBandeira > 0
-      ? criarMaterial({
+    const vidroBandeira = vidroBandeiraNome && calculoVidro.areaBandeira > 0 ? criarMaterial({
         qtd: calculoVidro.areaBandeira,
         unidade: "m2",
         descricao: descricaoVidroBandeira,
@@ -973,7 +968,7 @@ export default function FixoBandeiraPage() {
       numero: dados.numero || "novo",
       projeto: "Fixo com bandeira",
       cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
+      medidas: `${Number(dados.largura || 0)} ? ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
       quantidade: Number(dados.quantidade || 0),
@@ -1003,8 +998,7 @@ export default function FixoBandeiraPage() {
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = atual ? JSON.parse(atual) as CentralImpressaoProjetoItem[] : [];
-      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
-        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId) ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
         : [...lista, itemCentral];
 
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
@@ -1065,6 +1059,17 @@ export default function FixoBandeiraPage() {
   useEffect(() => {
     carregarOrcamentoParaEdicao();
   }, [carregarOrcamentoParaEdicao]);
+  const loteRapido = useLoteRapidoProjetos({
+    centralLoteId,
+    centralItemId,
+    returnTo,
+    dados,
+    materiais,
+    setDados,
+    setMensagemSistema,
+    montarItemCentral,
+    onNavigate: router.push,
+  });
 
   const salvarOrcamento = async () => {
     if (centralItemId) {
@@ -1073,8 +1078,7 @@ export default function FixoBandeiraPage() {
         const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
         const lista = salvo ? JSON.parse(salvo) as CentralImpressaoProjetoItem[] : [];
         const itemAtualizado = montarItemCentral(centralItemId);
-        const proximaLista = lista.some((item) => item.id === centralItemId)
-          ? lista.map((item) => item.id === centralItemId ? itemAtualizado : item)
+        const proximaLista = lista.some((item) => item.id === centralItemId) ? lista.map((item) => item.id === centralItemId ? itemAtualizado : item)
           : [...lista, itemAtualizado];
 
         window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
@@ -1160,8 +1164,7 @@ export default function FixoBandeiraPage() {
         theme_color: theme.menuIconColor || "#07385a",
       };
 
-      const { error } = editId
-        ? await supabase.from("orcamentos").update(payload).eq("id", editId)
+      const { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
         : await supabase.from("orcamentos").insert([payload]);
 
       if (error) throw error;
@@ -1203,10 +1206,10 @@ export default function FixoBandeiraPage() {
   }, [perfis]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#f3f6f9] text-[#0f2742]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
       <div className="flex min-h-screen w-full">
-        <div className="flex min-h-screen w-full flex-col bg-[#f3f6f9]">
-          <header className="grid shrink-0 grid-cols-1 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,0.9fr)_minmax(520px,1.5fr)]">
+        <div className="flex min-h-screen w-full flex-col bg-transparent">
+          <header className="mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
             <div className="flex items-center">
               <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
@@ -1230,12 +1233,12 @@ export default function FixoBandeiraPage() {
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[300px] border-0 bg-transparent p-0 text-[17px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={21} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
@@ -1247,7 +1250,7 @@ export default function FixoBandeiraPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <Calendar size={21} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
@@ -1259,7 +1262,7 @@ export default function FixoBandeiraPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <UserRound size={22} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
@@ -1270,15 +1273,15 @@ export default function FixoBandeiraPage() {
                       tabIndex={-1}
                       onChange={(e) => {
                         atualizarCampo("cliente", e.target.value);
-                        setClienteAtivoIndex(0);
+                        setClienteAtivoIndex?.(0);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "ArrowDown") {
                           e.preventDefault();
-                          setClienteAtivoIndex((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
+                          setClienteAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
                         } else if (e.key === "ArrowUp") {
                           e.preventDefault();
-                          setClienteAtivoIndex((atual) => Math.max(atual - 1, 0));
+                          setClienteAtivoIndex?.((atual) => Math.max(atual - 1, 0));
                         } else if (e.key === "Enter" && clientesFiltrados[clienteAtivoIndex]) {
                           e.preventDefault();
                           selecionarCliente(clientesFiltrados[clienteAtivoIndex]);
@@ -1326,7 +1329,7 @@ export default function FixoBandeiraPage() {
                               e.stopPropagation();
                               selecionarCliente(cliente);
                             }}
-                            onMouseEnter={() => setClienteAtivoIndex(index)}
+                            onMouseEnter={() => setClienteAtivoIndex?.(index)}
                             onClick={() => selecionarCliente(cliente)}
                             className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === clienteAtivoIndex ? "bg-[#07385a]/10" : "bg-transparent hover:bg-[#07385a]/10"
                               }`}
@@ -1345,8 +1348,8 @@ export default function FixoBandeiraPage() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="w-full shrink-0 border-b border-slate-200 bg-white">
-              <nav className="flex flex-row gap-2 overflow-x-auto px-4 py-2 sm:px-6">
+            <aside className="mx-4 mt-3 w-auto shrink-0 rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur sm:mx-6">
+              <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
                 {[
                   { label: "Orçamento", icon: ClipboardList, ativo: true },
                   { label: "Imprimir", icon: Printer },
@@ -1412,19 +1415,19 @@ export default function FixoBandeiraPage() {
             </aside>
 
             <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-[#f3f6f9] p-4">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-                  <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
+                  <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-3 flex min-h-[300px] items-center justify-center sm:min-h-[390px] xl:min-h-[380px]">
+                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
                       <ProjetoDrawing desenhoUrl={desenhoFixoBandeiraPorPecas(dados.pecasDivisao)} />
                     </div>
                   </section>
 
                   <div className="space-y-4">
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                       <SectionTitle>Dados do projeto</SectionTitle>
-                      <div className="mt-4 grid overflow-visible md:grid-cols-3">
+                      <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Largura"
@@ -1467,15 +1470,15 @@ export default function FixoBandeiraPage() {
                                 value={dados.vidro}
                                 onChange={(e) => {
                                   atualizarCampo("vidro", e.target.value);
-                                  setVidroAtivoIndex(0);
+                                  setVidroAtivoIndex?.(0);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown") {
                                     e.preventDefault();
-                                    setVidroAtivoIndex((atual) => Math.min(atual + 1, Math.max(vidrosFiltrados.length - 1, 0)));
+                                    setVidroAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(vidrosFiltrados.length - 1, 0)));
                                   } else if (e.key === "ArrowUp") {
                                     e.preventDefault();
-                                    setVidroAtivoIndex((atual) => Math.max(atual - 1, 0));
+                                    setVidroAtivoIndex?.((atual) => Math.max(atual - 1, 0));
                                   } else if (e.key === "Enter" && vidrosFiltrados[vidroAtivoIndex]) {
                                     e.preventDefault();
                                     selecionarVidro(vidrosFiltrados[vidroAtivoIndex]);
@@ -1518,9 +1521,8 @@ export default function FixoBandeiraPage() {
                                       e.preventDefault();
                                       selecionarVidro(vidro);
                                     }}
-                                    onMouseEnter={() => setVidroAtivoIndex(index)}
-                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroAtivoIndex
-                                        ? "bg-[#07385a]/10"
+                                    onMouseEnter={() => setVidroAtivoIndex?.(index)}
+                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroAtivoIndex ? "bg-[#07385a]/10"
                                         : "bg-transparent hover:bg-[#07385a]/10"
                                       }`}
                                   >
@@ -1545,15 +1547,15 @@ export default function FixoBandeiraPage() {
                                 value={dados.vidroBandeira}
                                 onChange={(e) => {
                                   atualizarCampo("vidroBandeira", e.target.value);
-                                  setVidroBandeiraAtivoIndex(0);
+                                  setVidroBandeiraAtivoIndex?.(0);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowDown") {
                                     e.preventDefault();
-                                    setVidroBandeiraAtivoIndex((atual) => Math.min(atual + 1, Math.max(vidrosBandeiraFiltrados.length - 1, 0)));
+                                    setVidroBandeiraAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(vidrosBandeiraFiltrados.length - 1, 0)));
                                   } else if (e.key === "ArrowUp") {
                                     e.preventDefault();
-                                    setVidroBandeiraAtivoIndex((atual) => Math.max(atual - 1, 0));
+                                    setVidroBandeiraAtivoIndex?.((atual) => Math.max(atual - 1, 0));
                                   } else if (e.key === "Enter" && vidrosBandeiraFiltrados[vidroBandeiraAtivoIndex]) {
                                     e.preventDefault();
                                     selecionarVidroBandeira(vidrosBandeiraFiltrados[vidroBandeiraAtivoIndex]);
@@ -1596,9 +1598,8 @@ export default function FixoBandeiraPage() {
                                       e.preventDefault();
                                       selecionarVidroBandeira(vidro);
                                     }}
-                                    onMouseEnter={() => setVidroBandeiraAtivoIndex(index)}
-                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroBandeiraAtivoIndex
-                                        ? "bg-[#07385a]/10"
+                                    onMouseEnter={() => setVidroBandeiraAtivoIndex?.(index)}
+                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroBandeiraAtivoIndex ? "bg-[#07385a]/10"
                                         : "bg-transparent hover:bg-[#07385a]/10"
                                       }`}
                                   >
@@ -1645,7 +1646,19 @@ export default function FixoBandeiraPage() {
                       </div>
                     </section>
 
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <LoteRapidoProjetos
+                      aberto={loteRapido.aberto}
+                      editando={loteRapido.editando}
+                      linhas={loteRapido.linhas}
+                      onAlternar={loteRapido.alternar}
+                      onAdicionar={loteRapido.adicionarLinha}
+                      onRemover={loteRapido.removerLinha}
+                      onAtualizar={loteRapido.atualizarLinha}
+                      onEnviar={loteRapido.enviar}
+                    />
+
+
+                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <SectionTitle>Relação de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
@@ -1666,18 +1679,18 @@ export default function FixoBandeiraPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-wide text-white">
-                          <div className="border-r border-white/20 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-white/20 px-3 py-3">Produto / descrição</div>
-                          <div className="border-r border-white/20 px-3 py-3 text-center">Unidade</div>
+                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
                           <div className="px-3 py-3 text-center" />
-                          <div className="border-r border-white/20 px-3 py-3 text-right">Valor unit.</div>
+                          <div className="border-r border-slate-200/80 px-3 py-3 text-right">Valor unit.</div>
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
                         {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs text-[#10253f]">
+                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
                             <div className="px-3 py-2.5">
                               <input
                                 type="text"
@@ -1736,7 +1749,7 @@ export default function FixoBandeiraPage() {
                   </div>
                 </div>
 
-                <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] md:grid-cols-3 xl:grid-cols-6">
                   <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
@@ -1765,16 +1778,12 @@ export default function FixoBandeiraPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor:
-                    mensagemSistema.tipo === "sucesso"
-                      ? `${theme.modalIconSuccessColor || "#18bd72"}14`
-                      : mensagemSistema.tipo === "erro"
-                        ? `${theme.modalIconErrorColor || "#dc2626"}14`
+                    mensagemSistema.tipo === "sucesso" ? `${theme.modalIconSuccessColor || "#18bd72"}14`
+                      : mensagemSistema.tipo === "erro" ? `${theme.modalIconErrorColor || "#dc2626"}14`
                         : `${theme.modalIconWarningColor || "#d97706"}14`,
                   color:
-                    mensagemSistema.tipo === "sucesso"
-                      ? theme.modalIconSuccessColor || "#18bd72"
-                      : mensagemSistema.tipo === "erro"
-                        ? theme.modalIconErrorColor || "#dc2626"
+                    mensagemSistema.tipo === "sucesso" ? theme.modalIconSuccessColor || "#18bd72"
+                      : mensagemSistema.tipo === "erro" ? theme.modalIconErrorColor || "#dc2626"
                         : theme.modalIconWarningColor || "#d97706",
                 }}
               >
@@ -1927,8 +1936,8 @@ export default function FixoBandeiraPage() {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-sm font-bold uppercase tracking-wide text-[#0f2742]">{children}</h2>
-      <div className="mt-3 h-[2px] w-9 rounded-full bg-[#18bd72]" />
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0f2742]">{children}</h2>
+      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -1959,9 +1968,7 @@ function PainelModal({
             onClick={onClose}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-lg leading-none text-slate-500 transition hover:bg-slate-50"
             aria-label="Fechar"
-          >
-            x
-          </button>
+          > ? </button>
         </header>
         <div className="p-5">{children}</div>
       </section>
@@ -2017,7 +2024,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25">
+    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
@@ -2033,9 +2040,9 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[64px] min-w-0 rounded-md bg-transparent text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70"
+            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
-          {suffix && <span className="text-sm font-semibold leading-tight text-[#10253f]">{suffix}</span>}
+          {suffix && <span className="text-sm font-medium leading-tight text-slate-500">{suffix}</span>}
         </span>
       </span>
     </label>
@@ -2061,7 +2068,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[58px] items-center gap-3 border-b border-slate-200 px-3 py-2 transition-colors focus-within:rounded-lg focus-within:bg-[#eaf4ff] focus-within:ring-1 focus-within:ring-[#1d8bd1]/25 ${
+      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -2079,7 +2086,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-0.5 w-full cursor-pointer appearance-auto rounded-md border-0 bg-transparent p-0 text-sm font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/70 disabled:cursor-not-allowed"
+          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>

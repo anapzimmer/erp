@@ -193,7 +193,7 @@ if (branding) {
   const deletarServico = async (id: number) => {
     setModalAviso({
       titulo: "Confirmar Exclusão",
-      mensagem: "Tem certeza que deseja excluir este serviço?",
+      mensagem: "Tem certeza que deseja excluir este serviçox",
       confirmar: async () => {
         const { error } = await supabase.from("servicos").delete().eq("id", id);
         if (error) {

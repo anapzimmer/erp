@@ -1,4 +1,4 @@
-﻿//app/(calculos)/sacadafrontal/page.tsx
+//app/(calculos)/sacadafrontal/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -164,14 +164,14 @@ const normalizarPrecoFerragem = (preco?: number | string | null) => {
     const ultimaVirgula = somenteNumero.lastIndexOf(",");
     const ultimoPonto = somenteNumero.lastIndexOf(".");
     if (ultimaVirgula > ultimoPonto) {
-      // Ex.: 1.234,56 -> 1234.56
+      // Ex.:: 1.234,56 -> 1234.56
       normalizado = somenteNumero.replace(/\./g, "").replace(/,/g, ".");
     } else {
-      // Ex.: 1,234.56 -> 1234.56
+      // Ex.:: 1,234.56 -> 1234.56
       normalizado = somenteNumero.replace(/,/g, "");
     }
   } else if (temVirgula) {
-    // Ex.: 12,50 -> 12.50
+    // Ex.:: 12,50 -> 12.50
     normalizado = somenteNumero.replace(/,/g, ".");
   } else {
     normalizado = somenteNumero;
@@ -633,7 +633,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
     { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
     { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
     { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
-    { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
+    { nome: "Parafuso 1/4 ? 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
     { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
     { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
     { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
@@ -652,11 +652,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
     const precoUnitario = resultado.preco;
     const quantidadeNecessaria = Number(quantidade) || 0;
 
-    const quantidadePacote = pacote
-      ? Math.ceil(quantidadeNecessaria / pacote) * pacote
+    const quantidadePacote = pacote ? Math.ceil(quantidadeNecessaria / pacote) * pacote
       : quantidadeNecessaria;
-    const quantidadeParaPreco = precoPorPacote && pacote
-      ? Math.ceil(quantidadeNecessaria / pacote)
+    const quantidadeParaPreco = precoPorPacote && pacote ? Math.ceil(quantidadeNecessaria / pacote)
       : quantidadePacote;
 
     if (process.env.NODE_ENV !== "production" && precoUnitario === 0) {
@@ -775,8 +773,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
     })),
     ...acessoriosComPrecoTabela.map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
-      qtd: acessorio.precoUnitario > 0
-        ? Number((acessorio.valorTotal / acessorio.precoUnitario).toFixed(3))
+      qtd: acessorio.precoUnitario > 0 ? Number((acessorio.valorTotal / acessorio.precoUnitario).toFixed(3))
         : Number(acessorio.quantidadePacote || acessorio.quantidade || 0),
       unidade: acessorio.pacote ? "pacote" : "und",
       descricao: `${acessorio.codigo} - ${acessorio.nome}`.toUpperCase(),
@@ -803,7 +800,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       numero: "Novo Orçamento",
       projeto: "Sacada frontal",
       cliente: nomeClienteSelecionado || buscaCliente || "",
-      medidas: `${larguraNumero} x ${alturaNumero} mm`,
+      medidas: `${larguraNumero} ? ${alturaNumero} mm`,
       largura: larguraNumero,
       altura: alturaNumero,
       quantidade: quantidadeNumero,
@@ -815,7 +812,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       trilho: `${quantidadeDivisoesNumero} divisão(ões)`,
       trinco: "Sacada frontal",
       pecasDivisao: resultado.quantidadeVidrosPorVao,
-      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisões por vão: ${quantidadeDivisoesNumero}`,
+      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} ? ${resultado.alturaVidroMm} mm\nDivisões por vão: ${quantidadeDivisoesNumero}`,
       valorTotal: totalGeralCalculado,
       materiais: montarMateriaisCentral(),
       origemRota: "/calculo/sacadafrontal",
@@ -828,8 +825,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       const itemCentral = montarItemCentral(centralItemId || undefined);
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? (JSON.parse(salvo) as SacadaFrontalCentralItem[]) : [];
-      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
-        ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
+      const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId) ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
         : [...lista, itemCentral];
 
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
@@ -947,11 +943,11 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   className="w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none bg-transparent"
                   style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
                   value={buscaCliente}
-                  onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
+                  onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex?.(-1); }}
                   onFocus={() => setMostrarClientes(true)}
                   onKeyDown={(e) => {
-                    if (e.key === "ArrowDown") setClienteIndex((p) => Math.min(p + 1, clientesFiltrados.length - 1));
-                    if (e.key === "ArrowUp") setClienteIndex((p) => Math.max(p - 1, 0));
+                    if (e.key === "ArrowDown") setClienteIndex?.((p) => Math.min(p + 1, clientesFiltrados.length - 1));
+                    if (e.key === "ArrowUp") setClienteIndex?.((p) => Math.max(p - 1, 0));
                     if (e.key === "Enter") {
                       const sel = clienteIndex >= 0 ? clientesFiltrados[clienteIndex] : clientesFiltrados[0];
                       if (sel) { setBuscaCliente(sel.nome); setClienteId(String(sel.id)); setMostrarClientes(false); }
@@ -1052,7 +1048,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     divisoesPorVao={quantidadeDivisoesNumero}
                     corPerfil={corPerfil || "Não selecionada"}
                     vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
-                    medidaVidro={`${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`}
+                    medidaVidro={`${resultado.larguraVidroMm} ? ${resultado.alturaVidroMm} mm`}
                     areaTotal={resultado.areaTotalVidro}
                     totalVidro={resultado.totalVidro}
                     perfis={perfisComPrecoTabela}
@@ -1216,7 +1212,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
             {[
               {
                 titulo: "Medida de cada vidro",
-                valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`,
+                valor: `${formatarNumero(resultado.larguraVidroMm, 0)} ? ${formatarNumero(resultado.alturaVidroMm, 0)} mm`,
                 detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`,
                 icone: Ruler,
               },
@@ -1335,8 +1331,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                           <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
                           <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
-                            {acessorio.quantidadePacote
-                              ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
+                            {acessorio.quantidadePacote ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
                               : acessorio.quantidade}
                           </td>
                           <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{corPerfilSelecionada ? formatarPreco(acessorio.precoUnitario) : "-"}</td>
@@ -1401,19 +1396,13 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                     // Cor do perfil conforme seleção
                     const corPerfilNorm = normalizarTextoComparacao(corPerfil);
-                    const corAluminio = corPerfilNorm === "branco"
-                      ? "#e8e8e8"
-                      : corPerfilNorm === "preto"
-                        ? "#2a2a2a"
-                        : corPerfilNorm === "fosco"
-                          ? "#8c8c8c"
+                    const corAluminio = corPerfilNorm === "branco" ? "#e8e8e8"
+                      : corPerfilNorm === "preto" ? "#2a2a2a"
+                        : corPerfilNorm === "fosco" ? "#8c8c8c"
                           : "#9e9e9e";
-                    const corAluminioBorda = corPerfilNorm === "branco"
-                      ? "#c0c0c0"
-                      : corPerfilNorm === "preto"
-                        ? "#1a1a1a"
-                        : corPerfilNorm === "fosco"
-                          ? "#6b6b6b"
+                    const corAluminioBorda = corPerfilNorm === "branco" ? "#c0c0c0"
+                      : corPerfilNorm === "preto" ? "#1a1a1a"
+                        : corPerfilNorm === "fosco" ? "#6b6b6b"
                           : "#787878";
 
                     // Cor do vidro (tom esverdeado/azulado de vidro temperado)
@@ -1521,7 +1510,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     ["Área por peça", `${formatarNumero(resultado.areaVidroPorPeca)} m²`],
                     ["Vidro especificado", resultado.vidroTipo],
                     ["Cor dos perfis", corPerfil],
-                    ["Medida para calculo", `${formatarNumero(resultado.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultado.alturaVidroCalculoMm, 0)} mm`],
+                    ["Medida para calculo", `${formatarNumero(resultado.larguraVidroCalculoMm, 0)} ? ${formatarNumero(resultado.alturaVidroCalculoMm, 0)} mm`],
                     ["Total dos perfis", formatarPreco(totalPerfisCalculado)],
                     ["Total dos acessorios", formatarPreco(totalAcessoriosCalculado)],
                     ["Total geral", formatarPreco(totalGeralCalculado)],

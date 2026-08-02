@@ -39,6 +39,10 @@ type ProjetoComposicao = CentralImpressaoItem & {
   pecasDivisao?: number;
   origemRota?: string;
   origemTipo?: string;
+  loteId?: string;
+  loteSeq?: number;
+  loteTotal?: number;
+  loteObservacao?: string;
   pinazioId?: string;
   pinazioNome?: string;
   pinazioCor?: "branco" | "preto" | "nogal";
@@ -70,6 +74,7 @@ export type OtimizacaoPerfil = {
   codigo: string;
   descricao: string;
   comprimentoBarra: number;
+  origem: "projetos" | "sacada-frontal" | "pele-de-vidro" | "fechamento-sacada";
   barras: number[][];
   totalCortes: number;
   barrasOriginais: number;
@@ -105,7 +110,7 @@ const normalizarTexto = (texto?: string | number | null) =>
 
 const sanitizarNomeArquivo = (valor: string) =>
   valor
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .replace(/[<>:"/\\|x*\u0000-\u001F]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -118,7 +123,7 @@ const formatarVidroCadastro = (vidro: VidroCadastro) => {
 
 const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
   const texto = String(descricao || "").trim();
-  const medida = texto.match(/\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?/i);
+  const medida = texto.match(/\d+(?:[.,]\d+)x\s*x\s*\d+(?:[.,]\d+)x/i);
   if (!medida) return `VIDRO ${novoVidro}`.toUpperCase();
 
   const prefixo = texto.slice(0, (medida.index || 0) + medida[0].length).trim();
@@ -128,7 +133,7 @@ const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
 const limparDescricaoVidroMaterial = (descricao: string) =>
   String(descricao || "")
     .replace(/^vidro\s*/i, "")
-    .replace(/^\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?\s*/i, "")
+    .replace(/^\d+(?:[.,]\d+)x\s*x\s*\d+(?:[.,]\d+)x\s*/i, "")
     .replace(/^vidro\s*/i, "")
     .trim();
 
@@ -143,7 +148,7 @@ const descricaoVidroItem = (item: Pick<ProjetoComposicao, "vidro" | "materiais">
 };
 
 const extrairMedidaVidroAvulso = (medida?: string) => {
-  const match = String(medida || "").match(/(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i);
+  const match = String(medida || "").match(/(\d+(?:[.,]\d+)x)\s*x\s*(\d+(?:[.,]\d+)x)/i);
   if (!match) return { largura: 0, altura: 0 };
   return {
     largura: Number(match[1].replace(",", ".")) || 0,
@@ -196,10 +201,42 @@ const ORDEM_PERFIS_OTIMIZADOS = [
 
 const codigoMaterialNormalizado = (codigo?: string) => normalizarTexto(codigo).replace(/[^a-z0-9]/g, "");
 
+const normalizarCodigoExibicao = (codigo?: string) =>
+  String(codigo || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+
+const removerCodigoDuplicadoDescricao = (codigo?: string, descricao?: string) => {
+  const codigoNormalizado = normalizarCodigoExibicao(codigo);
+  let descricaoLimpa = String(descricao || "").trim().replace(/\s+/g, " ");
+
+  if (codigoNormalizado) {
+    const codigoEscapado = codigoNormalizado.replace(/[.*+x^${}()|[\]\\]/g, "\\$&");
+    const codigoFlexivel = codigoNormalizado
+      .split("")
+      .map((caractere) => caractere.replace(/[.*+x^${}()|[\]\\]/g, "\\$&"))
+      .join("[\\s-]*");
+
+    let anterior = "";
+    while (anterior !== descricaoLimpa) {
+      anterior = descricaoLimpa;
+      descricaoLimpa = descricaoLimpa
+        .replace(new RegExp(`^${codigoEscapado}\\s*-\\s*`, "i"), "")
+        .replace(new RegExp(`^${codigoEscapado}\\s+`, "i"), "")
+        .replace(new RegExp(`^${codigoFlexivel}\\s*-\\s*`, "i"), "")
+        .replace(new RegExp(`^${codigoFlexivel}\\s+`, "i"), "");
+    }
+  }
+
+  return codigoNormalizado ? `${codigoNormalizado} - ${descricaoLimpa || codigoNormalizado}`
+    : descricaoLimpa;
+};
+
 const ordemPerfilOtimizado = (perfil: Pick<OtimizacaoPerfil, "codigo" | "descricao">) => {
   const codigo = codigoMaterialNormalizado(perfil.codigo);
   const descricao = normalizarTexto(perfil.descricao);
-  const indiceCodigo = ORDEM_PERFIS_OTIMIZADOS.findIndex((item) => codigoMaterialNormalizado(item) === codigo);
+  const indiceCodigo = ORDEM_PERFIS_OTIMIZADOS.findIndex?.((item) => codigoMaterialNormalizado(item) === codigo);
   if (indiceCodigo >= 0) return indiceCodigo;
   if (descricao.includes("tubo")) return 100;
   if (descricao.includes("cantoneira")) return 110;
@@ -221,7 +258,7 @@ const ehJanelaCorrer2Folhas = (projeto?: string) => /jc2f|janela de correr 2/i.t
 const ehPortaCorrer2Folhas = (projeto?: string) => /pc2f|porta de correr 2 folhas/i.test(String(projeto || ""));
 const ehPortaCorrer4Folhas = (projeto?: string) => /pc4f|porta de correr 4 folhas/i.test(String(projeto || ""));
 const ehPortaGiroFixo = (projeto?: string) => /pgf|porta de giro com fixo lateral/i.test(String(projeto || ""));
-const ehMax = (projeto?: string) => /^max$/i.test(String(projeto || "")) || /(^|\s)max($|\s)/i.test(String(projeto || ""));
+const ehMax = (projeto?: string) => /^max$/i.test(String(projeto || "")) || /(^|\s)ma?.($|\s)/i.test(String(projeto || ""));
 const ehFixos = (projeto?: string) => /fixos|fixo/i.test(String(projeto || ""));
 const ehPma2f = (projeto?: string) => /pma2f|m[aã]o amiga 2/i.test(String(projeto || ""));
 const ehPma3f = (projeto?: string) => /pma3f|m[aã]o amiga 3/i.test(String(projeto || ""));
@@ -231,7 +268,7 @@ const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(proje
 const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
 const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
 const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
-const ehEspelhoComDesenho = (projeto?: string) => /^espelhos?$/i.test(String(projeto || "").trim());
+const ehEspelhoComDesenho = (projeto?: string) => /^espelhosx$/i.test(String(projeto || "").trim());
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehBoxCanto3f = (projeto?: string) => /boxcanto3f|box de canto 3/i.test(String(projeto || ""));
 const ehBoxCanto = (projeto?: string) => /boxcanto|box de canto/i.test(String(projeto || ""));
@@ -242,6 +279,7 @@ const ehDeslizante5f = (projeto?: string) => /deslizante5f|deslizante 5/i.test(S
 const ehDeslizante6f = (projeto?: string) => /deslizante6f|deslizante 6/i.test(String(projeto || ""));
 const ehPc2fComBandeira = (projeto?: string) => /pc2fcb|2 folhas com bandeira/i.test(String(projeto || ""));
 const ehPc4fComBandeira = (projeto?: string) => /pc4fcb|4 folhas com bandeira/i.test(String(projeto || ""));
+const ehJc4fComBandeira = (projeto?: string) => /jc4fcb|janela.*4.*folhas.*bandeira/i.test(String(projeto || ""));
 const ehJc2fComSacada = (projeto?: string) => /jc2fcs|sacada inferior/i.test(String(projeto || ""));
 const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(String(projeto || ""));
 const ehJc4fcbs = (projeto?: string) => /jc4fcbs|janela.*4.*folhas.*peitoril.*bandeira|janela.*peitoril.*sacada/i.test(String(projeto || ""));
@@ -552,7 +590,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (projeto === "PG - 2 folhas") return "Porta de giro - 2 folhas";
   if (/pg dobradi[cç]a - 2|porta de giro dobradi[cç]a - 2/i.test(String(projeto || ""))) return "Porta de giro dobradiça - 2 folhas";
   if (ehPortaGiroFixo(projeto)) return "Porta de giro com fixo lateral";
-  if (ehMax(projeto)) return "MAX";
+  if (ehMax?.(projeto)) return "MAX";
   if (ehFixos(projeto)) return "Fixos";
   if (ehPma2f4m(projeto)) return "Mão Amiga 2 fixas + 4 móveis";
   if (ehPma6f(projeto)) return "Mão Amiga 6 folhas";
@@ -591,7 +629,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<ProjetoComposicao, "largura" | 
   const medidaSalva = String(item.medidasDetalhadas || "").match(/Quadro:\s*([^\n]+)/i)?.[1];
   const larguraQuadro = numeroCampoFechamento(item.trilho, 0) > 0 ? Math.round(Number(item.largura || 0) / numeroCampoFechamento(item.trilho, 1)) : 0;
   const alturaQuadro = numeroCampoFechamento(item.trinco, 0) > 0 ? Math.round(Number(item.altura || 0) / numeroCampoFechamento(item.trinco, 1)) : 0;
-  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} x ${alturaQuadro.toLocaleString("pt-BR")} mm`;
+  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} ? ${alturaQuadro.toLocaleString("pt-BR")} mm`;
   return `Quadro: ${medida}\nTotal de quadros: ${totalQuadrosPeleDeVidro(item)}\nFixos: ${numeroCampoFechamento(item.puxador, 0)} | Móveis: ${numeroCampoFechamento(item.tamanhoPuxador, 0)}`;
 };
 
@@ -676,11 +714,27 @@ const limparRascunhosDosProjetos = () => {
 const extrairCodigoPerfil = (material: ProjetoIndividualMaterial) =>
   String(material.codigoPerfil || material.descricao.split(" - ")[0] || "").trim().toUpperCase();
 
-const modoProjetoEhBarra = (item: Pick<ProjetoComposicao, "modo">) =>
-  String(item.modo || "").toLowerCase().includes("barra");
+const itemTemCortesDeBarra = (item: Pick<ProjetoComposicao, "materiais">) =>
+  Boolean(
+    item.materiais?.some(
+      (material) =>
+        String(material.unidade || "").toLowerCase().includes("barra") &&
+        Array.isArray(material.cortes) &&
+        material.cortes.length > 0
+    )
+  );
 
-const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "modo" | "projeto">) =>
-  modoProjetoEhBarra(item) || ehBox2Fls(item.projeto) || ehBoxCanto(item.projeto) || ehBoxCanto3f(item.projeto);
+const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "materiais">) =>
+  itemTemCortesDeBarra(item);
+
+const origemOtimizacaoItem = (
+  item: Pick<ProjetoComposicao, "projeto">
+): OtimizacaoPerfil["origem"] => {
+  if (ehSacadaFrontal(item.projeto)) return "sacada-frontal";
+  if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
+  if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
+  return "projetos";
+};
 
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {
@@ -735,10 +789,12 @@ const otimizarCortes = (cortesOriginais: number[], comprimentoBarra: number) => 
 };
 
 const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[] => {
-  const grupos = new Map<string, { codigo: string; descricao: string; comprimentoBarra: number; cortes: number[]; barrasOriginais: number; valorUnitario: number }>();
+  const grupos = new Map<string, { codigo: string; descricao: string; comprimentoBarra: number; origem: OtimizacaoPerfil["origem"]; cortes: number[]; barrasOriginais: number; valorUnitario: number }>();
 
   itens.forEach((item) => {
     if (!itemParticipaOtimizacaoBarras(item)) return;
+
+    const origem = origemOtimizacaoItem(item);
 
     item.materiais?.forEach((material) => {
       if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
@@ -748,8 +804,8 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
       const codigo = extrairCodigoPerfil(material);
       const descricao = String(material.descricao || codigo).toUpperCase();
       const comprimentoBarra = Number(material.comprimentoBarra || 6000);
-      const chave = `${codigo}|${descricao}|${comprimentoBarra}`;
-      const grupo = grupos.get(chave) || { codigo, descricao, comprimentoBarra, cortes: [], barrasOriginais: 0, valorUnitario: Number(material.valorUnitario || 0) };
+      const chave = `${origem}|${codigo}|${descricao}|${comprimentoBarra}`;
+      const grupo = grupos.get(chave) || { codigo, descricao, comprimentoBarra, origem, cortes: [], barrasOriginais: 0, valorUnitario: Number(material.valorUnitario || 0) };
 
       grupo.cortes.push(...material.cortes.map((corte) => Number(corte || 0)));
       grupo.barrasOriginais += Number(material.qtd || 0);
@@ -765,6 +821,7 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
         codigo: grupo.codigo,
         descricao: grupo.descricao,
         comprimentoBarra: grupo.comprimentoBarra,
+        origem: grupo.origem,
         barras,
         totalCortes: grupo.cortes.length,
         barrasOriginais: grupo.barrasOriginais,
@@ -876,8 +933,7 @@ export default function CentralImpressaoPage() {
           .maybeSingle();
 
         if (!error && data) {
-          const itensSalvos = data.itens && !Array.isArray(data.itens) && typeof data.itens === "object"
-            ? data.itens as { projetos?: ProjetoComposicao[]; cliente?: string; obra?: string; otimizacaoPerfis?: OtimizacaoPerfil[]; resumo?: { otimizacaoAplicada?: boolean } }
+          const itensSalvos = data.itens && !Array.isArray(data.itens) && typeof data.itens === "object" ? data.itens as { projetos?: ProjetoComposicao[]; cliente?: string; obra?: string; otimizacaoPerfis?: OtimizacaoPerfil[]; resumo?: { otimizacaoAplicada?: boolean } }
             : null;
 
           setItens(Array.isArray(itensSalvos?.projetos) ? itensSalvos.projetos : []);
@@ -937,8 +993,7 @@ export default function CentralImpressaoPage() {
   const precoVidroSelecionado = useMemo(() => {
     if (!vidroSelecionadoOrcamento) return 0;
 
-    const precoGrupo = clienteSelecionado?.grupo_preco_id
-      ? precosVidroGrupos.find(
+    const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
         (preco) =>
           String(preco.vidro_id) === String(vidroSelecionadoOrcamento.id) &&
           String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
@@ -967,8 +1022,7 @@ export default function CentralImpressaoPage() {
     const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
     const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
     const economiaPerfis = Math.max(0, valorPerfisOriginais - valorPerfisOtimizados);
-    const valor = otimizacaoAplicada
-      ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
+    const valor = otimizacaoAplicada ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
       : base.valorOriginal;
 
     return {
@@ -1007,8 +1061,7 @@ export default function CentralImpressaoPage() {
       numero: item.numero,
       projeto: nomeProjetoVisivel(item.projeto),
       cliente: cliente || item.cliente,
-      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0
-        ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
@@ -1049,7 +1102,7 @@ export default function CentralImpressaoPage() {
         if (item.id !== id) return item;
         const atualizado = { ...item, [campo]: valor };
         if (campo === "largura" || campo === "altura") {
-          atualizado.medidas = `${Number(atualizado.largura || 0)} x ${Number(atualizado.altura || 0)} mm`;
+          atualizado.medidas = `${Number(atualizado.largura || 0)} ? ${Number(atualizado.altura || 0)} mm`;
         }
         return atualizado;
       })
@@ -1065,8 +1118,7 @@ export default function CentralImpressaoPage() {
       ...item,
       id: criarId(),
       numero: numeroOrcamento || item.numero,
-      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0
-        ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`
         : item.medidas,
       materiais: item.materiais?.map((material) => ({ ...material, id: criarId() })),
       vidrosAvulsos: item.vidrosAvulsos?.map((vidro) => ({ ...vidro, id: criarId() })),
@@ -1098,11 +1150,9 @@ export default function CentralImpressaoPage() {
       const materiaisAtualizados = item.materiais?.map((material) => ({
         ...material,
         id: criarId(),
-        descricao: normalizarTexto(material.descricao).includes("vidro")
-          ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
+        descricao: normalizarTexto(material.descricao).includes("vidro") ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
           : material.descricao,
-        valorUnitario: normalizarTexto(material.descricao).includes("vidro")
-          ? precoVidroSelecionado
+        valorUnitario: normalizarTexto(material.descricao).includes("vidro") ? precoVidroSelecionado
           : material.valorUnitario,
       }));
 
@@ -1136,82 +1186,62 @@ export default function CentralImpressaoPage() {
 
   const editarItem = (item: ProjetoComposicao) => {
     const projetoTexto = item.projeto.toLowerCase();
-    const rota = item.origemRota || (ehPortaGiroFixo(item.projeto)
-      ? "/pgf"
-      : ehSacadaFrontal(item.projeto)
-      ? "/calculo/sacadafrontal"
-      : ehFechamentoSacada(item.projeto)
-      ? "/calculo/fechamentosacada"
-      : ehPeleDeVidro(item.projeto)
-      ? "/calculo/peledevidro"
-      : ehMax(item.projeto)
-      ? "/max"
-      : ehJc4fcbs(item.projeto)
-      ? "/jc4fcbs"
-      : ehJc4fComSacada(item.projeto)
-      ? "/jc4fcs"
-      : ehJc2fComSacada(item.projeto)
-      ? "/jc2fcs"
-      : ehPc4fComBandeira(item.projeto)
-      ? "/pc4fcb"
-      : ehPc2fComBandeira(item.projeto)
-      ? "/pc2fcb"
-      : projetoTexto.includes("pc4f") || ehPortaCorrer4Folhas(item.projeto)
-      ? "/pc4f-kit"
-      : projetoTexto.includes("pc2f") || ehPortaCorrer2Folhas(item.projeto)
-      ? "/pc2f-kit"
-      : projetoTexto.includes("jc2f") || projetoTexto.includes("janela de correr 2")
-      ? "/jc2f-kit"
-      : projetoTexto.includes("jc4f") || projetoTexto.includes("janela de correr 4")
-      ? "/jc4f-kit"
-      : projetoTexto.includes("pg - 2") || projetoTexto.includes("porta de giro - 2")
-      ? "/pg2f"
-      : projetoTexto.includes("pg") || projetoTexto.includes("porta de giro")
-      ? "/pg"
-      : projetoTexto.includes("deslizante2f") || projetoTexto.includes("deslizante 2")
-      ? "/deslizante2f"
-      : projetoTexto.includes("deslizante3f") || projetoTexto.includes("deslizante 3")
-      ? "/deslizante3f"
-      : projetoTexto.includes("deslizante4f") || projetoTexto.includes("deslizante 4")
-      ? "/deslizante4f"
-      : projetoTexto.includes("deslizante5f") || projetoTexto.includes("deslizante 5")
-      ? "/deslizante5f"
-      : projetoTexto.includes("deslizante6f") || projetoTexto.includes("deslizante 6")
-      ? "/deslizante6f"
-      : projetoTexto.includes("2 folhas") || projetoTexto.includes("pfv2f")
-      ? "/pfv2f-kit"
-      : projetoTexto.includes("porta de correr") || projetoTexto.includes("pfv1f")
-        ? "/pfv1f-kit"
-      : projetoTexto.includes("fixos") || projetoTexto.includes("fixo")
-        ? "/fixos"
-      : projetoTexto.includes("pma2f") || projetoTexto.includes("mao amiga 2") || projetoTexto.includes("mão amiga 2")
-        ? "/pma2f"
-      : projetoTexto.includes("pma3f") || projetoTexto.includes("mao amiga 3") || projetoTexto.includes("mão amiga 3")
-        ? "/pma3f"
-      : projetoTexto.includes("pma4f") || projetoTexto.includes("mao amiga 4") || projetoTexto.includes("mão amiga 4")
-        ? "/pma4f"
-      : projetoTexto.includes("pma5f") || projetoTexto.includes("mao amiga 5") || projetoTexto.includes("mão amiga 5")
-        ? "/pma5f"
-      : projetoTexto.includes("pma6f") || projetoTexto.includes("mao amiga 6") || projetoTexto.includes("mão amiga 6")
-        ? "/pma6f"
-      : projetoTexto.includes("pma2f4m") || projetoTexto.includes("2 fixas + 4") || projetoTexto.includes("2 fixas e 4")
-        ? "/pma2f4m"
-      : projetoTexto.includes("box2fls") || projetoTexto.includes("box 2 folhas")
-        ? "/box2fls"
-      : projetoTexto.includes("boxcanto3f") || projetoTexto.includes("box de canto 3")
-        ? "/boxcanto3f"
-      : projetoTexto.includes("boxcanto") || projetoTexto.includes("box de canto")
-        ? "/boxcanto"
+    const rota = item.origemRota || (ehPortaGiroFixo(item.projeto) ? "/pgf"
+      : ehSacadaFrontal(item.projeto) ? "/calculo/sacadafrontal"
+      : ehFechamentoSacada(item.projeto) ? "/calculo/fechamentosacada"
+      : ehPeleDeVidro(item.projeto) ? "/calculo/peledevidro"
+      : ehMax?.(item.projeto) ? "/max"
+      : ehJc4fcbs(item.projeto) ? "/jc4fcbs"
+      : ehJc4fComSacada(item.projeto) ? "/jc4fcs"
+      : ehJc2fComSacada(item.projeto) ? "/jc2fcs"
+      : ehJc4fComBandeira(item.projeto) ? "/jc4fcb"
+      : ehPc4fComBandeira(item.projeto) ? "/pc4fcb"
+      : ehPc2fComBandeira(item.projeto) ? "/pc2fcb"
+      : projetoTexto.includes("pc4f") || ehPortaCorrer4Folhas(item.projeto) ? "/pc4f-kit"
+      : projetoTexto.includes("pc2f") || ehPortaCorrer2Folhas(item.projeto) ? "/pc2f-kit"
+      : projetoTexto.includes("jc2f") || projetoTexto.includes("janela de correr 2") ? "/jc2f-kit"
+      : projetoTexto.includes("jc4f") || projetoTexto.includes("janela de correr 4") ? "/jc4f-kit"
+      : projetoTexto.includes("pg - 2") || projetoTexto.includes("porta de giro - 2") ? "/pg2f"
+      : projetoTexto.includes("pg") || projetoTexto.includes("porta de giro") ? "/pg"
+      : projetoTexto.includes("deslizante2f") || projetoTexto.includes("deslizante 2") ? "/deslizante2f"
+      : projetoTexto.includes("deslizante3f") || projetoTexto.includes("deslizante 3") ? "/deslizante3f"
+      : projetoTexto.includes("deslizante4f") || projetoTexto.includes("deslizante 4") ? "/deslizante4f"
+      : projetoTexto.includes("deslizante5f") || projetoTexto.includes("deslizante 5") ? "/deslizante5f"
+      : projetoTexto.includes("deslizante6f") || projetoTexto.includes("deslizante 6") ? "/deslizante6f"
+      : projetoTexto.includes("2 folhas") || projetoTexto.includes("pfv2f") ? "/pfv2f-kit"
+      : projetoTexto.includes("porta de correr") || projetoTexto.includes("pfv1f") ? "/pfv1f-kit"
+      : projetoTexto.includes("fixos") || projetoTexto.includes("fixo") ? "/fixos"
+      : projetoTexto.includes("pma2f") || projetoTexto.includes("mao amiga 2") || projetoTexto.includes("mão amiga 2") ? "/pma2f"
+      : projetoTexto.includes("pma3f") || projetoTexto.includes("mao amiga 3") || projetoTexto.includes("mão amiga 3") ? "/pma3f"
+      : projetoTexto.includes("pma4f") || projetoTexto.includes("mao amiga 4") || projetoTexto.includes("mão amiga 4") ? "/pma4f"
+      : projetoTexto.includes("pma5f") || projetoTexto.includes("mao amiga 5") || projetoTexto.includes("mão amiga 5") ? "/pma5f"
+      : projetoTexto.includes("pma6f") || projetoTexto.includes("mao amiga 6") || projetoTexto.includes("mão amiga 6") ? "/pma6f"
+      : projetoTexto.includes("pma2f4m") || projetoTexto.includes("2 fixas + 4") || projetoTexto.includes("2 fixas e 4") ? "/pma2f4m"
+      : projetoTexto.includes("box2fls") || projetoTexto.includes("box 2 folhas") ? "/box2fls"
+      : projetoTexto.includes("boxcanto3f") || projetoTexto.includes("box de canto 3") ? "/boxcanto3f"
+      : projetoTexto.includes("boxcanto") || projetoTexto.includes("box de canto") ? "/boxcanto"
         : "");
     if (!rota) {
       setMensagem("Este projeto ainda não tem uma tela de edição vinculada.");
       return;
     }
 
-    const retorno = editId
-      ? `/central-impressao?edit=${encodeURIComponent(editId)}`
+    const retorno = editId ? `/central-impressao?edit=${encodeURIComponent(editId)}`
       : "/central-impressao";
-    router.push(`${rota}?centralItem=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(retorno)}`);
+    router.push(`${rota}xcentralItem=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(retorno)}`);
+  };
+
+  const editarLote = (item: ProjetoComposicao) => {
+    if (!item.loteId) {
+      editarItem(item);
+      return;
+    }
+
+    const rota = item.origemRota || "/jc4f-kit";
+    const retorno = editId ? `/central-impressao?edit=${encodeURIComponent(editId)}`
+      : "/central-impressao";
+
+    router.push(`${rota}xloteId=${encodeURIComponent(item.loteId)}&returnTo=${encodeURIComponent(retorno)}`);
   };
 
   const limparTudo = () => {
@@ -1266,8 +1296,7 @@ export default function CentralImpressaoPage() {
     try {
       setSalvando(true);
       setMensagem("");
-      let numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento"
-        ? numeroOrcamento
+      let numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento" ? numeroOrcamento
         : await gerarNumeroOrcamento();
 
       const montarPayload = (numero: string) => ({
@@ -1292,8 +1321,7 @@ export default function CentralImpressaoPage() {
 
       let payload = montarPayload(numeroFinal);
 
-      let { error } = editId
-        ? await supabase.from("orcamentos").update(payload).eq("id", editId)
+      let { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
         : await supabase.from("orcamentos").insert([payload]);
 
       // Em um orçamento novo, uma sequência antiga pode ter ficado salva no
@@ -1313,7 +1341,7 @@ export default function CentralImpressaoPage() {
       limparRascunhosDosProjetos();
       limparTudo();
       setMensagem(`Orçamento ${numeroFinal} salvo com sucesso.`);
-      router.push(`/admin/relatorio.orcamento?filtro=${encodeURIComponent(numeroFinal)}`);
+      router.push(`/admin/relatorio.orcamentoxfiltro=${encodeURIComponent(numeroFinal)}`);
     } catch (erro) {
       const erroSupabase = (typeof erro === "object" && erro !== null ? erro : {}) as {
         message?: string;
@@ -1410,7 +1438,7 @@ export default function CentralImpressaoPage() {
                 <input
                   value={obra}
                   onChange={(e) => setObra(e.target.value)}
-                  placeholder="Ex.: Obra Centro"
+                  placeholder="Ex.:: Obra Centro"
                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                 />
               </Field>
@@ -1498,29 +1526,18 @@ export default function CentralImpressaoPage() {
                   const janelaComPeitorilBandeira = ehJc4fcbs(item.projeto);
                   const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
                   const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
-                  const labelCampoPrincipal = ehPeleDeVidro(item.projeto)
-                    ? "Quadros"
-                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
-                    ? "Divisões"
-                    : ehBox2Fls(item.projeto)
-                    ? "Altura"
-                    : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto)
-                    ? "Projeto"
-                    : ehPortaGiroFixo(item.projeto)
-                    ? "Fechadura"
+                  const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
+                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
+                    : ehBox2Fls(item.projeto) ? "Altura"
+                    : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto) ? "Projeto"
+                    : ehPortaGiroFixo(item.projeto) ? "Fechadura"
                     : "Trilho";
-                  const labelCampoSecundario = ehPeleDeVidro(item.projeto)
-                    ? "Lajes"
-                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto)
-                    ? "Tipo"
-                    : ehBox2Fls(item.projeto)
-                    ? "Modelo do kit"
-                    : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto)
-                    ? "Carrinho"
-                    : ehPma(item.projeto)
-                    ? "Roldana"
-                    : ehPortaGiroFixo(item.projeto)
-                    ? "Projeto"
+                  const labelCampoSecundario = ehPeleDeVidro(item.projeto) ? "Lajes"
+                    : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Tipo"
+                    : ehBox2Fls(item.projeto) ? "Modelo do kit"
+                    : ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto) ? "Carrinho"
+                    : ehPma(item.projeto) ? "Roldana"
+                    : ehPortaGiroFixo(item.projeto) ? "Projeto"
                     : "Trinco";
 
                   if (janelaComPeitorilBandeira) {
@@ -1571,6 +1588,17 @@ export default function CentralImpressaoPage() {
                                 >
                                   <Copy size={16} />
                                 </button>
+
+                                {item.loteId ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => editarLote(item)}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                    title="Editar lote"
+                                  >
+                                    <Layers3 size={16} />
+                                  </button>
+                                ) : null}
 
                                 <button
                                   type="button"
@@ -1834,6 +1862,16 @@ export default function CentralImpressaoPage() {
                             >
                               <Copy size={16} />
                             </button>
+                            {item.loteId ? (
+                              <button
+                                type="button"
+                                onClick={() => editarLote(item)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                title="Editar lote"
+                              >
+                                <Layers3 size={16} />
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => editarItem(item)}
@@ -2265,12 +2303,16 @@ export default function CentralImpressaoPage() {
                 </div>
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  {otimizacaoPerfis.map((perfil) => (
-                    <article key={`${perfil.codigo}-${perfil.descricao}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  {otimizacaoPerfis.map((perfil, perfilIndex) => {
+                    const descricaoPerfil = removerCodigoDuplicadoDescricao(perfil.codigo, perfil.descricao);
+                    const chavePerfil = `${perfil.origem}-${perfil.codigo}-${perfil.descricao}-${perfil.comprimentoBarra}-${perfilIndex}`;
+
+                    return (
+                    <article key={chavePerfil} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-black uppercase tracking-wide text-slate-400">{perfil.codigo}</p>
-                          <h3 className="mt-1 text-sm font-black text-[#0f2742]">{perfil.descricao}</h3>
+                          <h3 className="mt-1 text-sm font-black text-[#0f2742]">{descricaoPerfil}</h3>
                         </div>
                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
                           {perfil.barrasOriginais} → {perfil.barras.length} barras
@@ -2283,14 +2325,15 @@ export default function CentralImpressaoPage() {
                         {perfil.barras.map((barra, index) => {
                           const usado = barra.reduce((soma, corte) => soma + corte, 0);
                           return (
-                            <p key={`${perfil.codigo}-${index}`} className="text-xs font-semibold text-slate-600">
+                            <p key={`${chavePerfil}-barra-${index}`} className="text-xs font-semibold text-slate-600">
                               Barra {index + 1}: {barra.join(" + ")} = {usado} mm
                             </p>
                           );
                         })}
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ) : null}

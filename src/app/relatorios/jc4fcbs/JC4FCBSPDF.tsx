@@ -353,8 +353,7 @@ export function JC4FCBSPDF({
 
   const totalPecas = Number(dados.quantidade || 0) * 12;
   const desenhoSrc =
-    dados.trinco === "Com trinco"
-      ? "/desenhos/JC4FCBS_comtrinco.png"
+    dados.trinco === "Com trinco" ? "/desenhos/JC4FCBS_comtrinco.png"
       : "/desenhos/JC4FCBS_semtrinco.png";
 
   return (
