@@ -901,7 +901,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                   style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
                 >
-                  Imprimir PDF
+                  Imprimir
                 </PDFDownloadLink>
               </div>
 

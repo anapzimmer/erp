@@ -1596,7 +1596,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ) : (
                       <Printer size={16} />
                     )}
-                    Imprimir PDF
+                    Imprimir
                   </button>
                 )}
               </PDFDownloadLink>

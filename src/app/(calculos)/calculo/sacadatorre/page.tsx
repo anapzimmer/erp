@@ -832,7 +832,7 @@ export default function CalculoSacadaTorrePage() {
                       ) : (
                         <Printer size={16} />
                       )}
-                      Imprimir PDF
+                      Imprimir
                     </button>
                   )}
                 </PDFDownloadLink>

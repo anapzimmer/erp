@@ -1,4 +1,5 @@
-﻿"use client";
+﻿//app/relatorios/sacadatorre/SacadaTorrePDF.tsx
+"use client";
 
 import React from "react";
 import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, paddingRight: 18 },
   title: { fontSize: 15, color: "#153047", fontWeight: "bold", textTransform: "uppercase" },
-  subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
+   subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
   logo: { width: 118, height: 42, objectFit: "contain", objectPosition: "right" },
   infoStrip: {
     flexDirection: "row",
@@ -72,9 +73,9 @@ const styles = StyleSheet.create({
   label: { fontSize: 6.5, color: "#718398", textTransform: "uppercase", marginBottom: 3 },
   value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
   valueStrong: { fontSize: 9, color: "#153047", fontWeight: "bold" },
-  mainGrid: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  mainGrid: { flexDirection: "column", gap: 10, marginBottom: 12 },
   drawingBox: {
-    width: "43%",
+    width: "100%",
     borderWidth: 1,
     borderColor: "#dce5ed",
     borderRadius: 8,
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   drawingTitle: { fontSize: 9, color: "#153047", fontWeight: "bold", marginBottom: 6 },
   drawing: { width: "100%", height: 170, objectFit: "contain" },
   dataBox: {
-    flex: 1,
+    width: "100%",
     borderWidth: 1,
     borderColor: "#dce5ed",
     borderRadius: 8,
@@ -94,14 +95,14 @@ const styles = StyleSheet.create({
   dataTitle: { fontSize: 9, color: "#153047", fontWeight: "bold", marginBottom: 7 },
   dataGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   dataItem: {
-    width: "48%",
+    width: "31.8%",
     borderTopWidth: 1,
     borderTopColor: "#e8eef3",
     paddingTop: 5,
     minHeight: 30,
   },
   dataItemWide: {
-    width: "98%",
+    width: "48%",
     borderTopWidth: 1,
     borderTopColor: "#e8eef3",
     paddingTop: 5,
@@ -242,7 +243,7 @@ export function SacadaTorrePDF({
         <View style={styles.mainGrid} wrap={false}>
           <View style={styles.drawingBox}>
             <Text style={styles.drawingTitle}>Vista frontal</Text>
-            <Svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" height={170} preserveAspectRatio="xMidYMid meet">
+            <Svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" height={210} preserveAspectRatio="xMidYMid meet">
               <Rect x={x0} y={y0} width={drawW} height={drawH} fill="#ffffff" stroke="#d6e0e8" strokeWidth={0.8} />
 
               {Array.from({ length: divs }).map((_, index) => {
@@ -360,7 +361,16 @@ export function SacadaTorrePDF({
             const qtd = Number(material.qtd || 0);
             const unit = Number(material.valorUnitario || 0);
             const unidade = String(material.unidade || "");
-            const casasQtd = unidade.toLowerCase().includes("m2") || unidade.includes("mÂ²") ? 3 : 0;
+            const unidadeNormalizada = unidade
+  .toLowerCase()
+  .replace(/Â/g, "")
+  .trim();
+
+const casasQtd =
+  unidadeNormalizada.includes("m2") ||
+  unidadeNormalizada.includes("m²")
+    ? 3
+    : 0;
 
             return (
               <View key={`${material.id}-${index}`} style={styles.row}>
@@ -377,7 +387,9 @@ export function SacadaTorrePDF({
         <View style={styles.totals} wrap={false}>
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Area total</Text>
-            <Text style={styles.totalValue}>{fmtNumero(areaTotal, 3)} mÂ²</Text>
+            <Text style={styles.totalValue}>
+  {fmtNumero(areaTotal, 3)} m²
+</Text>
           </View>
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Valor de vidro</Text>

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     table: { width: "100%", marginTop: 4 },
     tableHeader: { flexDirection: "row" },
     tableRow: { flexDirection: "row", borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: "center", minHeight: 26 },
-    thCell: { padding: 5, color: "#FFFFFF", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
+    thCell: { padding: 5, color: "#153047", fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: "bold", textTransform: "uppercase" },
     tdCell: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: "#1C415B" },
 
     summaryContainer: { marginTop: 24, borderTopWidth: 1, borderTopColor: "#F0F0F0", paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
@@ -166,7 +166,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                     const gh = (ch - rh * 2) / qV;
                     const x0 = sl;
                     const y0 = st;
-                    const dw = 440;
+                    const dw = 500;
                     const dh = dw * (sh / sw);
                     return (
                         <View wrap={false} style={{ marginTop: 6, marginBottom: 10, alignItems: "center" }}>

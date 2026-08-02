@@ -1095,7 +1095,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     ) : (
                       <Printer size={16} />
                     )}
-                    Imprimir PDF
+                    Imprimir
                   </button>
                 )}
               </PDFDownloadLink>
