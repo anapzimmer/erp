@@ -294,6 +294,7 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 };
 
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
+const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
 const ehEspelhoComDesenho = (projeto?: string) => {
@@ -1299,7 +1300,7 @@ const consolidarMateriais = (
 };
 
 const origemPerfilItem = (item: CentralImpressaoItem): GrupoOrigemPerfil => {
-  if (ehSacadaFrontal(item.projeto)) return "sacada-frontal";
+  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto)) return "sacada-frontal";
   if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
   if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
   return "projetos";

@@ -287,6 +287,7 @@ const ehJc2fComSacada = (projeto?: string) => /jc2fcs|sacada inferior/i.test(Str
 const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(String(projeto || ""));
 const ehJc4fcbs = (projeto?: string) => /jc4fcbs|janela.*4.*folhas.*peitoril.*bandeira|janela.*peitoril.*sacada/i.test(String(projeto || ""));
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
+const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
@@ -833,7 +834,7 @@ const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "materiais"
 const origemOtimizacaoItem = (
   item: Pick<ProjetoComposicao, "projeto">
 ): OtimizacaoPerfil["origem"] => {
-  if (ehSacadaFrontal(item.projeto)) return "sacada-frontal";
+  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto)) return "sacada-frontal";
   if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
   if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
   return "projetos";
@@ -1290,6 +1291,7 @@ export default function CentralImpressaoPage() {
   const editarItem = (item: ProjetoComposicao) => {
     const projetoTexto = item.projeto.toLowerCase();
     const rota = item.origemRota || (ehPortaGiroFixo(item.projeto) ? "/pgf"
+      : ehSacadaComTorre(item.projeto) ? "/calculo/sacadatorre"
       : ehSacadaFrontal(item.projeto) ? "/calculo/sacadafrontal"
       : ehFechamentoSacada(item.projeto) ? "/calculo/fechamentosacada"
       : ehPeleDeVidro(item.projeto) ? "/calculo/peledevidro"
