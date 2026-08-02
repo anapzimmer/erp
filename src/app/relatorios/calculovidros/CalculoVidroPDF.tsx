@@ -49,49 +49,66 @@ interface CalculoVidroPDFProps {
 }
 
 const styles = StyleSheet.create({
-    page: { padding: 40, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
+    page: { padding: 32, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: PDF_HEADER_LAYOUT.marginBottom,
-        paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
-        borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingBottom: 12,
+        borderBottomWidth: 0.8,
     },
     headerLeft: { flexDirection: 'column', flex: 1 },
-    tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', textTransform: 'uppercase' },
-    subtitulo: { fontSize: PDF_HEADER_LAYOUT.subtitleSize, color: '#1C415B', marginTop: 2, fontWeight: 'bold' },
-    dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: '#666', marginTop: 6 },
+    headerRight: { flexDirection: 'column', alignItems: 'flex-end', maxWidth: 230 },
+    tituloRelatorio: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44' },
+    subtitulo: { fontSize: 7.8, color: '#64748B', marginTop: 4 },
+    dataEmissao: { fontSize: 8, color: '#64748B', marginTop: 3 },
+    empresaFallback: { fontSize: 15, color: '#0F2D44', fontWeight: 'bold' },
+    empresaSlogan: { fontSize: 7.5, color: '#64748B', marginTop: 2 },
     logo: {
         width: PDF_HEADER_LAYOUT.logoWidth,
         height: PDF_HEADER_LAYOUT.logoHeight,
         objectFit: 'contain',
-        objectPosition: 'right',
+        objectPosition: 'left',
     },
 
-    infoSection: {
-        flexDirection: 'row',
-        marginBottom: 12,
-        gap: 8,
+    infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: '#E2E8F0', borderRadius: 6 },
+    infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#E2E8F0' },
+    infoRowLast: { flexDirection: 'row' },
+    infoBoxQuarter: {
+        width: '25%',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 7,
+        paddingHorizontal: 9,
+        borderRightWidth: 0.8,
+        borderRightColor: '#E2E8F0',
+    },
+    infoBoxHalf: {
+        width: '50%',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 7,
+        paddingHorizontal: 9,
     },
     infoBox: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
-        padding: 10,
-        borderRadius: 6,
-        borderLeftWidth: 3,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 7,
+        paddingHorizontal: 9,
+        borderRightWidth: 0.8,
+        borderRightColor: '#E2E8F0',
     },
-    label: { fontSize: 6, color: '#999', textTransform: 'uppercase', marginBottom: 3, fontWeight: 'bold' },
-    value: { fontSize: 10, fontWeight: 'bold', color: '#1C415B' },
+    infoBoxLast: { flex: 1, backgroundColor: '#FFFFFF', paddingVertical: 7, paddingHorizontal: 9 },
+    label: { fontSize: 6.4, color: '#64748B', textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
+    value: { fontSize: 9, color: '#0F2D44' },
 
     // Tabela
-    table: { width: '100%', marginTop: 5 },
-    tableHeader: { flexDirection: 'row' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'stretch', minHeight: 32 },
-    tableColHeader: { padding: 5, color: '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
+    table: { width: '100%', marginTop: 5, borderTopWidth: 0.8, borderTopColor: '#CBD5E1' },
+    tableHeader: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#CBD5E1' },
+    tableRow: { flexDirection: 'row', borderBottomWidth: 0.7, borderBottomColor: '#E2E8F0', alignItems: 'stretch', minHeight: 30 },
+    tableColHeader: { paddingVertical: 6, paddingHorizontal: 4, color: '#334155', fontSize: 6.8, textTransform: 'uppercase', letterSpacing: 0.25 },
 
     // Textos da Tabela com a cor solicitada
-    tableCol: { padding: 5, fontSize: PDF_TABLE_LAYOUT.bodyFontSize, color: '#1C415B' },
+    tableCol: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 7.6, color: '#0F2D44' },
     planoCorteContainer: { marginTop: 6, gap: 6 },
     planoCorteLinha: { borderWidth: 0.5, borderColor: '#E5E7EB', borderRadius: 4, padding: 5, backgroundColor: '#FAFAFA' },
     planoCorteTopo: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
@@ -100,11 +117,11 @@ const styles = StyleSheet.create({
     corteVisual: { height: '100%', backgroundColor: '#94A3B8', borderRightWidth: 0.5, borderRightColor: '#FFFFFF' },
     sobraVisualCurta: { height: '100%', backgroundColor: '#E5E7EB' },
     sobraVisualReaproveitavel: { height: '100%', backgroundColor: '#DCFCE7' },
-    rowCabecalhoProjeto: { backgroundColor: '#EFF6FF' },
+    rowCabecalhoProjeto: { backgroundColor: '#F8FAFC' },
     rowPerfilConsolidado: { backgroundColor: '#F8FAFC' },
-    tituloCabecalhoProjeto: { fontSize: 8.5, fontWeight: 'bold' },
+    tituloCabecalhoProjeto: { fontSize: 8.4, fontWeight: 'bold' },
     seloConsolidado: { marginTop: 3, fontSize: 6.5, color: '#64748B' },
-    vidroDestaque: { fontSize: 7.2, color: '#1C415B', marginTop: 3, fontWeight: 'bold' },
+    vidroDestaque: { fontSize: 7.1, color: '#334155', marginTop: 3 },
     descricaoComDesenho: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
     descricaoTexto: { flex: 1 },
     desenhoThumbBox: {
@@ -122,31 +139,35 @@ const styles = StyleSheet.create({
 
     colDesc: { width: '44%' },
     colQtd: { width: '9%', textAlign: 'center' },
-    colVao: { width: '17%', textAlign: 'center' },
-    colPrecoUnitario: { width: '14%', textAlign: 'right' },
-    colTotal: { width: '16%', textAlign: 'right' },
+    colVao: { width: '16%', textAlign: 'center' },
+    colTipo: { width: '13%' },
+    colMetragem: { width: '9%', textAlign: 'right' },
+    colPrecoUnitario: { width: '13%', textAlign: 'right' },
+    colTotal: { width: '13%', textAlign: 'right' },
 
     summaryContainer: {
-        marginTop: 30,
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
-        paddingTop: 15,
+        marginTop: 18,
+        paddingTop: 10,
+        borderTopWidth: 0.8,
+        borderTopColor: '#CBD5E1',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end'
+        alignItems: 'flex-end',
+        backgroundColor: '#FFFFFF',
     },
-    summaryGroup: { flexDirection: 'row', gap: 20 },
+    summaryGroup: { flexDirection: 'row', gap: 14 },
     summaryItem: { flexDirection: 'column', alignItems: 'flex-start' },
-    summaryLabel: { fontSize: 6, color: '#999', textTransform: 'uppercase', marginBottom: 2 },
-    summaryValue: { fontSize: 10, fontWeight: 'bold', color: '#1C415B' },
+    summaryLabel: { fontSize: 6.2, color: '#64748B', textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.5 },
+    summaryValue: { fontSize: 9.4, fontWeight: 'bold', color: '#0F2D44' },
 
     totalFinalBox: { textAlign: 'right' },
-    totalFinalLabel: { fontSize: 7, color: '#999', textTransform: 'uppercase' },
-    totalFinalValue: { fontSize: 16, fontWeight: 'bold' },
+    totalFinalLabel: { fontSize: 6.5, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+    totalFinalValue: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44', marginTop: 3 },
+    commercialNote: { fontSize: 6.6, color: '#64748B', marginTop: 6, textAlign: 'right' },
 
     footer: {
-        position: 'absolute', bottom: 20, left: 40, right: 40, textAlign: 'center',
-        fontSize: 8, color: '#999', paddingTop: 10, borderTopWidth: 0.5, borderTopColor: '#DDD'
+        position: 'absolute', bottom: 18, left: 34, right: 34, textAlign: 'center',
+        fontSize: 7, color: '#94A3B8', paddingTop: 8, borderTopWidth: 0.5, borderTopColor: '#E2E8F0'
     }
 });
 
@@ -165,6 +186,7 @@ export function CalculoVidroPDF({
     exibirColunaPrecoM2Un,
 }: CalculoVidroPDFProps) {
     const contentColor = textColor || themeColor;
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
     const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
     const ehRelatorioVidrosAvulsos = !itens.some(ehCabecalhoProjeto) && !itens.some(ehPerfilConsolidado);
@@ -177,6 +199,20 @@ export function CalculoVidroPDF({
         const pecasPorVao = Math.max(0, Number(item.quantidadePecas ?? 1));
         return total + (quantidadeVaos * pecasPorVao);
     }, 0);
+    const calcularMetragemItem = (item: ItemVidro) => {
+        const precoM2 = Number(item.precoVidroM2 || 0);
+        if (precoM2 > 0 && Number(item.total || 0) > 0) {
+            return Number(item.total || 0) / precoM2;
+        }
+
+        const medida = String(item.medidaCalc || item.medidaReal || item.vao || '');
+        const numeros = medida.match(/\d+(?:[,.]\d+)?/g)?.map((valor) => Number(valor.replace(',', '.'))) || [];
+        if (numeros.length >= 2) {
+            return (numeros[0] * numeros[1] * Number(item.qtd || 0)) / 1000000;
+        }
+
+        return 0;
+    };
     const formatarPrecoColuna = (item: ItemVidro) => {
         const precoUnitarioPeca = Number(item.valorUnitario ?? 0);
         const precoM2 = Number(item.precoVidroM2 ?? 0);
@@ -217,6 +253,17 @@ export function CalculoVidroPDF({
             : `${descricao} - ${tipo}`;
     };
 
+    const formatarTipoAcabamento = (item: ItemVidro) => {
+        const partes = [item.tipo, item.acabamento, item.servicos]
+            .map((valor) => String(valor || '').trim())
+            .filter(Boolean);
+        const unicos = partes.filter((valor, index) => {
+            const normalizado = valor.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            return partes.findIndex((parte) => parte.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizado) === index;
+        });
+        return unicos.length > 0 ? unicos.join(' | ') : '-';
+    };
+
     const ehItemAvulso = (item: ItemVidro) => {
         const descricao = String(item.descricao || '').trim().toLowerCase();
         const tipo = String(item.tipo || '').trim().toLowerCase();
@@ -231,60 +278,81 @@ export function CalculoVidroPDF({
         );
     };
 
-    const colDescOverride = ehRelatorioVidrosAvulsos ? { width: '38%' as const }
+    const colDescOverride = ehRelatorioVidrosAvulsos ? { width: '25%' as const }
         : mostrarColunaPrecoM2Un ? {}
             : { width: '48%' as const };
-    const colQtdOverride = ehRelatorioVidrosAvulsos ? { width: '10%' as const }
+    const colQtdOverride = ehRelatorioVidrosAvulsos ? { width: '8%' as const }
         : mostrarColunaPrecoM2Un ? {}
             : { width: '10%' as const };
-    const colVaoOverride = ehRelatorioVidrosAvulsos ? { width: '18%' as const }
+    const colVaoOverride = ehRelatorioVidrosAvulsos ? { width: '15%' as const }
         : mostrarColunaPrecoM2Un ? {}
             : { width: '22%' as const };
-    const colTotalOverride = ehRelatorioVidrosAvulsos ? { width: '16%' as const }
+    const colTotalOverride = ehRelatorioVidrosAvulsos ? { width: '13%' as const }
         : mostrarColunaPrecoM2Un ? {}
             : { width: '20%' as const };
-    const colPrecoUnitarioOverride = ehRelatorioVidrosAvulsos ? { width: '18%' as const } : {};
+    const colPrecoUnitarioOverride = ehRelatorioVidrosAvulsos ? { width: '13%' as const } : {};
 
     return (
         <Document>
             <Page size="A4" style={styles.page}>
 
                 {/* Cabeçalho */}
-                <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+                <View style={[styles.header, { borderBottomColor: '#E2E8F0' }]}> 
                     <View style={styles.headerLeft}>
-                        <Text style={[styles.tituloRelatorio, { color: themeColor }]}>Orçamento da Obra</Text>
-                        {numeroOrcamento && (
-                            <Text style={styles.subtitulo}>Nº {numeroOrcamento}</Text>
+                        {logoUrl ? (
+                            <Image src={logoUrl} style={styles.logo} />
+                        ) : (
+                            <>
+                                <Text style={styles.empresaFallback}>{nomeEmpresa}</Text>
+                                <Text style={styles.empresaSlogan}>Soluções em Vidros e Ferragens</Text>
+                            </>
                         )}
-                        <Text style={styles.dataEmissao}>Emissão em: {new Date().toLocaleDateString('pt-BR')}</Text>
                     </View>
-                    {logoUrl && <Image src={logoUrl} style={styles.logo} />}
+                    <View style={styles.headerRight}>
+                        <Text style={styles.tituloRelatorio}>Orçamento de Vidros</Text>
+                        <Text style={styles.subtitulo}>Composição comercial de peças, medidas e valores</Text>
+                        <Text style={styles.dataEmissao}>Emissão: {dataEmissao}</Text>
+                    </View>
                 </View>
                 <View style={styles.infoSection}>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor, borderLeftWidth: 3 }]}> 
-                        <Text style={styles.label}>Cliente</Text>
-                        <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoBoxQuarter}>
+                            <Text style={styles.label}>Orçamento</Text>
+                            <Text style={[styles.value, { color: contentColor }]}>{numeroOrcamento || "-"}</Text>
+                        </View>
+                        <View style={styles.infoBoxQuarter}>
+                            <Text style={styles.label}>Data</Text>
+                            <Text style={[styles.value, { color: contentColor }]}>{dataEmissao}</Text>
+                        </View>
+                        <View style={styles.infoBoxHalf}>
+                            <Text style={styles.label}>Obra / referência</Text>
+                            <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
+                        </View>
                     </View>
-                    <View style={[styles.infoBox, { borderLeftColor: themeColor, borderLeftWidth: 3 }]}> 
-                        <Text style={styles.label}>Obra / Referência</Text>
-                        <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
+                    <View style={styles.infoRowLast}>
+                        <View style={styles.infoBoxLast}>
+                            <Text style={styles.label}>Cliente</Text>
+                            <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
+                        </View>
                     </View>
                 </View>
 
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
-                    <View style={[styles.tableHeader, { backgroundColor: themeColor }]}>
+                    <View style={[styles.tableHeader, { backgroundColor: '#F8FAFC' }]}>
                         {ehRelatorioVidrosAvulsos ? (
                             <>
                                 <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Peças</Text>
                                 <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Medidas</Text>
                                 <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Vidro</Text>
+                                <Text style={[styles.tableColHeader, styles.colTipo]}>Tipo</Text>
+                                <Text style={[styles.tableColHeader, styles.colMetragem]}>m²</Text>
                             </>
                         ) : (
                             <>
                                 <Text style={[styles.tableColHeader, styles.colDesc, colDescOverride]}>Projeto</Text>
-                                <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vaos</Text>
-                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg ? Alt</Text>
+                                <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Qtd. Vãos</Text>
+                                <Text style={[styles.tableColHeader, styles.colVao, colVaoOverride]}>Larg. x Alt.</Text>
                             </>
                         )}
                         {mostrarColunaPrecoM2Un && (
@@ -344,11 +412,6 @@ export function CalculoVidroPDF({
                                                 {item.observacaoRateio}
                                             </Text>
                                         )}
-                                        {item.observacaoPreco && (
-                                            <Text style={{ fontSize: 6.5, color: '#059669', marginTop: 2 }}>
-                                                {item.observacaoPreco}
-                                            </Text>
-                                        )}
                                     </View>
                                 </View>
                                 {ehPerfilConsolidado(item) && Array.isArray(item.planoCorte) && item.planoCorte.length > 0 && (
@@ -388,6 +451,16 @@ export function CalculoVidroPDF({
                                     </View>
                                 )}
                             </View>
+                            {ehRelatorioVidrosAvulsos ? (
+                                <>
+                                    <Text style={[styles.tableCol, styles.colTipo, { color: contentColor }]}>
+                                        {ehItemAvulso(item) ? '-' : formatarTipoAcabamento(item)}
+                                    </Text>
+                                    <Text style={[styles.tableCol, styles.colMetragem, { color: contentColor }]}>
+                                        {ehItemAvulso(item) ? '-' : calcularMetragemItem(item).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Text>
+                                </>
+                            ) : null}
                             {!ehRelatorioVidrosAvulsos ? (
                                 <>
                                     <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
@@ -429,9 +502,10 @@ export function CalculoVidroPDF({
 
                     <View style={styles.totalFinalBox}>
                         <Text style={styles.totalFinalLabel}>Valor Total do Orçamento</Text>
-                        <Text style={[styles.totalFinalValue, { color: themeColor }]}>
+                        <Text style={styles.totalFinalValue}>
                             {valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </Text>
+                        <Text style={styles.commercialNote}>Valores conforme tabela comercial vigente.</Text>
                     </View>
                 </View>
 
