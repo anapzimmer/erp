@@ -1291,7 +1291,7 @@ useEffect(() => {
     alturaBandeira: Number(alturaBandeira || 0),
     quantidade: Number(dados.quantidade || 0),
 
-    medidas: `${dados.largura} ? ${dados.alturaTotal} mm`,
+    medidas: `${dados.largura} x ${dados.alturaTotal} mm`,
     modo: "Barra",
     desenhoUrl: desenhoPC4FCBS(dados.trinco),
 
@@ -1635,7 +1635,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setListaClientesAberta(true)}
-                    className="block w-full truncate text-left text-sm font-semibold text-emerald-600"
+                    className="block w-full truncate text-left text-sm font-semibold text-[#07385a]"
                   >
                     {dados.cliente || "Digite o cliente"}
                   </button>
@@ -1986,7 +1986,7 @@ useEffect(() => {
 
                                     <div className="flex items-center justify-end gap-5 px-4 py-3">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total do Orçamento</p>
-                                      <div className="rounded-2xl bg-[#18bd72] px-7 py-3 text-xl font-semibold text-white shadow-lg shadow-emerald-900/10">
+                                      <div className="rounded-2xl bg-slate-100 px-7 py-3 text-xl font-bold text-[#0f2742]">
                                         {moeda(totalMateriais)}
                                       </div>
                                     </div>

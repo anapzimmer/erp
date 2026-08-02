@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React from "react";
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
 import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
@@ -310,8 +310,8 @@ export function SacadaFrontalPDF({
                 <Line x1={x0 - 9} y1={y0 + ch} x2={x0 - 3} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
               </Svg>
               <Text style={{ fontSize: 7, color: "#777777", marginTop: 3 }}>
-                {temModulosSupInf ? `Vão: ${larguraVaoMm} × ${alturaBase} mm  ·  SUP: ${larguraVidroSuperiorMm ?? "–"} × ${alturaVidroSuperiorMm ?? "–"} mm (${divSup} peça(s)/vão)  ·  INF: ${larguraVidroInferiorMm ?? "–"} × ${alturaVidroInferiorMm ?? "–"} mm (${divInf} peça(s)/vão)${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`
-                  : `Vão: ${larguraVaoMm} × ${alturaVaoMm} mm  ·  Vidro: ${larguraVidroMm ?? "–"} × ${alturaVidroMm ?? "–"} mm  ·  ${divisoesPorVao} peça(s)/vão${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`}
+                {temModulosSupInf ? `Vão: ${larguraVaoMm} x ${alturaBase} mm  ·  SUP: ${larguraVidroSuperiorMm ?? "–"} x ${alturaVidroSuperiorMm ?? "–"} mm (${divSup} peça(s)/vão)  ·  INF: ${larguraVidroInferiorMm ?? "–"} x ${alturaVidroInferiorMm ?? "–"} mm (${divInf} peça(s)/vão)${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`
+                  : `Vão: ${larguraVaoMm} x ${alturaVaoMm} mm  ·  Vidro: ${larguraVidroMm ?? "–"} x ${alturaVidroMm ?? "–"} mm  ·  ${divisoesPorVao} peça(s)/vão${quantidadeVaos > 1 ? `  ·  ${quantidadeVaos} vãos` : ""}`}
               </Text>
             </View>
           );

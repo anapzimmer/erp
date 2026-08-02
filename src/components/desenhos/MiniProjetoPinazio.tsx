@@ -155,7 +155,7 @@ export default function MiniProjetoPinazio({
             fontWeight="700"
             fill="#334155"
           >
-            {Math.round(larguraReal)} × {Math.round(alturaReal)} mm
+            {Math.round(larguraReal)} x {Math.round(alturaReal)} mm
           </text>
           <text
             x={viewBoxLargura / 2}
@@ -165,7 +165,7 @@ export default function MiniProjetoPinazio({
             fontSize="15"
             fill="#64748B"
           >
-            {colunas} × {linhas} divisões
+            {colunas} x {linhas} divisões
           </text>
         </>
       )}

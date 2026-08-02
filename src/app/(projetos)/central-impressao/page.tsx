@@ -268,7 +268,10 @@ const ehPma6f = (projeto?: string) => /pma6f|m[aã]o amiga 6/i.test(String(proje
 const ehPma2f4m = (projeto?: string) => /pma2f4m|2 fixas \+ 4|2 fixas e 4/i.test(String(projeto || ""));
 const ehPma = (projeto?: string) => ehPma2f(projeto) || ehPma3f(projeto) || ehPma4f(projeto) || ehPma5f(projeto) || ehPma6f(projeto) || ehPma2f4m(projeto);
 const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
-const ehEspelhoComDesenho = (projeto?: string) => /^espelhosx$/i.test(String(projeto || "").trim());
+const ehEspelhoComDesenho = (projeto?: string) => {
+  const texto = normalizarTexto(projeto).trim();
+  return /^espelhos?x?$/.test(texto) || /^espelhos? com desenho/.test(texto);
+};
 const ehBox2Fls = (projeto?: string) => /box2fls|box 2 folhas/i.test(String(projeto || ""));
 const ehBoxCanto3f = (projeto?: string) => /boxcanto3f|box de canto 3/i.test(String(projeto || ""));
 const ehBoxCanto = (projeto?: string) => /boxcanto|box de canto/i.test(String(projeto || ""));
@@ -326,6 +329,106 @@ const corPerfilSvg = (cor?: string) => {
   if (corNormalizada === "fosco") return { fill: "#8c8c8c", stroke: "#6b6b6b" };
   return { fill: "#9e9e9e", stroke: "#787878" };
 };
+
+function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largura" | "altura" | "puxador" | "trilho" | "tamanhoPuxador"> }) {
+  const largura = Math.max(1, Number(item.largura || 1));
+  const altura = Math.max(1, Number(item.altura || 1));
+  const tipoVisual = normalizarTexto(item.puxador || "padrao");
+  const divL = Math.max(1, numeroCampoFechamento(item.trilho, 1));
+  const divA = Math.max(1, numeroCampoFechamento(item.tamanhoPuxador, 1));
+  const escala = Math.min(180 / largura, 150 / altura);
+  let w = Math.max(70, Math.min(190, largura * escala));
+  let h = Math.max(70, Math.min(160, altura * escala));
+  const maior = Math.max(w, h);
+  const menor = Math.min(w, h);
+  const ehRedondo = tipoVisual.includes("redondo");
+  const ehOvalVertical = tipoVisual.includes("oval_vertical") || tipoVisual.includes("oval-vertical") || tipoVisual.includes("vertical");
+  const ehOvalHorizontal = tipoVisual.includes("oval_horizontal") || tipoVisual.includes("oval-horizontal") || tipoVisual === "oval" || (tipoVisual.includes("oval") && !ehOvalVertical && !tipoVisual.includes("semi_oval"));
+  const ehSemiOval = tipoVisual.includes("semi_oval") || tipoVisual.includes("semi-oval");
+  const ehOrganico = tipoVisual.includes("organico");
+  const ehMolde = tipoVisual.includes("molde");
+  const ehCapsula = tipoVisual.includes("capsula");
+  const ehBisote = tipoVisual.includes("bisote");
+  const ehLed = tipoVisual.includes("led");
+
+  if (ehRedondo) {
+    w = menor;
+    h = menor;
+  } else if (ehOvalVertical) {
+    w = Math.max(58, menor * 0.68);
+    h = maior;
+  } else if (ehOvalHorizontal) {
+    w = maior;
+    h = Math.max(58, menor * 0.68);
+  } else if (ehCapsula) {
+    w = maior;
+    h = Math.max(54, menor * 0.55);
+  }
+
+  const x = (220 - w) / 2;
+  const y = (180 - h) / 2;
+  const fill = "#e8f1f6";
+  const stroke = "#8fa1ae";
+  const strokeWidth = ehBisote ? 8 : 3;
+  const rx = ehCapsula ? Math.min(w, h) / 2 : 8;
+  const semiOvalPath = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
+  const organicoPath = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
+  const moldePath = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
+
+  if (tipoVisual.includes("jogo") && (divL > 1 || divA > 1)) {
+    const gap = 5;
+    const cellW = (w - gap * (divL - 1)) / divL;
+    const cellH = (h - gap * (divA - 1)) / divA;
+    return (
+      <svg viewBox="0 0 220 180" className="h-full w-full">
+        {Array.from({ length: divL * divA }).map((_, index) => {
+          const col = index % divL;
+          const row = Math.floor(index / divL);
+          return (
+            <rect
+              key={`espelho-preview-jogo-${index}`}
+              x={x + col * (cellW + gap)}
+              y={y + row * (cellH + gap)}
+              width={cellW}
+              height={cellH}
+              rx="7"
+              fill={fill}
+              stroke={stroke}
+              strokeWidth="2"
+            />
+          );
+        })}
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 220 180" className="h-full w-full">
+      {ehSemiOval ? (
+        <>
+          <path d={semiOvalPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          {ehBisote ? <path d={`M ${x + 9} ${y + h - 9} L ${x + 9} ${y + h * 0.5} C ${x + 9} ${y + h * 0.18} ${x + w - 9} ${y + h * 0.18} ${x + w - 9} ${y + h * 0.5} L ${x + w - 9} ${y + h - 9} Z`} fill="none" stroke="#ffffff" strokeWidth="2" /> : null}
+        </>
+      ) : ehOrganico ? (
+        <path d={organicoPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+      ) : ehMolde ? (
+        <path d={moldePath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+      ) : ehRedondo || ehOvalVertical || ehOvalHorizontal ? (
+        <>
+          <ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          {ehBisote ? <ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 9)} ry={Math.max(1, h / 2 - 9)} fill="none" stroke="#ffffff" strokeWidth="2" /> : null}
+          {ehLed ? <ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 14)} ry={Math.max(1, h / 2 - 14)} fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="7 7" /> : null}
+        </>
+      ) : (
+        <>
+          <rect x={x} y={y} width={w} height={h} rx={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          {ehBisote ? <rect x={x + 9} y={y + 9} width={Math.max(1, w - 18)} height={Math.max(1, h - 18)} rx={Math.max(1, rx - 3)} fill="none" stroke="#ffffff" strokeWidth="2" /> : null}
+          {ehLed ? <rect x={x + 14} y={y + 14} width={Math.max(1, w - 28)} height={Math.max(1, h - 28)} rx={Math.max(1, rx - 4)} fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="7 7" /> : null}
+        </>
+      )}
+    </svg>
+  );
+}
 
 const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "altura" | "pecasDivisao" | "corPerfil" | "corKit">) => {
   const divisoes = Math.max(1, Math.min(12, Number(item?.pecasDivisao || 1)));
@@ -629,7 +732,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<ProjetoComposicao, "largura" | 
   const medidaSalva = String(item.medidasDetalhadas || "").match(/Quadro:\s*([^\n]+)/i)?.[1];
   const larguraQuadro = numeroCampoFechamento(item.trilho, 0) > 0 ? Math.round(Number(item.largura || 0) / numeroCampoFechamento(item.trilho, 1)) : 0;
   const alturaQuadro = numeroCampoFechamento(item.trinco, 0) > 0 ? Math.round(Number(item.altura || 0) / numeroCampoFechamento(item.trinco, 1)) : 0;
-  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} ? ${alturaQuadro.toLocaleString("pt-BR")} mm`;
+  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} x ${alturaQuadro.toLocaleString("pt-BR")} mm`;
   return `Quadro: ${medida}\nTotal de quadros: ${totalQuadrosPeleDeVidro(item)}\nFixos: ${numeroCampoFechamento(item.puxador, 0)} | Móveis: ${numeroCampoFechamento(item.tamanhoPuxador, 0)}`;
 };
 
@@ -1061,7 +1164,7 @@ export default function CentralImpressaoPage() {
       numero: item.numero,
       projeto: nomeProjetoVisivel(item.projeto),
       cliente: cliente || item.cliente,
-      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
@@ -1102,7 +1205,7 @@ export default function CentralImpressaoPage() {
         if (item.id !== id) return item;
         const atualizado = { ...item, [campo]: valor };
         if (campo === "largura" || campo === "altura") {
-          atualizado.medidas = `${Number(atualizado.largura || 0)} ? ${Number(atualizado.altura || 0)} mm`;
+          atualizado.medidas = `${Number(atualizado.largura || 0)} x ${Number(atualizado.altura || 0)} mm`;
         }
         return atualizado;
       })
@@ -1118,7 +1221,7 @@ export default function CentralImpressaoPage() {
       ...item,
       id: criarId(),
       numero: numeroOrcamento || item.numero,
-      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`
+      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
         : item.medidas,
       materiais: item.materiais?.map((material) => ({ ...material, id: criarId() })),
       vidrosAvulsos: item.vidrosAvulsos?.map((vidro) => ({ ...vidro, id: criarId() })),
@@ -1829,7 +1932,9 @@ export default function CentralImpressaoPage() {
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
                       <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
-                        {desenhoCentral ? (
+                        {espelhoComDesenho ? (
+                          <EspelhoDesenhoPreview item={item} />
+                        ) : desenhoCentral ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={desenhoCentral} alt={item.projeto} className="max-h-full max-w-full object-contain" />
                         ) : (
@@ -2194,7 +2299,7 @@ export default function CentralImpressaoPage() {
                               />
                             </Field>
                           ) : null}
-                          <Field label={vidroAvulso ? "Valor total" : "Valor do projeto"}>
+                          <Field label={vidroAvulso ? "Valor total" : espelhoComDesenho ? "Valor" : "Valor do projeto"}>
                             <input
                               value={numeroDecimal(vidroAvulso ? resumoAvulso?.valor || 0 : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
                               onChange={(e) => atualizarItem(item.id, "valorTotal", parseNumero(e.target.value))}
@@ -2226,7 +2331,7 @@ export default function CentralImpressaoPage() {
                                 ))}
                               </div>
                             </div>
-                          ) : (peleDeVidro || item.medidasDetalhadas) && !ehSacadaFrontal(item.projeto) ? (
+                          ) : (peleDeVidro || item.medidasDetalhadas) && !ehSacadaFrontal(item.projeto) && !espelhoComDesenho ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <Field label="Medidas dos vidros">
                                 <textarea

@@ -1,4 +1,4 @@
-﻿//app/relatorios/peledevidro/PeleDeVidroPDF.tsx
+//app/relatorios/peledevidro/PeleDeVidroPDF.tsx
 "use client";
 import React from "react";
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Line, G } from "@react-pdf/renderer";
@@ -205,7 +205,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                                 <Line x1={x0 - 9} y1={y0 + ch} x2={x0 - 3} y2={y0 + ch} stroke="#999999" strokeWidth={0.3} />
                             </Svg>
                             <Text style={{ fontSize: 7, color: "#777777", marginTop: 3 }}>
-                                Vão: {props.larguraVaoMm} × {props.alturaVaoMm} mm · {qH} quadros H · {qV} quadros V
+                                Vão: {props.larguraVaoMm} x {props.alturaVaoMm} mm · {qH} quadros H · {qV} quadros V
                             </Text>
                         </View>
                     );

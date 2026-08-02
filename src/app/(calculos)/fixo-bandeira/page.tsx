@@ -974,7 +974,7 @@ export default function FixoBandeiraPage() {
       numero: dados.numero || "novo",
       projeto: "Fixo com bandeira",
       cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} ? ${Number(dados.altura || 0)} mm`,
+      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
       quantidade: Number(dados.quantidade || 0),
@@ -1252,7 +1252,7 @@ export default function FixoBandeiraPage() {
                     value={dados.numero}
                     tabIndex={-1}
                     onChange={(e) => atualizarCampo("numero", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-emerald-600 outline-none"
+                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
                   />
                 </div>
               </div>
@@ -1264,7 +1264,7 @@ export default function FixoBandeiraPage() {
                     value={dados.data}
                     tabIndex={-1}
                     onChange={(e) => atualizarCampo("data", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-emerald-600 outline-none"
+                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
                   />
                 </div>
               </div>
@@ -1311,7 +1311,7 @@ export default function FixoBandeiraPage() {
                           setListaClientesAberta(true);
                         }
                       }}
-                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-emerald-600"
+                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
                     >
                       {dados.cliente || "Digite o cliente"}
                     </button>
@@ -1747,9 +1747,9 @@ export default function FixoBandeiraPage() {
                         ))}
                       </div>
 
-                      <div className="mt-3 flex items-center justify-end gap-4">
+                      <div className="mt-3 flex items-center justify-end gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total</p>
-                        <div className="rounded-lg bg-[#18bd72] px-6 py-2.5 text-lg font-semibold text-white shadow-sm">
+                        <div className="rounded-lg bg-slate-100 px-6 py-2.5 text-lg font-bold text-[#0f2742]">
                           {moeda(totalMateriais)}
                         </div>
                       </div>

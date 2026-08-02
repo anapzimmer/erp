@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
@@ -80,7 +80,7 @@ export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps)
           {dados.map((item, index) => (
             <View key={index} style={[styles.tableRow, { backgroundColor: getPdfZebraRowBackground(index) }]}>
               <Text style={[styles.tableCol, styles.colNome, { color: textColor }]}>{item.nome}</Text>
-              <Text style={[styles.tableCol, styles.colMedidas, { color: textColor }]}>{`${item.largura} ? ${item.altura}`}</Text>
+              <Text style={[styles.tableCol, styles.colMedidas, { color: textColor }]}>{`${item.largura} x ${item.altura}`}</Text>
               <Text style={[styles.tableCol, styles.colCor, { color: textColor }]}>{item.cores || '-'}</Text>
               <Text style={[styles.tableCol, styles.colCategoria, { color: textColor }]}>{item.categoria || '-'}</Text>
               <Text style={[styles.tableCol, styles.colPreco, { fontWeight: 'bold', color: textColor }]}>

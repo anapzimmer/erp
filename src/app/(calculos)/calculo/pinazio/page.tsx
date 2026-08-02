@@ -1373,7 +1373,7 @@ export default function CalculoPinazioPage() {
                         minimumFractionDigits: 3,
                         maximumFractionDigits: 3,
                       })}{" "}
-                      ml × {Number(calculoAtual.precoMetroPinazio || 0).toLocaleString("pt-BR", {
+                      ml x {Number(calculoAtual.precoMetroPinazio || 0).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
                       })}

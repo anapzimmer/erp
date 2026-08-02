@@ -6,9 +6,10 @@ export type SacadaFrontalInput = {
   precoVidroM2?: number;
   vidroDescricao?: string;
   isSacadaSuperior?: boolean;
+  tipoSacada?: "panoramica" | "tubo";
 };
 
-export type SacadaFrontalPerfilCodigo = "GR 84" | "GR 74" | "GR 77" | "GR 75";
+export type SacadaFrontalPerfilCodigo = "GR 84" | "GR 74" | "GR 77" | "GR 75" | "TR019" | "TQ047" | "VT66";
 
 export type SacadaFrontalPerfil = {
   nome: string;
@@ -17,6 +18,7 @@ export type SacadaFrontalPerfil = {
   quantidadeBarras: number;
   precoBarra: number;
   valorTotal: number;
+  cortes?: number[];
 };
 
 export type SacadaFrontalResultado = {
@@ -56,10 +58,16 @@ const ACESSORIOS_PADRAO = [
   "Suporte fixacao corrimao",
   "Suporte fixacao vidro",
   "Guarnicao",
-  "Parafuso 1/4 ? 5/8",
+  "Parafuso 1/4 x 5/8",
   "Porca 1/4",
   "Tampa nylon 3/4",
   "Tapa furo 3/8",
+] as const;
+
+const PERFIS_TUBO_CONFIG = [
+  { nome: "Tubo retangular 76x38", codigo: "TR019" },
+  { nome: "Tubo quadrado 50x50", codigo: "TQ047" },
+  { nome: "Perfil U", codigo: "VT66" },
 ] as const;
 
 const arredondarDinheiro = (valor: number) => Number(valor.toFixed(2));
@@ -73,6 +81,7 @@ export const calcularSacadaFrontal = ({
   precoVidroM2 = 0,
   vidroDescricao,
   isSacadaSuperior = false,
+  tipoSacada = "panoramica",
 }: SacadaFrontalInput): SacadaFrontalResultado => {
   const larguraNormalizada = Math.max(larguraVaoMm, 0);
   const alturaNormalizada = Math.max(alturaVaoMm, 0);
@@ -86,8 +95,9 @@ export const calcularSacadaFrontal = ({
     larguraVidroMm = Math.max(larguraNormalizada - descontoTotal, 0) / divisaoNormalizada;
   }
 
-  // Altura com desconto especial para sacada superior
-  const descontoAltura = isSacadaSuperior ? 200 : DESCONTO_ALTURA_VIDRO_MM;
+  const descontoAltura = tipoSacada === "tubo"
+    ? 0
+    : isSacadaSuperior ? 200 : DESCONTO_ALTURA_VIDRO_MM;
   const alturaVidroMm = Math.max(alturaNormalizada - descontoAltura, 0);
   const larguraVidroCalculoMm = arredondarMedida(larguraVidroMm);
   const alturaVidroCalculoMm = arredondarMedida(alturaVidroMm);
@@ -98,26 +108,55 @@ export const calcularSacadaFrontal = ({
   const areaTotalVidro = areaVidroPorPeca * quantidadeTotalVidros;
   const totalVidro = areaTotalVidro * precoVidroM2;
 
-  const perfis: SacadaFrontalPerfil[] = PERFIS_CONFIG.map((perfilConfig) => {
-    const comprimentoBase = perfilConfig.codigo === "GR 77"
-      ? quantidadePontaletesPorVao * alturaNormalizada * quantidadeNormalizada
-      : larguraNormalizada * quantidadeNormalizada;
+  const perfis: SacadaFrontalPerfil[] = tipoSacada === "tubo"
+    ? PERFIS_TUBO_CONFIG.map((perfilConfig) => {
+      const cortes = perfilConfig.codigo === "TR019"
+        ? Array.from({ length: quantidadeNormalizada }, () => larguraNormalizada)
+        : perfilConfig.codigo === "TQ047"
+          ? Array.from({ length: quantidadeTotalPontaletes }, () => alturaNormalizada)
+          : Array.from({ length: quantidadeTotalVidros }).flatMap(() => [
+              larguraVidroMm,
+              larguraVidroMm,
+              alturaVidroMm,
+              alturaVidroMm,
+            ]);
 
-    const quantidadeBarras = comprimentoBase > 0
-      ? Math.ceil(comprimentoBase / BARRA_ALUMINIO_MM)
-      : 0;
+      const comprimentoBase = cortes.reduce((total, corte) => total + corte, 0);
 
-    const valorTotal = quantidadeBarras * perfilConfig.precoBarra;
+      const quantidadeBarras = comprimentoBase > 0
+        ? Math.ceil(comprimentoBase / BARRA_ALUMINIO_MM)
+        : 0;
 
-    return {
-      nome: perfilConfig.nome,
-      codigo: perfilConfig.codigo,
-      comprimentoTotal: Math.round(comprimentoBase),
-      quantidadeBarras,
-      precoBarra: arredondarDinheiro(perfilConfig.precoBarra),
-      valorTotal: arredondarDinheiro(valorTotal),
-    };
-  });
+      return {
+        nome: perfilConfig.nome,
+        codigo: perfilConfig.codigo,
+        comprimentoTotal: Math.round(comprimentoBase),
+        quantidadeBarras,
+        precoBarra: 0,
+        valorTotal: 0,
+        cortes: cortes.map((corte) => Math.round(corte)).filter((corte) => corte > 0),
+      };
+    })
+    : PERFIS_CONFIG.map((perfilConfig) => {
+      const comprimentoBase = perfilConfig.codigo === "GR 77"
+        ? quantidadePontaletesPorVao * alturaNormalizada * quantidadeNormalizada
+        : larguraNormalizada * quantidadeNormalizada;
+
+      const quantidadeBarras = comprimentoBase > 0
+        ? Math.ceil(comprimentoBase / BARRA_ALUMINIO_MM)
+        : 0;
+
+      const valorTotal = quantidadeBarras * perfilConfig.precoBarra;
+
+      return {
+        nome: perfilConfig.nome,
+        codigo: perfilConfig.codigo,
+        comprimentoTotal: Math.round(comprimentoBase),
+        quantidadeBarras,
+        precoBarra: arredondarDinheiro(perfilConfig.precoBarra),
+        valorTotal: arredondarDinheiro(valorTotal),
+      };
+    });
 
   const totalPerfis = arredondarDinheiro(
     perfis.reduce((acumulado, perfil) => acumulado + perfil.valorTotal, 0)
@@ -141,6 +180,6 @@ export const calcularSacadaFrontal = ({
     perfis,
     totalPerfis,
     totalGeral: arredondarDinheiro(totalPerfis + totalVidro),
-    acessorios: [...ACESSORIOS_PADRAO],
+    acessorios: tipoSacada === "tubo" ? ["Chumbador"] : [...ACESSORIOS_PADRAO],
   };
 };

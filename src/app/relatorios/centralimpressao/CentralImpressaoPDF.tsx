@@ -3,7 +3,7 @@
 
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
-import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import MiniProjetoPinazioPDF from "@/components/desenhos/MiniProjetoPinazioPDF";
 
@@ -296,7 +296,10 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
-const ehEspelhoComDesenho = (projeto?: string) => /^espelhosx$/i.test(String(projeto || "").trim());
+const ehEspelhoComDesenho = (projeto?: string) => {
+  const texto = normalizarTexto(projeto).trim();
+  return /^espelhos?x?$/.test(texto) || /^espelhos? com desenho/.test(texto);
+};
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
 
 const ehItemPinazio = (
@@ -656,7 +659,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
       </Svg>
 
       <Text style={styles.imagePlaceholderText}>
-        {item.largura || 0} ? {item.altura || 0} mm
+        {item.largura || 0} x {item.altura || 0} mm
       </Text>
     </View>
   );
@@ -667,15 +670,48 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const altura = Math.max(1, Number(item.altura || 1));
   const divL = Math.max(1, numeroCampoFechamento(item.trilho, 1));
   const divA = Math.max(1, numeroCampoFechamento(item.tamanhoPuxador, 1));
-  const tipoVisual = String(item.puxador || "padrao");
+  const tipoVisual = String(item.puxador || "padrao")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   const escala = Math.min(90 / largura, 78 / altura);
-  const w = Math.max(34, Math.min(92, largura * escala));
-  const h = Math.max(34, Math.min(82, altura * escala));
+  let w = Math.max(34, Math.min(92, largura * escala));
+  let h = Math.max(34, Math.min(82, altura * escala));
+  const maior = Math.max(w, h);
+  const menor = Math.min(w, h);
+  const ehRedondo = tipoVisual.includes("redondo");
+  const ehOvalVertical = tipoVisual.includes("oval_vertical") || tipoVisual.includes("oval-vertical") || tipoVisual.includes("vertical");
+  const ehOvalHorizontal = tipoVisual.includes("oval_horizontal") || tipoVisual.includes("oval-horizontal") || tipoVisual === "oval" || (tipoVisual.includes("oval") && !ehOvalVertical && !tipoVisual.includes("semi_oval"));
+  const ehSemiOval = tipoVisual.includes("semi_oval") || tipoVisual.includes("semi-oval");
+  const ehOrganico = tipoVisual.includes("organico");
+  const ehMolde = tipoVisual.includes("molde");
+  const ehCapsula = tipoVisual.includes("capsula");
+
+  if (ehRedondo) {
+    w = menor;
+    h = menor;
+  } else if (ehOvalVertical) {
+    w = Math.max(26, menor * 0.68);
+    h = maior;
+  } else if (ehOvalHorizontal) {
+    w = maior;
+    h = Math.max(26, menor * 0.68);
+  } else if (ehCapsula) {
+    w = maior;
+    h = Math.max(24, menor * 0.55);
+  }
+
   const x = (112 - w) / 2;
   const y = 10;
-  const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval") ? Math.min(w, h) / 2
-    : tipoVisual.includes("capsula") ? Math.min(w, h) / 3
-    : 4;
+  const ehBisote = tipoVisual.includes("bisote");
+  const ehLed = tipoVisual.includes("led");
+  const fill = "#e8f1f6";
+  const stroke = "#8fa1ae";
+  const strokeWidth = ehBisote ? 5 : 1.8;
+  const rx = ehCapsula ? Math.min(w, h) / 2 : 4;
+  const pathSemiOval = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
+  const pathOrganico = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
+  const pathMolde = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
 
   if (tipoVisual.includes("jogo") && (divL > 1 || divA > 1)) {
     const gap = 2;
@@ -703,7 +739,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
             );
           })}
         </Svg>
-        <Text style={styles.imagePlaceholderText}>{item.largura} ? {item.altura} mm</Text>
+        <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
       </View>
     );
   }
@@ -711,15 +747,30 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   return (
     <View>
       <Svg width={112} height={96} viewBox="0 0 112 96">
-        <Rect x={x} y={y} width={w} height={h} rx={rx} fill="#e8f1f6" stroke="#8fa1ae" strokeWidth={tipoVisual.includes("bisote") ? 5 : 1.8} />
-        {tipoVisual.includes("bisote") ? (
-          <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(2, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} />
-        ) : null}
-        {tipoVisual.includes("led") ? (
-          <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(2, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" />
-        ) : null}
+        {ehSemiOval ? (
+          <>
+            <Path d={pathSemiOval} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            {ehBisote ? <Path d={`M ${x + 5} ${y + h - 5} L ${x + 5} ${y + h * 0.5} C ${x + 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.5} L ${x + w - 5} ${y + h - 5} Z`} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
+          </>
+        ) : ehOrganico ? (
+          <Path d={pathOrganico} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+        ) : ehMolde ? (
+          <Path d={pathMolde} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+        ) : ehRedondo || ehOvalVertical || ehOvalHorizontal ? (
+          <>
+            <Ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            {ehBisote ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 5)} ry={Math.max(1, h / 2 - 5)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
+            {ehLed ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 8)} ry={Math.max(1, h / 2 - 8)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
+          </>
+        ) : (
+          <>
+            <Rect x={x} y={y} width={w} height={h} rx={rx} ry={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            {ehBisote ? <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(2, rx - 3)} ry={Math.max(2, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
+            {ehLed ? <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(2, rx - 5)} ry={Math.max(2, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
+          </>
+        )}
       </Svg>
-      <Text style={styles.imagePlaceholderText}>{item.largura} ? {item.altura} mm</Text>
+      <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
     </View>
   );
 }
@@ -1047,7 +1098,7 @@ const extrairVidroRelacao = (descricao: string) => {
     .replace(/^(VIDRO|ESPELHO)\s+/i, "")
     .trim();
 
-  const medidaMatch = descricaoLimpa.match(/(\d{2,5})\s*[xX]\s*(\d{2,5})\s*(?:MM)x/i);
+  const medidaMatch = descricaoLimpa.match(/(\d{2,5})\s*[xX]\s*(\d{2,5})\s*(?:MM)?\b/i);
 
   if (!medidaMatch) {
     return {
@@ -1056,7 +1107,7 @@ const extrairVidroRelacao = (descricao: string) => {
     };
   }
 
-  const medida = `${medidaMatch[1]} ? ${medidaMatch[2]} mm`;
+  const medida = `${medidaMatch[1]} x ${medidaMatch[2]} mm`;
   const vidroDescricao =
     descricaoLimpa
       .replace(medidaMatch[0], "")
@@ -1188,6 +1239,8 @@ const consolidarMateriais = (
         descricao: material.descricao,
         unidade: material.unidade,
         qtd,
+        medida: material.medida,
+        vidroDescricao: material.vidroDescricao,
         pecas:
           tipo === "vidros" ? inferirPecasVidroMaterial(material, item, materiaisDoTipo.length)
             : undefined,
@@ -1384,7 +1437,7 @@ const medidasDetalhadasPeleDeVidro = (item: Pick<CentralImpressaoItem, "largura"
   const medidaSalva = String(item.medidasDetalhadas || "").match(/Quadro:\s*([^\n]+)/i)?.[1];
   const larguraQuadro = numeroCampoFechamento(item.trilho, 0) > 0 ? Math.round(Number(item.largura || 0) / numeroCampoFechamento(item.trilho, 1)) : 0;
   const alturaQuadro = numeroCampoFechamento(item.trinco, 0) > 0 ? Math.round(Number(item.altura || 0) / numeroCampoFechamento(item.trinco, 1)) : 0;
-  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} ? ${alturaQuadro.toLocaleString("pt-BR")} mm`;
+  const medida = medidaSalva || `${larguraQuadro.toLocaleString("pt-BR")} x ${alturaQuadro.toLocaleString("pt-BR")} mm`;
   return `Quadro: ${medida}\nTotal de quadros: ${totalQuadrosPeleDeVidro(item)}\nFixos: ${numeroCampoFechamento(item.puxador, 0)} | Móveis: ${numeroCampoFechamento(item.tamanhoPuxador, 0)}`;
 };
 
@@ -1643,6 +1696,7 @@ const possuiRelacaoObra =
             const projetoTecnico = ehProjetoTecnico(item.projeto);
             const sacadaFrontal = ehSacadaFrontal(item.projeto);
             const peleDeVidro = ehPeleDeVidro(item.projeto);
+            const espelhoComDesenho = ehEspelhoComDesenho(item.projeto);
             const pinazio = ehItemPinazio(item);
             const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
             const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira || ehJc2fComSacada || ehJc4fComSacada;
@@ -1654,7 +1708,7 @@ const possuiRelacaoObra =
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
             const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
             const vidroPrincipal = sacadaFrontal ? descricaoVidroItem(item) : item.vidro;
-            const labelVidroPrincipal = sacadaFrontal ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+            const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : sacadaFrontal ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
             const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
               : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
               : ehBox2Fls ? "Altura"
@@ -1695,6 +1749,8 @@ const possuiRelacaoObra =
                     <FechamentoSacadaDesenhoPDF item={item} />
                   ) : peleDeVidro ? (
                     <PeleDeVidroDesenhoPDF item={item} />
+                  ) : espelhoComDesenho ? (
+                    <EspelhoDesenhoPDF item={item} />
                   ) : desenhoCentral ? (
                     <Image src={desenhoCentral} style={styles.image} />
                   ) : (
@@ -1709,7 +1765,18 @@ const possuiRelacaoObra =
                   <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
                   <Text style={styles.projectName}>{nomeProjeto}</Text>
                   <View style={styles.infoGrid}>
-                    {ehVidroAvulso ? null : sacadaFrontal ? (
+                    {espelhoComDesenho ? (
+                      <>
+                        <View style={styles.info}>
+                          <Text style={styles.infoLabel}>Largura</Text>
+                          <Text style={styles.infoValue}>{item.largura || 0} mm</Text>
+                        </View>
+                        <View style={styles.info}>
+                          <Text style={styles.infoLabel}>Altura</Text>
+                          <Text style={styles.infoValue}>{item.altura || 0} mm</Text>
+                        </View>
+                      </>
+                    ) : ehVidroAvulso ? null : sacadaFrontal ? (
                       <>
                         <View style={styles.info}>
                           <Text style={styles.infoLabel}>Largura</Text>
@@ -1830,7 +1897,7 @@ const possuiRelacaoObra =
                         <Text style={styles.infoLabel}>Peças por vão na largura</Text>
                         <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
                       </View>
-                    ) : ehBoxProjeto || pinazio ? null : (
+                    ) : ehBoxProjeto || pinazio || espelhoComDesenho ? null : (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Modo</Text>
                         <Text style={styles.infoValue}>{item.modo}</Text>
@@ -1885,7 +1952,7 @@ const possuiRelacaoObra =
                           </View>
                         </View>
                       </View>
-                    ) : !ehVidroAvulso && !fechamentoSacada && !peleDeVidro ? (
+                    ) : !ehVidroAvulso && !fechamentoSacada && !peleDeVidro && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{sacadaFrontal ? "Cor do perfil" : ehBoxProjeto ? "Cor do kit" : "Cor"}</Text>
                         <Text style={styles.infoValue}>{item.corKit || "-"}</Text>
@@ -1903,19 +1970,19 @@ const possuiRelacaoObra =
                         <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio ? (
+                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoPrincipal}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && !pinazio && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
+                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Puxador</Text>
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio ? (
+                    {!ehVidroAvulso && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoSecundario}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>
@@ -1929,7 +1996,7 @@ const possuiRelacaoObra =
                     ) : null}
                     {!pinazio ? (
                       <View style={ehVidroAvulso ? styles.infoAvulso : styles.info}>
-                        <Text style={styles.infoLabel}>Valor total</Text>
+                        <Text style={styles.infoLabel}>{espelhoComDesenho ? "Valor" : "Valor total"}</Text>
                         <Text style={styles.infoValueStrong}>{moeda(ehVidroAvulso ? resumoAvulso?.valor || 0 : item.valorTotal || 0)}</Text>
                       </View>
                     ) : null}
@@ -1950,7 +2017,7 @@ const possuiRelacaoObra =
                           </View>
                         ))}
                       </View>
-                    ) : (peleDeVidro || item.medidasDetalhadas) && !sacadaFrontal ? (
+                    ) : (peleDeVidro || item.medidasDetalhadas) && !sacadaFrontal && !espelhoComDesenho ? (
                       <View style={styles.infoWide}>
                         <Text style={styles.infoLabel}>Medidas detalhadas</Text>
                         <Text style={styles.infoMultiline}>{item.medidasDetalhadas}</Text>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -223,7 +223,7 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
                     <div className="space-y-3">
                       <div className="flex justify-between border-b border-slate-700 pb-2">
                         <span className="text-sm font-medium text-slate-400">Vidro (2x):</span>
-                        <span className="font-black text-blue-400">{(medidasTeste.largura / 2 - 12).toFixed(1)} ? {(medidasTeste.altura - 45).toFixed(1)}</span>
+                        <span className="font-black text-blue-400">{(medidasTeste.largura / 2 - 12).toFixed(1)} x {(medidasTeste.altura - 45).toFixed(1)}</span>
                       </div>
                       <div className="flex justify-between border-b border-slate-700 pb-2">
                         <span className="text-sm font-medium text-slate-400">Perfil Trilho:</span>

@@ -1,4 +1,4 @@
-﻿//app/admin/relatorio.orcamento/page.tsx
+//app/admin/relatorio.orcamento/page.tsx
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
@@ -1197,7 +1197,7 @@ export default function RelatorioOrcamento() {
                                                                 : item.projeto === "JC2F - KIT" ? "Janela de correr 2 folhas"
                                                             : String(item.projeto || "Projeto"),
                                                     cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || item.cliente || ""),
-                                                    medidas: item.medidas || `${Number(item.largura || 0)} ? ${Number(item.altura || 0)} mm`,
+                                                    medidas: item.medidas || `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
                                                     largura: Number(item.largura || 0),
                                                     altura: Number(item.altura || 0),
                                                     quantidade: Number(item.quantidade || 0),
@@ -1420,7 +1420,7 @@ export default function RelatorioOrcamento() {
                                                     divisoesPorVao={divGeral}
                                                     corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
                                                     vidroDescricao={String(sacadaData.vidroDescricao || "")}
-                                                    medidaVidro={String(sacadaData.medidaVidro || `Inf: ${larguraVidroInferior} ? ${alturaVidroInferior} mm | Sup: ${larguraVidroSuperior} ? ${alturaVidroSuperior} mm`)}
+                                                    medidaVidro={String(sacadaData.medidaVidro || `Inf: ${larguraVidroInferior} x ${alturaVidroInferior} mm | Sup: ${larguraVidroSuperior} x ${alturaVidroSuperior} mm`)}
                                                     areaTotal={areaTotal}
                                                     totalVidro={totalVidro}
                                                     perfis={perfisArr}
@@ -1497,7 +1497,7 @@ export default function RelatorioOrcamento() {
                                                     divisoesPorVao={divVao}
                                                     corPerfil={String(sacadaData.corPerfil || "Não selecionada")}
                                                     vidroDescricao={String(sacadaData.vidroDescricao || "")}
-                                                    medidaVidro={`${sacResult.larguraVidroMm} ? ${sacResult.alturaVidroMm} mm`}
+                                                    medidaVidro={`${sacResult.larguraVidroMm} x ${sacResult.alturaVidroMm} mm`}
                                                     areaTotal={sacResult.areaTotalVidro}
                                                     totalVidro={totalVidro}
                                                     perfis={perfisArr}

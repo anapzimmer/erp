@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
@@ -371,7 +371,7 @@ export default function AcabamentosPage() {
                                             <td className="px-4 py-3.5 text-gray-700">
                                                 {s.nome}
                                                 {(s.sobra_largura > 0 || s.sobra_altura > 0) && (
-                                                    <span className="block text-xs text-gray-400">+{s.sobra_largura}cm ? +{s.sobra_altura}cm</span>
+                                                    <span className="block text-xs text-gray-400">+{s.sobra_largura}cm x +{s.sobra_altura}cm</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3.5"><span className="rounded-full border px-2.5 py-1 text-[11px] font-normal" style={{ color: theme.tertiary, borderColor: `${theme.tertiary}33`, backgroundColor: `${theme.tertiary}10` }}>{s.tipo_calculo}</span></td>

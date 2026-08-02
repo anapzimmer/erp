@@ -1035,7 +1035,7 @@ export default function JC2FCSPage() {
       numero: dados.numero || "novo",
       projeto: "Janela 2 folhas com sacada inferior",
       cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} ? ${Number(dados.altura || 0)} mm`,
+      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
       alturaAteTubo: Number(dados.alturaAteTubo || 0),
@@ -1317,7 +1317,7 @@ export default function JC2FCSPage() {
                     value={dados.numero}
                     tabIndex={-1}
                     onChange={(e) => atualizarCampo("numero", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-emerald-600 outline-none"
+                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
                   />
                 </div>
               </div>
@@ -1329,7 +1329,7 @@ export default function JC2FCSPage() {
                     value={dados.data}
                     tabIndex={-1}
                     onChange={(e) => atualizarCampo("data", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-emerald-600 outline-none"
+                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
                   />
                 </div>
               </div>
@@ -1376,7 +1376,7 @@ export default function JC2FCSPage() {
                           setListaClientesAberta(true);
                         }
                       }}
-                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-emerald-600"
+                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
                     >
                       {dados.cliente || "Digite o cliente"}
                     </button>
@@ -1798,9 +1798,9 @@ export default function JC2FCSPage() {
                         ))}
                       </div>
 
-                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total do Orçamento</p>
-                        <div className="rounded-2xl bg-[#18bd72] px-7 py-3 text-xl font-semibold text-white shadow-lg shadow-emerald-900/10">
+                        <div className="rounded-2xl bg-slate-100 px-7 py-3 text-xl font-bold text-[#0f2742]">
                           {moeda(totalMateriais)}
                         </div>
                       </div>

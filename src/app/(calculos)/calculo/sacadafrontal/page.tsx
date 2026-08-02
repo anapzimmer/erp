@@ -59,6 +59,7 @@ type SacadaFrontalDraft = {
   alturaVaoMm: string;
   quantidadeVaos: string;
   quantidadeDivisoesLargura: string;
+  tipoSacada: "panoramica" | "tubo";
   buscaVidro: string;
   vidroId: string;
   corPerfil: string;
@@ -71,6 +72,10 @@ type SacadaFrontalCentralItem = CentralImpressaoItem & {
 };
 
 const CORES_PERFIL = ["Branco", "Preto", "Fosco"];
+const TIPOS_SACADA = [
+  { valor: "panoramica", label: "Sacada panorâmica" },
+  { valor: "tubo", label: "Sacada tubo" },
+] as const;
 const SACADA_FRONTAL_DRAFT_KEY = "sacada-frontal-draft";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -288,6 +293,7 @@ export default function CalculoSacadaFrontalPage() {
   const [alturaVaoMm, setAlturaVaoMm] = useState("");
   const [quantidadeVaos, setQuantidadeVaos] = useState("");
   const [quantidadeDivisoesLargura, setQuantidadeDivisoesLargura] = useState("");
+  const [tipoSacada, setTipoSacada] = useState<"panoramica" | "tubo">("panoramica");
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [perfisTabela, setPerfisTabela] = useState<PerfilTabela[]>([]);
   const [ferragensTabela, setFerragensTabela] = useState<FerragemTabela[]>([]);
@@ -327,6 +333,7 @@ export default function CalculoSacadaFrontalPage() {
       if (typeof draft.alturaVaoMm === "string") setAlturaVaoMm(draft.alturaVaoMm);
       if (typeof draft.quantidadeVaos === "string") setQuantidadeVaos(draft.quantidadeVaos);
       if (typeof draft.quantidadeDivisoesLargura === "string") setQuantidadeDivisoesLargura(draft.quantidadeDivisoesLargura);
+      if (draft.tipoSacada === "tubo" || draft.tipoSacada === "panoramica") setTipoSacada(draft.tipoSacada);
       if (typeof draft.buscaVidro === "string") setBuscaVidro(draft.buscaVidro);
       if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
       if (typeof draft.corPerfil === "string") setCorPerfil(draft.corPerfil);
@@ -350,6 +357,7 @@ export default function CalculoSacadaFrontalPage() {
       alturaVaoMm,
       quantidadeVaos,
       quantidadeDivisoesLargura,
+      tipoSacada,
       buscaVidro,
       vidroId,
       corPerfil,
@@ -370,6 +378,7 @@ export default function CalculoSacadaFrontalPage() {
     obra,
     quantidadeDivisoesLargura,
     quantidadeVaos,
+    tipoSacada,
     vidroId,
   ]);
 
@@ -475,6 +484,7 @@ export default function CalculoSacadaFrontalPage() {
       if (itensData.alturaVaoMm != null) setAlturaVaoMm(String(itensData.alturaVaoMm));
       if (itensData.quantidadeVaos != null) setQuantidadeVaos(String(itensData.quantidadeVaos));
       if (itensData.divisoesPorVao != null) setQuantidadeDivisoesLargura(String(itensData.divisoesPorVao));
+      if (itensData.tipoSacada === "tubo" || itensData.tipoSacada === "panoramica") setTipoSacada(itensData.tipoSacada);
       if (itensData.corPerfil) setCorPerfil(String(itensData.corPerfil));
       if (itensData.vidroId) setVidroId(String(itensData.vidroId));
 
@@ -514,6 +524,7 @@ export default function CalculoSacadaFrontalPage() {
       setAlturaVaoMm(dados.alturaVaoMm || "");
       setQuantidadeVaos(dados.quantidadeVaos || "");
       setQuantidadeDivisoesLargura(dados.quantidadeDivisoesLargura || "");
+      setTipoSacada(dados.tipoSacada === "tubo" ? "tubo" : "panoramica");
       setBuscaVidro(dados.buscaVidro || item?.vidro || "");
       setVidroId(dados.vidroId || "");
       setCorPerfil(dados.corPerfil || item?.corKit || "");
@@ -584,8 +595,9 @@ export default function CalculoSacadaFrontalPage() {
       quantidadeDivisoesLargura: quantidadeDivisoesNumero,
       precoVidroM2: precoVidroM2Efetivo,
       vidroDescricao: montarDescricaoVidro(vidroSelecionado),
+      tipoSacada,
     }),
-    [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, vidroSelecionado]
+    [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, tipoSacada, vidroSelecionado]
   );
 
   const corPerfilSelecionada = Boolean(normalizarTextoComparacao(corPerfil));
@@ -628,17 +640,21 @@ const acessoriosComPrecoTabela = useMemo(() => {
   const pontoDivisao = (quantidadeDivisoesNumero + 1) * quantidadeNumero;
   const guarnicaoMm = (resultado.larguraVidroMm * 2 + 50) * resultado.quantidadeTotalVidros;
 
-  const regras = [
-    { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
-    { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
-    { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
-    { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
-    { nome: "Parafuso 1/4 ? 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
-    { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
-  ];
+  const regras = tipoSacada === "tubo"
+    ? [
+      { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
+    ]
+    : [
+      { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
+      { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
+      { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
+      { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
+      { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
+      { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
+      { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
+      { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
+      { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
+    ];
 
   return regras.map(({ nome, codigo, quantidade, pacote, precoPorPacote }) => {
     const corUsar = resolverCorAcessorio(codigo, corPerfil);
@@ -692,7 +708,8 @@ const acessoriosComPrecoTabela = useMemo(() => {
   quantidadeDivisoesNumero,
   quantidadeNumero,
   resultado.larguraVidroMm,
-  resultado.quantidadeTotalVidros
+  resultado.quantidadeTotalVidros,
+  tipoSacada
 ]);
 
   // Log temporário para debug de acessórios
@@ -758,8 +775,10 @@ const acessoriosComPrecoTabela = useMemo(() => {
       id: "vidro-sacada-frontal",
       qtd: resultado.areaTotalVidro,
       unidade: "m2",
-      descricao: `VIDRO ${resultado.larguraVidroMm}x${resultado.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
+      descricao: `VIDRO ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
       valorUnitario: precoVidroM2Efetivo,
+      medida: `${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`,
+      vidroDescricao: montarDescricaoVidro(vidroSelecionado).toUpperCase(),
     },
     ...perfisComPrecoTabela.map((perfil) => ({
       id: `perfil-${perfil.codigo}`,
@@ -769,7 +788,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       valorUnitario: Number(perfil.precoBarra || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : [],
+      cortes: perfil.cortes?.length ? perfil.cortes : perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : [],
     })),
     ...acessoriosComPrecoTabela.map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
@@ -790,6 +809,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       alturaVaoMm,
       quantidadeVaos,
       quantidadeDivisoesLargura,
+      tipoSacada,
       buscaVidro,
       vidroId,
       corPerfil,
@@ -798,21 +818,21 @@ const acessoriosComPrecoTabela = useMemo(() => {
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: "Novo Orçamento",
-      projeto: "Sacada frontal",
+      projeto: tipoSacada === "tubo" ? "Sacada frontal tubo" : "Sacada frontal panorâmica",
       cliente: nomeClienteSelecionado || buscaCliente || "",
-      medidas: `${larguraNumero} ? ${alturaNumero} mm`,
+      medidas: `${larguraNumero} x ${alturaNumero} mm`,
       largura: larguraNumero,
       altura: alturaNumero,
       quantidade: quantidadeNumero,
-      modo: "Cálculo",
+      modo: tipoSacada === "tubo" ? "Sacada tubo" : "Sacada panorâmica",
       desenhoUrl: "",
       vidro: montarDescricaoVidro(vidroSelecionado),
       corKit: corPerfil || "Não selecionada",
       corPerfil: corPerfil || "Não selecionada",
       trilho: `${quantidadeDivisoesNumero} divisão(ões)`,
-      trinco: "Sacada frontal",
+      trinco: tipoSacada === "tubo" ? "Sacada tubo" : "Sacada panorâmica",
       pecasDivisao: resultado.quantidadeVidrosPorVao,
-      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} ? ${resultado.alturaVidroMm} mm\nDivisões por vão: ${quantidadeDivisoesNumero}`,
+      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisões por vão: ${quantidadeDivisoesNumero}\nTipo: ${tipoSacada === "tubo" ? "Sacada tubo" : "Sacada panorâmica"}`,
       valorTotal: totalGeralCalculado,
       materiais: montarMateriaisCentral(),
       origemRota: "/calculo/sacadafrontal",
@@ -868,6 +888,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
           alturaVaoMm: alturaNumero,
           quantidadeVaos: quantidadeNumero,
           divisoesPorVao: quantidadeDivisoesNumero,
+          tipoSacada,
           corPerfil: corPerfil || "Não selecionada",
           vidroId,
           vidroDescricao: montarDescricaoVidro(vidroSelecionado),
@@ -1040,6 +1061,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
+                    tituloDocumento={tipoSacada === "tubo" ? "Orçamento Sacada Frontal Tubo" : "Orçamento Sacada Frontal Panorâmica"}
                     nomeCliente={nomeClienteSelecionado || "Não selecionado"}
                     nomeObra={obra || "Geral"}
                     larguraVaoMm={larguraNumero}
@@ -1048,7 +1070,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     divisoesPorVao={quantidadeDivisoesNumero}
                     corPerfil={corPerfil || "Não selecionada"}
                     vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
-                    medidaVidro={`${resultado.larguraVidroMm} ? ${resultado.alturaVidroMm} mm`}
+                    medidaVidro={`${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`}
                     areaTotal={resultado.areaTotalVidro}
                     totalVidro={resultado.totalVidro}
                     perfis={perfisComPrecoTabela}
@@ -1156,6 +1178,24 @@ const acessoriosComPrecoTabela = useMemo(() => {
 
                 <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                    Tipo de sacada
+                  </span>
+                  <select
+                    value={tipoSacada}
+                    onChange={(e) => setTipoSacada(e.target.value === "tubo" ? "tubo" : "panoramica")}
+                    className="mt-3 w-full bg-transparent text-lg font-black outline-none"
+                    style={{ color: theme.contentTextLightBg }}
+                  >
+                    {TIPOS_SACADA.map((tipo) => (
+                      <option key={tipo.valor} value={tipo.valor} className="text-slate-900">
+                        {tipo.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Cor dos perfis
                   </span>
                   <select
@@ -1212,7 +1252,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
             {[
               {
                 titulo: "Medida de cada vidro",
-                valor: `${formatarNumero(resultado.larguraVidroMm, 0)} ? ${formatarNumero(resultado.alturaVidroMm, 0)} mm`,
+                valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`,
                 detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`,
                 icone: Ruler,
               },
@@ -1486,11 +1526,11 @@ const acessoriosComPrecoTabela = useMemo(() => {
                 {/* Medida do vidro e info de vãos */}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                   <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
-                    Vidro: {formatarNumero(resultado.larguraVidroMm, 0)} × {formatarNumero(resultado.alturaVidroMm, 0)} mm
+                    Vidro: {formatarNumero(resultado.larguraVidroMm, 0)} x {formatarNumero(resultado.alturaVidroMm, 0)} mm
                   </span>
                   {quantidadeNumero > 1 && (
                     <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}50` }}>
-                      × {quantidadeNumero} vãos
+                      x {quantidadeNumero} vãos
                     </span>
                   )}
                   <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
@@ -1510,7 +1550,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     ["Área por peça", `${formatarNumero(resultado.areaVidroPorPeca)} m²`],
                     ["Vidro especificado", resultado.vidroTipo],
                     ["Cor dos perfis", corPerfil],
-                    ["Medida para calculo", `${formatarNumero(resultado.larguraVidroCalculoMm, 0)} ? ${formatarNumero(resultado.alturaVidroCalculoMm, 0)} mm`],
+                    ["Medida para calculo", `${formatarNumero(resultado.larguraVidroCalculoMm, 0)} x ${formatarNumero(resultado.alturaVidroCalculoMm, 0)} mm`],
                     ["Total dos perfis", formatarPreco(totalPerfisCalculado)],
                     ["Total dos acessorios", formatarPreco(totalAcessoriosCalculado)],
                     ["Total geral", formatarPreco(totalGeralCalculado)],

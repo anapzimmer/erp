@@ -1,4 +1,4 @@
-﻿//app/src/app/relatorios/projetoindividual/ProjetoIndividualPDF.tsx
+//app/src/app/relatorios/projetoindividual/ProjetoIndividualPDF.tsx
 "use client";
 
 import React from "react";
@@ -13,6 +13,8 @@ export type ProjetoIndividualMaterial = {
   codigoPerfil?: string;
   comprimentoBarra?: number;
   cortes?: number[];
+  medida?: string;
+  vidroDescricao?: string;
 };
 
 export type ProjetoIndividualDados = {
@@ -641,7 +643,7 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
   const materiaisComplementaresPremium = materiaisOrdenados.filter((item) => !normalizarTexto(item.descricao).includes("vidro"));
   const medidaDescricao = (descricao: string) => {
     const medida = descricao.match(/(\d+(?:[,.]\d+)x)\s*x\s*(\d+(?:[,.]\d+)x)/i);
-    return medida ? `${medida[1]} ? ${medida[2]} mm` : `${dados.largura || 0} ? ${dados.altura || 0} mm`;
+    return medida ? `${medida[1]} x ${medida[2]} mm` : `${dados.largura || 0} x ${dados.altura || 0} mm`;
   };
   const vidroDescricao = (descricao: string) =>
     descricao

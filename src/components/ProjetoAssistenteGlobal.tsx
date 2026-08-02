@@ -116,8 +116,8 @@ const topicosGerais: TopicoAjuda[] = [
   },
   {
     categoria: "Medidas",
-    titulo: "Medida real ? medida de cobranca",
-    texto: "A descricao do vidro procura mostrar a medida real da peca calculada. Para cobranca em m2, o sistema pode arredondar a medida para cima conforme a regra de vidro, normalmente de 5 em 5 cm.",
+    titulo: "Medida real x medida de cobrança",
+    texto: "A descrição do vidro procura mostrar a medida real da peça calculada. Para cobrança em m², o sistema pode arredondar a medida para cima conforme a regra de vidro, normalmente de 5 em 5 cm.",
   },
   {
     categoria: "Vidros",

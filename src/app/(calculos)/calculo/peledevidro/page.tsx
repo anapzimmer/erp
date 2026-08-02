@@ -1,4 +1,4 @@
-﻿//app/calculo/peledevidro/page.tsx
+//app/calculo/peledevidro/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -1075,7 +1075,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
               {[
                 {
                   titulo: "Medida de cada quadro",
-                  valor: `${formatarNumero(resultado.larguraQuadroMm, 0)} × ${formatarNumero(resultado.alturaQuadroMm, 0)} mm`,
+                  valor: `${formatarNumero(resultado.larguraQuadroMm, 0)} x ${formatarNumero(resultado.alturaQuadroMm, 0)} mm`,
                   detalhe: `${resultado.totalQuadros} quadros no total`,
                   icone: Ruler,
                 },
@@ -1419,10 +1419,10 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                     <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
-                      Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} × {formatarNumero(resultado.alturaQuadroMm, 0)} mm
+                      Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} x {formatarNumero(resultado.alturaQuadroMm, 0)} mm
                     </span>
                     <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
-                      {qH}×{qV} = {qH * qV} quadros{lajes > 0 ? ` × ${lajes} lajes` : ""}
+                      {qH}x{qV} = {qH * qV} quadros{lajes > 0 ? ` x ${lajes} lajes` : ""}
                     </span>
                   </div>
                 </article>

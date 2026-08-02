@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
@@ -234,11 +234,11 @@ const resolverFerragemPorCodigoECor = (
     ...(CODIGOS_EQUIVALENTES[codigoNorm] || [codigoNorm]).map((item) => normalizarCodigo(item)),
   ];
 
-  // Mapa de sufixo de código → cor (ex: CAN625-BC → BC → branco)
+  // Mapa de sufixo de código ? cor (ex: CAN625-BC ? BC ? branco)
   const SUFIXO_COR: Record<string, string> = { BC: "branco", PT: "preto", NF: "fosco" };
 
   // Busca por código: exato OU código do banco começa com o código alvo
-  // Isso cobre CAN625 (exato) e CAN625-BC → CAN625BC (prefixo)
+  // Isso cobre CAN625 (exato) e CAN625-BC ? CAN625BC (prefixo)
   const candidatos = ferragensTabela.filter((f) => {
     const fCodigo = normalizarCodigo(f.codigo);
     return codigosAceitos.some((aceito) => fCodigo === aceito || fCodigo.startsWith(aceito));
@@ -248,14 +248,14 @@ const resolverFerragemPorCodigoECor = (
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
-  // 1️⃣ tentar achar por campo cores
+  // 1?? tentar achar por campo cores
   if (corNorm) {
     const comCor = candidatos.find((f) => corCompativel(f.cores, corNorm));
     if (comCor && obterPrecoFerragem(comCor) > 0) {
       return { preco: obterPrecoFerragem(comCor), corEncontrada: corUsar };
     }
 
-    // 2️⃣ tentar por sufixo do código (ex: CAN625-BC → BC → branco)
+    // 2?? tentar por sufixo do código (ex: CAN625-BC ? BC ? branco)
     const comSufixo = candidatos.find((f) => {
       const fCodigo = normalizarCodigo(f.codigo);
       return Object.entries(SUFIXO_COR).some(
@@ -269,7 +269,7 @@ const resolverFerragemPorCodigoECor = (
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
-  // 3️⃣ tentar entrada sem cor (padrão) — código exato sem sufixo de cor
+  // 3?? tentar entrada sem cor (padrão) — código exato sem sufixo de cor
   const semCor = candidatos.find((f) => {
     const fCodigo = normalizarCodigo(f.codigo);
     const ehExato = codigosAceitos.includes(fCodigo);
@@ -279,7 +279,7 @@ const resolverFerragemPorCodigoECor = (
     return { preco: obterPrecoFerragem(semCor), corEncontrada: "Padrão" };
   }
 
-  // 4️⃣ qualquer com preço
+  // 4?? qualquer com preço
   const comPreco = candidatos.find((f) => obterPrecoFerragem(f) > 0);
   if (comPreco) {
     return { preco: obterPrecoFerragem(comPreco), corEncontrada: comPreco.cores || "Padrão" };
@@ -1134,7 +1134,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           preco: item.precoUnitario,
           qtd: item.quantidade,
           total: item.valorTotal,
-          status: item.precoUnitario > 0 ? "✅" : "⚠️ ZERADO",
+          status: item.precoUnitario > 0 ? "?" : "?? ZERADO",
         }))
       );
 
@@ -1144,7 +1144,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
         const candidatos = ferragensTabela
           .filter((f) => normalizarCodigo(f.codigo).startsWith(codNorm.substring(0, 7)))
           .map((f) => ({ codigo: f.codigo, cores: f.cores, preco: f.preco }));
-        console.warn(`[SACADA] ⚠️ "${a.codigo}" zerado. Prefixo buscado: "${codNorm.substring(0, 7)}". Candidatos encontrados:`, candidatos.length > 0 ? JSON.stringify(candidatos) : "NENHUM");
+        console.warn(`[SACADA] ?? "${a.codigo}" zerado. Prefixo buscado: "${codNorm.substring(0, 7)}". Candidatos encontrados:`, candidatos.length > 0 ? JSON.stringify(candidatos) : "NENHUM");
         if (candidatos.length === 0) {
           // mostra todos os codes que contêm ACKTS ou o termo relevante
           const relevantes = ferragensTabela
@@ -1168,7 +1168,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           preco: a.precoUnitario,
           qtd: a.quantidade,
           valorTotal: a.valorTotal,
-          status: a.precoUnitario > 0 ? "OK" : "⚠️ ZERADO",
+          status: a.precoUnitario > 0 ? "OK" : "?? ZERADO",
         }))
       );
 
@@ -2175,11 +2175,11 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 {/* Medida do vidro e info de vãos */}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                   <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
-                    SUP: {formatarNumero(resultadoSuperior.larguraVidroMm, 0)} × {formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm · INF: {formatarNumero(resultadoInferior.larguraVidroMm, 0)} × {formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm
+                    SUP: {formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x {formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm · INF: {formatarNumero(resultadoInferior.larguraVidroMm, 0)} x {formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm
                   </span>
                   {quantidadeNumero > 1 && (
                     <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}50` }}>
-                      × {quantidadeNumero} vãos
+                      x {quantidadeNumero} vãos
                     </span>
                   )}
                   <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
