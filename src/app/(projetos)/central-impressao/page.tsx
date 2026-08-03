@@ -1450,7 +1450,7 @@ router.push(
       limparRascunhosDosProjetos();
       limparTudo();
       setMensagem(`Orçamento ${numeroFinal} salvo com sucesso.`);
-      router.push(`/admin/relatorio.orcamentoxfiltro=${encodeURIComponent(numeroFinal)}`);
+     router.push(`/admin/relatorio.orcamento?filtro=${encodeURIComponent(numeroFinal)}`);
     } catch (erro) {
       const erroSupabase = (typeof erro === "object" && erro !== null ? erro : {}) as {
         message?: string;
