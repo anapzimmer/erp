@@ -1331,9 +1331,13 @@ export default function CentralImpressaoPage() {
       return;
     }
 
-    const retorno = editId ? `/central-impressao?edit=${encodeURIComponent(editId)}`
-      : "/central-impressao";
-    router.push(`${rota}xcentralItem=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(retorno)}`);
+    const retorno = editId
+  ? `/central-impressao?edit=${encodeURIComponent(editId)}`
+  : "/central-impressao";
+
+router.push(
+  `${rota}?centralItem=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(retorno)}`
+);
   };
 
   const editarLote = (item: ProjetoComposicao) => {
