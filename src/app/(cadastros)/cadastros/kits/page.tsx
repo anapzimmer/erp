@@ -114,13 +114,13 @@ export default function KitsPage() {
       nome,
       largura:
         dados.largura !== null &&
-        !larguraManualRef.current &&
-        (prev.largura === 0 || prev.largura === ultimaDeteccaoRef.current.largura) ? dados.largura
+          !larguraManualRef.current &&
+          (prev.largura === 0 || prev.largura === ultimaDeteccaoRef.current.largura) ? dados.largura
           : prev.largura,
       altura:
         dados.altura !== null &&
-        !alturaManualRef.current &&
-        (prev.altura === 0 || prev.altura === ultimaDeteccaoRef.current.altura) ? dados.altura
+          !alturaManualRef.current &&
+          (prev.altura === 0 || prev.altura === ultimaDeteccaoRef.current.altura) ? dados.altura
           : prev.altura,
     }));
 
@@ -310,87 +310,87 @@ export default function KitsPage() {
 
     setModalCarregando(true);
     try {
-        const conteudo = await decodeCsvFile(file);
-        const linhas = conteudo.split(/\rx\n/).filter(l => l.trim() !== "");
+      const conteudo = await decodeCsvFile(file);
+      const linhas = conteudo.split(/\rx\n/).filter(l => l.trim() !== "");
 
-        // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
-        const cabecalho = linhas[0].toLowerCase();
-        // O formato novo estruturado tem 6 colunas, o antigo tem 5.
-        const colunasCabecalho = cabecalho.split(";");
-        const formatoNovo = colunasCabecalho.length >= 6;
+      // --- IMPORTAÇÃO INTELIGENTE REVISADA ---
+      const cabecalho = linhas[0].toLowerCase();
+      // O formato novo estruturado tem 6 colunas, o antigo tem 5.
+      const colunasCabecalho = cabecalho.split(";");
+      const formatoNovo = colunasCabecalho.length >= 6;
 
-        const novosKits = linhas.slice(1).map(linha => {
-          const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
+      const novosKits = linhas.slice(1).map(linha => {
+        const colunas = linha.split(";").map(c => c.replace(/^["']|["']$/g, "").trim());
 
-          let nomeFinal = "";
-          let largura = 0;
-          let altura = 0;
-          let corFinal = "";
-          let categoriaFinal = "";
-          let precoFinal = 0;
+        let nomeFinal = "";
+        let largura = 0;
+        let altura = 0;
+        let corFinal = "";
+        let categoriaFinal = "";
+        let precoFinal = 0;
 
-          if (formatoNovo) {
-            // --- FORMATO NOVO (6 Colunas): Nome;Largura;Altura;Cor;Categoria;Preço ---
-            nomeFinal = colunas[0];
-            largura = parseFloat(colunas[1]) || 0;
-            altura = parseFloat(colunas[2]) || 0;
-            corFinal = colunas[3];
-            categoriaFinal = colunas[4];
-            precoFinal = parseFloat((colunas[5] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+        if (formatoNovo) {
+          // --- FORMATO NOVO (6 Colunas): Nome;Largura;Altura;Cor;Categoria;Preço ---
+          nomeFinal = colunas[0];
+          largura = parseFloat(colunas[1]) || 0;
+          altura = parseFloat(colunas[2]) || 0;
+          corFinal = colunas[3];
+          categoriaFinal = colunas[4];
+          precoFinal = parseFloat((colunas[5] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+        } else {
+          // --- FORMATO ANTIGO (5 Colunas): Descrição;Largura;Altura;Categoria;Preço ---
+          const descricaoCompleta = colunas[0] || "";
+
+          // Separa nome e cor pelo hífen
+          if (descricaoCompleta.includes(" - ")) {
+            const partes = descricaoCompleta.split(" - ");
+            nomeFinal = partes[0].trim();
+            corFinal = partes[1].trim();
           } else {
-            // --- FORMATO ANTIGO (5 Colunas): Descrição;Largura;Altura;Categoria;Preço ---
-            const descricaoCompleta = colunas[0] || "";
-
-            // Separa nome e cor pelo hífen
-            if (descricaoCompleta.includes(" - ")) {
-              const partes = descricaoCompleta.split(" - ");
-              nomeFinal = partes[0].trim();
-              corFinal = partes[1].trim();
-            } else {
-              nomeFinal = descricaoCompleta;
-              corFinal = "Padrão";
-            }
-
-            largura = parseFloat(colunas[1]) || 0;
-            altura = parseFloat(colunas[2]) || 0;
-            categoriaFinal = colunas[3] || "Kits";
-            // Preço na coluna 4 para o formato antigo
-            precoFinal = parseFloat((colunas[4] || "0").replace(/\./g, "").replace(",", ".")) || 0;
+            nomeFinal = descricaoCompleta;
+            corFinal = "Padrão";
           }
 
-          return {
-            nome: padronizarTexto(nomeFinal),
-            largura,
-            altura,
-            categoria: padronizarTexto(categoriaFinal),
-            cores: padronizarTexto(corFinal),
-            preco: precoFinal,
-            empresa_id: empresaIdUsuario
-          };
-        });
-
-        // --- LOGICA DE DUPLICADOS E SALVAMENTO ---
-        const kitsUnicosParaSalvar = novosKits.reduce((acc: any[], atual) => {
-          const chave = `${atual.nome.toUpperCase()}-${atual.cores.toUpperCase()}`;
-          const jaExiste = acc.find(item => `${item.nome.toUpperCase()}-${item.cores.toUpperCase()}` === chave);
-          if (!jaExiste) acc.push(atual);
-          return acc;
-        }, []);
-
-        if (kitsUnicosParaSalvar.length > 0) {
-          await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
-          const { error } = await supabase.from("kits").insert(kitsUnicosParaSalvar);
-
-          if (error) throw error;
-          await carregarDados();
-          setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com sucesso!" });
+          largura = parseFloat(colunas[1]) || 0;
+          altura = parseFloat(colunas[2]) || 0;
+          categoriaFinal = colunas[3] || "Kits";
+          // Preço na coluna 4 para o formato antigo
+          precoFinal = parseFloat((colunas[4] || "0").replace(/\./g, "").replace(",", ".")) || 0;
         }
-      } catch (err: any) {
-        setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
-      } finally {
-        setModalCarregando(false);
-        if (e.target) e.target.value = "";
+
+        return {
+          nome: padronizarTexto(nomeFinal),
+          largura,
+          altura,
+          categoria: padronizarTexto(categoriaFinal),
+          cores: padronizarTexto(corFinal),
+          preco: precoFinal,
+          empresa_id: empresaIdUsuario
+        };
+      });
+
+      // --- LOGICA DE DUPLICADOS E SALVAMENTO ---
+      const kitsUnicosParaSalvar = novosKits.reduce((acc: any[], atual) => {
+        const chave = `${atual.nome.toUpperCase()}-${atual.cores.toUpperCase()}`;
+        const jaExiste = acc.find(item => `${item.nome.toUpperCase()}-${item.cores.toUpperCase()}` === chave);
+        if (!jaExiste) acc.push(atual);
+        return acc;
+      }, []);
+
+      if (kitsUnicosParaSalvar.length > 0) {
+        await supabase.from("kits").delete().eq("empresa_id", empresaIdUsuario);
+        const { error } = await supabase.from("kits").insert(kitsUnicosParaSalvar);
+
+        if (error) throw error;
+        await carregarDados();
+        setModalAviso({ titulo: "Sucesso", mensagem: "Importação concluída com sucesso!" });
       }
+    } catch (err: any) {
+      setModalAviso({ titulo: "Erro", mensagem: "Falha: " + err.message });
+    } finally {
+      setModalCarregando(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleExportarCSV = () => {
@@ -640,58 +640,58 @@ export default function KitsPage() {
                   Importar tabela
                 </button>
 
-              {isClient && (
-                <PDFDownloadLink
-                  document={
-                <KitsPDF
-  dados={kits} // Passa o estado 'kits' diretamente
-  empresa={nomeEmpresa}
-  logoUrl={theme.logoLightUrl ?? null}
-  coresEmpresa={{
-    primary: theme.menuBackgroundColor,
-    secondary: theme.menuTextColor,
-    tertiary: theme.menuIconColor,
-    textDefault: theme.contentTextLightBg
-  }}
-/>
-                  }
-                  fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
-                  title="Imprimir Catálogo"
+                {isClient && (
+                  <PDFDownloadLink
+                    document={
+                      <KitsPDF
+                        dados={kits} // Passa o estado 'kits' diretamente
+                        empresa={nomeEmpresa}
+                        logoUrl={theme.logoLightUrl ?? null}
+                        coresEmpresa={{
+                          primary: theme.menuBackgroundColor,
+                          secondary: theme.menuTextColor,
+                          tertiary: theme.menuIconColor,
+                          textDefault: theme.contentTextLightBg
+                        }}
+                      />
+                    }
+                    fileName={`catalogo_kits_${nomeEmpresa.toLowerCase().replace(/\s+/g, '_')}.pdf`}
+                    title="Imprimir Catálogo"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  >
+                    {({ loading }) => (
+                      loading ? (
+                        <Loader2 size={20} className="animate-spin text-gray-400" />
+                      ) : (
+                        <Printer size={18} />
+                      )
+                    )}
+                  </PDFDownloadLink>
+                )}
+
+                <button
+                  onClick={handleExportarCSV}
+                  title="Exportar CSV"
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
                 >
-                  {({ loading }) => (
-                    loading ? (
-                      <Loader2 size={20} className="animate-spin text-gray-400" />
-                    ) : (
-                      <Printer size={18} />
-                    )
-                  )}
-                </PDFDownloadLink>
-              )}
+                  <Download size={18} />
+                </button>
 
-              <button
-                onClick={handleExportarCSV}
-                title="Exportar CSV"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
-              >
-                <Download size={18} />
-              </button>
-
-              <label
-                htmlFor="importarCSV"
-                title="Importar CSV simples"
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
-              >
-                <Upload size={18} />
-                <input
-                  type="file"
-                  id="importarCSV"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleImportarCSV}
-                />
-              </label>
-            </div>
+                <label
+                  htmlFor="importarCSV"
+                  title="Importar CSV simples"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                >
+                  <Upload size={18} />
+                  <input
+                    type="file"
+                    id="importarCSV"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleImportarCSV}
+                  />
+                </label>
+              </div>
             </div>
           </section>
 
@@ -719,52 +719,52 @@ export default function KitsPage() {
           <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm filtros-sessao">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-2">
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome ou categoria..."
-                  value={filtroNome}
-                  onChange={e => setFiltroNome(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                  style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
-                />
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome ou categoria..."
+                    value={filtroNome}
+                    onChange={e => setFiltroNome(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                  />
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por cor..."
+                    value={filtroCor}
+                    onChange={e => setFiltroCor(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                    style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Buscar por cor..."
-                value={filtroCor}
-                onChange={e => setFiltroCor(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
-              />
-              </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2 no-print">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50">
-                <Eraser size={16} /> Duplicados
-              </button>
-              <button
-                onClick={limparTodosOsKits}
-                className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
-              >
-                <Trash2 size={16} />
-                Limpar tudo
-              </button>
-              <button
-                onClick={() => {
-                  abrirModalParaNovo();
-                }}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
-                style={{ backgroundColor: darkTertiary, color: darkPrimary }}
-              >
-                <PlusCircle size={17} /> Novo kit
-              </button>
+              <div className="flex flex-wrap items-center gap-2 no-print">
+                <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50">
+                  <Eraser size={16} /> Duplicados
+                </button>
+                <button
+                  onClick={limparTodosOsKits}
+                  className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                  Limpar tudo
+                </button>
+                <button
+                  onClick={() => {
+                    abrirModalParaNovo();
+                  }}
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  style={{ backgroundColor: darkTertiary, color: darkPrimary }}
+                >
+                  <PlusCircle size={17} /> Novo kit
+                </button>
+              </div>
             </div>
-          </div>
           </section>
 
           {kitsSelecionados.size > 0 && (
@@ -819,9 +819,8 @@ export default function KitsPage() {
                       <button
                         onClick={alternarSelecaoFiltrados}
                         disabled={!kitsFiltrados.length}
-                        className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
-                          todosFiltradosSelecionados ? "border-transparent" : "border-gray-300 bg-white"
-                        }`}
+                        className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${todosFiltradosSelecionados ? "border-transparent" : "border-gray-300 bg-white"
+                          }`}
                         style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
                         aria-label="Selecionar todos os kits visíveis"
                       >
@@ -843,45 +842,45 @@ export default function KitsPage() {
                     const selecionado = kitsSelecionados.has(k.id)
 
                     return (
-                    <tr key={k.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
-                      <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => alternarSelecaoKit(k.id)}
-                          className={`flex h-5 w-5 items-center justify-center rounded border transition ${
-                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
-                          }`}
-                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
-                          aria-label={`Selecionar ${k.nome}`}
-                        >
-                          {selecionado && <CheckCircle2 size={15} className="text-white" />}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-normal uppercase text-slate-600">
-                          {k.codigo || "-"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-gray-700">{k.nome}</td>
-                      <td className="px-4 py-3.5 text-gray-600">{k.largura}</td>
-                      <td className="px-4 py-3.5 text-gray-600">{k.altura}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
-                          style={{ color: darkTertiary, borderColor: `${darkTertiary}33`, backgroundColor: `${darkTertiary}10` }}>
-                          {k.cores || "Padrão"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-gray-600">{k.categoria || "Geral"}</td>
-                      <td className="px-4 py-3.5 text-gray-700">
-                        {k.preco ? formatarPreco(k.preco) : "-"}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => abrirModalParaEdicao(k)} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={17} /></button>
-                          <button onClick={() => deletarKit(k.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})}
+                      <tr key={k.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => alternarSelecaoKit(k.id)}
+                            className={`flex h-5 w-5 items-center justify-center rounded border transition ${selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                              }`}
+                            style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                            aria-label={`Selecionar ${k.nome}`}
+                          >
+                            {selecionado && <CheckCircle2 size={15} className="text-white" />}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-normal uppercase text-slate-600">
+                            {k.codigo || "-"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-gray-700">{k.nome}</td>
+                        <td className="px-4 py-3.5 text-gray-600">{k.largura}</td>
+                        <td className="px-4 py-3.5 text-gray-600">{k.altura}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
+                            style={{ color: darkTertiary, borderColor: `${darkTertiary}33`, backgroundColor: `${darkTertiary}10` }}>
+                            {k.cores || "Padrão"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-gray-600">{k.categoria || "Geral"}</td>
+                        <td className="px-4 py-3.5 text-gray-700">
+                          {k.preco ? formatarPreco(k.preco) : "-"}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex justify-center gap-2">
+                            <button onClick={() => abrirModalParaEdicao(k)} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={17} /></button>
+                            <button onClick={() => deletarKit(k.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -921,115 +920,115 @@ export default function KitsPage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-              <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
-                <div className="mb-5 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700">Dados do kit</h3>
-                    <p className="mt-1 text-xs text-slate-500">Campos principais para seleção e cálculo.</p>
+                <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700">Dados do kit</h3>
+                      <p className="mt-1 text-xs text-slate-500">Campos principais para seleção e cálculo.</p>
+                    </div>
+                    <Square size={18} className="text-slate-300" />
                   </div>
-                  <Square size={18} className="text-slate-300" />
-                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
-                    <input
-                      type="text"
-                      placeholder="E?: F1-120-BC"
-                      value={novoKit.codigo || ""}
-                      onChange={e => setNovoKit({ ...novoKit, codigo: e.target.value.toUpperCase() })}
-                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do kit *</label>
-                    <input
-                      type="text"
-                      placeholder="E?: Kit janela 1,20A ? 1,50L 4F"
-                      value={novoKit.nome}
-                      onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                    />
-                    <div className="mt-2 px-1 text-[11px] leading-relaxed text-slate-400">
-                      Medidas podem ser sugeridas pelo nome do kit.
-                      <button type="button" onClick={aplicarMedidasDoNome} className="ml-2 font-semibold" style={{ color: darkTertiary }}>
-                        Reaplicar medidas
-                      </button>
-                      {espessuraDetectada && (
-                        <span className="ml-2 font-semibold" style={{ color: darkTertiary }}>
-                          Espessura: {espessuraDetectada}
-                        </span>
-                      )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
+                      <input
+                        type="text"
+                        placeholder="E?: F1-120-BC"
+                        value={novoKit.codigo || ""}
+                        onChange={e => setNovoKit({ ...novoKit, codigo: e.target.value.toUpperCase() })}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do kit *</label>
+                      <input
+                        type="text"
+                        placeholder="E?: Kit janela 1,20A ? 1,50L 4F"
+                        value={novoKit.nome}
+                        onChange={e => atualizarDeteccaoNomeKit(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                      <div className="mt-2 px-1 text-[11px] leading-relaxed text-slate-400">
+                        Medidas podem ser sugeridas pelo nome do kit.
+                        <button type="button" onClick={aplicarMedidasDoNome} className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                          Reaplicar medidas
+                        </button>
+                        {espessuraDetectada && (
+                          <span className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                            Espessura: {espessuraDetectada}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Largura (mm)</label>
+                      <input
+                        type="number"
+                        value={novoKit.largura}
+                        onChange={e => {
+                          larguraManualRef.current = true;
+                          setNovoKit({ ...novoKit, largura: Number(e.target.value) });
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Altura (mm)</label>
+                      <input
+                        type="number"
+                        value={novoKit.altura}
+                        onChange={e => {
+                          alturaManualRef.current = true;
+                          setNovoKit({ ...novoKit, altura: Number(e.target.value) });
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
+                      <input
+                        type="text"
+                        value={novoKit.cores || ""}
+                        onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
+                      <input
+                        type="text"
+                        value={novoKit.categoria || ""}
+                        onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base</label>
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
+                        style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                      >
+                        <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={novoKit.preco ?? ""}
+                          onChange={e => setNovoKit({ ...novoKit, preco: e.target.value ? Number(e.target.value) : null })}
+                          className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
-
-                <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Largura (mm)</label>
-                  <input
-                    type="number"
-                    value={novoKit.largura}
-                    onChange={e => {
-                      larguraManualRef.current = true;
-                      setNovoKit({ ...novoKit, largura: Number(e.target.value) });
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Altura (mm)</label>
-                  <input
-                    type="number"
-                    value={novoKit.altura}
-                    onChange={e => {
-                      alturaManualRef.current = true;
-                      setNovoKit({ ...novoKit, altura: Number(e.target.value) });
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
-                  <input
-                    type="text"
-                    value={novoKit.cores || ""}
-                    onChange={e => setNovoKit({ ...novoKit, cores: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
-                  <input
-                    type="text"
-                    value={novoKit.categoria || ""}
-                    onChange={e => setNovoKit({ ...novoKit, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                  />
-                </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base</label>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
-                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
-                    >
-                      <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={novoKit.preco ?? ""}
-                    onChange={e => setNovoKit({ ...novoKit, preco: e.target.value ? Number(e.target.value) : null })}
-                        className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
-                  />
-                    </div>
-                  </div>
-                </div>
-              </section>
+                </section>
                 <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>

@@ -42,6 +42,7 @@ export type ProjetoIndividualDados = {
 type ProjetoIndividualPDFProps = {
   dados: ProjetoIndividualDados;
   logoUrl?: string | null;
+  themeColor?: string;
 };
 
 const moeda = (valor: number) =>
@@ -118,11 +119,36 @@ const styles = StyleSheet.create({
   logoText: { color: "#00a85a", fontSize: 16, fontWeight: "bold" },
   brandName: { fontSize: 20, fontWeight: "bold", color: "#10253f" },
   brandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
-  headerMetaWrap: { flexDirection: "row", gap: 8, flex: 2, justifyContent: "flex-end" },
-  metaBox: { borderLeftWidth: 1, borderLeftColor: "#dbe4ee", paddingLeft: 8, minWidth: 78 },
+  headerMetaWrap: {
+    flexDirection: "row",
+    gap: 8,
+    flex: 2,
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
+  },
+  metaBox: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#dbe4ee",
+    paddingLeft: 8,
+    width: 76,
+    flexShrink: 0,
+  },
+  metaClientBox: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#dbe4ee",
+    paddingLeft: 8,
+    flex: 1,
+    minWidth: 0,
+  },
   metaLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  metaValue: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
-  metaGreen: { color: "#009b55" },
+  metaValue: { fontSize: 9, color: "#0f2742", fontWeight: "bold" },
+  metaClientValue: {
+    fontSize: 7.5,
+    color: "#0f2742",
+    fontWeight: "bold",
+    lineHeight: 1.25,
+    maxWidth: "100%",
+  },
   titleRow: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
@@ -215,10 +241,36 @@ const styles = StyleSheet.create({
   premiumProjectWrap: { flex: 1, paddingHorizontal: 16, alignItems: "center" },
   premiumProjectLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", letterSpacing: 1.2 },
   premiumProjectName: { fontSize: 13, color: "#10253f", fontWeight: "normal", marginTop: 4 },
-  premiumMeta: { flexDirection: "row", gap: 8 },
-  premiumMetaBox: { borderLeftWidth: 1, borderLeftColor: "#e2e8f0", paddingLeft: 8, minWidth: 66 },
+  premiumMeta: {
+    flexDirection: "row",
+    gap: 8,
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
+  },
+  premiumMetaBox: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#e2e8f0",
+    paddingLeft: 8,
+    width: 64,
+    flexShrink: 0,
+  },
+  premiumClientBox: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#e2e8f0",
+    paddingLeft: 8,
+    flex: 1,
+    minWidth: 0,
+  },
   premiumMetaLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  premiumMetaValue: { fontSize: 8, color: "#009b55", fontWeight: "normal" },
+  premiumMetaValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
+  premiumClientValue: {
+    fontSize: 9,
+    color: "#0f2742",
+    fontWeight: "normal",
+    lineHeight: 1.25,
+    maxWidth: "100%",
+  },
   premiumMainGrid: { flexDirection: "row", gap: 12, marginBottom: 12 },
   premiumDrawingCard: {
     width: "34%",
@@ -312,7 +364,11 @@ const styles = StyleSheet.create({
   premiumSummaryValueStrong: { fontSize: 10, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
 });
 
-export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFProps) {
+export function ProjetoIndividualPDF({
+  dados,
+  logoUrl,
+  themeColor = "#07385a",
+}: ProjetoIndividualPDFProps) {
   const projetoNormalizado = String(dados.projeto || "").toLowerCase();
   const ehJc4fComSacada = projetoNormalizado.includes("jc4fcs") || projetoNormalizado.includes("janela 4 folhas com sacada inferior") || projetoNormalizado.includes("janela de correr 4 folhas com sacada inferior");
   const ehJc2fComSacada = projetoNormalizado.includes("jc2fcs") || projetoNormalizado.includes("janela 2 folhas com sacada inferior") || projetoNormalizado.includes("janela de correr 2 folhas com sacada inferior");
@@ -673,26 +729,45 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
                 </View>
               )}
             </View>
-            <View style={styles.premiumMeta}>
-              <View style={styles.premiumMetaBox}>
-                <Text style={styles.premiumMetaLabel}>Nº orçamento</Text>
-                <Text style={styles.premiumMetaValue}>{dados.numero || "-"}</Text>
-              </View>
-              <View style={styles.premiumMetaBox}>
-                <Text style={styles.premiumMetaLabel}>Data</Text>
-                <Text style={styles.premiumMetaValue}>{dados.data || "-"}</Text>
-              </View>
-              <View style={styles.premiumMetaBox}>
-                <Text style={styles.premiumMetaLabel}>Cliente</Text>
-                <Text style={styles.premiumMetaValue}>{dados.cliente || "-"}</Text>
-              </View>
-            </View>
+        <View style={styles.premiumMeta}>
+  <View style={styles.premiumMetaBox}>
+    <Text style={styles.premiumMetaLabel}>Nº orçamento</Text>
+    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+      {dados.numero || "-"}
+    </Text>
+  </View>
+
+  <View style={styles.premiumMetaBox}>
+    <Text style={styles.premiumMetaLabel}>Data</Text>
+    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+      {dados.data || "-"}
+    </Text>
+  </View>
+
+  <View style={styles.premiumClientBox}>
+    <Text style={styles.premiumMetaLabel}>Projeto</Text>
+    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+      {nomeProjeto}
+    </Text>
+  </View>
+</View>
           </View>
 
           <View style={styles.premiumTitleRow}>
-            <Text style={styles.premiumTitleLabel}>Projeto</Text>
-            <Text style={styles.premiumTitleValue}>{nomeProjeto}</Text>
-          </View>
+  <Text style={styles.premiumTitleLabel}>Cliente</Text>
+  <Text
+    style={[
+      styles.premiumTitleValue,
+      {
+        color: themeColor,
+        lineHeight: 1.25,
+        maxWidth: "100%",
+      },
+    ]}
+  >
+    {dados.cliente || "-"}
+  </Text>
+</View>
 
           <View style={styles.premiumMainGrid}>
             <View style={styles.premiumDrawingCard}>
@@ -834,27 +909,45 @@ export function ProjetoIndividualPDF({ dados, logoUrl }: ProjetoIndividualPDFPro
               </>
             )}
           </View>
-          <View style={styles.headerMetaWrap}>
-            <View style={styles.metaBox}>
-              <Text style={styles.metaLabel}>Nº Orçamento</Text>
-              <Text style={[styles.metaValue, styles.metaGreen]}>{dados.numero || "-"}</Text>
-            </View>
-            <View style={styles.metaBox}>
-              <Text style={styles.metaLabel}>Data</Text>
-              <Text style={[styles.metaValue, styles.metaGreen]}>{dados.data || "-"}</Text>
-            </View>
-            <View style={styles.metaBox}>
-              <Text style={styles.metaLabel}>Cliente</Text>
-              <Text style={[styles.metaValue, styles.metaGreen]}>{dados.cliente || "-"}</Text>
-            </View>
-          </View>
+     <View style={styles.headerMetaWrap}>
+  <View style={styles.metaBox}>
+    <Text style={styles.metaLabel}>Nº Orçamento</Text>
+    <Text style={[styles.metaValue, { color: themeColor }]}>
+      {dados.numero || "-"}
+    </Text>
+  </View>
+
+  <View style={styles.metaBox}>
+    <Text style={styles.metaLabel}>Data</Text>
+    <Text style={[styles.metaValue, { color: themeColor }]}>
+      {dados.data || "-"}
+    </Text>
+  </View>
+
+  <View style={styles.metaClientBox}>
+    <Text style={styles.metaLabel}>Projeto</Text>
+    <Text style={[styles.metaClientValue, { color: themeColor }]}>
+      {nomeProjeto}
+    </Text>
+  </View>
+</View>
         </View>
 
-        <View style={styles.titleRow}>
-          <Text style={styles.titleLabel}>Projeto</Text>
-          <Text style={styles.title}>{nomeProjeto}</Text>
-        </View>
-
+      <View style={styles.titleRow}>
+  <Text style={styles.titleLabel}>Cliente</Text>
+  <Text
+    style={[
+      styles.title,
+      {
+        color: themeColor,
+        lineHeight: 1.25,
+        maxWidth: "100%",
+      },
+    ]}
+  >
+    {dados.cliente || "-"}
+  </Text>
+</View>
         <View style={styles.grid}>
           <View style={[styles.card, styles.drawingCard]}>
             <Text style={styles.sectionTitle}>Desenho ilustrativo</Text>
