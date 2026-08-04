@@ -121,16 +121,16 @@ const styles = StyleSheet.create({
   brandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
   headerMetaWrap: {
     flexDirection: "row",
-    gap: 8,
-    flex: 2,
+    gap: 14,
+    flex: 2.2,
     justifyContent: "flex-end",
     alignItems: "flex-start",
   },
   metaBox: {
     borderLeftWidth: 1,
     borderLeftColor: "#dbe4ee",
-    paddingLeft: 8,
-    width: 76,
+    paddingLeft: 10,
+    width: 86,
     flexShrink: 0,
   },
   metaClientBox: {
@@ -243,23 +243,24 @@ const styles = StyleSheet.create({
   premiumProjectName: { fontSize: 13, color: "#10253f", fontWeight: "normal", marginTop: 4 },
   premiumMeta: {
     flexDirection: "row",
-    gap: 8,
-    flex: 1,
+    gap: 14,
+    flex: 1.25,
     justifyContent: "flex-end",
     alignItems: "flex-start",
   },
   premiumMetaBox: {
     borderLeftWidth: 1,
     borderLeftColor: "#e2e8f0",
-    paddingLeft: 8,
-    width: 64,
+    paddingLeft: 10,
+    width: 78,
     flexShrink: 0,
   },
   premiumClientBox: {
     borderLeftWidth: 1,
     borderLeftColor: "#e2e8f0",
-    paddingLeft: 8,
-    flex: 1,
+    paddingLeft: 10,
+    width: 150,
+    flexShrink: 0,
     minWidth: 0,
   },
   premiumMetaLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
@@ -697,18 +698,28 @@ export function ProjetoIndividualPDF({
   const ehPdfPremiumJc4f = ehJanelaCorrer4Folhas && !ehJanelaComSacada;
   const materiaisVidroPremium = materiaisOrdenados.filter((item) => normalizarTexto(item.descricao).includes("vidro"));
   const materiaisComplementaresPremium = materiaisOrdenados.filter((item) => !normalizarTexto(item.descricao).includes("vidro"));
-  const medidaDescricao = (descricao: string) => {
-    const medida = descricao.match(/(\d+(?:[,.]\d+)x)\s*x\s*(\d+(?:[,.]\d+)x)/i);
-    return medida ? `${medida[1]} x ${medida[2]} mm` : `${dados.largura || 0} x ${dados.altura || 0} mm`;
+  const medidaVidro = (item: ProjetoIndividualMaterial) => {
+    const origemMedida = `${String(item.medida || "")} ${String(item.descricao || "")}`.trim();
+    const medidaEncontrada = origemMedida.match(
+      /(\d+(?:[,.]\d+)?)\s*[xX×]\s*(\d+(?:[,.]\d+)?)(?:\s*mm)?/i
+    );
+
+    if (!medidaEncontrada) return "-";
+
+    return `${medidaEncontrada[1]} x ${medidaEncontrada[2]} mm`;
   };
-  const vidroDescricao = (descricao: string) =>
-    descricao
-      .replace(/vidro\s+fixo/i, "")
-      .replace(/vidro\s+movel/i, "")
-      .replace(/vidro\s+móvel/i, "")
-      .replace(/(\d+(?:[,.]\d+)x)\s*x\s*(\d+(?:[,.]\d+)x)/i, "")
+
+  const vidroDescricao = (item: ProjetoIndividualMaterial) => {
+    const descricao = String(item.vidroDescricao || item.descricao || "");
+
+    return descricao
+      .replace(/vidro\s+fixo/gi, "")
+      .replace(/vidro\s+movel/gi, "")
+      .replace(/vidro\s+móvel/gi, "")
+      .replace(/\d+(?:[,.]\d+)?\s*[xX×]\s*\d+(?:[,.]\d+)?(?:\s*mm)?/gi, "")
       .replace(/\s+/g, " ")
       .trim();
+  };
   const qtdPecasVidroPremium = (descricao: string) =>
     normalizarTexto(descricao).includes("vidro fixo") || normalizarTexto(descricao).includes("vidro movel") ? Math.max(0, Number(dados.quantidade || 0) * 2)
       : Number(dados.quantidade || 0);
@@ -731,7 +742,7 @@ export function ProjetoIndividualPDF({
             </View>
         <View style={styles.premiumMeta}>
   <View style={styles.premiumMetaBox}>
-    <Text style={styles.premiumMetaLabel}>Nº orçamento</Text>
+    <Text style={styles.premiumMetaLabel}>Nº OR:</Text>
     <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
       {dados.numero || "-"}
     </Text>
@@ -828,8 +839,8 @@ export function ProjetoIndividualPDF({
             {materiaisVidroPremium.map((item) => (
               <View key={item.id} style={styles.premiumTr} wrap={false}>
                 <Text style={[styles.premiumTd, styles.premiumColQtd]}>{Number(qtdPecasVidroPremium(item.descricao) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</Text>
-                <Text style={[styles.premiumTd, styles.premiumColMedida]}>{medidaDescricao(item.descricao)}</Text>
-                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item.descricao) || dados.vidro || "-"}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColMedida]}>{medidaVidro(item)}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item) || dados.vidro || "-"}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColM2]}>{numero(item.qtd)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
               </View>
