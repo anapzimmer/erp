@@ -241,16 +241,23 @@ export function CalculoVidroPDF({
     const formatarDescricaoItem = (item: ItemVidro) => {
         const descricao = String(item.descricao || '').trim();
         const tipo = String(item.tipo || '').trim();
-        if (!tipo) return descricao;
+        const acabamento = String(item.acabamento || '').trim();
 
-        const normalizar = (valor: string) =>
-            valor
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '');
+        let descricaoLimpa = descricao;
 
-        return normalizar(descricao).includes(normalizar(tipo)) ? descricao
-            : `${descricao} - ${tipo}`;
+        if (tipo) {
+            descricaoLimpa = descricaoLimpa
+                .replace(new RegExp(`\\s*[-|]?\\s*${tipo}$`, 'i'), '')
+                .trim();
+        }
+
+        if (acabamento) {
+            descricaoLimpa = descricaoLimpa
+                .replace(new RegExp(`\\s*[-|]?\\s*${acabamento}$`, 'i'), '')
+                .trim();
+        }
+
+        return descricaoLimpa;
     };
 
     const formatarTipoAcabamento = (item: ItemVidro) => {
@@ -297,7 +304,7 @@ export function CalculoVidroPDF({
             <Page size="A4" style={styles.page}>
 
                 {/* Cabeçalho */}
-                <View style={[styles.header, { borderBottomColor: '#E2E8F0' }]}> 
+                <View style={[styles.header, { borderBottomColor: '#E2E8F0' }]}>
                     <View style={styles.headerLeft}>
                         {logoUrl ? (
                             <Image src={logoUrl} style={styles.logo} />
@@ -367,14 +374,14 @@ export function CalculoVidroPDF({
                             ehCabecalhoProjeto(item) ? styles.rowCabecalhoProjeto
                                 : ehPerfilConsolidado(item) ? styles.rowPerfilConsolidado
                                     : { backgroundColor: getPdfZebraRowBackground(index) }
-                        ]} wrap={false}> 
+                        ]} wrap={false}>
 
                             {ehRelatorioVidrosAvulsos ? (
                                 <>
-                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
+                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}>
                                         {Number(item.qtd || 0).toString().padStart(2, '0')}
                                     </Text>
-                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
+                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}>
                                         {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
                                     </Text>
                                 </>
@@ -400,11 +407,9 @@ export function CalculoVidroPDF({
                                                 Cor do vidro: {item.corVidro}
                                             </Text>
                                         )}
-                                        {(item.servicos || item.acabamento) && (
+                                        {item.servicos && (
                                             <Text style={{ fontSize: 7, color: '#c9c9c9', marginTop: 2 }}>
-                                                {item.acabamento ? `Acabamento: ${item.acabamento}` : ''}
-                                                {item.acabamento && item.servicos ? ' | ' : ''}
-                                                {item.servicos ? `${ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: ${item.servicos}` : ''}
+                                                {ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: {item.servicos}
                                             </Text>
                                         )}
                                         {item.observacaoRateio && (
@@ -463,10 +468,10 @@ export function CalculoVidroPDF({
                             ) : null}
                             {!ehRelatorioVidrosAvulsos ? (
                                 <>
-                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}> 
+                                    <Text style={[styles.tableCol, styles.colQtd, colQtdOverride, { color: contentColor }]}>
                                         {Number(item.qtd || 0).toString().padStart(2, '0')}
                                     </Text>
-                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}> 
+                                    <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}>
                                         {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
                                     </Text>
                                 </>
@@ -476,7 +481,7 @@ export function CalculoVidroPDF({
                                     {formatarPrecoColuna(item)}
                                 </Text>
                             )}
-                            <Text style={[styles.tableCol, styles.colTotal, colTotalOverride, { color: contentColor }]}> 
+                            <Text style={[styles.tableCol, styles.colTotal, colTotalOverride, { color: contentColor }]}>
                                 {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </Text>
                         </View>
@@ -519,5 +524,5 @@ export function CalculoVidroPDF({
             </Page>
         </Document>
     );
-}   
+}
 
