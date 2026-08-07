@@ -726,6 +726,7 @@ export default function PFV2FBarraPage() {
       "1125A",
       "1125",
       "KTJ3",
+      "KTK",
       "PUXBC30",
       "PUXBC60",
       "PUXBC80",
@@ -771,9 +772,15 @@ export default function PFV2FBarraPage() {
 
     return regras
       .map(({ codigo, multiplicador }) => {
-    let ferragem = buscarFerragemPorCodigo(codigo, {
+        let ferragem = buscarFerragemPorCodigo(codigo, {
         ignorarCor: codigo === "3530AROU-CIL" || codigo === "1520AROU-CIL" || codigo === "1125A" || codigo === "1125" || codigo === "KTJ3",
       });
+
+      if (!ferragem && codigo === "KTJ3") {
+        ferragem = buscarFerragemPorCodigo("KTK", {
+          ignorarCor: true,
+        });
+      }
 
       if (!ferragem && (codigo.startsWith("PUXBC") || codigo === "1125A" || codigo === "KTJ3")) {
         ferragem = buscarFerragemPorCodigo(codigo, {

@@ -99,6 +99,23 @@ const numeroDecimal = (valor: number) =>
 
 const parseNumero = (valor: string) => Number(valor.replace(/\./g, "").replace(",", ".") || 0);
 
+const numeroSeguro = (valor: unknown) => {
+  if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
+  if (typeof valor === "string") {
+    const texto = valor.trim();
+    if (!texto) return 0;
+
+    const normalizado = texto.includes(",") ? texto.replace(/\./g, "").replace(",", ".") : texto;
+    const convertido = Number(normalizado);
+    if (Number.isFinite(convertido)) return convertido;
+
+    const match = texto.match(/-?\d+(?:[.,]\d+)?/);
+    if (!match) return 0;
+    return Number(match[0].replace(",", ".")) || 0;
+  }
+  return Number(valor) || 0;
+};
+
 const criarId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random());
 
@@ -781,6 +798,20 @@ if (texto.includes("jc4fcbs") ||texto.includes("janela 4 folhas com peitoril e b
   return 1;
 };
 
+const pecasPorVaoProjeto = (
+  item: Pick<ProjetoComposicao, "projeto" | "pecasDivisao" | "tamanhoPuxador" | "origemRota" | "puxador" | "trinco">
+) => {
+  const projeto = normalizarTexto(item.projeto);
+  const origemRota = normalizarTexto(item.origemRota);
+
+  if (projeto.includes("fixo com bandeira") || origemRota.includes("fixo-bandeira")) {
+    const divisao = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
+    return divisao * 2;
+  }
+
+  return multiplicadorPecasProjeto(item.projeto, item);
+};
+
 const carregarLista = (): ProjetoComposicao[] => {
   try {
     const salvo = window.localStorage.getItem(CENTRAL_KEY);
@@ -858,7 +889,7 @@ const calcularAreaVidrosItem = (item: ProjetoComposicao) => {
 
   if (areaMateriais > 0) return areaMateriais;
 
-  return (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+  return (Number(item.largura || 0) * Number(item.altura || 0) * numeroSeguro(item.quantidade)) / 1_000_000;
 };
 
 const otimizarCortes = (cortesOriginais: number[], comprimentoBarra: number) => {
@@ -1113,8 +1144,9 @@ export default function CentralImpressaoPage() {
         if (ehVidroAvulso(item.projeto)) {
           acc.pecasAvulsas += item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
         } else {
-          acc.projetos += Number(item.quantidade || 0);
-          acc.pecasVaos += Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item);
+          const quantidadeItem = numeroSeguro(item.quantidade);
+          acc.projetos += quantidadeItem;
+          acc.pecasVaos += quantidadeItem * pecasPorVaoProjeto(item);
         }
         acc.area += calcularAreaVidrosItem(item);
         acc.valorOriginal += Number(item.valorTotal || 0);
@@ -1169,7 +1201,7 @@ export default function CentralImpressaoPage() {
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
-      quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : Number(item.quantidade || 0),
+      quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : numeroSeguro(item.quantidade),
       modo: ehVidroAvulso(item.projeto) ? "" : item.modo,
       desenhoUrl: ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
@@ -1350,7 +1382,7 @@ router.push(
     const retorno = editId ? `/central-impressao?edit=${encodeURIComponent(editId)}`
       : "/central-impressao";
 
-    router.push(`${rota}xloteId=${encodeURIComponent(item.loteId)}&returnTo=${encodeURIComponent(retorno)}`);
+    router.push(`${rota}?loteId=${encodeURIComponent(item.loteId)}&returnTo=${encodeURIComponent(retorno)}`);
   };
 
   const limparTudo = () => {

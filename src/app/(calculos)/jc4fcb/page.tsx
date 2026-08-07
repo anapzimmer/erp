@@ -899,7 +899,7 @@ export default function JC4FCBPage() {
     () => [
       "VT49A", "VT50A", "VT45", "VT65", "VT66", "VT16",
       "VT51A", "VT52", "VT05", "VT13", "VT10", "VT15", "VT17", "VT47",
-      "1125A", "KTJ3", "1560", "1335", "1038.C",
+      "1125A", "KTJ3", "KTK", "1560", "1335", "1038.C",
     ].map(normalizarTexto),
     []
   );
@@ -911,7 +911,7 @@ export default function JC4FCBPage() {
 
     const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> = [
       { codigo: "1560", multiplicador: 1 },
-      { codigo: "KTJ3", multiplicador: 1 },
+      { codigo: "KTJ3", multiplicador: 1, ignorarCor: true },
     ];
 
     if (espessura === 8 || espessura === 10) regras.push({ codigo: "1125A", multiplicador: 4, ignorarCor: true });
@@ -925,7 +925,10 @@ export default function JC4FCBPage() {
 
     return regras
       .map(({ codigo, multiplicador, ignorarCor }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
+        let ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
+        if (!ferragem && codigo === "KTJ3") {
+          ferragem = buscarFerragemPorCodigo("KTK", { ignorarCor: true });
+        }
         if (!ferragem) return null;
 
         return criarMaterial({

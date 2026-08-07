@@ -719,7 +719,7 @@ export default function JC4FBarraPage() {
     () => [
       "VT49A", "VT50A", "VT45", "VT65", "VT66", "VT16", "VT47",
       "VT51A", "VT52", "VT05", "VT13", "VT10", "VT15", "VT17",
-      "1125A", "KTJ3", "1560", "1335", "1038.C-BC",
+      "1125A", "KTJ3", "KTK", "1560", "1335", "1038.C-BC", "1038.C",
     ].map(normalizarTexto),
     []
   );
@@ -728,19 +728,24 @@ export default function JC4FBarraPage() {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     if (quantidadeProjeto <= 0 || dados.corKit === "Escolher") return [];
 
-    const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> = [
-      { codigo: "1560", multiplicador: 1 },
-      { codigo: "KTJ3", multiplicador: 1 },
-      { codigo: "1125A", multiplicador: 2, ignorarCor: true },
+    const regras: Array<{ codigos: string[]; multiplicador: number; ignorarCor?: boolean }> = [
+      { codigos: ["1560"], multiplicador: 1 },
+      { codigos: ["KTJ3", "KTK"], multiplicador: 1, ignorarCor: true },
+      { codigos: ["1125A"], multiplicador: 4, ignorarCor: true },
     ];
 
     if (dados.trinco === "Com trinco") {
-      regras.push({ codigo: "1335", multiplicador: 2 }, { codigo: "1038.C-BC", multiplicador: 2 });
+      regras.push(
+        { codigos: ["1335"], multiplicador: 2 },
+        { codigos: ["1038.C-BC", "1038.C"], multiplicador: 2 }
+      );
     }
 
     return regras
-      .map(({ codigo, multiplicador, ignorarCor }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
+      .map(({ codigos, multiplicador, ignorarCor }) => {
+        const ferragem = codigos
+          .map((codigo) => buscarFerragemPorCodigo(codigo, { ignorarCor }))
+          .find(Boolean);
         if (!ferragem) return null;
 
         return criarMaterial({

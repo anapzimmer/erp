@@ -910,6 +910,8 @@ export default function FixoBandeiraPage() {
         qtd: calculoVidro.areaInferior,
         unidade: "m2",
         descricao: descricaoVidro,
+        medida: `${calculoVidro.larguraMedida} x ${calculoVidro.alturaMedida} mm`,
+        vidroDescricao: `VIDRO INFERIOR ${vidroNome.toUpperCase()}`,
         valorUnitario: precoVidroM2,
       })
       : null;
@@ -918,6 +920,8 @@ export default function FixoBandeiraPage() {
         qtd: calculoVidro.areaBandeira,
         unidade: "m2",
         descricao: descricaoVidroBandeira,
+        medida: `${calculoVidro.larguraBandeiraMedida} x ${calculoVidro.alturaBandeiraMedida} mm`,
+        vidroDescricao: `VIDRO BANDEIRA ${vidroBandeiraNome.toUpperCase()}`,
         valorUnitario: precoVidroBandeiraM2,
       })
       : null;
@@ -965,36 +969,49 @@ export default function FixoBandeiraPage() {
     setMateriais([]);
   };
 
-  const montarItemCentral = (id?: string): CentralImpressaoProjetoItem => {
-    const folhas = limitarDivisaoPecas(Number(dados.pecasDivisao || 1));
+  const montarItemCentral = (
+    id?: string,
+    dadosProjeto: FixoBandeiraDados = dados,
+    materiaisProjeto: ProjetoIndividualMaterial[] = materiais,
+    lote?: { id: string; seq: number; total: number; observacao?: string }
+  ): CentralImpressaoProjetoItem => {
+    const folhas = limitarDivisaoPecas(Number(dadosProjeto.pecasDivisao || 1));
     const desenhoUrl = desenhoFixoBandeiraPorPecas(folhas);
+    const totalProjeto = materiaisProjeto.reduce(
+      (soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0),
+      0
+    );
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
-      numero: dados.numero || "novo",
+      numero: dadosProjeto.numero || "novo",
       projeto: "Fixo com bandeira",
-      cliente: dados.cliente || "",
-      medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
-      largura: Number(dados.largura || 0),
-      altura: Number(dados.altura || 0),
-      quantidade: Number(dados.quantidade || 0),
+      cliente: dadosProjeto.cliente || "",
+      medidas: `${Number(dadosProjeto.largura || 0)} x ${Number(dadosProjeto.altura || 0)} mm`,
+      largura: Number(dadosProjeto.largura || 0),
+      altura: Number(dadosProjeto.altura || 0),
+      quantidade: Number(dadosProjeto.quantidade || 0),
       modo: "Barra",
       desenhoUrl,
-      vidro: dados.vidro || "",
-      corKit: dados.corKit || "",
-      corPerfil: dados.corKit || "",
-      alturaAteTubo: Number(dados.alturaAteTubo || 0),
-      vidroBandeira: dados.vidroBandeira || "",
-      tuboPerfil: dados.tuboPerfil || "",
-      tuboUso: dados.tuboUso || "",
+      vidro: dadosProjeto.vidro || "",
+      corKit: dadosProjeto.corKit || "",
+      corPerfil: dadosProjeto.corKit || "",
+      alturaAteTubo: Number(dadosProjeto.alturaAteTubo || 0),
+      vidroBandeira: dadosProjeto.vidroBandeira || "",
+      tuboPerfil: dadosProjeto.tuboPerfil || "",
+      tuboUso: dadosProjeto.tuboUso || "",
       trilho: "",
       puxador: "",
       tamanhoPuxador: String(folhas),
       trinco: "",
       pecasDivisao: folhas,
-      valorTotal: Number(totalMateriais || 0),
-      materiais,
+      valorTotal: Number(totalProjeto || 0),
+      materiais: materiaisProjeto,
       origemRota: "/fixo-bandeira",
+      loteId: lote?.id,
+      loteSeq: lote?.seq,
+      loteTotal: lote?.total,
+      loteObservacao: lote?.observacao,
     };
   };
 

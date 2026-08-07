@@ -912,7 +912,7 @@ export default function PC4FCBPage() {
     () => [
       "VT49A", "VT50A", "VT45", "VT65", "VT66", "VT16",
       "VT51A", "VT52", "VT05", "VT13", "VT10", "VT15", "VT17", "VT47",
-      "1125A", "KTJ3", "3530AROU-CIL", "3530P", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P",
+      "1125A", "KTJ3", "KTK", "3530AROU-CIL", "3530P", "3534", "PUXBC30", "PUXBC60", "PUXBC80", "1335", "1519", "1038B", "1520AROU-CIL", "1520P",
     ].map(normalizarTexto),
     []
   );
@@ -930,7 +930,7 @@ export default function PC4FCBPage() {
       { codigo: "3530AROU-CIL", multiplicador: 1, ignorarCor: true },
       { codigo: "3530P", multiplicador: 1 },
       { codigo: "3534", multiplicador: 1 },
-      { codigo: "KTJ3", multiplicador: 1 },
+      { codigo: "KTJ3", multiplicador: 1, ignorarCor: true },
     ];
 
     if (espessura === 8 || espessura === 10) regras.push({ codigo: "1125A", multiplicador: 4, ignorarCor: true });
@@ -975,7 +975,10 @@ export default function PC4FCBPage() {
 
     return regras
       .map(({ codigo, multiplicador, ignorarCor }) => {
-        const ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
+        let ferragem = buscarFerragemPorCodigo(codigo, { ignorarCor });
+        if (!ferragem && codigo === "KTJ3") {
+          ferragem = buscarFerragemPorCodigo("KTK", { ignorarCor: true });
+        }
         if (!ferragem) return null;
 
         return criarMaterial({

@@ -921,6 +921,23 @@ const normalizarDescricaoMaterial = (descricao?: string | null) =>
     .toUpperCase();
 
 const numeroSeguro = (valor: unknown) => {
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : 0;
+  }
+
+  if (typeof valor === "string") {
+    const texto = valor.trim();
+    if (!texto) return 0;
+
+    const normalizado = texto.includes(",") ? texto.replace(/\./g, "").replace(",", ".") : texto;
+    const convertido = Number(normalizado);
+    if (Number.isFinite(convertido)) return convertido;
+
+    const match = texto.match(/-?\d+(?:[.,]\d+)?/);
+    if (!match) return 0;
+    return Number(match[0].replace(",", ".")) || 0;
+  }
+
   const numeroConvertido = Number(valor);
   return Number.isFinite(numeroConvertido) ? numeroConvertido : 0;
 };
@@ -1099,7 +1116,7 @@ const extrairVidroRelacao = (descricao: string) => {
     .replace(/^(VIDRO|ESPELHO)\s+/i, "")
     .trim();
 
-  const medidaMatch = descricaoLimpa.match(/(\d{2,5})\s*[xX]\s*(\d{2,5})\s*(?:MM)?\b/i);
+  const medidaMatch = descricaoLimpa.match(/(\d{2,5}(?:[.,]\d+)?)\s*[xX]\s*(\d{2,5}(?:[.,]\d+)?)\s*(?:MM)?\b/i);
 
   if (!medidaMatch) {
     return {
@@ -1108,7 +1125,7 @@ const extrairVidroRelacao = (descricao: string) => {
     };
   }
 
-  const medida = `${medidaMatch[1]} x ${medidaMatch[2]} mm`;
+  const medida = `${String(medidaMatch[1]).replace(/\s+/g, "")} x ${String(medidaMatch[2]).replace(/\s+/g, "")} mm`;
   const vidroDescricao =
     descricaoLimpa
       .replace(medidaMatch[0], "")
@@ -1124,17 +1141,28 @@ const inferirPecasVidroMaterial = (
   totalVidrosDoItem: number
 ) => {
   const descricao = normalizarTexto(material.descricao);
+  const projeto = normalizarTexto(item.projeto);
+  const origemRota = normalizarTexto(item.origemRota);
   const matchPecas =
     descricao.match(/(?:^|\D)(\d+)\s*(?:peca|pecas|un|und)\b/i) ||
     descricao.match(/x\s*(\d+)\s*(?:peca|pecas)\b/i);
 
   if (matchPecas?.[1]) {
-    return Number(matchPecas[1]) * Math.max(1, Number(item.quantidade || 1));
+    return Number(matchPecas[1]) * Math.max(1, numeroSeguro(item.quantidade));
   }
 
   const pecasProjeto =
-    Math.max(1, Number(item.quantidade || 1)) *
+    Math.max(1, numeroSeguro(item.quantidade)) *
     multiplicadorPecasProjeto(item.projeto, item);
+
+  // Em fixo com bandeira, os vidros inferior e bandeira usam a mesma
+  // quantidade de folhas por vao. Nao deve dividir as pecas entre os dois.
+  if (
+    (origemRota.includes("fixo-bandeira") || projeto.includes("fixo com bandeira")) &&
+    (descricao.includes("vidro inferior") || descricao.includes("vidro bandeira"))
+  ) {
+    return pecasProjeto;
+  }
 
   if (totalVidrosDoItem <= 1) {
     return pecasProjeto;
@@ -1423,7 +1451,7 @@ const calcularAreaVidrosItem = (item: CentralImpressaoItem) => {
 
   if (areaMateriais > 0) return areaMateriais;
 
-  return (Number(item.largura || 0) * Number(item.altura || 0) * Number(item.quantidade || 0)) / 1_000_000;
+  return (Number(item.largura || 0) * Number(item.altura || 0) * numeroSeguro(item.quantidade)) / 1_000_000;
 };
 
 const totalQuadrosPeleDeVidro = (item?: Pick<CentralImpressaoItem, "pecasDivisao" | "puxador" | "tamanhoPuxador">) => {
@@ -1484,6 +1512,20 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   return 1;
 };
 
+const pecasPorVaoProjeto = (
+  item: Pick<CentralImpressaoItem, "projeto" | "pecasDivisao" | "tamanhoPuxador" | "origemRota" | "puxador" | "trinco">
+) => {
+  const projeto = normalizarTexto(item.projeto);
+  const origemRota = normalizarTexto(item.origemRota);
+
+  if (projeto.includes("fixo com bandeira") || origemRota.includes("fixo-bandeira")) {
+    const divisao = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
+    return divisao * 2;
+  }
+
+  return multiplicadorPecasProjeto(item.projeto, item);
+};
+
 const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
 
 export function CentralImpressaoPDF({
@@ -1497,8 +1539,8 @@ export function CentralImpressaoPDF({
   somenteRelacaoObra = false,
 }: CentralImpressaoPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
-  const quantidadeVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : Number(item.quantidade || 0)), 0);
-  const quantidadePecasVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : Number(item.quantidade || 0) * multiplicadorPecasProjeto(item.projeto, item)), 0);
+  const quantidadeVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade)), 0);
+  const quantidadePecasVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade) * pecasPorVaoProjeto(item)), 0);
   const quantidadePecasAvulsas = itens.reduce((total, item) => {
     if (!ehVidroAvulso(item.projeto)) return total;
     return total + (item.vidrosAvulsos?.reduce((subtotal, vidro) => subtotal + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0));

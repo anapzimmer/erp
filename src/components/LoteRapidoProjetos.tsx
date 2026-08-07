@@ -40,7 +40,12 @@ type UseLoteRapidoProjetosParams<TDados extends Record<string, unknown>, TMateri
   materiais: TMaterial[];
   setDados: Dispatch<SetStateAction<TDados>>;
   setMensagemSistema?: Dispatch<SetStateAction<MensagemSistema | null>>;
-  montarItemCentral: (id?: string) => TItem;
+  montarItemCentral: (
+    id?: string,
+    dadosProjeto?: TDados,
+    materiaisProjeto?: TMaterial[],
+    lote?: { id: string; seq: number; total: number; observacao?: string }
+  ) => TItem;
   centralStorageKey?: string;
   clienteStorageKey?: string;
   onNavigate: (destino: string) => void;
@@ -145,7 +150,31 @@ export function useLoteRapidoProjetos<
     setLinhas((lista) => lista.filter((linha) => linha.id !== id));
   }, []);
 
-  const aguardarRecalculo = () => new Promise((resolve) => window.setTimeout(resolve, 140));
+  const aguardarRecalculo = async (linha: LinhaLoteProjeto) => {
+    const limite = Date.now() + 2000;
+
+    while (Date.now() < limite) {
+      const dadosAtual = dadosRef.current as Record<string, unknown>;
+      const larguraAtual = Number(dadosAtual.largura || 0);
+      const alturaAtual = Number(dadosAtual.altura || 0);
+      const quantidadeAtual = Number(dadosAtual.quantidade || 0);
+
+      if (
+        larguraAtual === Number(linha.largura || 0) &&
+        alturaAtual === Number(linha.altura || 0) &&
+        quantidadeAtual === Number(linha.quantidade || 0)
+      ) {
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => resolve());
+          });
+        });
+        return;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 25));
+    }
+  };
 
   const enviar = useCallback(async () => {
     const linhasValidas = linhas.filter(
@@ -173,7 +202,7 @@ export function useLoteRapidoProjetos<
         observacao: linha.observacao || atualDados.observacao,
       }));
 
-      await aguardarRecalculo();
+      await aguardarRecalculo(linha);
 
       const dadosLinha = dadosRef.current;
       const materiaisLinha = materiaisRef.current.map((material) => ({ ...material })) as TMaterial[];
@@ -181,7 +210,14 @@ export function useLoteRapidoProjetos<
         (soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0),
         0
       );
-      const itemBase = montarItemCentral(centralLoteId ? linha.id : undefined);
+      const itemBase = montarItemCentral(
+        centralLoteId ? linha.id : undefined,
+        dadosLinha as TDados,
+        materiaisLinha,
+        centralLoteId
+          ? { id: loteId, seq: index + 1, total: linhasValidas.length, observacao: linha.observacao }
+          : undefined
+      );
 
       itensLote.push({
         ...itemBase,

@@ -903,7 +903,7 @@ export default function JC4FCSPage() {
     () => [
       "VT49A", "VT50A", "VT45", "VT65", "VT66", "VT16",
       "VT51A", "VT52", "VT05", "VT13", "VT10", "VT15", "VT17", "VT47",
-      "1125A", "KTJ3", "1560", "1335", "1038.C", "1038.C-BC",
+      "1125A", "KTJ3", "KTK", "1560", "1335", "1038.C", "1038.C-BC",
     ].map(normalizarTexto),
     []
   );
@@ -914,7 +914,7 @@ export default function JC4FCSPage() {
 
     const regras: Array<{ codigos: string[]; multiplicador: number; ignorarCor?: boolean }> = [
       { codigos: ["1560"], multiplicador: 1 },
-      { codigos: ["KTJ3"], multiplicador: 1 },
+      { codigos: ["KTJ3", "KTK"], multiplicador: 1, ignorarCor: true },
       { codigos: ["1125A"], multiplicador: 2, ignorarCor: true },
     ];
 

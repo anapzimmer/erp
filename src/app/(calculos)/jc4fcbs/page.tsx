@@ -1040,7 +1040,7 @@ useEffect(() => {
       ignorarCor?: boolean;
     }> = [
       { codigos: ["1560"], multiplicador: 1 },
-      { codigos: ["KTJ3"], multiplicador: 1 },
+      { codigos: ["KTJ3", "KTK"], multiplicador: 1, ignorarCor: true },
       { codigos: ["1125A"], multiplicador: 4, ignorarCor: true },
     ];
 
@@ -1159,6 +1159,7 @@ useEffect(() => {
       "vt10",
       "1560",
       "ktj3",
+      "ktk",
       "1125a",
       "1335",
       "1038c",
