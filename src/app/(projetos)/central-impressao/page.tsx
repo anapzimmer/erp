@@ -1530,7 +1530,7 @@ router.push(
 
         <main className="min-w-0 flex-1 p-4 md:p-8 xl:p-10">
           <section
-            className="rounded-[2rem] border bg-white p-6 shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)] md:p-8"
+            className="rounded-4xl border bg-white p-6 shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)] md:p-8"
             style={{ borderColor: `${theme.menuBackgroundColor}1A` }}
           >
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">

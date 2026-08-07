@@ -1782,7 +1782,7 @@ useEffect(() => {
 </Header>
 
 <div className="relative z-10 w-full border-b border-slate-200 bg-white shadow-sm">
-  <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
+  <div className="flex min-h-16.5 items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
 
     <button
       type="button"
@@ -2339,7 +2339,7 @@ useEffect(() => {
                             ref={(el) => {
                               linhasItensRef.current[String(item.id)] = el;
                             }}
-                            className={`hover:bg-gray-50/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-blue-50/30' : ''} ${editandoId === item.id ? 'bg-amber-50/70 outline outline-2 outline-amber-200' : ''}`}
+                            className={`hover:bg-gray-50/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-blue-50/30' : ''} ${editandoId === item.id ? 'bg-amber-50/70 outline-2 outline-amber-200' : ''}`}
                           >
                             {/* 1. CHECKBOX */}
                             <td className="px-4 py-4">

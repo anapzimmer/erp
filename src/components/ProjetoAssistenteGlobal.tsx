@@ -520,7 +520,7 @@ export default function ProjetoAssistenteGlobal() {
   if (!ativoNestaRota || !painel) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-slate-950/30 px-4 py-6 pt-8 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-80 flex items-start justify-center bg-slate-950/30 px-4 py-6 pt-8 backdrop-blur-[2px]">
       <section className={`w-full overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] ${painel === "ajuda" ? "max-w-4xl" : "max-w-2xl"}`}>
         <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div className="flex items-start gap-3">

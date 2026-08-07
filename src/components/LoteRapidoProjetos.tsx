@@ -353,7 +353,7 @@ export function LoteRapidoProjetos({
 
       {aberto ? (
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-          <div className="grid min-w-[720px] grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <div className="px-3 py-2">Largura</div>
             <div className="px-3 py-2">Altura</div>
             <div className="px-3 py-2">Qtd.</div>
@@ -363,7 +363,7 @@ export function LoteRapidoProjetos({
           {linhas.map((linha, index) => (
             <div
               key={linha.id}
-              className="grid min-w-[720px] grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] items-center border-t border-slate-200 text-sm"
+              className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] items-center border-t border-slate-200 text-sm"
             >
               <div className="px-3 py-2">
                 <input

@@ -1568,13 +1568,13 @@ useEffect(() => {
     <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
       <div className="flex min-h-screen w-full flex-col">
         <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
-          <div className="flex h-[54px] items-center">
+          <div className="flex h-13.5 items-center">
             {logoUsuario ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoUsuario}
                 alt="Logo da empresa"
-                className="max-h-[54px] max-w-[220px] object-contain"
+                className="max-h-13.5 max-w-55 object-contain"
               />
             ) : (
               <div className="text-[22px] font-semibold">
@@ -1592,7 +1592,7 @@ useEffect(() => {
               onChange={(e) =>
                 atualizarCampo("projeto", e.target.value)
               }
-              className="w-full max-w-[300px] bg-transparent text-[17px] font-semibold uppercase outline-none"
+              className="w-full max-w-75 bg-transparent text-[17px] font-semibold uppercase outline-none"
             />
           </div>
 
@@ -1610,7 +1610,7 @@ useEffect(() => {
               green
             />
 
-            <div className="relative flex min-h-[48px] items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
+            <div className="relative flex min-h-12 items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
               <UserRound size={28} className="text-slate-500" />
               <div className="min-w-0 flex-1">
                 <label className="block text-[10px] font-semibold uppercase text-slate-500">
@@ -1726,12 +1726,12 @@ useEffect(() => {
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
             <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
               <SectionTitle>Desenho ilustrativo</SectionTitle>
-              <div className="mt-3 flex min-h-[390px] items-center justify-center">
+              <div className="mt-3 flex min-h-97.5 items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={desenhoPC4FCBS(dados.trinco)}
                   alt="Desenho JC4FCBS"
-                  className="max-h-[410px] max-w-full object-contain"
+                  className="max-h-102.5 max-w-full object-contain"
                 />
               </div>
             </section>
@@ -1926,7 +1926,7 @@ useEffect(() => {
                                     </div>
 
                                     <div className="mt-4 overflow-x-auto overflow-y-visible border-y border-slate-200">
-                                      <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                      <div className="grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                                         <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
                                         <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
                                         <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
@@ -1936,7 +1936,7 @@ useEffect(() => {
                                         <div className="px-3 py-3 text-right">Valor total</div>
                                       </div>
                                       {materiaisOrdenados.map((item) => (
-                                        <div key={item.id} className="group relative grid min-h-[37px] min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs leading-none text-[#10253f]">
+                                        <div key={item.id} className="group relative grid min-h-9.25 min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-200 bg-white text-xs leading-none text-[#10253f]">
                                           <div className="px-3 py-2">
                                             <input
                                               type="text"
@@ -1946,7 +1946,7 @@ useEffect(() => {
                                               className="h-5 w-full bg-transparent p-0 text-center font-medium leading-5 outline-none focus:rounded-md focus:bg-slate-50"
                                             />
                                           </div>
-                                          <div className="flex min-h-[36px] items-center px-3 py-1.5">
+                                          <div className="flex min-h-9 items-center px-3 py-1.5">
                                             <DescricaoMaterialInput
                                               item={item}
                                               itensCatalogo={itensCatalogo}
@@ -2045,7 +2045,7 @@ useEffect(() => {
       </div>
 
       {mensagemSistema && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/20 p-4 pt-8">
+        <div className="fixed inset-0 z-60 flex items-start justify-center bg-slate-950/20 p-4 pt-8">
           <section className="w-full max-w-sm rounded-xl bg-white p-4 shadow-lg">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
@@ -2106,7 +2106,7 @@ function HeaderField({
   green?: boolean;
 }) {
   return (
-    <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+    <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
       <span className="text-slate-500">{icon}</span>
       <div>
         <label className="block text-[10px] font-semibold uppercase text-slate-500">
@@ -2156,7 +2156,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       <h2 className="text-sm font-bold uppercase tracking-wide text-[#0f2742]">
         {children}
       </h2>
-      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
+      <div className="mt-3 h-0.5 w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -2175,7 +2175,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+    <label className="flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         {icon}
       </span>
@@ -2204,7 +2204,7 @@ function DataInput({
             onChange={(e) =>
               onChange(limitarNumero4Digitos(e.target.value))
             }
-            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+            className="w-20.5 min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
 
           {suffix && (
@@ -2239,7 +2239,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
+      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -2322,7 +2322,7 @@ function GlassField({
   }, [open]);
 
   return (
-    <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+    <label className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
         <Layers size={24} />
       </span>
@@ -2434,7 +2434,7 @@ function Dropdown({
   children: React.ReactNode;
 }) {
   return (
-    <div className="absolute left-[70px] top-[60px] z-40 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl">
+    <div className="absolute left-17.5 top-15 z-40 max-h-62.5 w-80 overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl">
       {children}
     </div>
   );
@@ -2515,7 +2515,7 @@ function DescricaoMaterialInput({
       />
 
       {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+        <div className="absolute left-0 top-7 z-40 max-h-64 w-130 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
           {itensFiltrados.map((catalogo) => (
             <button
               key={catalogo.id}

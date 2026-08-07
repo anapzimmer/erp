@@ -962,13 +962,13 @@ export default function FixosPage() {
         <div className="flex min-h-screen w-full flex-col bg-transparent">
           <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
             <div className="flex items-center">
-              <div className="flex h-[54px] w-full max-w-[220px] items-center">
+              <div className="flex h-13.5 w-full max-w-55 items-center">
                 {logoUsuario ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={logoUsuario}
                     alt="Logo da empresa"
-                    className="max-h-[54px] w-auto max-w-[220px] object-contain"
+                    className="max-h-13.5 w-auto max-w-55 object-contain"
                   />
                 ) : (
                   <div className="text-[22px] font-semibold leading-none text-[#10253f]">
@@ -984,12 +984,12 @@ export default function FixosPage() {
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-90 border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
@@ -1001,7 +1001,7 @@ export default function FixosPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
@@ -1013,7 +1013,7 @@ export default function FixosPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
@@ -1042,7 +1042,7 @@ export default function FixosPage() {
                       }}
                       onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
                       disabled={carregandoClientes}
-                      className="w-full min-w-[180px] border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                      className="w-full min-w-45 border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
                       placeholder={carregandoClientes ? "Carregando..." : "Digite o cliente"}
                     />
                   ) : (
@@ -1056,13 +1056,13 @@ export default function FixosPage() {
                           setListaClientesAberta(true);
                         }
                       }}
-                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
+                      className="block w-full min-w-45 truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
                     >
                       {dados.cliente || "Digite o cliente"}
                     </button>
                   )}
                   {listaClientesAberta && (
-                    <div className="absolute right-0 top-[42px] z-30 max-h-[250px] w-[260px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                    <div className="absolute right-0 top-10.5 z-30 max-h-62.5 w-65 overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
                       {carregandoClientes ? (
                         <div className="px-3 py-2 font-medium text-slate-500">Carregando clientes...</div>
                       ) : clientesFiltrados.length > 0 ? (
@@ -1163,7 +1163,7 @@ export default function FixosPage() {
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
                   <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
+                    <div className="mt-4 flex min-h-80 items-center justify-center rounded-2xl border border-slate-100 bg-linear-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-105 xl:min-h-107.5">
                       <ProjetoDrawing pecas={dados.pecasDivisao} />
                     </div>
                   </section>
@@ -1194,7 +1194,7 @@ export default function FixosPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+                        <label className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
                           <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
@@ -1245,7 +1245,7 @@ export default function FixosPage() {
                             )}
                           </span>
                           {listaVidrosAberta && (
-                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                            <div className="absolute left-21 top-16 z-30 max-h-62.5 w-80 overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
                               {carregandoVidros ? (
                                 <div className="px-3 py-2 font-medium text-slate-500">Carregando vidros...</div>
                               ) : vidrosFiltrados.length > 0 ? (
@@ -1325,7 +1325,7 @@ export default function FixosPage() {
                       </div>
 
                       <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                           <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
                           <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
                           <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
@@ -1335,7 +1335,7 @@ export default function FixosPage() {
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
                         {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
+                          <div key={item.id} className="group relative grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
                             <div className="px-3 py-2.5">
                               <input
                                 type="text"
@@ -1409,7 +1409,7 @@ export default function FixosPage() {
         </div>
       </div>
       {mensagemSistema && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/20 p-4 pt-8 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-60 flex items-start justify-center bg-slate-950/20 p-4 pt-8 backdrop-blur-[1px]">
           <section
             className="w-full max-w-sm rounded-xl border p-4 shadow-lg"
             style={{
@@ -1467,7 +1467,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div>
       <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0f2742]">{children}</h2>
-      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
+      <div className="mt-3 h-0.5 w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -1488,7 +1488,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+    <label className="flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
@@ -1504,7 +1504,7 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+            className="w-20.5 min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
           {suffix && <span className="text-sm font-medium leading-tight text-slate-500">{suffix}</span>}
         </span>
@@ -1532,7 +1532,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
+      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -1610,7 +1610,7 @@ function DescricaoMaterialInput({
       />
 
       {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+        <div className="absolute left-0 top-7 z-40 max-h-64 w-130 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
           {itensFiltrados.map((catalogo) => (
             <button
               key={catalogo.id}
@@ -1649,7 +1649,7 @@ function ProjetoDrawing({ pecas }: { pecas: number }) {
   const desenhoSrc = desenhoFixosPorPecas(pecas);
 
   return (
-    <div className="flex h-[350px] w-full items-center justify-center sm:h-[410px]" role="img" aria-label="Desenho ilustrativo do projeto">
+    <div className="flex h-87.5 w-full items-center justify-center sm:h-102.5" role="img" aria-label="Desenho ilustrativo do projeto">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={desenhoSrc}
