@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, FilePlus2, Package2, PanelsTopLeft, Printer, Ruler, Save, Search, SquareStack } from "lucide-react";
@@ -11,9 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
-import { calcularSacadaTorre } from "@/utils/sacada-torre-calc";
+import { calcularSacadaGrapa } from "@/utils/sacada-grapa-calc";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
-import { SacadaTorrePDF } from "@/app/relatorios/sacadatorre/SacadaTorrePDF";
+import { SacadaGrapaPDF } from "@/app/relatorios/sacadagrapa/SacadaGrapaPDF";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 
 type ClienteSacada = {
@@ -51,7 +51,7 @@ type PrecoEspecial = {
   preco: number;
 };
 
-type SacadaTorreDraft = {
+type SacadaGrapaDraft = {
   clienteId: string;
   buscaCliente: string;
   obra: string;
@@ -59,21 +59,30 @@ type SacadaTorreDraft = {
   alturaVaoMm: string;
   quantidadeVaos: string;
   quantidadeDivisoesLargura: string;
-  quantidadeTorresPorVidro: string;
+  grapasLateraisPorVao: string;
+  grapasInferioresPorVao: string;
+  grapas1305PorUniao: string;
+  tuboPosicao: "sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios";
+  tuboCodigo: string;
   buscaVidro: string;
   vidroId: string;
   corPerfil: string;
-  torreCodigo: string;
 };
 
-type SacadaTorreCentralItem = CentralImpressaoItem & {
+type SacadaGrapaCentralItem = CentralImpressaoItem & {
   origemRota?: string;
   corPerfil?: string;
-  centralDados?: SacadaTorreDraft;
+  centralDados?: SacadaGrapaDraft;
 };
 
 const CORES_PERFIL = ["Branco", "Preto", "Fosco", "Inox"];
-const SACADA_TORRE_DRAFT_KEY = "sacada-torre-draft";
+const TUBO_POSICOES = [
+  { valor: "sem", label: "Sem tubo" },
+  { valor: "em-cima", label: "Tubo na largura" },
+  { valor: "entre-meios", label: "Tubo no meio" },
+  { valor: "em-cima-e-entre-meios", label: "Largura + meio" },
+] as const;
+const SACADA_GRAPA_DRAFT_KEY = "sacada-grapa-draft";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 const CENTRAL_IMPRESSAO_OBRA_KEY = "glasscode:central-impressao:obra";
@@ -141,28 +150,35 @@ const formatarNumero = (valor: number, casasDecimais = 3) =>
 
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
-const corPerfilSvg = (cor?: string) => {
-  const corNormalizada = normalizarTexto(cor).replace(/\s+/g, "");
-  if (corNormalizada === "branco") return { fill: "#e9eef2", stroke: "#9aa9b7", shadow: "#cfd8df" };
-  if (corNormalizada === "preto") return { fill: "#252a30", stroke: "#121417", shadow: "#4c535b" };
-  if (corNormalizada === "fosco") return { fill: "#9aa0a6", stroke: "#68717a", shadow: "#c4c9ce" };
-  return { fill: "#d8dde2", stroke: "#8c98a4", shadow: "#cfd8df" };
+const corPerfilSvg = () => {
+  return { fill: "#eef2f5", stroke: "#aeb9c3", shadow: "#d9e0e6" };
 };
 
-const gerarSvgSacadaTorre = ({
+const posicaoVerticalGrapa = (index: number, total: number, glassY: number, glassH: number, alturaGrapa: number) => {
+  if (total <= 1) return glassY + glassH * 0.16 - alturaGrapa / 2;
+  const inicio = glassY + glassH * 0.14;
+  const fim = glassY + glassH * 0.86;
+  return inicio + ((fim - inicio) * index) / (total - 1) - alturaGrapa / 2;
+};
+
+const gerarSvgsacadagrapa = ({
   largura,
   altura,
   divisoes,
-  torresPorVidro,
+  grapasLaterais,
+  grapasInferiores,
+  grapas1305PorUniao,
+  tuboPosicao,
   corPerfil,
-  codigoTorre,
 }: {
   largura: number;
   altura: number;
   divisoes: number;
-  torresPorVidro: number;
+  grapasLaterais: number;
+  grapasInferiores: number;
+  grapas1305PorUniao: number;
+  tuboPosicao: "sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios";
   corPerfil?: string;
-  codigoTorre?: string;
 }) => {
   const svgW = 900;
   const pad = 44;
@@ -176,43 +192,74 @@ const gerarSvgSacadaTorre = ({
   const rail = 12;
   const side = 10;
   const divs = Math.max(Math.floor(divisoes || 1), 1);
-  const towerQty = Math.max(Math.floor(torresPorVidro || 0), 0);
+  const laterais = Math.max(Math.floor(grapasLaterais || 0), 0);
+  const inferiores = Math.max(Math.floor(grapasInferiores || 0), 0);
+  const grapasPorUniao = Math.max(Math.floor(grapas1305PorUniao || 0), 0);
   const panelW = (drawW - side * 2) / divs;
   const glassY = y0 + rail;
   const glassH = drawH - rail * 2;
-  const profile = corPerfilSvg(corPerfil);
-  const towerCode = codigoTorre || "TORRE";
+  const profile = corPerfilSvg();
+  const tubo = { fill: "#8b949e", stroke: "#58616b" };
+  const temTuboEmCima = tuboPosicao === "em-cima" || tuboPosicao === "em-cima-e-entre-meios";
+  const temTuboNoMeio = tuboPosicao === "entre-meios" || tuboPosicao === "em-cima-e-entre-meios";
 
   const divisionLines = Array.from({ length: Math.max(divs - 1, 0) }, (_, index) => {
     const x = x0 + side + panelW * (index + 1);
     return `<line x1="${x}" y1="${y0 + rail}" x2="${x}" y2="${y0 + drawH - rail}" stroke="#293442" stroke-width="1.2" opacity="0.75" />`;
   }).join("");
 
-  const grapas = Array.from({ length: divs + 1 }, (_, index) => {
-    const ehPonta = index === 0 || index === divs;
-    const codigoGrapa = ehPonta ? "3019" : "1305";
-    const x = index === 0 ? x0 + 8 : index === divs ? x0 + drawW - 26 : x0 + side + panelW * index - 18;
-    const y = glassY + 32;
-    const w = ehPonta ? 18 : 36;
+  const grapasLateraisSvg = Array.from({ length: laterais }, (_, index) => {
+    const y = posicaoVerticalGrapa(index, laterais, glassY, glassH, 30);
     return `<g>
-      <rect x="${x}" y="${y}" width="${w}" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-      <text x="${x + w + 8}" y="${y + 20}" font-family="Segoe UI, Arial" font-size="10" fill="#0f2742">${codigoGrapa}</text>
+      <rect x="${x0 + 1}" y="${y}" width="20" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
+      <rect x="${x0 + drawW - 21}" y="${y}" width="20" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
     </g>`;
   }).join("");
 
-  const torres = Array.from({ length: divs }, (_, panelIndex) => {
-    const baseX = x0 + side + panelW * panelIndex;
-    return Array.from({ length: towerQty }, (_, towerIndex) => {
-      const pos = towerQty === 1 ? 0.5 : (towerIndex + 1) / (towerQty + 1);
-      const x = baseX + panelW * pos - 10;
-      const y = y0 + drawH - rail - 80;
+  const grapasInferioresSvg = Array.from({ length: divs }, (_, painelIndex) => {
+    const painelX = x0 + side + panelW * painelIndex;
+    return Array.from({ length: inferiores }, (_, index) => {
+      const x = painelX + ((index + 1) / (inferiores + 1)) * panelW - 12;
+      const y = y0 + drawH - rail - 3;
+      return `<rect x="${x}" y="${y}" width="24" height="26" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>`;
+    }).join("");
+  }).join("");
+
+  const grapas1305Svg = temTuboNoMeio ? "" : Array.from({ length: Math.max(divs - 1, 0) }, (_, uniaoIndex) => {
+    const x = x0 + side + panelW * (uniaoIndex + 1) - 18;
+    return Array.from({ length: grapasPorUniao }, (_, index) => {
+      const y = posicaoVerticalGrapa(index, grapasPorUniao, glassY, glassH, 28);
       return `<g>
-        <rect x="${x}" y="${y}" width="20" height="96" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1.1"/>
-        <line x1="${x + 3}" y1="${y + 5}" x2="${x + 3}" y2="${y + 90}" stroke="#ffffff" stroke-opacity="0.45" stroke-width="1"/>
-        ${panelIndex === 0 && towerIndex === 0 ? `<text x="${x + 28}" y="${y + 46}" font-family="Segoe UI, Arial" font-size="11" fill="#0f2742">${towerCode}</text>` : ""}
+        <rect x="${x}" y="${y}" width="36" height="28" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
+        ${index === 0 ? `<text x="${x + 42}" y="${y + 18}" font-family="Segoe UI, Arial" font-size="10" fill="#0f2742">1305</text>` : ""}
       </g>`;
     }).join("");
   }).join("");
+
+  const tubosEmCimaSvg = temTuboEmCima
+    ? `<rect x="${x0 - 3}" y="${y0 - 17}" width="${drawW + 6}" height="20" rx="2" fill="${tubo.fill}" stroke="${tubo.stroke}" stroke-width="1.2"/>
+       <text x="${x0 + drawW / 2}" y="${y0 - 24}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" fill="#0f2742">TUBO NA LARGURA</text>`
+    : "";
+
+  const tubosMeioSvg = temTuboNoMeio
+    ? Array.from({ length: Math.max(divs - 1, 0) }, (_, uniaoIndex) => {
+      const tuboW = 18;
+      const x = x0 + side + panelW * (uniaoIndex + 1) - tuboW / 2;
+      const grapasNosLados = Array.from({ length: laterais }, (_, index) => {
+        const y = posicaoVerticalGrapa(index, laterais, glassY, glassH, 24);
+        return `<g>
+          <rect x="${x - 24}" y="${y}" width="20" height="24" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
+          <rect x="${x + tuboW + 4}" y="${y}" width="20" height="24" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
+        </g>`;
+      }).join("");
+      return `<g>
+        <rect x="${x}" y="${glassY}" width="${tuboW}" height="${glassH}" rx="2" fill="${tubo.fill}" stroke="${tubo.stroke}" stroke-width="1.2"/>
+        ${grapasNosLados}
+      </g>`;
+    }).join("")
+    : "";
+
+  const tubosSvg = `${tubosEmCimaSvg}${tubosMeioSvg}`;
 
   const panels = Array.from({ length: divs }, (_, index) => {
     const x = x0 + side + panelW * index;
@@ -246,7 +293,8 @@ const gerarSvgSacadaTorre = ({
     <rect x="${x0}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
     <rect x="${x0 + drawW - side}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
     ${divisionLines}
-    <g filter="url(#softShadow)">${grapas}${torres}</g>
+    ${tubosSvg}
+    <g filter="url(#softShadow)">${grapasLateraisSvg}${grapasInferioresSvg}${grapas1305Svg}</g>
     <line x1="${x0}" y1="${y0 + drawH + 18}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#1d7ed6" stroke-width="1"/>
     <text x="${x0 + drawW / 2}" y="${y0 + drawH + 38}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="600" fill="#0f2742">${Math.round(largura || 0)} mm</text>
     <line x1="${x0 - 18}" y1="${y0}" x2="${x0 - 18}" y2="${y0 + drawH}" stroke="#1d7ed6" stroke-width="1"/>
@@ -254,7 +302,7 @@ const gerarSvgSacadaTorre = ({
   </svg>`;
 };
 
-export default function CalculoSacadaTorrePage() {
+export default function CalculosacadagrapaPage() {
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const router = useRouter();
@@ -277,16 +325,19 @@ export default function CalculoSacadaTorrePage() {
   const [alturaVaoMm, setAlturaVaoMm] = useState("");
   const [quantidadeVaos, setQuantidadeVaos] = useState("");
   const [quantidadeDivisoesLargura, setQuantidadeDivisoesLargura] = useState("2");
-  const [quantidadeTorresPorVidro, setQuantidadeTorresPorVidro] = useState("1");
+  const [grapasLateraisPorVao, setGrapasLateraisPorVao] = useState("2");
+  const [grapasInferioresPorVao, setGrapasInferioresPorVao] = useState("0");
+  const [grapas1305PorUniao, setGrapas1305PorUniao] = useState("1");
+  const [tuboPosicao, setTuboPosicao] = useState<"sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios">("sem");
+  const [tuboCodigo, setTuboCodigo] = useState("");
   const [buscaVidro, setBuscaVidro] = useState("");
   const [vidroId, setVidroId] = useState("");
   const [corPerfil, setCorPerfil] = useState("Branco");
-  const [torreCodigo, setTorreCodigo] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
-  const chaveDraft = useMemo(() => `${SACADA_TORRE_DRAFT_KEY}:${empresaId || "global"}`, [empresaId]);
+  const chaveDraft = useMemo(() => `${SACADA_GRAPA_DRAFT_KEY}:${empresaId || "global"}`, [empresaId]);
 
   useEffect(() => {
     if (!empresaId) {
@@ -305,9 +356,9 @@ export default function CalculoSacadaTorrePage() {
       supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
     ]).then(([resVidros, resPerfis, resFerragens, resClientes, resPrecos]) => {
       if (!ativo) return;
-      if (resVidros.error) console.error("Erro ao carregar vidros da sacada com torre:", resVidros.error);
-      if (resPerfis.error) console.error("Erro ao carregar perfis da sacada com torre:", resPerfis.error);
-      if (resFerragens.error) console.error("Erro ao carregar ferragens da sacada com torre:", resFerragens.error);
+      if (resVidros.error) console.error("Erro ao carregar vidros da Sacada com Grapa:", resVidros.error);
+      if (resPerfis.error) console.error("Erro ao carregar perfis da Sacada com Grapa:", resPerfis.error);
+      if (resFerragens.error) console.error("Erro ao carregar ferragens da Sacada com Grapa:", resFerragens.error);
       setVidros((resVidros.data || []) as Vidro[]);
       setPerfis((resPerfis.data || []) as PerfilTabela[]);
       setFerragens((resFerragens.data || []) as FerragemTabela[]);
@@ -326,7 +377,7 @@ export default function CalculoSacadaTorrePage() {
     try {
       const bruto = window.localStorage.getItem(chaveDraft);
       if (!bruto) return;
-      const draft = JSON.parse(bruto) as Partial<SacadaTorreDraft>;
+      const draft = JSON.parse(bruto) as Partial<SacadaGrapaDraft>;
       if (typeof draft.clienteId === "string") setClienteId(draft.clienteId);
       if (typeof draft.buscaCliente === "string") setBuscaCliente(draft.buscaCliente);
       if (typeof draft.obra === "string") setObra(draft.obra);
@@ -334,19 +385,22 @@ export default function CalculoSacadaTorrePage() {
       if (typeof draft.alturaVaoMm === "string") setAlturaVaoMm(draft.alturaVaoMm);
       if (typeof draft.quantidadeVaos === "string") setQuantidadeVaos(draft.quantidadeVaos);
       if (typeof draft.quantidadeDivisoesLargura === "string") setQuantidadeDivisoesLargura(draft.quantidadeDivisoesLargura);
-      if (typeof draft.quantidadeTorresPorVidro === "string") setQuantidadeTorresPorVidro(draft.quantidadeTorresPorVidro);
+      if (typeof draft.grapasLateraisPorVao === "string") setGrapasLateraisPorVao(draft.grapasLateraisPorVao);
+      if (typeof draft.grapasInferioresPorVao === "string") setGrapasInferioresPorVao(draft.grapasInferioresPorVao);
+      if (typeof draft.grapas1305PorUniao === "string") setGrapas1305PorUniao(draft.grapas1305PorUniao);
+      if (draft.tuboPosicao) setTuboPosicao(draft.tuboPosicao);
+      if (typeof draft.tuboCodigo === "string") setTuboCodigo(draft.tuboCodigo);
       if (typeof draft.buscaVidro === "string") setBuscaVidro(draft.buscaVidro);
       if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
       if (typeof draft.corPerfil === "string") setCorPerfil(draft.corPerfil);
-      if (typeof draft.torreCodigo === "string") setTorreCodigo(draft.torreCodigo);
     } catch (error) {
-      console.warn("Nao foi possivel restaurar rascunho da sacada com torre:", error);
+      console.warn("Nao foi possivel restaurar rascunho da Sacada com Grapa:", error);
     }
   }, [centralItemId, chaveDraft]);
 
   useEffect(() => {
     if (typeof window === "undefined" || centralItemId) return;
-    const draft: SacadaTorreDraft = {
+    const draft: SacadaGrapaDraft = {
       clienteId,
       buscaCliente,
       obra,
@@ -354,11 +408,14 @@ export default function CalculoSacadaTorrePage() {
       alturaVaoMm,
       quantidadeVaos,
       quantidadeDivisoesLargura,
-      quantidadeTorresPorVidro,
+      grapasLateraisPorVao,
+      grapasInferioresPorVao,
+      grapas1305PorUniao,
+      tuboPosicao,
+      tuboCodigo,
       buscaVidro,
       vidroId,
       corPerfil,
-      torreCodigo,
     };
     window.localStorage.setItem(chaveDraft, JSON.stringify(draft));
   }, [
@@ -372,16 +429,19 @@ export default function CalculoSacadaTorrePage() {
     larguraVaoMm,
     obra,
     quantidadeDivisoesLargura,
-    quantidadeTorresPorVidro,
+    grapasLateraisPorVao,
+    grapasInferioresPorVao,
+    grapas1305PorUniao,
     quantidadeVaos,
-    torreCodigo,
+    tuboPosicao,
+    tuboCodigo,
     vidroId,
   ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !centralItemId) return;
     try {
-      const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as SacadaTorreCentralItem[];
+      const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as SacadaGrapaCentralItem[];
       const item = lista.find((registro) => registro.id === centralItemId);
       const dados = item?.centralDados;
       if (!dados) return;
@@ -392,13 +452,16 @@ export default function CalculoSacadaTorrePage() {
       setAlturaVaoMm(dados.alturaVaoMm || String(item?.altura || ""));
       setQuantidadeVaos(dados.quantidadeVaos || String(item?.quantidade || ""));
       setQuantidadeDivisoesLargura(dados.quantidadeDivisoesLargura || String(item?.pecasDivisao || "2"));
-      setQuantidadeTorresPorVidro(dados.quantidadeTorresPorVidro || "1");
+      setGrapasLateraisPorVao(dados.grapasLateraisPorVao || "2");
+      setGrapasInferioresPorVao(dados.grapasInferioresPorVao || "0");
+      setGrapas1305PorUniao(dados.grapas1305PorUniao || "1");
+      setTuboPosicao(dados.tuboPosicao || "sem");
+      setTuboCodigo(dados.tuboCodigo || "");
       setBuscaVidro(dados.buscaVidro || item?.vidro || "");
       setVidroId(dados.vidroId || "");
       setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "Branco");
-      setTorreCodigo(dados.torreCodigo || "");
     } catch (error) {
-      console.warn("Nao foi possivel restaurar a sacada com torre da central:", error);
+      console.warn("Nao foi possivel restaurar a Sacada com Grapa da central:", error);
     }
   }, [centralItemId]);
 
@@ -406,7 +469,9 @@ export default function CalculoSacadaTorrePage() {
   const alturaNumero = normalizarNumeroInteiro(alturaVaoMm);
   const quantidadeNumero = Math.max(normalizarNumeroInteiro(quantidadeVaos), 0);
   const quantidadeDivisoesNumero = Math.max(normalizarNumeroInteiro(quantidadeDivisoesLargura), 1);
-  const quantidadeTorresNumero = Math.max(normalizarNumeroInteiro(quantidadeTorresPorVidro), 0);
+  const grapasLateraisNumero = Math.max(normalizarNumeroInteiro(grapasLateraisPorVao), 0);
+  const grapasInferioresNumero = Math.max(normalizarNumeroInteiro(grapasInferioresPorVao), 0);
+  const grapas1305PorUniaoNumero = Math.max(normalizarNumeroInteiro(grapas1305PorUniao), 0);
 
   const clientesFiltrados = useMemo(() => {
     const termo = normalizarTexto(buscaCliente);
@@ -447,22 +512,22 @@ export default function CalculoSacadaTorrePage() {
     return Number(especial?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado?.grupo_preco_id, precosEspeciais, vidroSelecionado]);
 
-  const torresDisponiveis = useMemo(() => {
-    const encontrados = ferragens.filter((ferragem) => {
-      const texto = normalizarTexto(`${ferragem.codigo} ${ferragem.nome}`);
-      return texto.includes("torre") || texto.includes("inox");
+  const tubosDisponiveis = useMemo(() => {
+    const encontrados = perfis.filter((perfil) => {
+      const texto = normalizarTexto(`${perfil.codigo} ${perfil.nome} ${perfil.categoria}`);
+      return texto.includes("tubo");
     });
     if (!corPerfil) return encontrados;
-    const filtradosPorCor = encontrados.filter((ferragem) => corCompativel(ferragem.cores, corPerfil));
+    const filtradosPorCor = encontrados.filter((perfil) => corCompativel(perfil.cores, corPerfil));
     return filtradosPorCor.length ? filtradosPorCor : encontrados;
-  }, [corPerfil, ferragens]);
+  }, [corPerfil, perfis]);
 
-  const torreSelecionada = useMemo(() => {
-    const codigo = normalizarCodigo(torreCodigo);
-    const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === codigo);
+  const tuboSelecionado = useMemo(() => {
+    const codigo = normalizarCodigo(tuboCodigo);
+    const candidatos = perfis.filter((perfil) => normalizarCodigo(perfil.codigo) === codigo);
     if (!candidatos.length) return null;
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0];
-  }, [corPerfil, ferragens, torreCodigo]);
+    return candidatos.find((perfil) => corCompativel(perfil.cores, corPerfil)) || candidatos[0];
+  }, [corPerfil, perfis, tuboCodigo]);
 
   const grapa3019 = useMemo(() => {
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === "3019" || normalizarCodigo(ferragem.codigo).startsWith("3019"));
@@ -476,17 +541,20 @@ export default function CalculoSacadaTorrePage() {
 
   const resultado = useMemo(
     () =>
-      calcularSacadaTorre({
+      calcularSacadaGrapa({
         larguraVaoMm: larguraNumero,
         alturaVaoMm: alturaNumero,
         quantidadeVaos: quantidadeNumero,
         quantidadeDivisoesLargura: quantidadeDivisoesNumero,
-        quantidadeTorresPorVidro: quantidadeTorresNumero,
+        grapasLateraisPorVao: grapasLateraisNumero,
+        grapasInferioresPorVao: grapasInferioresNumero,
+        grapas1305PorUniao: grapas1305PorUniaoNumero,
+        tuboPosicao,
         precoVidroM2: precoVidroM2Efetivo,
         vidroDescricao: montarDescricaoVidro(vidroSelecionado),
-        torreCodigo: torreSelecionada?.codigo || torreCodigo,
-        torreNome: torreSelecionada?.nome || "Torre",
-        precoTorreUnitario: normalizarPreco(torreSelecionada?.preco),
+        tuboCodigo: tuboSelecionado?.codigo || tuboCodigo,
+        tuboNome: tuboSelecionado?.nome || "Tubo",
+        precoTuboBarra: normalizarPreco(tuboSelecionado?.preco),
         precoGrapa3019: normalizarPreco(grapa3019?.preco),
         precoGrapa1305: normalizarPreco(grapa1305?.preco),
       }),
@@ -496,35 +564,40 @@ export default function CalculoSacadaTorrePage() {
       grapa3019?.preco,
       larguraNumero,
       precoVidroM2Efetivo,
+      grapas1305PorUniaoNumero,
+      grapasInferioresNumero,
+      grapasLateraisNumero,
       quantidadeDivisoesNumero,
       quantidadeNumero,
-      quantidadeTorresNumero,
-      torreCodigo,
-      torreSelecionada?.codigo,
-      torreSelecionada?.nome,
-      torreSelecionada?.preco,
+      tuboPosicao,
+      tuboCodigo,
+      tuboSelecionado?.codigo,
+      tuboSelecionado?.nome,
+      tuboSelecionado?.preco,
       vidroSelecionado,
     ]
   );
 
   const svgSacada = useMemo(
     () =>
-      gerarSvgSacadaTorre({
+      gerarSvgsacadagrapa({
         largura: larguraNumero || 2000,
         altura: alturaNumero || 1000,
         divisoes: quantidadeDivisoesNumero,
-        torresPorVidro: quantidadeTorresNumero,
+        grapasLaterais: grapasLateraisNumero,
+        grapasInferiores: grapasInferioresNumero,
+        grapas1305PorUniao: grapas1305PorUniaoNumero,
+        tuboPosicao,
         corPerfil,
-        codigoTorre: torreSelecionada?.codigo || torreCodigo || "Torre",
       }),
-    [alturaNumero, corPerfil, larguraNumero, quantidadeDivisoesNumero, quantidadeTorresNumero, torreCodigo, torreSelecionada?.codigo]
+    [alturaNumero, corPerfil, grapas1305PorUniaoNumero, grapasInferioresNumero, grapasLateraisNumero, larguraNumero, quantidadeDivisoesNumero, tuboPosicao]
   );
 
   const desenhoUrl = useMemo(() => svgDataUrl(svgSacada), [svgSacada]);
 
   const montarMateriaisCentral = useCallback((): ProjetoIndividualMaterial[] => [
     {
-      id: "vidro-sacada-torre",
+      id: "vidro-sacada-grapa",
       qtd: resultado.areaTotalVidro,
       unidade: "m2",
       descricao: `VIDRO ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
@@ -542,7 +615,7 @@ export default function CalculoSacadaTorrePage() {
       comprimentoBarra: 6000,
       cortes: perfil.cortes,
     })),
-    ...resultado.acessorios.map((acessorio) => ({
+    ...resultado.acessorios.filter((acessorio) => acessorio.quantidade > 0).map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
       qtd: acessorio.quantidade,
       unidade: "und",
@@ -551,14 +624,14 @@ export default function CalculoSacadaTorrePage() {
           ? grapa3019?.nome || acessorio.nome
           : acessorio.codigo === "1305"
             ? grapa1305?.nome || acessorio.nome
-            : torreSelecionada?.nome || acessorio.nome
+            : acessorio.nome
       }`.toUpperCase(),
       valorUnitario: acessorio.precoUnitario,
     })),
-  ], [grapa1305?.nome, grapa3019?.nome, precoVidroM2Efetivo, resultado, torreSelecionada?.nome, vidroSelecionado]);
+  ], [grapa1305?.nome, grapa3019?.nome, precoVidroM2Efetivo, resultado, vidroSelecionado]);
 
-  const montarItemCentral = useCallback((id?: string): SacadaTorreCentralItem => {
-    const centralDados: SacadaTorreDraft = {
+  const montarItemCentral = useCallback((id?: string): SacadaGrapaCentralItem => {
+    const centralDados: SacadaGrapaDraft = {
       clienteId,
       buscaCliente,
       obra,
@@ -566,34 +639,38 @@ export default function CalculoSacadaTorrePage() {
       alturaVaoMm,
       quantidadeVaos,
       quantidadeDivisoesLargura,
-      quantidadeTorresPorVidro,
+      grapasLateraisPorVao,
+      grapasInferioresPorVao,
+      grapas1305PorUniao,
+      tuboPosicao,
+      tuboCodigo,
       buscaVidro,
       vidroId,
       corPerfil,
-      torreCodigo,
     };
 
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: "Novo Orcamento",
-      projeto: "Sacada com torre",
+      projeto: "Sacada com Grapa",
       cliente: clienteSelecionado?.nome || buscaCliente || "",
       medidas: `${larguraNumero} x ${alturaNumero} mm`,
       largura: larguraNumero,
       altura: alturaNumero,
       quantidade: quantidadeNumero,
-      modo: "Sacada com torre",
+      modo: "",
       desenhoUrl,
       vidro: montarDescricaoVidro(vidroSelecionado),
       corKit: corPerfil || "Nao selecionada",
       corPerfil: corPerfil || "Nao selecionada",
-      trilho: `${quantidadeDivisoesNumero} divisao(oes)`,
-      trinco: `${quantidadeTorresNumero} torre(s) por vidro | 3019 nas pontas | 1305 entre vidros`,
+      trilho: "",
+      puxador: "",
+      trinco: "",
       pecasDivisao: resultado.quantidadeVidrosPorVao,
-      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisoes por vao: ${quantidadeDivisoesNumero}\nTorres por vidro: ${quantidadeTorresNumero}\nTorre: ${torreSelecionada?.codigo || torreCodigo || "-"}\nPontas: 3019\nEntre vidros: 1305`,
+      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisoes por vao: ${quantidadeDivisoesNumero}\nGrapas laterais por vao: ${grapasLateraisNumero}\nGrapas embaixo por vidro: ${grapasInferioresNumero}\n1305 por uniao: ${tuboPosicao === "entre-meios" || tuboPosicao === "em-cima-e-entre-meios" ? 0 : grapas1305PorUniaoNumero}\nTubo: ${tuboPosicao === "sem" ? "sem tubo" : `${tuboSelecionado?.codigo || tuboCodigo || "-"} (${tuboPosicao})`}`,
       valorTotal: resultado.totalGeral,
       materiais: montarMateriaisCentral(),
-      origemRota: "/calculo/sacadatorre",
+      origemRota: "/calculo/sacadagrapa",
       centralDados,
     };
   }, [
@@ -605,6 +682,11 @@ export default function CalculoSacadaTorrePage() {
     clienteSelecionado?.nome,
     corPerfil,
     desenhoUrl,
+    grapas1305PorUniao,
+    grapas1305PorUniaoNumero,
+    grapasInferioresNumero,
+    grapasInferioresPorVao,
+    grapasLateraisNumero,
     larguraNumero,
     larguraVaoMm,
     montarMateriaisCentral,
@@ -612,12 +694,12 @@ export default function CalculoSacadaTorrePage() {
     quantidadeDivisoesLargura,
     quantidadeDivisoesNumero,
     quantidadeNumero,
-    quantidadeTorresNumero,
-    quantidadeTorresPorVidro,
+    grapasLateraisPorVao,
     quantidadeVaos,
     resultado,
-    torreCodigo,
-    torreSelecionada?.codigo,
+    tuboCodigo,
+    tuboPosicao,
+    tuboSelecionado?.codigo,
     vidroId,
     vidroSelecionado,
   ]);
@@ -625,7 +707,7 @@ export default function CalculoSacadaTorrePage() {
   const enviarParaCentralImpressao = () => {
     try {
       const itemCentral = montarItemCentral(centralItemId || undefined);
-      const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as SacadaTorreCentralItem[];
+      const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as SacadaGrapaCentralItem[];
       const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
         ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
         : [...lista, itemCentral];
@@ -637,7 +719,7 @@ export default function CalculoSacadaTorrePage() {
       window.localStorage.removeItem(chaveDraft);
       router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (error) {
-      console.warn("Nao foi possivel enviar a sacada com torre para a central:", error);
+      console.warn("Nao foi possivel enviar a Sacada com Grapa para a central:", error);
       setMensagem("Erro ao enviar para a central de impressao.");
     }
   };
@@ -659,16 +741,19 @@ export default function CalculoSacadaTorrePage() {
         cliente_nome: clienteSelecionado?.nome || buscaCliente || "Consumidor",
         obra_referencia: obra || "Geral",
         itens: {
-          tipo: "sacada_torre",
+          tipo: "sacada_grapa",
           larguraVaoMm: larguraNumero,
           alturaVaoMm: alturaNumero,
           quantidadeVaos: quantidadeNumero,
           divisoesPorVao: quantidadeDivisoesNumero,
-          torresPorVidro: quantidadeTorresNumero,
+          grapasLateraisPorVao: grapasLateraisNumero,
+          grapasInferioresPorVao: grapasInferioresNumero,
+          grapas1305PorUniao: grapas1305PorUniaoNumero,
+          tuboPosicao,
+          tuboCodigo,
           corPerfil,
           vidroId,
           vidroDescricao: montarDescricaoVidro(vidroSelecionado),
-          torreCodigo,
           resultado,
           itemCentral: montarItemCentral(),
         },
@@ -682,8 +767,8 @@ export default function CalculoSacadaTorrePage() {
       setMensagem(`Orcamento ${numeroFinal} salvo com sucesso.`);
       window.localStorage.removeItem(chaveDraft);
     } catch (error) {
-      console.error("Erro ao salvar sacada com torre:", error);
-      setMensagem("Erro ao salvar a sacada com torre.");
+      console.error("Erro ao salvar Sacada com Grapa:", error);
+      setMensagem("Erro ao salvar a Sacada com Grapa.");
     } finally {
       setSalvando(false);
     }
@@ -764,10 +849,13 @@ export default function CalculoSacadaTorrePage() {
                     setAlturaVaoMm("");
                     setQuantidadeVaos("");
                     setQuantidadeDivisoesLargura("2");
-                    setQuantidadeTorresPorVidro("1");
+                    setGrapasLateraisPorVao("2");
+                    setGrapasInferioresPorVao("0");
+                    setGrapas1305PorUniao("1");
+                    setTuboPosicao("sem");
                     setVidroId("");
                     setBuscaVidro("");
-                    setTorreCodigo("");
+                    setTuboCodigo("");
                     setMensagem("");
                     window.localStorage.removeItem(chaveDraft);
                   }}
@@ -795,10 +883,10 @@ export default function CalculoSacadaTorrePage() {
                 </button>
                 <PDFDownloadLink
                   document={
-                    <SacadaTorrePDF
+                    <SacadaGrapaPDF
                       nomeEmpresa={nomeEmpresa}
                       logoUrl={theme.logoLightUrl || undefined}
-                      tituloDocumento="Orcamento Sacada com Torre"
+                      tituloDocumento="Orcamento Sacada com Grapa"
                       numeroOrcamento="Previa"
                       nomeCliente={clienteSelecionado?.nome || buscaCliente || "Consumidor"}
                       nomeObra={obra || "Geral"}
@@ -806,10 +894,12 @@ export default function CalculoSacadaTorrePage() {
                       alturaVaoMm={alturaNumero}
                       quantidadeVaos={quantidadeNumero}
                       divisoesPorVao={quantidadeDivisoesNumero}
-                      torresPorVidro={quantidadeTorresNumero}
+                      grapasLateraisPorVao={grapasLateraisNumero}
+                      grapasInferioresPorVao={grapasInferioresNumero}
+                      grapas1305PorUniao={grapas1305PorUniaoNumero}
+                      tuboDescricao={tuboPosicao === "sem" ? "Sem tubo" : `${tuboSelecionado?.codigo || tuboCodigo || "Tubo"} - ${tuboPosicao === "em-cima" ? "largura" : tuboPosicao === "entre-meios" ? "meio" : "largura + meio"}`}
                       corPerfil={corPerfil || "Nao selecionada"}
                       vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
-                      torreDescricao={torreSelecionada ? `${torreSelecionada.codigo} - ${torreSelecionada.nome}` : "Nao selecionada"}
                       medidaVidro={`${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`}
                       areaTotal={resultado.areaTotalVidro}
                       totalVidro={resultado.totalVidro}
@@ -819,7 +909,7 @@ export default function CalculoSacadaTorrePage() {
                       desenhoUrl={desenhoUrl}
                     />
                   }
-                  fileName={`Sacada com Torre ${clienteSelecionado?.nome || buscaCliente || "Geral"} - ${Date.now().toString().slice(-6)}.pdf`}
+                  fileName={`Sacada com Grapa ${clienteSelecionado?.nome || buscaCliente || "Geral"} - ${Date.now().toString().slice(-6)}.pdf`}
                 >
                   {({ loading: pdfLoading }) => (
                     <button
@@ -849,15 +939,15 @@ export default function CalculoSacadaTorrePage() {
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
                       <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}>
-                        <PanelsTopLeft size={14} />
-                        Sacada com Torre
+                      <PanelsTopLeft size={14} />
+                      Sacada com Grapa
                       </div>
                       <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                        Cálculo de sacada com torre e grapa 3019
+                        Cálculo de sacada com grapa
                       </h1>
                     </div>
                     <p className="max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
-                      Informe medidas, divisões, torres por vidro e a torre cadastrada. O desenho e a relação de materiais atualizam automaticamente.
+                      Informe medidas, divisões, grapas e tubo opcional. O desenho e a relação de materiais atualizam automaticamente.
                     </p>
                   </div>
 
@@ -867,7 +957,9 @@ export default function CalculoSacadaTorrePage() {
                       ["Altura do vao (mm)", alturaVaoMm, setAlturaVaoMm],
                       ["Quantidade de vaos", quantidadeVaos, setQuantidadeVaos],
                       ["Quantas divisoes", quantidadeDivisoesLargura, setQuantidadeDivisoesLargura],
-                      ["Torres por vidro", quantidadeTorresPorVidro, setQuantidadeTorresPorVidro],
+                      ["Grapas laterais", grapasLateraisPorVao, setGrapasLateraisPorVao],
+                      ["Grapas embaixo por vidro", grapasInferioresPorVao, setGrapasInferioresPorVao],
+                      ["1305 por uniao", grapas1305PorUniao, setGrapas1305PorUniao],
                     ].map(([label, value, setter]) => (
                       <label key={String(label)} className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                         <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
@@ -925,21 +1017,37 @@ export default function CalculoSacadaTorrePage() {
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
-                        Qual torre
+                        Tubo opcional
                       </span>
                       <select
-                        value={torreCodigo}
-                        onChange={(e) => setTorreCodigo(e.target.value)}
+                        value={tuboCodigo}
+                        onChange={(e) => setTuboCodigo(e.target.value)}
                         className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       >
-                        <option value="" className="text-slate-900">Selecione a torre</option>
-                        {torresDisponiveis.map((perfil, index) => (
+                        <option value="" className="text-slate-900">Selecione o tubo</option>
+                        {tubosDisponiveis.map((perfil, index) => (
                           <option key={`${perfil.codigo}-${index}`} value={perfil.codigo} className="text-slate-900">
                             {perfil.codigo} - {perfil.nome}
                           </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                        Posicao do tubo
+                      </span>
+                      <select
+                        value={tuboPosicao}
+                        onChange={(e) => setTuboPosicao(e.target.value as "sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios")}
+                        className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
+                        style={{ color: theme.contentTextLightBg }}
+                      >
+                        {TUBO_POSICOES.map((opcao) => (
+                          <option key={opcao.valor} value={opcao.valor} className="text-slate-900">{opcao.label}</option>
                         ))}
                       </select>
                     </label>
@@ -951,17 +1059,17 @@ export default function CalculoSacadaTorrePage() {
                 {[
                   { titulo: "Medida de cada vidro", valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`, detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`, icone: Ruler },
                   { titulo: "Area total de vidro", valor: `${formatarNumero(resultado.areaTotalVidro)} m2`, detalhe: resultado.vidroTipo, icone: SquareStack },
-                  { titulo: "Torres / grapas", valor: `${resultado.quantidadeTotalTorres} / ${resultado.quantidadeGrapas}`, detalhe: "3019 nas pontas e 1305 entre vidros", icone: Package2 },
-                  { titulo: "Total geral", valor: formatarPreco(resultado.totalGeral), detalhe: "Vidro, torre e grapa", icone: Calculator },
+                  { titulo: "Grapas", valor: `${resultado.quantidadeGrapas}`, detalhe: `${resultado.quantidadeGrapas3019} da 3019 e ${resultado.quantidadeGrapas1305} da 1305`, icone: Package2 },
+                  { titulo: "Total geral", valor: formatarPreco(resultado.totalGeral), detalhe: "Vidro, grapa e tubo", icone: Calculator },
                 ].map((card) => (
-                  <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                  <article key={card.titulo} className="rounded-2xl border p-4 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>{card.titulo}</p>
                         <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
                         <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>{card.detalhe}</p>
                       </div>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
                         <card.icone size={19} />
                       </div>
                     </div>
@@ -972,8 +1080,8 @@ export default function CalculoSacadaTorrePage() {
               <section className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
                 <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
                   <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                    <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relacao de materiais</h2>
-                    <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>Torres pela ferragem selecionada, 3019 nas pontas e 1305 entre vidros.</p>
+                    <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relação de materiais</h2>
+                    <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>3019 nas laterais/embaixo, 1305 nas uniões e tubo opcional.</p>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -1004,7 +1112,7 @@ export default function CalculoSacadaTorrePage() {
 
                 <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>Desenho conforme divisões, torres, 3019 e 1305.</p>
+                  <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>Desenho conforme divisões, grapas, 1305 e tubo opcional.</p>
                   <div className="mt-4 rounded-2xl border bg-white p-3" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
                     <div dangerouslySetInnerHTML={{ __html: svgSacada }} />
                   </div>
@@ -1017,3 +1125,5 @@ export default function CalculoSacadaTorrePage() {
     </div>
   );
 }
+
+

@@ -305,6 +305,7 @@ const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada
 const ehJc4fcbs = (projeto?: string) => /jc4fcbs|janela.*4.*folhas.*peitoril.*bandeira|janela.*peitoril.*sacada/i.test(String(projeto || ""));
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
+const ehSacadaGrapa = (projeto?: string) => /sacada grapa|sacada com grapa/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
 const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
@@ -730,6 +731,7 @@ const nomeProjetoVisivel = (projeto?: string) => {
   if (ehJc4fComSacada(projeto)) return "Janela de correr 4 folhas com sacada inferior";
   if (ehJc2fComSacada(projeto)) return "Janela de correr 2 folhas com sacada inferior";
   if (ehSacadaFrontal(projeto)) return "Sacada frontal";
+  if (ehSacadaGrapa(projeto)) return "Sacada Grapa";
   if (ehFechamentoSacada(projeto)) return "Fechamento de sacada";
   if (ehPeleDeVidro(projeto)) return "Pele de vidro";
   if (ehEspelhoComDesenho(projeto)) return "Espelho";
@@ -761,7 +763,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
   }
-  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada")) {
+  if (texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
@@ -865,11 +867,18 @@ const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "materiais"
 const origemOtimizacaoItem = (
   item: Pick<ProjetoComposicao, "projeto">
 ): OtimizacaoPerfil["origem"] => {
-  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto)) return "sacada-frontal";
+  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto) || ehSacadaGrapa(item.projeto)) return "sacada-frontal";
   if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
   if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
   return "projetos";
 };
+
+const chaveOtimizacaoPerfil = (
+  origem: OtimizacaoPerfil["origem"],
+  codigo: string,
+  descricao: string,
+  comprimentoBarra: number
+) => `${origem}|${codigo}|${String(descricao || codigo).toUpperCase()}|${comprimentoBarra}`;
 
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {
@@ -939,7 +948,7 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
       const codigo = extrairCodigoPerfil(material);
       const descricao = String(material.descricao || codigo).toUpperCase();
       const comprimentoBarra = Number(material.comprimentoBarra || 6000);
-      const chave = `${origem}|${codigo}|${descricao}|${comprimentoBarra}`;
+      const chave = chaveOtimizacaoPerfil(origem, codigo, descricao, comprimentoBarra);
       const grupo = grupos.get(chave) || { codigo, descricao, comprimentoBarra, origem, cortes: [], barrasOriginais: 0, valorUnitario: Number(material.valorUnitario || 0) };
 
       grupo.cortes.push(...material.cortes.map((corte) => Number(corte || 0)));
@@ -1174,18 +1183,98 @@ export default function CentralImpressaoPage() {
 
   const valoresRateadosPorItem = useMemo(() => {
     const mapa = new Map<string, number>();
-    const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
-    const economiaPerfis = Math.max(0, valorPerfisOriginais - otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0));
+
+    if (!otimizacaoAplicada || otimizacaoPerfis.length === 0) {
+      itens.forEach((item) => mapa.set(item.id, Number(item.valorTotal || 0)));
+      return mapa;
+    }
+
+    const gruposOtimizados = new Map<string, OtimizacaoPerfil>();
+    otimizacaoPerfis.forEach((perfil) => {
+      gruposOtimizados.set(
+        chaveOtimizacaoPerfil(perfil.origem, perfil.codigo, perfil.descricao, perfil.comprimentoBarra),
+        perfil
+      );
+    });
+
+    const consumoPorGrupo = new Map<
+      string,
+      {
+        totalComprimento: number;
+        totalOriginal: number;
+        itens: Map<string, { comprimento: number; valorOriginal: number }>;
+      }
+    >();
+    const valorPerfilOriginalPorItem = new Map<string, number>();
+
+    itens.forEach((item) => {
+      if (!itemParticipaOtimizacaoBarras(item)) return;
+
+      const origem = origemOtimizacaoItem(item);
+
+      item.materiais?.forEach((material) => {
+        if (!String(material.unidade || "").toLowerCase().includes("barra") || !Array.isArray(material.cortes) || material.cortes.length === 0) {
+          return;
+        }
+
+        const codigo = extrairCodigoPerfil(material);
+        const descricao = String(material.descricao || codigo).toUpperCase();
+        const comprimentoBarra = Number(material.comprimentoBarra || 6000);
+        const chave = chaveOtimizacaoPerfil(origem, codigo, descricao, comprimentoBarra);
+
+        if (!gruposOtimizados.has(chave)) return;
+
+        const comprimentoItem = material.cortes.reduce((total, corte) => total + Math.max(0, Number(corte || 0)), 0);
+        const valorOriginalItem = Number(material.qtd || 0) * Number(material.valorUnitario || 0);
+        const grupo = consumoPorGrupo.get(chave) || { totalComprimento: 0, totalOriginal: 0, itens: new Map<string, { comprimento: number; valorOriginal: number }>() };
+        const atualItem = grupo.itens.get(item.id) || { comprimento: 0, valorOriginal: 0 };
+
+        atualItem.comprimento += comprimentoItem;
+        atualItem.valorOriginal += valorOriginalItem;
+        grupo.totalComprimento += comprimentoItem;
+        grupo.totalOriginal += valorOriginalItem;
+        grupo.itens.set(item.id, atualItem);
+        consumoPorGrupo.set(chave, grupo);
+        valorPerfilOriginalPorItem.set(item.id, (valorPerfilOriginalPorItem.get(item.id) || 0) + valorOriginalItem);
+      });
+    });
+
+    const valorPerfilOtimizadoPorItem = new Map<string, number>();
+
+    consumoPorGrupo.forEach((grupo, chave) => {
+      const perfilOtimizado = gruposOtimizados.get(chave);
+      if (!perfilOtimizado) return;
+
+      grupo.itens.forEach((consumo, itemId) => {
+        const baseRateio = grupo.totalComprimento > 0
+          ? consumo.comprimento / grupo.totalComprimento
+          : grupo.totalOriginal > 0
+            ? consumo.valorOriginal / grupo.totalOriginal
+            : 0;
+
+        valorPerfilOtimizadoPorItem.set(
+          itemId,
+          (valorPerfilOtimizadoPorItem.get(itemId) || 0) + (Number(perfilOtimizado.valorOtimizado || 0) * baseRateio)
+        );
+      });
+    });
 
     itens.forEach((item) => {
       const valorOriginal = Number(item.valorTotal || 0);
-      if (!otimizacaoAplicada || !itemParticipaOtimizacaoBarras(item) || valorPerfisOriginais <= 0 || economiaPerfis <= 0) {
+      if (!itemParticipaOtimizacaoBarras(item)) {
         mapa.set(item.id, valorOriginal);
         return;
       }
 
-      const participacao = calcularValorPerfisOriginaisItem(item) / valorPerfisOriginais;
-      mapa.set(item.id, Math.max(0, valorOriginal - (economiaPerfis * participacao)));
+      const valorPerfilOriginal = valorPerfilOriginalPorItem.get(item.id) || calcularValorPerfisOriginaisItem(item);
+      const valorPerfilOtimizado = valorPerfilOtimizadoPorItem.get(item.id);
+
+      if (valorPerfilOtimizado === undefined) {
+        mapa.set(item.id, valorOriginal);
+        return;
+      }
+
+      mapa.set(item.id, Math.max(0, valorOriginal - valorPerfilOriginal + valorPerfilOtimizado));
     });
 
     return mapa;
@@ -1202,17 +1291,17 @@ export default function CentralImpressaoPage() {
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
       quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : numeroSeguro(item.quantidade),
-      modo: ehVidroAvulso(item.projeto) ? "" : item.modo,
+      modo: ehVidroAvulso(item.projeto) || ehSacadaGrapa(item.projeto) ? "" : item.modo,
       desenhoUrl: ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
       vidroBandeira: item.vidroBandeira,
       corKit: item.corPerfil || item.corKit,
       alturaAteTubo: item.alturaAteTubo,
       tuboPerfil: item.tuboPerfil,
-      trilho: item.trilho,
-      puxador: formatarPuxador(item.puxador, item.tamanhoPuxador),
+      trilho: ehSacadaGrapa(item.projeto) ? "" : item.trilho,
+      puxador: ehSacadaGrapa(item.projeto) ? "" : formatarPuxador(item.puxador, item.tamanhoPuxador),
       tamanhoPuxador: item.tamanhoPuxador,
-      trinco: item.trinco,
+      trinco: ehSacadaGrapa(item.projeto) ? "" : item.trinco,
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       medidasDetalhadas: item.medidasDetalhadas,
       vidrosAvulsos: item.vidrosAvulsos,
@@ -1324,6 +1413,7 @@ export default function CentralImpressaoPage() {
     const projetoTexto = item.projeto.toLowerCase();
     const rota = item.origemRota || (ehPortaGiroFixo(item.projeto) ? "/pgf"
       : ehSacadaComTorre(item.projeto) ? "/calculo/sacadatorre"
+      : ehSacadaGrapa(item.projeto) ? "/calculo/sacadagrapa"
       : ehSacadaFrontal(item.projeto) ? "/calculo/sacadafrontal"
       : ehFechamentoSacada(item.projeto) ? "/calculo/fechamentosacada"
       : ehPeleDeVidro(item.projeto) ? "/calculo/peledevidro"
@@ -2217,7 +2307,7 @@ router.push(
                               </Field>
                             </>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || pinazio) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || ehSacadaGrapa(item.projeto) || fechamentoSacada || peleDeVidro || pinazio) ? (
                             <Field label="Modo">
                               <select
                                 value={item.modo}
@@ -2301,7 +2391,7 @@ router.push(
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
+                          {!(vidroAvulso || ehSacadaFrontal(item.projeto) || ehSacadaGrapa(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
                             <Field label={labelCampoPrincipal}>
                               <input
                                 value={item.trilho || ""}
@@ -2310,7 +2400,7 @@ router.push(
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || projetoTecnico || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
+                          {!(vidroAvulso || espelhoComDesenho || projetoTecnico || ehSacadaGrapa(item.projeto) || ehFixos(item.projeto) || ehJanelaCorrer4Folhas(item.projeto) || ehJanelaCorrer2Folhas(item.projeto) || pinazio) ? (
                             <Field label="Puxador">
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
@@ -2319,7 +2409,7 @@ router.push(
                               />
                             </Field>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || pinazio) ? (
+                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || ehSacadaGrapa(item.projeto) || fechamentoSacada || peleDeVidro || ehFixos(item.projeto) || pinazio) ? (
                             <Field label={labelCampoSecundario}>
                               <input
                                 value={item.trinco || ""}

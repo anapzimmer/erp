@@ -24,7 +24,6 @@ import {
   FileText,
   Save,
 } from "lucide-react";
-import * as XLSX from 'xlsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
@@ -1453,6 +1452,91 @@ useEffect(() => {
     }
   };
 
+  const valorCelulaParaTexto = (valor: unknown): string => {
+    if (valor == null) return "";
+    if (valor instanceof Date) return valor.toLocaleDateString("pt-BR");
+    if (typeof valor === "object") {
+      const registro = valor as {
+        text?: string;
+        result?: unknown;
+        formula?: string;
+        richText?: Array<{ text?: string }>;
+        hyperlink?: string;
+      };
+      if (typeof registro.text === "string") return registro.text;
+      if (registro.result != null) return valorCelulaParaTexto(registro.result);
+      if (Array.isArray(registro.richText)) return registro.richText.map((parte) => parte.text || "").join("");
+      if (typeof registro.formula === "string") return registro.formula;
+      if (typeof registro.hyperlink === "string") return registro.hyperlink;
+    }
+    return String(valor);
+  };
+
+  const separarLinhaCsv = (linha: string, delimitador: string) => {
+    const colunas: string[] = [];
+    let atual = "";
+    let dentroAspas = false;
+
+    for (let i = 0; i < linha.length; i++) {
+      const caractere = linha[i];
+      const proximo = linha[i + 1];
+
+      if (caractere === '"' && proximo === '"') {
+        atual += '"';
+        i += 1;
+        continue;
+      }
+      if (caractere === '"') {
+        dentroAspas = !dentroAspas;
+        continue;
+      }
+      if (caractere === delimitador && !dentroAspas) {
+        colunas.push(atual.trim());
+        atual = "";
+        continue;
+      }
+      atual += caractere;
+    }
+
+    colunas.push(atual.trim());
+    return colunas;
+  };
+
+  const lerLinhasImportacaoPlanilha = async (file: File, buffer: ArrayBuffer): Promise<Record<string, unknown>[]> => {
+    const nomeArquivo = file.name.toLowerCase();
+
+    if (nomeArquivo.endsWith(".xls") && !nomeArquivo.endsWith(".xlsx")) {
+      throw new Error("Arquivos .xls antigos não são aceitos por segurança. Salve a planilha como .xlsx ou .csv e tente novamente.");
+    }
+
+    if (nomeArquivo.endsWith(".csv")) {
+      const texto = new TextDecoder("utf-8").decode(buffer);
+      const linhas = texto.split(/\r?\n/).filter((linha) => linha.trim());
+      if (linhas.length < 2) return [];
+      const delimitador = (linhas[0].match(/;/g)?.length || 0) >= (linhas[0].match(/,/g)?.length || 0) ? ";" : ",";
+      const cabecalhos = separarLinhaCsv(linhas[0], delimitador);
+
+      return linhas.slice(1).map((linha) => {
+        const colunas = separarLinhaCsv(linha, delimitador);
+        return cabecalhos.reduce<Record<string, unknown>>((acc, cabecalho, index) => {
+          acc[cabecalho || `Coluna ${index + 1}`] = colunas[index] || "";
+          return acc;
+        }, {});
+      });
+    }
+
+    const { readSheet } = await import("read-excel-file/browser");
+    const linhas = await readSheet(file);
+    const cabecalhos = (linhas[0] || []).map((valor: unknown, index: number) => valorCelulaParaTexto(valor).trim() || `Coluna ${index + 1}`);
+
+    return linhas.slice(1).map((linha) =>
+      cabecalhos.reduce<Record<string, unknown>>((acc, cabecalho, index) => {
+        acc[cabecalho] = valorCelulaParaTexto(linha[index]).trim();
+        return acc;
+      }, {})
+    ).filter((linha) => Object.values(linha).some((valor) => String(valor || "").trim()));
+  };
+
   const processarArquivoExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1466,15 +1550,20 @@ useEffect(() => {
     }
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const dataData = evt.target?.result;
+      if (!(dataData instanceof ArrayBuffer)) return;
 
-      // Usamos readAsArrayBuffer para evitar o "risco no meio" (deprecated)
-      const wb = XLSX.read(dataData, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-
-      // sheet_to_json tenta detectar o cabeçalho automaticamente
-      const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+      let data: Record<string, unknown>[] = [];
+      try {
+        data = await lerLinhasImportacaoPlanilha(file, dataData);
+      } catch (error) {
+        setModalAvisoTitulo("Não foi possível importar");
+        setModalAvisoMensagem(error instanceof Error ? error.message : "Não foi possível ler a planilha selecionada.");
+        setMostrarModalAviso(true);
+        if (e.target) e.target.value = "";
+        return;
+      }
 
       const linhasImportacao: LinhaImportacaoExcel[] = [];
       let quantidadePecasAcimaLimiteDivisao = 0;

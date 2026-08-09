@@ -295,13 +295,14 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
 const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
+const ehSacadaGrapa = (projeto?: string) => /sacada grapa|sacada com grapa/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
 const ehEspelhoComDesenho = (projeto?: string) => {
   const texto = normalizarTexto(projeto).trim();
   return /^espelhos?x?$/.test(texto) || /^espelhos? com desenho/.test(texto);
 };
-const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
+const ehProjetoTecnico = (projeto?: string) => ehSacadaFrontal(projeto) || ehSacadaGrapa(projeto) || ehFechamentoSacada(projeto) || ehPeleDeVidro(projeto);
 
 const ehItemPinazio = (
   item?: Pick<
@@ -372,6 +373,10 @@ const desenhoSacadaFrontalUrl = (item?: Pick<CentralImpressaoItem, "largura" | "
 };
 
 const desenhoTecnicoUrl = (projeto?: string, item?: CentralImpressaoItem) => {
+  if (ehSacadaGrapa(projeto) && item?.desenhoUrl) {
+    return item.desenhoUrl;
+  }
+
   if (ehSacadaFrontal(projeto)) {
     return desenhoSacadaFrontalUrl(item);
   }
@@ -1328,7 +1333,7 @@ const consolidarMateriais = (
 };
 
 const origemPerfilItem = (item: CentralImpressaoItem): GrupoOrigemPerfil => {
-  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto)) return "sacada-frontal";
+  if (ehSacadaFrontal(item.projeto) || ehSacadaComTorre(item.projeto) || ehSacadaGrapa(item.projeto)) return "sacada-frontal";
   if (ehPeleDeVidro(item.projeto)) return "pele-de-vidro";
   if (ehFechamentoSacada(item.projeto)) return "fechamento-sacada";
   return "projetos";
@@ -1478,7 +1483,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
   }
-  if (texto.includes("sacada frontal") || texto.includes("fechamento de sacada")) {
+  if (texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto.includes("fixos") || texto.includes("fixo")) {
@@ -1738,6 +1743,7 @@ const possuiRelacaoObra =
             const ehJc4fComSacada = /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(item.projeto || "");
             const projetoTecnico = ehProjetoTecnico(item.projeto);
             const sacadaFrontal = ehSacadaFrontal(item.projeto);
+            const sacadaGrapa = ehSacadaGrapa(item.projeto);
             const peleDeVidro = ehPeleDeVidro(item.projeto);
             const espelhoComDesenho = ehEspelhoComDesenho(item.projeto);
             const pinazio = ehItemPinazio(item);
@@ -1750,8 +1756,8 @@ const possuiRelacaoObra =
             const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
             const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
-            const vidroPrincipal = sacadaFrontal ? descricaoVidroItem(item) : item.vidro;
-            const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : sacadaFrontal ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+            const vidroPrincipal = sacadaFrontal || sacadaGrapa ? descricaoVidroItem(item) : item.vidro;
+            const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : sacadaFrontal || sacadaGrapa ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
             const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
               : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
               : ehBox2Fls ? "Altura"
@@ -1819,7 +1825,7 @@ const possuiRelacaoObra =
                           <Text style={styles.infoValue}>{item.altura || 0} mm</Text>
                         </View>
                       </>
-                    ) : ehVidroAvulso ? null : sacadaFrontal ? (
+                    ) : ehVidroAvulso ? null : sacadaFrontal || sacadaGrapa ? (
                       <>
                         <View style={styles.info}>
                           <Text style={styles.infoLabel}>Largura</Text>
@@ -1940,7 +1946,7 @@ const possuiRelacaoObra =
                         <Text style={styles.infoLabel}>Peças por vão na largura</Text>
                         <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
                       </View>
-                    ) : ehBoxProjeto || pinazio || espelhoComDesenho ? null : (
+                    ) : sacadaGrapa ? null : ehBoxProjeto || pinazio || espelhoComDesenho ? null : (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Modo</Text>
                         <Text style={styles.infoValue}>{item.modo}</Text>
@@ -2013,19 +2019,19 @@ const possuiRelacaoObra =
                         <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho ? (
+                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoPrincipal}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !projetoTecnico && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
+                    {!ehVidroAvulso && !projetoTecnico && !sacadaGrapa && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho && item.puxador && !/^sem\b/i.test(String(item.puxador).trim()) ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Puxador</Text>
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !sacadaFrontal && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio && !espelhoComDesenho ? (
+                    {!ehVidroAvulso && !sacadaFrontal && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoSecundario}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>

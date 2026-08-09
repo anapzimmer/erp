@@ -50,6 +50,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
       { label: "Pinázio", href: "/calculo/pinazio" },
       { label: "Sacada Frontal", href: "/calculo/sacadafrontal" },
       { label: "Sacada com Torre", href: "/calculo/sacadatorre" },
+      { label: "Sacada Grapa", href: "/calculo/sacadagrapa" },
       { label: "Fechamento Sacada", href: "/calculo/fechamentosacada" },
       { label: "Pele de Vidro", href: "/calculo/peledevidro" },
     ],

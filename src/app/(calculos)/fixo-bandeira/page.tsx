@@ -106,6 +106,10 @@ type CentralImpressaoProjetoItem = {
   valorTotal?: number;
   materiais?: ProjetoIndividualMaterial[];
   origemRota?: string;
+  loteId?: string;
+  loteSeq?: number;
+  loteTotal?: number;
+  loteObservacao?: string;
 };
 
 type FixoBandeiraDados = Omit<ProjetoIndividualDados, "materiais"> & {

@@ -785,9 +785,9 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
           ) : (<>
 
             {/* CLIENTE / OBRA / AÇÕES */}
-            <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+            <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
               <div className="flex items-center gap-2 flex-1 relative">
-                <span className="text-[11px] font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
+                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                   <input
@@ -829,7 +829,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
               </div>
 
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-[11px] font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
+                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
                 <input
                   type="text"
                   placeholder="Identificação da obra"
@@ -843,7 +843,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleNovo}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                   style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
                 >
                   <FilePlus2 size={16} />
@@ -853,7 +853,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                 <button
                   onClick={handleSalvar}
                   disabled={salvando}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                   style={{ backgroundColor: theme.menuIconColor, color: "#fff" }}
                 >
                   {salvando ? (
@@ -866,7 +866,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                 <button
                   onClick={enviarParaCentralImpressao}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                   style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
                 >
                   <FilePlus2 size={16} />
@@ -900,7 +900,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   }
                   fileName={nomeArquivoPDF}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                   style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
                 >
                   Imprimir
@@ -915,50 +915,50 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
             </div>
 
             {/* HEADER + INPUTS */}
-            <section className="rounded-4xl border p-6 md:p-8 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+              <div className="flex flex-col gap-4">
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
+                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
                     <Grid3X3 size={14} />
                     Pele de Vidro
                   </div>
-                  <h1 className="mt-4 text-3xl md:text-5xl font-black leading-none" style={{ color: theme.contentTextLightBg }}>
+                  <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
                     Cálculo de orçamento pele de vidro
                   </h1>
-                  <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
+                  <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}B3` }}>
                     Informe as dimensões em mm, a quantidade de quadros na horizontal e vertical, e selecione o vidro. O sistema calcula perfis, acessórios e barras automaticamente.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 w-full md:w-auto md:min-w-105">
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Largura do vão (mm)
                     </span>
                     <input
                       value={larguraVaoMm}
                       onChange={(e) => setLarguraVaoMm(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Altura do vão (mm)
                     </span>
                     <input
                       value={alturaVaoMm}
                       onChange={(e) => setAlturaVaoMm(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Qtd. de fachadas
                     </span>
                     <input
@@ -966,39 +966,39 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       onChange={(e) => setQuantidadeFachadas(e.target.value)}
                       inputMode="numeric"
                       placeholder="0"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none placeholder:text-sm placeholder:font-normal placeholder:opacity-40"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none placeholder:text-sm placeholder:font-normal placeholder:opacity-40"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Quadros horizontal
                     </span>
                     <input
                       value={quadrosHorizontal}
                       onChange={(e) => setQuadrosHorizontal(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Quadros vertical
                     </span>
                     <input
                       value={quadrosVertical}
                       onChange={(e) => setQuadrosVertical(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Quantidade de lajes
                     </span>
                     <input
@@ -1006,13 +1006,13 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       onChange={(e) => setQuantidadeLajes(e.target.value)}
                       inputMode="numeric"
                       placeholder="0 = térreo"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none placeholder:text-sm placeholder:font-normal placeholder:opacity-40"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none placeholder:text-sm placeholder:font-normal placeholder:opacity-40"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Quadros fixos
                     </span>
                     <input
@@ -1020,13 +1020,13 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       value={quadrosFixos}
                       onChange={(e) => setQuadrosFixos(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Quadros móveis
                     </span>
                     <input
@@ -1034,26 +1034,26 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       value={quadrosMoveis}
                       onChange={(e) => setQuadrosMoveis(e.target.value)}
                       inputMode="numeric"
-                      className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                   </label>
 
-                  <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                       Vidro da fachada
                     </span>
                     <input
                       value={buscaVidro}
                       onChange={(e) => setBuscaVidro(e.target.value)}
                       placeholder="Digite para filtrar o vidro"
-                      className="mt-3 w-full rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm font-semibold outline-none"
+                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                     <select
                       value={vidroId}
                       onChange={(e) => setVidroId(e.target.value)}
-                      className="mt-3 w-full bg-transparent text-lg font-black outline-none"
+                      className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     >
                       <option value="" className="text-slate-900">Selecione o vidro</option>
@@ -1073,7 +1073,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
             </section>
 
             {/* CARDS RESUMO */}
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {[
                 {
                   titulo: "Medida de cada quadro",
@@ -1100,15 +1100,15 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   icone: Calculator,
                 },
               ].map((card) => (
-                <article key={card.titulo} className="rounded-[1.75rem] border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                  <div className="flex items-center justify-between gap-4">
+                <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: `${theme.contentTextLightBg}70` }}>{card.titulo}</p>
-                      <p className="mt-3 text-2xl font-black leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
-                      <p className="mt-2 text-sm" style={{ color: `${theme.contentTextLightBg}A3` }}>{card.detalhe}</p>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>{card.titulo}</p>
+                      <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
+                      <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>{card.detalhe}</p>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
-                      <card.icone size={22} />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
+                      <card.icone size={19} />
                     </div>
                   </div>
                 </article>
@@ -1116,26 +1116,26 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
             </section>
 
             {/* TABELAS + PREVIEW */}
-            <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-6">
-              <article className="rounded-4xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+            <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
+              <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
                 {/* Perfis */}
-                <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                  <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Perfis de alumínio</h2>
+                <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Perfis de alumínio</h2>
                   <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Barras de 6000 mm. {lajes > 0 ? `Multiplicado por ${lajes} laje(s).` : "Térreo (sem multiplicador de lajes)."}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-sm">
                     <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
                       <tr>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Código</th>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Perfil</th>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Unidade</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">KG/MT</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Metro linear</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Barras</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">KG total</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preço barra</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Unidade</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">KG/MT</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Metro linear</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Barras</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">KG total</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Preço barra</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Valor total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1170,24 +1170,24 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                         return (
                           <tr key={perfil.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                            <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
-                            <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.nome}</td>
-                            <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.unidade}</td>
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                            <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
+                            <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.nome}</td>
+                            <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.unidade}</td>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {kgmtStr.replace('.', ',')} {/* Exibe com vírgula para o usuário */}
                             </td>
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {formatarNumero(perfil.metroLinear, 0)} mm
                             </td>
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.barras}</td>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.barras}</td>
 
                             {/* COLUNA KG TOTAL CORRIGIDA */}
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {kgTotalDisplay}
                             </td>
 
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{precoBarraDisplay}</td>
-                            <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{precoBarraDisplay}</td>
+                            <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {valorTotal > 0 ? formatarPreco(valorTotal) : "-"}
                             </td>
                           </tr>
@@ -1197,19 +1197,19 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     <tfoot>
                       {/* TOTAL VALOR EM DINHEIRO */}
                       <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                        <td colSpan={8} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                        <td colSpan={8} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total dos perfis
                         </td>
-                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                        <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                           {formatarPreco(totalPerfis)}
                         </td>
                       </tr>
                       {/* TOTAL PESO EM KG */}
                       <tr>
-                        <td colSpan={8} className="px-6 py-4 text-right text-sm " style={{ color: theme.contentTextLightBg }}>
+                        <td colSpan={8} className="px-5 py-3 text-right text-sm " style={{ color: theme.contentTextLightBg }}>
                           Total KG dos perfis
                         </td>
-                        <td className="px-6 py-4 text-right text-base " style={{ color: theme.contentTextLightBg }}>
+                        <td className="px-5 py-3 text-right text-base " style={{ color: theme.contentTextLightBg }}>
                           {resultado.perfis.reduce((acc, p) => {
                             const nome = p.nome?.toLowerCase() || "";
                             let kgmtNum = 0;
@@ -1233,20 +1233,20 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                 {/* Acessórios */}
                 <div className="border-t" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                  <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                    <h3 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>Acessórios</h3>
+                  <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                    <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Acessórios</h3>
                     <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Presilhas, fechos e braços calculados por quadro.</p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[600px] text-sm">
                       <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
                         <tr>
-                          <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Código</th>
-                          <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Acessório</th>
-                          <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Unidade</th>
-                          <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Qtd</th>
-                          <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preço unit.</th>
-                          <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                          <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
+                          <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Acessório</th>
+                          <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Unidade</th>
+                          <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Qtd</th>
+                          <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Preço unit.</th>
+                          <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Valor total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1290,14 +1290,14 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                           return (
                             <tr key={acessorio.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                              <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
-                              <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
-                              <td className="px-6 py-4 text-xs" style={{ color: theme.contentTextLightBg }}>{unidade}</td>
-                              <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{quantidade}</td>
-                              <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                              <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
+                              <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
+                              <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{unidade}</td>
+                              <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{quantidade}</td>
+                              <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                                 {precoUnitario > 0 ? formatarPreco(precoUnitario) : "-"}
                               </td>
-                              <td className="px-6 py-4 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
+                              <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                                 {valorTotalLinha > 0 ? formatarPreco(valorTotalLinha) : "-"}
                               </td>
                             </tr>
@@ -1306,10 +1306,10 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       </tbody>
                       <tfoot>
                         <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                          <td colSpan={5} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                          <td colSpan={5} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                             Total dos acessórios
                           </td>
-                          <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                          <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                             {formatarPreco(totalAcessorios)}
                           </td>
 
@@ -1322,8 +1322,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
               <div className="space-y-6">
                 {/* Preview visual */}
-                <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                  <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
+                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
                   <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Representação proporcional da fachada</p>
                   <div className="mt-4">
                     {(() => {
@@ -1430,8 +1430,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                 </article>
 
                 {/* Resumo técnico */}
-                <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                  <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>Resumo técnico</h2>
+                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Resumo técnico</h2>
                   <div className="mt-5 space-y-4">
                     {[
                       ["Total de quadros", String(resultado.totalQuadros)],
@@ -1448,9 +1448,9 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       ["Total do vidro", formatarPreco(totalVidro)],
                       ["Total geral", formatarPreco(totalGeral)],
                     ].map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-4">
+                      <div key={label} className="flex items-start justify-between gap-3">
                         <span className="text-sm" style={{ color: `${theme.contentTextLightBg}8F` }}>{label}</span>
-                        <span className="text-sm font-bold text-right" style={{ color: theme.contentTextLightBg }}>{value}</span>
+                        <span className="text-sm font-medium text-right" style={{ color: theme.contentTextLightBg }}>{value}</span>
                       </div>
                     ))}
                   </div>

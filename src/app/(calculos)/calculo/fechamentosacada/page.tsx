@@ -1439,10 +1439,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           ) : (<>
 
           {/* CLIENTE / OBRA / AÇÕES */}
-          <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+          <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
             {/* Cliente */}
             <div className="flex items-center gap-2 flex-1 relative">
-              <span className="text-[11px] font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                 <input
@@ -1485,7 +1485,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
             {/* Obra */}
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-[11px] font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
               <input
                 type="text"
                 placeholder="Identificação da obra"
@@ -1516,7 +1516,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   setCorPerfil("");
                   setMensagemSalvo("");
                 }}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                 style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
               >
                 <FilePlus2 size={16} />
@@ -1526,7 +1526,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               <button
                 onClick={handleSalvar}
                 disabled={salvando}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                 style={{ backgroundColor: theme.menuIconColor, color: "#fff" }}
               >
                 {salvando ? (
@@ -1539,7 +1539,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
               <button
                 onClick={enviarParaCentralImpressao}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                 style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
               >
                 <FilePlus2 size={16} />
@@ -1587,7 +1587,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               >
                 {({ loading: pdfLoading }) => (
                   <button
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
                     style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
                     disabled={pdfLoading}
                   >
@@ -1609,108 +1609,108 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             )}
           </div>
 
-          <section className="rounded-4xl border p-5 md:p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+            <div className="flex flex-col gap-4">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
                   <PanelsTopLeft size={14} />
                   Fechamento Sacada
                 </div>
-                <h1 className="mt-4 text-3xl md:text-5xl font-black leading-none" style={{ color: theme.contentTextLightBg }}>
+                <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
                   Cálculo de fechamento de sacada com gradil de alumínio
                 </h1>
-                <p className="mt-4 max-w-2xl text-sm md:text-base" style={{ color: `${theme.contentTextLightBg}B3` }}>
+                <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}B3` }}>
                   Informe as dimensoes em mm para os módulos inferior e superior, com divisões e vidros independentes. O sistema calcula cada módulo separado e soma no total.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 w-full md:w-auto md:min-w-96">
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Largura do vao (mm)
                   </span>
                   <input
                     value={larguraVaoMm}
                     onChange={(e) => setLarguraVaoMm(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Altura sacada inferior (mm)
                   </span>
                   <input
                     value={alturaInferiorMm}
                     onChange={(e) => setAlturaInferiorMm(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Altura fechamento superior (mm)
                   </span>
                   <input
                     value={alturaSuperiorMm}
                     onChange={(e) => setAlturaSuperiorMm(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Quantidade de vãos
                   </span>
                   <input
                     value={quantidadeVaos}
                     onChange={(e) => setQuantidadeVaos(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Divisão sacada (inferior)
                   </span>
                   <input
                     value={quantidadeDivisoesInferior}
                     onChange={(e) => setQuantidadeDivisoesInferior(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Divisão sacada (superior)
                   </span>
                   <input
                     value={quantidadeDivisoesSuperior}
                     onChange={(e) => setQuantidadeDivisoesSuperior(e.target.value)}
                     inputMode="numeric"
-                    className="mt-3 w-full bg-transparent text-2xl font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                 </label>
 
-                <label className="rounded-2xl border p-4" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Cor dos perfis
                   </span>
                   <select
                     value={corPerfil}
                     onChange={(e) => setCorPerfil(e.target.value)}
-                    className="mt-3 w-full bg-transparent text-lg font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
                     <option value="" className="text-slate-900">Selecione a cor</option>
@@ -1722,21 +1722,21 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Vidro (inferio)
                   </span>
                   <input
                     value={buscaVidroInferior}
                     onChange={(e) => setBuscaVidroInferior(e.target.value)}
                     placeholder="Digite para filtrar o vidro"
-                    className="mt-3 w-full rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm font-semibold outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                   <select
                     value={vidroIdInferior}
                     onChange={(e) => setVidroIdInferior(e.target.value)}
-                    className="mt-3 w-full bg-transparent text-lg font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
                     <option value="" className="text-slate-900">Selecione o vidro</option>
@@ -1754,21 +1754,21 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border p-4 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[11px] uppercase tracking-[0.16em] font-bold" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
                     Vidro (superior)
                   </span>
                   <input
                     value={buscaVidroSuperior}
                     onChange={(e) => setBuscaVidroSuperior(e.target.value)}
                     placeholder="Digite para filtrar o vidro"
-                    className="mt-3 w-full rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm font-semibold outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                   <select
                     value={vidroIdSuperior}
                     onChange={(e) => setVidroIdSuperior(e.target.value)}
-                    className="mt-3 w-full bg-transparent text-lg font-black outline-none"
+                    className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
                     <option value="" className="text-slate-900">Selecione o vidro</option>
@@ -1789,7 +1789,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             {[
               {
                 titulo: "Medida de cada vidro",
@@ -1816,31 +1816,31 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 icone: Calculator,
               },
             ].map((card) => (
-              <article key={card.titulo} className="rounded-[1.75rem] border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                <div className="flex items-center justify-between gap-4">
+              <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: `${theme.contentTextLightBg}70` }}>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>
                       {card.titulo}
                     </p>
-                    <p className="mt-3 text-2xl font-black leading-tight whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>
+                    <p className="mt-2 text-xl font-medium leading-tight whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>
                       {card.valor}
                     </p>
-                    <p className="mt-2 text-sm" style={{ color: `${theme.contentTextLightBg}A3` }}>
+                    <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>
                       {card.detalhe}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
-                    <card.icone size={22} />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
+                    <card.icone size={19} />
                   </div>
                 </div>
               </article>
             ))}
           </section>
 
-          <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-6">
-            <article className="rounded-4xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-              <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
+          <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
+            <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+              <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Perfis do guarda corpo
                 </h2>
                 <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
@@ -1852,32 +1852,32 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 <table className="w-full min-w-190 text-sm">
                   <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
                     <tr>
-                      <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Perfil</th>
-                      <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Código</th>
-                      <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Comprimento total</th>
-                      <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Barras</th>
-                      <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preço barra</th>
-                      <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                      <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>
+                      <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
+                      <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Comprimento total</th>
+                      <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Barras</th>
+                      <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Preço barra</th>
+                      <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Valor total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {perfisComPrecoTabela.map((perfil, index) => (
                       <tr key={`${perfil.codigo}-${perfil.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                        <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(perfil.nome)}</td>
-                        <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{perfil.codigo}</td>
-                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
-                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
-                        <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.precoBarra)}</td>
-                        <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.valorTotal)}</td>
+                        <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(perfil.nome)}</td>
+                        <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{perfil.codigo}</td>
+                        <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
+                        <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
+                        <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.precoBarra)}</td>
+                        <td className="px-5 py-3 text-right font-medium" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.valorTotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                      <td colSpan={5} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                      <td colSpan={5} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                         Total dos perfis
                       </td>
-                      <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                      <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                         {formatarPreco(totalPerfisCalculado)}
                       </td>
                     </tr>
@@ -1886,8 +1886,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               </div>
 
               <div className="border-t" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                <div className="px-6 py-5 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                  <h3 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>
+                <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                     Acessórios do guarda corpo
                   </h3>
                   <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
@@ -1899,34 +1899,34 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   <table className="w-full min-w-190 text-sm">
                     <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
                       <tr>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Acessorio</th>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Codigo</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Qtd</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preco unit.</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Acessorio</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Codigo</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Qtd</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Preco unit.</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Valor total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {acessoriosComPrecoTabela.map((acessorio, index) => (
                         <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                          <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(acessorio.nome)}</td>
-                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
+                          <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(acessorio.nome)}</td>
+                          <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
+                          <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>
                             {acessorio.quantidadePacote
                               ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
                               : acessorio.quantidade}
                           </td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.precoUnitario)}</td>
-                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.valorTotal)}</td>
+                          <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.precoUnitario)}</td>
+                          <td className="px-5 py-3 text-right font-medium" style={{ color: theme.contentTextLightBg }}>{formatarPreco(acessorio.valorTotal)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                        <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                        <td colSpan={4} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total dos acessórios
                         </td>
-                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                        <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                           {formatarPreco(totalAcessoriosCalculado)}
                         </td>
                       </tr>
@@ -1934,8 +1934,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </table>
                 </div>
 
-                <div className="px-6 py-5 border-y" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                  <h3 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>
+                <div className="px-5 py-4 border-y" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                  <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                     Fechamento de sacada
                   </h3>
                   <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
@@ -1947,34 +1947,34 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   <table className="w-full min-w-190 text-sm">
                     <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
                       <tr>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Material</th>
-                        <th className="text-left px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Codigo</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Qtd</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Preco unit.</th>
-                        <th className="text-right px-6 py-4 font-bold uppercase tracking-[0.14em] text-[11px]">Valor total</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Material</th>
+                        <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Codigo</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Qtd</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Preco unit.</th>
+                        <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Valor total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {acessoriosFechamentoSacadaTabela.map((item, index) => (
                         <tr key={`${item.codigo}-${item.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
-                          <td className="px-6 py-4 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(item.nome)}</td>
-                          <td className="px-6 py-4" style={{ color: `${theme.contentTextLightBg}B3` }}>{item.codigo}</td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>
+                          <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(item.nome)}</td>
+                          <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{item.codigo}</td>
+                          <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>
                             {item.quantidadePacote
                               ? <span>{formatarNumero(item.quantidadePacote)} <span className="text-[10px] opacity-60">(pct {item.pacote})</span></span>
                               : formatarNumero(item.quantidade)}
                           </td>
-                          <td className="px-6 py-4 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.precoUnitario)}</td>
-                          <td className="px-6 py-4 text-right font-bold" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.valorTotal)}</td>
+                          <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.precoUnitario)}</td>
+                          <td className="px-5 py-3 text-right font-medium" style={{ color: theme.contentTextLightBg }}>{formatarPreco(item.valorTotal)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
-                        <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold" style={{ color: theme.contentTextLightBg }}>
+                        <td colSpan={4} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total fechamento de sacada
                         </td>
-                        <td className="px-6 py-4 text-right text-base font-black" style={{ color: theme.contentTextLightBg }}>
+                        <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                           {formatarPreco(totalFechamentoSacadaCalculado)}
                         </td>
                       </tr>
@@ -1986,8 +1986,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
             <div className="space-y-6">
               {/* Preview visual da sacada */}
-              <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
+              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Vista frontal
                 </h2>
                 <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
@@ -2188,8 +2188,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 </div>
               </article>
 
-              <article className="rounded-4xl border p-6 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                <h2 className="text-xl font-black" style={{ color: theme.contentTextLightBg }}>
+              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Resumo técnico
                 </h2>
                 <div className="mt-5 space-y-4">
@@ -2207,9 +2207,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ["Total dos acessórios", formatarPreco(totalAcessoriosGeralCalculado)],
                     ["Total geral", formatarPreco(totalGeralCalculado)],
                   ].map(([label, value]) => (
-                    <div key={label} className="flex items-start justify-between gap-4">
+                    <div key={label} className="flex items-start justify-between gap-3">
                       <span className="text-sm" style={{ color: `${theme.contentTextLightBg}8F` }}>{label}</span>
-                      <span className="text-sm font-bold text-right whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>{value}</span>
+                      <span className="text-sm font-medium text-right whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>{value}</span>
                     </div>
                   ))}
                 </div>
