@@ -3,6 +3,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname === "/calculovidro") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/calculo/calculovidro";
+    return NextResponse.redirect(url);
+  }
+
+  if (req.nextUrl.pathname.startsWith("/_next") || /\.[a-z0-9]+$/i.test(req.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   // Criamos uma resposta inicial
   let res = NextResponse.next({
     request: {
@@ -10,9 +20,16 @@ export async function middleware(req: NextRequest) {
     },
   });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name) {
@@ -44,12 +61,6 @@ export async function middleware(req: NextRequest) {
 
   return res;
 }
-
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-};
 
 export const config = {
   matcher: [
