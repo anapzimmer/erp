@@ -26,11 +26,12 @@
     "react-dom": "18.2.0",
     "react-markdown": "^10.1.0",
     "react-to-print": "^3.2.0",
-    "read-excel-file": "^9.3.8",
+    "read-excel-file": "^9.3.9",
     "remark-gfm": "^4.0.1",
     "sharp": "^0.35.3",
     "tesseract.js": "^6.0.1",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

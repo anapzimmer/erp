@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero"
+import { decodeCsvFile } from "@/utils/csvEncoding"
 import Header from "@/components/Header"
 import {
   Wrench,
@@ -1502,7 +1503,7 @@ useEffect(() => {
     return colunas;
   };
 
-  const lerLinhasImportacaoPlanilha = async (file: File, buffer: ArrayBuffer): Promise<Record<string, unknown>[]> => {
+  const lerLinhasImportacaoPlanilha = async (file: File): Promise<Record<string, unknown>[]> => {
     const nomeArquivo = file.name.toLowerCase();
 
     if (nomeArquivo.endsWith(".xls") && !nomeArquivo.endsWith(".xlsx")) {
@@ -1510,7 +1511,8 @@ useEffect(() => {
     }
 
     if (nomeArquivo.endsWith(".csv")) {
-      const texto = new TextDecoder("utf-8").decode(buffer);
+      // Arquivos CSV gerados no Excel frequentemente vêm em Windows-1252.
+      const texto = (await decodeCsvFile(file)).replace(/^\uFEFF/, "");
       const linhas = texto.split(/\r?\n/).filter((linha) => linha.trim());
       if (linhas.length < 2) return [];
       const delimitador = (linhas[0].match(/;/g)?.length || 0) >= (linhas[0].match(/,/g)?.length || 0) ? ";" : ",";
@@ -1525,19 +1527,34 @@ useEffect(() => {
       });
     }
 
-    const { readSheet } = await import("read-excel-file/browser");
-    const linhas = await readSheet(file);
-    const cabecalhos = (linhas[0] || []).map((valor: unknown, index: number) => valorCelulaParaTexto(valor).trim() || `Coluna ${index + 1}`);
+    const XLSX = await import("xlsx");
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const nomePrimeiraAba = workbook.SheetNames[0];
 
-    return linhas.slice(1).map((linha) =>
-      cabecalhos.reduce<Record<string, unknown>>((acc, cabecalho, index) => {
-        acc[cabecalho] = valorCelulaParaTexto(linha[index]).trim();
-        return acc;
-      }, {})
-    ).filter((linha) => Object.values(linha).some((valor) => String(valor || "").trim()));
+    if (!nomePrimeiraAba) {
+      return [];
+    }
+
+    const primeiraAba = workbook.Sheets[nomePrimeiraAba];
+    const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(primeiraAba, {
+      defval: "",
+      raw: false,
+    });
+
+    return linhas
+      .map((linha) => {
+        const entrada = Object.entries(linha);
+        return entrada.reduce<Record<string, unknown>>((acc, [chave, valor], index) => {
+          const cabecalho = String(chave || "").trim() || `Coluna ${index + 1}`;
+          acc[cabecalho] = valorCelulaParaTexto(valor).trim();
+          return acc;
+        }, {});
+      })
+      .filter((linha) => Object.values(linha).some((valor) => String(valor || "").trim()));
   };
 
-  const processarArquivoExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const processarArquivoExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -1549,102 +1566,104 @@ useEffect(() => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const dataData = evt.target?.result;
-      if (!(dataData instanceof ArrayBuffer)) return;
-
-      let data: Record<string, unknown>[] = [];
-      try {
-        data = await lerLinhasImportacaoPlanilha(file, dataData);
-      } catch (error) {
-        setModalAvisoTitulo("Não foi possível importar");
-        setModalAvisoMensagem(error instanceof Error ? error.message : "Não foi possível ler a planilha selecionada.");
-        setMostrarModalAviso(true);
-        if (e.target) e.target.value = "";
-        return;
-      }
-
-      const linhasImportacao: LinhaImportacaoExcel[] = [];
-      let quantidadePecasAcimaLimiteDivisao = 0;
-
-      data.forEach((linha) => {
-        // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
-        const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item"]) || "").trim();
-        const nomeExcelNormalizado = normalizarTextoComparacao(nomeExcel);
-
-        // Captura de medidas - aceita largura/altura em colunas separadas ou medida unica (ex: 802x602)
-        const { l, a } = extrairMedidasDaLinha(linha);
-
-        // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
-        const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
-        const qtdNumero = normalizarNumeroPlanilha(rawQtd);
-        const qtd = qtdNumero > 0 ? Math.round(qtdNumero) : 1;
-
-        if (!nomeExcelNormalizado || l <= 0 || a <= 0) return;
-
-        if (l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM) {
-          quantidadePecasAcimaLimiteDivisao += qtd;
-        }
-
-        const vidroNoBanco = listaVidros.find(v =>
-          normalizarTextoComparacao(v.nome) === nomeExcelNormalizado
-        );
-
-        linhasImportacao.push({
-          nomeExcel,
-          nomeExcelNormalizado,
-          l,
-          a,
-          qtd,
-          vidroNoBanco: vidroNoBanco || null,
-        });
-      });
-
-      if (quantidadePecasAcimaLimiteDivisao > 0) {
-        importacaoPendenteRef.current = linhasImportacao;
-
-        abrirModalAvisoComAcoes(
-          "Importação com peças acima de 3600mm",
-          `A importação possui ${quantidadePecasAcimaLimiteDivisao} peça(s) acima de ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Como deseja continuar?`,
-          [
-            {
-              id: "cancelar",
-              label: "Cancelar",
-              variant: "secondary",
-              onClick: () => {
-                importacaoPendenteRef.current = null;
-              },
-            },
-            {
-              id: "manter",
-              label: "Importar sem dividir",
-              variant: "secondary",
-              onClick: () => {
-                processarImportacaoPendente(false);
-              },
-            },
-            {
-              id: "dividir",
-              label: "Dividir e importar",
-              onClick: () => {
-                processarImportacaoPendente(true);
-              },
-            },
-          ]
-        );
-
-        if (e.target) e.target.value = "";
-        return;
-      }
-
-      aplicarImportacaoLinhas(linhasImportacao, false);
-
-      // Reset do input para permitir importar o mesmo arquivo de novo
+    let data: Record<string, unknown>[] = [];
+    try {
+      data = await lerLinhasImportacaoPlanilha(file);
+    } catch (error) {
+      setModalAvisoTitulo("Não foi possível importar");
+      setModalAvisoMensagem(error instanceof Error ? error.message : "Não foi possível ler a planilha selecionada.");
+      setMostrarModalAviso(true);
       if (e.target) e.target.value = "";
-    };
+      return;
+    }
 
-    reader.readAsArrayBuffer(file); // Correção do "risco no meio"
+    const linhasImportacao: LinhaImportacaoExcel[] = [];
+    let quantidadePecasAcimaLimiteDivisao = 0;
+
+    data.forEach((linha) => {
+      // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
+      const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item", "produto", "descricao"]) || "").trim();
+      const nomeExcelNormalizado = normalizarTextoComparacao(nomeExcel);
+
+      // Captura de medidas - aceita largura/altura em colunas separadas ou medida unica (ex: 802x602)
+      const { l, a } = extrairMedidasDaLinha(linha);
+
+      // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
+      const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
+      const qtdNumero = normalizarNumeroPlanilha(rawQtd);
+      const qtd = qtdNumero > 0 ? Math.round(qtdNumero) : 1;
+
+      if (!nomeExcelNormalizado || l <= 0 || a <= 0) return;
+
+      if (l > LIMITE_MEDIDA_ALERTA_DIVISAO_MM || a > LIMITE_MEDIDA_ALERTA_DIVISAO_MM) {
+        quantidadePecasAcimaLimiteDivisao += qtd;
+      }
+
+      const vidroNoBanco = listaVidros.find(v =>
+        normalizarTextoComparacao(v.nome) === nomeExcelNormalizado
+      );
+
+      linhasImportacao.push({
+        nomeExcel,
+        nomeExcelNormalizado,
+        l,
+        a,
+        qtd,
+        vidroNoBanco: vidroNoBanco || null,
+      });
+    });
+
+    if (!linhasImportacao.length) {
+      setModalAvisoTitulo("Nenhuma linha válida encontrada");
+      setModalAvisoMensagem(
+        "Não encontramos linhas com nome do vidro e medidas válidas. Verifique se a planilha possui colunas como Vidro/Descrição, Largura e Altura (ou Medida no formato 800x600), e Quantidade.",
+      );
+      setMostrarModalAviso(true);
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    if (quantidadePecasAcimaLimiteDivisao > 0) {
+      importacaoPendenteRef.current = linhasImportacao;
+
+      abrirModalAvisoComAcoes(
+        "Importação com peças acima de 3600mm",
+        `A importação possui ${quantidadePecasAcimaLimiteDivisao} peça(s) acima de ${LIMITE_MEDIDA_ALERTA_DIVISAO_MM}mm. Como deseja continuar?`,
+        [
+          {
+            id: "cancelar",
+            label: "Cancelar",
+            variant: "secondary",
+            onClick: () => {
+              importacaoPendenteRef.current = null;
+            },
+          },
+          {
+            id: "manter",
+            label: "Importar sem dividir",
+            variant: "secondary",
+            onClick: () => {
+              processarImportacaoPendente(false);
+            },
+          },
+          {
+            id: "dividir",
+            label: "Dividir e importar",
+            onClick: () => {
+              processarImportacaoPendente(true);
+            },
+          },
+        ]
+      );
+
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    aplicarImportacaoLinhas(linhasImportacao, false);
+
+    // Reset do input para permitir importar o mesmo arquivo de novo
+    if (e.target) e.target.value = "";
   };
 
 
@@ -2379,7 +2398,7 @@ useEffect(() => {
                       ref={fileInputRef}
                       onChange={processarArquivoExcel}
                       className="hidden"
-                      accept=".xlsx, .xls, .csv"
+                      accept=".xlsx,.csv"
                     />
 
                     <button
