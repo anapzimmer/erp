@@ -15,6 +15,9 @@ export type ProjetoIndividualMaterial = {
   cortes?: number[];
   medida?: string;
   vidroDescricao?: string;
+  origemCalculo?: string;
+  codigoOriginalCalculo?: string;
+  personalizadoCatalogo?: boolean;
 };
 
 export type ProjetoIndividualDados = {

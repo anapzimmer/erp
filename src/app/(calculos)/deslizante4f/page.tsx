@@ -178,6 +178,9 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
+  origemCalculo: parcial?.origemCalculo,
+  codigoOriginalCalculo: parcial?.codigoOriginalCalculo,
+  personalizadoCatalogo: parcial?.personalizadoCatalogo,
 });
 
 const agruparMateriaisMesmoPerfil = (materiais: ProjetoIndividualMaterial[]) => {
@@ -255,6 +258,92 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   }
 
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
+};
+
+const mesclarMateriaisAutomaticos = (
+  lista: ProjetoIndividualMaterial[],
+  automaticos: ProjetoIndividualMaterial[],
+  codigosAutomaticos: string[]
+) => {
+  const origensAutomaticas = new Set(automaticos.map((item) => item.origemCalculo).filter(Boolean));
+
+  const itensManuais = lista.filter((item) => {
+    if (item.origemCalculo && origensAutomaticas.has(item.origemCalculo)) return false;
+    const descricao = normalizarTexto(item.descricao);
+    return !descricao.includes("kit") && !codigosAutomaticos.some((codigo) => descricao.includes(codigo));
+  });
+
+  const itensMesclados = automaticos.map((automatico) => {
+    const existente = automatico.origemCalculo
+      ? lista.find((item) => item.origemCalculo === automatico.origemCalculo)
+      : null;
+
+    if (!existente) return automatico;
+
+    return {
+      ...automatico,
+      id: existente.id,
+      descricao: existente.personalizadoCatalogo ? existente.descricao : automatico.descricao,
+      valorUnitario: existente.personalizadoCatalogo ? existente.valorUnitario : automatico.valorUnitario,
+      codigoPerfil: existente.personalizadoCatalogo ? existente.codigoPerfil : automatico.codigoPerfil,
+      personalizadoCatalogo: existente.personalizadoCatalogo,
+    };
+  });
+
+  return [...itensManuais, ...itensMesclados];
+};
+
+const origemDeslizante4FPorDescricao = (material: ProjetoIndividualMaterial, largura: number) => {
+  const descricao = normalizarTexto(material.descricao);
+  const comprimentoBarra = Number(material.comprimentoBarra || 0);
+  const cortes = material.cortes || [];
+  const cortesSaoDaLargura = cortes.length > 0 && cortes.every((corte) => Math.abs(Number(corte || 0) - Number(largura || 0)) <= 1);
+
+  if (descricao.includes("bcsty002-7")) return "trilho-superior:7000";
+  if (descricao.includes("bcsty003-7")) return "trilho-inferior:7000";
+  if (descricao.includes("bcsty002")) return "trilho-superior:6000";
+  if (descricao.includes("bcsty003")) return "trilho-inferior:6000";
+  if (descricao.includes("sty106")) return "perfil:transpasse";
+  if (descricao.includes("3000")) return "perfil:3000";
+  if (descricao.includes("3001")) return "ferragem:3001";
+  if (descricao.includes("1561")) return "ferragem:1561";
+  if (descricao.includes("3530arou-cil")) return "ferragem:3530AROU-CIL";
+  if (descricao.includes("3530dp")) return "ferragem:3530DP";
+  if (descricao.includes("3230dp") || descricao.includes("3230d")) return "ferragem:3230DP";
+  if (descricao.includes("puxbc30")) return "ferragem:PUXBC30";
+  if (descricao.includes("puxbc60")) return "ferragem:PUXBC60";
+  if (descricao.includes("puxbc80")) return "ferragem:PUXBC80";
+
+  if (cortesSaoDaLargura && (comprimentoBarra === 6000 || comprimentoBarra === 7000)) {
+    return `trilho:${comprimentoBarra}`;
+  }
+
+  return "";
+};
+
+const normalizarMateriaisSalvosDeslizante4F = (materiais: ProjetoIndividualMaterial[], largura: number) => {
+  const trilhosUsados = new Set<string>();
+
+  return materiais.map((material) => {
+    const origemExistente = material.origemCalculo || origemDeslizante4FPorDescricao(material, largura);
+    let origemCalculo = origemExistente;
+    const origemGenericaTrilho = origemExistente.startsWith("trilho:");
+
+    if (origemGenericaTrilho) {
+      const comprimento = origemExistente.split(":")[1] || String(material.comprimentoBarra || 6000);
+      const superior = `trilho-superior:${comprimento}`;
+      const inferior = `trilho-inferior:${comprimento}`;
+      origemCalculo = trilhosUsados.has(superior) ? inferior : superior;
+    }
+
+    if (origemCalculo) trilhosUsados.add(origemCalculo);
+
+    return {
+      ...material,
+      origemCalculo: origemCalculo || material.origemCalculo,
+      personalizadoCatalogo: material.personalizadoCatalogo || (origemGenericaTrilho ? true : material.personalizadoCatalogo),
+    };
+  });
 };
 
 const desenhoDeslizante4F = (projeto?: string, carrinho?: string, puxador?: string) => {
@@ -413,7 +502,7 @@ export default function Deslizante4FPage() {
         trinco: item.trinco || "Simples",
       }));
 
-      setMateriais(Array.isArray(item.materiais) ? item.materiais : []);
+      setMateriais(Array.isArray(item.materiais) ? normalizarMateriaisSalvosDeslizante4F(item.materiais, Number(item.largura || 0)) : []);
 
       window.setTimeout(() => {
         carregandoMateriaisSalvosRef.current = false;
@@ -533,6 +622,8 @@ export default function Deslizante4FPage() {
             descricao: item.descricao,
             unidade: item.tipo === "perfil" ? "barra" : "und",
             valorUnitario: item.preco,
+            codigoPerfil: item.tipo === "perfil" ? item.descricao.split(" - ")[0]?.trim() || material.codigoPerfil : material.codigoPerfil,
+            personalizadoCatalogo: Boolean(material.origemCalculo),
           }
           : material
       )
@@ -612,7 +703,7 @@ export default function Deslizante4FPage() {
     return perfilExato || buscarPerfilPorCodigo(codigo, opcoes);
   }, [buscarPerfilPorCodigo, perfilCorrespondeCor, perfis]);
 
-  const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
+  const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number, origemCalculo?: string) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigoPreferencial(codigo);
     const totalUsadoMm = Number(comprimentoMm || 0) * Number(quantidadeCortes || 0) * quantidadeProjeto;
@@ -628,6 +719,8 @@ export default function Deslizante4FPage() {
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
       cortes,
+      origemCalculo: origemCalculo || `perfil:${codigo}`,
+      codigoOriginalCalculo: codigo,
     });
   }, [buscarPerfilPorCodigoPreferencial, dados.quantidade]);
 
@@ -662,7 +755,7 @@ export default function Deslizante4FPage() {
     };
   }, []);
 
-  const criarTrilhoDeslizanteInteligente = useCallback((codigo6000: string, codigo7000: string, comprimentoMm: number, quantidadeCortes: number) => {
+  const criarTrilhoDeslizanteInteligente = useCallback((codigo6000: string, codigo7000: string, comprimentoMm: number, quantidadeCortes: number, origemBase?: string) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0));
     const { barras6000, barras7000 } = distribuirTrilhosDeslizante(cortes);
@@ -682,11 +775,13 @@ export default function Deslizante4FPage() {
         codigoPerfil: perfil.codigo,
         comprimentoBarra,
         cortes,
+        origemCalculo: `${origemBase || codigo6000}:${comprimentoBarra}`,
+        codigoOriginalCalculo: codigo,
       });
     }).filter((item): item is ProjetoIndividualMaterial => Boolean(item));
   }, [buscarPerfilPorCodigoPreferencial, dados.quantidade, distribuirTrilhosDeslizante]);
 
-  const criarPerfilMetroLinear = useCallback((codigo: string, comprimentoMm: number) => {
+  const criarPerfilMetroLinear = useCallback((codigo: string, comprimentoMm: number, origemCalculo?: string) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigo(codigo, { ignorarCor: true });
     const metragem = (Number(comprimentoMm || 0) / 1000) * quantidadeProjeto;
@@ -700,6 +795,8 @@ export default function Deslizante4FPage() {
       valorUnitario: Number(perfil.preco || 0),
       codigoPerfil: perfil.codigo,
       cortes: Array.from({ length: quantidadeProjeto }, () => Number(comprimentoMm || 0)),
+      origemCalculo: origemCalculo || `perfil:${codigo}`,
+      codigoOriginalCalculo: codigo,
     });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
@@ -716,12 +813,12 @@ export default function Deslizante4FPage() {
     const codigoPerfilU = espessura === 10 ? "VT10" : espessura === 8 ? "VT66" : "";
 
     return agruparMateriaisMesmoPerfil([
-      ...criarTrilhoDeslizanteInteligente("BCSTY002", "BCSTY002-7", largura, cortesTrilho),
-      ...criarTrilhoDeslizanteInteligente("BCSTY003", "BCSTY003-7", largura, cortesTrilho),
-      criarPerfilBarra("STY106", altura, 6),
-      codigoPerfilU ? criarPerfilBarra(codigoPerfilU, altura, projetoComFixo ? 3 : 2) : null,
-      codigoPerfilU && projetoComFixo ? criarPerfilBarra(codigoPerfilU, larguraVidro, 2) : null,
-      normalizarTexto(dados.trinco).includes("inteiro") ? criarPerfilMetroLinear("3000", largura) : null,
+      ...criarTrilhoDeslizanteInteligente("BCSTY002", "BCSTY002-7", largura, cortesTrilho, "trilho-superior"),
+      ...criarTrilhoDeslizanteInteligente("BCSTY003", "BCSTY003-7", largura, cortesTrilho, "trilho-inferior"),
+      criarPerfilBarra("STY106", altura, 6, "perfil:transpasse"),
+      codigoPerfilU ? criarPerfilBarra(codigoPerfilU, altura, projetoComFixo ? 3 : 2, "perfil-u:altura") : null,
+      codigoPerfilU && projetoComFixo ? criarPerfilBarra(codigoPerfilU, larguraVidro, 2, "perfil-u:largura") : null,
+      normalizarTexto(dados.trinco).includes("inteiro") ? criarPerfilMetroLinear("3000", largura, "perfil:3000") : null,
     ].filter((item): item is ProjetoIndividualMaterial => Boolean(item)));
   }, [criarPerfilBarra, criarPerfilMetroLinear, criarTrilhoDeslizanteInteligente, dados.altura, dados.corKit, dados.largura, dados.trilho, dados.trinco, dados.vidro]);
 
@@ -936,6 +1033,8 @@ export default function Deslizante4FPage() {
           unidade: "und",
           descricao: montarDescricaoComCor(codigoExibicao || ferragem.codigo, ferragem.nome, ferragem.cores),
           valorUnitario: Number(ferragem.preco || 0),
+          origemCalculo: `ferragem:${codigoExibicao || codigo}`,
+          codigoOriginalCalculo: codigoExibicao || codigo,
         });
       })
       .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
@@ -976,12 +1075,7 @@ export default function Deslizante4FPage() {
     if (carregandoMateriaisSalvosRef.current) return;
 
     setMateriais((lista) => {
-      const itensManuais = lista.filter((item) => {
-        const descricao = normalizarTexto(item.descricao);
-        return !descricao.includes("kit") && !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
-      });
-
-      return [...itensManuais, ...perfisAutomaticos, ...ferragensAutomaticas];
+      return mesclarMateriaisAutomaticos(lista, [...perfisAutomaticos, ...ferragensAutomaticas], codigosFerragensAutomaticas);
     });
   }, [codigosFerragensAutomaticas, ferragensAutomaticas, perfisAutomaticos]);
 
@@ -1109,7 +1203,7 @@ export default function Deslizante4FPage() {
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
       projeto: "Deslizante 4 folhas",
     }));
-    setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
+    setMateriais(Array.isArray(itens.materiais) ? normalizarMateriaisSalvosDeslizante4F(itens.materiais, Number(itens.dados?.largura || 0)) : []);
 
     window.setTimeout(() => {
       carregandoMateriaisSalvosRef.current = false;
