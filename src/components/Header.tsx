@@ -53,6 +53,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
       { label: "Sacada Grapa", href: "/calculo/sacadagrapa" },
       { label: "Fechamento Sacada", href: "/calculo/fechamentosacada" },
       { label: "Pele de Vidro", href: "/calculo/peledevidro" },
+      { label: "Fora de esquadro", href: "/calculo/fora-esquadro" },
     ],
   },
   {

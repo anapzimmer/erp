@@ -1304,7 +1304,9 @@ export default function CentralImpressaoPage() {
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
-      quantidade: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas : numeroSeguro(item.quantidade),
+      quantidade: /fora de esquadro/i.test(item.projeto || "") ? numeroSeguro(item.quantidade)
+        : ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas
+          : numeroSeguro(item.quantidade),
       modo: ehVidroAvulso(item.projeto) || ehSacadaGrapa(item.projeto) ? "" : item.modo,
       desenhoUrl: ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
@@ -2457,7 +2459,7 @@ router.push(
                           {item.vidrosAvulsos?.length ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-[#07385a] text-[11px] font-semibold uppercase tracking-[0.04em] text-white">
+                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-600">
                                   <div className="px-3 py-2 text-center">Peças</div>
                                   <div className="px-3 py-2">Medidas</div>
                                   <div className="px-3 py-2">Cor e espessura do vidro</div>

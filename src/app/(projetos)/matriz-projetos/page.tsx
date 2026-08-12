@@ -215,6 +215,17 @@ const projetos = [
     descricao: "Projeto individual com vidro inferior, vidro de bandeira e tubo selecionável.",
   },
   {
+    id: "fora-esquadro",
+    nome: "Fora de esquadro",
+    titulo: "Cálculo de alturas por divisão",
+    categoria: "Fixos",
+    status: "Disponível",
+    imagem: "/desenhos/fora-esquadro.svg",
+    kitHref: "/calculo/fora-esquadro",
+    kitLabel: "Calcular",
+    descricao: "Cálculo dinâmico para vidros inclinados, triangulares ou fora de esquadro.",
+  },
+  {
     id: "pma2f",
     nome: "Mão Amiga - 2 folhas",
     titulo: "Janela, porta ou kit pia",

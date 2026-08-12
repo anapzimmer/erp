@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 4,
   },
-  vidroHeader: { flexDirection: "row", backgroundColor: "#07385a", color: "#ffffff" },
+  vidroHeader: { flexDirection: "row", backgroundColor: "#f1f5f9", color: "#475569" },
   vidroRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
   vidroCellQtd: { width: "16%", padding: 4, fontSize: 7, textAlign: "center" },
   vidroCellMedida: { width: "24%", padding: 4, fontSize: 7 },
@@ -784,6 +784,69 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
       </Svg>
       <Text style={styles.imagePlaceholderText}>{item.largura} x {item.altura} mm</Text>
     </View>
+  );
+}
+
+function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
+  const largura = Math.max(1, Number(item.largura || 2000));
+  const alturaInicial = Math.max(1, Number(item.altura || 1000));
+  const alturasDireitas = Array.from(String(item.medidasDetalhadas || "").matchAll(/\/\s*(\d+(?:[.,]\d+)?)\s*mm/gi));
+  const alturaFinalTexto = alturasDireitas.at(-1)?.[1] || "";
+  const alturaFinal = Math.max(0, Number(String(alturaFinalTexto).replace(",", ".")) || Math.round(alturaInicial * 0.35));
+  const quantidade = Math.max(1, Number(item.quantidade || 1));
+  const divisoes = Math.max(1, Math.min(12, Math.round(Number(item.pecasDivisao || quantidade) / quantidade)));
+  const svgW = 920;
+  const svgH = 520;
+  const padX = 92;
+  const padTop = 62;
+  const padBottom = 92;
+  const drawW = svgW - padX * 2;
+  const drawH = svgH - padTop - padBottom;
+  const x0 = padX;
+  const yBase = padTop + drawH;
+  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
+  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
+  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const panelW = drawW / divisoes;
+  const path = `M ${x0} ${yBase} L ${x0 + drawW} ${yBase} L ${x0 + drawW} ${yFinal} L ${x0} ${yInicial} Z`;
+  const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / divisoes);
+
+  return (
+    <Svg width={112} height={104} viewBox={`0 0 ${svgW} ${svgH}`}>
+      <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill="#f8fafc" />
+      <Path d={path} fill="#e4f4fa" stroke="#b9c9d4" strokeWidth={2.4} />
+      <Path d={path} fill="none" stroke="#e4eef4" strokeWidth={13} opacity={0.95} />
+      <Path d={path} fill="none" stroke="#b9c9d4" strokeWidth={1.4} opacity={0.78} />
+      <Line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke="#ffffff" strokeWidth={8} opacity={0.22} />
+      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke="#ffffff" strokeWidth={6} opacity={0.24} />
+      {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
+        const posicao = index + 1;
+        const x = x0 + panelW * posicao;
+        const yTop = yTopoEm(posicao);
+        const altura = alturaInicial + (alturaFinal - alturaInicial) * (posicao / divisoes);
+
+        return (
+          <G key={`fora-esquadro-div-${posicao}`}>
+            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke="#b9c9d4" strokeWidth={1.8} opacity={0.82} />
+            <Text x={x + 8} y={yTop - 10} style={{ fontSize: 18, fill: "#0f2742" }}>
+              {Math.round(altura)}
+            </Text>
+          </G>
+        );
+      })}
+      <Line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke="#2086e8" strokeWidth={1.6} />
+      <Line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke="#2086e8" strokeWidth={1.6} />
+      <Line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke="#2086e8" strokeWidth={1.6} />
+      <Text x={x0 + drawW / 2 - 44} y={yBase + 62} style={{ fontSize: 21, fill: "#0f2742" }}>
+        {largura.toLocaleString("pt-BR")} mm
+      </Text>
+      <Text x={x0 + 14} y={(yInicial + yBase) / 2} style={{ fontSize: 19, fill: "#0f2742" }}>
+        {alturaInicial.toLocaleString("pt-BR")} mm
+      </Text>
+      <Text x={x0 + drawW - 82} y={(yFinal + yBase) / 2} style={{ fontSize: 19, fill: "#0f2742" }}>
+        {alturaFinal.toLocaleString("pt-BR")} mm
+      </Text>
+    </Svg>
   );
 }
 
@@ -1759,7 +1822,9 @@ const possuiRelacaoObra =
             const temSegundoVidro = temBandeira || fechamentoSacada;
             const ehJanelaComSacada = ehJc2fComSacada || ehJc4fComSacada;
             const ehVidroAvulso = /(vidros|espelhos) avulsos/i.test(item.projeto || "");
+            const foraEsquadro = /fora de esquadro/i.test(item.projeto || "");
             const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
+            const divisaoForaEsquadro = foraEsquadro ? Math.max(1, Number(item.pecasDivisao || item.vidrosAvulsos?.length || 1)) : 0;
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
             const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
             const vidroPrincipal = sacadaFrontal || sacadaGrapa ? descricaoVidroItem(item) : item.vidro;
@@ -1782,27 +1847,34 @@ const possuiRelacaoObra =
             if (ehVidroAvulso) {
               return (
                 <View key={item.id} style={[styles.card, styles.avulsoCard]} break={index > 0}>
-                  <View style={styles.infoArea}>
-                    <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
-                    <Text style={styles.projectName}>{nomeProjeto}</Text>
-                    <View style={styles.infoGrid}>
-                      <View style={styles.infoAvulso}>
-                        <Text style={styles.infoLabel}>Quantidade</Text>
-                        <Text style={styles.infoValue}>{resumoAvulso?.pecas || 0} peça(s)</Text>
+                  <View style={{ flexDirection: "row", gap: 9 }}>
+                    {foraEsquadro ? (
+                      <View style={styles.imageWrap}>
+                        <ForaEsquadroDesenhoPDF item={item} />
                       </View>
-                      <View style={styles.infoAvulso}>
-                        <Text style={styles.infoLabel}>M² total</Text>
-                        <Text style={styles.infoValue}>
-                          {(resumoAvulso?.area || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
-                        </Text>
-                      </View>
-                      <View style={styles.infoAvulso}>
-                        <Text style={styles.infoLabel}>Vidro</Text>
-                        <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
-                      </View>
-                      <View style={styles.infoAvulso}>
-                        <Text style={styles.infoLabel}>Valor total</Text>
-                        <Text style={styles.infoValueStrong}>{moeda(resumoAvulso?.valor || 0)}</Text>
+                    ) : null}
+                    <View style={styles.infoArea}>
+                      <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
+                      <Text style={styles.projectName}>{nomeProjeto}</Text>
+                      <View style={styles.infoGrid}>
+                        <View style={styles.infoAvulso}>
+                          <Text style={styles.infoLabel}>{foraEsquadro ? "Quantidade de vão" : "Quantidade"}</Text>
+                          <Text style={styles.infoValue}>{foraEsquadro ? `${item.quantidade || 1} vão(s)` : `${resumoAvulso?.pecas || 0} peça(s)`}</Text>
+                        </View>
+                        <View style={styles.infoAvulso}>
+                          <Text style={styles.infoLabel}>{foraEsquadro ? "Divisão" : "M² total"}</Text>
+                          <Text style={styles.infoValue}>
+                            {foraEsquadro ? `${divisaoForaEsquadro} peça(s)` : `${(resumoAvulso?.area || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`}
+                          </Text>
+                        </View>
+                        <View style={foraEsquadro ? styles.infoWide : styles.infoAvulso}>
+                          <Text style={styles.infoLabel}>Vidro</Text>
+                          <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
+                        </View>
+                        <View style={styles.infoAvulso}>
+                          <Text style={styles.infoLabel}>Valor total</Text>
+                          <Text style={styles.infoValueStrong}>{moeda(resumoAvulso?.valor || 0)}</Text>
+                        </View>
                       </View>
                     </View>
                   </View>
