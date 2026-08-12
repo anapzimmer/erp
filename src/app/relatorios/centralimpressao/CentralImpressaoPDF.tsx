@@ -102,7 +102,9 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 12,
   },
-  topInfoBox: { flex: 1 },
+  topInfoNumberBox: { width: "22%" },
+  topInfoClientBox: { width: "38%" },
+  topInfoWorkBox: { flex: 1 },
   topLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
   topValue: { fontSize: 9, color: "#0f2742", fontWeight: "bold" },
   list: { gap: 8 },
@@ -114,6 +116,10 @@ const styles = StyleSheet.create({
     padding: 8,
     flexDirection: "row",
     gap: 9,
+  },
+  avulsoCard: {
+    flexDirection: "column",
+    gap: 6,
   },
   imageWrap: {
     width: 120,
@@ -1702,15 +1708,15 @@ const possuiRelacaoObra =
         </View>
 
         <View style={styles.topInfo} fixed>
-          <View style={styles.topInfoBox}>
+          <View style={styles.topInfoNumberBox}>
             <Text style={styles.topLabel}>Nº Orçamento</Text>
             <Text style={styles.topValue}>{numeroOrcamento || "Novo Orçamento"}</Text>
           </View>
-          <View style={styles.topInfoBox}>
+          <View style={styles.topInfoClientBox}>
             <Text style={styles.topLabel}>Cliente</Text>
             <Text style={styles.topValue}>{cliente || "-"}</Text>
           </View>
-          <View style={styles.topInfoBox}>
+          <View style={styles.topInfoWorkBox}>
             <Text style={styles.topLabel}>Obra</Text>
             <Text style={styles.topValue}>{obra || "-"}</Text>
           </View>
@@ -1772,6 +1778,56 @@ const possuiRelacaoObra =
               : ehPortaGiroFixo ? "Projeto"
               : ehPortaGiro ? "Ferragens"
               : "Trinco";
+
+            if (ehVidroAvulso) {
+              return (
+                <View key={item.id} style={[styles.card, styles.avulsoCard]} break={index > 0}>
+                  <View style={styles.infoArea}>
+                    <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
+                    <Text style={styles.projectName}>{nomeProjeto}</Text>
+                    <View style={styles.infoGrid}>
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>Quantidade</Text>
+                        <Text style={styles.infoValue}>{resumoAvulso?.pecas || 0} peça(s)</Text>
+                      </View>
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>M² total</Text>
+                        <Text style={styles.infoValue}>
+                          {(resumoAvulso?.area || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
+                        </Text>
+                      </View>
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>Vidro</Text>
+                        <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
+                      </View>
+                      <View style={styles.infoAvulso}>
+                        <Text style={styles.infoLabel}>Valor total</Text>
+                        <Text style={styles.infoValueStrong}>{moeda(resumoAvulso?.valor || 0)}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {item.vidrosAvulsos?.length ? (
+                    <View style={styles.vidroTable}>
+                      <View style={styles.vidroHeader}>
+                        <Text style={styles.vidroCellQtd}>PEÇAS</Text>
+                        <Text style={styles.vidroCellMedida}>MEDIDAS</Text>
+                        <Text style={styles.vidroCellDesc}>VIDRO</Text>
+                        <Text style={styles.vidroCellTotal}>TOTAL</Text>
+                      </View>
+                      {item.vidrosAvulsos.map((vidro) => (
+                        <View key={vidro.id} style={styles.vidroRow} wrap={false}>
+                          <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
+                          <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
+                          <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                          <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            }
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>

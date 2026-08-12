@@ -255,6 +255,13 @@ const styles = StyleSheet.create({
     width: 78,
     flexShrink: 0,
   },
+  premiumMetaDateBox: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#e2e8f0",
+    paddingLeft: 10,
+    width: 66,
+    flexShrink: 0,
+  },
   premiumClientBox: {
     borderLeftWidth: 1,
     borderLeftColor: "#e2e8f0",
@@ -748,24 +755,24 @@ export function ProjetoIndividualPDF({
     </Text>
   </View>
 
-  <View style={styles.premiumMetaBox}>
-    <Text style={styles.premiumMetaLabel}>Data</Text>
+  <View style={styles.premiumClientBox}>
+    <Text style={styles.premiumMetaLabel}>Cliente</Text>
     <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
-      {dados.data || "-"}
+      {dados.cliente || "-"}
     </Text>
   </View>
 
-  <View style={styles.premiumClientBox}>
-    <Text style={styles.premiumMetaLabel}>Projeto</Text>
+  <View style={styles.premiumMetaDateBox}>
+    <Text style={styles.premiumMetaLabel}>Data</Text>
     <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
-      {nomeProjeto}
+      {dados.data || "-"}
     </Text>
   </View>
 </View>
           </View>
 
           <View style={styles.premiumTitleRow}>
-  <Text style={styles.premiumTitleLabel}>Cliente</Text>
+  <Text style={styles.premiumTitleLabel}>Projeto</Text>
   <Text
     style={[
       styles.premiumTitleValue,
@@ -776,7 +783,7 @@ export function ProjetoIndividualPDF({
       },
     ]}
   >
-    {dados.cliente || "-"}
+    {nomeProjeto}
   </Text>
 </View>
 
@@ -928,24 +935,24 @@ export function ProjetoIndividualPDF({
     </Text>
   </View>
 
-  <View style={styles.metaBox}>
-    <Text style={styles.metaLabel}>Data</Text>
+  <View style={styles.metaClientBox}>
+    <Text style={styles.metaLabel}>Cliente</Text>
     <Text style={[styles.metaValue, { color: themeColor }]}>
-      {dados.data || "-"}
+      {dados.cliente || "-"}
     </Text>
   </View>
 
-  <View style={styles.metaClientBox}>
-    <Text style={styles.metaLabel}>Projeto</Text>
+  <View style={styles.metaBox}>
+    <Text style={styles.metaLabel}>Data</Text>
     <Text style={[styles.metaClientValue, { color: themeColor }]}>
-      {nomeProjeto}
+      {dados.data || "-"}
     </Text>
   </View>
 </View>
         </View>
 
       <View style={styles.titleRow}>
-  <Text style={styles.titleLabel}>Cliente</Text>
+  <Text style={styles.titleLabel}>Projeto</Text>
   <Text
     style={[
       styles.title,
@@ -956,7 +963,7 @@ export function ProjetoIndividualPDF({
       },
     ]}
   >
-    {dados.cliente || "-"}
+    {nomeProjeto}
   </Text>
 </View>
         <View style={styles.grid}>

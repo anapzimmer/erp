@@ -773,6 +773,7 @@ export default function CalculoEspelhosPage() {
 
       const payload = {
         numero_formatado: numero,
+        tipo: "espelhos",
         cliente_nome: nomeCliente,
         obra_referencia: nomeObra,
         itens: listaItens,

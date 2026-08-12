@@ -1533,6 +1533,35 @@ export default function RelatorioOrcamento() {
                                             tipoOrcamentoPreview === "pinazio" ||
                                             possuiItemPinazioPreview;
 
+                                        const possuiItemEspelhoPreview =
+                                            itens.some((item) => {
+                                                const itemEspelho = item as OrcamentoItem & {
+                                                    tipoVisual?: string;
+                                                    designUrl?: string;
+                                                    larguraReal?: number;
+                                                    alturaReal?: number;
+                                                    divisoesLargura?: number;
+                                                    divisoesAltura?: number;
+                                                };
+
+                                                return Boolean(
+                                                    itemEspelho.tipoVisual ||
+                                                    itemEspelho.designUrl ||
+                                                    itemEspelho.larguraReal ||
+                                                    itemEspelho.alturaReal ||
+                                                    itemEspelho.divisoesLargura ||
+                                                    itemEspelho.divisoesAltura
+                                                );
+                                            });
+
+                                        const ehEspelhoPreview =
+                                            !ehPinazioPreview &&
+                                            (
+                                                tipoOrcamentoPreview === "espelhos" ||
+                                                tipoOrcamentoPreview === "espelho" ||
+                                                possuiItemEspelhoPreview
+                                            );
+
                                         if (ehPinazioPreview) {
     return (
         <PinazioPDF
@@ -1570,12 +1599,7 @@ export default function RelatorioOrcamento() {
     );
 }
                                         // Espelhos
-                                        if (
-                                            !ehPinazioPreview &&
-                                            /^OR(x!C)/i.test(
-                                                orcamentoParaVisualizar?.numero_formatado || ""
-                                            )
-                                        ) {
+                                        if (ehEspelhoPreview) {
                                             return (
                                                 <EspelhosPDF
                                                     itens={itens}

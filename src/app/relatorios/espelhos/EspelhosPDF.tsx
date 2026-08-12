@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#E2E8F0' },
   infoRowLast: { flexDirection: 'row' },
   infoBoxQuarter: { width: '25%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: '#E2E8F0' },
+  infoBoxHalfBorder: { width: '50%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: '#E2E8F0' },
   infoBoxHalf: { width: '50%', paddingVertical: 7, paddingHorizontal: 9 },
   infoBoxLast: { flex: 1, paddingVertical: 7, paddingHorizontal: 9 },
   label: { fontSize: 6.4, color: '#64748B', textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
@@ -253,19 +254,19 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
             <Text style={styles.label}>Orçamento</Text>
             <Text style={[styles.value, { color: contentColor }]}>{numeroOrcamento || "-"}</Text>
           </View>
-          <View style={styles.infoBoxQuarter}>
+          <View style={styles.infoBoxHalfBorder}>
+            <Text style={styles.label}>Cliente</Text>
+            <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
+          </View>
+          <View style={styles.infoBoxLast}>
             <Text style={styles.label}>Data</Text>
             <Text style={[styles.value, { color: contentColor }]}>{dataGeracao}</Text>
-          </View>
-          <View style={styles.infoBoxHalf}>
-            <Text style={styles.label}>Obra / referência</Text>
-            <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
           </View>
         </View>
         <View style={styles.infoRowLast}>
           <View style={styles.infoBoxLast}>
-            <Text style={styles.label}>Cliente</Text>
-            <Text style={[styles.value, { color: contentColor }]}>{nomeCliente || "Não informado"}</Text>
+            <Text style={styles.label}>Obra / referência</Text>
+            <Text style={[styles.value, { color: contentColor }]}>{nomeObra || "Geral"}</Text>
           </View>
         </View>
       </View>

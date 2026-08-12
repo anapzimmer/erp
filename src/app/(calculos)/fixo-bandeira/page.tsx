@@ -209,6 +209,43 @@ const desenhoFixoBandeiraPorPecas = (pecas: number) => {
   return `/desenhos/fixo-${folhas}folhascombandeira.png`;
 };
 
+const dividirCortePorBarra = (comprimentoMm: number, comprimentoBarra = 6000) => {
+  const comprimento = Math.ceil(Number(comprimentoMm || 0));
+  const barra = Math.max(1, Math.ceil(Number(comprimentoBarra || 6000)));
+
+  if (comprimento <= 0) return [];
+  if (comprimento <= barra) return [comprimento];
+
+  const partes = Math.ceil(comprimento / barra);
+  const base = Math.floor(comprimento / partes);
+  const sobra = comprimento - base * partes;
+
+  return Array.from({ length: partes }, (_, index) => base + (index < sobra ? 1 : 0));
+};
+
+const prepararCortesPorBarra = (cortes: number[], comprimentoBarra = 6000) =>
+  cortes.flatMap((corte) => dividirCortePorBarra(corte, comprimentoBarra));
+
+const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
+  const cortes = prepararCortesPorBarra(cortesOriginais, comprimentoBarra)
+    .filter((corte) => corte > 0)
+    .sort((a, b) => b - a);
+
+  const barras: number[] = [];
+
+  cortes.forEach((corte) => {
+    const barraIndex = barras.findIndex((usado) => usado + corte <= comprimentoBarra);
+
+    if (barraIndex >= 0) {
+      barras[barraIndex] += corte;
+    } else {
+      barras.push(corte);
+    }
+  });
+
+  return barras.length;
+};
+
 
 export default function FixoBandeiraPage() {
   const router = useRouter();
@@ -665,16 +702,15 @@ export default function FixoBandeiraPage() {
   const criarPerfilBarra = useCallback((codigo: string, cortesProjeto: number[]) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigo(codigo);
-    const cortesUnitarios = cortesProjeto
+    const cortesUnitarios = prepararCortesPorBarra(cortesProjeto, 6000)
       .map((corte) => Number(corte || 0))
       .filter((corte) => corte > 0);
     const cortes = Array.from({ length: quantidadeProjeto }, () => cortesUnitarios).flat();
-    const totalUsadoMm = cortes.reduce((soma, corte) => soma + corte, 0);
 
-    if (!perfil || totalUsadoMm <= 0) return null;
+    if (!perfil || cortes.length <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),
@@ -686,16 +722,15 @@ export default function FixoBandeiraPage() {
 
   const criarPerfilBarraPorCadastro = useCallback((perfil: PerfilCadastro, cortesProjeto: number[]) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    const cortesUnitarios = cortesProjeto
+    const cortesUnitarios = prepararCortesPorBarra(cortesProjeto, 6000)
       .map((corte) => Number(corte || 0))
       .filter((corte) => corte > 0);
     const cortes = Array.from({ length: quantidadeProjeto }, () => cortesUnitarios).flat();
-    const totalUsadoMm = cortes.reduce((soma, corte) => soma + corte, 0);
 
-    if (!perfil || totalUsadoMm <= 0) return null;
+    if (!perfil || cortes.length <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: formatarDescricaoTubo(perfil),
       valorUnitario: Number(perfil.preco || 0),
@@ -756,7 +791,7 @@ export default function FixoBandeiraPage() {
       agrupados.set(chave, {
         ...atual,
         cortes,
-        qtd: Math.ceil(cortes.reduce((soma, corte) => soma + Number(corte || 0), 0) / Number(atual.comprimentoBarra || 6000)),
+        qtd: calcularBarrasPorCortes(cortes, Number(atual.comprimentoBarra || 6000)),
       });
     });
 

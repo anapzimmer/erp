@@ -901,9 +901,23 @@ const calcularAreaVidrosItem = (item: ProjetoComposicao) => {
   return (Number(item.largura || 0) * Number(item.altura || 0) * numeroSeguro(item.quantidade)) / 1_000_000;
 };
 
+const dividirCortePorBarra = (comprimentoMm: number, comprimentoBarra = 6000) => {
+  const comprimento = Math.ceil(Number(comprimentoMm || 0));
+  const barra = Math.max(1, Math.ceil(Number(comprimentoBarra || 6000)));
+
+  if (comprimento <= 0) return [];
+  if (comprimento <= barra) return [comprimento];
+
+  const partes = Math.ceil(comprimento / barra);
+  const base = Math.floor(comprimento / partes);
+  const sobra = comprimento - base * partes;
+
+  return Array.from({ length: partes }, (_, index) => base + (index < sobra ? 1 : 0));
+};
+
 const otimizarCortes = (cortesOriginais: number[], comprimentoBarra: number) => {
   const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
+    .flatMap((corte) => dividirCortePorBarra(corte, comprimentoBarra))
     .filter((corte) => corte > 0)
     .sort((a, b) => b - a);
 
