@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
+import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
 
 type ClienteCadastro = {
   id: string;
@@ -467,6 +468,8 @@ export default function PC4FKitPage() {
             descricao: item.descricao,
             unidade: item.tipo === "perfil" ? "barra" : "und",
             valorUnitario: item.preco,
+          codigoPerfil: item.tipo === "perfil" ? item.descricao.split(" - ")[0]?.trim() || material.codigoPerfil : material.codigoPerfil,
+          personalizadoCatalogo: Boolean(material.origemCalculo),
           }
           : material
       )
@@ -870,12 +873,7 @@ export default function PC4FKitPage() {
 
   useEffect(() => {
     setMateriais((lista) => {
-      const itensManuais = lista.filter((item) => {
-        const descricao = normalizarTexto(item.descricao);
-        return !codigosFerragensAutomaticas.some((codigo) => descricao.includes(codigo));
-      });
-
-      return [...itensManuais, ...ferragensAutomaticas];
+      return mesclarMateriaisAutomaticos(lista, ferragensAutomaticas, codigosFerragensAutomaticas);
     });
   }, [codigosFerragensAutomaticas, ferragensAutomaticas]);
 

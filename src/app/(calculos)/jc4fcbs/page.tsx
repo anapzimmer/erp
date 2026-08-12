@@ -1528,6 +1528,8 @@ useEffect(() => {
               unidade:
                 item.tipo === "perfil" ? "barra" : "und",
               valorUnitario: item.preco,
+            codigoPerfil: item.tipo === "perfil" ? item.descricao.split(" - ")[0]?.trim() || material.codigoPerfil : material.codigoPerfil,
+            personalizadoCatalogo: Boolean(material.origemCalculo),
             }
           : material
       )

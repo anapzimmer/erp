@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
+import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
 
 type ClienteCadastro = {
   id: string;
@@ -258,39 +259,6 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
   }
 
   return `${descricaoBase} | ${corTexto}`.toUpperCase();
-};
-
-const mesclarMateriaisAutomaticos = (
-  lista: ProjetoIndividualMaterial[],
-  automaticos: ProjetoIndividualMaterial[],
-  codigosAutomaticos: string[]
-) => {
-  const origensAutomaticas = new Set(automaticos.map((item) => item.origemCalculo).filter(Boolean));
-
-  const itensManuais = lista.filter((item) => {
-    if (item.origemCalculo && origensAutomaticas.has(item.origemCalculo)) return false;
-    const descricao = normalizarTexto(item.descricao);
-    return !descricao.includes("kit") && !codigosAutomaticos.some((codigo) => descricao.includes(codigo));
-  });
-
-  const itensMesclados = automaticos.map((automatico) => {
-    const existente = automatico.origemCalculo
-      ? lista.find((item) => item.origemCalculo === automatico.origemCalculo)
-      : null;
-
-    if (!existente) return automatico;
-
-    return {
-      ...automatico,
-      id: existente.id,
-      descricao: existente.personalizadoCatalogo ? existente.descricao : automatico.descricao,
-      valorUnitario: existente.personalizadoCatalogo ? existente.valorUnitario : automatico.valorUnitario,
-      codigoPerfil: existente.personalizadoCatalogo ? existente.codigoPerfil : automatico.codigoPerfil,
-      personalizadoCatalogo: existente.personalizadoCatalogo,
-    };
-  });
-
-  return [...itensManuais, ...itensMesclados];
 };
 
 const origemDeslizante4FPorDescricao = (material: ProjetoIndividualMaterial, largura: number) => {
