@@ -4,6 +4,7 @@
 import React from "react";
 import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 type SacadaTorrePDFProps = {
   nomeEmpresa: string;
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
 export function SacadaTorrePDF({
   nomeEmpresa,
   logoUrl,
-  tituloDocumento = "Orcamento Sacada com Torre",
+  tituloDocumento = "Orçamento Sacada com Torre",
   numeroOrcamento,
   nomeCliente,
   nomeObra,
@@ -219,7 +220,7 @@ export function SacadaTorrePDF({
           <View style={styles.headerText}>
             <Text style={styles.title}>{tituloDocumento}</Text>
             <Text style={styles.subtitle}>
-              {numeroOrcamento ? `N. orcamento: ${numeroOrcamento} - ` : ""}Emissao: {new Date().toLocaleDateString("pt-BR")}
+              {numeroOrcamento ? `Nº orçamento: ${numeroOrcamento} - ` : ""}Emissão: {new Date().toLocaleDateString("pt-BR")}
             </Text>
           </View>
           {logoUrl ? <Image src={logoUrl} style={styles.logo} /> : <Text style={styles.title}>{nomeEmpresa}</Text>}
@@ -386,7 +387,7 @@ const casasQtd =
 
         <View style={styles.totals} wrap={false}>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Area total</Text>
+            <Text style={styles.totalLabel}>Área total</Text>
             <Text style={styles.totalValue}>
   {fmtNumero(areaTotal, 3)} m²
 </Text>
@@ -405,7 +406,11 @@ const casasQtd =
           </View>
         </View>
 
-        <Text style={styles.footer}>{nomeEmpresa || "Glass Code"} - Solucoes em Vidros e Ferragens</Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa || "Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );

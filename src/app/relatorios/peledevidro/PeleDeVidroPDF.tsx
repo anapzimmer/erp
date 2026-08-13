@@ -1,4 +1,4 @@
-// app/relatorios/peledevidro/PeleDeVidroPDF.tsx
+﻿// app/relatorios/peledevidro/PeleDeVidroPDF.tsx
 "use client";
 
 import React from "react";
@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 interface PerfilPDF {
   nome: string;
@@ -307,7 +308,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
             <Text style={styles.title}>Orçamento Pele de Vidro</Text>
             <Text style={styles.subtitle}>
               {props.numeroOrcamento
-                ? `N. orçamento: ${props.numeroOrcamento} - `
+                ? `Nº orçamento: ${props.numeroOrcamento} - `
                 : ""}
               Emissão: {new Date().toLocaleDateString("pt-BR")}
             </Text>
@@ -570,11 +571,14 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
             <Text style={styles.totalValueStrong}>{fmtMoeda(props.totalGeral)}</Text>
           </View>
         </View>
-
-        <Text style={styles.footer}>
-          {props.nomeEmpresa || "Glass Code"} - Soluções em Vidros e Ferragens
-        </Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(props.nomeEmpresa || "Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );
 }
+
+

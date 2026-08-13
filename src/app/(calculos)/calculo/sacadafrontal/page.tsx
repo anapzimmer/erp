@@ -1061,7 +1061,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
-                    tituloDocumento={tipoSacada === "tubo" ? "Orçamento Sacada Frontal Tubo" : "Orçamento Sacada Frontal Panorâmica"}
+                    tituloDocumento={tipoSacada === "tubo" ? "Orçamento Sacada Tubo" : "Orçamento Sacada Panorâmica"}
                     nomeCliente={nomeClienteSelecionado || "Não selecionado"}
                     nomeObra={obra || "Geral"}
                     larguraVaoMm={larguraNumero}

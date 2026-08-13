@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import {
@@ -10,6 +10,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import {
+  PDF_COLORS,
   PDF_HEADER_LAYOUT,
   PDF_TABLE_LAYOUT,
   buildPdfFooterText,
@@ -65,6 +66,12 @@ const formatarMetroLinear = (valor: number) =>
     maximumFractionDigits: 3,
   });
 
+const formatarM2 = (valor: number) =>
+  Number(valor || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
 const obterMedidas = (item: ItemPinazioPDF) => {
   if (item.medidas) return item.medidas;
 
@@ -72,6 +79,15 @@ const obterMedidas = (item: ItemPinazioPDF) => {
   const altura = Number(item.alturaReal || item.altura || 0);
 
   return `${largura}x${altura}`;
+};
+
+const obterAreaVidro = (item: ItemPinazioPDF) => {
+  const medidas = String(item.medidas || "").match(/(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i);
+  const largura = Number(item.larguraReal || item.largura || medidas?.[1]?.replace(",", ".") || 0);
+  const altura = Number(item.alturaReal || item.altura || medidas?.[2]?.replace(",", ".") || 0);
+  const quantidade = Math.max(1, Number(item.quantidade || 1));
+
+  return (largura * altura * quantidade) / 1_000_000;
 };
 
 const obterMetroLinearTotal = (item: ItemPinazioPDF) => {
@@ -87,182 +103,174 @@ const obterMetroLinearTotal = (item: ItemPinazioPDF) => {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    backgroundColor: "#FFFFFF",
+    padding: 32,
+    backgroundColor: PDF_COLORS.white,
     fontFamily: "Helvetica",
+    color: PDF_COLORS.ink,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: PDF_HEADER_LAYOUT.marginBottom,
-    paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
-    borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
+    alignItems: "center",
+    marginBottom: 10,
+    paddingBottom: 12,
+    borderBottomWidth: 0.8,
   },
   headerLeft: {
     flexDirection: "column",
-  },
-  tituloRelatorio: {
-    fontSize: PDF_HEADER_LAYOUT.titleSize,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-  },
-  subtitulo: {
-    fontSize: PDF_HEADER_LAYOUT.subtitleSize,
-    marginTop: 2,
-    fontWeight: "bold",
-  },
-  dataEmissao: {
-    fontSize: PDF_HEADER_LAYOUT.dateSize,
-    color: "#666666",
-    marginTop: 6,
+    flex: 1,
   },
   headerRight: {
-    width: 140,
+    flexDirection: "column",
     alignItems: "flex-end",
+    maxWidth: 240,
+  },
+  tituloRelatorio: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: PDF_COLORS.ink,
+  },
+  subtitulo: {
+    fontSize: 7.8,
+    marginTop: 4,
+    fontWeight: "normal",
+    color: PDF_COLORS.muted,
+  },
+  dataEmissao: {
+    fontSize: 8,
+    color: PDF_COLORS.muted,
+    marginTop: 3,
   },
   logo: {
     width: PDF_HEADER_LAYOUT.logoWidth,
     height: PDF_HEADER_LAYOUT.logoHeight,
     objectFit: "contain",
-    objectPosition: "right",
+    objectPosition: "left",
   },
-  infoSection: {
-    flexDirection: "row",
-    marginBottom: 12,
-    gap: 8,
+  empresaFallback: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: "bold" },
+  empresaSlogan: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 2 },
+  infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: PDF_COLORS.borderLight, borderRadius: 6 },
+  infoRow: { flexDirection: "row", borderBottomWidth: 0.8, borderBottomColor: PDF_COLORS.borderLight },
+  infoRowLast: { flexDirection: "row" },
+  infoBoxQuarter: {
+    width: "25%",
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    borderRightWidth: 0.8,
+    borderRightColor: PDF_COLORS.borderLight,
   },
-  infoBox: {
+  infoBoxHalfBorder: {
+    width: "50%",
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    borderRightWidth: 0.8,
+    borderRightColor: PDF_COLORS.borderLight,
+  },
+  infoBoxLast: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
-    padding: 10,
-    borderRadius: 6,
-    borderLeftWidth: 3,
+    paddingVertical: 7,
+    paddingHorizontal: 9,
   },
   label: {
-    fontSize: 6,
-    color: "#999999",
+    fontSize: 6.4,
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
-    fontWeight: "bold",
+    letterSpacing: 0.8,
   },
   value: {
-    fontSize: 10,
-    fontWeight: "bold",
+    fontSize: 9,
+    fontWeight: "normal",
+    color: PDF_COLORS.ink,
   },
   table: {
     width: "100%",
+    borderTopWidth: 0.8,
+    borderTopColor: "#CBD5E1",
   },
   tableHeader: {
     flexDirection: "row",
+    borderBottomWidth: 0.8,
+    borderBottomColor: "#CBD5E1",
   },
   tableRow: {
     flexDirection: "row",
-    borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth,
-    borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor,
+    borderBottomWidth: 0.7,
+    borderBottomColor: PDF_COLORS.borderLight,
     alignItems: "center",
-    minHeight: 52,
+    minHeight: 72,
   },
   tableColHeader: {
     paddingHorizontal: 4,
-    paddingVertical: 8,
-    color: "#FFFFFF",
+    paddingVertical: 6,
+    color: "#334155",
     fontSize: PDF_TABLE_LAYOUT.headerFontSize,
-    fontWeight: "bold",
     textTransform: "uppercase",
+    letterSpacing: 0.25,
   },
   tableCol: {
     paddingHorizontal: 4,
     paddingVertical: 6,
     fontSize: PDF_TABLE_LAYOUT.bodyFontSize,
+    color: PDF_COLORS.ink,
   },
   colImagem: {
-    width: "13%",
+    width: "17%",
     alignItems: "center",
     justifyContent: "center",
   },
-  desenho: {
-    width: 50,
-    height: 38,
-    objectFit: "contain",
-  },
   colDesc: {
-    width: "43%",
+    width: "31%",
   },
   colMedidas: {
-    width: "15%",
+    width: "16%",
     textAlign: "center",
   },
   colQtd: {
-    width: "8%",
+    width: "9%",
     textAlign: "center",
+  },
+  colMetro: {
+    width: "10%",
+    textAlign: "right",
   },
   colTotal: {
-    width: "21%",
+    width: "17%",
     textAlign: "right",
-    paddingRight: 8,
   },
   detalhePinazio: {
-    marginTop: 3,
-    fontSize: 6.5,
-    color: "#667785",
-    lineHeight: 1.3,
+    marginTop: 2,
+    fontSize: 6.4,
+    color: PDF_COLORS.muted,
+    lineHeight: 1.25,
   },
-  resumo: {
-    marginTop: 15,
+  summaryContainer: {
+    marginTop: 18,
     paddingTop: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: "#DDDDDD",
-  },
-  resumoLinha: {
+    borderTopWidth: 0.8,
+    borderTopColor: "#CBD5E1",
     flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginBottom: 4,
-    paddingRight: 10,
+    justifyContent: "space-between",
+    alignItems: "flex-end",
   },
-  resumoLabel: {
-    fontSize: 9,
-    color: "#666666",
-    marginRight: 10,
-  },
-  resumoValor: {
-    width: 100,
-    fontSize: 10,
-    fontWeight: "bold",
-    textAlign: "right",
-  },
-  totalLabel: {
-    fontSize: 10,
-    color: "#666666",
-    marginRight: 10,
-  },
-  totalValor: {
-    width: 100,
-    fontSize: 12,
-    fontWeight: "bold",
-    textAlign: "right",
-  },
-  observacao: {
-    marginTop: 14,
-    padding: 9,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 5,
-    fontSize: 7,
-    color: "#666666",
-    lineHeight: 1.4,
-  },
+  summaryGroup: { flexDirection: "row", gap: 14 },
+  summaryItem: { flexDirection: "column", alignItems: "flex-start" },
+  summaryLabel: { fontSize: 6.2, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 2, letterSpacing: 0.5 },
+  summaryValue: { fontSize: 9.4, fontWeight: "bold", color: PDF_COLORS.ink },
+  totalFinalBox: { textAlign: "right" },
+  totalFinalLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  totalFinalValue: { fontSize: 14, fontWeight: "bold", color: PDF_COLORS.ink, marginTop: 3 },
   footer: {
     position: "absolute",
-    bottom: 30,
-    left: 40,
-    right: 40,
+    bottom: 18,
+    left: 32,
+    right: 32,
     textAlign: "center",
     fontSize: 7,
-    color: "#999999",
+    color: PDF_COLORS.softMuted,
     borderTopWidth: 0.5,
-    borderTopColor: "#DDDDDD",
-    paddingTop: 10,
+    borderTopColor: PDF_COLORS.borderLight,
+    paddingTop: 8,
   },
 });
 
@@ -270,15 +278,12 @@ export function PinazioPDF({
   itens,
   nomeEmpresa,
   logoUrl,
-  themeColor,
-  textColor,
   nomeCliente,
   nomeObra,
   numeroOrcamento,
   valorTotal,
 }: PinazioPDFProps) {
   const dataGeracao = new Date().toLocaleDateString("pt-BR");
-  const contentColor = textColor || themeColor;
 
   const totalCalculado = itens.reduce(
     (soma, item) => soma + Number(item.total || 0),
@@ -298,6 +303,11 @@ export function PinazioPDF({
     0
   );
 
+  const metragemVidros = itens.reduce(
+    (soma, item) => soma + obterAreaVidro(item),
+    0
+  );
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -306,72 +316,63 @@ export function PinazioPDF({
             styles.header,
             {
               marginRight: 10,
-              borderBottomColor: themeColor,
+              borderBottomColor: PDF_COLORS.border,
             },
           ]}
         >
           <View style={styles.headerLeft}>
-            <Text style={[styles.tituloRelatorio, { color: themeColor }]}> 
-              Orçamento de Vidros
-            </Text>
-
-            {numeroOrcamento ? (
-              <Text
-                style={[
-                  styles.subtitulo,
-                  {
-                    color: themeColor,
-                    marginTop: 4,
-                  },
-                ]}
-              >
-                Nº Orçamento: {numeroOrcamento}
-              </Text>
+            {logoUrl ? (
+              <Image src={logoUrl} style={styles.logo} />
             ) : (
-              <Text style={[styles.subtitulo, { color: contentColor }]}> 
-                {nomeEmpresa}
-              </Text>
+              <View>
+                <Text style={styles.empresaFallback}>{nomeEmpresa || "Glass Code"}</Text>
+                <Text style={styles.empresaSlogan}>Soluções em Vidros e Ferragens</Text>
+              </View>
             )}
-
-            <Text style={styles.dataEmissao}>
-              Emissão em: {dataGeracao}
-            </Text>
           </View>
 
           <View style={styles.headerRight}>
-            {logoUrl ? <Image src={logoUrl} style={styles.logo} /> : null}
+            <Text style={styles.tituloRelatorio}>Orçamento de Pinázio</Text>
+            <Text style={styles.subtitulo}>Composição comercial de peças, medidas e pinázios</Text>
+            {numeroOrcamento ? (
+              <Text style={styles.subtitulo}>Nº Orçamento: {numeroOrcamento}</Text>
+            ) : (
+              <Text style={styles.subtitulo}>{nomeEmpresa}</Text>
+            )}
+            <Text style={styles.dataEmissao}>Emissão em: {dataGeracao}</Text>
           </View>
         </View>
 
         <View style={styles.infoSection}>
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
-            <Text style={styles.label}>Cliente</Text>
-            <Text style={[styles.value, { color: contentColor }]}> 
-              {nomeCliente || "Não informado"}
-            </Text>
+          <View style={styles.infoRow}>
+            <View style={styles.infoBoxQuarter}>
+              <Text style={styles.label}>Orçamento</Text>
+              <Text style={styles.value}>{numeroOrcamento || "-"}</Text>
+            </View>
+            <View style={styles.infoBoxHalfBorder}>
+              <Text style={styles.label}>Cliente</Text>
+              <Text style={styles.value}>{nomeCliente || "Não informado"}</Text>
+            </View>
+            <View style={styles.infoBoxLast}>
+              <Text style={styles.label}>Data</Text>
+              <Text style={styles.value}>{dataGeracao}</Text>
+            </View>
           </View>
-
-          <View style={[styles.infoBox, { borderLeftColor: themeColor }]}> 
-            <Text style={styles.label}>Obra / Referência</Text>
-            <Text style={[styles.value, { color: contentColor }]}> 
-              {nomeObra || "Geral"}
-            </Text>
+          <View style={styles.infoRowLast}>
+            <View style={styles.infoBoxLast}>
+              <Text style={styles.label}>Obra / referência</Text>
+              <Text style={styles.value}>{nomeObra || "Geral"}</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.table}>
-          <View
-            style={[
-              styles.tableHeader,
-              {
-                backgroundColor: themeColor,
-              },
-            ]}
-          >
+          <View style={styles.tableHeader}>
             <Text style={[styles.tableColHeader, styles.colImagem]}>Desenho</Text>
             <Text style={[styles.tableColHeader, styles.colDesc]}>Descrição</Text>
             <Text style={[styles.tableColHeader, styles.colMedidas]}>Medidas</Text>
             <Text style={[styles.tableColHeader, styles.colQtd]}>Qtd</Text>
+            <Text style={[styles.tableColHeader, styles.colMetro]}>ML</Text>
             <Text style={[styles.tableColHeader, styles.colTotal]}>Total</Text>
           </View>
 
@@ -391,20 +392,20 @@ export function PinazioPDF({
                   divisoesLargura={Number(item.divisoesLargura || 1)}
                   divisoesAltura={Number(item.divisoesAltura || 1)}
                   cor={item.pinazioCor || "branco"}
-                  width={58}
-                  height={42}
+                  width={78}
+                  height={58}
                 />
               </View>
 
               <View style={[styles.tableCol, styles.colDesc]}>
-                <Text style={{ color: contentColor }}>
+                <Text style={{ color: PDF_COLORS.ink }}>
                   {item.descricao}
                 </Text>
 
                 {item.pinazioId === "sem-pinazio" ||
                 obterMetroLinearTotal(item) <= 0 ? (
                   <Text style={styles.detalhePinazio}>
-                    Sem Pinázio — cálculo somente do vidro
+                    Sem Pinázio - cálculo somente do vidro
                   </Text>
                 ) : (
                   <>
@@ -426,7 +427,7 @@ export function PinazioPDF({
                 style={[
                   styles.tableCol,
                   styles.colMedidas,
-                  { color: contentColor },
+                  { color: PDF_COLORS.ink },
                 ]}
               >
                 {obterMedidas(item)} mm
@@ -436,7 +437,7 @@ export function PinazioPDF({
                 style={[
                   styles.tableCol,
                   styles.colQtd,
-                  { color: contentColor },
+                  { color: PDF_COLORS.ink },
                 ]}
               >
                 {Math.max(1, Number(item.quantidade || 1))}
@@ -445,9 +446,19 @@ export function PinazioPDF({
               <Text
                 style={[
                   styles.tableCol,
+                  styles.colMetro,
+                  { color: PDF_COLORS.ink },
+                ]}
+              >
+                {formatarMetroLinear(obterMetroLinearTotal(item))}
+              </Text>
+
+              <Text
+                style={[
+                  styles.tableCol,
                   styles.colTotal,
                   {
-                    color: themeColor,
+                    color: PDF_COLORS.ink,
                     fontWeight: "bold",
                   },
                 ]}
@@ -458,37 +469,25 @@ export function PinazioPDF({
           ))}
         </View>
 
-        <View style={styles.resumo}>
-          <View style={styles.resumoLinha}>
-            <Text style={styles.resumoLabel}>Total de peças:</Text>
-            <Text style={[styles.resumoValor, { color: contentColor }]}> 
-              {totalPecas}
-            </Text>
-          </View>
-
-          {totalMetroLinear > 0 ? (
-            <View style={styles.resumoLinha}>
-              <Text style={styles.resumoLabel}>Total de Pinázio:</Text>
-              <Text style={[styles.resumoValor, { color: contentColor }]}> 
-                {formatarMetroLinear(totalMetroLinear)} ml
-              </Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryGroup}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Qtd. Peças</Text>
+              <Text style={styles.summaryValue}>{totalPecas} un</Text>
             </View>
-          ) : null}
-
-          <View style={[styles.resumoLinha, { marginTop: 5 }]}> 
-            <Text style={styles.totalLabel}>Valor total:</Text>
-            <Text style={[styles.totalValor, { color: themeColor }]}> 
-              {formatarMoeda(totalGeral)}
-            </Text>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Metragem</Text>
+              <Text style={styles.summaryValue}>{formatarM2(metragemVidros)} m²</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Pinázio</Text>
+              <Text style={styles.summaryValue}>{formatarMetroLinear(totalMetroLinear)} ml</Text>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.observacao}>
-          <Text>
-            O vidro é calculado em sua medida total. Quando houver Pinázio,
-            as divisões informadas serão usadas exclusivamente para calcular
-            o metro linear das barras internas.
-          </Text>
+          <View style={styles.totalFinalBox}>
+            <Text style={styles.totalFinalLabel}>Valor total do orçamento</Text>
+            <Text style={styles.totalFinalValue}>{formatarMoeda(totalGeral)}</Text>
+          </View>
         </View>
 
         <Text
@@ -502,3 +501,4 @@ export function PinazioPDF({
     </Document>
   );
 }
+

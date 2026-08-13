@@ -13,6 +13,7 @@ import type {
   ProjetoIndividualDados,
   ProjetoIndividualMaterial,
 } from "../projetoindividual/ProjetoIndividualPDF";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 export type JC4FCBSDadosPDF = ProjetoIndividualDados & {
   alturaPeitoril: number;
@@ -519,9 +520,11 @@ export function JC4FCBSPDF({
           </View>
         </View>
 
-        <Text style={styles.footer}>
-          Projeto JC4FCBS gerado pelo Glass Code
-        </Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );

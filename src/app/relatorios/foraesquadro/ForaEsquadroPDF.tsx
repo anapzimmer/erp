@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Document, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ForaEsquadroPecaPDF = {
   indice: number;
@@ -242,7 +243,7 @@ export function ForaEsquadroPDF({
             ) : (
               <>
                 <Text style={styles.brandFallback}>{nomeEmpresa}</Text>
-                <Text style={styles.brandSlogan}>Solucoes em Vidros e Ferragens</Text>
+                <Text style={styles.brandSlogan}>Soluções em Vidros e Ferragens</Text>
               </>
             )}
           </View>
@@ -298,12 +299,12 @@ export function ForaEsquadroPDF({
               <Text style={styles.value}>{vidro}</Text>
             </View>
             <View style={styles.infoBox}>
-              <Text style={styles.label}>Preco por m2</Text>
+              <Text style={styles.label}>Preço por m²</Text>
               <Text style={styles.value}>{moeda(precoM2 || 0)}</Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.label}>Area cobrada</Text>
-              <Text style={styles.value}>{fmtM2(areaTotal)} m2</Text>
+              <Text style={styles.value}>{fmtM2(areaTotal)} m²</Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.label}>Valor total</Text>
@@ -337,7 +338,7 @@ export function ForaEsquadroPDF({
               <Text style={[styles.td, styles.colAltura]}>{fmtMm(peca.alturaEsquerda)}</Text>
               <Text style={[styles.td, styles.colAltura]}>{fmtMm(peca.alturaDireita)}</Text>
               <Text style={[styles.td, styles.colQueda]}>{fmtMm(Math.abs(peca.queda))}</Text>
-              <Text style={[styles.td, styles.colArea]}>{fmtM2(peca.area)} m2</Text>
+              <Text style={[styles.td, styles.colArea]}>{fmtM2(peca.area)} m²</Text>
             </View>
           ))}
         </View>
@@ -345,19 +346,23 @@ export function ForaEsquadroPDF({
         <View style={styles.totals}>
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Area por vao</Text>
-            <Text style={styles.totalValue}>{fmtM2(areaPorVao)} m2</Text>
+            <Text style={styles.totalValue}>{fmtM2(areaPorVao)} m²</Text>
           </View>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Quantidade de vaos</Text>
+            <Text style={styles.totalLabel}>Quantidade de vãos</Text>
             <Text style={styles.totalValue}>{quantidade || 1}</Text>
           </View>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Area total</Text>
-            <Text style={styles.totalValueStrong}>{fmtM2(areaTotal)} m2</Text>
+            <Text style={styles.totalLabel}>Área total</Text>
+            <Text style={styles.totalValueStrong}>{fmtM2(areaTotal)} m²</Text>
           </View>
         </View>
 
-        <Text style={styles.footer}>{nomeEmpresa || "Glass Code"} - Fora de esquadro</Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa || "Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );

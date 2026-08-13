@@ -1,4 +1,4 @@
-// app/relatorios/sacadafrontal/SacadaFrontalPDF.tsx
+﻿// app/relatorios/sacadafrontal/SacadaFrontalPDF.tsx
 "use client";
 
 import React from "react";
@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 interface PerfilPDF {
   nome: string;
@@ -104,26 +105,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#d9e2ea",
     paddingBottom: 12,
     marginBottom: 12,
   },
-  headerText: { flex: 1, paddingRight: 18 },
+  headerBrand: { flex: 1, paddingRight: 18 },
+  headerText: { flexDirection: "column", alignItems: "flex-end", maxWidth: 260 },
   title: {
     fontSize: 15,
     color: "#153047",
     fontWeight: "bold",
-    textTransform: "uppercase",
   },
   subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
   logo: {
     width: 118,
     height: 42,
     objectFit: "contain",
-    objectPosition: "right",
+    objectPosition: "left",
   },
+  empresaFallback: { fontSize: 15, color: "#153047", fontWeight: "bold" },
+  empresaSlogan: { fontSize: 7.5, color: "#6f8193", marginTop: 2 },
   infoStrip: {
     flexDirection: "row",
     gap: 8,
@@ -215,15 +218,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f6f9",
   },
   th: {
-    padding: 5,
-    fontSize: 9,
+    padding: 4,
+    fontSize: 7.6,
     color: "#153047",
     textTransform: "uppercase",
-    fontWeight: "bold",
+    fontWeight: "normal",
   },
   td: {
-    padding: 5,
-    fontSize: 10,
+    padding: 4,
+    fontSize: 8,
     color: "#153047",
   },
   colQtd: { width: "12%", textAlign: "center" },
@@ -234,8 +237,8 @@ const styles = StyleSheet.create({
 
   groupTotalLabel: {
     width: "84%",
-    padding: 5,
-    fontSize: 10,
+    padding: 4,
+    fontSize: 8,
     color: "#153047",
     textAlign: "right",
     textTransform: "uppercase",
@@ -243,8 +246,8 @@ const styles = StyleSheet.create({
   },
   groupTotalValue: {
     width: "16%",
-    padding: 5,
-    fontSize: 10,
+    padding: 4,
+    fontSize: 8,
     color: "#153047",
     textAlign: "right",
     fontWeight: "bold",
@@ -292,7 +295,7 @@ const styles = StyleSheet.create({
 export function SacadaFrontalPDF({
   nomeEmpresa,
   logoUrl,
-  tituloDocumento = "Orcamento Sacada Frontal Panoramica",
+  tituloDocumento = "Orçamento Sacada Panorâmica",
   numeroOrcamento,
   nomeCliente,
   nomeObra,
@@ -491,39 +494,41 @@ export function SacadaFrontalPDF({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
+          <View style={styles.headerBrand}>
+            {logoUrl ? (
+              <Image src={logoUrl} style={styles.logo} />
+            ) : (
+              <View>
+                <Text style={styles.empresaFallback}>{nomeEmpresa || "Glass Code"}</Text>
+                <Text style={styles.empresaSlogan}>Soluções em Vidros e Ferragens</Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.headerText}>
             <Text style={styles.title}>{tituloDocumento}</Text>
             <Text style={styles.subtitle}>
-              {numeroOrcamento
-                ? `N. orcamento: ${numeroOrcamento} - `
-                : ""}
-              Emissao: {new Date().toLocaleDateString("pt-BR")}
+              {numeroOrcamento ? `Nº orçamento: ${numeroOrcamento} - ` : ""}
+              Emissão: {new Date().toLocaleDateString("pt-BR")}
             </Text>
           </View>
-
-          {logoUrl ? (
-            <Image src={logoUrl} style={styles.logo} />
-          ) : (
-            <Text style={styles.title}>{nomeEmpresa}</Text>
-          )}
         </View>
-
         <View style={styles.infoStrip}>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Cliente</Text>
             <Text style={styles.valueStrong}>
-              {nomeCliente || "Nao informado"}
+              {nomeCliente || "Não informado"}
             </Text>
           </View>
 
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Obra / Referencia</Text>
+            <Text style={styles.label}>Obra / Referência</Text>
             <Text style={styles.value}>{nomeObra || "Geral"}</Text>
           </View>
 
           <View style={styles.infoBox}>
             <Text style={styles.label}>Projeto</Text>
-            <Text style={styles.value}>Sacada frontal panoramica</Text>
+            <Text style={styles.value}>Sacada frontal panorâmica</Text>
           </View>
         </View>
 
@@ -670,14 +675,14 @@ export function SacadaFrontalPDF({
               <View style={styles.dataItem}>
                 <Text style={styles.label}>Cor do material</Text>
                 <Text style={styles.value}>
-                  {corPerfil || "Nao selecionada"}
+                  {corPerfil || "Não selecionada"}
                 </Text>
               </View>
 
               <View style={styles.dataItem}>
-                <Text style={styles.label}>Area total</Text>
+                <Text style={styles.label}>Área total</Text>
                 <Text style={styles.value}>
-                  {fmtNumero(areaTotal, 3)} m²
+                  {fmtNumero(areaTotal, 3)} mÂ²
                 </Text>
               </View>
 
@@ -788,9 +793,9 @@ export function SacadaFrontalPDF({
 
         <View style={styles.totals} wrap={false}>
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Area total</Text>
+            <Text style={styles.totalLabel}>Área total</Text>
             <Text style={styles.totalValue}>
-              {fmtNumero(areaTotal, 3)} m²
+              {fmtNumero(areaTotal, 3)} mÂ²
             </Text>
           </View>
 
@@ -819,10 +824,14 @@ export function SacadaFrontalPDF({
           </View>
         </View>
 
-        <Text style={styles.footer}>
-          {nomeEmpresa || "Glass Code"} - Solucoes em Vidros e Ferragens
-        </Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa || "Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );
 }
+
+

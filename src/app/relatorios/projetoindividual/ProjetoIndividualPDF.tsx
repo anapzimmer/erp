@@ -3,6 +3,7 @@
 
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ProjetoIndividualMaterial = {
   id: string;
@@ -904,7 +905,11 @@ export function ProjetoIndividualPDF({
               <Text style={styles.premiumSummaryValueStrong}>{moeda(total)}</Text>
             </View>
           </View>
-          <Text style={styles.footer}>Projeto individual gerado pelo Glass Code</Text>
+          <Text
+            style={styles.footer}
+            fixed
+            render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+          />
         </Page>
       </Document>
     );
@@ -1096,8 +1101,8 @@ export function ProjetoIndividualPDF({
 
         <View style={styles.summary} wrap={false}>
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryLabel}>Area total</Text>
-            <Text style={styles.summaryValue}>{numero(areaTotal)} m2</Text>
+            <Text style={styles.summaryLabel}>Área total</Text>
+            <Text style={styles.summaryValue}>{numero(areaTotal)} m²</Text>
           </View>
           <View style={styles.summaryBox}>
             <Text style={styles.summaryLabel}>Qtd. Peças</Text>
@@ -1120,7 +1125,11 @@ export function ProjetoIndividualPDF({
             <Text style={styles.summaryValue}>{moeda(total)}</Text>
           </View>
         </View>
-        <Text style={styles.footer}>Projeto individual gerado pelo Glass Code</Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );

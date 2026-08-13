@@ -6,6 +6,7 @@ import React from "react";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import MiniProjetoPinazioPDF from "@/components/desenhos/MiniProjetoPinazioPDF";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type CentralImpressaoItem = {
   id: string;
@@ -76,23 +77,23 @@ const styles = StyleSheet.create({
   page: {
     padding: 24,
     fontFamily: "Helvetica",
-    backgroundColor: "#ffffff",
-    color: "#0f2742",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: "#dbe4ee",
+    borderBottomColor: PDF_COLORS.border,
     paddingBottom: 12,
     marginBottom: 12,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 120, maxHeight: 42, objectFit: "contain", objectPosition: "left" },
-  title: { fontSize: 15, fontWeight: "bold", color: "#0f2742" },
-  subtitle: { fontSize: 8, color: "#64748b", marginTop: 3 },
-  meta: { fontSize: 8, color: "#64748b", textAlign: "right" },
+  title: { fontSize: 15, fontWeight: "bold", color: PDF_COLORS.ink },
+  subtitle: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 3 },
+  meta: { fontSize: 8, color: PDF_COLORS.muted, textAlign: "right" },
   topInfo: {
     flexDirection: "row",
     gap: 8,
@@ -105,8 +106,8 @@ const styles = StyleSheet.create({
   topInfoNumberBox: { width: "22%" },
   topInfoClientBox: { width: "38%" },
   topInfoWorkBox: { flex: 1 },
-  topLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  topValue: { fontSize: 9, color: "#0f2742", fontWeight: "bold" },
+  topLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  topValue: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold" },
   list: { gap: 8 },
   card: {
     width: "100%",
@@ -157,6 +158,26 @@ const styles = StyleSheet.create({
   vidroCellMedida: { width: "24%", padding: 4, fontSize: 7 },
   vidroCellDesc: { width: "40%", padding: 4, fontSize: 7 },
   vidroCellTotal: { width: "20%", padding: 4, fontSize: 7, textAlign: "right" },
+  materialAvulsoTable: {
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    borderRadius: 6,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  materialAvulsoTitle: {
+    fontSize: 10,
+    color: "#0f2742",
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  materialAvulsoHeader: { flexDirection: "row", backgroundColor: "#f1f5f9", color: "#475569" },
+  materialAvulsoRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  materialAvulsoQtd: { width: "13%", padding: 5, fontSize: 7, textAlign: "center" },
+  materialAvulsoDesc: { width: "47%", padding: 5, fontSize: 7 },
+  materialAvulsoUnd: { width: "13%", padding: 5, fontSize: 7 },
+  materialAvulsoUnit: { width: "13%", padding: 5, fontSize: 7, textAlign: "right" },
+  materialAvulsoTotal: { width: "14%", padding: 5, fontSize: 7, textAlign: "right" },
   totals: {
     flexDirection: "row",
     gap: 4,
@@ -1613,14 +1634,15 @@ export function CentralImpressaoPDF({
   somenteRelacaoObra = false,
 }: CentralImpressaoPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
-  const quantidadeVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade)), 0);
-  const quantidadePecasVaos = itens.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade) * pecasPorVaoProjeto(item)), 0);
+  const itensProjetos = itens.filter((item) => !/materiais avulsos/i.test(item.projeto || ""));
+  const quantidadeVaos = itensProjetos.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade)), 0);
+  const quantidadePecasVaos = itensProjetos.reduce((total, item) => total + (ehVidroAvulso(item.projeto) ? 0 : numeroSeguro(item.quantidade) * pecasPorVaoProjeto(item)), 0);
   const quantidadePecasAvulsas = itens.reduce((total, item) => {
     if (!ehVidroAvulso(item.projeto)) return total;
     return total + (item.vidrosAvulsos?.reduce((subtotal, vidro) => subtotal + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0));
   }, 0);
   const quantidadePecas = quantidadePecasVaos + quantidadePecasAvulsas;
-  const areaTotal = itens.reduce((total, item) => total + calcularAreaVidrosItem(item), 0);
+  const areaTotal = itensProjetos.reduce((total, item) => total + calcularAreaVidrosItem(item), 0);
   const valorTotalOrcamento = itens.reduce((total, item) => total + Number(item.valorTotal || 0), 0);
   const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
   const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
@@ -1764,7 +1786,7 @@ const possuiRelacaoObra =
             </View>
           </View>
           <Text style={styles.meta}>
-            {itens.length} projeto(s)
+            {itensProjetos.length} projeto(s)
             {"\n"}
             {data}
           </Text>
@@ -1822,6 +1844,7 @@ const possuiRelacaoObra =
             const temSegundoVidro = temBandeira || fechamentoSacada;
             const ehJanelaComSacada = ehJc2fComSacada || ehJc4fComSacada;
             const ehVidroAvulso = /(vidros|espelhos) avulsos/i.test(item.projeto || "");
+            const ehMateriaisAvulsos = /materiais avulsos/i.test(item.projeto || "");
             const foraEsquadro = /fora de esquadro/i.test(item.projeto || "");
             const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
             const divisaoForaEsquadro = foraEsquadro ? Math.max(1, Number(item.pecasDivisao || item.vidrosAvulsos?.length || 1)) : 0;
@@ -1897,6 +1920,38 @@ const possuiRelacaoObra =
                       ))}
                     </View>
                   ) : null}
+                </View>
+              );
+            }
+
+            if (ehMateriaisAvulsos) {
+              return (
+                <View key={item.id} style={styles.card} wrap={false}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.projectLabel}>Complemento do orçamento</Text>
+                    <Text style={styles.materialAvulsoTitle}>Materiais avulsos</Text>
+                    <View style={styles.materialAvulsoTable}>
+                      <View style={styles.materialAvulsoHeader}>
+                        <Text style={styles.materialAvulsoQtd}>QTD</Text>
+                        <Text style={styles.materialAvulsoDesc}>DESCRIÇÃO</Text>
+                        <Text style={styles.materialAvulsoUnd}>UND</Text>
+                        <Text style={styles.materialAvulsoUnit}>VALOR UNIT.</Text>
+                        <Text style={styles.materialAvulsoTotal}>TOTAL</Text>
+                      </View>
+                      {(item.materiais || []).map((material) => {
+                        const valorTotal = numeroSeguro(material.qtd) * numeroSeguro(material.valorUnitario);
+                        return (
+                          <View key={material.id} style={styles.materialAvulsoRow} wrap={false}>
+                            <Text style={styles.materialAvulsoQtd}>{formatarQuantidadeMaterial(material.qtd, material.unidade)}</Text>
+                            <Text style={styles.materialAvulsoDesc}>{material.descricao}</Text>
+                            <Text style={styles.materialAvulsoUnd}>{material.unidade}</Text>
+                            <Text style={styles.materialAvulsoUnit}>{moeda(material.valorUnitario)}</Text>
+                            <Text style={styles.materialAvulsoTotal}>{moeda(valorTotal)}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
                 </View>
               );
             }
@@ -2280,9 +2335,11 @@ const possuiRelacaoObra =
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da sacada", relacaoFerragensSacadaFrontal) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da engenharia", relacaoFerragensProjetos) : null}
 
-        <Text style={styles.footer} fixed>
-          Orçamentos Projetos gerado pelo Glass Code
-        </Text>
+        <Text
+          style={styles.footer}
+          fixed
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa || "Glass Code", pageNumber, totalPages)}
+        />
       </Page>
     </Document>
   );

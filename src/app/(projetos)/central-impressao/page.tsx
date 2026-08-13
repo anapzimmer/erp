@@ -64,6 +64,23 @@ type VidroCadastro = {
   preco?: number | null;
 };
 
+type CatalogoMaterial = {
+  id: string;
+  tipo: "perfil" | "ferragem" | "kit";
+  codigo?: string | null;
+  nome: string;
+  cores?: string | null;
+  categoria?: string | null;
+  preco?: number | null;
+};
+
+type MaterialAvulsoForm = {
+  descricao: string;
+  qtd: string;
+  unidade: string;
+  valorUnitario: string;
+};
+
 type PrecoVidroGrupo = {
   vidro_id: string;
   grupo_preco_id: string | null;
@@ -90,6 +107,7 @@ const CENTRAL_NUMERO_KEY = "glasscode:central-impressao:numero";
 const CENTRAL_ORCAMENTO_ID_KEY = "glasscode:central-impressao:orcamento-id";
 const CENTRAL_USAR_OTIMIZACAO_KEY = "glasscode:central-impressao:usar-otimizacao";
 const CENTRAL_IMPRIMIR_OTIMIZACAO_KEY = "glasscode:central-impressao:imprimir-otimizacao";
+const CENTRAL_MATERIAIS_AVULSOS_KEY = "glasscode:central-impressao:materiais-avulsos";
 
 const moeda = (valor: number) =>
   Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -136,6 +154,26 @@ const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
   if (espessura) partes.push(`${espessura}mm`);
   return partes.join(" ");
+};
+
+const labelCatalogoMaterial = (item: CatalogoMaterial) => {
+  const codigo = String(item.codigo || "").trim();
+  const nome = String(item.nome || "").trim();
+  const cor = String(item.cores || "").trim();
+  return [codigo, nome, cor].filter(Boolean).join(" - ");
+};
+
+const unidadeSugeridaMaterial = (item?: CatalogoMaterial | null) => {
+  const texto = normalizarTexto(`${item?.nome || ""} ${item?.categoria || ""}`);
+  if (item?.tipo === "perfil" || texto.includes("tubo") || texto.includes("cantoneira")) return "barra";
+  if (item?.tipo === "kit") return "und";
+  return "und";
+};
+
+const formatarQuantidadeMaterialTela = (valor: number, unidade?: string) => {
+  const unidadeNormalizada = normalizarTexto(unidade);
+  const casas = unidadeNormalizada.includes("und") || unidadeNormalizada.includes("barra") || unidadeNormalizada.includes("pacote") || unidadeNormalizada.includes("rolo") ? 0 : 2;
+  return Number(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 };
 
 const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
@@ -823,6 +861,15 @@ const carregarLista = (): ProjetoComposicao[] => {
   }
 };
 
+const carregarMateriaisAvulsos = (): ProjetoIndividualMaterial[] => {
+  try {
+    const salvo = window.localStorage.getItem(CENTRAL_MATERIAIS_AVULSOS_KEY);
+    return salvo ? JSON.parse(salvo) as ProjetoIndividualMaterial[] : [];
+  } catch {
+    return [];
+  }
+};
+
 const limparRascunhosDosProjetos = () => {
   const ehRascunhoDeOrcamento = (chave: string) => {
     const chaveNormalizada = chave.toLowerCase();
@@ -1016,6 +1063,15 @@ export default function CentralImpressaoPage() {
   const [vidros, setVidros] = useState<VidroCadastro[]>([]);
   const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
+  const [catalogoMateriais, setCatalogoMateriais] = useState<CatalogoMaterial[]>([]);
+  const [materiaisAvulsos, setMateriaisAvulsos] = useState<ProjetoIndividualMaterial[]>([]);
+  const [materialAvulsoForm, setMaterialAvulsoForm] = useState<MaterialAvulsoForm>({
+    descricao: "",
+    qtd: "1",
+    unidade: "und",
+    valorUnitario: "0,00",
+  });
+  const [buscaMaterialAvulso, setBuscaMaterialAvulso] = useState("");
 
   useEffect(() => {
     const carregarCadastros = async () => {
@@ -1025,6 +1081,9 @@ export default function CentralImpressaoPage() {
         { data: vidrosData, error: vidrosError },
         { data: clientesData, error: clientesError },
         { data: precosVidroData, error: precosVidroError },
+        { data: perfisData, error: perfisError },
+        { data: ferragensData, error: ferragensError },
+        { data: kitsData, error: kitsError },
       ] = await Promise.all([
         supabase
           .from("vidros")
@@ -1040,6 +1099,21 @@ export default function CentralImpressaoPage() {
           .from("vidro_precos_grupos")
           .select("vidro_id, grupo_preco_id, preco")
           .eq("empresa_id", empresaId),
+        supabase
+          .from("perfis")
+          .select("id, codigo, nome, cores, categoria, preco")
+          .eq("empresa_id", empresaId)
+          .order("codigo", { ascending: true }),
+        supabase
+          .from("ferragens")
+          .select("id, codigo, nome, cores, categoria, preco")
+          .eq("empresa_id", empresaId)
+          .order("codigo", { ascending: true }),
+        supabase
+          .from("kits")
+          .select("id, codigo, nome, cores, categoria, preco")
+          .eq("empresa_id", empresaId)
+          .order("nome", { ascending: true }),
       ]);
 
       if (vidrosError) {
@@ -1062,6 +1136,24 @@ export default function CentralImpressaoPage() {
       } else {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
       }
+
+      const catalogo: CatalogoMaterial[] = [];
+      if (perfisError) {
+        console.error("Erro ao carregar perfis para materiais avulsos:", perfisError);
+      } else {
+        catalogo.push(...((perfisData || []) as Omit<CatalogoMaterial, "tipo">[]).map((item) => ({ ...item, tipo: "perfil" as const })));
+      }
+      if (ferragensError) {
+        console.error("Erro ao carregar ferragens para materiais avulsos:", ferragensError);
+      } else {
+        catalogo.push(...((ferragensData || []) as Omit<CatalogoMaterial, "tipo">[]).map((item) => ({ ...item, tipo: "ferragem" as const })));
+      }
+      if (kitsError) {
+        console.error("Erro ao carregar kits para materiais avulsos:", kitsError);
+      } else {
+        catalogo.push(...((kitsData || []) as Omit<CatalogoMaterial, "tipo">[]).map((item) => ({ ...item, tipo: "kit" as const })));
+      }
+      setCatalogoMateriais(catalogo);
     };
 
     carregarCadastros();
@@ -1075,6 +1167,7 @@ export default function CentralImpressaoPage() {
 
         if (idRascunho === editId && listaRascunho.length > 0) {
           setItens(listaRascunho);
+          setMateriaisAvulsos(carregarMateriaisAvulsos());
           setNumeroOrcamento(window.localStorage.getItem(CENTRAL_NUMERO_KEY) || "Novo Orçamento");
           setCliente(window.localStorage.getItem(CENTRAL_CLIENTE_KEY) || listaRascunho[0]?.cliente || "");
           setObra(window.localStorage.getItem(CENTRAL_OBRA_KEY) || "");
@@ -1091,10 +1184,11 @@ export default function CentralImpressaoPage() {
           .maybeSingle();
 
         if (!error && data) {
-          const itensSalvos = data.itens && !Array.isArray(data.itens) && typeof data.itens === "object" ? data.itens as { projetos?: ProjetoComposicao[]; cliente?: string; obra?: string; otimizacaoPerfis?: OtimizacaoPerfil[]; resumo?: { otimizacaoAplicada?: boolean } }
+          const itensSalvos = data.itens && !Array.isArray(data.itens) && typeof data.itens === "object" ? data.itens as { projetos?: ProjetoComposicao[]; materiaisAvulsos?: ProjetoIndividualMaterial[]; cliente?: string; obra?: string; otimizacaoPerfis?: OtimizacaoPerfil[]; resumo?: { otimizacaoAplicada?: boolean } }
             : null;
 
           setItens(Array.isArray(itensSalvos?.projetos) ? itensSalvos.projetos : []);
+          setMateriaisAvulsos(Array.isArray(itensSalvos?.materiaisAvulsos) ? itensSalvos.materiaisAvulsos : []);
           setNumeroOrcamento(data.numero_formatado || "Novo Orçamento");
           setCliente(data.cliente_nome || itensSalvos?.cliente || "");
           setObra(data.obra_referencia || itensSalvos?.obra || "");
@@ -1108,6 +1202,7 @@ export default function CentralImpressaoPage() {
 
       const lista = carregarLista();
       setItens(lista);
+      setMateriaisAvulsos(carregarMateriaisAvulsos());
       // Em uma composição nova, não reutiliza um número antigo salvo no
       // navegador. O efeito abaixo consulta o banco e prepara a sequência atual.
       setNumeroOrcamento("Novo Orçamento");
@@ -1127,12 +1222,13 @@ export default function CentralImpressaoPage() {
     window.localStorage.setItem(CENTRAL_NUMERO_KEY, numeroOrcamento);
     window.localStorage.setItem(CENTRAL_CLIENTE_KEY, cliente);
     window.localStorage.setItem(CENTRAL_OBRA_KEY, obra);
+    window.localStorage.setItem(CENTRAL_MATERIAIS_AVULSOS_KEY, JSON.stringify(materiaisAvulsos));
     window.localStorage.setItem(CENTRAL_USAR_OTIMIZACAO_KEY, usarOtimizacao ? "1" : "0");
     window.localStorage.setItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY, imprimirOtimizacao ? "1" : "0");
     if (editId) {
       window.localStorage.setItem(CENTRAL_ORCAMENTO_ID_KEY, editId);
     }
-  }, [cliente, editId, imprimirOtimizacao, itens, numeroOrcamento, obra, rascunhoCarregado, usarOtimizacao]);
+  }, [cliente, editId, imprimirOtimizacao, itens, materiaisAvulsos, numeroOrcamento, obra, rascunhoCarregado, usarOtimizacao]);
 
   const otimizacaoPerfis = useMemo(() => calcularOtimizacaoPerfis(itens), [itens]);
   const otimizacaoAplicada = usarOtimizacao && otimizacaoPerfis.length > 0;
@@ -1161,6 +1257,24 @@ export default function CentralImpressaoPage() {
     return Number(precoGrupo?.preco ?? vidroSelecionadoOrcamento.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionadoOrcamento]);
 
+  const materiaisAvulsosValidos = useMemo(
+    () => materiaisAvulsos.filter((material) => String(material.descricao || "").trim() && Number(material.qtd || 0) > 0),
+    [materiaisAvulsos]
+  );
+
+  const totalMateriaisAvulsos = useMemo(
+    () => materiaisAvulsosValidos.reduce((total, material) => total + Number(material.qtd || 0) * Number(material.valorUnitario || 0), 0),
+    [materiaisAvulsosValidos]
+  );
+
+  const catalogoMateriaisFiltrado = useMemo(() => {
+    const termo = normalizarTexto(buscaMaterialAvulso || materialAvulsoForm.descricao);
+    if (!termo) return catalogoMateriais.slice(0, 10);
+    return catalogoMateriais
+      .filter((item) => normalizarTexto(labelCatalogoMaterial(item)).includes(termo))
+      .slice(0, 10);
+  }, [buscaMaterialAvulso, catalogoMateriais, materialAvulsoForm.descricao]);
+
   const totais = useMemo(() => {
     const base = itens.reduce(
       (acc, item) => {
@@ -1181,8 +1295,9 @@ export default function CentralImpressaoPage() {
     const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
     const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
     const economiaPerfis = Math.max(0, valorPerfisOriginais - valorPerfisOtimizados);
-    const valor = otimizacaoAplicada ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
+    const valorProjetos = otimizacaoAplicada ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
       : base.valorOriginal;
+    const valor = valorProjetos + totalMateriaisAvulsos;
 
     return {
       ...base,
@@ -1193,7 +1308,7 @@ export default function CentralImpressaoPage() {
       economiaPerfis,
       otimizacaoAplicada,
     };
-  }, [itens, otimizacaoAplicada, otimizacaoPerfis]);
+  }, [itens, otimizacaoAplicada, otimizacaoPerfis, totalMateriaisAvulsos]);
 
   const valoresRateadosPorItem = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -1295,7 +1410,8 @@ export default function CentralImpressaoPage() {
   }, [itens, otimizacaoAplicada, otimizacaoPerfis]);
 
   const itensPdf = useMemo<CentralImpressaoItem[]>(
-    () => itens.map((item) => ({
+    () => {
+      const projetos = itens.map((item) => ({
       id: item.id,
       numero: item.numero,
       projeto: nomeProjetoVisivel(item.projeto),
@@ -1333,9 +1449,71 @@ export default function CentralImpressaoPage() {
       divisoesAltura: Number(item.divisoesAltura || 1),
 
       materiais: item.materiais,
-    })),
-    [cliente, itens, valoresRateadosPorItem]
+    }));
+
+      if (materiaisAvulsosValidos.length === 0) return projetos;
+
+      return [
+        ...projetos,
+        {
+          id: "materiais-avulsos",
+          numero: numeroOrcamento || "Novo Orçamento",
+          projeto: "Materiais avulsos",
+          cliente,
+          medidas: "",
+          largura: 0,
+          altura: 0,
+          quantidade: 0,
+          modo: "",
+          desenhoUrl: "",
+          valorTotal: totalMateriaisAvulsos,
+          materiais: materiaisAvulsosValidos,
+        },
+      ];
+    },
+    [cliente, itens, materiaisAvulsosValidos, numeroOrcamento, totalMateriaisAvulsos, valoresRateadosPorItem]
   );
+
+  const selecionarMaterialCatalogo = (item: CatalogoMaterial) => {
+    setMaterialAvulsoForm({
+      descricao: labelCatalogoMaterial(item),
+      qtd: materialAvulsoForm.qtd || "1",
+      unidade: unidadeSugeridaMaterial(item),
+      valorUnitario: numeroDecimal(Number(item.preco || 0)),
+    });
+    setBuscaMaterialAvulso("");
+  };
+
+  const adicionarMaterialAvulso = () => {
+    const descricao = materialAvulsoForm.descricao.trim();
+    const qtd = parseNumero(materialAvulsoForm.qtd || "0");
+    const valorUnitario = parseNumero(materialAvulsoForm.valorUnitario || "0");
+    const unidade = materialAvulsoForm.unidade.trim() || "und";
+
+    if (!descricao || qtd <= 0) {
+      setMensagem("Informe a descrição e a quantidade do material avulso.");
+      return;
+    }
+
+    setMateriaisAvulsos((lista) => [
+      ...lista,
+      {
+        id: criarId(),
+        qtd,
+        unidade,
+        descricao,
+        valorUnitario,
+        codigoPerfil: descricao.split(" - ")[0]?.trim() || undefined,
+      },
+    ]);
+    setMaterialAvulsoForm({ descricao: "", qtd: "1", unidade: "und", valorUnitario: "0,00" });
+    setBuscaMaterialAvulso("");
+    setMensagem("");
+  };
+
+  const removerMaterialAvulso = (id: string) => {
+    setMateriaisAvulsos((lista) => lista.filter((material) => material.id !== id));
+  };
 
   const atualizarItem = <K extends keyof ProjetoComposicao>(id: string, campo: K, valor: ProjetoComposicao[K]) => {
     setItens((lista) =>
@@ -1493,6 +1671,7 @@ router.push(
 
   const limparTudo = () => {
     setItens([]);
+    setMateriaisAvulsos([]);
     setNumeroOrcamento("");
     setCliente("");
     setObra("");
@@ -1503,6 +1682,7 @@ router.push(
     window.localStorage.removeItem(CENTRAL_ORCAMENTO_ID_KEY);
     window.localStorage.removeItem(CENTRAL_USAR_OTIMIZACAO_KEY);
     window.localStorage.removeItem(CENTRAL_IMPRIMIR_OTIMIZACAO_KEY);
+    window.localStorage.removeItem(CENTRAL_MATERIAIS_AVULSOS_KEY);
     setUsarOtimizacao(false);
     setImprimirOtimizacao(false);
   };
@@ -1535,8 +1715,8 @@ router.push(
       setMensagem("Empresa não encontrada para salvar o Orçamento.");
       return;
     }
-    if (itens.length === 0) {
-      setMensagem("Adicione pelo menos um projeto antes de salvar.");
+    if (itens.length === 0 && materiaisAvulsosValidos.length === 0) {
+      setMensagem("Adicione pelo menos um projeto ou material avulso antes de salvar.");
       return;
     }
 
@@ -1555,6 +1735,7 @@ router.push(
           cliente,
           obra,
           projetos: itens,
+          materiaisAvulsos: materiaisAvulsosValidos,
           projetosOtimizados: otimizacaoAplicada ? itensPdf : undefined,
           resumo: totais,
           otimizacaoPerfis: otimizacaoPerfisPdf,
@@ -1691,7 +1872,7 @@ router.push(
               </Field>
 
               <div className="flex flex-wrap gap-2">
-                {itens.length > 0 ? (
+                {itensPdf.length > 0 ? (
                   <>
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
@@ -1759,6 +1940,120 @@ router.push(
             {mensagem ? (
               <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">{mensagem}</p>
             ) : null}
+
+            <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-[#0f2742]">Materiais avulsos</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Inclua perfil, tubo, kit, ferragem ou qualquer item extra que não veio de um projeto.
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-[#0f2742]">Total: {moeda(totalMateriaisAvulsos)}</p>
+              </div>
+
+              <div className="mt-4 grid gap-3 xl:grid-cols-[1.4fr_0.45fr_0.45fr_0.55fr_auto]">
+                <div className="relative">
+                  <Field label="Descrição / buscar cadastro">
+                    <input
+                      value={materialAvulsoForm.descricao}
+                      onChange={(e) => {
+                        setMaterialAvulsoForm((form) => ({ ...form, descricao: e.target.value }));
+                        setBuscaMaterialAvulso(e.target.value);
+                      }}
+                      placeholder="Digite ou escolha um item cadastrado"
+                      className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                    />
+                  </Field>
+                  {buscaMaterialAvulso.trim() ? (
+                    <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                      {catalogoMateriaisFiltrado.length > 0 ? (
+                        catalogoMateriaisFiltrado.map((item) => (
+                          <button
+                            key={`${item.tipo}-${item.id}`}
+                            type="button"
+                            onClick={() => selecionarMaterialCatalogo(item)}
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50"
+                          >
+                            <span className="font-semibold text-[#0f2742]">{labelCatalogoMaterial(item)}</span>
+                            <span className="ml-2 text-xs text-slate-400">{item.tipo} · {moeda(Number(item.preco || 0))}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-slate-400">Nenhum cadastro encontrado. Pode seguir digitando manualmente.</p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+                <Field label="Qtd">
+                  <input
+                    value={materialAvulsoForm.qtd}
+                    onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, qtd: e.target.value }))}
+                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  />
+                </Field>
+                <Field label="Unidade">
+                  <select
+                    value={materialAvulsoForm.unidade}
+                    onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, unidade: e.target.value }))}
+                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  >
+                    <option value="und">und</option>
+                    <option value="barra">barra</option>
+                    <option value="m">m</option>
+                    <option value="m²">m²</option>
+                    <option value="pacote">pacote</option>
+                    <option value="rolo">rolo</option>
+                  </select>
+                </Field>
+                <Field label="Valor unit.">
+                  <input
+                    value={materialAvulsoForm.valorUnitario}
+                    onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, valorUnitario: e.target.value }))}
+                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  />
+                </Field>
+                <button
+                  type="button"
+                  onClick={adicionarMaterialAvulso}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
+                  style={{ backgroundColor: theme.menuBackgroundColor }}
+                >
+                  <Plus size={16} />
+                  Adicionar
+                </button>
+              </div>
+
+              {materiaisAvulsosValidos.length > 0 ? (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <div className="grid grid-cols-[90px_1fr_110px_150px_52px] bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+                    <div className="px-3 py-2 text-center">Qtd</div>
+                    <div className="px-3 py-2">Descrição</div>
+                    <div className="px-3 py-2">Unidade</div>
+                    <div className="px-3 py-2 text-right">Total</div>
+                    <div className="px-3 py-2" />
+                  </div>
+                  {materiaisAvulsosValidos.map((material) => (
+                    <div key={material.id} className="grid grid-cols-[90px_1fr_110px_150px_52px] border-t border-slate-100 text-sm text-slate-700">
+                      <div className="px-3 py-2 text-center">{formatarQuantidadeMaterialTela(material.qtd, material.unidade)}</div>
+                      <div className="px-3 py-2">{material.descricao}</div>
+                      <div className="px-3 py-2">{material.unidade}</div>
+                      <div className="px-3 py-2 text-right font-semibold text-[#0f2742]">{moeda(Number(material.qtd || 0) * Number(material.valorUnitario || 0))}</div>
+                      <div className="px-2 py-1 text-right">
+                        <button
+                          type="button"
+                          onClick={() => removerMaterialAvulso(material.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                          title="Remover material avulso"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
 
             <div className="mt-5 space-y-4">
               {itens.length > 0 ? (
@@ -2501,7 +2796,7 @@ router.push(
               )}
             </div>
 
-            {itens.length > 0 ? (
+            {itensPdf.length > 0 ? (
               <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(96px,1fr))_minmax(210px,1.6fr)]">
                 <TotalResumo label="Quantidade de vão" value={String(totais.projetos)} />
                 <TotalResumo label="Peças dos vãos" value={String(totais.pecasVaos)} />
