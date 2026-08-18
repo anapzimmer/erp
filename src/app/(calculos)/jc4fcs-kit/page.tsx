@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import {
   AlertTriangle,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
+import { kitCategoriaCompativel, kitCorCompativel, kitFolhasCompativel } from "@/utils/kitsCompatibilidade";
 
 type ClienteCadastro = {
   id: string;
@@ -197,23 +199,10 @@ const codigoFerragemCompativel = (codigoCadastro: string, codigoBase: string) =>
   return /^[a-z]{1,8}$/.test(sufixo);
 };
 
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => ordemMaterialRelacao({
+  descricao: descricaoOriginal,
+  unidade: unidadeOriginal,
+});
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:jc4fcs-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -579,6 +568,9 @@ export default function JC4FCSKitPage() {
   };
 
   const obterEspessuraVidro = (texto: string) => {
+    const laminado = texto.match(/(\d{1,2})\s*\+\s*(\d{1,2})\s*mm/i);
+    if (laminado) return Number(laminado[1]) + Number(laminado[2]);
+
     const match = texto.match(/(\d{1,2})\s*mm/i);
     return match ? Number(match[1]) : 0;
   };
@@ -726,10 +718,9 @@ export default function JC4FCSKitPage() {
     if (!corAtual || corAtual === "escolher" || larguraKitNecessaria <= 0 || alturaKitNecessaria <= 0) return null;
 
     const kitsFiltrados = kits.filter((kit) => {
-      const categoriaOk = normalizarTexto(kit.categoria).includes(normalizarTexto(categoriaEsperada));
-      const corOk = normalizarTexto(kit.cores) === corAtual;
-      const nomeNormalizado = normalizarTexto(kit.nome);
-      const folhasOk = nomeNormalizado.includes("4f");
+      const categoriaOk = kitCategoriaCompativel(kit, categoriaEsperada);
+      const corOk = kitCorCompativel(kit, corAtual);
+      const folhasOk = kitFolhasCompativel(kit, [4]);
       return categoriaOk && corOk && folhasOk;
     });
 
@@ -2165,6 +2156,8 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
+
 
 
 

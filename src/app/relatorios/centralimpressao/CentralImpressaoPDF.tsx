@@ -6,6 +6,7 @@ import React from "react";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import MiniProjetoPinazioPDF from "@/components/desenhos/MiniProjetoPinazioPDF";
+import { compararMateriaisRelacao, ehKitBatenteMaterial, ordemPerfilMaterial } from "@/utils/ordemMateriais";
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type CentralImpressaoItem = {
@@ -878,6 +879,17 @@ const nomeEmpresaComSlogan = (nomeEmpresa: string) => {
 };
 
 const ORDEM_PERFIS_OTIMIZADOS = [
+  "BCSTY002",
+  "BCSTY003",
+  "BCSTY002-7",
+  "BCSTY003-7",
+  "STY106",
+  "VT68",
+  "VT39",
+  "VT268",
+  "VT239",
+  "VT380",
+  "VT390",
   "VT51A",
   "VT52A",
   "VT05",
@@ -901,6 +913,8 @@ const ordemPerfilOtimizado = (perfil: Pick<CentralOtimizacaoPerfil, "codigo" | "
   const descricao = normalizarTexto(perfil.descricao);
   const indiceCodigo = ORDEM_PERFIS_OTIMIZADOS.findIndex?.((item) => codigoMaterialNormalizado(item) === codigo);
   if (indiceCodigo >= 0) return indiceCodigo;
+  const ordemPerfil = ordemPerfilMaterial(perfil);
+  if (ordemPerfil < 900) return ORDEM_PERFIS_OTIMIZADOS.length + ordemPerfil;
   if (descricao.includes("tubo")) return 100;
   if (descricao.includes("cantoneira")) return 110;
   return 120;
@@ -1112,7 +1126,7 @@ const classificarMaterialRelacao = (
     codigo.startsWith(prefixo)
   );
 
-  if (ehFerragemPorDescricao || ehFerragemPorCodigo) {
+  if (ehFerragemPorDescricao || ehFerragemPorCodigo || ehKitBatenteMaterial(material)) {
     return "ferragens";
   }
 
@@ -1405,21 +1419,7 @@ const consolidarMateriais = (
     }
   });
 
-  return Array.from(grupos.values()).sort((a, b) => {
-    const comparacaoDescricao = a.descricao.localeCompare(
-      b.descricao,
-      "pt-BR",
-      { numeric: true }
-    );
-
-    if (comparacaoDescricao !== 0) {
-      return comparacaoDescricao;
-    }
-
-    return a.codigo.localeCompare(b.codigo, "pt-BR", {
-      numeric: true,
-    });
-  });
+  return Array.from(grupos.values()).sort(compararMateriaisRelacao);
 };
 
 const origemPerfilItem = (item: CentralImpressaoItem): GrupoOrigemPerfil => {
@@ -1511,11 +1511,7 @@ const combinarPerfisComOtimizacao = (
     return !codigosOtimizados.has(codigo);
   });
 
-  return [...perfisOtimizados, ...perfisNaoOtimizados].sort((a, b) =>
-    a.descricao.localeCompare(b.descricao, "pt-BR", {
-      numeric: true,
-    })
-  );
+  return [...perfisOtimizados, ...perfisNaoOtimizados].sort(compararMateriaisRelacao);
 };
 
 const quantidadeUsaDecimal = (unidade?: string) => {
@@ -2321,6 +2317,7 @@ const possuiRelacaoObra =
           </View>
         ) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Vidros", relacaoVidros, { vidros: true }) : null}
+        {somenteRelacaoObra ? renderRelacaoGrupo("Kits", relacaoKits) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Perfis pele de vidro", relacaoPerfisPeleDeVidro) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Perfis fechamento de sacada", relacaoPerfisFechamentoSacada) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Perfis de sacada", relacaoPerfisSacadaFrontal) : null}
@@ -2329,7 +2326,6 @@ const possuiRelacaoObra =
               relacaoPerfisProjetos
             )
           : null}
-        {somenteRelacaoObra ? renderRelacaoGrupo("Kits", relacaoKits) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da pele de vidro", relacaoFerragensPeleDeVidro) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens do fechamento de sacada", relacaoFerragensFechamentoSacada) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da sacada", relacaoFerragensSacadaFrontal) : null}

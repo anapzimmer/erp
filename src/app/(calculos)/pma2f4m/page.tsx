@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import {
   AlertTriangle,
   Calendar,
@@ -191,23 +192,10 @@ const normalizarTexto = (texto?: string | number | null) =>
     .toLowerCase();
 
 
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => ordemMaterialRelacao({
+  descricao: descricaoOriginal,
+  unidade: unidadeOriginal,
+});
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pma2f4m:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -1904,6 +1892,8 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
+
 
 
 

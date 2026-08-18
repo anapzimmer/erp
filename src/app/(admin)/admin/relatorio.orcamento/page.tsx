@@ -132,6 +132,50 @@ type OrcamentoProjetosPersistido = {
         corPerfil?: string;
     }>;
     otimizacaoPerfis?: CentralOtimizacaoPerfil[];
+    materiaisAvulsos?: Array<{
+        valorTotal?: number | string | null;
+    }>;
+};
+
+const filtrarOtimizacaoComEconomia = (otimizacao?: CentralOtimizacaoPerfil[]) =>
+    Array.isArray(otimizacao)
+        ? otimizacao.filter((perfil) => Number(perfil.valorOtimizado || 0) < Number(perfil.valorOriginal || 0))
+        : [];
+
+const otimizacaoSalvaEhSegura = (otimizacao?: CentralOtimizacaoPerfil[]) => {
+    if (!Array.isArray(otimizacao) || otimizacao.length === 0) return false;
+    return otimizacao.every((perfil) => Number(perfil.valorOtimizado || 0) < Number(perfil.valorOriginal || 0));
+};
+
+const calcularValorSeguroOrcamento = (orcamento: Orcamento) => {
+    const itens = orcamento.itens;
+
+    if (itens && !Array.isArray(itens) && typeof itens === "object") {
+        const dadosProjetos = itens as OrcamentoProjetosPersistido;
+
+        if (dadosProjetos.tipo === "orcamento_projetos") {
+            const usarProjetosOtimizados = otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis);
+            const projetosOrigem = usarProjetosOtimizados &&
+                Array.isArray(dadosProjetos.projetosOtimizados) &&
+                dadosProjetos.projetosOtimizados.length > 0
+                ? dadosProjetos.projetosOtimizados
+                : dadosProjetos.projetos;
+
+            const valorProjetos = Array.isArray(projetosOrigem)
+                ? projetosOrigem.reduce((total, projeto) => total + (Number(projeto.valorTotal) || 0), 0)
+                : 0;
+
+            const valorAvulsos = Array.isArray(dadosProjetos.materiaisAvulsos)
+                ? dadosProjetos.materiaisAvulsos.reduce((total, item) => total + (Number(item.valorTotal) || 0), 0)
+                : 0;
+
+            if (valorProjetos > 0 || valorAvulsos > 0) {
+                return valorProjetos + valorAvulsos;
+            }
+        }
+    }
+
+    return Number(orcamento.valor_total) || 0;
 };
 
 type PerfilCadastro = {
@@ -338,7 +382,7 @@ export default function RelatorioOrcamento() {
     const totais = orcamentos.reduce((acc, orc) => {
         const dataOrc = new Date(orc.created_at);
         if (Number.isNaN(dataOrc.getTime())) return acc;
-        const valor = Number(orc.valor_total) || 0;
+        const valor = calcularValorSeguroOrcamento(orc);
 
         // Diário (hoje)
         if (dataOrc.toDateString() === agora.toDateString()) acc.diario += valor;
@@ -558,7 +602,7 @@ export default function RelatorioOrcamento() {
     };
 
     const valorTotalOrcamentos = orcamentos.reduce(
-        (total, orcamento) => total + (Number(orcamento.valor_total) || 0),
+        (total, orcamento) => total + calcularValorSeguroOrcamento(orcamento),
         0
     );
 
@@ -948,7 +992,7 @@ export default function RelatorioOrcamento() {
                                     const expiraHoje = dias === 0;
                                     const urgente = dias > 0 && dias <= 15;
                                     const selecionado = selecionados.includes(orc.id);
-                                    const valorFormatado = (Number(orc.valor_total) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                                    const valorFormatado = calcularValorSeguroOrcamento(orc).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
                                     return (
                                         <article
@@ -1184,7 +1228,9 @@ export default function RelatorioOrcamento() {
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
                                         if (tipo === "orcamento_projetos") {
                                             const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
-                                            const projetosOrigem = Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0 ? dadosProjetos.projetosOtimizados
+                                            const otimizacaoPerfis = filtrarOtimizacaoComEconomia(dadosProjetos.otimizacaoPerfis);
+                                            const usarProjetosOtimizados = otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis);
+                                            const projetosOrigem = usarProjetosOtimizados && Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0 ? dadosProjetos.projetosOtimizados
                                                 : dadosProjetos.projetos;
                                             const projetosPdf: CentralImpressaoItem[] = Array.isArray(projetosOrigem) ? projetosOrigem.map((item, index) => ({
                                                     id: String(item.id || index),
@@ -1220,9 +1266,6 @@ export default function RelatorioOrcamento() {
                                                     materiais: item.materiais,
                                                 }))
                                                 : [];
-                                            const otimizacaoPerfis = Array.isArray(dadosProjetos.otimizacaoPerfis) ? dadosProjetos.otimizacaoPerfis as CentralOtimizacaoPerfil[]
-                                                : [];
-
                                             return (
                                                 <CentralImpressaoPDF
                                                     itens={projetosPdf}

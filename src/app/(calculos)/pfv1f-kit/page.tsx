@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import {
   AlertTriangle,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
+import { kitCategoriaCompativel, kitCorCompativel } from "@/utils/kitsCompatibilidade";
 
 type ClienteCadastro = {
   id: string;
@@ -180,23 +182,10 @@ const normalizarTexto = (texto?: string | number | null) =>
     .toLowerCase();
 
 
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => ordemMaterialRelacao({
+  descricao: descricaoOriginal,
+  unidade: unidadeOriginal,
+});
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pfv1f-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -490,6 +479,9 @@ export default function PFV1FKitPage() {
   };
 
   const obterEspessuraVidro = (texto: string) => {
+    const laminado = texto.match(/(\d{1,2})\s*\+\s*(\d{1,2})\s*mm/i);
+    if (laminado) return Number(laminado[1]) + Number(laminado[2]);
+
     const match = texto.match(/(\d{1,2})\s*mm/i);
     return match ? Number(match[1]) : 0;
   };
@@ -510,17 +502,14 @@ export default function PFV1FKitPage() {
 
     if (!categoriaEsperada) return null;
 
-    const corAtual = dados.corKit.toLowerCase();
+    const corAtual = normalizarTexto(dados.corKit);
 
     const larguraKitNecessaria = Number(dados.largura || 0) * 2;
     const alturaKitNecessaria = Number(dados.altura || 0);
 
     const kitsFiltrados = kits.filter((kit) => {
-      const categoriaOk = String(kit.categoria || "")
-        .toLowerCase()
-        .includes(categoriaEsperada.toLowerCase());
-
-      const corOk = String(kit.cores || "").toLowerCase() === corAtual;
+      const categoriaOk = kitCategoriaCompativel(kit, categoriaEsperada);
+      const corOk = kitCorCompativel(kit, corAtual);
 
       return categoriaOk && corOk;
     });
@@ -1960,6 +1949,8 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
+
 
 
 

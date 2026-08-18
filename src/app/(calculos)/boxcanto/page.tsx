@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import {
   AlertTriangle,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
+import { kitCorCompativel } from "@/utils/kitsCompatibilidade";
 
 type ClienteCadastro = {
   id: string;
@@ -182,23 +184,10 @@ const normalizarTexto = (texto?: string | number | null) =>
     .toLowerCase();
 
 
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => ordemMaterialRelacao({
+  descricao: descricaoOriginal,
+  unidade: unidadeOriginal,
+});
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:boxcanto:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -608,10 +597,7 @@ export default function BoxCantoPage() {
       )
       .sort((a, b) => a.limiteLargura - b.limiteLargura || a.limiteAltura - b.limiteAltura);
 
-    const candidatosComCor = candidatosModelo.filter(({ kit }) => {
-      const corKit = normalizarTexto(kit.cores);
-      return !corKit || corKit === "padrao" || corKit.includes(corAtual);
-    });
+    const candidatosComCor = candidatosModelo.filter(({ kit }) => kitCorCompativel(kit, corAtual));
 
     return (candidatosComCor[0] || candidatosModelo[0])?.kit || null;
   }, [dados.altura, dados.alturaAteTubo, dados.corKit, dados.largura, dados.trinco, kits]);
@@ -1961,6 +1947,8 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
+
 
 
 

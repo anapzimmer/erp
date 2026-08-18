@@ -3,6 +3,7 @@
 
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { compararMateriaisRelacao } from "@/utils/ordemMateriais";
 import { buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ProjetoIndividualMaterial = {
@@ -70,24 +71,6 @@ const normalizarTexto = (texto?: string | number | null) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
 
 const arredondar5cm = (valorMm: number) => Math.ceil(Number(valorMm || 0) / 50) * 50;
 
@@ -539,9 +522,8 @@ export function ProjetoIndividualPDF({
   const materiaisOrdenados = dados.materiais
     .map((item, index) => ({ item, index }))
     .sort((a, b) => {
-      const ordemA = ordemMaterialDescricao(a.item.descricao, a.item.unidade);
-      const ordemB = ordemMaterialDescricao(b.item.descricao, b.item.unidade);
-      return ordemA === ordemB ? a.index - b.index : ordemA - ordemB;
+      const comparacao = compararMateriaisRelacao(a.item, b.item);
+      return comparacao === 0 ? a.index - b.index : comparacao;
     })
     .map(({ item }) => item);
   const totalVidros = quantidadePecasVidro;

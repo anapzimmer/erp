@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import {
   AlertTriangle,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
+import { kitCategoriaCompativel, kitCorCompativel, kitFolhasCompativel } from "@/utils/kitsCompatibilidade";
 
 type ClienteCadastro = {
   id: string;
@@ -182,23 +184,10 @@ const descricaoTemCodigo = (descricao: string, codigo: string) => {
 };
 
 
-const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => {
-  const descricao = normalizarTexto(descricaoOriginal);
-  const unidade = normalizarTexto(unidadeOriginal);
-
-  if (descricao.includes("vidro") || unidade.includes("m2")) return 0;
-  if (descricao.includes("tubo")) return 1;
-  if (
-    descricao.includes("kit") ||
-    descricao.includes("perfil") ||
-    descricao.includes("cantoneira") ||
-    descricao.includes("baguete") ||
-    descricao.includes("vt") ||
-    unidade.includes("barra")
-  ) return 2;
-
-  return 3;
-};
+const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: string) => ordemMaterialRelacao({
+  descricao: descricaoOriginal,
+  unidade: unidadeOriginal,
+});
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:jc2f-kit:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -498,6 +487,9 @@ export default function JC2FKitPage() {
   };
 
   const obterEspessuraVidro = (texto: string) => {
+    const laminado = texto.match(/(\d{1,2})\s*\+\s*(\d{1,2})\s*mm/i);
+    if (laminado) return Number(laminado[1]) + Number(laminado[2]);
+
     const match = texto.match(/(\d{1,2})\s*mm/i);
     return match ? Number(match[1]) : 0;
   };
@@ -511,20 +503,17 @@ export default function JC2FKitPage() {
 
     if (!categoriaEsperada) return null;
 
-    const corAtual = dados.corKit.toLowerCase();
+    const corAtual = normalizarTexto(dados.corKit);
 
     const larguraKitNecessaria = Number(dados.largura || 0);
     const alturaKitNecessaria = Number(dados.altura || 0);
 
     const kitsFiltrados = kits.filter((kit) => {
-      const textoKit = `${kit.nome || ""} ${kit.categoria || ""}`.toLowerCase();
-      const categoriaOk = textoKit.includes(categoriaEsperada.toLowerCase());
-      const duasFolhasOk = /\b2\s*f\b|\b2\s*folhasx\b|2f/.test(textoKit);
-      const quatroFolhasOk = /\b4\s*f\b|\b4\s*folhasx\b|4f/.test(textoKit);
+      const categoriaOk = kitCategoriaCompativel(kit, categoriaEsperada);
+      const folhasOk = kitFolhasCompativel(kit, [2, 4]);
+      const corOk = kitCorCompativel(kit, corAtual);
 
-      const corOk = String(kit.cores || "").toLowerCase() === corAtual;
-
-      return categoriaOk && (duasFolhasOk || quatroFolhasOk) && corOk;
+      return categoriaOk && folhasOk && corOk;
     });
 
     if (kitsFiltrados.length === 0) return null;
@@ -535,10 +524,8 @@ export default function JC2FKitPage() {
         Number(kit.altura || 0) >= alturaKitNecessaria
       )
       .sort((a, b) => {
-        const textoA = `${a.nome || ""} ${a.categoria || ""}`.toLowerCase();
-        const textoB = `${b.nome || ""} ${b.categoria || ""}`.toLowerCase();
-        const prioridadeA = /\b2\s*f\b|\b2\s*folhasx\b|2f/.test(textoA) ? 0 : 1;
-        const prioridadeB = /\b2\s*f\b|\b2\s*folhasx\b|2f/.test(textoB) ? 0 : 1;
+        const prioridadeA = kitFolhasCompativel(a, [2]) ? 0 : 1;
+        const prioridadeB = kitFolhasCompativel(b, [2]) ? 0 : 1;
         if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
 
         const diferencaA =
@@ -1869,6 +1856,8 @@ function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNo
     </div>
   );
 }
+
+
 
 
 
