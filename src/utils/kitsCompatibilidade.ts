@@ -11,14 +11,47 @@ export const normalizarKitTexto = (texto?: string | number | null) =>
     .toLowerCase()
     .trim();
 
+const normalizarCorBase = (cor?: string | number | null) => {
+  const texto = normalizarKitTexto(cor).replace(/\s+/g, " ").trim();
+
+  if (!texto) return "";
+  if (texto.includes("pret")) return "preto";
+  if (texto.includes("branc")) return "branco";
+  if (texto.includes("fosc")) return "fosco";
+  if (texto.includes("crom")) return "cromado";
+  if (texto.includes("rose")) return "rose";
+  if (texto.includes("gold") || texto.includes("dour")) return "gold";
+
+  return texto;
+};
+
+const extrairCoresNormalizadas = (valor?: string | null) => {
+  const bruto = normalizarKitTexto(valor);
+  if (!bruto) return [] as string[];
+
+  return bruto
+    .split(/[;,/|+-]/)
+    .flatMap((parte) => parte.split(/\s{2,}|\s+e\s+/))
+    .map((parte) => normalizarCorBase(parte))
+    .filter(Boolean);
+};
+
 export const kitCorCompativel = (kit: KitCompatibilidade, corSelecionada?: string | number | null) => {
-  const corAtual = normalizarKitTexto(corSelecionada);
-  const corKit = normalizarKitTexto(kit.cores);
+  const corAtualTexto = normalizarKitTexto(corSelecionada);
+  const corAtualBase = normalizarCorBase(corSelecionada);
+  const coresKit = extrairCoresNormalizadas(kit.cores);
+  const corKitTexto = normalizarKitTexto(kit.cores);
 
-  if (!corAtual || corAtual === "escolher") return true;
-  if (!corKit || corKit === "padrao") return true;
+  if (!corAtualTexto || corAtualTexto === "escolher") return true;
+  if (!corKitTexto || corKitTexto === "padrao") return true;
 
-  return corKit.includes(corAtual) || corAtual.includes(corKit);
+  if (corAtualBase && coresKit.includes(corAtualBase)) return true;
+
+  if (corAtualBase && coresKit.some((cor) => cor.includes(corAtualBase) || corAtualBase.includes(cor))) {
+    return true;
+  }
+
+  return corKitTexto.includes(corAtualTexto) || corAtualTexto.includes(corKitTexto);
 };
 
 export const kitCategoriaCompativel = (kit: KitCompatibilidade, categoriaEsperada?: string | null) => {
@@ -29,7 +62,12 @@ export const kitCategoriaCompativel = (kit: KitCompatibilidade, categoriaEsperad
   if (textoKit.includes(esperado)) return true;
 
   const tipoEsperado = esperado.replace(/^kit\s+/, "").trim();
-  return Boolean(tipoEsperado && textoKit.includes("kit") && textoKit.includes(tipoEsperado));
+  if (!tipoEsperado) return false;
+
+  // Aceita cadastros que informam apenas "janela"/"porta" sem o prefixo "kit".
+  if (textoKit.includes(tipoEsperado)) return true;
+
+  return Boolean(textoKit.includes("kit") && textoKit.includes(tipoEsperado));
 };
 
 export const kitFolhasCompativel = (kit: KitCompatibilidade, folhasAceitas: number[]) => {
