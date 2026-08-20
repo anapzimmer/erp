@@ -143,6 +143,9 @@ const normalizarTexto = (texto?: string | number | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+const temLarguraComposta = (medidas?: string) =>
+  /^\s*\d+(?:[.,]\d+)?\s*\+\s*\d+(?:[.,]\d+)?\s*[xX×]/.test(String(medidas || ""));
+
 const sanitizarNomeArquivo = (valor: string) =>
   valor
     .replace(/[<>:"/\\|x*\u0000-\u001F]/g, "")
@@ -1416,7 +1419,8 @@ export default function CentralImpressaoPage() {
       numero: item.numero,
       projeto: nomeProjetoVisivel(item.projeto),
       cliente: cliente || item.cliente,
-      medidas: Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
+      medidas: temLarguraComposta(item.medidas) ? item.medidas
+        : Number(item.largura || 0) > 0 || Number(item.altura || 0) > 0 ? `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),

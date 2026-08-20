@@ -1922,7 +1922,7 @@ const possuiRelacaoObra =
 
             if (ehMateriaisAvulsos) {
               return (
-                <View key={item.id} style={styles.card} wrap={false}>
+                <View key={item.id} style={styles.card}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.projectLabel}>Complemento do orçamento</Text>
                     <Text style={styles.materialAvulsoTitle}>Materiais avulsos</Text>

@@ -51,12 +51,13 @@ export const mesclarMateriaisAutomaticos = (
     codigoOriginalCalculo: item.codigoOriginalCalculo || item.codigoPerfil || codigoDaDescricao(item.descricao),
   }));
   const origensAutomaticas = new Set(automaticosComOrigem.map((item) => item.origemCalculo).filter(Boolean));
+  const possuiKitAutomatico = automaticosComOrigem.some((item) => normalizarTexto(item.descricao).includes("kit"));
 
   const itensManuais = lista.filter((item) => {
     if (item.origemCalculo && origensAutomaticas.has(item.origemCalculo)) return false;
 
     const descricao = normalizarTexto(item.descricao);
-    if (descricao.includes("kit")) return false;
+    if (descricao.includes("kit")) return !possuiKitAutomatico;
 
     return !codigosAutomaticos.some((codigo) => descricaoTemCodigo(descricao, codigo));
   });
