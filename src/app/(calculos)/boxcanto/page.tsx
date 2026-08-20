@@ -237,11 +237,11 @@ const limiteLarguraKitBox = (kit: KitCadastro) => Number(kit.largura || 0) || li
 const limiteAlturaKitBox = (kit: KitCadastro) => Number(kit.altura || 0);
 
 const kitCorrespondeModeloBox = (kit: KitCadastro, modelo: string) => {
-  const nome = normalizarTexto(kit.nome);
+  const nome = normalizarTexto(`${kit.nome || ""} ${kit.categoria || ""}`);
   const modeloNormalizado = normalizarTexto(modelo);
 
   if (modeloNormalizado.includes("tradicional")) {
-    return nome.includes("c1") && !nome.includes("quadrado") && !nome.includes("evid") && !nome.includes("elegance");
+    return (nome.includes("c1") || nome.includes("canto")) && !nome.includes("quadrado") && !nome.includes("evid") && !nome.includes("elegance");
   }
 
   if (modeloNormalizado.includes("quadrado")) {
@@ -585,6 +585,7 @@ export default function BoxCantoPage() {
     if (larguraTotal <= 0 || dados.corKit === "Escolher") return null;
 
     const corAtual = normalizarTexto(dados.corKit);
+    const modeloTradicional = normalizarTexto(dados.trinco || "Tradicional").includes("tradicional");
     const candidatosModelo = kits
       .filter((kit) => kitCorrespondeModeloBox?.(kit, dados.trinco || "Tradicional"))
       .map((kit) => ({
@@ -593,7 +594,8 @@ export default function BoxCantoPage() {
         limiteAltura: limiteAlturaKitBox?.(kit),
       }))
       .filter(({ limiteLargura, limiteAltura }) =>
-        limiteLargura >= larguraTotal && (limiteAltura <= 0 || limiteAltura >= Number(dados.altura || 0))
+        limiteLargura >= larguraTotal &&
+        (modeloTradicional || limiteAltura <= 0 || limiteAltura >= Number(dados.altura || 0))
       )
       .sort((a, b) => a.limiteLargura - b.limiteLargura || a.limiteAltura - b.limiteAltura);
 
