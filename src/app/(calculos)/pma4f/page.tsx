@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -149,10 +152,7 @@ const limitarNumero4Digitos = (valor: string) => {
 
 const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
   const barras: number[] = [];
-  const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
+  const cortes = prepararCortesPorBarra(cortesOriginais, comprimentoBarra).sort((a, b) => b - a);
 
   cortes.forEach((corte) => {
     const indice = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
@@ -409,7 +409,7 @@ export default function PMA4FPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -522,18 +522,20 @@ export default function PMA4FPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
-  }, [perfilCorrespondeCor, perfis]);
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
+  }, [dados.corKit, perfis]);
 
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigo(codigo);
     const comprimentoInteiroMm = medidaInteira(comprimentoMm);
     const totalUsadoMm = comprimentoInteiroMm * Number(quantidadeCortes || 0) * quantidadeProjeto;
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => comprimentoInteiroMm);
+    const cortes = prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => comprimentoInteiroMm), 6000);
 
     if (!perfil || totalUsadoMm <= 0) return null;
 
@@ -753,8 +755,11 @@ export default function PMA4FPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);

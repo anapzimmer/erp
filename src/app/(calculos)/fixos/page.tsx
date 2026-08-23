@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -366,7 +369,7 @@ export default function FixosPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -472,10 +475,12 @@ export default function FixosPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
   }, [codigoCatalogoCompativel, perfilCorrespondeCor, perfis]);
 
 
@@ -485,13 +490,13 @@ export default function FixosPage() {
     const cortesUnitarios = cortesProjeto
       .map((corte) => Number(corte || 0))
       .filter((corte) => corte > 0);
-    const cortes = Array.from({ length: quantidadeProjeto }, () => cortesUnitarios).flat();
+    const cortes = prepararCortesPorBarra(Array.from({ length: quantidadeProjeto }, () => cortesUnitarios).flat(), 6000);
     const totalUsadoMm = cortes.reduce((soma, corte) => soma + corte, 0);
 
     if (!perfil || totalUsadoMm <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),

@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -397,7 +400,7 @@ export default function PFV1FBarraPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -502,10 +505,12 @@ export default function PFV1FBarraPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
   }, [codigoCatalogoCompativel, perfilCorrespondeCor, perfis]);
 
   const perfilTuboSelecionado = useMemo(() => {
@@ -521,13 +526,13 @@ export default function PFV1FBarraPage() {
     if (!perfil || totalUsadoMm <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000), 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)),
+      cortes: prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000),
     });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
@@ -543,14 +548,15 @@ export default function PFV1FBarraPage() {
         : [];
     const codigoAlturaTrilho = espessura === 10 ? "VT10" : espessura === 8 ? "VT66" : "";
     const codigoAlturaLateral = espessura === 10 ? "VT15" : espessura === 8 ? "VT16" : "";
+    const cortesTubo = prepararCortesPorBarra(Array.from({ length: Number(dados.quantidade || 0) }, () => altura), 6000);
     const tubo = perfilTuboSelecionado ? criarMaterial({
-          qtd: Math.ceil((altura * Number(dados.quantidade || 0)) / 6000),
+          qtd: calcularBarrasPorCortes(cortesTubo, 6000),
           unidade: "barra",
           descricao: `${perfilTuboSelecionado.codigo} - ${perfilTuboSelecionado.nome_completo || perfilTuboSelecionado.nome}`.toUpperCase(),
           valorUnitario: Number(perfilTuboSelecionado.preco || 0),
           codigoPerfil: perfilTuboSelecionado.codigo,
           comprimentoBarra: 6000,
-          cortes: Array.from({ length: Number(dados.quantidade || 0) }, () => altura),
+          cortes: cortesTubo,
         })
       : null;
 
@@ -714,8 +720,11 @@ export default function PFV1FBarraPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);

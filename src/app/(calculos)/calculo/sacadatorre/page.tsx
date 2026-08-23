@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaTorre } from "@/utils/sacada-torre-calc";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
 import { SacadaTorrePDF } from "@/app/relatorios/sacadatorre/SacadaTorrePDF";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
@@ -426,7 +428,7 @@ export default function CalculoSacadaTorrePage() {
   }, [buscaVidro, vidros]);
 
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || (buscaVidro.trim() ? vidrosFiltrados[0] : null) || null,
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || localizarVidroPorDescricao(vidros, buscaVidro, montarDescricaoVidro) || (buscaVidro.trim() ? vidrosFiltrados[0] : null) || null,
     [buscaVidro, vidroId, vidros, vidrosFiltrados]
   );
 
@@ -454,24 +456,25 @@ export default function CalculoSacadaTorrePage() {
     });
     if (!corPerfil) return encontrados;
     const filtradosPorCor = encontrados.filter((ferragem) => corCompativel(ferragem.cores, corPerfil));
-    return filtradosPorCor.length ? filtradosPorCor : encontrados;
+    const padroes = encontrados.filter((ferragem) => !ferragem.cores || normalizarTexto(ferragem.cores).includes("padrao"));
+    return filtradosPorCor.length ? filtradosPorCor : padroes.length ? padroes : encontrados;
   }, [corPerfil, ferragens]);
 
   const torreSelecionada = useMemo(() => {
     const codigo = normalizarCodigo(torreCodigo);
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === codigo);
     if (!candidatos.length) return null;
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0];
+    return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores);
   }, [corPerfil, ferragens, torreCodigo]);
 
   const grapa3019 = useMemo(() => {
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === "3019" || normalizarCodigo(ferragem.codigo).startsWith("3019"));
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0] || null;
+    return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
   const grapa1305 = useMemo(() => {
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === "1305" || normalizarCodigo(ferragem.codigo).startsWith("1305"));
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0] || null;
+    return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
   const resultado = useMemo(

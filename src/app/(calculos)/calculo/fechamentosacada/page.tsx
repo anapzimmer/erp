@@ -10,7 +10,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
@@ -245,6 +248,14 @@ const resolverFerragemPorCodigoECor = (
   });
 
   if (candidatos.length === 0) {
+    const semCorOuPadrao = escolherItemPorCor(candidatos, "", (f) => f.cores);
+    if (semCorOuPadrao && obterPrecoFerragem(semCorOuPadrao) > 0) {
+      return {
+        preco: obterPrecoFerragem(semCorOuPadrao),
+        corEncontrada: semCorOuPadrao.cores || "Padrão",
+      };
+    }
+
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
@@ -264,6 +275,14 @@ const resolverFerragemPorCodigoECor = (
     });
     if (comSufixo && obterPrecoFerragem(comSufixo) > 0) {
       return { preco: obterPrecoFerragem(comSufixo), corEncontrada: corUsar };
+    }
+
+    const semCorOuPadrao = escolherItemPorCor(candidatos, "", (f) => f.cores);
+    if (semCorOuPadrao && obterPrecoFerragem(semCorOuPadrao) > 0) {
+      return {
+        preco: obterPrecoFerragem(semCorOuPadrao),
+        corEncontrada: semCorOuPadrao.cores || "Padrão",
+      };
     }
 
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
@@ -303,10 +322,10 @@ const resolverFerragemPorNome = (
       || nomeNormalizado.includes(nomeFerragem);
   });
 
-  const candidatosDaCor = corNormalizada
-    ? candidatos.filter((item) => atendeCor(item.cores, corNormalizada))
-    : candidatos;
-  const escolhido = candidatosDaCor.find((item) => obterPrecoFerragem(item) > 0) || (!corNormalizada ? candidatos[0] : undefined);
+  const escolhido =
+    escolherItemPorCor(candidatos, corNormalizada, (item) => item.cores) ||
+    candidatos.find((item) => obterPrecoFerragem(item) > 0) ||
+    candidatos[0];
 
   if (!escolhido) {
     return { codigo: "-", nomeEncontrado: nomeAlvo, preco: 0 };
@@ -333,7 +352,16 @@ const resolverPerfilPorCodigoECor = (
   });
 
   if (candidatos.length === 0) {
-    return { nome: "", preco: 0, corEncontrada: corUsar || "Padrão" };
+    const semCorOuPadrao =
+      escolherItemPorCor(candidatos, "", (perfil) => perfil.cores) ||
+      candidatos.find((perfil) => normalizarPrecoFerragem(perfil.preco) > 0) ||
+      candidatos[0];
+
+    return {
+      nome: semCorOuPadrao?.nome || "",
+      preco: normalizarPrecoFerragem(semCorOuPadrao?.preco),
+      corEncontrada: semCorOuPadrao?.cores || "Padrão",
+    };
   }
 
   if (corNormalizada) {
@@ -350,7 +378,16 @@ const resolverPerfilPorCodigoECor = (
       };
     }
 
-    return { nome: "", preco: 0, corEncontrada: corUsar || "Padrão" };
+    const semCorOuPadrao =
+      escolherItemPorCor(candidatos, "", (perfil) => perfil.cores) ||
+      candidatos.find((perfil) => normalizarPrecoFerragem(perfil.preco) > 0) ||
+      candidatos[0];
+
+    return {
+      nome: semCorOuPadrao?.nome || "",
+      preco: normalizarPrecoFerragem(semCorOuPadrao?.preco),
+      corEncontrada: semCorOuPadrao?.cores || "Padrão",
+    };
   }
 
   const semCor = candidatos.find((perfil) => {
@@ -396,7 +433,16 @@ const resolverKitPorNomeECor = (
   });
 
   if (candidatos.length === 0) {
-    return { nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
+    const semCorOuPadrao =
+      escolherItemPorCor(candidatos, "", (kit) => kit.cores) ||
+      candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) ||
+      candidatos[0];
+
+    return {
+      nome: semCorOuPadrao?.nome || termoAlvo,
+      preco: normalizarPrecoFerragem(semCorOuPadrao?.preco_por_cor ?? semCorOuPadrao?.preco),
+      corEncontrada: semCorOuPadrao?.cores || "Padrão",
+    };
   }
 
   if (corNormalizada) {
@@ -413,7 +459,16 @@ const resolverKitPorNomeECor = (
       };
     }
 
-    return { nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
+    const semCorOuPadrao =
+      escolherItemPorCor(candidatos, "", (kit) => kit.cores) ||
+      candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) ||
+      candidatos[0];
+
+    return {
+      nome: semCorOuPadrao?.nome || termoAlvo,
+      preco: normalizarPrecoFerragem(semCorOuPadrao?.preco_por_cor ?? semCorOuPadrao?.preco),
+      corEncontrada: semCorOuPadrao?.cores || "Padrão",
+    };
   }
 
   const comPreco = candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) || candidatos[0];
@@ -453,12 +508,10 @@ const resolverKitPorCodigoOuNomeECor = (
     return { codigo: codigoAlvo, nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
-  const escolher = (lista: KitTabela[]) =>
-    lista.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) || lista[0];
-
-  const escolhido = corNormalizada
-    ? escolher(candidatos.filter((kit) => atendeCor(kit.cores, corNormalizada)))
-    : escolher(candidatos);
+  const escolhido =
+    escolherItemPorCor(candidatos, corNormalizada, (kit) => kit.cores) ||
+    candidatos.find((kit) => normalizarPrecoFerragem(kit.preco_por_cor ?? kit.preco) > 0) ||
+    candidatos[0];
 
   if (!escolhido) {
     return { codigo: codigoAlvo, nome: termoAlvo, preco: 0, corEncontrada: corUsar || "Padrão" };
@@ -804,13 +857,13 @@ export default function CalculoFechamentoSacadaPage() {
   }, [carregandoInsumos, vidroIdInferior, vidroIdSuperior, vidros]);
 
   const vidroSelecionadoInferior = useMemo(
-    () => vidros.find((vidro) => vidro.id === vidroIdInferior) || null,
-    [vidroIdInferior, vidros]
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroIdInferior)) || localizarVidroPorDescricao(vidros, buscaVidroInferior, montarDescricaoVidro),
+    [buscaVidroInferior, vidroIdInferior, vidros]
   );
 
   const vidroSelecionadoSuperior = useMemo(
-    () => vidros.find((vidro) => vidro.id === vidroIdSuperior) || null,
-    [vidroIdSuperior, vidros]
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroIdSuperior)) || localizarVidroPorDescricao(vidros, buscaVidroSuperior, montarDescricaoVidro),
+    [buscaVidroSuperior, vidroIdSuperior, vidros]
   );
 
   const filtrarVidrosPorTermo = useCallback((termoBruto: string) => {
@@ -1250,16 +1303,20 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       descricao: `VIDRO SUPERIOR ${resultadoSuperior.larguraVidroMm}x${resultadoSuperior.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionadoSuperior)}`.toUpperCase(),
       valorUnitario: precoVidroM2Superior,
     },
-    ...perfisComPrecoTabela.map((perfil) => ({
+    ...perfisComPrecoTabela.map((perfil) => {
+      const cortes = prepararCortesPorBarra(perfil.cortes || (perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : []), 6000);
+
+      return {
       id: `perfil-${perfil.codigo}`,
-      qtd: Number(perfil.quantidadeBarras || 0),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
       valorUnitario: Number(perfil.precoBarra || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : [],
-    })),
+      cortes,
+    };
+    }),
     ...[...acessoriosComPrecoTabela, ...acessoriosFechamentoSacadaTabela].map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
       qtd: acessorio.precoUnitario > 0

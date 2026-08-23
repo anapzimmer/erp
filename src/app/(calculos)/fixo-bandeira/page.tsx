@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import {
   AlertTriangle,
   Calendar,
@@ -539,11 +541,11 @@ export default function FixoBandeiraPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const vidroBandeiraSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidroBandeira) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidroBandeira, formatarVidroCadastro),
     [dados.vidroBandeira, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -683,10 +685,12 @@ export default function FixoBandeiraPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
   }, [codigoCatalogoCompativel, perfilCorrespondeCor, perfis]);
 
 
@@ -740,7 +744,7 @@ export default function FixoBandeiraPage() {
       .map(formatarDescricaoTubo);
 
     return ["Escolher", ...Array.from(new Set(opcoes))];
-  }, [perfilCorrespondeCor, perfis]);
+  }, [dados.corKit, perfis]);
 
   const perfilTuboSelecionado = useMemo(() => {
     if (!dados.tuboPerfil || dados.tuboPerfil === "Escolher") return null;

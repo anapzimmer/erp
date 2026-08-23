@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -435,11 +438,11 @@ export default function JC2FCSKitPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const vidroBandeiraSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidroBandeira) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidroBandeira, formatarVidroCadastro),
     [dados.vidroBandeira, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -596,17 +599,18 @@ export default function JC2FCSKitPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
-  }, [perfilCorrespondeCor, perfis]);
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
+  }, [dados.corKit, perfis]);
 
   const calcularBarrasPorCortes = (cortes: number[], comprimentoBarra = 6000) => {
     const barras: number[] = [];
 
-    cortes
-      .filter((corte) => Number(corte || 0) > 0)
+    prepararCortesPorBarra(cortes, comprimentoBarra)
       .sort((a, b) => b - a)
       .forEach((corte) => {
         const barraIndex = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
@@ -622,8 +626,7 @@ export default function JC2FCSKitPage() {
 
   const criarPerfilBarraPorCadastro = useCallback((perfil: PerfilCadastro, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0))
-      .filter((corte) => corte > 0);
+    const cortes = prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000);
     const ehTubo = normalizarTexto(`${perfil.nome} ${perfil.nome_completo || ""} ${perfil.categoria || ""}`).includes("tubo");
 
     if (!perfil || cortes.length === 0) return null;
@@ -643,8 +646,7 @@ export default function JC2FCSKitPage() {
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigo(codigo);
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0))
-      .filter((corte) => corte > 0);
+    const cortes = prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000);
 
     if (!perfil || cortes.length === 0) return null;
 
@@ -692,7 +694,7 @@ export default function JC2FCSKitPage() {
       .map(formatarDescricaoTubo);
 
     return ["Escolher", ...Array.from(new Set(opcoes))];
-  }, [perfilCorrespondeCor, perfis]);
+  }, [dados.corKit, perfis]);
 
   const perfilTuboSelecionado = useMemo(() => {
     if (!dados.tuboPerfil || dados.tuboPerfil === "Escolher") return null;
@@ -725,7 +727,7 @@ export default function JC2FCSKitPage() {
 
     if (kitsFiltrados.length === 0) return null;
 
-    return kitsFiltrados
+    const kitsOrdenados = kitsFiltrados
       .filter((kit) =>
         Number(kit.largura || 0) >= larguraKitNecessaria &&
         Number(kit.altura || 0) >= alturaKitNecessaria
@@ -743,7 +745,9 @@ export default function JC2FCSKitPage() {
           Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
 
         return diferencaA - diferencaB;
-      })[0] || null;
+      });
+
+    return escolherItemPorCor(kitsOrdenados, dados.corKit, (kit) => kit.cores);
   }, [calculoVidro.alturaPorta, dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
 
   const perfisAutomaticos = useMemo(() => {
@@ -935,8 +939,11 @@ export default function JC2FCSKitPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);

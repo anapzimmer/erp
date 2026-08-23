@@ -87,6 +87,12 @@ type PrecoVidroGrupo = {
   preco: number;
 };
 
+type VidroOrigemOrcamento = {
+  chave: string;
+  descricao: string;
+  ocorrencias: number;
+};
+
 export type OtimizacaoPerfil = {
   codigo: string;
   descricao: string;
@@ -181,7 +187,7 @@ const formatarQuantidadeMaterialTela = (valor: number, unidade?: string) => {
 
 const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
   const texto = String(descricao || "").trim();
-  const medida = texto.match(/\d+(?:[.,]\d+)x\s*x\s*\d+(?:[.,]\d+)x/i);
+  const medida = texto.match(/\d+(?:[.,]\d+)?\s*[xX×]\s*\d+(?:[.,]\d+)?(?:\s*mm)?/i);
   if (!medida) return `VIDRO ${novoVidro}`.toUpperCase();
 
   const prefixo = texto.slice(0, (medida.index || 0) + medida[0].length).trim();
@@ -191,9 +197,50 @@ const trocarVidroDescricaoMaterial = (descricao: string, novoVidro: string) => {
 const limparDescricaoVidroMaterial = (descricao: string) =>
   String(descricao || "")
     .replace(/^vidro\s*/i, "")
-    .replace(/^\d+(?:[.,]\d+)x\s*x\s*\d+(?:[.,]\d+)x\s*/i, "")
+    .replace(/^\d+(?:[.,]\d+)?\s*[xX×]\s*\d+(?:[.,]\d+)?(?:\s*mm)?\s*/i, "")
     .replace(/^vidro\s*/i, "")
     .trim();
+
+const chaveVidroParaTroca = (descricao?: string | null) =>
+  normalizarTexto(limparDescricaoVidroMaterial(String(descricao || "")))
+    .replace(/\s+/g, " ")
+    .trim();
+
+const descricaoVidroValidaParaTroca = (descricao?: string | null) => {
+  const chave = chaveVidroParaTroca(descricao);
+  return Boolean(chave && !/nao selecionado|não selecionado|selecionar|^-$/i.test(chave));
+};
+
+const localizarVidroCatalogoNaDescricao = (descricao: string, vidros: VidroCadastro[]) => {
+  const texto = normalizarTexto(descricao).replace(/\s+/g, " ").trim();
+  if (!texto) return null;
+
+  return vidros
+    .map((vidro) => ({
+      vidro,
+      label: formatarVidroCadastro(vidro),
+      chave: normalizarTexto(formatarVidroCadastro(vidro)).replace(/\s+/g, " ").trim(),
+    }))
+    .filter(({ chave }) => chave && texto.includes(chave))
+    .sort((a, b) => b.chave.length - a.chave.length)[0] || null;
+};
+
+const descricaoVidroAgrupadaParaTroca = (descricao: string, vidros: VidroCadastro[]) => {
+  const encontrado = localizarVidroCatalogoNaDescricao(descricao, vidros);
+  if (encontrado) return encontrado.label;
+
+  return limparDescricaoVidroMaterial(descricao)
+    .replace(/\b(fixo|fixa|movel|móvel|porta|janela|superior|inferior|bandeira|sacada)\b/gi, "")
+    .replace(/\d+(?:[.,]\d+)?\s*[xX×]\s*\d+(?:[.,]\d+)?(?:\s*mm)?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const ehMaterialDeVidro = (material: ProjetoIndividualMaterial) => {
+  const descricao = normalizarTexto(material.descricao);
+  const unidade = normalizarTexto(material.unidade);
+  return descricao.includes("vidro") || unidade.includes("m2") || unidade.includes("m²");
+};
 
 const descricaoVidroItem = (item: Pick<ProjetoComposicao, "vidro" | "materiais">) => {
   const vidroInformado = String(item.vidro || "").trim();
@@ -1061,6 +1108,7 @@ export default function CentralImpressaoPage() {
   const [usarOtimizacao, setUsarOtimizacao] = useState(false);
   const [imprimirOtimizacao, setImprimirOtimizacao] = useState(false);
   const [modalVidroAberto, setModalVidroAberto] = useState(false);
+  const [vidroOrigemOrcamento, setVidroOrigemOrcamento] = useState("");
   const [buscaVidroOrcamento, setBuscaVidroOrcamento] = useState("");
   const [vidroSelecionadoOrcamento, setVidroSelecionadoOrcamento] = useState<VidroCadastro | null>(null);
   const [vidros, setVidros] = useState<VidroCadastro[]>([]);
@@ -1243,6 +1291,43 @@ export default function CentralImpressaoPage() {
       .filter((vidro) => normalizarTexto(formatarVidroCadastro(vidro)).includes(termo))
       .slice(0, 8);
   }, [buscaVidroOrcamento, vidros]);
+  const vidrosOrigemOrcamento = useMemo<VidroOrigemOrcamento[]>(() => {
+    const mapa = new Map<string, VidroOrigemOrcamento>();
+
+    const adicionar = (descricao?: string | null) => {
+      if (!descricaoVidroValidaParaTroca(descricao)) return;
+
+      const descricaoLimpa = descricaoVidroAgrupadaParaTroca(String(descricao || ""), vidros);
+      const chave = chaveVidroParaTroca(descricaoLimpa);
+      if (!chave) return;
+
+      const atual = mapa.get(chave);
+      if (atual) {
+        atual.ocorrencias += 1;
+        return;
+      }
+
+      mapa.set(chave, {
+        chave,
+        descricao: descricaoLimpa,
+        ocorrencias: 1,
+      });
+    };
+
+    itens.forEach((item) => {
+      adicionar(item.vidro);
+      adicionar(item.vidroPeitoril);
+      adicionar(item.vidroJanela);
+      adicionar(item.vidroBandeira);
+
+      item.vidrosAvulsos?.forEach((vidro) => adicionar(vidro.vidro));
+      item.materiais?.forEach((material) => {
+        if (ehMaterialDeVidro(material)) adicionar(material.descricao);
+      });
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => a.descricao.localeCompare(b.descricao, "pt-BR", { numeric: true }));
+  }, [itens, vidros]);
   const clienteSelecionado = useMemo(
     () => clientes.find((item) => normalizarTexto(item.nome) === normalizarTexto(cliente)) || null,
     [cliente, clientes]
@@ -1562,31 +1647,58 @@ export default function CentralImpressaoPage() {
       setMensagem("Adicione pelo menos um projeto antes de duplicar com outro vidro.");
       return;
     }
+    if (!vidroOrigemOrcamento) {
+      setMensagem("Escolha qual vidro do orçamento deseja trocar.");
+      return;
+    }
     if (!vidroSelecionadoOrcamento) {
       setMensagem("Selecione um vidro cadastrado antes de criar a cópia.");
       return;
     }
 
     const novoVidro = formatarVidroCadastro(vidroSelecionadoOrcamento);
+    const deveTrocarVidro = (descricao?: string | null) =>
+      chaveVidroParaTroca(descricaoVidroAgrupadaParaTroca(String(descricao || ""), vidros)) === vidroOrigemOrcamento;
+    const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number]) => {
+      const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
+      const area = (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
+      return area * precoVidroSelecionado;
+    };
 
     const itensNovoVidro = itens.map((item) => {
       const materiaisAtualizados = item.materiais?.map((material) => ({
         ...material,
         id: criarId(),
-        descricao: normalizarTexto(material.descricao).includes("vidro") ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
+        descricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
           : material.descricao,
-        valorUnitario: normalizarTexto(material.descricao).includes("vidro") ? precoVidroSelecionado
+        valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
           : material.valorUnitario,
       }));
+      const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro) => {
+        if (!deveTrocarVidro(vidro.vidro)) return { ...vidro, id: criarId() };
+
+        return {
+          ...vidro,
+          id: criarId(),
+          vidro: novoVidro,
+          valorTotal: valorVidroAvulsoAtualizado(vidro),
+        };
+      });
+      const valorTotalAtualizado = vidrosAvulsosAtualizados?.length
+        ? vidrosAvulsosAtualizados.reduce((total, vidro) => total + Number(vidro.valorTotal || 0), 0)
+        : materiaisAtualizados?.length ? somarMateriais(materiaisAtualizados) : Number(item.valorTotal || 0);
 
       return {
         ...item,
         id: criarId(),
         numero: "Novo Orçamento",
-        vidro: item.vidro ? novoVidro : item.vidro,
-        vidroBandeira: item.vidroBandeira ? novoVidro : item.vidroBandeira,
+        vidro: deveTrocarVidro(item.vidro) ? novoVidro : item.vidro,
+        vidroPeitoril: deveTrocarVidro(item.vidroPeitoril) ? novoVidro : item.vidroPeitoril,
+        vidroJanela: deveTrocarVidro(item.vidroJanela) ? novoVidro : item.vidroJanela,
+        vidroBandeira: deveTrocarVidro(item.vidroBandeira) ? novoVidro : item.vidroBandeira,
         materiais: materiaisAtualizados,
-        valorTotal: somarMateriais(materiaisAtualizados),
+        vidrosAvulsos: vidrosAvulsosAtualizados,
+        valorTotal: valorTotalAtualizado,
       };
     });
 
@@ -1594,6 +1706,9 @@ export default function CentralImpressaoPage() {
     setNumeroOrcamento("Novo Orçamento");
     setMensagem(`Cópia do orçamento criada com vidro ${novoVidro}. Revise os valores e salve para gerar um novo número.`);
     setModalVidroAberto(false);
+    setVidroOrigemOrcamento("");
+    setBuscaVidroOrcamento("");
+    setVidroSelecionadoOrcamento(null);
     setUsarOtimizacao(false);
     setImprimirOtimizacao(false);
     window.localStorage.setItem(CENTRAL_KEY, JSON.stringify(itensNovoVidro));
@@ -1922,7 +2037,12 @@ router.push(
                 </button>
                 <button
                   type="button"
-                  onClick={() => setModalVidroAberto(true)}
+                  onClick={() => {
+                    setVidroOrigemOrcamento("");
+                    setBuscaVidroOrcamento("");
+                    setVidroSelecionadoOrcamento(null);
+                    setModalVidroAberto(true);
+                  }}
                   disabled={itens.length === 0}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Criar uma nova versão deste orçamento com outra cor de vidro."
@@ -2891,7 +3011,7 @@ router.push(
 
       {modalVidroAberto ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <section className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+          <section className="w-full max-w-2xl overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
@@ -2899,7 +3019,7 @@ router.push(
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-slate-900">Duplicar com outro vidro</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  O orçamento atual continua salvo. A central ficará com uma nova cópia, mantendo a cor dos perfis e trocando só o vidro.
+                  Escolha primeiro qual vidro do orçamento será substituído. A central criará uma nova cópia mantendo o restante igual.
                 </p>
               </div>
               <button
@@ -2913,8 +3033,39 @@ router.push(
             </div>
 
             <div className="px-5 py-4">
+            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Qual vidro deseja trocar</label>
+              <div className="mt-2 space-y-2">
+                {vidrosOrigemOrcamento.length > 0 ? (
+                  vidrosOrigemOrcamento.map((vidro) => {
+                    const selecionado = vidroOrigemOrcamento === vidro.chave;
+
+                    return (
+                      <button
+                        key={vidro.chave}
+                        type="button"
+                        onClick={() => setVidroOrigemOrcamento(vidro.chave)}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                          selecionado ? "border-slate-300 bg-white text-slate-900 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:bg-white"
+                        }`}
+                      >
+                        <span className="font-medium">{vidro.descricao}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500">
+                          {vidro.ocorrencias} ocorrência(s)
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-xl bg-white px-3 py-3 text-sm text-slate-500">
+                    Não encontrei vidros no orçamento atual para sugerir a troca.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Vidro cadastrado</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Trocar pelo vidro cadastrado</label>
               <input
                 value={buscaVidroOrcamento}
                 onChange={(e) => {
@@ -2966,7 +3117,7 @@ router.push(
               <button
                 type="button"
                 onClick={duplicarOrcamentoComVidro}
-                disabled={!vidroSelecionadoOrcamento}
+                disabled={!vidroOrigemOrcamento || !vidroSelecionadoOrcamento}
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: theme.menuBackgroundColor }}
               >

@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -152,10 +155,7 @@ const formatarMedidaPeca = (valor: number) =>
 
 const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
   const barras: number[] = [];
-  const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
+  const cortes = prepararCortesPorBarra(cortesOriginais, comprimentoBarra).sort((a, b) => b - a);
 
   cortes.forEach((corte) => {
     const indice = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
@@ -455,7 +455,7 @@ export default function Deslizante6FPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -574,27 +574,29 @@ export default function Deslizante6FPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && (opcoes?.ignorarCor || perfilCorrespondeCor(perfil));
-    }) || null;
-  }, [perfilCorrespondeCor, perfis]);
+      return codigoOk;
+    });
+
+    return opcoes?.ignorarCor ? candidatos[0] || null : escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
+  }, [dados.corKit, perfis]);
 
   const buscarPerfilPorCodigoPreferencial = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
-    const perfilExato = perfis.find((perfil) =>
-      normalizarTexto(perfil.codigo) === codigoNormalizado &&
-      (opcoes?.ignorarCor || perfilCorrespondeCor(perfil))
-    );
+    const perfisExatos = perfis.filter((perfil) => normalizarTexto(perfil.codigo) === codigoNormalizado);
+    const perfilExato = opcoes?.ignorarCor
+      ? perfisExatos[0] || null
+      : escolherItemPorCor(perfisExatos, dados.corKit, (perfil) => perfil.cores);
 
     return perfilExato || buscarPerfilPorCodigo(codigo, opcoes);
-  }, [buscarPerfilPorCodigo, perfilCorrespondeCor, perfis]);
+  }, [buscarPerfilPorCodigo, dados.corKit, perfis]);
 
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
     const perfil = buscarPerfilPorCodigoPreferencial(codigo);
     const totalUsadoMm = Number(comprimentoMm || 0) * Number(quantidadeCortes || 0) * quantidadeProjeto;
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0));
+    const cortes = prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000);
 
     if (!perfil || totalUsadoMm <= 0) return null;
 
@@ -611,10 +613,7 @@ export default function Deslizante6FPage() {
 
   const distribuirTrilhosDeslizante = useCallback((cortesOriginais: number[]) => {
     const barras: Array<{ comprimento: 6000 | 7000; usado: number }> = [];
-    const cortes = cortesOriginais
-      .map((corte) => Math.ceil(Number(corte || 0)))
-      .filter((corte) => corte > 0)
-      .sort((a, b) => b - a);
+    const cortes = prepararCortesPorBarra(cortesOriginais, 7000).sort((a, b) => b - a);
 
     cortes.forEach((corte, indice) => {
       const barraExistente = barras
@@ -642,7 +641,7 @@ export default function Deslizante6FPage() {
 
   const criarTrilhoDeslizanteInteligente = useCallback((codigo6000: string, codigo7000: string, comprimentoMm: number, quantidadeCortes: number) => {
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    const cortes = Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0));
+    const cortes = prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 7000);
     const { barras6000, barras7000 } = distribuirTrilhosDeslizante(cortes);
 
     return [
@@ -849,8 +848,11 @@ export default function Deslizante6FPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);

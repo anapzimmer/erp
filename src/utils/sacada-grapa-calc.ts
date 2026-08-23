@@ -1,3 +1,5 @@
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
+
 export type SacadaGrapaInput = {
   larguraVaoMm: number;
   alturaVaoMm: number;
@@ -65,44 +67,13 @@ const BARRA_ALUMINIO_MM = 6000;
 
 const arredondarDinheiro = (valor: number) => Number(valor.toFixed(2));
 const arredondarMedida = (valor: number) => Math.max(Math.ceil(valor / 50) * 50, 0);
-const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = BARRA_ALUMINIO_MM) => {
-  const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
-
-  const barras: number[][] = [];
-
-  cortes.forEach((corte) => {
-    let melhorIndice = -1;
-    let menorSobra = Number.POSITIVE_INFINITY;
-
-    barras.forEach((barra, index) => {
-      const usado = barra.reduce((total, valor) => total + valor, 0);
-      const sobra = comprimentoBarra - usado - corte;
-      if (sobra >= 0 && sobra < menorSobra) {
-        melhorIndice = index;
-        menorSobra = sobra;
-      }
-    });
-
-    if (melhorIndice >= 0) {
-      barras[melhorIndice].push(corte);
-    } else {
-      barras.push([corte]);
-    }
-  });
-
-  return barras.length;
-};
-
 const criarPerfilTubo = (
   codigo: string,
   nome: string,
   precoBarra: number,
   cortes: number[]
 ): SacadaGrapaPerfil | null => {
-  const cortesValidos = cortes.map((corte) => Math.ceil(Number(corte || 0))).filter((corte) => corte > 0);
+  const cortesValidos = prepararCortesPorBarra(cortes, BARRA_ALUMINIO_MM);
   if (!codigo || cortesValidos.length === 0) return null;
 
   const comprimentoTotal = cortesValidos.reduce((total, corte) => total + corte, 0);

@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { useTheme } from "@/context/ThemeContext"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
+import { MODO_CORTE_BARRA_STORAGE_KEY, type ModoCorteBarra } from "@/utils/barras"
 
 export default function ConfiguracoesPage() {
   const router = useRouter()
@@ -18,6 +19,12 @@ export default function ConfiguracoesPage() {
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
+  const [modoCorteBarra, setModoCorteBarra] = useState<ModoCorteBarra>(() => {
+    if (typeof window === "undefined") return "dividir";
+
+    const modoSalvo = window.localStorage.getItem(MODO_CORTE_BARRA_STORAGE_KEY);
+    return modoSalvo === "complemento" ? "complemento" : "dividir";
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +65,15 @@ export default function ConfiguracoesPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const alterarModoCorteBarra = (modo: ModoCorteBarra) => {
+    setModoCorteBarra(modo);
+    try {
+      window.localStorage.setItem(MODO_CORTE_BARRA_STORAGE_KEY, modo);
+    } catch (error) {
+      console.warn("Nao foi possivel salvar a preferencia de corte de barras:", error);
+    }
   };
 
   const preferenciasSistema = [
@@ -213,6 +229,76 @@ export default function ConfiguracoesPage() {
                   <p className="mt-2 text-sm leading-6 text-slate-500">{item.descricao}</p>
                 </div>
               ))}
+            </div>
+
+            <div
+              className="mt-5 rounded-2xl border p-4 md:p-5"
+              style={{
+                backgroundColor: `${theme.screenBackgroundColor}B8`,
+                borderColor: `${theme.contentTextLightBg}12`,
+              }}
+            >
+              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                    Corte de barras longas
+                  </h3>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Escolha como o sistema deve tratar medidas maiores que o tamanho da barra. A regra vale para os novos cálculos e recálculos dos projetos.
+                  </p>
+                </div>
+                <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-slate-500">
+                  Preferência ativa
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {[
+                  {
+                    modo: "dividir" as ModoCorteBarra,
+                    titulo: "Dividir ao meio",
+                    descricao: "Ex.: vão de 7000 mm em barra de 6000 mm vira 3500 + 3500.",
+                  },
+                  {
+                    modo: "complemento" as ModoCorteBarra,
+                    titulo: "Barra inteira + complemento",
+                    descricao: "Ex.: vão de 7000 mm em barra de 6000 mm vira 6000 + 1000.",
+                  },
+                ].map((opcao) => {
+                  const ativo = modoCorteBarra === opcao.modo;
+
+                  return (
+                    <button
+                      key={opcao.modo}
+                      type="button"
+                      onClick={() => alterarModoCorteBarra(opcao.modo)}
+                      className="rounded-2xl border p-4 text-left transition"
+                      style={{
+                        backgroundColor: ativo ? `${theme.menuIconColor}10` : theme.contentTextDarkBg,
+                        borderColor: ativo ? `${theme.menuIconColor}70` : `${theme.contentTextLightBg}14`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                          {opcao.titulo}
+                        </span>
+                        <span
+                          className="h-3 w-3 rounded-full border"
+                          style={{
+                            backgroundColor: ativo ? theme.menuIconColor : "transparent",
+                            borderColor: ativo ? theme.menuIconColor : `${theme.contentTextLightBg}40`,
+                          }}
+                        />
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-500">{opcao.descricao}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                Nas deslizantes, os trilhos continuam respeitando barras de 7000 mm antes de aplicar esta regra.
+              </p>
             </div>
           </div>
         </main>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, FilePlus2, Package2, PanelsTopLeft, Printer, Ruler, Save, Search, SquareStack } from "lucide-react";
@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaGrapa } from "@/utils/sacada-grapa-calc";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
 import { SacadaGrapaPDF } from "@/app/relatorios/sacadagrapa/SacadaGrapaPDF";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
@@ -491,7 +493,7 @@ export default function CalculosacadagrapaPage() {
   }, [buscaVidro, vidros]);
 
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || (buscaVidro.trim() ? vidrosFiltrados[0] : null) || null,
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || localizarVidroPorDescricao(vidros, buscaVidro, montarDescricaoVidro) || (buscaVidro.trim() ? vidrosFiltrados[0] : null) || null,
     [buscaVidro, vidroId, vidros, vidrosFiltrados]
   );
 
@@ -519,24 +521,25 @@ export default function CalculosacadagrapaPage() {
     });
     if (!corPerfil) return encontrados;
     const filtradosPorCor = encontrados.filter((perfil) => corCompativel(perfil.cores, corPerfil));
-    return filtradosPorCor.length ? filtradosPorCor : encontrados;
+    const padroes = encontrados.filter((perfil) => !perfil.cores || normalizarTexto(perfil.cores).includes("padrao"));
+    return filtradosPorCor.length ? filtradosPorCor : padroes.length ? padroes : encontrados;
   }, [corPerfil, perfis]);
 
   const tuboSelecionado = useMemo(() => {
     const codigo = normalizarCodigo(tuboCodigo);
     const candidatos = perfis.filter((perfil) => normalizarCodigo(perfil.codigo) === codigo);
     if (!candidatos.length) return null;
-    return candidatos.find((perfil) => corCompativel(perfil.cores, corPerfil)) || candidatos[0];
+    return escolherItemPorCor(candidatos, corPerfil, (perfil) => perfil.cores);
   }, [corPerfil, perfis, tuboCodigo]);
 
   const grapa3019 = useMemo(() => {
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === "3019" || normalizarCodigo(ferragem.codigo).startsWith("3019"));
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0] || null;
+    return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
   const grapa1305 = useMemo(() => {
     const candidatos = ferragens.filter((ferragem) => normalizarCodigo(ferragem.codigo) === "1305" || normalizarCodigo(ferragem.codigo).startsWith("1305"));
-    return candidatos.find((ferragem) => corCompativel(ferragem.cores, corPerfil)) || candidatos[0] || null;
+    return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
   const resultado = useMemo(

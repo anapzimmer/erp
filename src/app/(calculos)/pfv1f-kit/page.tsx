@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -396,7 +399,7 @@ export default function PFV1FKitPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -516,7 +519,7 @@ export default function PFV1FKitPage() {
 
     if (kitsFiltrados.length === 0) return null;
 
-    return kitsFiltrados
+    const kitsOrdenados = kitsFiltrados
       .filter((kit) =>
         Number(kit.largura || 0) >= larguraKitNecessaria &&
         Number(kit.altura || 0) >= alturaKitNecessaria
@@ -531,7 +534,9 @@ export default function PFV1FKitPage() {
           Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
 
         return diferencaA - diferencaB;
-      })[0] || null;
+      });
+
+    return escolherItemPorCor(kitsOrdenados, dados.corKit, (kit) => kit.cores);
   }, [dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
 
 
@@ -710,8 +715,11 @@ export default function PFV1FKitPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
@@ -855,8 +863,8 @@ export default function PFV1FKitPage() {
     const alturaMm = Number(dados.altura || 0);
     const quantidade = Number(dados.quantidade || 1);
 
-    const totalUsadoMm = alturaMm * quantidade;
-    const barrasNecessarias = Math.ceil(totalUsadoMm / 6000);
+    const cortes = prepararCortesPorBarra(Array.from({ length: quantidade }, () => alturaMm), 6000);
+    const barrasNecessarias = calcularBarrasPorCortes(cortes, 6000);
 
     const descricaoTubo = `${perfilTuboSelecionado.codigo} - ${perfilTuboSelecionado.nome_completo ||
       perfilTuboSelecionado.nome
@@ -878,6 +886,9 @@ export default function PFV1FKitPage() {
         unidade: "barra",
         descricao: descricaoTubo,
         valorUnitario: precoTubo,
+        codigoPerfil: perfilTuboSelecionado.codigo,
+        comprimentoBarra: 6000,
+        cortes,
       };
 
       if (indiceTubo < 0) return [...lista, itemAtualizado];

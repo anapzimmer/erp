@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -161,10 +164,7 @@ const limitarNumero4Digitos = (valor: string) => {
 
 const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6000) => {
   const barras: number[] = [];
-  const cortes = cortesOriginais
-    .map((corte) => Number(corte || 0))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
+  const cortes = prepararCortesPorBarra(cortesOriginais, comprimentoBarra).sort((a, b) => b - a);
 
   cortes.forEach((corte) => {
     const indice = barras.findIndex?.((usado) => usado + corte <= comprimentoBarra);
@@ -442,7 +442,7 @@ export default function PGFPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -700,8 +700,11 @@ export default function PGFPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
@@ -718,8 +721,7 @@ export default function PGFPage() {
 
     return perfis.find((perfil) => {
       const codigoOk = codigoFerragemCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      const corOk = !corFerragemSelecionada || corFerragemSelecionada === "escolher" || normalizarTexto(perfil.cores).includes(corFerragemSelecionada);
-      return codigoOk && corOk;
+      return codigoOk;
     }) || null;
   }, [corFerragemSelecionada, perfis]);
 
@@ -802,10 +804,7 @@ export default function PGFPage() {
 
     const criarPerfilAutomatico = (codigo: string, cortesBase: number[]) => {
       const perfil = buscarPerfilPorCodigo(codigo);
-      const cortes = Array.from({ length: quantidadeProjeto }, () => cortesBase)
-        .flat()
-        .map((corte) => Number(corte || 0))
-        .filter((corte) => corte > 0);
+      const cortes = prepararCortesPorBarra(Array.from({ length: quantidadeProjeto }, () => cortesBase).flat(), 6000);
 
       if (!perfil || cortes.length === 0) return null;
 

@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularPeleDeVidro } from "@/utils/pele-de-vidro-calc";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
@@ -269,8 +271,8 @@ export default function CalculoPeleDeVidroPage() {
   }, [carregandoInsumos, vidroId, vidros]);
 
   const vidroSelecionado = useMemo(
-    () => vidros.find((v) => v.id === vidroId) || null,
-    [vidroId, vidros]
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || localizarVidroPorDescricao(vidros, buscaVidro, montarDescricaoVidro),
+    [buscaVidro, vidroId, vidros]
   );
 
   const vidrosFiltrados = useMemo(() => {
@@ -674,16 +676,20 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
       descricao: `VIDRO ${formatarNumero(resultado.larguraQuadroMm, 0)}x${formatarNumero(resultado.alturaQuadroMm, 0)} ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
       valorUnitario: precoVidroM2Efetivo,
     },
-    ...perfisPDF.map((perfil) => ({
+    ...perfisPDF.map((perfil) => {
+      const cortes = prepararCortesPorBarra(perfil.metroLinear ? [Number(perfil.metroLinear)] : [], 6000);
+
+      return {
       id: `perfil-${perfil.codigo}`,
-      qtd: Number(perfil.barras || 0),
+      qtd: calcularBarrasPorCortes(cortes, 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
       valorUnitario: Number(perfil.precoBarra || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: perfil.metroLinear ? [Number(perfil.metroLinear)] : [],
-    })),
+      cortes,
+    };
+    }),
     ...acessoriosPDF.map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
       qtd: Number(acessorio.quantidade || 0),

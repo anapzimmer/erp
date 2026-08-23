@@ -9,6 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { prepararCortesPorBarra } from "@/utils/barras";
+import { corCatalogoCompativel, corPadraoCatalogo, escolherItemPorCor } from "@/utils/catalogo-cor";
 import {
   AlertTriangle,
   Calendar,
@@ -218,10 +221,7 @@ const calcularBarrasPorCortes = (
   comprimentoBarra = 6000
 ) => {
   const barras: number[] = [];
-  const cortes = cortesOriginais
-    .map((corte) => Math.ceil(Number(corte || 0)))
-    .filter((corte) => corte > 0)
-    .sort((a, b) => b - a);
+  const cortes = prepararCortesPorBarra(cortesOriginais, comprimentoBarra).sort((a, b) => b - a);
 
   cortes.forEach((corte) => {
     const indice = barras.findIndex?.(
@@ -717,19 +717,13 @@ useEffect(() => {
 
   const vidroPeitorilSelecionado = useMemo(
     () =>
-      vidros.find(
-        (vidro) =>
-          formatarVidroCadastro(vidro) === dados.vidroPeitoril
-      ) || null,
+      localizarVidroPorDescricao(vidros, dados.vidroPeitoril, formatarVidroCadastro),
     [dados.vidroPeitoril, vidros]
   );
 
   const vidroJanelaSelecionado = useMemo(
     () =>
-      vidros.find(
-        (vidro) =>
-          formatarVidroCadastro(vidro) === dados.vidroJanelaBandeira
-      ) || null,
+      localizarVidroPorDescricao(vidros, dados.vidroJanelaBandeira, formatarVidroCadastro),
     [dados.vidroJanelaBandeira, vidros]
   );
 
@@ -839,16 +833,13 @@ useEffect(() => {
   const buscarPerfil = useCallback(
     (codigo: string) => {
       const base = normalizarTexto(codigo);
-
-      return (
-        perfis.find(
-          (perfil) =>
-            codigoCompativel(normalizarTexto(perfil.codigo), base) &&
-            perfilCorrespondeCor(perfil)
-        ) || null
+      const candidatos = perfis.filter((perfil) =>
+        codigoCompativel(normalizarTexto(perfil.codigo), base)
       );
+
+      return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
     },
-    [perfilCorrespondeCor, perfis]
+    [dados.corKit, perfis]
   );
 
   const criarPerfilComCortes = useCallback(
@@ -889,11 +880,10 @@ useEffect(() => {
           } ${perfil.categoria || ""}`
         );
 
-        return (
-          perfilCorrespondeCor(perfil) &&
-          (texto.includes("tubo retangular") ||
-            texto.includes("tubo quadrado"))
-        );
+        const ehTubo = texto.includes("tubo retangular") || texto.includes("tubo quadrado");
+        const corOk = corCatalogoCompativel(perfil.cores, dados.corKit) || corPadraoCatalogo(perfil.cores);
+
+        return ehTubo && corOk;
       })
       .map(
         (perfil) =>
@@ -903,7 +893,7 @@ useEffect(() => {
       );
 
     return ["Escolher", ...Array.from(new Set(opcoes))];
-  }, [perfilCorrespondeCor, perfis]);
+  }, [dados.corKit, perfis]);
 
   const perfilTuboSelecionado = useMemo(() => {
     const codigo = String(dados.tuboPerfil || "")
@@ -1007,25 +997,19 @@ useEffect(() => {
 
   const buscarFerragem = useCallback(
     (codigos: string[], ignorarCor = false) => {
-      const cor = normalizarTexto(dados.corKit);
-
-      return (
-        ferragens.find((ferragem) => {
+      const candidatas = ferragens.filter((ferragem) => {
           const codigoCadastro = normalizarTexto(ferragem.codigo);
           const codigoInterno = normalizarTexto(ferragem.codigo_interno);
-          const codigoOk = codigos.some((codigo) => {
+          return codigos.some((codigo) => {
             const base = normalizarTexto(codigo);
             return (
               codigoCompativel(codigoCadastro, base) ||
               codigoCompativel(codigoInterno, base)
             );
           });
+        });
 
-          if (!codigoOk) return false;
-          if (ignorarCor) return true;
-          return normalizarTexto(ferragem.cores).includes(cor);
-        }) || null
-      );
+      return ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
     },
     [dados.corKit, ferragens]
   );

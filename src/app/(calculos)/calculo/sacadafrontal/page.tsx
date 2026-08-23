@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
@@ -223,6 +225,14 @@ const resolverFerragemPorCodigoECor = (
   });
 
   if (candidatos.length === 0) {
+    const semCorOuPadrao = escolherItemPorCor(candidatos, "", (f) => f.cores);
+    if (semCorOuPadrao && normalizarPrecoFerragem(semCorOuPadrao.preco) > 0) {
+      return {
+        preco: normalizarPrecoFerragem(semCorOuPadrao.preco),
+        corEncontrada: semCorOuPadrao.cores || "Padrão",
+      };
+    }
+
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
   }
 
@@ -242,6 +252,14 @@ const resolverFerragemPorCodigoECor = (
     });
     if (comSufixo && normalizarPrecoFerragem(comSufixo.preco) > 0) {
       return { preco: normalizarPrecoFerragem(comSufixo.preco), corEncontrada: corUsar };
+    }
+
+    const semCorOuPadrao = escolherItemPorCor(candidatos, "", (f) => f.cores);
+    if (semCorOuPadrao && normalizarPrecoFerragem(semCorOuPadrao.preco) > 0) {
+      return {
+        preco: normalizarPrecoFerragem(semCorOuPadrao.preco),
+        corEncontrada: semCorOuPadrao.cores || "Padrão",
+      };
     }
 
     return { preco: 0, corEncontrada: corUsar || "Padrão" };
@@ -542,8 +560,8 @@ export default function CalculoSacadaFrontalPage() {
   }, [carregandoInsumos, vidroId, vidros]);
 
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => vidro.id === vidroId) || null,
-    [vidroId, vidros]
+    () => vidros.find((vidro) => String(vidro.id) === String(vidroId)) || localizarVidroPorDescricao(vidros, buscaVidro, montarDescricaoVidro),
+    [buscaVidro, vidroId, vidros]
   );
 
   const vidrosFiltrados = useMemo(() => {
@@ -620,7 +638,7 @@ export default function CalculoSacadaFrontalPage() {
       );
 
       const perfilDaTabela =
-        candidatosMesmoCodigo.find((perfilTabela) => atendeCor(perfilTabela.cores, corSelecionada)) ||
+        escolherItemPorCor(candidatosMesmoCodigo, corSelecionada, (perfilTabela) => perfilTabela.cores) ||
         candidatosMesmoCodigo.find((perfilTabela) => normalizarPrecoFerragem(perfilTabela.preco) > 0) ||
         candidatosMesmoCodigo[0];
 

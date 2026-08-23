@@ -1,3 +1,5 @@
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
+
 export type SacadaFrontalInput = {
   larguraVaoMm: number;
   alturaVaoMm: number;
@@ -121,11 +123,13 @@ export const calcularSacadaFrontal = ({
               alturaVidroMm,
             ]);
 
-      const comprimentoBase = cortes.reduce((total, corte) => total + corte, 0);
+      const cortesValidos = prepararCortesPorBarra(
+        cortes.map((corte) => Math.round(corte)).filter((corte) => corte > 0),
+        BARRA_ALUMINIO_MM
+      );
+      const comprimentoBase = cortesValidos.reduce((total, corte) => total + corte, 0);
 
-      const quantidadeBarras = comprimentoBase > 0
-        ? Math.ceil(comprimentoBase / BARRA_ALUMINIO_MM)
-        : 0;
+      const quantidadeBarras = calcularBarrasPorCortes(cortesValidos, BARRA_ALUMINIO_MM);
 
       return {
         nome: perfilConfig.nome,
@@ -134,17 +138,17 @@ export const calcularSacadaFrontal = ({
         quantidadeBarras,
         precoBarra: 0,
         valorTotal: 0,
-        cortes: cortes.map((corte) => Math.round(corte)).filter((corte) => corte > 0),
+        cortes: cortesValidos,
       };
     })
     : PERFIS_CONFIG.map((perfilConfig) => {
-      const comprimentoBase = perfilConfig.codigo === "GR 77"
-        ? quantidadePontaletesPorVao * alturaNormalizada * quantidadeNormalizada
-        : larguraNormalizada * quantidadeNormalizada;
+      const cortes = perfilConfig.codigo === "GR 77"
+        ? Array.from({ length: quantidadePontaletesPorVao * quantidadeNormalizada }, () => alturaNormalizada)
+        : Array.from({ length: quantidadeNormalizada }, () => larguraNormalizada);
+      const cortesValidos = prepararCortesPorBarra(cortes, BARRA_ALUMINIO_MM);
+      const comprimentoBase = cortesValidos.reduce((total, corte) => total + corte, 0);
 
-      const quantidadeBarras = comprimentoBase > 0
-        ? Math.ceil(comprimentoBase / BARRA_ALUMINIO_MM)
-        : 0;
+      const quantidadeBarras = calcularBarrasPorCortes(cortesValidos, BARRA_ALUMINIO_MM);
 
       const valorTotal = quantidadeBarras * perfilConfig.precoBarra;
 
@@ -155,6 +159,7 @@ export const calcularSacadaFrontal = ({
         quantidadeBarras,
         precoBarra: arredondarDinheiro(perfilConfig.precoBarra),
         valorTotal: arredondarDinheiro(valorTotal),
+        cortes: cortesValidos,
       };
     });
 

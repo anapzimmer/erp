@@ -935,6 +935,7 @@ type MaterialConsolidado = {
   areaM2?: number;
   valorUnitario: number;
   valorTotal: number;
+  ordemRelacao?: number;
 };
 
 const normalizarUnidadeMaterial = (unidade?: string | null) => {
@@ -1283,6 +1284,7 @@ const inferirPecasVidroMaterial = (
 const adicionarMaterialConsolidado = (
   grupos: Map<string, MaterialConsolidado>,
   material: {
+    chaveGrupo?: string;
     codigo?: string;
     descricao?: string;
     unidade?: string;
@@ -1293,6 +1295,7 @@ const adicionarMaterialConsolidado = (
     areaM2?: number;
     valorUnitario?: number;
     valorTotal?: number;
+    ordemRelacao?: number;
   }
 ) => {
   const codigo = normalizarCodigoMaterial(material.codigo);
@@ -1321,7 +1324,7 @@ const adicionarMaterialConsolidado = (
       : unidade === "m²" ? extrairVidroRelacao(descricao)
         : {};
 
-  const chave = criarChaveMaterial(codigo, descricao, unidade);
+  const chave = material.chaveGrupo || criarChaveMaterial(codigo, descricao, unidade);
 
   const atual = grupos.get(chave) || {
     chave,
@@ -1335,6 +1338,7 @@ const adicionarMaterialConsolidado = (
     areaM2: 0,
     valorUnitario: 0,
     valorTotal: 0,
+    ordemRelacao: material.ordemRelacao,
   };
 
   atual.qtd += qtd;
@@ -1342,6 +1346,10 @@ const adicionarMaterialConsolidado = (
   atual.areaM2 = numeroSeguro(atual.areaM2) + numeroSeguro(material.areaM2);
   atual.valorUnitario = valorUnitario > 0 ? valorUnitario : atual.valorUnitario;
   atual.valorTotal += valorTotal;
+  atual.ordemRelacao = Math.min(
+    numeroSeguro(atual.ordemRelacao) || numeroSeguro(material.ordemRelacao),
+    numeroSeguro(material.ordemRelacao) || numeroSeguro(atual.ordemRelacao)
+  );
 
   grupos.set(chave, atual);
 };
@@ -1353,7 +1361,7 @@ const consolidarMateriais = (
 ) => {
   const grupos = new Map<string, MaterialConsolidado>();
 
-  itens.forEach((item) => {
+  itens.forEach((item, itemIndex) => {
     if (filtroItem && !filtroItem(item)) {
       return;
     }
@@ -1365,25 +1373,45 @@ const consolidarMateriais = (
       (material) => classificarMaterialRelacao(material) === tipo
     );
 
-    materiaisDoTipo.forEach((material) => {
+    materiaisDoTipo.forEach((material, materialIndex) => {
       if (classificarMaterialRelacao(material) !== tipo) {
         return;
       }
 
       const qtd = numeroSeguro(material.qtd);
+      const detalhesVidro =
+        tipo === "vidros"
+          ? material.medida || material.vidroDescricao ? {
+              medida: material.medida,
+              vidroDescricao: material.vidroDescricao,
+            }
+            : extrairVidroRelacao(material.descricao)
+          : {};
+      const chaveGrupoVidro =
+        tipo === "vidros"
+          ? [
+              "vidro",
+              itemIndex,
+              normalizarTexto(detalhesVidro.medida),
+              normalizarTexto(detalhesVidro.vidroDescricao),
+              normalizarUnidadeMaterial(material.unidade),
+            ].join("|")
+          : undefined;
 
       adicionarMaterialConsolidado(grupos, {
+        chaveGrupo: chaveGrupoVidro,
         codigo: material.codigoPerfil,
         descricao: material.descricao,
         unidade: material.unidade,
         qtd,
-        medida: material.medida,
-        vidroDescricao: material.vidroDescricao,
+        medida: detalhesVidro.medida,
+        vidroDescricao: detalhesVidro.vidroDescricao,
         pecas:
           tipo === "vidros" ? inferirPecasVidroMaterial(material, item, materiaisDoTipo.length)
             : undefined,
         areaM2: tipo === "vidros" ? qtd : undefined,
         valorUnitario: numeroSeguro(material.valorUnitario),
+        ordemRelacao: tipo === "vidros" ? itemIndex * 1000 + materialIndex : undefined,
       });
     });
 
@@ -1393,7 +1421,7 @@ const consolidarMateriais = (
      * não tenha preenchido item.materiais.
      */
     if (tipo === "vidros" && item.vidrosAvulsos?.length) {
-      item.vidrosAvulsos.forEach((vidro) => {
+      item.vidrosAvulsos.forEach((vidro, vidroIndex) => {
         const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
         const quantidade = numeroSeguro(vidro.quantidade);
 
@@ -1406,6 +1434,13 @@ const consolidarMateriais = (
         }
 
         adicionarMaterialConsolidado(grupos, {
+          chaveGrupo: [
+            "vidro-avulso",
+            itemIndex,
+            normalizarTexto(vidro.medida),
+            normalizarTexto(vidro.vidro),
+            "m²",
+          ].join("|"),
           descricao: `VIDRO ${vidro.medida} ${vidro.vidro}`,
           unidade: "m²",
           qtd: areaTotal,
@@ -1414,12 +1449,19 @@ const consolidarMateriais = (
           pecas: quantidade,
           areaM2: areaTotal,
           valorTotal: numeroSeguro(vidro.valorTotal),
+          ordemRelacao: itemIndex * 1000 + 500 + vidroIndex,
         });
       });
     }
   });
 
-  return Array.from(grupos.values()).sort(compararMateriaisRelacao);
+  const materiais = Array.from(grupos.values());
+
+  if (tipo === "vidros") {
+    return materiais.sort((a, b) => numeroSeguro(a.ordemRelacao) - numeroSeguro(b.ordemRelacao));
+  }
+
+  return materiais.sort(compararMateriaisRelacao);
 };
 
 const origemPerfilItem = (item: CentralImpressaoItem): GrupoOrigemPerfil => {
@@ -1689,31 +1731,33 @@ const possuiRelacaoObra =
     titulo: string,
     materiais: MaterialConsolidado[],
     opcoes?: { vidros?: boolean }
-  ) => (
-    materiais.length > 0 ? (
-      <View style={styles.relationSection}>
-        <Text style={styles.relationSubtitle}>{titulo}</Text>
-        <View style={styles.relationHeader}>
-          {opcoes?.vidros ? (
-            <>
-              <Text style={styles.relationGlassCellQty}>QTD</Text>
-              <Text style={styles.relationGlassCellMeasure}>MEDIDA</Text>
-              <Text style={styles.relationGlassCellDesc}>VIDRO</Text>
-              <Text style={styles.relationGlassCellArea}>M²</Text>
-              <Text style={styles.relationGlassCellUnitPrice}>VALOR UNIT.</Text>
-              <Text style={styles.relationGlassCellValue}>TOTAL</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.relationCellQty}>QTD</Text>
-              <Text style={styles.relationCellDesc}>DESCRIÇÃO</Text>
-              <Text style={styles.relationCellUnit}>UND</Text>
-              <Text style={styles.relationCellUnitPrice}>VALOR UNIT.</Text>
-              <Text style={styles.relationCellValue}>TOTAL</Text>
-            </>
-          )}
-        </View>
-        {materiais.map((material) => {
+  ) => {
+    if (materiais.length === 0) return null;
+
+    const renderCabecalho = () => (
+      <View style={styles.relationHeader}>
+        {opcoes?.vidros ? (
+          <>
+            <Text style={styles.relationGlassCellQty}>QTD</Text>
+            <Text style={styles.relationGlassCellMeasure}>MEDIDA</Text>
+            <Text style={styles.relationGlassCellDesc}>VIDRO</Text>
+            <Text style={styles.relationGlassCellArea}>M²</Text>
+            <Text style={styles.relationGlassCellUnitPrice}>VALOR UNIT.</Text>
+            <Text style={styles.relationGlassCellValue}>TOTAL</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.relationCellQty}>QTD</Text>
+            <Text style={styles.relationCellDesc}>DESCRIÇÃO</Text>
+            <Text style={styles.relationCellUnit}>UND</Text>
+            <Text style={styles.relationCellUnitPrice}>VALOR UNIT.</Text>
+            <Text style={styles.relationCellValue}>TOTAL</Text>
+          </>
+        )}
+      </View>
+    );
+
+    const renderLinha = (material: MaterialConsolidado) => {
           const descricaoExibicao = removerCodigoDuplicadoDescricao(
             material.codigo,
             material.descricao
@@ -1723,7 +1767,7 @@ const possuiRelacaoObra =
               : material.valorUnitario
             : material.valorUnitario || (material.qtd > 0 ? material.valorTotal / material.qtd : 0);
 
-          return opcoes?.vidros ? (
+      return opcoes?.vidros ? (
             <View key={material.chave} style={styles.relationRow} wrap={false}>
               <Text style={styles.relationGlassCellQty}>
                 {numero(numeroSeguro(material.pecas) || material.qtd, 0)}
@@ -1759,7 +1803,18 @@ const possuiRelacaoObra =
               </Text>
             </View>
           );
-        })}
+    };
+
+    const [primeiroMaterial, ...demaisMateriais] = materiais;
+
+    return (
+      <View style={styles.relationSection}>
+        <View wrap={false}>
+          <Text style={styles.relationSubtitle}>{titulo}</Text>
+          {renderCabecalho()}
+          {renderLinha(primeiroMaterial)}
+        </View>
+        {demaisMateriais.map(renderLinha)}
         <View style={styles.relationTotalRow} wrap={false}>
           <Text style={styles.relationTotalLabel}>Total {titulo.toLowerCase()}</Text>
           <Text style={styles.relationTotalValue}>
@@ -1767,8 +1822,8 @@ const possuiRelacaoObra =
           </Text>
         </View>
       </View>
-    ) : null
-  );
+    );
+  };
 
   return (
     <Document>

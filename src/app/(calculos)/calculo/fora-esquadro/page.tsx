@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
 import { ForaEsquadroPDF } from "@/app/relatorios/foraesquadro/ForaEsquadroPDF";
 import { supabase } from "@/lib/supabaseClient";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
 
 type PecaForaEsquadro = {
   indice: number;
@@ -355,7 +356,7 @@ export default function ForaEsquadroPage() {
     [clienteBusca, clientes]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === vidroBusca) || null,
+    () => localizarVidroPorDescricao(vidros, vidroBusca, formatarVidroCadastro),
     [vidroBusca, vidros]
   );
   const precoVidroM2 = useMemo(() => {

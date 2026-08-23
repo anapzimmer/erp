@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -35,7 +38,6 @@ import {
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "../../relatorios/projetoindividual/ProjetoIndividualPDF";
 import { LoteRapidoProjetos, useLoteRapidoProjetos } from "@/components/LoteRapidoProjetos";
 import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
-import { kitCorCompativel } from "@/utils/kitsCompatibilidade";
 
 type ClienteCadastro = {
   id: string;
@@ -443,7 +445,7 @@ export default function Box2FlsPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -558,17 +560,17 @@ export default function Box2FlsPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoCatalogoCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk && perfilCorrespondeCor(perfil);
-    }) || null;
-  }, [perfilCorrespondeCor, perfis]);
+      return codigoOk;
+    });
+
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
+  }, [dados.corKit, perfis]);
 
   const kitSelecionado = useMemo(() => {
     const largura = Number(dados.largura || 0);
     if (largura <= 0) return null;
-
-    const corAtual = normalizarTexto(dados.corKit);
     const modeloTradicional = normalizarTexto(dados.trinco || "Tradicional").includes("tradicional");
     const candidatosModelo = kits
       .filter((kit) => kitCorrespondeModeloBox?.(kit, dados.trinco || "Tradicional"))
@@ -583,9 +585,7 @@ export default function Box2FlsPage() {
       )
       .sort((a, b) => a.limiteLargura - b.limiteLargura || a.limiteAltura - b.limiteAltura);
 
-    const candidatosComCor = corAtual && corAtual !== "escolher" ? candidatosModelo.filter(({ kit }) => kitCorCompativel(kit, corAtual)) : [];
-
-    return (candidatosComCor[0] || candidatosModelo[0])?.kit || null;
+    return escolherItemPorCor(candidatosModelo.map(({ kit }) => kit), dados.corKit, (kit) => kit.cores);
   }, [dados.altura, dados.corKit, dados.largura, dados.trinco, kits]);
 
   const criarPerfilBarra = useCallback((codigo: string, comprimentoMm: number, quantidadeCortes: number) => {
@@ -596,13 +596,13 @@ export default function Box2FlsPage() {
     if (!perfil || totalUsadoMm <= 0) return null;
 
     return criarMaterial({
-      qtd: Math.ceil(totalUsadoMm / 6000),
+      qtd: calcularBarrasPorCortes(prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000), 6000),
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),
       codigoPerfil: perfil.codigo,
       comprimentoBarra: 6000,
-      cortes: Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)),
+      cortes: prepararCortesPorBarra(Array.from({ length: Number(quantidadeCortes || 0) * quantidadeProjeto }, () => Number(comprimentoMm || 0)), 6000),
     });
   }, [buscarPerfilPorCodigo, dados.quantidade]);
 
@@ -771,17 +771,7 @@ export default function Box2FlsPage() {
   );
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, ignorarCor = false) => {
-    const codigoNormalizado = normalizarTexto(codigo);
-    const corSelecionada = normalizarTexto(dados.corKit);
-    const aliasesCor = new Map<string, string[]>([
-      ["branco", ["branco", "bc"]],
-      ["preto", ["preto", "pt"]],
-      ["fosco", ["fosco"]],
-      ["gold", ["gold", "dourado"]],
-      ["cromado", ["cromado", "cr"]],
-      ["rose", ["rose", "rosê", "rose gold"]],
-    ]);
-    const coresAceitas = aliasesCor.get(corSelecionada) || [corSelecionada];
+    const codigoNormalizado = normalizarTexto(codigo);
 
     const ferragensDoCodigo = ferragens.filter((ferragem) => {
       const codigoFerragem = normalizarTexto(ferragem.codigo);
@@ -793,17 +783,7 @@ export default function Box2FlsPage() {
       );
     });
 
-    const comCorSelecionada = ferragensDoCodigo.find((ferragem) => {
-      const corFerragem = normalizarTexto(ferragem.cores);
-      return coresAceitas.some((cor) => cor && corFerragem.includes(cor));
-    });
-
-    if (comCorSelecionada) return comCorSelecionada;
-
-    const semCor = ferragensDoCodigo.find((ferragem) => !normalizarTexto(ferragem.cores));
-    if (semCor) return semCor;
-
-    return ignorarCor ? ferragensDoCodigo[0] || null : null;
+    return ignorarCor ? ferragensDoCodigo[0] || null : escolherItemPorCor(ferragensDoCodigo, dados.corKit, (ferragem) => ferragem.cores);
   }, [dados.corKit, ferragens]);
 
   const kitAutomatico = useMemo(() => {

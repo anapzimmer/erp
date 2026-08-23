@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import {
   AlertTriangle,
   Calendar,
@@ -390,7 +392,7 @@ export default function PC2FKitPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -520,7 +522,7 @@ export default function PC2FKitPage() {
 
     if (kitsFiltrados.length === 0) return null;
 
-    return kitsFiltrados
+    const kitsOrdenados = kitsFiltrados
       .filter((kit) =>
         Number(kit.largura || 0) >= larguraKitNecessaria &&
         Number(kit.altura || 0) >= alturaKitNecessaria
@@ -539,7 +541,9 @@ export default function PC2FKitPage() {
           Math.abs(Number(b.altura || 0) - alturaKitNecessaria);
 
         return diferencaA - diferencaB;
-      })[0] || null;
+      });
+
+    return escolherItemPorCor(kitsOrdenados, dados.corKit, (kit) => kit.cores);
   }, [dados.altura, dados.corKit, dados.largura, dados.vidro, kits]);
 
 
@@ -701,8 +705,11 @@ export default function PC2FKitPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);

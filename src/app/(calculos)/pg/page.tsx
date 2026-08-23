@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import {
   AlertTriangle,
   Calendar,
@@ -417,7 +420,7 @@ export default function PGPage() {
     [clientes, dados.cliente]
   );
   const vidroSelecionado = useMemo(
-    () => vidros.find((vidro) => formatarVidroCadastro(vidro) === dados.vidro) || null,
+    () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
   );
   const precoVidroM2 = useMemo(() => {
@@ -656,8 +659,11 @@ export default function PGPage() {
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
 
   const buscarFerragem = useCallback((predicado: (texto: string, ferragem: FerragemCadastro) => boolean, opcoes?: { ignorarCor?: boolean }) =>
-    ferragens.find((ferragem) => ferragemCorrespondeCor(ferragem, opcoes?.ignorarCor) && predicado(textoFerragem(ferragem), ferragem)) || null,
-    [ferragens, ferragemCorrespondeCor, textoFerragem]);
+    (() => {
+      const candidatas = ferragens.filter((ferragem) => predicado(textoFerragem(ferragem), ferragem));
+      return opcoes?.ignorarCor ? candidatas[0] || null : escolherItemPorCor(candidatas, dados.corKit, (ferragem) => ferragem.cores);
+    })(),
+    [dados.corKit, ferragens, textoFerragem]);
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
@@ -674,8 +680,7 @@ export default function PGPage() {
 
     return perfis.find((perfil) => {
       const codigoOk = codigoFerragemCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      const corOk = !corFerragemSelecionada || corFerragemSelecionada === "escolher" || normalizarTexto(perfil.cores).includes(corFerragemSelecionada);
-      return codigoOk && corOk;
+      return codigoOk;
     }) || null;
   }, [corFerragemSelecionada, perfis]);
 
@@ -759,14 +764,20 @@ export default function PGPage() {
     const perfil = buscarPerfilPorCodigo("CT004");
     if (!perfil) return null;
 
-    const totalUsadoMm = ((altura * 2) + largura) * quantidadeProjeto;
-    const barras = Math.ceil(totalUsadoMm / 6000);
+    const cortes = prepararCortesPorBarra(
+      Array.from({ length: quantidadeProjeto }, () => [altura, altura, largura]).flat(),
+      6000
+    );
+    const barras = calcularBarrasPorCortes(cortes, 6000);
 
     return criarMaterial({
       qtd: barras,
       unidade: "barra",
       descricao: `${perfil.codigo} - ${perfil.nome_completo || perfil.nome}${perfil.cores ? ` | ${perfil.cores}` : ""}`.toUpperCase(),
       valorUnitario: Number(perfil.preco || 0),
+      codigoPerfil: perfil.codigo,
+      comprimentoBarra: 6000,
+      cortes,
     });
   }, [buscarPerfilPorCodigo, dados.altura, dados.largura, dados.quantidade]);
 
