@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { extrairProdutosTabelaPdfComDiagnostico } from "@/utils/parserTabelaVidrosPdf"
+import { descricaoVidroCompativel } from "@/utils/vidros"
 
 type Vidro = {
   id: string
@@ -159,6 +160,13 @@ const descobrirCampos = (descricaoOriginal: string) => {
 }
 
 const pontuarSemelhanca = (produto: ProdutoImportado, vidro: Vidro) => {
+  const descricaoProdutoCompleta = `${produto.descricao} ${produto.nome} ${produto.espessura} ${produto.tipo}`
+  const descricaoVidroCompleta = `${vidro.nome} ${vidro.espessura} ${vidro.tipo}`
+
+  if (!descricaoVidroCompativel(descricaoProdutoCompleta, descricaoVidroCompleta)) {
+    return 0
+  }
+
   const descricaoProduto = new Set(
     normalizar(`${produto.nome} ${produto.espessura} ${produto.tipo}`)
       .split(" ")
@@ -315,7 +323,11 @@ export default function ImportarTabelaVidrosModal({
     const revisao = produtos.map<ItemRevisao>((produto, index) => {
       const porCodigo = vidros.find(
         (vidro) =>
-          normalizar(vidro.codigo || "") === normalizar(produto.codigo),
+          normalizar(vidro.codigo || "") === normalizar(produto.codigo) &&
+          descricaoVidroCompativel(
+            `${produto.descricao} ${produto.nome} ${produto.espessura} ${produto.tipo}`,
+            `${vidro.nome} ${vidro.espessura} ${vidro.tipo}`,
+          ),
       )
 
       if (porCodigo) {

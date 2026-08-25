@@ -12,6 +12,7 @@ import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { prepararCortesPorBarra } from "@/utils/barras";
 import { corCatalogoCompativel, corPadraoCatalogo, escolherItemPorCor } from "@/utils/catalogo-cor";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import {
   AlertTriangle,
   Calendar,
@@ -739,7 +740,7 @@ useEffect(() => {
           )
         : null;
 
-      return Number(precoGrupo?.preco ?? vidro.preco ?? 0);
+      return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidro.preco ?? 0);
     },
     [clienteSelecionado, precosVidroGrupos]
   );

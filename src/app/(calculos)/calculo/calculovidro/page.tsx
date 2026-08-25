@@ -1,10 +1,11 @@
-﻿//app/calculovidro/page.tsx
+//app/calculovidro/page.tsx
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { CSSProperties } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useRouter } from 'next/navigation';
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabaseClient"
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero"
@@ -396,7 +397,9 @@ export default function RelatorioOrcamento() {
       String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
     );
 
-    const precoBaseM2 = precoEspecial ? Number(precoEspecial.preco) : Number(vidro.preco);
+    const precoBaseM2 = precoEspecial
+      ? normalizarPrecoCatalogo(precoEspecial.preco)
+      : normalizarPrecoCatalogo(vidro.preco);
     const excedeuLimiteMedida = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
     const precoM2 = aplicarAcrescimoPorMedida(precoBaseM2, larguraMm, alturaMm);
 
@@ -418,7 +421,7 @@ export default function RelatorioOrcamento() {
       console.log("vidroId", vidro.id);
       console.log("vidroNome", montarRotuloVidro(vidro));
       console.log("medidasMm", { larguraMm, alturaMm });
-      console.log("precoEspecial", precoEspecial ? Number(precoEspecial.preco) : null);
+      console.log("precoEspecial", precoEspecial ? normalizarPrecoCatalogo(precoEspecial.preco) : null);
       console.log("precoBaseM2", precoBaseM2);
       console.log("excedeuLimiteMedida", excedeuLimiteMedida);
       console.log("percentualAcrescimo", PERCENTUAL_ACRESCIMO_MEDIDA);
@@ -1087,7 +1090,7 @@ useEffect(() => {
       console.log("vidroSelecionado", {
         id: vidroSelecionado.id,
         nome: montarRotuloVidro(vidroSelecionado),
-        precoCadastro: Number(vidroSelecionado.preco),
+        precoCadastro: normalizarPrecoCatalogo(vidroSelecionado.preco),
       });
       console.log("medidaRealMm", { largura: l, altura: a });
       console.log("medidaCalculoMm", { largura: lCalc, altura: aCalc });
@@ -1205,7 +1208,7 @@ useEffect(() => {
           console.log("novoVidro", {
             id: novoVidro.id,
             nome: montarRotuloVidro(novoVidro),
-            precoCadastro: Number(novoVidro.preco),
+            precoCadastro: normalizarPrecoCatalogo(novoVidro.preco),
           });
           console.log("mesmaFamiliaSemCor", mesmaFamiliaSemCor);
           console.log("manterPrecoAtual", manterPrecoAtual);
@@ -2155,7 +2158,9 @@ useEffect(() => {
                       String(p.grupo_preco_id || p.tabela_id) === String(grupoId)
                     );
 
-                    const precoBase = especial ? Number(especial.preco) : Number(vidroSelecionado.preco);
+                    const precoBase = especial
+                      ? normalizarPrecoCatalogo(especial.preco)
+                      : normalizarPrecoCatalogo(vidroSelecionado.preco);
                     const excedeuLimiteMedida = larguraNumero > LIMITE_MEDIDA_ACRESCIMO_MM || alturaNumero > LIMITE_MEDIDA_ACRESCIMO_MM;
                     const precoComAcrescimo = excedeuLimiteMedida
                       ? aplicarAcrescimoPorMedida(precoBase, larguraNumero, alturaNumero)

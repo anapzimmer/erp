@@ -1,4 +1,4 @@
-﻿//app/(projetos)/central-impressao/page.tsx
+//app/(projetos)/central-impressao/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -13,6 +13,7 @@ import { CentralImpressaoPDF, type CentralImpressaoItem } from "@/app/relatorios
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 
 type ProjetoComposicao = CentralImpressaoItem & {
   largura: number;
@@ -1342,7 +1343,7 @@ export default function CentralImpressaoPage() {
       )
       : null;
 
-    return Number(precoGrupo?.preco ?? vidroSelecionadoOrcamento.preco ?? 0);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionadoOrcamento.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionadoOrcamento]);
 
   const materiaisAvulsosValidos = useMemo(

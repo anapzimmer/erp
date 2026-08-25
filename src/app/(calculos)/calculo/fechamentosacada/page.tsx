@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
@@ -919,9 +920,9 @@ export default function CalculoFechamentoSacadaPage() {
       const especial = precosEspeciais.find(
         (p) => String(p.vidro_id) === String(vidro.id) && String(p.grupo_preco_id) === String(grupoId)
       );
-      if (especial) return Number(especial.preco);
+      if (especial) return normalizarPrecoCatalogo(especial.preco);
     }
-    return Number(vidro.preco) || 0;
+    return normalizarPrecoCatalogo(vidro.preco);
   }, [clienteId, listaClientes, precosEspeciais]);
 
   const precoVidroM2Inferior = useMemo(
@@ -1804,7 +1805,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ) : (
                       vidrosFiltradosInferior.map((vidro) => (
                         <option key={vidro.id} value={vidro.id} className="text-slate-900">
-                          {montarDescricaoVidro(vidro)} - {formatarPreco(Number(vidro.preco) || 0)}/m2
+                          {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                         </option>
                       ))
                     )}
@@ -1836,7 +1837,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ) : (
                       vidrosFiltradosSuperior.map((vidro) => (
                         <option key={vidro.id} value={vidro.id} className="text-slate-900">
-                          {montarDescricaoVidro(vidro)} - {formatarPreco(Number(vidro.preco) || 0)}/m2
+                          {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                         </option>
                       ))
                     )}

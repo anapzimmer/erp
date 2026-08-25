@@ -10,6 +10,7 @@ import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import {
   AlertTriangle,
   Calendar,
@@ -558,7 +559,7 @@ export default function FixoBandeiraPage() {
       )
       : null;
 
-    return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const precoVidroBandeiraM2 = useMemo(() => {
     if (!vidroBandeiraSelecionado) return 0;
@@ -570,7 +571,7 @@ export default function FixoBandeiraPage() {
       )
       : null;
 
-    return Number(precoGrupo?.preco ?? vidroBandeiraSelecionado.preco ?? 0);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroBandeiraSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroBandeiraSelecionado]);
   const calculoVidro = useMemo(() => {
     const pecas = limitarDivisaoPecas(Number(dados.pecasDivisao || 1));

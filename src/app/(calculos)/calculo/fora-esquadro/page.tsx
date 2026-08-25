@@ -10,6 +10,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ForaEsquadroPDF } from "@/app/relatorios/foraesquadro/ForaEsquadroPDF";
 import { supabase } from "@/lib/supabaseClient";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 
 type PecaForaEsquadro = {
   indice: number;
@@ -370,7 +371,7 @@ export default function ForaEsquadroPage() {
         )
       : null;
 
-    return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const valorTotal = areaTotal * precoVidroM2;
 

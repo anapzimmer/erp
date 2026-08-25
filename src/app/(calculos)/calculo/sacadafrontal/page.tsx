@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
@@ -600,9 +601,9 @@ export default function CalculoSacadaFrontalPage() {
       const especial = precosEspeciais.find(
         (p) => String(p.vidro_id) === String(vidroSelecionado.id) && String(p.grupo_preco_id) === String(grupoId)
       );
-      if (especial) return Number(especial.preco);
+      if (especial) return normalizarPrecoCatalogo(especial.preco);
     }
-    return Number(vidroSelecionado.preco) || 0;
+    return normalizarPrecoCatalogo(vidroSelecionado.preco);
   }, [clienteId, listaClientes, precosEspeciais, vidroSelecionado]);
 
   const resultado = useMemo(
@@ -1256,7 +1257,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     ) : (
                       vidrosFiltrados.map((vidro) => (
                         <option key={vidro.id} value={vidro.id} className="text-slate-900">
-                          {montarDescricaoVidro(vidro)} - {formatarPreco(Number(vidro.preco) || 0)}/m2
+                          {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                         </option>
                       ))
                     )}

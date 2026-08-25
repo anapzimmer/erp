@@ -10,6 +10,7 @@ import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import {
   AlertTriangle,
   Calendar,
@@ -417,7 +418,7 @@ export default function PFV2FKitPage() {
       )
       : null;
 
-    return Number(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const calculoVidro = useMemo(() => {
     const larguraMedida = (Number(dados.largura || 0) / 2) + 50;

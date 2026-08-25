@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularPeleDeVidro } from "@/utils/pele-de-vidro-calc";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
@@ -301,9 +302,9 @@ export default function CalculoPeleDeVidroPage() {
       const especial = precosEspeciais.find(
         (p) => String(p.vidro_id) === String(vidroSelecionado.id) && String(p.grupo_preco_id) === String(grupoId)
       );
-      if (especial) return Number(especial.preco);
+      if (especial) return normalizarPrecoCatalogo(especial.preco);
     }
-    return Number(vidroSelecionado.preco) || 0;
+    return normalizarPrecoCatalogo(vidroSelecionado.preco);
   }, [clienteId, listaClientes, precosEspeciais, vidroSelecionado]);
 
   // Buscar perfis e acessórios do banco

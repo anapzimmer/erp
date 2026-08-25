@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRound, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
 import Header from "@/components/Header"
@@ -431,7 +432,7 @@ export default function CalculoEspelhosPage() {
     }
 
     // 4. VALOR BASE DO VIDRO (Área Total * Preço)
-    let valorVidro = areaTotalM2 * Number(vidro.preco);
+    let valorVidro = areaTotalM2 * normalizarPrecoCatalogo(vidro.preco);
     let totalComAdicionais = valorVidro;
 
     // 5. APLICAR ADICIONAIS DO ACABAMENTO

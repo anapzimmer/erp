@@ -10,6 +10,7 @@ import { useTheme } from "@/context/ThemeContext"
 import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal";
+import { descricaoVidroCompativel } from "@/utils/vidros";
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
@@ -149,6 +150,9 @@ export default function GestaoPrecosPage() {
   };
 
   const pontuarSemelhanca = (item: LinhaImportada, vidro: Vidro) => {
+    const descricaoVidro = `${vidro.nome} ${vidro.espessura} ${vidro.tipo}`;
+    if (!descricaoVidroCompativel(item.descricao, descricaoVidro)) return 0;
+
     const descricao = normalizarTexto(item.descricao);
     const nome = normalizarTexto(vidro.nome);
     let pontos = 0;
@@ -196,13 +200,21 @@ export default function GestaoPrecosPage() {
       const porCodigo = new Map(
         catalogo.filter((v) => v.codigo).map((v) => [normalizarTexto(v.codigo || ""), v])
       );
-      const porNome = new Map(catalogo.map((v) => [normalizarTexto(v.nome), v]));
+      const porNome = new Map(catalogo.map((v) => [normalizarTexto(`${v.nome} ${v.espessura} ${v.tipo}`), v]));
 
       const reconhecidos: Array<{ item: LinhaImportada; vidro: Vidro }> = [];
       const pendentes: ItemPendente[] = [];
 
       for (const item of itens) {
-        const encontrado = porCodigo.get(normalizarTexto(item.codigo)) || porNome.get(normalizarTexto(item.descricao));
+        const candidatoPorCodigo = porCodigo.get(normalizarTexto(item.codigo));
+        const encontradoPorCodigo =
+          candidatoPorCodigo && descricaoVidroCompativel(
+            item.descricao,
+            `${candidatoPorCodigo.nome} ${candidatoPorCodigo.espessura} ${candidatoPorCodigo.tipo}`,
+          )
+            ? candidatoPorCodigo
+            : null;
+        const encontrado = encontradoPorCodigo || porNome.get(normalizarTexto(item.descricao));
         if (encontrado) {
           reconhecidos.push({ item, vidro: encontrado });
           continue;
@@ -305,12 +317,6 @@ export default function GestaoPrecosPage() {
 
         let vidroId = item.vidroSelecionadoId;
         if (item.acao === "vincular") {
-          const { error: erroVinculo } = await supabase
-            .from("vidros")
-            .update({ codigo: item.codigo.toUpperCase() })
-            .eq("id", vidroId)
-            .eq("empresa_id", empresaIdAtual);
-          if (erroVinculo) throw new Error(`Não foi possível vincular ${item.codigo}: ${erroVinculo.message}`);
           vinculados++;
         } else {
           const { data: novoVidro, error: erroNovoVidro } = await supabase

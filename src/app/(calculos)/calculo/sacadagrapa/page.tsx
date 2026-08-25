@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { calcularSacadaGrapa } from "@/utils/sacada-grapa-calc";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
@@ -511,7 +512,7 @@ export default function CalculosacadagrapaPage() {
     const especial = grupoId
       ? precosEspeciais.find((preco) => String(preco.vidro_id) === String(vidroSelecionado.id) && String(preco.grupo_preco_id) === String(grupoId))
       : null;
-    return Number(especial?.preco ?? vidroSelecionado.preco ?? 0);
+    return normalizarPrecoCatalogo(especial?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado?.grupo_preco_id, precosEspeciais, vidroSelecionado]);
 
   const tubosDisponiveis = useMemo(() => {
@@ -1014,7 +1015,7 @@ export default function CalculosacadagrapaPage() {
                         <option value="" className="text-slate-900">Selecione o vidro</option>
                         {vidrosFiltrados.map((vidro) => (
                           <option key={vidro.id} value={vidro.id} className="text-slate-900">
-                            {montarDescricaoVidro(vidro)} - {formatarPreco(Number(vidro.preco) || 0)}/m2
+                            {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                           </option>
                         ))}
                       </select>
