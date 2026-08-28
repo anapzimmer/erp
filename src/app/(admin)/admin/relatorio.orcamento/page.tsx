@@ -33,7 +33,7 @@ import { TemperaPDF } from "@/app/relatorios/calculovidros/TemperaPDF"
 import { EspelhosPDF } from "@/app/relatorios/espelhos/EspelhosPDF"
 import { SacadaFrontalPDF } from "@/app/relatorios/sacadafrontal/SacadaFrontalPDF"
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
-import { ProjetoIndividualPDF, type ProjetoIndividualDados } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
+import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
 import { CentralImpressaoPDF, type CentralImpressaoItem, type CentralOtimizacaoPerfil } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
 import { PDFViewer } from '@react-pdf/renderer';
@@ -132,9 +132,8 @@ type OrcamentoProjetosPersistido = {
         corPerfil?: string;
     }>;
     otimizacaoPerfis?: CentralOtimizacaoPerfil[];
-    materiaisAvulsos?: Array<{
-        valorTotal?: number | string | null;
-    }>;
+    materiaisAvulsos?: ProjetoIndividualMaterial[];
+    imprimirOtimizacao?: boolean;
 };
 
 const filtrarOtimizacaoComEconomia = (otimizacao?: CentralOtimizacaoPerfil[]) =>
@@ -144,8 +143,22 @@ const filtrarOtimizacaoComEconomia = (otimizacao?: CentralOtimizacaoPerfil[]) =>
 
 const otimizacaoSalvaEhSegura = (otimizacao?: CentralOtimizacaoPerfil[]) => {
     if (!Array.isArray(otimizacao) || otimizacao.length === 0) return false;
-    return otimizacao.every((perfil) => Number(perfil.valorOtimizado || 0) < Number(perfil.valorOriginal || 0));
+    const totais = otimizacao.reduce(
+        (acc, perfil) => {
+            acc.original += Number(perfil.valorOriginal || 0);
+            acc.otimizado += Number(perfil.valorOtimizado || 0);
+            acc.todosSeguros = acc.todosSeguros && Number(perfil.valorOtimizado || 0) <= Number(perfil.valorOriginal || 0);
+            return acc;
+        },
+        { original: 0, otimizado: 0, todosSeguros: true }
+    );
+
+    return totais.todosSeguros && totais.otimizado > 0 && totais.otimizado < totais.original;
 };
+
+const valorTotalMaterial = (material: ProjetoIndividualMaterial) =>
+    Number((material as ProjetoIndividualMaterial & { valorTotal?: number | string | null }).valorTotal || 0) ||
+    Number(material.qtd || 0) * Number(material.valorUnitario || 0);
 
 const calcularValorSeguroOrcamento = (orcamento: Orcamento) => {
     const itens = orcamento.itens;
@@ -160,13 +173,14 @@ const calcularValorSeguroOrcamento = (orcamento: Orcamento) => {
                 dadosProjetos.projetosOtimizados.length > 0
                 ? dadosProjetos.projetosOtimizados
                 : dadosProjetos.projetos;
+            const projetosSemAvulsos = Array.isArray(projetosOrigem)
+                ? projetosOrigem.filter((projeto) => !/materiais avulsos/i.test(String(projeto.projeto || "")))
+                : [];
 
-            const valorProjetos = Array.isArray(projetosOrigem)
-                ? projetosOrigem.reduce((total, projeto) => total + (Number(projeto.valorTotal) || 0), 0)
-                : 0;
+            const valorProjetos = projetosSemAvulsos.reduce((total, projeto) => total + (Number(projeto.valorTotal) || 0), 0);
 
             const valorAvulsos = Array.isArray(dadosProjetos.materiaisAvulsos)
-                ? dadosProjetos.materiaisAvulsos.reduce((total, item) => total + (Number(item.valorTotal) || 0), 0)
+                ? dadosProjetos.materiaisAvulsos.reduce((total, item) => total + valorTotalMaterial(item), 0)
                 : 0;
 
             if (valorProjetos > 0 || valorAvulsos > 0) {
@@ -1232,7 +1246,10 @@ export default function RelatorioOrcamento() {
                                             const usarProjetosOtimizados = otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis);
                                             const projetosOrigem = usarProjetosOtimizados && Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0 ? dadosProjetos.projetosOtimizados
                                                 : dadosProjetos.projetos;
-                                            const projetosPdf: CentralImpressaoItem[] = Array.isArray(projetosOrigem) ? projetosOrigem.map((item, index) => ({
+                                            const projetosSemAvulsos = Array.isArray(projetosOrigem)
+                                                ? projetosOrigem.filter((item) => !/materiais avulsos/i.test(String(item.projeto || "")))
+                                                : [];
+                                            const projetosPdf: CentralImpressaoItem[] = projetosSemAvulsos.map((item, index) => ({
                                                     id: String(item.id || index),
                                                     numero: String(item.numero || orcamentoParaVisualizar?.numero_formatado || ""),
                                                     projeto: item.projeto === "PFV1F - KIT" ? "Porta de correr atrás do Vão - 1 folha"
@@ -1265,16 +1282,39 @@ export default function RelatorioOrcamento() {
                                                     valorTotal: Number(item.valorTotal || 0),
                                                     materiais: item.materiais,
                                                 }))
+                                            const materiaisAvulsosPdf = Array.isArray(dadosProjetos.materiaisAvulsos)
+                                                ? dadosProjetos.materiaisAvulsos.filter((material) => String(material.descricao || "").trim() && Number(material.qtd || 0) > 0)
                                                 : [];
+                                            const valorMateriaisAvulsos = materiaisAvulsosPdf.reduce((total, material) => total + valorTotalMaterial(material), 0);
+                                            const itensPdf = materiaisAvulsosPdf.length > 0
+                                                ? [
+                                                    ...projetosPdf,
+                                                    {
+                                                        id: "materiais-avulsos",
+                                                        numero: String(orcamentoParaVisualizar?.numero_formatado || ""),
+                                                        projeto: "Materiais avulsos",
+                                                        cliente: orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || ""),
+                                                        medidas: "",
+                                                        largura: 0,
+                                                        altura: 0,
+                                                        quantidade: 0,
+                                                        modo: "",
+                                                        desenhoUrl: "",
+                                                        valorTotal: valorMateriaisAvulsos,
+                                                        materiais: materiaisAvulsosPdf,
+                                                    } satisfies CentralImpressaoItem,
+                                                ]
+                                                : projetosPdf;
+                                            const otimizacaoPdf = dadosProjetos.imprimirOtimizacao === false ? [] : otimizacaoPerfis;
                                             return (
                                                 <CentralImpressaoPDF
-                                                    itens={projetosPdf}
+                                                    itens={itensPdf}
                                                     nomeEmpresa={nomeEmpresa}
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     numeroOrcamento={orcamentoParaVisualizar?.numero_formatado || undefined}
                                                     cliente={orcamentoParaVisualizar?.cliente_nome || String(dadosProjetos.cliente || "")}
                                                     obra={orcamentoParaVisualizar?.obra_referencia || String(dadosProjetos.obra || "")}
-                                                    otimizacaoPerfis={otimizacaoPerfis}
+                                                    otimizacaoPerfis={otimizacaoPdf}
                                                 />
                                             );
                                         }

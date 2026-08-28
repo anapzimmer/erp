@@ -14,10 +14,13 @@ import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividu
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
+import { descricaoVidroCompativel } from "@/utils/vidros";
 
 type ProjetoComposicao = CentralImpressaoItem & {
   largura: number;
   altura: number;
+  alturaInicial?: number;
+  alturaFinal?: number;
   corPerfil?: string;
   valorTotal?: number;
   trilho?: string;
@@ -37,6 +40,16 @@ type ProjetoComposicao = CentralImpressaoItem & {
   trinco?: string;
   observacao?: string;
   medidasDetalhadas?: string;
+  foraEsquadroPecas?: Array<{
+    indice: number;
+    largura: number;
+    alturaEsquerda: number;
+    alturaDireita: number;
+    queda: number;
+    larguraCalculo?: number;
+    alturaCalculo?: number;
+    area: number;
+  }>;
   pecasDivisao?: number;
   origemRota?: string;
   origemTipo?: string;
@@ -62,6 +75,7 @@ type VidroCadastro = {
   id: string;
   nome: string;
   espessura?: string | number | null;
+  tipo?: string | null;
   preco?: number | null;
 };
 
@@ -92,6 +106,7 @@ type VidroOrigemOrcamento = {
   chave: string;
   descricao: string;
   ocorrencias: number;
+  vidroId?: string;
 };
 
 export type OtimizacaoPerfil = {
@@ -163,6 +178,9 @@ const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
   const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
   if (espessura) partes.push(`${espessura}mm`);
+  if (vidro.tipo && !normalizarTexto(vidro.nome).includes(normalizarTexto(vidro.tipo))) {
+    partes.push(String(vidro.tipo));
+  }
   return partes.join(" ");
 };
 
@@ -222,8 +240,15 @@ const localizarVidroCatalogoNaDescricao = (descricao: string, vidros: VidroCadas
       label: formatarVidroCadastro(vidro),
       chave: normalizarTexto(formatarVidroCadastro(vidro)).replace(/\s+/g, " ").trim(),
     }))
-    .filter(({ chave }) => chave && texto.includes(chave))
+    .filter(({ chave, label }) => chave && (texto.includes(chave) || descricaoVidroCompativel(descricao, label)))
     .sort((a, b) => b.chave.length - a.chave.length)[0] || null;
+};
+
+const chaveVidroOrigem = (descricao: string, vidros: VidroCadastro[]) => {
+  const encontrado = localizarVidroCatalogoNaDescricao(descricao, vidros);
+  if (encontrado) return `vidro:${encontrado.vidro.id}`;
+
+  return `texto:${chaveVidroParaTroca(descricaoVidroAgrupadaParaTroca(descricao, vidros))}`;
 };
 
 const descricaoVidroAgrupadaParaTroca = (descricao: string, vidros: VidroCadastro[]) => {
@@ -534,6 +559,84 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
           {ehLed ? <rect x={x + 14} y={y + 14} width={Math.max(1, w - 28)} height={Math.max(1, h - 28)} rx={Math.max(1, rx - 4)} fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="7 7" /> : null}
         </>
       )}
+    </svg>
+  );
+}
+
+function ForaEsquadroPreview({
+  item,
+}: {
+  item: Pick<ProjetoComposicao, "largura" | "altura" | "alturaInicial" | "alturaFinal" | "quantidade" | "pecasDivisao" | "medidasDetalhadas" | "foraEsquadroPecas">;
+}) {
+  const largura = Math.max(1, Number(item.largura || 2000));
+  const alturaInicial = Math.max(1, Number(item.alturaInicial || item.altura || 1000));
+  const alturasDireitas = Array.from(String(item.medidasDetalhadas || "").matchAll(/\/\s*(\d+(?:[.,]\d+)?)\s*mm/gi));
+  const alturaFinalTexto = alturasDireitas.at(-1)?.[1] || "";
+  const alturaFinal = Math.max(
+    0,
+    Number(item.alturaFinal ?? "") ||
+      Number(String(alturaFinalTexto).replace(",", ".")) ||
+      Math.round(alturaInicial * 0.35)
+  );
+  const quantidade = Math.max(1, Number(item.quantidade || 1));
+  const divisoes = Math.max(1, Math.min(12, Math.round(Number(item.pecasDivisao || quantidade) / quantidade)));
+  const svgW = 920;
+  const svgH = 520;
+  const padX = 92;
+  const padTop = 62;
+  const padBottom = 92;
+  const drawW = svgW - padX * 2;
+  const drawH = svgH - padTop - padBottom;
+  const x0 = padX;
+  const yBase = padTop + drawH;
+  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
+  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
+  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const panelW = drawW / divisoes;
+  const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
+  const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / divisoes);
+
+  return (
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="h-full w-full" role="img" aria-label="Desenho fora de esquadro">
+      <defs>
+        <linearGradient id={`vidroForaEsquadroCentral-${item.largura}-${item.altura}`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#dff1f8" />
+          <stop offset="100%" stopColor="#eef8fc" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#f8fafc" />
+      <polygon points={pontos} fill={`url(#vidroForaEsquadroCentral-${item.largura}-${item.altura})`} stroke="#b9c9d4" strokeWidth="2.4" strokeLinejoin="round" />
+      <polygon points={pontos} fill="none" stroke="#e4eef4" strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
+      <polygon points={pontos} fill="none" stroke="#b9c9d4" strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
+      <line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke="#ffffff" strokeWidth="8" opacity="0.22" />
+      <line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke="#ffffff" strokeWidth="6" opacity="0.24" />
+      {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
+        const posicao = index + 1;
+        const x = x0 + panelW * posicao;
+        const yTop = yTopoEm(posicao);
+        const altura = item.foraEsquadroPecas?.[index]?.alturaDireita ?? alturaInicial + (alturaFinal - alturaInicial) * (posicao / divisoes);
+
+        return (
+          <g key={`fora-esquadro-preview-div-${posicao}`}>
+            <line x1={x} y1={yTop} x2={x} y2={yBase} stroke="#b9c9d4" strokeWidth="1.8" opacity="0.82" />
+            <text x={x + 8} y={yTop - 10} fontSize="18" fontFamily="Segoe UI, Arial" fill="#0f2742">
+              {Math.round(altura)}
+            </text>
+          </g>
+        );
+      })}
+      <line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke="#2086e8" strokeWidth="1.6" />
+      <line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke="#2086e8" strokeWidth="1.6" />
+      <line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke="#2086e8" strokeWidth="1.6" />
+      <text x={x0 + drawW / 2} y={yBase + 62} textAnchor="middle" fontSize="21" fontFamily="Segoe UI, Arial" fontWeight="500" fill="#0f2742">
+        {Math.round(largura).toLocaleString("pt-BR")} mm
+      </text>
+      <text x={x0 + 14} y={(yInicial + yBase) / 2} textAnchor="start" fontSize="19" fontFamily="Segoe UI, Arial" fill="#0f2742">
+        {Math.round(alturaInicial).toLocaleString("pt-BR")} mm
+      </text>
+      <text x={x0 + drawW - 14} y={(yFinal + yBase) / 2} textAnchor="end" fontSize="19" fontFamily="Segoe UI, Arial" fill="#0f2742">
+        {Math.round(alturaFinal).toLocaleString("pt-BR")} mm
+      </text>
     </svg>
   );
 }
@@ -1139,7 +1242,7 @@ export default function CentralImpressaoPage() {
       ] = await Promise.all([
         supabase
           .from("vidros")
-          .select("id, nome, espessura, preco")
+          .select("id, nome, espessura, tipo, preco")
           .eq("empresa_id", empresaId)
           .order("nome", { ascending: true }),
         supabase
@@ -1298,9 +1401,11 @@ export default function CentralImpressaoPage() {
     const adicionar = (descricao?: string | null) => {
       if (!descricaoVidroValidaParaTroca(descricao)) return;
 
-      const descricaoLimpa = descricaoVidroAgrupadaParaTroca(String(descricao || ""), vidros);
-      const chave = chaveVidroParaTroca(descricaoLimpa);
+      const texto = String(descricao || "");
+      const descricaoLimpa = descricaoVidroAgrupadaParaTroca(texto, vidros);
+      const chave = chaveVidroOrigem(texto, vidros);
       if (!chave) return;
+      const vidroEncontrado = localizarVidroCatalogoNaDescricao(texto, vidros);
 
       const atual = mapa.get(chave);
       if (atual) {
@@ -1312,6 +1417,7 @@ export default function CentralImpressaoPage() {
         chave,
         descricao: descricaoLimpa,
         ocorrencias: 1,
+        vidroId: vidroEncontrado?.vidro.id,
       });
     };
 
@@ -1510,11 +1616,13 @@ export default function CentralImpressaoPage() {
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
+      alturaInicial: item.alturaInicial,
+      alturaFinal: item.alturaFinal,
       quantidade: /fora de esquadro/i.test(item.projeto || "") ? numeroSeguro(item.quantidade)
         : ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas
           : numeroSeguro(item.quantidade),
       modo: ehVidroAvulso(item.projeto) || ehSacadaGrapa(item.projeto) ? "" : item.modo,
-      desenhoUrl: ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item),
+      desenhoUrl: item.desenhoUrl || (ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item)),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
       vidroBandeira: item.vidroBandeira,
       corKit: item.corPerfil || item.corKit,
@@ -1526,6 +1634,7 @@ export default function CentralImpressaoPage() {
       trinco: ehSacadaGrapa(item.projeto) ? "" : item.trinco,
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       medidasDetalhadas: item.medidasDetalhadas,
+      foraEsquadroPecas: item.foraEsquadroPecas,
       vidrosAvulsos: item.vidrosAvulsos,
       valorTotal: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).valor : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
 
@@ -1658,8 +1767,11 @@ export default function CentralImpressaoPage() {
     }
 
     const novoVidro = formatarVidroCadastro(vidroSelecionadoOrcamento);
-    const deveTrocarVidro = (descricao?: string | null) =>
-      chaveVidroParaTroca(descricaoVidroAgrupadaParaTroca(String(descricao || ""), vidros)) === vidroOrigemOrcamento;
+    const deveTrocarVidro = (descricao?: string | null) => {
+      const texto = String(descricao || "");
+      if (!descricaoVidroValidaParaTroca(texto)) return false;
+      return chaveVidroOrigem(texto, vidros) === vidroOrigemOrcamento;
+    };
     const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number]) => {
       const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
       const area = (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
@@ -1856,9 +1968,12 @@ router.push(
           obra,
           projetos: itens,
           materiaisAvulsos: materiaisAvulsosValidos,
-          projetosOtimizados: otimizacaoAplicada ? itensPdf : undefined,
+          projetosOtimizados: otimizacaoAplicada
+            ? itensPdf.filter((item) => !/materiais avulsos/i.test(item.projeto || ""))
+            : undefined,
           resumo: totais,
-          otimizacaoPerfis: otimizacaoPerfisPdf,
+          otimizacaoPerfis: otimizacaoAplicada ? otimizacaoPerfis : [],
+          imprimirOtimizacao,
         },
         valor_total: Number(totais.valor || 0),
         metragem_total: 0,
@@ -2190,8 +2305,9 @@ router.push(
                   const peleDeVidro = ehPeleDeVidro(item.projeto);
                   const pinazio = ehItemPinazio(item);
                   const projetoTecnico = ehProjetoTecnico(item.projeto);
+                  const foraEsquadro = /fora de esquadro/i.test(item.projeto || "");
                   const janelaComPeitorilBandeira = ehJc4fcbs(item.projeto);
-                  const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
+                  const desenhoCentral = item.desenhoUrl || (projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item));
                   const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
                   const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
                     : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
@@ -2496,7 +2612,9 @@ router.push(
                   <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
                       <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
-                        {espelhoComDesenho ? (
+                        {foraEsquadro ? (
+                          <ForaEsquadroPreview item={item} />
+                        ) : espelhoComDesenho ? (
                           <EspelhoDesenhoPreview item={item} />
                         ) : desenhoCentral ? (
                           // eslint-disable-next-line @next/next/no-img-element

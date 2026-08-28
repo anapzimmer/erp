@@ -46,6 +46,8 @@ type PrecoVidroGrupo = {
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
+const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
 const limitarNumero = (valor: string, maxDigitos = 5) =>
   Number(String(valor || "").replace(/\D/g, "").slice(0, maxDigitos)) || 0;
 
@@ -105,6 +107,80 @@ const calcularPecas = ({
       area,
     };
   });
+};
+
+const gerarDesenhoForaEsquadroUrl = ({
+  largura,
+  alturaInicial,
+  alturaFinal,
+  divisoes,
+  pecas,
+}: {
+  largura: number;
+  alturaInicial: number;
+  alturaFinal: number;
+  divisoes: number;
+  pecas: PecaForaEsquadro[];
+}) => {
+  const svgW = 920;
+  const svgH = 520;
+  const padX = 92;
+  const padTop = 62;
+  const padBottom = 92;
+  const drawW = svgW - padX * 2;
+  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
+  const minAltura = Math.min(alturaInicial, alturaFinal);
+  const drawH = svgH - padTop - padBottom;
+  const x0 = padX;
+  const yBase = padTop + drawH;
+  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
+  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
+  const panelW = drawW / totalDivisoes;
+  const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
+  const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / totalDivisoes);
+  const linhasDivisao = Array.from({ length: Math.max(totalDivisoes - 1, 0) }, (_, index) => {
+    const posicao = index + 1;
+    const x = x0 + panelW * posicao;
+    const yTop = yTopoEm(posicao);
+    const altura = pecas[index]?.alturaDireita ?? 0;
+
+    return `
+      <g>
+        <line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBase}" stroke="#b9c9d4" stroke-width="1.8" opacity="0.82"/>
+        <text x="${x + 8}" y="${yTop - 10}" font-size="18" font-family="Segoe UI, Arial" fill="#0f2742">${Math.round(altura)}</text>
+      </g>
+    `;
+  }).join("");
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+      <defs>
+        <linearGradient id="vidroForaEsquadro" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#dff1f8"/>
+          <stop offset="100%" stop-color="#eef8fc"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="28" fill="#f8fafc"/>
+      <polygon points="${pontos}" fill="url(#vidroForaEsquadro)" stroke="#b9c9d4" stroke-width="2.4" stroke-linejoin="round"/>
+      <polygon points="${pontos}" fill="none" stroke="#e4eef4" stroke-width="13" stroke-linejoin="round" opacity="0.95"/>
+      <polygon points="${pontos}" fill="none" stroke="#b9c9d4" stroke-width="1.4" stroke-linejoin="round" opacity="0.78"/>
+      <line x1="${x0 + 44}" y1="${yInicial + 44}" x2="${x0 + drawW * 0.68}" y2="${yTopoEm(totalDivisoes * 0.68) + 54}" stroke="#ffffff" stroke-width="8" opacity="0.22"/>
+      <line x1="${x0 + drawW * 0.38}" y1="${yTopoEm(totalDivisoes * 0.38) + 58}" x2="${x0 + drawW - 64}" y2="${yFinal + 72}" stroke="#ffffff" stroke-width="6" opacity="0.24"/>
+      ${linhasDivisao}
+      <line x1="${x0}" y1="${yBase + 32}" x2="${x0 + drawW}" y2="${yBase + 32}" stroke="#2086e8" stroke-width="1.6"/>
+      <line x1="${x0}" y1="${yBase + 22}" x2="${x0}" y2="${yBase + 42}" stroke="#2086e8" stroke-width="1.6"/>
+      <line x1="${x0 + drawW}" y1="${yBase + 22}" x2="${x0 + drawW}" y2="${yBase + 42}" stroke="#2086e8" stroke-width="1.6"/>
+      <text x="${x0 + drawW / 2}" y="${yBase + 62}" text-anchor="middle" font-size="21" font-family="Segoe UI, Arial" font-weight="500" fill="#0f2742">${formatarMm(largura)}</text>
+      <text x="${x0 + 14}" y="${(yInicial + yBase) / 2}" text-anchor="start" font-size="19" font-family="Segoe UI, Arial" fill="#0f2742">${formatarMm(alturaInicial)}</text>
+      <text x="${x0 + drawW - 14}" y="${(yFinal + yBase) / 2}" text-anchor="end" font-size="19" font-family="Segoe UI, Arial" fill="#0f2742">${formatarMm(alturaFinal)}</text>
+      ${
+        minAltura === 0
+          ? `<text x="${x0 + drawW - 8}" y="${yBase - 10}" text-anchor="end" font-size="15" font-family="Segoe UI, Arial" fill="#64748b">termina em zero</text>`
+          : ""
+      }
+    </svg>
+  `);
 };
 
 function CampoMedida({
@@ -347,6 +423,17 @@ export default function ForaEsquadroPage() {
     () => calcularPecas({ largura, alturaInicial, alturaFinal, divisoes }),
     [alturaFinal, alturaInicial, divisoes, largura]
   );
+  const desenhoAtualUrl = useMemo(
+    () =>
+      gerarDesenhoForaEsquadroUrl({
+        largura,
+        alturaInicial,
+        alturaFinal,
+        divisoes,
+        pecas,
+      }),
+    [alturaFinal, alturaInicial, divisoes, largura, pecas]
+  );
 
   const areaPorVao = useMemo(() => pecas.reduce((total, peca) => total + peca.area, 0), [pecas]);
   const areaTotal = areaPorVao * Math.max(1, quantidade || 1);
@@ -499,9 +586,11 @@ export default function ForaEsquadroPage() {
       medidas: `${pecas.length * quantidadeVaos} peça(s) | ${formatarM2(areaTotal)} m²`,
       largura,
       altura: Math.max(alturaInicial, alturaFinal),
+      alturaInicial,
+      alturaFinal,
       quantidade: quantidadeVaos,
       modo: "Vidro",
-      desenhoUrl: "/desenhos/fora-esquadro.svg",
+      desenhoUrl: desenhoAtualUrl,
       vidro: vidroDescricao,
       corKit: "",
       corPerfil: "",
@@ -511,6 +600,7 @@ export default function ForaEsquadroPage() {
       trinco: "",
       pecasDivisao: pecas.length,
       medidasDetalhadas,
+      foraEsquadroPecas: pecas,
       vidrosAvulsos,
       valorTotal: Number(valorTotal.toFixed(2)),
       materiais,

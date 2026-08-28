@@ -17,6 +17,8 @@ export type CentralImpressaoItem = {
   medidas: string;
   largura?: number;
   altura?: number;
+  alturaInicial?: number;
+  alturaFinal?: number;
   quantidade: number;
   modo: string;
   desenhoUrl: string;
@@ -32,6 +34,16 @@ export type CentralImpressaoItem = {
   observacao?: string;
   pecasDivisao?: number;
   medidasDetalhadas?: string;
+  foraEsquadroPecas?: Array<{
+    indice: number;
+    largura: number;
+    alturaEsquerda: number;
+    alturaDireita: number;
+    queda: number;
+    larguraCalculo?: number;
+    alturaCalculo?: number;
+    area: number;
+  }>;
   vidrosAvulsos?: Array<{
     id: string;
     quantidade: number;
@@ -811,10 +823,15 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 
 function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const largura = Math.max(1, Number(item.largura || 2000));
-  const alturaInicial = Math.max(1, Number(item.altura || 1000));
+  const alturaInicial = Math.max(1, Number(item.alturaInicial || item.altura || 1000));
   const alturasDireitas = Array.from(String(item.medidasDetalhadas || "").matchAll(/\/\s*(\d+(?:[.,]\d+)?)\s*mm/gi));
   const alturaFinalTexto = alturasDireitas.at(-1)?.[1] || "";
-  const alturaFinal = Math.max(0, Number(String(alturaFinalTexto).replace(",", ".")) || Math.round(alturaInicial * 0.35));
+  const alturaFinal = Math.max(
+    0,
+    Number(item.alturaFinal ?? "") ||
+      Number(String(alturaFinalTexto).replace(",", ".")) ||
+      Math.round(alturaInicial * 0.35)
+  );
   const quantidade = Math.max(1, Number(item.quantidade || 1));
   const divisoes = Math.max(1, Math.min(12, Math.round(Number(item.pecasDivisao || quantidade) / quantidade)));
   const svgW = 920;
@@ -845,7 +862,7 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         const posicao = index + 1;
         const x = x0 + panelW * posicao;
         const yTop = yTopoEm(posicao);
-        const altura = alturaInicial + (alturaFinal - alturaInicial) * (posicao / divisoes);
+        const altura = item.foraEsquadroPecas?.[index]?.alturaDireita ?? alturaInicial + (alturaFinal - alturaInicial) * (posicao / divisoes);
 
         return (
           <G key={`fora-esquadro-div-${posicao}`}>
@@ -1900,7 +1917,7 @@ const possuiRelacaoObra =
             const resumoAvulso = ehVidroAvulso ? calcularResumoVidrosAvulsos(item) : null;
             const divisaoForaEsquadro = foraEsquadro ? Math.max(1, Number(item.pecasDivisao || item.vidrosAvulsos?.length || 1)) : 0;
             const nomeProjeto = ehPortaGiroFixo ? "Porta de giro com fixo lateral" : ehJc4fComSacada ? "Janela de correr 4 folhas com sacada inferior" : ehJc2fComSacada ? "Janela de correr 2 folhas com sacada inferior" : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira" : ehPc2fComBandeira ? "Porta de correr 2 folhas com bandeira" : ehDeslizante6f ? "Deslizante 6 folhas" : ehDeslizante5f ? "Deslizante 5 folhas" : ehDeslizante4f ? "Deslizante 4 folhas" : ehDeslizante3f ? "Deslizante 3 folhas" : ehDeslizante2f ? "Deslizante 2 folhas" : item.projeto;
-            const desenhoCentral = projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : item.desenhoUrl || desenhoTecnicoUrl(item.projeto, item);
+            const desenhoCentral = item.desenhoUrl || (projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item));
             const vidroPrincipal = sacadaFrontal || sacadaGrapa ? descricaoVidroItem(item) : item.vidro;
             const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : sacadaFrontal || sacadaGrapa ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
             const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
