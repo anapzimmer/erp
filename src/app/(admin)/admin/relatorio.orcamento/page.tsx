@@ -126,6 +126,7 @@ type OrcamentoProjetosPersistido = {
         altura?: number;
         corPerfil?: string;
     }>;
+    projetosPdf?: CentralImpressaoItem[];
     projetosOtimizados?: Array<CentralImpressaoItem & {
         largura?: number;
         altura?: number;
@@ -133,6 +134,9 @@ type OrcamentoProjetosPersistido = {
     }>;
     otimizacaoPerfis?: CentralOtimizacaoPerfil[];
     materiaisAvulsos?: ProjetoIndividualMaterial[];
+    resumo?: {
+        otimizacaoAplicada?: boolean;
+    };
     imprimirOtimizacao?: boolean;
 };
 
@@ -1242,14 +1246,25 @@ export default function RelatorioOrcamento() {
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
                                         if (tipo === "orcamento_projetos") {
                                             const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
-                                            const otimizacaoPerfis = filtrarOtimizacaoComEconomia(dadosProjetos.otimizacaoPerfis);
-                                            const usarProjetosOtimizados = otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis);
-                                            const projetosOrigem = usarProjetosOtimizados && Array.isArray(dadosProjetos.projetosOtimizados) && dadosProjetos.projetosOtimizados.length > 0 ? dadosProjetos.projetosOtimizados
+                                            // A Central grava os itens já preparados para o PDF quando a otimização
+                                            // é aplicada. Reutilizá-los evita que o histórico reconstrua um relatório
+                                            // diferente do arquivo baixado na Central de Impressão.
+                                            const temProjetosPdfSalvos = Array.isArray(dadosProjetos.projetosPdf) &&
+                                                dadosProjetos.projetosPdf.length > 0;
+                                            const temProjetosOtimizadosSalvos = Boolean(dadosProjetos.resumo?.otimizacaoAplicada) &&
+                                                Array.isArray(dadosProjetos.projetosOtimizados) &&
+                                                dadosProjetos.projetosOtimizados.length > 0;
+                                            const projetosOrigem = temProjetosPdfSalvos
+                                                ? dadosProjetos.projetosPdf
+                                                : temProjetosOtimizadosSalvos
+                                                ? dadosProjetos.projetosOtimizados
                                                 : dadosProjetos.projetos;
                                             const projetosSemAvulsos = Array.isArray(projetosOrigem)
                                                 ? projetosOrigem.filter((item) => !/materiais avulsos/i.test(String(item.projeto || "")))
                                                 : [];
-                                            const projetosPdf: CentralImpressaoItem[] = projetosSemAvulsos.map((item, index) => ({
+                                            const projetosPdf: CentralImpressaoItem[] = temProjetosPdfSalvos || temProjetosOtimizadosSalvos
+                                                ? projetosSemAvulsos as CentralImpressaoItem[]
+                                                : projetosSemAvulsos.map((item, index) => ({
                                                     id: String(item.id || index),
                                                     numero: String(item.numero || orcamentoParaVisualizar?.numero_formatado || ""),
                                                     projeto: item.projeto === "PFV1F - KIT" ? "Porta de correr atrás do Vão - 1 folha"
@@ -1263,12 +1278,14 @@ export default function RelatorioOrcamento() {
                                                     medidas: item.medidas || `${Number(item.largura || 0)} x ${Number(item.altura || 0)} mm`,
                                                     largura: Number(item.largura || 0),
                                                     altura: Number(item.altura || 0),
+                                                    alturaInicial: item.alturaInicial,
+                                                    alturaFinal: item.alturaFinal,
                                                     quantidade: Number(item.quantidade || 0),
                                                     modo: String(item.modo || "Kit"),
                                                     desenhoUrl: String(item.desenhoUrl || ""),
                                                     vidro: item.vidro,
                                                     vidroBandeira: item.vidroBandeira,
-                                                    corKit: item.corPerfil || item.corKit,
+                                                    corKit: (item as { corPerfil?: string }).corPerfil || item.corKit,
                                                     alturaAteTubo: item.alturaAteTubo,
                                                     tuboPerfil: item.tuboPerfil,
                                                     trilho: item.trilho,
@@ -1278,10 +1295,18 @@ export default function RelatorioOrcamento() {
                                                     observacao: item.observacao,
                                                     pecasDivisao: item.pecasDivisao,
                                                     medidasDetalhadas: item.medidasDetalhadas,
+                                                    foraEsquadroPecas: item.foraEsquadroPecas,
                                                     vidrosAvulsos: item.vidrosAvulsos,
                                                     valorTotal: Number(item.valorTotal || 0),
+                                                    origemRota: item.origemRota,
+                                                    origemTipo: item.origemTipo,
+                                                    pinazioId: item.pinazioId,
+                                                    pinazioNome: item.pinazioNome,
+                                                    pinazioCor: item.pinazioCor,
+                                                    divisoesLargura: item.divisoesLargura,
+                                                    divisoesAltura: item.divisoesAltura,
                                                     materiais: item.materiais,
-                                                }))
+                                                }));
                                             const materiaisAvulsosPdf = Array.isArray(dadosProjetos.materiaisAvulsos)
                                                 ? dadosProjetos.materiaisAvulsos.filter((material) => String(material.descricao || "").trim() && Number(material.qtd || 0) > 0)
                                                 : [];
@@ -1305,7 +1330,11 @@ export default function RelatorioOrcamento() {
                                                     } satisfies CentralImpressaoItem,
                                                 ]
                                                 : projetosPdf;
-                                            const otimizacaoPdf = dadosProjetos.imprimirOtimizacao === false ? [] : otimizacaoPerfis;
+                                            const otimizacaoFoiAplicada = Boolean(dadosProjetos.resumo?.otimizacaoAplicada) ||
+                                                (!dadosProjetos.resumo && otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis));
+                                            const otimizacaoPdf = otimizacaoFoiAplicada && dadosProjetos.imprimirOtimizacao !== false
+                                                ? dadosProjetos.otimizacaoPerfis || []
+                                                : [];
                                             return (
                                                 <CentralImpressaoPDF
                                                     itens={itensPdf}

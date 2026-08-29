@@ -51,6 +51,19 @@ interface ItemOrcamento {
   observacaoPreco?: string;
   observacaoDivisao?: string;
 }
+interface CentralVidroEmEdicao {
+  id: string;
+  numero?: string;
+  cliente?: string;
+  vidrosAvulsos?: Array<{
+    id?: string;
+    quantidade?: number;
+    medida?: string;
+    vidro?: string;
+    valorTotal?: number;
+  }>;
+  itensOriginais?: ItemOrcamento[];
+}
 interface Vidro { id: number | string; nome: string; espessura?: string | number; preco: number; tipo?: string; cor?: string; }
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
 interface TabelaPreco { id: string | number; nome: string; }
@@ -223,10 +236,13 @@ export default function RelatorioOrcamento() {
   const router = useRouter();
   const searchParams = useSearchParams(); // Adicione esta linha
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
+  const centralItemId = searchParams.get("centralItem");
+  const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
   const [isMounted, setIsMounted] = useState(false);
   const draftRestauradoRef = useRef(false);
+  const itemCentralCarregadoRef = useRef(false);
 
   // Estados de Dados do Supabase
   const [listaClientes, setListaClientes] = useState<Cliente[]>([])
@@ -773,6 +789,37 @@ useEffect(() => {
 }, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
   useEffect(() => {
+    if (!centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
+
+    try {
+      const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as CentralVidroEmEdicao[];
+      const itemCentral = lista.find((item) => item.id === centralItemId);
+      if (!itemCentral) return;
+
+      const itensParaEdicao = Array.isArray(itemCentral.itensOriginais) && itemCentral.itensOriginais.length > 0
+        ? itemCentral.itensOriginais
+        : (itemCentral.vidrosAvulsos || []).map((vidro, index) => ({
+          id: vidro.id || `${centralItemId}-${index}`,
+          descricao: vidro.vidro || "Vidro",
+          medidaReal: vidro.medida || "",
+          medidaCalc: vidro.medida || "",
+          qtd: Number(vidro.quantidade || 0),
+          total: Number(vidro.valorTotal || 0),
+        }));
+
+      setItens(itensParaEdicao);
+      setUltimoNumeroGerado(itemCentral.numero || "");
+      const clienteEncontrado = listaClientes.find((cliente) => cliente.nome === itemCentral.cliente);
+      if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
+      setObra(window.localStorage.getItem(CENTRAL_IMPRESSAO_OBRA_KEY) || "");
+      draftRestauradoRef.current = true;
+      itemCentralCarregadoRef.current = true;
+    } catch (erro) {
+      console.error("Não foi possível carregar o item de vidros da central:", erro);
+    }
+  }, [centralItemId, isMounted, listaClientes]);
+
+  useEffect(() => {
     if (editandoId == null) return;
 
     const linha = linhasItensRef.current[String(editandoId)];
@@ -782,7 +829,7 @@ useEffect(() => {
   }, [editandoId]);
 
   useEffect(() => {
-    if (!isMounted || !empresaId || draftRestauradoRef.current) return;
+    if (!isMounted || !empresaId || draftRestauradoRef.current || centralItemId) return;
 
     try {
       const raw = sessionStorage.getItem(draftKey);
@@ -817,7 +864,7 @@ useEffect(() => {
     } finally {
       draftRestauradoRef.current = true;
     }
-  }, [isMounted, empresaId, draftKey, listaVidros, listaServicos]);
+  }, [centralItemId, isMounted, empresaId, draftKey, listaVidros, listaServicos]);
 
   useEffect(() => {
     if (!isMounted || !empresaId) return;
@@ -1820,7 +1867,7 @@ useEffect(() => {
     });
 
     const itemCentral = {
-      id: criarId(),
+      id: centralItemId || criarId(),
       numero: ultimoNumeroGerado || "novo",
       projeto: "Vidros avulsos",
       cliente: clienteNome,
@@ -1842,16 +1889,20 @@ useEffect(() => {
       vidrosAvulsos,
       valorTotal,
       materiais,
+      itensOriginais: itens,
       origemRota: "/calculo/calculovidro",
     };
 
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? JSON.parse(salvo) : [];
-      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, itemCentral]));
+      const proximaLista = centralItemId && lista.some((item: { id?: string }) => item.id === centralItemId)
+        ? lista.map((item: { id?: string }) => item.id === centralItemId ? itemCentral : item)
+        : [...lista, itemCentral];
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
       if (clienteNome) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteNome);
       if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
-      router.push("/central-impressao");
+      router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (erro) {
       console.warn("Não foi possível enviar os vidros para a central de impressão:", erro);
       setModalAvisoTitulo("Erro ao enviar");

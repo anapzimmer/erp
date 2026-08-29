@@ -1967,6 +1967,9 @@ router.push(
           cliente,
           obra,
           projetos: itens,
+          // Mantém uma cópia já normalizada para que o histórico reproduza
+          // exatamente o mesmo documento emitido pela Central de Impressão.
+          projetosPdf: itensPdf.filter((item) => !/materiais avulsos/i.test(item.projeto || "")),
           materiaisAvulsos: materiaisAvulsosValidos,
           projetosOtimizados: otimizacaoAplicada
             ? itensPdf.filter((item) => !/materiais avulsos/i.test(item.projeto || ""))
