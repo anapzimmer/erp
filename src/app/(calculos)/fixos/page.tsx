@@ -1,5 +1,6 @@
 "use client";
 
+import { DIVISOES_FIXOS, normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -157,7 +158,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
 });
 
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
-const divisaoPecasOpcoes = ["1", "2", "3", "4", "5", "6"];
+const divisaoPecasOpcoes = DIVISOES_FIXOS.map(String);
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -174,12 +175,9 @@ const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:fixos:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
-const limitarDivisaoPecas = (valor: number) => Math.min(6, Math.max(1, Number(valor || 1)));
+const limitarDivisaoPecas = normalizarDivisaoFixos;
 
-const desenhoFixosPorPecas = (pecas: number) => {
-  const folhas = limitarDivisaoPecas(pecas);
-  return folhas === 1 ? "/desenhos/fixo-1folha.png" : `/desenhos/fixo-${folhas}folhas.png`;
-};
+const desenhoFixosPorPecas = desenhoFixosUrl;
 
 
 export default function FixosPage() {
@@ -304,9 +302,9 @@ export default function FixosPage() {
         vidro: item.vidro || "Escolher",
         corKit: item.corPerfil || item.corKit || "Escolher",
         puxador: "",
-        tamanhoPuxador: String(limitarDivisaoPecas(Number(item.tamanhoPuxador || 1))),
+        tamanhoPuxador: String(limitarDivisaoPecas(Number(item.pecasDivisao || item.tamanhoPuxador || 1))),
         trinco: "",
-        pecasDivisao: limitarDivisaoPecas(Number(item.tamanhoPuxador || 1)),
+        pecasDivisao: limitarDivisaoPecas(Number(item.pecasDivisao || item.tamanhoPuxador || 1)),
       }));
 
       setMateriais(Array.isArray(item.materiais) ? item.materiais : []);

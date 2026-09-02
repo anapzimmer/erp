@@ -1,6 +1,7 @@
 //app/src/app/relatorios/projetoindividual/ProjetoIndividualPDF.tsx
 "use client";
 
+import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { compararMateriaisRelacao } from "@/utils/ordemMateriais";
@@ -397,7 +398,7 @@ export function ProjetoIndividualPDF({
   const ehDeslizante6f = projetoNormalizado.includes("deslizante6f") || projetoNormalizado.includes("deslizante 6");
   const ehDuasFolhas = projetoNormalizado.includes("pfv2f") || projetoNormalizado.includes("2 folhas");
   const quantidadeVaos = Number(dados.quantidade || 0);
-  const pecasFixos = Math.min(6, Math.max(1, Number(dados.pecasDivisao || dados.tamanhoPuxador || 1)));
+  const pecasFixos = normalizarDivisaoFixos(dados.pecasDivisao || dados.tamanhoPuxador);
   const larguraFixaJc = arredondar5cm(Number(dados.largura || 0) / (ehJanelaCorrer2Folhas ? 2 : 4));
   const alturaFixaJc4f = arredondar5cm(Math.max(0, Number(dados.altura || 0) - 60));
   const larguraMovelJc = arredondar5cm(larguraFixaJc + 50);
@@ -556,7 +557,7 @@ export function ProjetoIndividualPDF({
     : ehDuasFolhas ? "Porta de correr atrás do vão - 2 folhas"
       : projetoNormalizado.includes("pfv1f") ? "Porta de correr atrás do Vão - 1 folha"
     : dados.projeto || "Projeto individual";
-  const desenhoFixos = pecasFixos === 1 ? "/desenhos/fixo-1folha.png" : `/desenhos/fixo-${pecasFixos}folhas.png`;
+  const desenhoFixos = desenhoFixosUrl(pecasFixos);
   const desenhoPma2f = String(dados.trilho || "").toLowerCase().includes("kit pia") ? "/desenhos/pma-2fs-kitpia.png"
     : dados.puxador === "Com puxador" ? "/desenhos/pma-2fs-completo.png"
       : "/desenhos/pma-2fs-simples.png";

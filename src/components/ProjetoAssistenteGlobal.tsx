@@ -284,7 +284,7 @@ const topicosPorPerfil = (rota: string): TopicoAjuda[] => {
     topicos.push({
       categoria: "Fixos",
       titulo: "Divisao dos fixos",
-      texto: "Escolha de 1 a 6 pecas. O vao desconta folga e divide a largura pela quantidade de pecas escolhida.",
+      texto: "Escolha de 1 a 10 ou 12 pecas. O vao desconta folga e divide a largura pela quantidade de pecas escolhida.",
     }, {
       categoria: "Fixos",
       titulo: "Perfis dos fixos",

@@ -1,6 +1,7 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
 
+import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -878,6 +879,9 @@ const desenhoPeleDeVidroUrl = (item?: Pick<ProjetoComposicao, "largura" | "altur
 };
 
 const desenhoTecnicoUrl = (projeto?: string, item?: ProjetoComposicao) => {
+  if (String(projeto || "").trim().toLowerCase() === "fixos") {
+    return desenhoFixosUrl(item?.pecasDivisao || item?.tamanhoPuxador);
+  }
   if (ehSacadaFrontal(projeto)) {
     return desenhoSacadaFrontalUrl(item);
   }
@@ -960,7 +964,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
   if (texto.includes("fixos") || texto.includes("fixo")) {
-    return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
+    return normalizarDivisaoFixos(item?.pecasDivisao || item?.tamanhoPuxador);
   }
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("pma3f") || texto.includes("mao amiga 3") || texto.includes("mão amiga 3")) return 3;
@@ -2942,7 +2946,7 @@ router.push(
                           {ehFixos(item.projeto) ? (
                             <Field label="Divisão">
                               <input
-                                value={`${Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)))} peça(s)`}
+                                value={`${normalizarDivisaoFixos(item.pecasDivisao || item.tamanhoPuxador)} peça(s)`}
                                 readOnly
                                 className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                               />

@@ -2,6 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
+import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import React from "react";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
@@ -413,6 +414,9 @@ const desenhoSacadaFrontalUrl = (item?: Pick<CentralImpressaoItem, "largura" | "
 };
 
 const desenhoTecnicoUrl = (projeto?: string, item?: CentralImpressaoItem) => {
+  if (String(projeto || "").trim().toLowerCase() === "fixos") {
+    return desenhoFixosUrl(item?.pecasDivisao || item?.tamanhoPuxador);
+  }
   if (ehSacadaGrapa(projeto) && item?.desenhoUrl) {
     return item.desenhoUrl;
   }
@@ -1632,7 +1636,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto.includes("fixos") || texto.includes("fixo")) {
-    return Math.min(6, Math.max(1, Number(item?.pecasDivisao || item?.tamanhoPuxador || 1)));
+    return normalizarDivisaoFixos(item?.pecasDivisao || item?.tamanhoPuxador);
   }
   if (texto.includes("pma2f") || texto.includes("mao amiga 2") || texto.includes("mão amiga 2")) return 2;
   if (texto.includes("pma3f") || texto.includes("mao amiga 3") || texto.includes("mão amiga 3")) return 3;
@@ -1906,7 +1910,7 @@ const possuiRelacaoObra =
             const peleDeVidro = ehPeleDeVidro(item.projeto);
             const espelhoComDesenho = ehEspelhoComDesenho(item.projeto);
             const pinazio = ehItemPinazio(item);
-            const pecasFixos = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
+            const pecasFixos = normalizarDivisaoFixos(item.pecasDivisao || item.tamanhoPuxador);
             const temBandeira = ehPc2fComBandeira || ehPc4fComBandeira || ehJc2fComSacada || ehJc4fComSacada;
             const fechamentoSacada = ehFechamentoSacada(item.projeto);
             const temSegundoVidro = temBandeira || fechamentoSacada;
