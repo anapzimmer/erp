@@ -1635,6 +1635,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
+  if (texto.includes("pg2fva") || texto.includes("pgf") || texto.includes("porta de giro com fixo lateral")) return 2;
   if (texto.includes("fixos") || texto.includes("fixo")) {
     return normalizarDivisaoFixos(item?.pecasDivisao || item?.tamanhoPuxador);
   }
@@ -1885,7 +1886,7 @@ const possuiRelacaoObra =
             const ehJanela = /jc4f|jc2f|janela de correr 4|janela de correr 2/i.test(item.projeto || "");
             const ehPortaGiro = /pg|porta de giro/i.test(item.projeto || "");
             const ehPortaGiroFixo = /pgf|porta de giro com fixo lateral/i.test(item.projeto || "");
-            const ehFixos = /fixos|fixo/i.test(item.projeto || "");
+            const ehFixos = !ehPortaGiroFixo && /fixos|fixo/i.test(item.projeto || "");
             const ehPma2f = /pma2f|m[aã]o amiga 2/i.test(item.projeto || "");
             const ehPma3f = /pma3f|m[aã]o amiga 3/i.test(item.projeto || "");
             const ehPma4f = /pma4f|m[aã]o amiga 4/i.test(item.projeto || "");
@@ -2224,6 +2225,12 @@ const possuiRelacaoObra =
                         <Text style={styles.infoLabel}>{ehFechamentoSacada(item.projeto) ? "Vidro superior" : ehJanelaComSacada ? "Vidro sacada" : "Vidro bandeira"}</Text>
                         <Text style={styles.infoValue}>{item.vidroBandeira || "-"}</Text>
                       </View>
+                    ) : null}
+                    {ehPortaGiroFixo ? (
+                      <>
+                        <View style={styles.info}><Text style={styles.infoLabel}>Largura da porta</Text><Text style={styles.infoValue}>{item.alturaAteTubo || 0} mm</Text></View>
+                        <View style={styles.info}><Text style={styles.infoLabel}>Largura do fixo</Text><Text style={styles.infoValue}>{Math.max(0, Number(item.largura || 0) - Number(item.alturaAteTubo || 0))} mm</Text></View>
+                      </>
                     ) : null}
                     {temBandeira ? (
                       <View style={styles.info}>

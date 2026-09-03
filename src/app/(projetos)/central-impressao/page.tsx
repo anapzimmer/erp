@@ -391,7 +391,7 @@ const ehPortaCorrer2Folhas = (projeto?: string) => /pc2f|porta de correr 2 folha
 const ehPortaCorrer4Folhas = (projeto?: string) => /pc4f|porta de correr 4 folhas/i.test(String(projeto || ""));
 const ehPortaGiroFixo = (projeto?: string) => /pgf|porta de giro com fixo lateral/i.test(String(projeto || ""));
 const ehMax = (projeto?: string) => /^max$/i.test(String(projeto || "")) || /(^|\s)ma?.($|\s)/i.test(String(projeto || ""));
-const ehFixos = (projeto?: string) => /fixos|fixo/i.test(String(projeto || ""));
+const ehFixos = (projeto?: string) => !ehPortaGiroFixo(projeto) && /fixos|fixo/i.test(String(projeto || ""));
 const ehPma2f = (projeto?: string) => /pma2f|m[aã]o amiga 2/i.test(String(projeto || ""));
 const ehPma3f = (projeto?: string) => /pma3f|m[aã]o amiga 3/i.test(String(projeto || ""));
 const ehPma4f = (projeto?: string) => /pma4f|m[aã]o amiga 4/i.test(String(projeto || ""));
@@ -963,6 +963,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
+  if (texto.includes("pg2fva") || texto.includes("pgf") || texto.includes("porta de giro com fixo lateral")) return 2;
   if (texto.includes("fixos") || texto.includes("fixo")) {
     return normalizarDivisaoFixos(item?.pecasDivisao || item?.tamanhoPuxador);
   }
@@ -1841,7 +1842,7 @@ export default function CentralImpressaoPage() {
 
   const editarItem = (item: ProjetoComposicao) => {
     const projetoTexto = item.projeto.toLowerCase();
-    const rota = item.origemRota || (ehPortaGiroFixo(item.projeto) ? "/pgf"
+    const rota = item.origemRota || (String(item.projeto || "").toLowerCase().includes("pg2fva") ? "/pg2fva" : ehPortaGiroFixo(item.projeto) ? "/pgf"
       : ehSacadaComTorre(item.projeto) ? "/calculo/sacadatorre"
       : ehSacadaGrapa(item.projeto) ? "/calculo/sacadagrapa"
       : ehSacadaFrontal(item.projeto) ? "/calculo/sacadafrontal"
@@ -2942,6 +2943,12 @@ router.push(
                                 className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
                               />
                             </Field>
+                          ) : null}
+                          {ehPortaGiroFixo(item.projeto) ? (
+                            <>
+                              <Field label="Largura da porta de giro"><input readOnly value={`${item.alturaAteTubo || 0} mm`} className="w-full bg-transparent text-sm text-slate-700" /></Field>
+                              <Field label="Largura do fixo"><input readOnly value={`${Math.max(0, Number(item.largura || 0) - Number(item.alturaAteTubo || 0))} mm`} className="w-full bg-transparent text-sm text-slate-700" /></Field>
+                            </>
                           ) : null}
                           {ehFixos(item.projeto) ? (
                             <Field label="Divisão">

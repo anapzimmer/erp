@@ -380,7 +380,7 @@ export function ProjetoIndividualPDF({
   const ehPortaGiroFixo = projetoNormalizado.includes("pgf") || projetoNormalizado.includes("porta de giro com fixo lateral");
   const ehMax = projetoNormalizado === "max" || projetoNormalizado.includes("max");
   const ehPortaGiro = projetoNormalizado.includes("pg") || projetoNormalizado.includes("porta de giro");
-  const ehFixos = projetoNormalizado.includes("fixos") || projetoNormalizado.includes("fixo");
+  const ehFixos = !ehPortaGiroFixo && (projetoNormalizado.includes("fixos") || projetoNormalizado.includes("fixo"));
   const ehPma2f = projetoNormalizado.includes("pma2f") || projetoNormalizado.includes("mao amiga 2") || projetoNormalizado.includes("mão amiga 2");
   const ehPma3f = projetoNormalizado.includes("pma3f") || projetoNormalizado.includes("mao amiga 3") || projetoNormalizado.includes("mão amiga 3");
   const ehPma4f = projetoNormalizado.includes("pma4f") || projetoNormalizado.includes("mao amiga 4") || projetoNormalizado.includes("mão amiga 4");
@@ -993,6 +993,12 @@ export function ProjetoIndividualPDF({
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>Largura da porta</Text>
                   <Text style={styles.dataValue}>{dados.alturaAteTubo || 0} mm</Text>
+                </View>
+              ) : null}
+              {ehPortaGiroFixo ? (
+                <View style={styles.dataItem}>
+                  <Text style={styles.dataLabel}>Largura do fixo</Text>
+                  <Text style={styles.dataValue}>{Math.max(0, Number(dados.largura || 0) - Number(dados.alturaAteTubo || 0))} mm</Text>
                 </View>
               ) : null}
               {ehPc2fComBandeira || ehPc4fComBandeira || ehJanelaComSacada ? (

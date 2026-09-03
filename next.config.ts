@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: process.cwd(),
   async redirects() {
     return [
+      { source: "/pgfxencontro=vidro", destination: "/pg2fva", permanent: false },
       {
         source: "/calculovidro",
         destination: "/calculo/calculovidro",
