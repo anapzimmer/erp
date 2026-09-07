@@ -1,5 +1,6 @@
 //app/admin/relatorio.orcamento/page.tsx
 "use client"
+import styles from './relatorio.module.css';
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -816,7 +817,7 @@ export default function RelatorioOrcamento() {
 
             {showMobileMenu && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}></div>}
 
-            <div className="flex-1 flex flex-col w-full">
+            <div className="flex-1 flex flex-col w-full min-w-0">
                 <Header
                     setShowMobileMenu={setShowMobileMenu}
                     nomeEmpresa={nomeEmpresa}
@@ -824,9 +825,9 @@ export default function RelatorioOrcamento() {
                     handleSignOut={handleSignOut}
                 />
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-7 xl:p-9">
-                    <div className="mx-auto max-w-[1600px] space-y-6">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <main className={styles.main}>
+                    <div className={styles.content}>
+                        <div className={styles.hero}>
                             <div>
                                 <div
                                     className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]"
@@ -857,7 +858,7 @@ export default function RelatorioOrcamento() {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className={styles.metrics}>
                             {[
                                 { label: "Valor total", valor: valorTotalOrcamentos, icon: ClipboardList, color: theme.menuIconColor },
                                 { label: "Orçado hoje", valor: totais.diario, icon: CalendarDays, color: "#0f8b8d" },
@@ -892,7 +893,7 @@ export default function RelatorioOrcamento() {
                             })}
                         </div>
 
-                        <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_-25px_rgba(15,23,42,0.55)] md:p-5">
+                        <section className={styles.filters} aria-label="Filtros dos orçamentos">
                             <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(280px,1fr)_auto_auto_auto]">
                                 <div className="relative">
                                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -900,6 +901,7 @@ export default function RelatorioOrcamento() {
                                         type="text"
                                         value={filtro}
                                         onChange={(event) => setFiltro(event.target.value)}
+                                        aria-label="Pesquisar por número, cliente ou obra"
                                         placeholder="Pesquisar por número, cliente ou obra..."
                                         className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-100"
                                     />
@@ -926,7 +928,7 @@ export default function RelatorioOrcamento() {
                                     <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data inicial</span>
                                     <input
                                         type="date"
-                                        value={dataInicio}
+                                        aria-label="Data inicial" value={dataInicio}
                                         onChange={(event) => setDataInicio(event.target.value)}
                                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
                                     />
@@ -935,7 +937,7 @@ export default function RelatorioOrcamento() {
                                     <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data final</span>
                                     <input
                                         type="date"
-                                        value={dataFim}
+                                        aria-label="Data final" value={dataFim}
                                         onChange={(event) => setDataFim(event.target.value)}
                                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
                                     />
@@ -1005,7 +1007,7 @@ export default function RelatorioOrcamento() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                            <div className={styles.cards}>
                                 {orcamentosFiltrados.map((orc) => {
                                     const dias = calcularDiasRestantes(orc.excluir_em);
                                     const expiraHoje = dias === 0;
@@ -1016,7 +1018,7 @@ export default function RelatorioOrcamento() {
                                     return (
                                         <article
                                             key={orc.id}
-                                            className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${selecionado ? "border-emerald-300 ring-4 ring-emerald-50" : "border-slate-200/90 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.7)]"}`}
+                                            className={`${styles.card} group relative overflow-hidden rounded-2xl border bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${selecionado ? "border-emerald-300 ring-4 ring-emerald-50" : "border-slate-200/90 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.7)]"}`}
                                         >
                                             <div
                                                 className="absolute left-0 top-0 h-full w-1"
@@ -1034,7 +1036,7 @@ export default function RelatorioOrcamento() {
                                                     />
                                                     <div>
                                                         <p className="font-mono text-sm font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>{orc.numero_formatado || "Sem número"}</p>
-                                                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">ID #{String(orc.id).slice(0, 6)}</p>
+                                                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Orçamento</p>
                                                     </div>
                                                 </div>
                                                 <span

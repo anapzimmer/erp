@@ -205,7 +205,14 @@ const gerarDesenhoEspelhosUrl = (itens: any[]) => {
 export default function CalculoEspelhosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
+  const editId = searchParams.get("edit");  const centralItemId = searchParams.get("centralItem");
+  const centralLoteId = searchParams.get("loteId");
+  const retornoCentral = searchParams.get("returnTo")?.startsWith("/central-impressao") ? searchParams.get("returnTo")! : "/central-impressao";
+  const centralRestauradoRef = useRef(false);
+  const centralIdsRef = useRef<string[]>([]);
+  const camposOriginaisRef = useRef("");
+  const loteEspelhosRef = useRef("");
+  const [itemEmEdicao, setItemEmEdicao] = useState<string | number | null>(null);
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false); // Adicionado state do menu
@@ -223,6 +230,7 @@ export default function CalculoEspelhosPage() {
   const [vidrosDB, setVidrosDB] = useState<any[]>([]);
   const [vidroId, setVidroId] = useState("");
   const [acabamentosDB, setAcabamentosDB] = useState<any[]>([]);
+  const [catalogosCarregados, setCatalogosCarregados] = useState(false);
   const [acabamentoId, setAcabamentoId] = useState("");
   const [listaItens, setListaItens] = useState<any[]>([]);
   const [showModalPDF, setShowModalPDF] = useState(false);
@@ -237,7 +245,7 @@ export default function CalculoEspelhosPage() {
   const [modalAvisoMensagem, setModalAvisoMensagem] = useState(
     "Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento."
   );
-  const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
+  const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${centralItemId || centralLoteId || editId || "novo"}`;
 
   // --- CARREGAR DADOS ---
   useEffect(() => {
@@ -252,6 +260,7 @@ export default function CalculoEspelhosPage() {
         setAcabamentosDB(aData);
         setAcabamentoId(""); // começa como Nenhum
       }
+      setCatalogosCarregados(true);
     };
     carregarDados();
   }, []);
@@ -287,7 +296,7 @@ export default function CalculoEspelhosPage() {
   }, [editId, vidrosDB.length]);
 
   useEffect(() => {
-    if (!empresaId || draftRestauradoRef.current) return;
+    if (!empresaId || draftRestauradoRef.current || centralItemId || centralLoteId) return;
 
     try {
       const raw = sessionStorage.getItem(draftKey);
@@ -321,7 +330,7 @@ export default function CalculoEspelhosPage() {
   }, [empresaId, draftKey]);
 
   useEffect(() => {
-    if (!empresaId) return;
+    if (!empresaId || ((centralItemId || centralLoteId) && !centralRestauradoRef.current)) return;
 
     const temDadosNaoSalvos =
       listaItens.length > 0 ||
@@ -400,7 +409,7 @@ export default function CalculoEspelhosPage() {
   const calculoAtual = useMemo(() => {
     const lOriginal = parseFloat(largura) || 0;
     const aOriginal = parseFloat(altura) || 0;
-    const vidro = vidrosDB.find(v => v.id === vidroId);
+    const vidro = vidrosDB.find(v => String(v.id) === String(vidroId));
     const acb = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
 
     const divisoesL = Math.max(1, Number(divisoesLargura));
@@ -459,9 +468,56 @@ export default function CalculoEspelhosPage() {
 
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
-  const adicionarAoPedido = () => {
-    if (calculoAtual.total === 0) return;
-    const vSel = vidrosDB.find(v => v.id === vidroId);
+  const restaurarCamposItem = (item: any) => {
+    setLargura(String(item.larguraReal || String(item.medidas).split('x')[0] || ''));
+    setAltura(String(item.alturaReal || String(item.medidas).split('x')[1] || ''));
+    setQuantidade(Number(item.quantidade) || 1);
+    setDivisoesLargura(Number(item.divisoesLargura) || 1);
+    setDivisoesAltura(Number(item.divisoesAltura) || 1);
+    const vidro = vidrosDB.find(v => String(v.id) === String(item.vidroId)) || vidrosDB.find(v => String(item.descricao || '').includes(v.nome));
+    if (vidro) setVidroId(String(vidro.id));
+    const acabamento = acabamentosDB.find(a => String(a.id) === String(item.acabamentoId)) || (item.acabamentoId === '' || item.tipoVisual === 'padrao' ? undefined : acabamentosDB.find(a => a.tipo_visual === item.tipoVisual));
+    setAcabamentoId(acabamento ? String(acabamento.id) : '');
+    camposOriginaisRef.current = JSON.stringify([String(item.larguraReal || String(item.medidas).split('x')[0] || ''), String(item.alturaReal || String(item.medidas).split('x')[1] || ''), Number(item.quantidade)||1, vidro ? String(vidro.id) : String(vidroId), acabamento ? String(acabamento.id) : '', Number(item.divisoesLargura)||1, Number(item.divisoesAltura)||1]);
+    setItemEmEdicao(item.id);
+  };
+
+  useEffect(() => {
+    if (!(centralItemId || centralLoteId) || centralRestauradoRef.current || !catalogosCarregados) return;
+    try {
+      const composicao = JSON.parse(localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || '[]');
+      const selecionado = composicao.find((item: any) => item.id === centralItemId || (centralLoteId && item.loteId === centralLoteId));
+      if (!selecionado) return;
+      const loteId = selecionado.loteId || centralLoteId;
+      // Legacy entries lack batch IDs: retain mirrors from the same composition/client/number.
+      const grupo = composicao.filter((item: any) => loteId ? item.loteId === loteId : !item.loteId && /^espelhos?/i.test(item.projeto || '') && item.numero === selecionado.numero && item.cliente === selecionado.cliente);
+      centralIdsRef.current = grupo.map((item: any) => item.id);
+      loteEspelhosRef.current = loteId || criarId();
+      const itens = grupo.flatMap((item: any) => {
+        if (Array.isArray(item.espelhoItens) && item.espelhoItens.length) return item.espelhoItens;
+        if (Array.isArray(item.vidrosAvulsos) && item.vidrosAvulsos.length) {
+          return item.vidrosAvulsos.map((peca: any, index: number) => {
+            const medidas = String(peca.medida || '').match(/[\d.,]+/g) || [];
+            const l = Number((medidas[0] || '0').replace(',', '.'));
+            const a = Number((medidas[1] || '0').replace(',', '.'));
+            return { id: item.id+'-'+index, descricao: peca.vidro, medidas: l+'x'+a, larguraReal: l, alturaReal: a, quantidade: Number(peca.quantidade) || 1, tipoVisual: 'padrao', divisoesLargura: 1, divisoesAltura: 1, total: Number(peca.valorTotal) || 0, m2: l*a/1000000*(Number(peca.quantidade)||1) };
+          });
+        }
+        const divL = Math.max(1, Number(item.trilho) || 1), divA = Math.max(1, Number(item.tamanhoPuxador) || 1);
+        return [{id: item.id, descricao: item.vidro, medidas: `${item.largura}x${item.altura}`, larguraReal: Number(item.largura), alturaReal: Number(item.altura), quantidade: Math.max(1,Number(item.quantidade || 1)/(String(item.puxador).includes('jogo') ? divL*divA : 1)), tipoVisual:item.puxador || 'padrao', divisoesLargura:divL, divisoesAltura:divA, total:Number(item.valorTotal)||0, m2:(item.materiais || []).reduce((s: number,m: any) => s+(m.unidade === 'm2' ? Number(m.qtd)||0 : 0),0)}];
+      });
+      setListaItens(itens);
+      setNomeCliente(selecionado.cliente || localStorage.getItem(CENTRAL_IMPRESSAO_CLIENTE_KEY) || '');
+      setNomeObra(localStorage.getItem(CENTRAL_IMPRESSAO_OBRA_KEY) || '');
+      setUltimoNumeroGerado(selecionado.numero === 'novo' ? '' : selecionado.numero || '');
+      const escolhido = selecionado.espelhoItens?.[0] || itens.find((item: any) => item.id === selecionado.id) || itens[0];
+      if (escolhido) restaurarCamposItem(escolhido);
+      centralRestauradoRef.current = true;
+    } catch (erro) { console.error('Erro ao recuperar lote de espelhos', erro); }
+  }, [centralItemId, centralLoteId, vidrosDB, acabamentosDB, catalogosCarregados]);
+  const criarItemDoFormulario = () => {
+    if (calculoAtual.total === 0) return null;
+    const vSel = vidrosDB.find(v => String(v.id) === String(vidroId));
     const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
 
     // --- LÓGICA DE LIMPEZA ---
@@ -477,8 +533,9 @@ export default function CalculoEspelhosPage() {
       ? `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo} - ${nomeAcabamento}`
       : `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo}`;
 
-    setListaItens([...listaItens, {
-      id: Date.now(),
+    const itemAtualizado = {
+      id: itemEmEdicao ?? criarId(),
+      vidroId, acabamentoId,
       descricao: descricaoFinal,
       medidas: `${largura}x${altura}`,
       quantidade: quantidade,
@@ -491,7 +548,15 @@ export default function CalculoEspelhosPage() {
       alturaReal: Number(altura),
       divisoesLargura: divisoesLargura,
       divisoesAltura: divisoesAltura,
-    }]);
+    };
+    return itemAtualizado;
+  };
+
+  const adicionarAoPedido = () => {
+    const itemAtualizado = criarItemDoFormulario();
+    if (!itemAtualizado) return;
+    setListaItens(atuais => itemEmEdicao === null ? [...atuais, itemAtualizado] : atuais.map(item => item.id === itemEmEdicao ? itemAtualizado : item));
+    setItemEmEdicao(null);
 
     // Limpa apenas as medidas, mantém o vidro e acabamento selecionados
     setLargura("");
@@ -505,18 +570,27 @@ export default function CalculoEspelhosPage() {
   };
 
   const enviarParaCentralImpressao = (comDesenho: boolean) => {
-    if (listaItens.length === 0) {
+    const camposAlterados = itemEmEdicao !== null && camposOriginaisRef.current !== JSON.stringify([largura, altura, quantidade, String(vidroId), String(acabamentoId), divisoesLargura, divisoesAltura]);
+    const itemEditado = camposAlterados ? criarItemDoFormulario() : null;
+    if (camposAlterados && !itemEditado) {
+      setModalAvisoTitulo("Confira as medidas");
+      setModalAvisoMensagem("Preencha medidas válidas para atualizar o espelho em edição.");
+      setShowModalAviso(true);
+      return;
+    }
+    const itensParaEnviar = itemEditado ? listaItens.map(item => item.id === itemEmEdicao ? itemEditado : item) : listaItens;
+    if (itensParaEnviar.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Adicione pelo menos um espelho antes de enviar para a central de impressão.");
       setShowModalAviso(true);
       return;
     }
 
-    const totalPecas = listaItens.reduce((total, item) => total + quantidadePecasEspelho(item), 0);
-    const areaTotal = listaItens.reduce((total, item) => total + calcularAreaItemEspelho(item), 0);
-    const valorTotal = listaItens.reduce((total, item) => total + Number(item.total || 0), 0);
+    const totalPecas = itensParaEnviar.reduce((total, item) => total + quantidadePecasEspelho(item), 0);
+    const areaTotal = itensParaEnviar.reduce((total, item) => total + calcularAreaItemEspelho(item), 0);
+    const valorTotal = itensParaEnviar.reduce((total, item) => total + Number(item.total || 0), 0);
 
-    const vidrosAvulsos = listaItens.map((item) => ({
+    const vidrosAvulsos = itensParaEnviar.map((item) => ({
       id: criarId(),
       quantidade: quantidadePecasEspelho(item),
       medida: medidaPecaEspelho(item),
@@ -524,7 +598,7 @@ export default function CalculoEspelhosPage() {
       valorTotal: Number(item.total || 0),
     }));
 
-    const materiais = listaItens.map((item) => {
+    const materiais = itensParaEnviar.map((item) => {
       const area = calcularAreaItemEspelho(item);
       const valorUnitario = area > 0 ? Number(item.total || 0) / area : 0;
 
@@ -537,15 +611,17 @@ export default function CalculoEspelhosPage() {
       };
     });
 
-    const medidasDetalhadas = listaItens
+    const medidasDetalhadas = itensParaEnviar
       .map((item, index) => `${index + 1}. ${quantidadePecasEspelho(item)} peça(s) - ${descricaoVidroSemPrefixo(item.descricao)} - ${medidaPecaEspelho(item)}`)
       .join("\n");
 
+    const loteId = loteEspelhosRef.current || criarId();
     const itensCentral = comDesenho
-      ? listaItens.map((item) => ({
+      ? itensParaEnviar.map((item) => ({
         id: criarId(),
         numero: ultimoNumeroGerado || "novo",
         projeto: "Espelhos",
+        loteId, espelhoItens: [item],
         cliente: nomeCliente,
         medidas: `${Number(item.larguraReal || 0)} x ${Number(item.alturaReal || 0)} mm`,
         largura: Number(item.larguraReal || 0),
@@ -577,6 +653,7 @@ export default function CalculoEspelhosPage() {
         id: criarId(),
         numero: ultimoNumeroGerado || "novo",
         projeto: "Espelhos avulsos",
+        loteId, espelhoItens: itensParaEnviar,
         cliente: nomeCliente,
         medidas: `${totalPecas} peça(s) | ${areaTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`,
         largura: 0,
@@ -602,11 +679,11 @@ export default function CalculoEspelhosPage() {
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? JSON.parse(salvo) : [];
-      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, ...itensCentral]));
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista.filter((item: any) => !centralIdsRef.current.includes(item.id)), ...itensCentral]));
       if (nomeCliente) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, nomeCliente);
       if (nomeObra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, nomeObra);
       setShowModalCentral(false);
-      router.push("/central-impressao");
+      router.push(retornoCentral);
     } catch (erro) {
       console.warn("Não foi possível enviar os espelhos para a central de impressão:", erro);
       setModalAvisoTitulo("Erro ao enviar");
@@ -1151,7 +1228,7 @@ export default function CalculoEspelhosPage() {
                     e.currentTarget.style.color = theme.menuIconColor;
                   }}
                 >
-                  <Plus size={18} /> Adicionar
+                  <Plus size={18} /> {itemEmEdicao !== null ? "Atualizar item" : "Adicionar"}
                 </button>
               </div>
 
@@ -1213,10 +1290,7 @@ export default function CalculoEspelhosPage() {
                               {/* --- BOTÃO DE EDITAR (Cor do Tema) --- */}
                               <button
                                 onClick={() => {
-                                  setLargura(item.medidas.split('x')[0]);
-                                  setAltura(item.medidas.split('x')[1]);
-                                  setQuantidade(item.quantidade);
-                                  setListaItens(listaItens.filter(i => i.id !== item.id));
+                                  restaurarCamposItem(item);
                                 }}
                                 title="Editar item"
                                 style={{ '--hover-color': theme.menuIconColor } as any}
@@ -1227,7 +1301,7 @@ export default function CalculoEspelhosPage() {
 
                               {/* --- BOTÃO DE REMOVER (Vermelho Erro) --- */}
                               <button
-                                onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
+                                onClick={() => { setListaItens(listaItens.filter(i => i.id !== item.id)); if (itemEmEdicao === item.id) { setItemEmEdicao(null); setLargura(""); setAltura(""); } }}
                                 title="Remover item"
                                 style={{ '--hover-color': theme.modalIconErrorColor } as any}
                                 className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
