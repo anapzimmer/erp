@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn,Building2, FileText } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Check, Layers3 } from 'lucide-react';
+import styles from './login.module.css';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
@@ -186,295 +187,51 @@ const LoginPage = () => {
   };
 
   return (
-<div className="relative min-h-screen w-full bg-[#FFFFFF] overflow-hidden font-inter flex items-center justify-center">
-
-      {/* --- CAMADA 1: VIDROS FLUTUANTES --- */}
-    <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-      <div
-        className="glass-element w-64 h-96 rounded-3xl"
-        style={{ top: '10%', left: '5%', '--speed': '5s', '--lap-time': '10s' } as React.CSSProperties}
-      />
-      <div
-        className="glass-element w-80 h-48 rounded-[3rem]"
-        style={{ bottom: '15%', right: '5%', '--speed': '8s', '--lap-time': '5s' } as React.CSSProperties}
-      />
-      <div
-        className="glass-element w-32 h-32 rounded-2xl"
-        style={{ top: '40%', right: '2%', '--speed': '8s', '--lap-time': '7s' } as React.CSSProperties}
-      />
-    </div>
-
-      {/* --- CAMADA 2: AS 5 MÁQUINAS CNC --- */}
-<svg className="absolute inset-0 w-full h-full z-10 pointer-events-none" viewBox="0 0 1000 1000">
-          {/* Laser 1: Horizontal Topo */}
-        <path d="M-100,200 H1100" className="cnc-laser stroke-[#39B89F]" strokeWidth="1" fill="none" />
-        <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.5s infinite' }}>
-          <animateMotion dur="8s" repeatCount="indefinite" path="M-100,200 H1100" />
-        </circle>
-
-        {/* Laser 2: Círculo Esquerda (movido) */}
-        <path d="M80,500 A100,100 0 1,1 80,501" className="cnc-laser stroke-[#39B89F]" strokeWidth="1.5" fill="none" />
-        <circle fill="#39B89F" className="spark" style={{ animation: 'sparkLight 0.3s infinite' }}>
-          <animateMotion dur="10s" repeatCount="indefinite" path="M80,500 A100,100 0 1,1 80,501" />
-        </circle>
-
-        {/* Laser 3: Diagonal */}
-        <path d="M800,-100 L1100,200" className="cnc-laser stroke-[#39B89F]" strokeWidth="1" fill="none" />
-        <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.2s infinite' }}>
-          <animateMotion dur="6s" repeatCount="indefinite" path="M800,-100 L1100,200" />
-        </circle>
-
-        {/* Laser 4: Scanner Vertical */}
-        <path d="M700,-100 V1100" className="cnc-laser stroke-[#1C415B]/20" strokeWidth="3" fill="none" />
-        <circle fill="#39B89F" className="spark" style={{ animation: 'sparkLight 1s infinite' }}>
-          <animateMotion dur="12s" repeatCount="indefinite" path="M700,-100 V1100" />
-        </circle>
-
-        {/* Laser 5: ZigZag Fundo */}
-        <path d="M-100,800 L300,750 L600,850 L1100,800" className="cnc-laser stroke-[#39B89F]/40" strokeWidth="1" fill="none" />
-        <circle fill="#1C415B" className="spark" style={{ animation: 'sparkLight 0.4s infinite' }}>
-          <animateMotion dur="14s" repeatCount="indefinite" path="M-100,800 L300,750 L600,850 L1100,800" />
-        </circle>
-      </svg>
-
-      {/* --- CAMADA 3: CARD DE LOGIN CENTRALIZADO --- */}
-<div className="relative z-20 w-full max-w-md animate-scale-up">
-  <div className="mb-8 text-center relative z-100"> {/* Z-index alto aqui */}
- <Image
-    src="/glasscode.png"
-    alt="Logo"
-    width={160}
-    height={80}
-    priority
-    unoptimized // <--- FORÇA O NEXT.JS A NÃO MEXER NA IMAGEM
-    style={{ 
-      width: "auto", 
-      height: "80px",
-      display: "block",
-      margin: "0 auto",
-      filter: "none" // Garante que nenhum efeito global a afete
-    }}
-  />
-</div>
-
-        <div className="bg-white/90 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(28,65,91,0.15)] border border-[#1C415B]/5">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-black text-[#1C415B] tracking-tight">Bem-vindo</h2>
-            <p className="text-[#1C415B]/60 text-sm mt-2 font-medium">Acesse o painel de precisão.</p>
+    <main className={styles.page}>
+      <section className={styles.story} aria-label="GlassCode — gestão para vidraçarias">
+        <div className={styles.brand}><Layers3 size={28} /><span>glass<span className={styles.brandLight}>code</span><small>GESTÃO PARA VIDRAÇARIAS</small></span></div>
+        <div className={styles.storyContent}>
+          <span className={styles.eyebrow}><span /> DA IDEIA À INSTALAÇÃO</span>
+          <h1>Precisão em cada corte.<br /><em>Controle em cada projeto.</em></h1>
+          <p>Sua vidraçaria conectada, do primeiro orçamento ao último detalhe.</p>
+          <div className={styles.blueprint}>
+            <div className={styles.drawingTitle}><span>ESTUDO DE PROJETO</span><span>01 / JANELA DE CORRER</span></div>
+            <svg viewBox="0 0 560 320" role="img" aria-label="Desenho animado de uma janela de correr com duas folhas">
+              <defs><linearGradient id="login-glass" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#75e4d1" stopOpacity=".2"/><stop offset="1" stopColor="#75e4d1" stopOpacity=".02"/></linearGradient></defs>
+              <g stroke="#79c9be" strokeWidth="1" opacity=".65" fill="none"><path d="M90 58V30M470 58V30M90 40H470M78 40L96 40M90 34V46M470 34V46M482 70H510M482 266H510M500 70V266M494 70H506M494 266H506"/></g>
+              <g fill="#a7d7d2" fontSize="11" fontFamily="monospace"><text x="250" y="30">1.200 mm</text><text x="516" y="195" transform="rotate(-90 516 195)">1.000 mm</text></g>
+              <g className={styles.frame} fill="none" stroke="#8ae6d4" strokeWidth="2"><rect x="90" y="70" width="380" height="196"/><rect x="96" y="76" width="368" height="184"/><path d="M280 76V260M90 270H470"/></g>
+              <g className={styles.slidingGlass}><rect x="102" y="82" width="172" height="172" fill="url(#login-glass)" stroke="#b0f1e5" strokeOpacity=".4"/><path d="M125 180L210 100M145 202L242 110" stroke="#ddfff8" strokeOpacity=".15"/><rect x="111" y="157" width="4" height="25" rx="2" fill="#a5e8da"/></g>
+              <g className={styles.glass}><rect x="286" y="82" width="172" height="172" fill="url(#login-glass)" stroke="#b0f1e5" strokeOpacity=".4"/><path d="M305 180L390 100M325 202L422 110" stroke="#ddfff8" strokeOpacity=".15"/></g>
+              <path d="M240 293H320M310 288L320 293L310 298" stroke="#68c9b5" fill="none"/>
+            </svg>
+            <div className={styles.drawingFooter}><span><span className={styles.dot}/> Cada detalhe faz a diferença.</span><span>GLASSCODE / PROJETOS</span></div>
           </div>
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email */}
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1C415B]/30 group-focus-within:text-[#39B89F] transition-colors" size={18} />
-              <input
-                type="email"
-                placeholder="E-mail profissional"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
-                required
-              />
-            </div>
-
-            {/* Senha */}
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1C415B]/30 group-focus-within:text-[#39B89F] transition-colors" size={18} />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#39B89F]/20 focus:border-[#39B89F] transition-all"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1C415B]/20 hover:text-[#39B89F]"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {/* Botão Entrar */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg 
-    ${loading ? 'bg-[#1C415B] text-white btn-processing cursor-wait'
-                  : 'bg-[#1C415B] hover:bg-[#39B89F] text-white shadow-[#1C415B]/20 hover:shadow-[#39B89F]/20'
-                }`}
-            >
-              {loading ? (
-                <span className="relative z-10 flex items-center gap-2">
-                  <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                  PROCESSANDO...
-                </span>
-              ) : (
-                <>
-                  <span className="relative z-10">ENTRAR</span>
-                  <LogIn size={16} className="relative z-10" />
-                </>
-              )}
-            </button>
-
-            {/* Links de Rodapé */}
-            <div className="flex flex-col gap-4 mt-8 text-center">
-              <button
-                type="button"
-                onClick={() => setShowSignup(true)}
-                className="text-sm font-bold text-[#1C415B] hover:text-[#39B89F] transition-colors"
-              >
-                Não tem contax <span className="text-[#39B89F]">Criar Acesso</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-xs font-semibold text-gray-400 hover:text-[#1C415B] transition-colors"
-              >
-                Esqueci minha senha
-              </button>
-            </div>
+          <div className={styles.features}><span><Check size={15}/> Orçamentos</span><span><Check size={15}/> Cálculos precisos</span><span><Check size={15}/> Gestão de projetos</span></div>
+        </div>
+        <footer className={styles.storyFooter}><span>Projetado para quem transforma vidro em possibilidades.</span><span>GC®</span></footer>
+      </section>
+      <section className={styles.access}>
+        <div className={styles.formCard}>
+          <Image src="/glasscode.png" alt="GlassCode" width={160} height={80} priority unoptimized className={styles.logo}/>
+          <div className={styles.heading}><span className={styles.kicker}>SEU ESPAÇO DE TRABALHO</span><h2>{showSignup ? 'Crie sua conta' : 'Bom ter você aqui.'}</h2><p>{showSignup ? 'Comece uma nova etapa na gestão da sua vidraçaria.' : 'Acesse sua conta e dê vida aos seus projetos.'}</p></div>
+          {modalConfig.show && <div role={modalConfig.type === 'error' ? 'alert' : 'status'} className={`${styles.notice} ${modalConfig.type === 'success' ? styles.success : ''}`}><strong>{modalConfig.title}</strong><p>{modalConfig.message}</p><button type="button" aria-label="Fechar mensagem" onClick={() => setModalConfig(prev => ({...prev, show:false}))}>×</button></div>}
+          <form onSubmit={showSignup ? handleSignup : handleLogin} className={styles.form}>
+            <fieldset disabled={loading} className={styles.fields}>
+              {showSignup && <><label htmlFor="company">Nome da empresa</label><input id="company" autoComplete="organization" required value={signupCompanyName} onChange={e => setSignupCompanyName(e.target.value)} placeholder="Sua vidraçaria"/><label htmlFor="document">CNPJ ou CPF</label><input id="document" required value={signupCnpj} onChange={e => setSignupCnpj(e.target.value)} placeholder="Documento da empresa ou responsável"/></>}
+              <label htmlFor="email">E-mail</label><div className={styles.inputWrap}><Mail size={18}/><input id="email" type="email" autoComplete="username" required placeholder="voce@empresa.com.br" value={showSignup ? signupEmail : email} onChange={e => showSignup ? setSignupEmail(e.target.value) : setEmail(e.target.value)}/></div>
+              <div className={styles.labelRow}><label htmlFor="password">Senha</label>{!showSignup && <button type="button" onClick={handleForgotPassword}>Esqueci minha senha</button>}</div>
+              <div className={styles.inputWrap}><Lock size={18}/><input id="password" type={showPassword ? 'text' : 'password'} autoComplete={showSignup ? 'new-password' : 'current-password'} required placeholder={showSignup ? 'Crie uma senha' : 'Digite sua senha'} value={showSignup ? signupPassword : password} onChange={e => showSignup ? setSignupPassword(e.target.value) : setPassword(e.target.value)}/><button type="button" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div>
+              {showSignup && <p className={styles.passwordHint}>Use no mínimo 6 caracteres, com maiúscula, minúscula, número e símbolo.</p>}
+              <button type="submit" className={styles.submit}>{loading ? <><span className={styles.spinner}/> Aguarde...</> : <>{showSignup ? 'Criar conta' : 'Entrar no sistema'}<ArrowRight size={19}/></>}</button>
+            </fieldset>
           </form>
+          <div className={styles.switch}>{showSignup ? 'Já tem uma conta?' : 'Ainda não tem uma conta?'} <button disabled={loading} type="button" onClick={() => {setShowSignup(!showSignup); setShowPassword(false); setModalConfig(prev => ({...prev, show:false}));}}>{showSignup ? 'Entrar' : 'Criar meu acesso'}<ArrowRight size={14}/></button></div>
+          <div className={styles.secure}><Lock size={13}/><span>Seu próximo projeto começa aqui.</span></div>
         </div>
-      </div>
-
-      {modalConfig.show && (
-        <div className="fixed inset-0 z-10000 flex items-center justify-center p-4">
-          {/* Overlay com Blur mais suave */}
-          <div
-            className="absolute inset-0 bg-[#1C415B]/20 backdrop-blur-sm"
-            onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-          />
-
-          {/* Modal Card */}
-          <div className="relative bg-white rounded-[2.5rem] p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] w-full max-w-sm border border-gray-100 flex flex-col items-center animate-scale-up">
-
-            {/* SVG Centralizado com tamanho reduzido para maior elegância */}
-            <div className="flex flex-col items-center">
-              {/* O Ícone Moderno */}
-              <svg
-                className="error-icon-svg mb-6"
-                width="72"
-                height="72"
-                viewBox="0 0 48 48"
-              >
-                {/* Fundo do erro */}
-                <path fill="#f55376" d="M44,24c0,11-9,20-20,20S4,35,4,24S13,4,24,4S44,13,44,24z" />
-
-                {/* X estilizado */}
-                <g className="rotate-slow" style={{ transformOrigin: 'center' }}>
-                  <path fill="#fac8d5" d="M12,17.6l5.7-5.7L36,30.4L30.4,36L12,17.6z" />
-                  <path fill="#fac8d5" d="M30.4,12l5.7,5.7L17.6,36L12,30.4L30.4,12z" />
-                  <rect width="8" height="8" x="20" y="20" fill="#fff" transform="rotate(-45.001 24 24)" />
-                </g>
-              </svg>
-
-              <div className="text-center">
-                <h3 className="text-xl font-black text-[#1C415B] tracking-tight">{modalConfig.title}</h3>
-                <p className="text-sm text-[#1C415B]/60 mt-2">{modalConfig.message}</p>
-              </div>
-            </div>
-
-            {/* Botão com estilo mais sutil */}
-            <button
-              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-              className="mt-8 w-full bg-gray-50 hover:bg-gray-100 text-[#1C415B] py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 border border-gray-200"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL SIGNUP --- */}
-      {showSignup && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-[#1C415B]/30 backdrop-blur-sm"
-            onClick={() => setShowSignup(false)}
-          />
-          <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-gray-100">
-            <h3 className="text-xl font-bold text-[#1C415B] mb-6 text-center">
-              Criar Conta
-            </h3>
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-[#39b89f]/50" size={18} />
-                <input
-                  type="text"
-                  placeholder="Nome da Empresa"
-                  value={signupCompanyName}
-                  onChange={(e) => setSignupCompanyName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-[#39b89f]/50" size={18} />
-                <input
-                  type="text"
-                  placeholder="CNPJ ou CPF"
-                  value={signupCnpj}
-                  onChange={(e) => setSignupCnpj(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                  required
-                />
-              </div>
-              <input
-                type="email"
-                placeholder="Email"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                required
-              />
-              <input
-                type="password"
-                placeholder="Senha"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-[#39b89f]/15 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#39b89f] focus:border-[#39b89f] transition-all"
-                required
-              />
-
-              <div className="mt-3">
-                <p className="text-xs font-semibold text-[#1C415B]/70 mb-2">
-                  Sua senha deve conter:
-                </p>
-                <ul className="text-xs space-y-1">
-                  <li className={`flex items-center gap-2 ${signupPassword.length >= 6 ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
-                    <span>•</span> <span>Mínimo 6 caracteres</span>
-                  </li>
-                  <li className={`flex items-center gap-2 ${/[a-z]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
-                    <span>•</span> <span>Pelo menos 1 letra minúscula</span>
-                  </li>
-                  <li className={`flex items-center gap-2 ${/[A-Z]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
-                    <span>•</span> <span>Pelo menos 1 letra maiúscula</span>
-                  </li>
-                  <li className={`flex items-center gap-2 ${/[0-9]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
-                    <span>•</span> <span>Pelo menos 1 número</span>
-                  </li>
-                  <li className={`flex items-center gap-2 ${/[!@#$%^&*()_\+\-\=\[\]{};':"\\|<>x,./`~]/.test(signupPassword) ? "text-[#39b89f]" : "text-[#1C415B]/40"}`}>
-                    <span>•</span> <span>Pelo menos 1 caractere especial</span>
-                  </li>
-                </ul>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1C415B] text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest"
-              >
-                {loading ? "Criando..." : "Criar Conta"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-    </div>
+        <footer className={styles.accessFooter}>GlassCode <span>•</span> Gestão com clareza. Projetos com precisão.</footer>
+      </section>
+    </main>
   );
 };
 
