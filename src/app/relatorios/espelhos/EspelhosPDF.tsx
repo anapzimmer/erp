@@ -1,4 +1,4 @@
-﻿//app/relatorios/espelhos/EspelhosPDF.tsx
+//app/relatorios/espelhos/EspelhosPDF.tsx
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Ellipse, Path } from '@react-pdf/renderer';
@@ -161,7 +161,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
     const pathSemiOval = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
     const pathOrganico = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
     const pathMolde = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
-    const rx = ehCapsula ? Math.min(w, h) / 2 : 3;
+    const rx = ehCapsula ? Math.min(w, h) / 2 : 0;
 
     if (tipoVisual.includes("jogo") && (divL > 1 || divA > 1)) {
       const gap = 1.8;
@@ -180,7 +180,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
                   y={y + row * (cellH + gap)}
                   width={cellW}
                   height={cellH}
-                  rx={2}
+                  rx={0}
                   fill="#E8F1F6"
                   stroke="#8FA1AE"
                   strokeWidth={1}
@@ -214,8 +214,8 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
           ) : (
             <>
               <Rect x={x} y={y} width={w} height={h} rx={rx} ry={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-              {ehBisote ? <Rect x={x + 4} y={y + 4} width={Math.max(0, w - 8)} height={Math.max(0, h - 8)} rx={Math.max(2, rx - 2)} ry={Math.max(2, rx - 2)} fill="none" stroke="#FFFFFF" strokeWidth={1} /> : null}
-              {ehLed ? <Rect x={x + 6} y={y + 6} width={Math.max(0, w - 12)} height={Math.max(0, h - 12)} rx={Math.max(2, rx - 4)} ry={Math.max(2, rx - 4)} fill="none" stroke="#FFFFFF" strokeWidth={1} strokeDasharray="3 3" /> : null}
+              {ehBisote ? <Rect x={x + 4} y={y + 4} width={Math.max(0, w - 8)} height={Math.max(0, h - 8)} rx={Math.max(0, rx - 2)} ry={Math.max(0, rx - 2)} fill="none" stroke="#FFFFFF" strokeWidth={1} /> : null}
+              {ehLed ? <Rect x={x + 6} y={y + 6} width={Math.max(0, w - 12)} height={Math.max(0, h - 12)} rx={Math.max(0, rx - 4)} ry={Math.max(0, rx - 4)} fill="none" stroke="#FFFFFF" strokeWidth={1} strokeDasharray="3 3" /> : null}
             </>
           )}
         </Svg>

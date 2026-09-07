@@ -504,7 +504,7 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
   const fill = "#e8f1f6";
   const stroke = "#8fa1ae";
   const strokeWidth = ehBisote ? 8 : 3;
-  const rx = ehCapsula ? Math.min(w, h) / 2 : 8;
+  const rx = ehCapsula ? Math.min(w, h) / 2 : 0;
   const semiOvalPath = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
   const organicoPath = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
   const moldePath = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
@@ -525,7 +525,7 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
               y={y + row * (cellH + gap)}
               width={cellW}
               height={cellH}
-              rx="7"
+              rx="0"
               fill={fill}
               stroke={stroke}
               strokeWidth="2"
@@ -556,8 +556,8 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
       ) : (
         <>
           <rect x={x} y={y} width={w} height={h} rx={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-          {ehBisote ? <rect x={x + 9} y={y + 9} width={Math.max(1, w - 18)} height={Math.max(1, h - 18)} rx={Math.max(1, rx - 3)} fill="none" stroke="#ffffff" strokeWidth="2" /> : null}
-          {ehLed ? <rect x={x + 14} y={y + 14} width={Math.max(1, w - 28)} height={Math.max(1, h - 28)} rx={Math.max(1, rx - 4)} fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="7 7" /> : null}
+          {ehBisote ? <rect x={x + 9} y={y + 9} width={Math.max(1, w - 18)} height={Math.max(1, h - 18)} rx={Math.max(0, rx - 3)} fill="none" stroke="#ffffff" strokeWidth="2" /> : null}
+          {ehLed ? <rect x={x + 14} y={y + 14} width={Math.max(1, w - 28)} height={Math.max(1, h - 28)} rx={Math.max(0, rx - 4)} fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="7 7" /> : null}
         </>
       )}
     </svg>

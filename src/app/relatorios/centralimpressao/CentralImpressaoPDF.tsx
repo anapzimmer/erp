@@ -1,4 +1,4 @@
-﻿//app/(projetos)/central-impressao/page.tsx
+//app/(projetos)/central-impressao/page.tsx
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
@@ -758,7 +758,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const fill = "#e8f1f6";
   const stroke = "#8fa1ae";
   const strokeWidth = ehBisote ? 5 : 1.8;
-  const rx = ehCapsula ? Math.min(w, h) / 2 : 4;
+  const rx = ehCapsula ? Math.min(w, h) / 2 : 0;
   const pathSemiOval = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
   const pathOrganico = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
   const pathMolde = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
@@ -781,7 +781,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
                 y={y + row * (cellH + gap)}
                 width={cellW}
                 height={cellH}
-                rx={3}
+                rx={0}
                 fill="#e8f1f6"
                 stroke="#8fa1ae"
                 strokeWidth={1.2}
@@ -815,8 +815,8 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         ) : (
           <>
             <Rect x={x} y={y} width={w} height={h} rx={rx} ry={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-            {ehBisote ? <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(2, rx - 3)} ry={Math.max(2, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
-            {ehLed ? <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(2, rx - 5)} ry={Math.max(2, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
+            {ehBisote ? <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(0, rx - 3)} ry={Math.max(0, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
+            {ehLed ? <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(0, rx - 5)} ry={Math.max(0, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
           </>
         )}
       </Svg>
