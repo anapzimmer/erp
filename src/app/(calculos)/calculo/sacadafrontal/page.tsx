@@ -1,5 +1,6 @@
 //app/(calculos)/sacadafrontal/page.tsx
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
@@ -303,6 +304,8 @@ export default function CalculoSacadaFrontalPage() {
   const [mostrarClientes, setMostrarClientes] = useState(false);
   const [clienteIndex, setClienteIndex] = useState(-1);
   const [obra, setObra] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: clienteId, onCliente: setClienteId, porId: true, obra, onObra: setObra, busca: buscaCliente, onBusca: setBuscaCliente });
+
   const [salvando, setSalvando] = useState(false);
   const [mensagemSalvo, setMensagemSalvo] = useState("");
   const [editNumeroFormatado, setEditNumeroFormatado] = useState("");
@@ -881,6 +884,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
   };
 
   const handleSalvar = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       enviarParaCentralImpressao();
       return;

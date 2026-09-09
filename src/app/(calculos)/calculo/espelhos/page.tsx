@@ -1,4 +1,5 @@
 "use client"
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -237,6 +238,8 @@ export default function CalculoEspelhosPage() {
   const [showModalCentral, setShowModalCentral] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
   const [nomeObra, setNomeObra] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: nomeCliente, onCliente: setNomeCliente, obra: nomeObra, onObra: setNomeObra });
+
   const [divisoesLargura, setDivisoesLargura] = useState(1);
   const [divisoesAltura, setDivisoesAltura] = useState(1);
   const [showModalSalvar, setShowModalSalvar] = useState(false)
@@ -806,6 +809,7 @@ export default function CalculoEspelhosPage() {
   }, [largura, altura, acabamentoId, acabamentosDB, divisoesLargura, divisoesAltura]);
 
   const handleSalvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(true); return; }
     // Validação
     if (!nomeCliente || listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");

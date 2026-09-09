@@ -1,4 +1,5 @@
 "use client"
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -191,6 +192,8 @@ export default function CalculoPinazioPage() {
   const [showModalCliente, setShowModalCliente] = useState(false);
   const [clientesDB, setClientesDB] = useState<any[]>([]);
   const [buscaCliente, setBuscaCliente] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: nomeCliente, onCliente: setNomeCliente, obra: nomeObra, onObra: setNomeObra, busca: buscaCliente, onBusca: setBuscaCliente });
+
   const [clienteSelecionadoId, setClienteSelecionadoId] = useState("");
   const [precosCliente, setPrecosCliente] = useState<Record<string, number>>({});
   const [carregandoClientes, setCarregandoClientes] = useState(false);
@@ -912,6 +915,7 @@ export default function CalculoPinazioPage() {
   ]);
 
   const handleSalvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     // Validação
     if (!nomeCliente || listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");

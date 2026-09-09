@@ -1,4 +1,5 @@
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -265,6 +266,8 @@ export default function PMA2FPage() {
     trinco: "1122D",
     observacao: "Imagem ilustrativa do projeto",
   });
+  const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
+
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
 
   useEffect(() => {
@@ -967,6 +970,7 @@ export default function PMA2FPage() {
   });
 
   const salvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {
         setSalvandoOrcamento(true);

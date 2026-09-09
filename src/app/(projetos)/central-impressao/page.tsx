@@ -1,5 +1,6 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -1210,6 +1211,7 @@ export default function CentralImpressaoPage() {
   const [numeroOrcamento, setNumeroOrcamento] = useState("");
   const [cliente, setCliente] = useState("");
   const [obra, setObra] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente, onCliente: setCliente, obra, onObra: setObra });
   const [itens, setItens] = useState<ProjetoComposicao[]>([]);
   const [rascunhoCarregado, setRascunhoCarregado] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -2017,6 +2019,7 @@ router.push(
 
       // O orçamento já foi confirmado no banco. A composição temporária pode
       // ser encerrada para que o próximo orçamento comece totalmente vazio.
+      encerrarOrcamentoAtivo();
       limparRascunhosDosProjetos();
       limparTudo();
       setMensagem(`Orçamento ${numeroFinal} salvo com sucesso.`);
@@ -2107,7 +2110,7 @@ router.push(
               </Field>
               <Field label="Cliente">
                 <input
-                  value={cliente}
+                  value={cliente} readOnly={Boolean(orcamentoAtivo)}
                   onChange={(e) => setCliente(e.target.value)}
                   placeholder="Cliente do Orçamento"
                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
@@ -2115,7 +2118,7 @@ router.push(
               </Field>
               <Field label="Obra / referência">
                 <input
-                  value={obra}
+                  value={obra} readOnly={Boolean(orcamentoAtivo)}
                   onChange={(e) => setObra(e.target.value)}
                   placeholder="Ex.:: Obra Centro"
                   className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"

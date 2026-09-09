@@ -1,4 +1,5 @@
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -289,6 +290,8 @@ export default function PG2FVAPage() {
     trinco: "Vidro / vidro",
     observacao: "Padrão",
   });
+  const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
+
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
 
   useEffect(() => {
@@ -1016,6 +1019,7 @@ export default function PG2FVAPage() {
   });
 
   const salvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (!validarMedidas()) return;
     if (centralItemId) {
       try {

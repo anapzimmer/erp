@@ -1,5 +1,6 @@
 //app/src/app/(calculos)/jc4fcb-kit/page.tsx
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -292,6 +293,8 @@ export default function JC4FCBKitPage() {
     trinco: "Sem trinco",
     observacao: "Imagem ilustrativa do projeto",
   });
+  const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
+
   const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
 
   useEffect(() => {
@@ -1207,6 +1210,7 @@ export default function JC4FCBKitPage() {
   });
 
   const salvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {
         setSalvandoOrcamento(true);

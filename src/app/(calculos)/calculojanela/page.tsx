@@ -1,4 +1,5 @@
 ﻿    "use client"
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
     import { Trash2, Home, UserPlus, ImageIcon, Search, Printer, Plus, X } from "lucide-react"
@@ -19,6 +20,8 @@
     const [adicionaisPendentes, setAdicionaisPendentes] = useState<AdicionalPendente[]>([])
     
     const [buscaCliente, setBuscaCliente] = useState("")
+  const orcamentoAtivo = useClienteOrcamento({ cliente: buscaCliente, onCliente: setBuscaCliente });
+
     const [mostrarClientes, setMostrarClientes] = useState(false)
     const [clienteIndex, setClienteIndex] = useState(-1)
 

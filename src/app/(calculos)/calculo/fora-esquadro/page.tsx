@@ -1,4 +1,5 @@
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useEffect, useMemo, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -415,6 +416,8 @@ export default function ForaEsquadroPage() {
   const [vidros, setVidros] = useState<VidroCadastro[]>([]);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
   const [clienteBusca, setClienteBusca] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: clienteBusca, onCliente: setClienteBusca });
+
   const [vidroBusca, setVidroBusca] = useState("");
   const [carregandoClientes, setCarregandoClientes] = useState(false);
   const [carregandoVidros, setCarregandoVidros] = useState(false);

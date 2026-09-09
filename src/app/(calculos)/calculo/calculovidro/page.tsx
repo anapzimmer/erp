@@ -1,5 +1,6 @@
 //app/calculovidro/page.tsx
 "use client"
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { CSSProperties } from "react"
@@ -258,6 +259,8 @@ export default function RelatorioOrcamento() {
   // Estados do Orçamento
   const [clienteId, setClienteId] = useState("")
   const [obra, setObra] = useState("")
+  const orcamentoAtivo = useClienteOrcamento({ cliente: clienteId, onCliente: setClienteId, porId: true, obra, onObra: setObra });
+
   const [largura, setLargura] = useState("")
   const [altura, setAltura] = useState("")
   const [quantidade, setQuantidade] = useState(1)
@@ -1418,6 +1421,7 @@ useEffect(() => {
   };
 
   const handleSalvarOrcamento = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o Orçamento.");

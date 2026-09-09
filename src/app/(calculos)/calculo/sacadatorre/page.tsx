@@ -1,4 +1,5 @@
 "use client";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, FilePlus2, Package2, PanelsTopLeft, Printer, Ruler, Save, Search, SquareStack } from "lucide-react";
@@ -272,6 +273,8 @@ export default function CalculoSacadaTorrePage() {
   const [buscaCliente, setBuscaCliente] = useState("");
   const [mostrarClientes, setMostrarClientes] = useState(false);
   const [obra, setObra] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: clienteId, onCliente: setClienteId, porId: true, obra, onObra: setObra, busca: buscaCliente, onBusca: setBuscaCliente });
+
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [perfis, setPerfis] = useState<PerfilTabela[]>([]);
   const [ferragens, setFerragens] = useState<FerragemTabela[]>([]);
@@ -647,6 +650,7 @@ export default function CalculoSacadaTorrePage() {
   };
 
   const handleSalvar = async () => {
+    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       enviarParaCentralImpressao();
       return;
