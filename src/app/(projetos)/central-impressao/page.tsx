@@ -15,6 +15,7 @@ import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividu
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
+import { obterAreaCobradaVidro } from "@/utils/precoVidroRelatorio";
 import { descricaoVidroCompativel } from "@/utils/vidros";
 
 type ProjetoComposicao = CentralImpressaoItem & {
@@ -54,6 +55,8 @@ type ProjetoComposicao = CentralImpressaoItem & {
   pecasDivisao?: number;
   origemRota?: string;
   origemTipo?: string;
+
+
   loteId?: string;
   loteSeq?: number;
   loteTotal?: number;
@@ -288,12 +291,9 @@ const extrairMedidaVidroAvulso = (medida?: string) => {
   };
 };
 
-const calcularResumoVidrosAvulsos = (item: Pick<ProjetoComposicao, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais">) => {
+const calcularResumoVidrosAvulsos = (item: Pick<ProjetoComposicao, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais" | "foraEsquadroPecas">) => {
   const pecas = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
-  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro) => {
-    const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
-    return total + (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
-  }, 0) || 0;
+  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro, index) => total + obterAreaCobradaVidro(vidro, item, index), 0) || 0;
   const areaMateriais = item.materiais?.reduce((total, material) => {
     const unidade = String(material.unidade || "").toLowerCase();
     if (!unidade.includes("m2") && !unidade.includes("m²")) return total;
@@ -1629,6 +1629,7 @@ export default function CentralImpressaoPage() {
       modo: ehVidroAvulso(item.projeto) || ehSacadaGrapa(item.projeto) ? "" : item.modo,
       desenhoUrl: item.desenhoUrl || (ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item)),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
+      precoVidroM2: item.precoVidroM2 ?? item.espelhoItens?.[0]?.precoVidroM2,
       vidroBandeira: item.vidroBandeira,
       corKit: item.corPerfil || item.corKit,
       alturaAteTubo: item.alturaAteTubo,
@@ -1640,7 +1641,12 @@ export default function CentralImpressaoPage() {
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       medidasDetalhadas: item.medidasDetalhadas,
       foraEsquadroPecas: item.foraEsquadroPecas,
-      vidrosAvulsos: item.vidrosAvulsos,
+      itensOriginais: item.itensOriginais,
+      espelhoItens: item.espelhoItens,
+      vidrosAvulsos: item.vidrosAvulsos?.map((vidro, index) => ({
+        ...vidro,
+        precoVidroM2: vidro.precoVidroM2 ?? item.itensOriginais?.[index]?.precoVidroM2 ?? item.espelhoItens?.[index]?.precoVidroM2,
+      })),
       valorTotal: ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).valor : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0),
 
       // Dados necessários para o PDF reproduzir exatamente o desenho do Pinázio.
@@ -1777,9 +1783,9 @@ export default function CentralImpressaoPage() {
       if (!descricaoVidroValidaParaTroca(texto)) return false;
       return chaveVidroOrigem(texto, vidros) === vidroOrigemOrcamento;
     };
-    const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number]) => {
-      const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
-      const area = (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
+    const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number], item: ProjetoComposicao, index: number) => {
+
+      const area = obterAreaCobradaVidro(vidro, item, index);
       return area * precoVidroSelecionado;
     };
 
@@ -1792,14 +1798,16 @@ export default function CentralImpressaoPage() {
         valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
           : material.valorUnitario,
       }));
-      const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro) => {
+      const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro, index) => {
         if (!deveTrocarVidro(vidro.vidro)) return { ...vidro, id: criarId() };
 
         return {
           ...vidro,
           id: criarId(),
           vidro: novoVidro,
-          valorTotal: valorVidroAvulsoAtualizado(vidro),
+          precoVidroM2: precoVidroSelecionado,
+          areaCobradaM2: obterAreaCobradaVidro(vidro, item, index),
+          valorTotal: valorVidroAvulsoAtualizado(vidro, item, index),
         };
       });
       const valorTotalAtualizado = vidrosAvulsosAtualizados?.length

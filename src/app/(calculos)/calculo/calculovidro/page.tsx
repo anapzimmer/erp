@@ -60,6 +60,7 @@ interface CentralVidroEmEdicao {
     quantidade?: number;
     medida?: string;
     vidro?: string;
+    precoVidroM2?: number;
     valorTotal?: number;
   }>;
   itensOriginais?: ItemOrcamento[];
@@ -804,6 +805,7 @@ useEffect(() => {
           medidaReal: vidro.medida || "",
           medidaCalc: vidro.medida || "",
           qtd: Number(vidro.quantidade || 0),
+          precoVidroM2: vidro.precoVidroM2,
           total: Number(vidro.valorTotal || 0),
         }));
 
@@ -1844,6 +1846,7 @@ useEffect(() => {
       quantidade: Number(item.qtd || 0),
       medida: item.medidaReal,
       vidro: String(item.descricao || "Vidro").replace(/^vidro\s+/i, "").trim(),
+      precoVidroM2: item.precoVidroM2,
       valorTotal: Number(item.total || 0),
     }));
 

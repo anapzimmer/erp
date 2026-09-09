@@ -555,6 +555,8 @@ export default function ForaEsquadroPage() {
         quantidade: quantidadeVaos,
         medida: `${larguraReal} x ${alturaMaiorReal} mm`,
         vidro: vidroDescricao,
+        precoVidroM2,
+        areaCobradaM2: peca.area * quantidadeVaos,
         valorTotal: Number(valorPeca.toFixed(2)),
       };
     });

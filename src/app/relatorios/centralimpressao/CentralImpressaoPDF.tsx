@@ -4,6 +4,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import React from "react";
+import { obterAreaCobradaVidro, obterPrecoVidroRelatorio } from "@/utils/precoVidroRelatorio";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import MiniProjetoPinazioPDF from "@/components/desenhos/MiniProjetoPinazioPDF";
@@ -24,6 +25,9 @@ export type CentralImpressaoItem = {
   modo: string;
   desenhoUrl: string;
   vidro?: string;
+  itensOriginais?: Array<{ descricao?: string; medidaReal?: string; precoVidroM2?: number }>;
+  espelhoItens?: Array<{ descricao?: string; medidas?: string; precoVidroM2?: number }>;
+  precoVidroM2?: number;
   vidroBandeira?: string;
   corKit?: string;
   alturaAteTubo?: number;
@@ -50,6 +54,8 @@ export type CentralImpressaoItem = {
     quantidade: number;
     medida: string;
     vidro: string;
+    areaCobradaM2?: number;
+    precoVidroM2?: number;
     valorTotal: number;
   }>;
   valorTotal?: number;
@@ -314,12 +320,9 @@ const extrairMedidaVidroAvulso = (medida?: string) => {
   };
 };
 
-const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais">) => {
+const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvulsos" | "pecasDivisao" | "valorTotal" | "materiais" | "foraEsquadroPecas">) => {
   const pecas = item.vidrosAvulsos?.reduce((total, vidro) => total + Number(vidro.quantidade || 0), 0) || Number(item.pecasDivisao || 0);
-  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro) => {
-    const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
-    return total + (largura * altura * Number(vidro.quantidade || 0)) / 1_000_000;
-  }, 0) || 0;
+  const areaAvulsos = item.vidrosAvulsos?.reduce((total, vidro, index) => total + obterAreaCobradaVidro(vidro, item, index), 0) || 0;
   const areaMateriais = item.materiais?.reduce((total, material) => {
     const unidade = String(material.unidade || "").toLowerCase();
     if (!unidade.includes("m2") && !unidade.includes("m²")) return total;
@@ -1443,12 +1446,10 @@ const consolidarMateriais = (
      */
     if (tipo === "vidros" && item.vidrosAvulsos?.length) {
       item.vidrosAvulsos.forEach((vidro, vidroIndex) => {
-        const { largura, altura } = extrairMedidaVidroAvulso(vidro.medida);
+
         const quantidade = numeroSeguro(vidro.quantidade);
 
-        const areaTotal =
-          largura > 0 && altura > 0 ? (largura * altura * quantidade) / 1_000_000
-            : 0;
+        const areaTotal = obterAreaCobradaVidro(vidro, item, vidroIndex);
 
         if (areaTotal <= 0) {
           return;
@@ -1681,6 +1682,15 @@ const pecasPorVaoProjeto = (
   return multiplicadorPecasProjeto(item.projeto, item);
 };
 
+const formatarPrecoVidroRelatorio = (
+  vidro: NonNullable<CentralImpressaoItem["vidrosAvulsos"]>[number],
+  item: CentralImpressaoItem,
+) => {
+  const preco = obterPrecoVidroRelatorio(vidro, item);
+  if (!preco) return "Valor/m² não informado";
+  return `${moeda(preco.valor)}/m²${preco.doItem ? " do item" : ""}`;
+};
+
 const ehVidroAvulso = (projeto?: string) => /(vidros|espelhos) avulsos/i.test(String(projeto || ""));
 
 export function CentralImpressaoPDF({
@@ -1764,7 +1774,7 @@ const possuiRelacaoObra =
             <Text style={styles.relationGlassCellMeasure}>MEDIDA</Text>
             <Text style={styles.relationGlassCellDesc}>VIDRO</Text>
             <Text style={styles.relationGlassCellArea}>M²</Text>
-            <Text style={styles.relationGlassCellUnitPrice}>VALOR UNIT.</Text>
+            <Text style={styles.relationGlassCellUnitPrice}>VALOR/m²</Text>
             <Text style={styles.relationGlassCellValue}>TOTAL</Text>
           </>
         ) : (
@@ -1965,7 +1975,7 @@ const possuiRelacaoObra =
                         </View>
                         <View style={foraEsquadro ? styles.infoWide : styles.infoAvulso}>
                           <Text style={styles.infoLabel}>Vidro</Text>
-                          <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
+                          <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}{item.precoVidroM2 != null ? `\n${moeda(item.precoVidroM2)}/m²` : ""}</Text>
                         </View>
                         <View style={styles.infoAvulso}>
                           <Text style={styles.infoLabel}>Valor total</Text>
@@ -1987,7 +1997,7 @@ const possuiRelacaoObra =
                         <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                           <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
                           <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
-                          <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                          <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                           <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                         </View>
                       ))}
@@ -2211,7 +2221,7 @@ const possuiRelacaoObra =
                     {ehVidroAvulso ? (
                       <View style={styles.infoAvulso}>
                         <Text style={styles.infoLabel}>Vidro</Text>
-                        <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text>
+                        <Text style={styles.infoValue}>{item.vidro || "Conforme relação"}{item.precoVidroM2 != null ? `\n${moeda(item.precoVidroM2)}/m²` : ""}</Text>
                       </View>
                     ) : null}
                     {!ehVidroAvulso && !fechamentoSacada && !peleDeVidro && !pinazio ? (
@@ -2323,7 +2333,7 @@ const possuiRelacaoObra =
                           <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                             <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
                             <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
-                            <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                            <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                             <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                           </View>
                         ))}

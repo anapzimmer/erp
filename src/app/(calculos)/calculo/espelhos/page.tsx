@@ -500,11 +500,11 @@ export default function CalculoEspelhosPage() {
             const medidas = String(peca.medida || '').match(/[\d.,]+/g) || [];
             const l = Number((medidas[0] || '0').replace(',', '.'));
             const a = Number((medidas[1] || '0').replace(',', '.'));
-            return { id: item.id+'-'+index, descricao: peca.vidro, medidas: l+'x'+a, larguraReal: l, alturaReal: a, quantidade: Number(peca.quantidade) || 1, tipoVisual: 'padrao', divisoesLargura: 1, divisoesAltura: 1, total: Number(peca.valorTotal) || 0, m2: l*a/1000000*(Number(peca.quantidade)||1) };
+            return { id: item.id+'-'+index, descricao: peca.vidro, medidas: l+'x'+a, larguraReal: l, alturaReal: a, quantidade: Number(peca.quantidade) || 1, tipoVisual: 'padrao', divisoesLargura: 1, divisoesAltura: 1, precoVidroM2: peca.precoVidroM2, total: Number(peca.valorTotal) || 0, m2: l*a/1000000*(Number(peca.quantidade)||1) };
           });
         }
         const divL = Math.max(1, Number(item.trilho) || 1), divA = Math.max(1, Number(item.tamanhoPuxador) || 1);
-        return [{id: item.id, descricao: item.vidro, medidas: `${item.largura}x${item.altura}`, larguraReal: Number(item.largura), alturaReal: Number(item.altura), quantidade: Math.max(1,Number(item.quantidade || 1)/(String(item.puxador).includes('jogo') ? divL*divA : 1)), tipoVisual:item.puxador || 'padrao', divisoesLargura:divL, divisoesAltura:divA, total:Number(item.valorTotal)||0, m2:(item.materiais || []).reduce((s: number,m: any) => s+(m.unidade === 'm2' ? Number(m.qtd)||0 : 0),0)}];
+        return [{id: item.id, descricao: item.vidro, medidas: `${item.largura}x${item.altura}`, larguraReal: Number(item.largura), alturaReal: Number(item.altura), quantidade: Math.max(1,Number(item.quantidade || 1)/(String(item.puxador).includes('jogo') ? divL*divA : 1)), tipoVisual:item.puxador || 'padrao', divisoesLargura:divL, divisoesAltura:divA, precoVidroM2:item.precoVidroM2, total:Number(item.valorTotal)||0, m2:(item.materiais || []).reduce((s: number,m: any) => s+(m.unidade === 'm2' ? Number(m.qtd)||0 : 0),0)}];
       });
       setListaItens(itens);
       setNomeCliente(selecionado.cliente || localStorage.getItem(CENTRAL_IMPRESSAO_CLIENTE_KEY) || '');
@@ -539,6 +539,7 @@ export default function CalculoEspelhosPage() {
       descricao: descricaoFinal,
       medidas: `${largura}x${altura}`,
       quantidade: quantidade,
+      precoVidroM2: normalizarPrecoCatalogo(vSel?.preco),
       m2: calculoAtual.m2,
       total: calculoAtual.total,
 
@@ -595,6 +596,7 @@ export default function CalculoEspelhosPage() {
       quantidade: quantidadePecasEspelho(item),
       medida: medidaPecaEspelho(item),
       vidro: descricaoVidroSemPrefixo(item.descricao),
+      precoVidroM2: item.precoVidroM2,
       valorTotal: Number(item.total || 0),
     }));
 
@@ -639,6 +641,7 @@ export default function CalculoEspelhosPage() {
         pecasDivisao: quantidadePecasEspelho(item),
         medidasDetalhadas: "",
         vidrosAvulsos: [],
+        precoVidroM2: item.precoVidroM2,
         valorTotal: Number(item.total || 0),
         materiais: [{
           id: criarId(),

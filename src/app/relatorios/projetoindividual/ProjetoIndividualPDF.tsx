@@ -834,7 +834,7 @@ export function ProjetoIndividualPDF({
               <View key={item.id} style={styles.premiumTr} wrap={false}>
                 <Text style={[styles.premiumTd, styles.premiumColQtd]}>{Number(qtdPecasVidroPremium(item.descricao) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColMedida]}>{medidaVidro(item)}</Text>
-                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item) || dados.vidro || "-"}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item) || dados.vidro || "-"}{"\n"}{moeda(item.valorUnitario)}/m²</Text>
                 <Text style={[styles.premiumTd, styles.premiumColM2]}>{numero(item.qtd)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
               </View>

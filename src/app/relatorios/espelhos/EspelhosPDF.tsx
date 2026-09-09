@@ -18,6 +18,7 @@ interface ItemPedido {
   divisoesLargura?: number;
   divisoesAltura?: number;
   m2?: number;
+  precoVidroM2?: number;
 }
 
 interface EspelhosPDFProps {
@@ -290,6 +291,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
             <View style={[styles.tableCol, styles.colDesc]}>
               <Text style={{ color: contentColor }}>{item.descricao}</Text>
               <Text style={styles.detalhesTexto}>{item.tipoVisual || "Padrão"}</Text>
+              <Text style={styles.detalhesTexto}>{item.precoVidroM2 != null ? `${Number(item.precoVidroM2).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/m²` : "Valor/m² não informado"}</Text>
             </View>
             <Text style={[styles.tableCol, styles.colMedidas, { color: contentColor }]}>{item.medidas}</Text>
 
