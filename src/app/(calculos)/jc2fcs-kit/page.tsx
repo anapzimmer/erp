@@ -145,6 +145,8 @@ const formatarVidroCadastro = (vidro: VidroCadastro) => {
   const partes = [vidro.nome];
   const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
   if (espessura) partes.push(`${espessura}mm`);
+  const tipo = vidro.tipo?.trim();
+  if (tipo) partes.push(tipo);
   return partes.join(" ");
 };
 
