@@ -770,10 +770,11 @@ export default function RelatorioOrcamento() {
         try {
             if (!empresaIdAtual) throw new Error("Empresa não identificada.");
             await retomarOrcamentoAtivo({ id: orc.id, empresaId: empresaIdAtual, cliente: orc.cliente_nome, obra: orc.obra_referencia || "", rotaEdicao });
-            router.push(rotaEdicao);
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Não foi possível retomar o orçamento.");
+            console.warn("Não foi possível retomar a sessão do orçamento; abrindo a edição diretamente:", error);
         }
+
+        router.push(rotaEdicao);
     };
 
     if (checkingAuth) {
