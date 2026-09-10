@@ -165,6 +165,7 @@ export default function CalculoPinazioPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId } = useAuth();
   const carregadoRef = useRef(false);
@@ -873,7 +874,7 @@ export default function CalculoPinazioPage() {
       }
 
       setShowModalCentral(false);
-      router.push("/central-impressao");
+      router.push(returnTo);
     } catch (erro) {
       console.warn(
         "Não foi possível enviar o Pinázio para a central de impressão:",
@@ -1000,7 +1001,7 @@ export default function CalculoPinazioPage() {
 
       if (editId) {
         sessionStorage.removeItem(draftKey);
-        router.push('/admin/relatorio.orcamento');
+        router.push(returnTo);
         return;
       }
 
