@@ -998,14 +998,14 @@ export default function RelatorioOrcamento() {
                         </div>
 
                         {loadingDados ? (
-                            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-slate-200 bg-white">
                                 <div className="flex flex-col items-center gap-3">
                                     <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-transparent" style={{ borderTopColor: theme.menuIconColor }} />
                                     <span className="text-sm font-medium text-slate-400">Sincronizando dados...</span>
                                 </div>
                             </div>
                         ) : orcamentosFiltrados.length === 0 ? (
-                            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-8">
+                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-slate-200 bg-white p-8">
                                 <div className="flex max-w-sm flex-col items-center text-center">
                                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Filter size={22} /></div>
                                     <h3 className="mt-4 font-bold text-slate-700">Nenhum orçamento encontrado</h3>

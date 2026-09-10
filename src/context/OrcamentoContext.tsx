@@ -74,14 +74,17 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   }, [modal, carregando]);
 
   useEffect(() => {
-    setAtivo(null);
-    if (!storageKey) return;
-    try {
-      const salvo = JSON.parse(localStorage.getItem(storageKey) || "null") as OrcamentoAtivo | null;
-      if (salvo?.empresaId === empresaId && salvo.cliente?.id) setAtivo(salvo);
-    } catch { setErro("Não foi possível recuperar o orçamento em andamento."); }
+    const chaveArmazenamento = storageKey || "";
+    const carregamento = window.setTimeout(() => {
+      setAtivo(null);
+      if (!chaveArmazenamento) return;
+      try {
+        const salvo = JSON.parse(localStorage.getItem(chaveArmazenamento) || "null") as OrcamentoAtivo | null;
+        if (salvo?.empresaId === empresaId && salvo.cliente?.id) setAtivo(salvo);
+      } catch { setErro("Não foi possível recuperar o orçamento em andamento."); }
+    }, 0);
     const encerrar = () => {
-      localStorage.removeItem(storageKey);
+      if (chaveArmazenamento) localStorage.removeItem(chaveArmazenamento);
       setAtivo(null);
       setClienteId("");
       setObra("");
@@ -96,7 +99,11 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
       setModal(false);
     };
     window.addEventListener(ORCAMENTO_RETOMADO, retomar);
-    return () => { window.removeEventListener(ORCAMENTO_ENCERRADO, encerrar); window.removeEventListener(ORCAMENTO_RETOMADO, retomar); };
+    return () => {
+      window.clearTimeout(carregamento);
+      window.removeEventListener(ORCAMENTO_ENCERRADO, encerrar);
+      window.removeEventListener(ORCAMENTO_RETOMADO, retomar);
+    };
   }, [storageKey, empresaId]);
 
   useEffect(() => {
@@ -117,7 +124,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!modal || !empresaId) return;
     let cancelado = false;
-    setCarregando(true);
+    const carregamento = window.setTimeout(() => setCarregando(true), 0);
     supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome")
       .then(({ data, error }) => {
         if (cancelado) return;
@@ -125,13 +132,16 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
         if (error) setErro("Não foi possível carregar os clientes. Feche e tente novamente.");
         else setClientes((data || []).map(c => ({ ...c, id: String(c.id) })));
       });
-    return () => { cancelado = true; };
+    return () => { cancelado = true; window.clearTimeout(carregamento); };
   }, [modal, empresaId]);
 
   useEffect(() => {
-    try {
-      setQuantidade(JSON.parse(localStorage.getItem(`${PREFIXO}composicao`) || "[]").length);
-    } catch { setQuantidade(0); }
+    const atualizacao = window.setTimeout(() => {
+      try {
+        setQuantidade(JSON.parse(localStorage.getItem(`${PREFIXO}composicao`) || "[]").length);
+      } catch { setQuantidade(0); }
+    }, 0);
+    return () => window.clearTimeout(atualizacao);
   }, [pathname, ativo, modal]);
 
   const iniciar = () => {
@@ -153,7 +163,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
       setAtivo(novo);
       setModal(false);
       // Reabrir a central evita manter o estado de uma edição anterior em memória.
-      window.location.assign("/central-impressao");
+      router.push("/central-impressao");
     } catch { setErro("Não foi possível salvar o rascunho neste navegador. O orçamento não foi iniciado."); }
   };
 
@@ -169,7 +179,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
       </> : <><span>Monte um orçamento com vários cálculos</span><button type="button" aria-keyshortcuts="Shift+Plus" className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" onClick={() => { setErro(""); setModal(true); }}>+ Novo orçamento</button></>}
     </div>}
     {children}
-    {modal && <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4" onKeyDown={e => { if (e.key === "Escape") setModal(false); }}>
+    {modal && <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4" onKeyDown={e => { if (e.key === "Escape") setModal(false); }}>
       <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="novo-orcamento-titulo" style={{ backgroundColor: theme.modalBackgroundColor, color: theme.modalTextColor }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-black/5 p-6 shadow-2xl">
         <div className="mb-5 flex items-center gap-3 border-b border-current/10 pb-4"><div style={botao} className="rounded-xl p-3"><ClipboardList size={24} /></div><h2 id="novo-orcamento-titulo" className="flex-1 text-xl font-bold">{sessao ? "Orçamento em andamento" : "Novo orçamento"}</h2><button type="button" aria-label="Fechar" className="rounded-lg p-2 hover:bg-black/5" onClick={() => setModal(false)}><X size={20} /></button></div>
         {sessao ? <div style={campo} className="rounded-xl border p-4"><p className="text-xs font-semibold uppercase opacity-70">Cliente</p><p className="mt-1 text-lg font-bold">{sessao.cliente.nome}</p><p className="mt-3 text-xs font-semibold uppercase opacity-70">Obra / referência</p><p className="mt-1">{sessao.obra || "Não informada"}</p><p className="mt-4 text-sm opacity-75">Continue a edição dos itens com este cliente ativo.</p></div> : <>

@@ -175,6 +175,8 @@ const calcularBarrasPorCortes = (cortesOriginais: number[], comprimentoBarra = 6
 };
 
 const hojePtBr = () => new Date().toLocaleDateString("pt-BR");
+const criarId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random());
 
 const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoIndividualMaterial => ({
   id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()),
@@ -357,7 +359,7 @@ export default function Deslizante4FPage() {
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
-  const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+  const [rascunhoRestaurado, setRascunhoRestaurado] = useState(() => Boolean(editId || centralItemId));
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false);
   const [mensagemSistema, setMensagemSistema] = useState<{
     tipo: "sucesso" | "erro" | "aviso";
@@ -387,7 +389,6 @@ export default function Deslizante4FPage() {
 
   useEffect(() => {
     if (editId || centralItemId) {
-      setRascunhoRestaurado(true);
       return;
     }
 
@@ -400,13 +401,17 @@ export default function Deslizante4FPage() {
           materiais?: ProjetoIndividualMaterial[];
         };
 
-        if (rascunho.dados) {
-          setDados((atual) => ({ ...atual, ...rascunho.dados }));
-        }
+        const restauracao = window.setTimeout(() => {
+          if (rascunho.dados) {
+            setDados((atual) => ({ ...atual, ...rascunho.dados }));
+          }
 
-        if (Array.isArray(rascunho.materiais)) {
-          setMateriais(rascunho.materiais);
-        }
+          if (Array.isArray(rascunho.materiais)) {
+            setMateriais(rascunho.materiais);
+          }
+        }, 0);
+
+        return () => window.clearTimeout(restauracao);
 
 
       }
@@ -439,47 +444,56 @@ export default function Deslizante4FPage() {
       const item = lista.find((projeto) => projeto.id === centralItemId);
 
       if (!item) {
-        setMensagemSistema({
-          tipo: "aviso",
-          titulo: "Projeto não encontrado",
-          mensagem: "Não foi possível localizar este projeto na central de impressão.",
-          aoFechar: () => router.push(returnTo),
-        });
-        return;
+        const aviso = window.setTimeout(() => {
+          setMensagemSistema({
+            tipo: "aviso",
+            titulo: "Projeto não encontrado",
+            mensagem: "Não foi possível localizar este projeto na central de impressão.",
+            aoFechar: () => router.push(returnTo),
+          });
+        }, 0);
+        return () => window.clearTimeout(aviso);
       }
 
       carregandoMateriaisSalvosRef.current = true;
 
-      setDados((atual) => ({
-        ...atual,
-        projeto: "Deslizante 4 folhas",
-        numero: item.numero || atual.numero,
-        cliente: item.cliente || atual.cliente,
-        largura: Number(item.largura || 0),
-        altura: Number(item.altura || 0),
-        quantidade: Number(item.quantidade || 1),
-        trilho: item.trilho || "Janela todas correm",
-        vidro: item.vidro || "Escolher",
-        corKit: item.corPerfil || item.corKit || "Escolher",
-        puxador: item.puxador || "Sem puxador",
-        tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
-        trinco: item.trinco || "Simples",
-      }));
+      const atualizacao = window.setTimeout(() => {
+        setDados((atual) => ({
+          ...atual,
+          projeto: "Deslizante 4 folhas",
+          numero: item.numero || atual.numero,
+          cliente: item.cliente || atual.cliente,
+          largura: Number(item.largura || 0),
+          altura: Number(item.altura || 0),
+          quantidade: Number(item.quantidade || 1),
+          trilho: item.trilho || "Janela todas correm",
+          vidro: item.vidro || "Escolher",
+          corKit: item.corPerfil || item.corKit || "Escolher",
+          puxador: item.puxador || "Sem puxador",
+          tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
+          trinco: item.trinco || "Simples",
+        }));
 
-      setMateriais(Array.isArray(item.materiais) ? normalizarMateriaisSalvosDeslizante4F(item.materiais, Number(item.largura || 0)) : []);
-
-      window.setTimeout(() => {
+        setMateriais(Array.isArray(item.materiais) ? normalizarMateriaisSalvosDeslizante4F(item.materiais, Number(item.largura || 0)) : []);
         carregandoMateriaisSalvosRef.current = false;
       }, 0);
+
+      return () => {
+        window.clearTimeout(atualizacao);
+        carregandoMateriaisSalvosRef.current = false;
+      };
     } catch (erro) {
       carregandoMateriaisSalvosRef.current = false;
       console.warn("Não foi possível carregar o projeto da central de impressão:", erro);
-      setMensagemSistema({
-        tipo: "erro",
-        titulo: "Erro ao carregar",
-        mensagem: "Não foi possível carregar este projeto para edição.",
-        aoFechar: () => router.push(returnTo),
-      });
+      const aviso = window.setTimeout(() => {
+        setMensagemSistema({
+          tipo: "erro",
+          titulo: "Erro ao carregar",
+          mensagem: "Não foi possível carregar este projeto para edição.",
+          aoFechar: () => router.push(returnTo),
+        });
+      }, 0);
+      return () => window.clearTimeout(aviso);
     }
   }, [centralItemId, returnTo, router]);
 
@@ -641,12 +655,6 @@ export default function Deslizante4FPage() {
     const sufixo = codigoCadastro.slice(codigoBase.length);
     return /^[a-z]{1,8}$/.test(sufixo);
   };
-
-  const perfilCorrespondeCor = useCallback((perfil: PerfilCadastro) => {
-    const corSelecionada = normalizarTexto(dados.corKit);
-    if (!corSelecionada || corSelecionada === "escolher") return false;
-    return normalizarTexto(perfil.cores).includes(corSelecionada);
-  }, [dados.corKit]);
 
   const buscarPerfilPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
@@ -897,18 +905,10 @@ export default function Deslizante4FPage() {
   }, [empresaId]);
 
   useEffect(() => {
-    setClienteAtivoIndex?.(0);
-  }, [dados.cliente]);
-
-  useEffect(() => {
     if (listaClientesAberta) {
       window.setTimeout(() => clienteInputRef.current?.focus(), 0);
     }
   }, [listaClientesAberta]);
-
-  useEffect(() => {
-    setVidroAtivoIndex?.(0);
-  }, [dados.vidro]);
 
   useEffect(() => {
     if (listaVidrosAberta) {
@@ -918,14 +918,6 @@ export default function Deslizante4FPage() {
       }, 0);
     }
   }, [listaVidrosAberta]);
-
-  const corFerragemSelecionada = normalizarTexto(dados.corKit);
-
-  const ferragemCorrespondeCor = useCallback((ferragem: FerragemCadastro, ignorarCor = false) => {
-    if (ignorarCor) return true;
-    if (!corFerragemSelecionada || corFerragemSelecionada === "escolher") return false;
-    return normalizarTexto(ferragem.cores).includes(corFerragemSelecionada);
-  }, [corFerragemSelecionada]);
 
   const textoFerragem = useCallback((ferragem: FerragemCadastro) =>
     normalizarTexto(`${ferragem.codigo} ${ferragem.codigo_interno || ""} ${ferragem.nome} ${ferragem.categoria || ""}`), []);
@@ -1020,22 +1012,26 @@ export default function Deslizante4FPage() {
     const medidaVidroMovel = `${formatarMedidaPeca(calculoVidro.larguraMovelMedida)}x${formatarMedidaPeca(calculoVidro.alturaMovelMedida)}`;
     const descricaoVidroMovel = `VIDRO MOVEL 4 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
-    setMateriais((lista) => {
-      const semVidrosAutomaticos = lista.filter((item) => {
-        if (item.perfilExtra) return true;
-        const descricao = normalizarTexto(item.descricao);
-        return !descricao.startsWith("vidro");
-      });
+    const atualizacao = window.setTimeout(() => {
+      setMateriais((lista) => {
+        const semVidrosAutomaticos = lista.filter((item) => {
+          if (item.perfilExtra) return true;
+          const descricao = normalizarTexto(item.descricao);
+          return !descricao.startsWith("vidro");
+        });
 
-      const vidroMovel = criarMaterial({
-        qtd: calculoVidro.areaTotalCobrada,
-        unidade: "m2",
-        descricao: descricaoVidroMovel,
-        valorUnitario: precoVidroM2,
-      });
+        const vidroMovel = criarMaterial({
+          qtd: calculoVidro.areaTotalCobrada,
+          unidade: "m2",
+          descricao: descricaoVidroMovel,
+          valorUnitario: precoVidroM2,
+        });
 
-      return [vidroMovel, ...semVidrosAutomaticos];
-    });
+        return [vidroMovel, ...semVidrosAutomaticos];
+      });
+    }, 0);
+
+    return () => window.clearTimeout(atualizacao);
   }, [calculoVidro.alturaMovelMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
@@ -1084,7 +1080,7 @@ export default function Deslizante4FPage() {
     const desenhoUrl = desenhoDeslizante4F(dados.trilho, dados.trinco, dados.puxador);
 
     return {
-      id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
+      id: id || criarId(),
       numero: dados.numero || "novo",
       projeto: "deslizante4f",
       cliente: dados.cliente || "",
@@ -1178,7 +1174,11 @@ export default function Deslizante4FPage() {
   }, [editId, returnTo, router]);
 
   useEffect(() => {
-    carregarOrcamentoParaEdicao();
+    const carregamento = window.setTimeout(() => {
+      carregarOrcamentoParaEdicao();
+    }, 0);
+
+    return () => window.clearTimeout(carregamento);
   }, [carregarOrcamentoParaEdicao]);
   const loteRapido = useLoteRapidoProjetos({
     centralLoteId,
@@ -1339,13 +1339,13 @@ export default function Deslizante4FPage() {
         <div className="flex min-h-screen w-full flex-col bg-transparent">
           <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
             <div className="flex items-center">
-              <div className="flex h-[54px] w-full max-w-[220px] items-center">
+              <div className="flex h-13.5 w-full max-w-55 items-center">
                 {logoUsuario ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={logoUsuario}
                     alt="Logo da empresa"
-                    className="max-h-[54px] w-auto max-w-[220px] object-contain"
+                    className="max-h-13.5 w-auto max-w-55 object-contain"
                   />
                 ) : (
                   <div className="text-[22px] font-semibold leading-none text-[#10253f]">
@@ -1361,12 +1361,12 @@ export default function Deslizante4FPage() {
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-90 border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
@@ -1378,7 +1378,7 @@ export default function Deslizante4FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
@@ -1390,7 +1390,7 @@ export default function Deslizante4FPage() {
                   />
                 </div>
               </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
+              <div className="flex min-h-13.5 items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
                 <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
                 <div className="relative min-w-0">
                   <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
@@ -1419,7 +1419,7 @@ export default function Deslizante4FPage() {
                       }}
                       onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
                       disabled={carregandoClientes}
-                      className="w-full min-w-[180px] border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                      className="w-full min-w-45 border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
                       placeholder={carregandoClientes ? "Carregando..." : "Digite o cliente"}
                     />
                   ) : (
@@ -1433,13 +1433,13 @@ export default function Deslizante4FPage() {
                           setListaClientesAberta(true);
                         }
                       }}
-                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
+                      className="block w-full min-w-45 truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
                     >
                       {dados.cliente || "Digite o cliente"}
                     </button>
                   )}
                   {listaClientesAberta && (
-                    <div className="absolute right-0 top-[42px] z-30 max-h-[250px] w-[260px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                    <div className="absolute right-0 top-10.5 z-30 max-h-62.5 w-65 overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
                       {carregandoClientes ? (
                         <div className="px-3 py-2 font-medium text-slate-500">Carregando clientes...</div>
                       ) : clientesFiltrados.length > 0 ? (
@@ -1540,7 +1540,7 @@ export default function Deslizante4FPage() {
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
                   <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
+                    <div className="mt-4 flex min-h-80 items-center justify-center rounded-2xl border border-slate-100 bg-linear-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-105 xl:min-h-107.5">
                       <ProjetoDrawing projeto={dados.trilho} carrinho={dados.trinco || "Simples"} comPuxador={dados.puxador === "Com puxador"} />
                     </div>
                   </section>
@@ -1571,7 +1571,7 @@ export default function Deslizante4FPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+                        <label className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
                           <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
@@ -1622,7 +1622,7 @@ export default function Deslizante4FPage() {
                             )}
                           </span>
                           {listaVidrosAberta && (
-                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                            <div className="absolute left-21 top-16 z-30 max-h-62.5 w-80 overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
                               {carregandoVidros ? (
                                 <div className="px-3 py-2 font-medium text-slate-500">Carregando vidros...</div>
                               ) : vidrosFiltrados.length > 0 ? (
@@ -1742,7 +1742,7 @@ export default function Deslizante4FPage() {
                       </div>
 
                       <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                           <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
                           <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
                           <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
@@ -1752,7 +1752,7 @@ export default function Deslizante4FPage() {
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
                         {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
+                          <div key={item.id} className="group relative grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
                             <div className="px-3 py-2.5">
                               <input
                                 type="text"
@@ -1826,7 +1826,7 @@ export default function Deslizante4FPage() {
         </div>
       </div>
       {mensagemSistema && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/20 p-4 pt-8 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-60 flex items-start justify-center bg-slate-950/20 p-4 pt-8 backdrop-blur-[1px]">
           <section
             className="w-full max-w-sm rounded-xl border p-4 shadow-lg"
             style={{
@@ -1884,7 +1884,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div>
       <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0f2742]">{children}</h2>
-      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
+      <div className="mt-3 h-0.5 w-10 rounded-full bg-[#18bd72]" />
     </div>
   );
 }
@@ -1905,7 +1905,7 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
+    <label className="flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
       <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
@@ -1921,7 +1921,7 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+            className="w-20.5 min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
           />
           {suffix && <span className="text-sm font-medium leading-tight text-slate-500">{suffix}</span>}
         </span>
@@ -1949,7 +1949,7 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
+      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -2027,7 +2027,7 @@ function DescricaoMaterialInput({
       />
 
       {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+        <div className="absolute left-0 top-7 z-40 max-h-64 w-130 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
           {itensFiltrados.map((catalogo) => (
             <button
               key={catalogo.id}
@@ -2066,7 +2066,7 @@ function ProjetoDrawing({ projeto, carrinho, comPuxador }: { projeto: string; ca
   const desenhoSrc = desenhoDeslizante4F(projeto, carrinho, comPuxador ? "Com puxador" : "Sem puxador");
 
   return (
-    <div className="flex h-[350px] w-full items-center justify-center sm:h-[410px]" role="img" aria-label="Desenho ilustrativo do projeto">
+    <div className="flex h-87.5 w-full items-center justify-center sm:h-102.5" role="img" aria-label="Desenho ilustrativo do projeto">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={desenhoSrc}
