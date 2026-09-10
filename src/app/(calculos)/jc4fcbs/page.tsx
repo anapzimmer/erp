@@ -1,5 +1,6 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -218,6 +219,7 @@ const criarMaterial = (
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
+  perfilExtra: parcial?.perfilExtra,
 });
 
 const calcularBarrasPorCortes = (
@@ -1885,7 +1887,9 @@ useEffect(() => {
                 )}
               </section>
 
-              <LoteRapidoProjetos
+              <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
+
+                    <LoteRapidoProjetos
                 aberto={loteRapido.aberto}
                 editando={loteRapido.editando}
                 linhas={loteRapido.linhas}

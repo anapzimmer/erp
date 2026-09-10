@@ -1,6 +1,6 @@
 //app/calculovidro/page.tsx
 "use client"
-import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { CSSProperties } from "react"
@@ -1476,6 +1476,7 @@ useEffect(() => {
 
       if (editId) {
         sessionStorage.removeItem(draftKey);
+        encerrarOrcamentoAtivo();
         router.push('/admin/relatorio.orcamento');
         return;
       }

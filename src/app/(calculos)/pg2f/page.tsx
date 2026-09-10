@@ -1,4 +1,5 @@
 "use client";
+import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -172,6 +173,10 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  perfilExtra: parcial?.perfilExtra,
+  codigoPerfil: parcial?.codigoPerfil,
+  comprimentoBarra: parcial?.comprimentoBarra,
+  cortes: parcial?.cortes,
 });
 
 const fechaduraOpcoes = ["Escolher", "Sem fechadura", "1520", "1520TA"];
@@ -384,7 +389,7 @@ export default function PG2FPage() {
   const totalVidros = Number(dados.quantidade || 0) * 2;
   const valorVidros = useMemo(
     () => materiais
-      .filter((item) => item.descricao.toLowerCase().includes("vidro"))
+      .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
@@ -1464,6 +1469,8 @@ export default function PG2FPage() {
                         />
                       </div>
                     </section>
+
+                    <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
 
                     <LoteRapidoProjetos
                       aberto={loteRapido.aberto}

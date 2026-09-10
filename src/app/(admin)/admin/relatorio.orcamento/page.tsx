@@ -1,5 +1,6 @@
 //app/admin/relatorio.orcamento/page.tsx
 "use client"
+import { retomarOrcamentoAtivo } from "@/context/OrcamentoContext";
 import styles from './relatorio.module.css';
 
 import { useCallback, useEffect, useState } from "react"
@@ -631,7 +632,7 @@ export default function RelatorioOrcamento() {
         setDataFim("");
     };
 
-   const handleEditarOrcamento = (orc: Orcamento) => {
+   const handleEditarOrcamento = async (orc: Orcamento) => {
         const numero = String(orc.numero_formatado || "");
 
         const itensObj =
@@ -766,7 +767,13 @@ export default function RelatorioOrcamento() {
             }
         }
 
-        router.push(rotaEdicao);
+        try {
+            if (!empresaIdAtual) throw new Error("Empresa não identificada.");
+            await retomarOrcamentoAtivo({ id: orc.id, empresaId: empresaIdAtual, cliente: orc.cliente_nome, obra: orc.obra_referencia || "", rotaEdicao });
+            router.push(rotaEdicao);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Não foi possível retomar o orçamento.");
+        }
     };
 
     if (checkingAuth) {

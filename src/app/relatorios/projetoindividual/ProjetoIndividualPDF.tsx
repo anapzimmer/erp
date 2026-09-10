@@ -21,6 +21,7 @@ export type ProjetoIndividualMaterial = {
   origemCalculo?: string;
   codigoOriginalCalculo?: string;
   personalizadoCatalogo?: boolean;
+  perfilExtra?: import("@/utils/perfisExtras").PerfilExtra;
 };
 
 export type ProjetoIndividualDados = {
@@ -496,7 +497,7 @@ export function ProjetoIndividualPDF({
     : ehPma3f ? Number(((larguraPma3f * alturaPma3f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehPma2f ? Number(((larguraPma2f * alturaPma2f * quantidadePecasVidro) / 1_000_000).toFixed(3))
     : ehBoxCanto || ehBoxCanto3f ? dados.materiais
-        .filter((item) => item.descricao.toLowerCase().includes("vidro") || item.unidade.toLowerCase().includes("m2"))
+        .filter((item) => !item.perfilExtra && (item.descricao.toLowerCase().includes("vidro") || item.unidade.toLowerCase().includes("m2")))
         .reduce((soma, item) => soma + Number(item.qtd || 0), 0)
     : ehBox2Fls ? Number((((larguraFixaBox2Fls * alturaFixaBox2Fls * quantidadeVaos) + (larguraMovelBox2Fls * alturaMovelBox2Fls * quantidadeVaos)) / 1_000_000).toFixed(3))
     : ehPc2fComBandeira ? Number((((larguraFixaPc2f * alturaFixaPc2f * quantidadeVaos) + (larguraMovelPc2f * alturaMovelPc2f * quantidadeVaos) + (larguraBandeiraPc2f * alturaBandeiraPc2f * quantidadeVaos)) / 1_000_000).toFixed(3))
@@ -510,7 +511,7 @@ export function ProjetoIndividualPDF({
     : Number(((larguraVidro * alturaVidro * quantidadePecasVidro) / 1_000_000).toFixed(3));
   const total = dados.materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorVidros = dados.materiais
-    .filter((item) => item.descricao.toLowerCase().includes("vidro"))
+    .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
     .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0);
   const valorKitPerfis = dados.materiais
     .filter((item) => {
@@ -690,8 +691,8 @@ export function ProjetoIndividualPDF({
         : "/desenhos/portaforavao-1fls.png";
 
   const ehPdfPremiumJc4f = ehJanelaCorrer4Folhas && !ehJanelaComSacada;
-  const materiaisVidroPremium = materiaisOrdenados.filter((item) => normalizarTexto(item.descricao).includes("vidro"));
-  const materiaisComplementaresPremium = materiaisOrdenados.filter((item) => !normalizarTexto(item.descricao).includes("vidro"));
+  const materiaisVidroPremium = materiaisOrdenados.filter((item) => !item.perfilExtra && normalizarTexto(item.descricao).includes("vidro"));
+  const materiaisComplementaresPremium = materiaisOrdenados.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).includes("vidro"));
   const medidaVidro = (item: ProjetoIndividualMaterial) => {
     const origemMedida = `${String(item.medida || "")} ${String(item.descricao || "")}`.trim();
     const medidaEncontrada = origemMedida.match(

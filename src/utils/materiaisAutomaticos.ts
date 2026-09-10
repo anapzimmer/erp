@@ -54,6 +54,7 @@ export const mesclarMateriaisAutomaticos = (
   const possuiKitAutomatico = automaticosComOrigem.some((item) => normalizarTexto(item.descricao).includes("kit"));
 
   const itensManuais = lista.filter((item) => {
+    if (item.perfilExtra) return true;
     if (item.origemCalculo && origensAutomaticas.has(item.origemCalculo)) return false;
 
     const descricao = normalizarTexto(item.descricao);

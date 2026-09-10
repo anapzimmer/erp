@@ -1,4 +1,5 @@
 "use client";
+import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -183,6 +184,10 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  perfilExtra: parcial?.perfilExtra,
+  codigoPerfil: parcial?.codigoPerfil,
+  comprimentoBarra: parcial?.comprimentoBarra,
+  cortes: parcial?.cortes,
 });
 
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
@@ -438,7 +443,7 @@ export default function JC4FKitPage() {
   const totalVidros = Number(dados.quantidade || 0) * 4;
   const valorVidros = useMemo(
     () => materiais
-      .filter((item) => item.descricao.toLowerCase().includes("vidro"))
+      .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
@@ -1009,7 +1014,7 @@ export default function JC4FKitPage() {
 
     setMateriais((lista) => {
       const indiceKit = lista.findIndex?.((item) =>
-        item.descricao.toLowerCase().includes("kit")
+        !item.perfilExtra && item.descricao.toLowerCase().includes("kit")
       );
 
       const itemAtual = lista[indiceKit] || criarMaterial();
@@ -1044,6 +1049,7 @@ export default function JC4FKitPage() {
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
+        if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
         return !(descricao.includes("vidro fixo") || descricao.includes("vidro movel") || descricao.includes("vidro movel"));
       });
@@ -1074,7 +1080,7 @@ export default function JC4FKitPage() {
 
   useEffect(() => {
     setMateriais((lista) => {
-      const filtrada = lista.filter((item) => !normalizarTexto(item.descricao).includes("tubo"));
+      const filtrada = lista.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).includes("tubo"));
       return filtrada.length === lista.length ? lista : filtrada;
     });
   }, [materiais]);
@@ -1903,6 +1909,8 @@ export default function JC4FKitPage() {
                       </div>
                       ) : null}
                     </section>
+
+                    <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
 
                     <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

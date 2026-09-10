@@ -1079,6 +1079,7 @@ const numeroSeguro = (valor: unknown) => {
 const classificarMaterialRelacao = (
   material: ProjetoIndividualMaterial
 ): TipoMaterialRelacao => {
+  if (material.perfilExtra) return "perfis";
   const descricao = normalizarTexto(material.descricao).trim();
   const unidade = normalizarUnidadeMaterial(material.unidade);
   const codigo = normalizarCodigoMaterial(material.codigoPerfil);

@@ -2,6 +2,7 @@
 "use client";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 
+import { descricaoSemMarcadorExtra } from "@/utils/perfisExtras";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
@@ -1085,7 +1086,7 @@ const chaveOtimizacaoPerfil = (
   codigo: string,
   descricao: string,
   comprimentoBarra: number
-) => `${origem}|${codigo}|${String(descricao || codigo).toUpperCase()}|${comprimentoBarra}`;
+) => `${origem}|${codigo}|${descricaoSemMarcadorExtra(String(descricao || codigo)).toUpperCase()}|${comprimentoBarra}`;
 
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {

@@ -164,7 +164,7 @@ const projetos = [
     categoria: "Portas giro",
     status: "Disponível",
     imagem: "/desenhos/portagirodob-1flssimples.png",
-    kitHref: "/pgxmodelo=dobradica",
+    kitHref: "/pg?modelo=dobradica",
     kitLabel: "Calcular",
     descricao: "Projeto individual de porta de giro com dobradiça.",
   },

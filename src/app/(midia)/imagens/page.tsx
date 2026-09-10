@@ -82,7 +82,7 @@ const PROJETOS_OPCOES: ProjetoOpcao[] = [
   { valor: "Porta fora vão - 2 folhas (Barra)", nome: "Porta fora vão - 2 folhas (Barra)", rota: "/pfv2f-barra", desenho: "/desenhos/portaforavao-2fls.png", pecas: 2 },
   { valor: "Porta de giro 1 folha", nome: "Porta de giro - 1 folha", rota: "/pg", desenho: "/desenhos/portagiro-1fls.png", pecas: 1 },
   { valor: "Porta de giro - 2 folhas", nome: "Porta de giro - 2 folhas", rota: "/pg2f", desenho: "/desenhos/portagiro-2fls.png", pecas: 2 },
-  { valor: "Porta de giro dobradiça", nome: "Porta de giro dobradiça", rota: "/pgxmodelo=dobradica", desenho: "/desenhos/portagirodob-1flssimples.png", pecas: 1 },
+  { valor: "Porta de giro dobradiça", nome: "Porta de giro dobradiça", rota: "/pg?modelo=dobradica", desenho: "/desenhos/portagirodob-1flssimples.png", pecas: 1 },
   { valor: "Porta de giro com fixo lateral - vidro/vidro", nome: "Porta de giro com fixo lateral - vidro/vidro", rota: "/pgfxencontro=vidro", desenho: "/desenhos/pgf-simples.png", pecas: 2 },
   { valor: "Porta de giro com fixo lateral - vidro/alvenaria", nome: "Porta de giro com fixo lateral - vidro/alvenaria", rota: "/pgfxencontro=alvenaria", desenho: "/desenhos/pg-simples.png", pecas: 2 },
   { valor: "Mão Amiga - 2 folhas", nome: "Mão Amiga - 2 folhas", rota: "/pma2f", desenho: "/desenhos/pma-2fs-simples.png", pecas: 2 },

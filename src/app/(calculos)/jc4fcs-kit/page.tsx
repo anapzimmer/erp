@@ -1,4 +1,5 @@
 "use client";
+import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -185,6 +186,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
+  perfilExtra: parcial?.perfilExtra,
 });
 
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
@@ -399,7 +401,7 @@ export default function JC4FCSKitPage() {
   const totalVidros = Number(dados.quantidade || 0) * 6;
   const valorVidros = useMemo(
     () => materiais
-      .filter((item) => item.descricao.toLowerCase().includes("vidro"))
+      .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
       .reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
@@ -1030,6 +1032,7 @@ export default function JC4FCSKitPage() {
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
+        if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
         return !descricao.startsWith("vidro");
       });
@@ -1779,6 +1782,8 @@ export default function JC4FCSKitPage() {
                         />
                       </div>
                     </section>
+
+                    <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
 
                     <LoteRapidoProjetos
                       aberto={loteRapido.aberto}
