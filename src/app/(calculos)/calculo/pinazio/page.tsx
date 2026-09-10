@@ -1,5 +1,5 @@
 "use client"
-import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -916,7 +916,7 @@ export default function CalculoPinazioPage() {
   ]);
 
   const handleSalvarOrcamento = async () => {
-    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
+    if (orcamentoAtivo && !editId) { enviarParaCentralImpressao(); return; }
     // Validação
     if (!nomeCliente || listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");
@@ -1001,6 +1001,7 @@ export default function CalculoPinazioPage() {
 
       if (editId) {
         sessionStorage.removeItem(draftKey);
+        encerrarOrcamentoAtivo();
         router.push(returnTo);
         return;
       }
