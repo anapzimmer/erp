@@ -320,8 +320,8 @@ export function JC4FCBSPDF({
   const valorVidros = materiaisOrdenados
     .filter(
       (item) =>
-        normalizar(item.descricao).includes("vidro") ||
-        normalizar(item.unidade).includes("m2")
+        !item.perfilExtra && (normalizar(item.descricao).includes("vidro") ||
+        normalizar(item.unidade).includes("m2"))
     )
     .reduce(
       (soma, item) =>

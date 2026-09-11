@@ -4,6 +4,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import React from "react";
+import { DesenhoSacadaGrapaPDF } from "../sacadagrapa/SacadaGrapaPDF";
 import { obterAreaCobradaVidro, obterPrecoVidroRelatorio } from "@/utils/precoVidroRelatorio";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
@@ -12,6 +13,13 @@ import { compararMateriaisRelacao, ehKitBatenteMaterial, ordemPerfilMaterial } f
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type CentralImpressaoItem = {
+  centralDados?: {
+    quantidadeDivisoesLargura?: string;
+    grapasLateraisPorVao?: string;
+    grapasInferioresPorVao?: string;
+    grapas1305PorUniao?: string;
+    tuboPosicao?: string;
+  };
   id: string;
   numero: string;
   projeto: string;
@@ -2058,6 +2066,15 @@ const possuiRelacaoObra =
                       cor={item.pinazioCor || "branco"}
                       width={112}
                       height={104}
+                    />
+                  ) : sacadaGrapa ? (
+                    <DesenhoSacadaGrapaPDF width={112} height={104}
+                      larguraVaoMm={Number(item.largura || 2000)} alturaVaoMm={Number(item.altura || 1000)}
+                      divisoesPorVao={Number(item.centralDados?.quantidadeDivisoesLargura || item.pecasDivisao || 2)}
+                      grapasLateraisPorVao={Number(item.centralDados?.grapasLateraisPorVao ?? item.medidasDetalhadas?.match(/Grapas laterais por vao:\s*(\d+)/i)?.[1] ?? 2)}
+                      grapasInferioresPorVao={Number(item.centralDados?.grapasInferioresPorVao ?? item.medidasDetalhadas?.match(/Grapas embaixo por vidro:\s*(\d+)/i)?.[1] ?? 0)}
+                      grapas1305PorUniao={Number(item.centralDados?.grapas1305PorUniao ?? item.medidasDetalhadas?.match(/1305 por uniao:\s*(\d+)/i)?.[1] ?? 1)}
+                      tuboDescricao={(item.centralDados?.tuboPosicao || item.medidasDetalhadas?.match(/Tubo:\s*(.*)/i)?.[1] || "sem").replace(/-/g, " ")}
                     />
                   ) : sacadaFrontal ? (
                     <SacadaFrontalDesenhoPDF item={item} />

@@ -19,12 +19,15 @@ export default function PerfisExtrasProjeto({ perfis, materiais, setMateriais, a
   const [form, setForm] = useState<PerfilExtra>(inicial);
   const [erro, setErro] = useState("");
   const extras = materiais.filter(item => item.perfilExtra);
+  const medidaBase = form.referencia === "manual" ? form.medidaManual : form.referencia === "altura" ? altura : largura;
+  const medidaFinal = medidaBase + form.ajuste;
+  const pecasTotais = form.quantidadePorVao * quantidade;
   useEffect(() => { setMateriais(lista => atualizarPerfisExtras(lista, { altura, largura, quantidade })); }, [altura, largura, quantidade, materiais, setMateriais]);
   const salvar = () => {
     const perfil = perfis.find(p => String(p.id) === form.perfilId);
     const base = form.referencia === "manual" ? form.medidaManual : form.referencia === "altura" ? altura : largura;
     if (!perfil) { setErro("Selecione um perfil do cadastro."); return; }
-    if (!Number.isFinite(base + form.ajuste) || base + form.ajuste <= 0 || !Number.isInteger(form.quantidadePorVao) || form.quantidadePorVao < 1 || form.quantidadePorVao > 100 || quantidade < 1) {
+    if (!Number.isFinite(base + form.ajuste) || base + form.ajuste <= 0 || !Number.isInteger(form.quantidadePorVao) || form.quantidadePorVao < 1 || form.quantidadePorVao > 100 || !Number.isInteger(quantidade) || quantidade < 1) {
       setErro("Informe uma medida positiva, a quantidade de vãos e de 1 a 100 peças por vão."); return;
     }
     const existente = materiais.find(item => item.id === editando);
@@ -50,6 +53,9 @@ export default function PerfisExtrasProjeto({ perfis, materiais, setMateriais, a
         <label className="text-sm">Ajuste (mm)<input style={campo} className="mt-1 w-full rounded-lg border p-2" type="number" value={form.ajuste} onChange={e => setForm({ ...form, ajuste: Number(e.target.value) })} /></label>
         <label className="text-sm">Peças por vão<input style={campo} className="mt-1 w-full rounded-lg border p-2" type="number" min="1" max="100" value={form.quantidadePorVao} onChange={e => setForm({ ...form, quantidadePorVao: Number(e.target.value) })} /></label>
       </div>
+      {Number.isFinite(medidaFinal) && medidaFinal > 0 && Number.isInteger(pecasTotais) && pecasTotais > 0 && <p aria-live="polite" className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+        {pecasTotais} peça(s) de {Math.ceil(medidaFinal).toLocaleString("pt-BR")} mm no total ({form.quantidadePorVao} por vão).
+      </p>}
       <p className="text-xs opacity-70">Barras de 6.000 mm. Os cortes acompanham as medidas e a quantidade de vãos e entram no aproveitamento da central. Ajustes negativos descontam milímetros.</p>
       {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
       <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50" onClick={salvar}>{editando ? "Aplicar alteração" : "Adicionar ao projeto"}</button>

@@ -1255,8 +1255,10 @@ export default function RelatorioOrcamento() {
 
                                         // Detecta se é pele de vidro
                                         const tipo = typeof itensRaw.tipo === "string" ? itensRaw.tipo : "";
-                                        if (tipo === "orcamento_projetos") {
-                                            const dadosProjetos = itensRaw as OrcamentoProjetosPersistido;
+                                        if (tipo === "orcamento_projetos" || tipo === "sacada_grapa") {
+                                            const dadosProjetos: OrcamentoProjetosPersistido = tipo === "sacada_grapa"
+                                                ? { tipo: "orcamento_projetos", projetos: [(itensRaw as { itemCentral: CentralImpressaoItem }).itemCentral].filter(Boolean) }
+                                                : itensRaw as OrcamentoProjetosPersistido;
                                             // A Central grava os itens já preparados para o PDF quando a otimização
                                             // é aplicada. Reutilizá-los evita que o histórico reconstrua um relatório
                                             // diferente do arquivo baixado na Central de Impressão.
@@ -1294,6 +1296,7 @@ export default function RelatorioOrcamento() {
                                                     quantidade: Number(item.quantidade || 0),
                                                     modo: String(item.modo || "Kit"),
                                                     desenhoUrl: String(item.desenhoUrl || ""),
+                                                    centralDados: item.centralDados,
                                                     vidro: item.vidro,
                                                     vidroBandeira: item.vidroBandeira,
                                                     corKit: (item as { corPerfil?: string }).corPerfil || item.corKit,

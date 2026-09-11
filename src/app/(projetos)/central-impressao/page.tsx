@@ -1630,6 +1630,7 @@ export default function CentralImpressaoPage() {
         : ehVidroAvulso(item.projeto) ? calcularResumoVidrosAvulsos(item).pecas
           : numeroSeguro(item.quantidade),
       modo: ehVidroAvulso(item.projeto) || ehSacadaGrapa(item.projeto) ? "" : item.modo,
+      centralDados: item.centralDados,
       desenhoUrl: item.desenhoUrl || (ehProjetoTecnico(item.projeto) ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item)),
       vidro: ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro,
       precoVidroM2: item.precoVidroM2 ?? item.espelhoItens?.[0]?.precoVidroM2,

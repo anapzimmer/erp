@@ -1111,7 +1111,7 @@ useEffect(() => {
 
     setMateriais((lista) => {
       const manuais = lista.filter(
-        (item) => !normalizarTexto(item.descricao).startsWith("vidro")
+        (item) => item.perfilExtra || !normalizarTexto(item.descricao).startsWith("vidro")
       );
       return [...novosVidros, ...manuais];
     });
@@ -1160,6 +1160,7 @@ useEffect(() => {
 
     setMateriais((lista) => {
       const manuais = lista.filter((item) => {
+        if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
         const ehTubo =
           descricao.includes("tubo retangular") ||
@@ -1218,7 +1219,7 @@ useEffect(() => {
     () =>
       materiais
         .filter((item) =>
-          normalizarTexto(item.descricao).includes("vidro")
+          !item.perfilExtra && normalizarTexto(item.descricao).includes("vidro")
         )
         .reduce(
           (soma, item) =>
