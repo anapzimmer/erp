@@ -23,6 +23,8 @@ interface Acabamento {
     tipo_visual: string; // Isso aceita a string composta (ex: 'lapidado-organico')
     sobra_largura: number;
     sobra_altura: number;
+    preco_jato?: number;
+    preco_adesivo?: number;
     porcentagem_aumento?: number;
     // --- ADICIONADO PARA TIPAR CORRETAMENTE ---
     bordasSelecionadas?: string[];
@@ -78,6 +80,8 @@ export default function AcabamentosPage() {
         tipo_visual: 'lapidado', // Corrigido
         sobra_largura: 0,
         sobra_altura: 0,
+        preco_jato: 0,
+        preco_adesivo: 0,
         empresa_id: '',
         // --- INICIALIZADO CORRETAMENTE ---
         bordasSelecionadas: [] as string[],
@@ -193,6 +197,8 @@ export default function AcabamentosPage() {
 
                 sobra_largura: Number(novoAcabamento.sobra_largura) || 0,
                 sobra_altura: Number(novoAcabamento.sobra_altura) || 0,
+                preco_jato: Number(novoAcabamento.preco_jato) || 0,
+                preco_adesivo: Number(novoAcabamento.preco_adesivo) || 0,
 
                 tipo_visual: `${bordaPrincipal}-${novoAcabamento.formatoSelecionado || "padrao"}`,
             };
@@ -323,6 +329,8 @@ export default function AcabamentosPage() {
                                         empresa_id: empresaIdUsuario || "",
                                         sobra_largura: 0,
                                         sobra_altura: 0,
+                                        preco_jato: 0,
+                                        preco_adesivo: 0,
                                         bordasSelecionadas: [],
                                         formatoSelecionado: ""
                                     });
@@ -393,6 +401,8 @@ export default function AcabamentosPage() {
                                                                 ...s,
                                                                 preco: s.tipo_calculo === 'porcentagem' ? (s.porcentagem_aumento ?? 0)
                                                                     : (s.preco ?? 0),
+                                                                preco_jato: s.preco_jato ?? 0,
+                                                                preco_adesivo: s.preco_adesivo ?? 0,
 
                                                                 bordasSelecionadas: s.bordasSelecionadas ?? [s.tipo_visual?.split('-')[0] || 'lapidado'],
                                                                 formatoSelecionado: s.tipo_visual?.split('-')[1] || ""
@@ -486,6 +496,30 @@ export default function AcabamentosPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <input type="number" placeholder="Sobra Largura (cm)" value={novoAcabamento.sobra_largura === 0 ? "" : novoAcabamento.sobra_largura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_largura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
                                         <input type="number" placeholder="Sobra Altura (cm)" value={novoAcabamento.sobra_altura === 0 ? "" : novoAcabamento.sobra_altura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_altura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                                        Preços adicionais para LED + adesivo (R$/m²)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input
+                                            type="number"
+                                            placeholder="Preço Jato (R$/m²)"
+                                            value={novoAcabamento.preco_jato === 0 ? "" : novoAcabamento.preco_jato}
+                                            onChange={e => setNovoAcabamento({ ...novoAcabamento, preco_jato: parseFloat(e.target.value) || 0 })}
+                                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                            style={{ "--tw-ring-color": theme.tertiary } as any}
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Preço Adesivo (R$/m²)"
+                                            value={novoAcabamento.preco_adesivo === 0 ? "" : novoAcabamento.preco_adesivo}
+                                            onChange={e => setNovoAcabamento({ ...novoAcabamento, preco_adesivo: parseFloat(e.target.value) || 0 })}
+                                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                            style={{ "--tw-ring-color": theme.tertiary } as any}
+                                        />
                                     </div>
                                 </div>
 

@@ -115,6 +115,12 @@ const numeroMedida = (valor: number) => Math.round(Number(valor || 0)).toLocaleS
 const descricaoVidroSemPrefixo = (descricao?: string) =>
   String(descricao || "Espelho").replace(/^vidro\s+/i, "").trim();
 
+const normalizarTexto = (valor?: string) =>
+  String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 const calcularAreaItemEspelho = (item: any) => {
   if (Number(item.m2 || 0) > 0) return Number(item.m2 || 0);
   const largura = Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 0);
@@ -231,6 +237,7 @@ export default function CalculoEspelhosPage() {
   const [vidrosDB, setVidrosDB] = useState<any[]>([]);
   const [vidroId, setVidroId] = useState("");
   const [acabamentosDB, setAcabamentosDB] = useState<any[]>([]);
+  const [servicosDB, setServicosDB] = useState<any[]>([]);
   const [catalogosCarregados, setCatalogosCarregados] = useState(false);
   const [acabamentoId, setAcabamentoId] = useState("");
   const [listaItens, setListaItens] = useState<any[]>([]);
@@ -262,6 +269,10 @@ export default function CalculoEspelhosPage() {
       if (aData && aData.length > 0) {
         setAcabamentosDB(aData);
         setAcabamentoId(""); // começa como Nenhum
+      }
+      const { data: sData } = await supabase.from("servicos").select("*").order("nome");
+      if (sData && sData.length > 0) {
+        setServicosDB(sData);
       }
       setCatalogosCarregados(true);
     };
@@ -414,6 +425,8 @@ export default function CalculoEspelhosPage() {
     const aOriginal = parseFloat(altura) || 0;
     const vidro = vidrosDB.find(v => String(v.id) === String(vidroId));
     const acb = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
+    const tipoVisual = normalizarTexto(acb?.tipo_visual);
+    const nomeAcabamento = normalizarTexto(acb?.nome);
 
     const divisoesL = Math.max(1, Number(divisoesLargura));
     const divisoesA = Math.max(1, Number(divisoesAltura));
@@ -422,8 +435,8 @@ export default function CalculoEspelhosPage() {
     if (!vidro || lOriginal === 0 || aOriginal === 0) return { m2: 0, total: 0 };
 
     // 1. DEFINIR SOBRAS
-    const sobraL = acb ? (Number(acb.sobra_largura) || 0) : 0;
-    const sobraA = acb ? (Number(acb.sobra_altura) || 0) : 0;
+    const sobraL = acb ? (Number(acb.sobra_largura) || 0) * 10 : 0;
+    const sobraA = acb ? (Number(acb.sobra_altura) || 0) * 10 : 0;
 
     // 2. APLICAR SOBRA E ARREDONDAMENTO
     const lCalc = Math.ceil((lOriginal + sobraL) / 50) * 50;
@@ -447,6 +460,54 @@ export default function CalculoEspelhosPage() {
     let valorVidro = areaTotalM2 * normalizarPrecoCatalogo(vidro.preco);
     let totalComAdicionais = valorVidro;
 
+    const ehRedondoComLed = !!acb && tipoVisual.includes("redondo") && tipoVisual.includes("led");
+    const ehAcabamentoLedComAdesivo = nomeAcabamento.includes("led") && nomeAcabamento.includes("adesivo");
+    const ehBordaBisoteOuLapidado =
+      nomeAcabamento.includes("bisote") ||
+      nomeAcabamento.includes("lapidado") ||
+      tipoVisual.startsWith("bisote-") ||
+      tipoVisual.startsWith("lapidado-");
+
+    if (ehRedondoComLed && ehAcabamentoLedComAdesivo && ehBordaBisoteOuLapidado) {
+      const registro = acb as Record<string, unknown>;
+      const lerPreco = (chaves: string[]) => {
+        for (const chave of chaves) {
+          const bruto = Number(registro?.[chave] ?? 0);
+          if (Number.isFinite(bruto) && bruto > 0) return bruto;
+        }
+        return 0;
+      };
+
+      const buscarPrecoServico = (palavras: string[]) => {
+        const servico = servicosDB.find((item: any) => {
+          const nome = normalizarTexto(String(item?.nome || ""));
+          const unidade = normalizarTexto(String(item?.unidade || ""));
+          const bateNome = palavras.some((palavra) => nome.includes(palavra));
+          const ehM2 = unidade === "m²" || unidade === "m2";
+          return bateNome && ehM2;
+        });
+        return Number(servico?.preco || 0);
+      };
+
+      const areaComMargemM2 = ((lOriginal + 100) * (aOriginal + 100)) / 1_000_000;
+      const precoM2Espelho = normalizarPrecoCatalogo(vidro.preco);
+      const precoJatoAcabamento = lerPreco(["preco_jato", "precoJato", "valor_jato", "valorJato", "jato_preco", "preco_jateado", "precoJateado", "preco_jato_m2", "valor_jato_m2"]);
+      const precoAdesivoAcabamento = lerPreco(["preco_adesivo", "precoAdesivo", "valor_adesivo", "valorAdesivo", "adesivo_preco", "preco_adesivo_m2", "valor_adesivo_m2"]);
+      const precoJatoServico = buscarPrecoServico(["jato", "jateado"]);
+      const precoAdesivoServico = buscarPrecoServico(["adesivo", "pelicula", "película"]);
+      const precoJatoM2 = precoJatoAcabamento > 0 ? precoJatoAcabamento : precoJatoServico;
+      const precoAdesivoM2 = precoAdesivoAcabamento > 0 ? precoAdesivoAcabamento : precoAdesivoServico;
+
+      const valorEspelhoComAcrescimo = areaComMargemM2 * precoM2Espelho * 1.1;
+      const valorJato = areaComMargemM2 * precoJatoM2;
+      const valorAdesivo = areaComMargemM2 * precoAdesivoM2;
+
+      return {
+        m2: areaComMargemM2 * quantidade,
+        total: (valorEspelhoComAcrescimo + valorJato + valorAdesivo) * quantidade,
+      };
+    }
+
     // 5. APLICAR ADICIONAIS DO ACABAMENTO
     if (acb) {
       if (acb.tipo_calculo === 'porcentagem') {
@@ -467,7 +528,7 @@ export default function CalculoEspelhosPage() {
       m2: areaTotalM2 * quantidade,
       total: totalComAdicionais * quantidade
     };
-  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura]);
+  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, servicosDB, divisoesLargura, divisoesAltura]);
 
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
