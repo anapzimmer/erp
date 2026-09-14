@@ -940,7 +940,7 @@ export default function Deslizante3FPage() {
       .trim();
 
     const medidaVidroMovel = `${formatarMedidaPeca(calculoVidro.larguraMovelMedida)}x${formatarMedidaPeca(calculoVidro.alturaMovelMedida)}`;
-    const descricaoVidroMovel = `VIDRO MOVEL 2 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
+    const descricaoVidroMovel = `VIDRO MOVEL 3 PECAS ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
       const semVidrosAutomaticos = lista.filter((item) => {
