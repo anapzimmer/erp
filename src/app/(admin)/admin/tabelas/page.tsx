@@ -11,6 +11,7 @@ import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar";
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal";
 import { descricaoVidroCompativel } from "@/utils/vidros";
+import { decodeCsvFile } from "@/utils/csvEncoding";
 
 // --- Tipagens ---
 type TabelaPreco = { id: string; nome: string } // de number para string
@@ -101,7 +102,7 @@ export default function GestaoPrecosPage() {
     Number(valor.replace(/\./g, "").replace(",", "."));
 
   const interpretarArquivoTabela = (conteudo: string) => {
-    const linhas = conteudo.split(/\rx\n/);
+    const linhas = conteudo.split(/\r?\n/);
     const linhaTabela = linhas.find((linha) => /^\s*TABELA\s+/i.test(linha));
 
     const nomeTabela = linhaTabela ? linhaTabela
@@ -113,11 +114,16 @@ export default function GestaoPrecosPage() {
     const itens: LinhaImportada[] = [];
 
     for (const linha of linhas) {
+      const linhaLimpa = linha.replace(/\s+/g, " ").trim();
+      if (!linhaLimpa) continue;
+
       const correspondencia = linha.match(
-        /^\s*(\S+)\s+(.+x)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+_{3,}/
+        /^\s*([A-Z0-9._/-]{3,24})\s+(.+?)\s+(\d{1,5}(?:\.\d{3})*,\d{2})\s+(\d{1,5}(?:\.\d{3})*,\d{2})(?:\s+|$)/i
       );
 
       if (!correspondencia) continue;
+
+      if (/^PRODUTO\b|^-{3,}|^TABELA\b/i.test(correspondencia[1])) continue;
 
       itens.push({
         codigo: correspondencia[1].trim(),
@@ -132,17 +138,28 @@ export default function GestaoPrecosPage() {
 
   const extrairDadosDescricao = (descricao: string) => {
     const descricaoLimpa = descricao.trim().replace(/\s+/g, " ");
-    const espessuraEncontrada = descricaoLimpa.match(/\b(\d{1,2}(?:\s*\+\s*\d{1,2})x)\s*MM\b/i);
+    const espessuraEncontrada = descricaoLimpa.match(/\b(\d{1,2}(?:\s*[+/]\s*\d{1,2})?)\s*MM\b/i);
     const espessura = espessuraEncontrada ? espessuraEncontrada[1].replace(/\s/g, "").split("+").map((p) => p.padStart(2, "0")).join("+") + "mm"
       : "";
 
-    const tiposConhecidos = ["temperado", "laminado", "comum", "espelho", "aramado", "insulado"];
-    const tipoEncontrado = tiposConhecidos.find((tipo) => descricaoLimpa.toLowerCase().includes(tipo));
-    const tipo = tipoEncontrado ? tipoEncontrado.charAt(0).toUpperCase() + tipoEncontrado.slice(1) : "";
+    const descricaoNormalizada = descricaoLimpa
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+
+    const tipo =
+      /\bTEMP(?:E|ER|ERADO)?\b/.test(descricaoNormalizada) ? "Temperado"
+      : /\bLAM(?:I|IN|INADO)?\b/.test(descricaoNormalizada) ? "Laminado"
+      : /\bCOMUM\b/.test(descricaoNormalizada) ? "Comum"
+      : /\bARAMADO\b/.test(descricaoNormalizada) ? "Aramado"
+      : /\bINSULADO\b/.test(descricaoNormalizada) ? "Insulado"
+      : "";
 
     const nome = descricaoLimpa
-      .replace(/\b\d{1,2}(?:\s*\+\s*\d{1,2})x\s*MM\b/gi, "")
-      .replace(new RegExp(`\\b(${tiposConhecidos.join("|")})\\b`, "gi"), "")
+      .replace(/\b\d{1,2}(?:\s*[+/]\s*\d{1,2})?\s*MM\b/gi, "")
+      .replace(/\bTEMP(?:E|ER|ERADO)?\b/gi, "")
+      .replace(/\bLAM(?:I|IN|INADO)?\b/gi, "")
+      .replace(/\b(COMUM|ARAMADO|INSULADO)\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
 
@@ -185,7 +202,7 @@ export default function GestaoPrecosPage() {
 
     setCarregando(true);
     try {
-      const conteudo = await arquivo.text();
+      const conteudo = await decodeCsvFile(arquivo);
       const { nomeTabela, itens } = interpretarArquivoTabela(conteudo);
       if (!itens.length) throw new Error("Nenhum produto foi reconhecido no arquivo.");
 

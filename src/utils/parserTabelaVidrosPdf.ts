@@ -15,6 +15,14 @@ export type DiagnosticoTabelaPdf = {
   totalProdutos: number
 }
 
+const normalizarBusca = (valor: string) =>
+  (valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim()
+
 const converterPreco = (valor: string) => {
   const numero = Number(
     valor
@@ -152,6 +160,108 @@ const interpretarLinha = (
   }
 }
 
+const splitLinhaComAspas = (linha: string, delimitador: string) => {
+  const partes: string[] = []
+  let atual = ""
+  let emAspas = false
+
+  for (let i = 0; i < linha.length; i++) {
+    const char = linha[i]
+
+    if (char === '"') {
+      emAspas = !emAspas
+      continue
+    }
+
+    if (!emAspas && char === delimitador) {
+      partes.push(atual)
+      atual = ""
+      continue
+    }
+
+    atual += char
+  }
+
+  partes.push(atual)
+
+  return partes
+    .map((parte) => parte.trim())
+    .filter((parte) => parte.length > 0)
+}
+
+const regexPrecoTexto = /(R\$\s*)?\d{1,5}(?:\.\d{3})*,\d{2}$/i
+
+const encontrarDelimitador = (linhas: string[]) => {
+  const candidatos = [";", "\t", "|"]
+
+  for (const delimitador of candidatos) {
+    let validas = 0
+
+    for (const linha of linhas.slice(0, 40)) {
+      const partes = splitLinhaComAspas(linha, delimitador)
+      if (partes.length < 3) continue
+
+      const temPreco = partes.some((parte) => regexPrecoTexto.test(parte.replace(/\s+/g, " ").trim()))
+      if (temPreco) validas += 1
+    }
+
+    if (validas >= 2) return delimitador
+  }
+
+  return null
+}
+
+const pareceCabecalho = (linha: string) => {
+  const texto = normalizarBusca(linha)
+  return (
+    (texto.includes("COD") || texto.includes("PRODUTO")) &&
+    texto.includes("DESCR") &&
+    texto.includes("PRECO")
+  )
+}
+
+const interpretarLinhaDelimitada = (linha: string, delimitador: string): ProdutoTabelaPdf | null => {
+  const colunas = splitLinhaComAspas(linha, delimitador)
+  if (colunas.length < 3) return null
+
+  const precoIndex = colunas.findIndex((coluna) => regexPrecoTexto.test(coluna.replace(/\s+/g, " ").trim()))
+  if (precoIndex < 0) return null
+
+  const precoTexto = colunas[precoIndex]
+    .replace(/^R\$\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  const codigoIndex = colunas.findIndex((coluna, index) => {
+    if (index >= precoIndex) return false
+    const valor = coluna.replace(/\s+/g, "").toUpperCase()
+    return /^[A-Z0-9._/-]{3,24}$/.test(valor) && /[A-Z]/.test(valor) && /\d/.test(valor)
+  })
+
+  if (codigoIndex < 0) return null
+
+  const codigo = colunas[codigoIndex].replace(/\s+/g, "").toUpperCase()
+
+  const descricao = colunas
+    .slice(codigoIndex + 1, precoIndex)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase()
+
+  if (!descricao) return null
+
+  const preco = converterPreco(precoTexto)
+  if (!Number.isFinite(preco) || preco <= 0) return null
+
+  return {
+    codigo,
+    descricao,
+    preco,
+    precoTexto,
+  }
+}
+
 export const extrairProdutosTabelaPdfComDiagnostico = (
   textoRecebido: string,
 ): {
@@ -259,3 +369,61 @@ export const extrairProdutosTabelaPdf = (
 ): ProdutoTabelaPdf[] =>
   extrairProdutosTabelaPdfComDiagnostico(textoRecebido)
     .produtos
+
+export const extrairProdutosTabelaTextoComDiagnostico = (
+  textoRecebido: string,
+): {
+  produtos: ProdutoTabelaPdf[]
+  diagnostico: DiagnosticoTabelaPdf
+} => {
+  const textoOriginal = limparTexto(textoRecebido)
+  const linhas = textoOriginal
+    .split(/\n+/)
+    .map((linha) => linha.trim())
+    .filter(Boolean)
+
+  const delimitador = encontrarDelimitador(linhas)
+
+  const produtos: ProdutoTabelaPdf[] = []
+  const codigos = new Set<string>()
+  const codigosCandidatos: string[] = []
+  const rejeitados: string[] = []
+
+  for (const linha of linhas) {
+    if (pareceCabecalho(linha)) continue
+
+    const produto = delimitador
+      ? interpretarLinhaDelimitada(linha, delimitador) || interpretarLinha(linha)
+      : interpretarLinha(linha)
+
+    if (!produto) {
+      if (/\d{1,5}(?:\.\d{3})*,\d{2}\s*$/.test(linha)) {
+        rejeitados.push(`[NÃO INTERPRETADO] ${linha}`)
+      }
+      continue
+    }
+
+    codigosCandidatos.push(produto.codigo)
+
+    if (codigos.has(produto.codigo)) {
+      rejeitados.push(`[CÓDIGO DUPLICADO] ${produto.codigo} — ${linha}`)
+      continue
+    }
+
+    codigos.add(produto.codigo)
+    produtos.push(produto)
+  }
+
+  return {
+    produtos,
+    diagnostico: {
+      textoOriginal,
+      textoPreparado: delimitador
+        ? `Formato delimitado detectado: "${delimitador === "\t" ? "TAB" : delimitador}"`
+        : "Formato por linha contínua",
+      codigosCandidatos,
+      rejeitados,
+      totalProdutos: produtos.length,
+    },
+  }
+}

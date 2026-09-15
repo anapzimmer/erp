@@ -18,7 +18,11 @@ import {
   Loader2,
 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
-import { extrairProdutosTabelaPdfComDiagnostico } from "@/utils/parserTabelaVidrosPdf"
+import { decodeCsvFile } from "@/utils/csvEncoding"
+import {
+  extrairProdutosTabelaPdfComDiagnostico,
+  extrairProdutosTabelaTextoComDiagnostico,
+} from "@/utils/parserTabelaVidrosPdf"
 import { descricaoVidroCompativel } from "@/utils/vidros"
 
 type Vidro = {
@@ -103,7 +107,14 @@ const descobrirCampos = (descricaoOriginal: string) => {
   if (descricao.includes("CORTADO")) tiposEncontrados.push("Cortado")
   if (descricao.includes("LAPIDADO")) tiposEncontrados.push("Lapidado")
   if (descricao.includes("BISOTE")) tiposEncontrados.push("Bisote")
-  if (descricao.includes("TEMPERADO") || /\bTEMP\b/.test(descricao)) tiposEncontrados.push("Temperado")
+  if (
+    /\bTEMPERADO\b/.test(descricao) ||
+    /\bTEMPER\b/.test(descricao) ||
+    /\bTEMPE\b/.test(descricao) ||
+    /\bTEMP\b/.test(descricao)
+  ) {
+    tiposEncontrados.push("Temperado")
+  }
 
   const tipo = tiposEncontrados.length
     ? formatarTipoImportado(tiposEncontrados.join(" "))
@@ -381,6 +392,7 @@ export default function ImportarTabelaVidrosModal({
 
     try {
       let texto = ""
+      let resultado: ReturnType<typeof extrairProdutosTabelaPdfComDiagnostico>
 
       if (
         arquivo.type === "application/pdf" ||
@@ -403,11 +415,12 @@ export default function ImportarTabelaVidrosModal({
         }
 
         texto = retorno?.texto || ""
+        resultado = extrairProdutosTabelaPdfComDiagnostico(texto)
       } else {
-        texto = await arquivo.text()
+        texto = await decodeCsvFile(arquivo)
+        resultado = extrairProdutosTabelaTextoComDiagnostico(texto)
       }
 
-      const resultado = extrairProdutosTabelaPdfComDiagnostico(texto)
       const produtosExtraidos = resultado.produtos || []
 
       if (!produtosExtraidos.length) {
@@ -608,7 +621,7 @@ export default function ImportarTabelaVidrosModal({
             <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl bg-white text-center">
               <Loader2 className="mb-3 animate-spin text-slate-600" size={30} />
               <p className="text-sm font-medium text-slate-700">
-                Analisando PDF e extraindo os produtos...
+                Analisando arquivo e extraindo os produtos...
               </p>
             </div>
           )}
