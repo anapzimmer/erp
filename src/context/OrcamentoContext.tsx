@@ -196,6 +196,16 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
     } catch { setErro("Não foi possível salvar o rascunho neste navegador. O orçamento não foi iniciado."); }
   };
 
+  const cancelarEIniciarOutro = () => {
+    if (storageKey) localStorage.removeItem(storageKey);
+    setAtivo(null);
+    setClienteId("");
+    setObra("");
+    setMensagemStatus("");
+    setErro("");
+    setModal(true);
+  };
+
   const atualizarStatusClienteSelecionado = async () => {
     if (!empresaId) return;
     const cliente = clientes.find(c => c.id === clienteId);
@@ -263,7 +273,16 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
     {empresaId && <div className="print:hidden flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-6 py-2 text-sm text-slate-800">
       {sessao ? <>
         <span>Orçamento em andamento: {sessao.cliente.nome}{sessao.obra ? ` · ${sessao.obra}` : ""} · Rascunho automático</span>
-        <Link className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" href={destino}>Ver orçamento{quantidade ? ` (${quantidade})` : ""} / Salvar</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={cancelarEIniciarOutro}
+            className="rounded-lg border border-rose-300 bg-white px-4 py-2 font-normal text-rose-700 transition-colors hover:bg-rose-50"
+          >
+            Cancelar e começar outro
+          </button>
+          <Link className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" href={destino}>Ver orçamento{quantidade ? ` (${quantidade})` : ""} / Salvar</Link>
+        </div>
       </> : <><span>Monte um orçamento com vários cálculos</span><button type="button" aria-keyshortcuts="Shift+Plus" className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" onClick={() => { setErro(""); setModal(true); }}>+ Novo orçamento</button></>}
     </div>}
     {children}
@@ -302,7 +321,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
           <p className="mt-3 text-sm text-slate-600">Cliente e obra serão preenchidos nos cálculos. Use PDF+ ou Salvar no cálculo para adicionar os itens e finalize na central.</p>
         </>}
         {erro && <p role="alert" className="mt-3 text-red-700">{erro}</p>}
-        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId || atualizandoStatus} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
+        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{sessao && <button type="button" className="rounded-lg border border-rose-300 px-4 py-2 font-semibold text-rose-700 hover:bg-rose-50" onClick={cancelarEIniciarOutro}>Cancelar e começar outro</button>}{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId || atualizandoStatus} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
       </section>
     </div>}
   </Context.Provider>;
