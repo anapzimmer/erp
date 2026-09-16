@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { formatarNomePadrao } from "@/utils/formatarNome"
 import { decodeCsvFile } from "@/utils/csvEncoding"
 import { Image as ImageIcon, Wrench, Printer, Loader2, Boxes, Layers, Palette, Package, Trash2, Edit2, PlusCircle, X, Building2, ChevronDown, Download, Upload, Menu, Search, DollarSign, ArrowUp, Square, Eraser, Tag, CheckCircle2, CheckSquare2, ListChecks } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -34,7 +35,7 @@ type KitFormData = Omit<Kit, "id">;
 
 const padronizarTexto = (texto: string | null) => {
   if (!texto) return "";
-  return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
+  return formatarNomePadrao(texto);
 };
 
 const criarKitVazio = (): KitFormData => ({

@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal";
@@ -144,12 +145,7 @@ const formatarTelefone = (valor = "") => {
 const formatarCep = (valor = "") =>
   somenteNumeros(valor).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
 
-const padronizarNome = (texto = "") =>
-  texto
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/(^\w)|([\sÀ-ÿ]\w)/g, (letra) => letra.toUpperCase());
+const padronizarNome = (texto = "") => formatarNomePadrao(texto);
 
 const formatarRota = (valor = "") => {
   const limpo = valor.trim();

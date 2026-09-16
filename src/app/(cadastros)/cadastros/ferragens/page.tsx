@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { formatarNomePadrao } from "@/utils/formatarNome"
 import { decodeCsvFile } from "@/utils/csvEncoding"
 import {
   Wrench, Printer,
@@ -22,7 +23,7 @@ import ImportarTabelaCatalogoModal from "@/components/ImportarTabelaCatalogoModa
 
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
-  return texto.toLowerCase().trim().replace(/\s+/g, " ").replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
+  return formatarNomePadrao(texto);
 };
 
 const normalizarCabecalho = (texto: string) =>

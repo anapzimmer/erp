@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
+import { formatarNomePadrao } from "@/utils/formatarNome"
 import { decodeCsvFile } from "@/utils/csvEncoding"
 import { LayoutDashboard, Printer, FileText, Image as ImageIcon, BarChart3, Wrench, Boxes, Briefcase, UsersRound, Layers, Palette, Package, Copy, ChevronDown, Download, Upload, Trash2, Edit2, PlusCircle, X, Loader2, Building2, LogOut, Settings, Menu, ChevronRight, Square, Search, DollarSign, ArrowUp, CheckCircle2, CheckSquare2, ListChecks, Eraser, Tag } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -25,11 +26,7 @@ type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: stri
 // --- Utils ---
 const padronizarTexto = (texto: string) => {
   if (!texto) return "";
-  return texto
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase());
+  return formatarNomePadrao(texto);
 };
 
 export default function PerfisPage() {

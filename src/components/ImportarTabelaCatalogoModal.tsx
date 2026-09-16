@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { decodeCsvFile } from "@/utils/csvEncoding"
+import { formatarNomePadrao } from "@/utils/formatarNome"
 import { AlertCircle, CheckCircle2, ChevronDown, Copy, FileText, Loader2, Lock, Search, Upload, X } from "lucide-react"
 
 type TipoCatalogo = "kits" | "ferragens"
@@ -39,11 +40,7 @@ const moedaParaNumero = (valor: string) => {
 }
 
 const formatarTexto = (texto: string) =>
-  (texto || "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/(^\w)|(\s+\w)/g, (letra) => letra.toUpperCase())
+  formatarNomePadrao(texto)
 
 const normalizar = (texto: string | null | undefined) =>
   (texto || "")
