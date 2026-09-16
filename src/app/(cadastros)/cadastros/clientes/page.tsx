@@ -154,7 +154,7 @@ const formatarRota = (valor = "") => {
 };
 
 const statusAtivo = (status?: string | null) =>
-  (status || "").toUpperCase().includes("ATIVA");
+  /^ATIVA\b/.test((status || "").trim().toUpperCase());
 
 export default function ClientesPage() {
   const router = useRouter();

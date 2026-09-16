@@ -9,13 +9,40 @@ import { ehAtalhoNovoOrcamento } from "@/utils/atalhoOrcamento";
 import { useTheme } from "@/context/ThemeContext";
 import { ClipboardList, X } from "lucide-react";
 
-type Cliente = { id: string; nome: string; grupo_preco_id?: string | null };
+type Cliente = {
+  id: string;
+  nome: string;
+  grupo_preco_id?: string | null;
+  tipo_pessoa?: "juridica" | "fisica";
+  cpf_cnpj?: string | null;
+  situacao_cadastral?: string | null;
+  consultado_receita_em?: string | null;
+};
 export type OrcamentoAtivo = { id: string; empresaId: string; cliente: Cliente; obra: string; rotaEdicao?: string };
 const Context = createContext<OrcamentoAtivo | null>(null);
 const PREFIXO = "glasscode:central-impressao:";
 export const ORCAMENTO_ENCERRADO = "glasscode:orcamento-encerrado";
 const ORCAMENTO_RETOMADO = "glasscode:orcamento-retomado";
 export const useOrcamentoAtivo = () => useContext(Context);
+
+const somenteNumeros = (valor = "") => valor.replace(/\D/g, "");
+
+const statusAtivo = (status?: string | null) =>
+  /^ATIVA\b/.test(String(status || "").trim().toUpperCase());
+
+const statusInativo = (status?: string | null) => {
+  const texto = String(status || "").trim();
+  if (!texto) return false;
+  return !statusAtivo(texto);
+};
+
+const consultaExpirada = (consulta?: string | null) => {
+  if (!consulta) return true;
+  const data = Date.parse(consulta);
+  if (Number.isNaN(data)) return true;
+  const dias = (Date.now() - data) / (1000 * 60 * 60 * 24);
+  return dias > 30;
+};
 
 export function encerrarOrcamentoAtivo() {
   window.dispatchEvent(new Event(ORCAMENTO_ENCERRADO));
@@ -24,7 +51,7 @@ export function encerrarOrcamentoAtivo() {
 export async function retomarOrcamentoAtivo(dados: { id: string; empresaId: string; cliente: string; obra: string; rotaEdicao: string }) {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Entre novamente para editar o orçamento.");
-  const { data: clientes, error } = await supabase.from("clientes").select("id, nome, grupo_preco_id")
+  const { data: clientes, error } = await supabase.from("clientes").select("id, nome, grupo_preco_id, tipo_pessoa, cpf_cnpj, situacao_cadastral, consultado_receita_em")
     .eq("empresa_id", dados.empresaId).eq("nome", dados.cliente).limit(2);
   if (error || clientes?.length !== 1) throw new Error("Não foi possível identificar um único cadastro do cliente deste orçamento. Confira o cadastro antes de continuar.");
   const ativo: OrcamentoAtivo = { id: dados.id, empresaId: dados.empresaId,
@@ -51,7 +78,9 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   const [clienteId, setClienteId] = useState("");
   const [obra, setObra] = useState("");
   const [erro, setErro] = useState("");
+  const [mensagemStatus, setMensagemStatus] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [atualizandoStatus, setAtualizandoStatus] = useState(false);
   const [quantidade, setQuantidade] = useState(0);
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -125,7 +154,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
     if (!modal || !empresaId) return;
     let cancelado = false;
     const carregamento = window.setTimeout(() => setCarregando(true), 0);
-    supabase.from("clientes").select("id, nome, grupo_preco_id").eq("empresa_id", empresaId).order("nome")
+    supabase.from("clientes").select("id, nome, grupo_preco_id, tipo_pessoa, cpf_cnpj, situacao_cadastral, consultado_receita_em").eq("empresa_id", empresaId).order("nome")
       .then(({ data, error }) => {
         if (cancelado) return;
         setCarregando(false);
@@ -167,7 +196,66 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
     } catch { setErro("Não foi possível salvar o rascunho neste navegador. O orçamento não foi iniciado."); }
   };
 
+  const atualizarStatusClienteSelecionado = async () => {
+    if (!empresaId) return;
+    const cliente = clientes.find(c => c.id === clienteId);
+    if (!cliente) {
+      setErro("Selecione um cliente para atualizar o status.");
+      return;
+    }
+
+    if (cliente.tipo_pessoa !== "juridica") {
+      setErro("Atualização automática disponível apenas para clientes com CNPJ.");
+      return;
+    }
+
+    const cnpj = somenteNumeros(cliente.cpf_cnpj || "");
+    if (cnpj.length !== 14) {
+      setErro("Cliente sem CNPJ válido para consulta automática.");
+      return;
+    }
+
+    setAtualizandoStatus(true);
+    setErro("");
+    setMensagemStatus("");
+
+    try {
+      const resposta = await fetch(`/api/cnpj/${cnpj}`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      const retorno = await resposta.json();
+      if (!resposta.ok) throw new Error(retorno?.message || "Não foi possível consultar o CNPJ.");
+
+      const situacao = String(retorno?.data?.situacaoCadastral || "").trim() || null;
+      const consultadoEm = new Date().toISOString();
+
+      const { error: erroAtualizacao } = await supabase
+        .from("clientes")
+        .update({ situacao_cadastral: situacao, consultado_receita_em: consultadoEm })
+        .eq("id", cliente.id)
+        .eq("empresa_id", empresaId);
+
+      if (erroAtualizacao) throw erroAtualizacao;
+
+      setClientes((lista) => lista.map((item) => item.id === cliente.id
+        ? { ...item, situacao_cadastral: situacao, consultado_receita_em: consultadoEm }
+        : item));
+
+      setMensagemStatus("Situação cadastral atualizada com sucesso.");
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível atualizar o status do cliente.");
+    } finally {
+      setAtualizandoStatus(false);
+    }
+  };
+
   const sessao = ativo?.empresaId === empresaId ? ativo : null;
+  const clienteSelecionado = clientes.find(c => c.id === clienteId);
+  const clienteSelecionadoInativo = statusInativo(clienteSelecionado?.situacao_cadastral);
+  const clienteConsultaDesatualizada = !!clienteSelecionado && consultaExpirada(clienteSelecionado.consultado_receita_em);
   const destino = sessao?.rotaEdicao || "/central-impressao";
   const botao = { backgroundColor: theme.buttonDarkBg, color: theme.buttonDarkText };
   const campo = { backgroundColor: theme.screenBackgroundColor, color: theme.modalTextColor, borderColor: `${theme.modalTextColor}30` };
@@ -183,12 +271,38 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
       <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="novo-orcamento-titulo" style={{ backgroundColor: theme.modalBackgroundColor, color: theme.modalTextColor }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-black/5 p-6 shadow-2xl">
         <div className="mb-5 flex items-center gap-3 border-b border-current/10 pb-4"><div style={botao} className="rounded-xl p-3"><ClipboardList size={24} /></div><h2 id="novo-orcamento-titulo" className="flex-1 text-xl font-bold">{sessao ? "Orçamento em andamento" : "Novo orçamento"}</h2><button type="button" aria-label="Fechar" className="rounded-lg p-2 hover:bg-black/5" onClick={() => setModal(false)}><X size={20} /></button></div>
         {sessao ? <div style={campo} className="rounded-xl border p-4"><p className="text-xs font-semibold uppercase opacity-70">Cliente</p><p className="mt-1 text-lg font-bold">{sessao.cliente.nome}</p><p className="mt-3 text-xs font-semibold uppercase opacity-70">Obra / referência</p><p className="mt-1">{sessao.obra || "Não informada"}</p><p className="mt-4 text-sm opacity-75">Continue a edição dos itens com este cliente ativo.</p></div> : <>
-          <label className="mb-4 block text-sm font-semibold">Cliente<select autoFocus style={campo} className="mt-2 block w-full rounded-lg border p-3" value={clienteId} disabled={carregando} onChange={e => setClienteId(e.target.value)}><option value="">{carregando ? "Carregando clientes…" : "Selecione o cliente"}</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+          <label className="mb-4 block text-sm font-semibold">Cliente<select autoFocus style={campo} className="mt-2 block w-full rounded-lg border p-3" value={clienteId} disabled={carregando || atualizandoStatus} onChange={e => { setClienteId(e.target.value); setMensagemStatus(""); setErro(""); }}><option value="">{carregando ? "Carregando clientes…" : "Selecione o cliente"}</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome}{c.situacao_cadastral ? ` (${statusAtivo(c.situacao_cadastral) ? "Ativo" : "Inativo"})` : ""}</option>)}</select></label>
+          {clienteSelecionado && (
+            <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${clienteSelecionadoInativo ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+              Situação cadastral: {clienteSelecionado.situacao_cadastral || "Não informada"}
+            </p>
+          )}
+          {clienteSelecionado && (
+            <button
+              type="button"
+              onClick={atualizarStatusClienteSelecionado}
+              disabled={atualizandoStatus}
+              className="mb-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {atualizandoStatus ? "Atualizando situação..." : "Atualizar situação agora"}
+            </button>
+          )}
+          {clienteConsultaDesatualizada && !clienteSelecionadoInativo && (
+            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Cadastro sem consulta recente de CNPJ. Recomendado atualizar o cliente antes de orçar.
+            </p>
+          )}
+          {clienteSelecionadoInativo && (
+            <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              Cliente inativo. Você pode seguir com o orçamento, mas é recomendado atualizar e validar a situação.
+            </p>
+          )}
+          {mensagemStatus && <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensagemStatus}</p>}
           <label className="block text-sm font-semibold">Obra / referência<input style={campo} className="mt-2 block w-full rounded-lg border p-3" value={obra} onChange={e => setObra(e.target.value)} /></label>
           <p className="mt-3 text-sm text-slate-600">Cliente e obra serão preenchidos nos cálculos. Use PDF+ ou Salvar no cálculo para adicionar os itens e finalize na central.</p>
         </>}
         {erro && <p role="alert" className="mt-3 text-red-700">{erro}</p>}
-        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
+        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId || atualizandoStatus} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
       </section>
     </div>}
   </Context.Provider>;
