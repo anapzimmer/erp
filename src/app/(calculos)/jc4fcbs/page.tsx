@@ -2,6 +2,7 @@
 "use client";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import ClienteQuickCreateButton from "@/components/ClienteQuickCreateButton";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -49,7 +50,13 @@ import { JC4FCBSPDF } from "../../relatorios/jc4fcbs/JC4FCBSPDF";
 type ClienteCadastro = {
   id: string;
   nome: string;
+  rota?: string | null;
   grupo_preco_id?: string | null;
+};
+
+type TabelaPrecoCadastro = {
+  id: string;
+  nome: string;
 };
 
 type VidroCadastro = {
@@ -348,6 +355,7 @@ export default function PC4FCBSPage() {
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<
     PrecoVidroGrupo[]
   >([]);
+  const [tabelasPreco, setTabelasPreco] = useState<TabelaPrecoCadastro[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
 
@@ -428,6 +436,7 @@ export default function PC4FCBSPage() {
     const carregar = async () => {
       const [
         { data: clientesData },
+        { data: tabelasData },
         { data: vidrosData },
         { data: precosData },
         { data: perfisData },
@@ -435,7 +444,12 @@ export default function PC4FCBSPage() {
       ] = await Promise.all([
         supabase
           .from("clientes")
-          .select("id, nome, grupo_preco_id")
+          .select("id, nome, rota, grupo_preco_id")
+          .eq("empresa_id", empresaId)
+          .order("nome"),
+        supabase
+          .from("tabelas")
+          .select("id, nome")
           .eq("empresa_id", empresaId)
           .order("nome"),
         supabase
@@ -464,6 +478,7 @@ export default function PC4FCBSPage() {
       ]);
 
       setClientes((clientesData || []) as ClienteCadastro[]);
+  setTabelasPreco((tabelasData || []) as TabelaPrecoCadastro[]);
       setVidros((vidrosData || []) as VidroCadastro[]);
       setPrecosVidroGrupos((precosData || []) as PrecoVidroGrupo[]);
       setPerfis((perfisData || []) as PerfilCadastro[]);
@@ -721,6 +736,10 @@ useEffect(() => {
   const clienteSelecionado = useMemo(
     () => clientes.find((cliente) => cliente.nome === dados.cliente) || null,
     [clientes, dados.cliente]
+  );
+  const tabelaPrecoSelecionada = useMemo(
+    () => tabelasPreco.find((tabela) => String(tabela.id) === String(clienteSelecionado?.grupo_preco_id || "")) || null,
+    [clienteSelecionado?.grupo_preco_id, tabelasPreco]
   );
 
   const vidroPeitorilSelecionado = useMemo(
@@ -1592,7 +1611,8 @@ useEffect(() => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3">
+          <div className="sm:border-l sm:border-slate-200/80 sm:pl-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
             <HeaderField
               icon={<FileText size={26} />}
               label="Nº Orçamento"
@@ -1605,58 +1625,92 @@ useEffect(() => {
               value={dados.data}
               green
             />
-
-            <div className="relative flex min-h-12 items-center gap-3 border-t border-slate-200 py-2 sm:border-l sm:border-t-0 sm:px-4">
-              <UserRound size={28} className="text-slate-500" />
-              <div className="min-w-0 flex-1">
-                <label className="block text-[10px] font-semibold uppercase text-slate-500">
-                  Cliente
-                </label>
-
-                {listaClientesAberta ? (
-                  <input
-                    ref={clienteInputRef}
-                    value={dados.cliente}
-                    onChange={(e) =>
-                      atualizarCampo("cliente", e.target.value)
-                    }
-                    onBlur={() =>
-                      window.setTimeout(
-                        () => setListaClientesAberta(false),
-                        250
-                      )
-                    }
-                    className="w-full bg-transparent text-sm font-semibold text-[#07385a] outline-none"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setListaClientesAberta(true)}
-                    className="block w-full truncate text-left text-sm font-semibold text-[#07385a]"
-                  >
-                    {dados.cliente || "Digite o cliente"}
-                  </button>
-                )}
-              </div>
-
-              {listaClientesAberta && (
-                <Dropdown>
-                  {clientesFiltrados.map((cliente) => (
-                    <DropdownButton
-                      key={cliente.id}
-                      onSelect={() => {
-                        atualizarCampo("cliente", cliente.nome);
-                        setListaClientesAberta(false);
-                      }}
-                    >
-                      {cliente.nome}
-                    </DropdownButton>
-                  ))}
-                </Dropdown>
-              )}
             </div>
           </div>
         </header>
+
+        <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6">
+          <div className="relative min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
+            <div className="mb-0.5 flex items-center justify-between gap-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
+              <ClienteQuickCreateButton
+                empresaId={empresaId}
+                onClientCreated={(clienteNovo) => {
+                  setClientes((lista) => {
+                    const semDuplicado = lista.filter((item) => String(item.id) !== String(clienteNovo.id));
+                    return [...semDuplicado, clienteNovo].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+                  });
+                  atualizarCampo("cliente", clienteNovo.nome);
+                  setListaClientesAberta(false);
+                }}
+                onError={(mensagem) => setMensagemSistema({ tipo: "erro", titulo: "Erro ao cadastrar", mensagem })}
+              />
+            </div>
+
+            <div className="relative">
+              <UserRound size={20} className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-500" />
+              {listaClientesAberta ? (
+                <input
+                  ref={clienteInputRef}
+                  value={dados.cliente}
+                  onChange={(e) => atualizarCampo("cliente", e.target.value)}
+                  onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
+                  className="w-full bg-transparent py-1 pl-7 pr-1 text-[15px] font-semibold text-[#07385a] outline-none"
+                  placeholder="Digite ou pesquise o cliente"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setListaClientesAberta(true)}
+                  className="block w-full truncate bg-transparent py-1 pl-7 pr-1 text-left text-[15px] font-semibold text-[#07385a]"
+                >
+                  {dados.cliente || "Digite ou pesquise o cliente"}
+                </button>
+              )}
+
+              {listaClientesAberta && (
+                <div className="absolute left-0 top-full z-[120] mt-2 max-h-[280px] w-full overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                  {clientesFiltrados.map((cliente) => (
+                    <button
+                      key={cliente.id}
+                      type="button"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        atualizarCampo("cliente", cliente.nome);
+                        setListaClientesAberta(false);
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        atualizarCampo("cliente", cliente.nome);
+                        setListaClientesAberta(false);
+                      }}
+                      onClick={() => {
+                        atualizarCampo("cliente", cliente.nome);
+                        setListaClientesAberta(false);
+                      }}
+                      className="block w-full px-3 py-2 text-left font-semibold text-[#07385a] hover:bg-[#07385a]/10"
+                    >
+                      {cliente.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {clienteSelecionado && (
+              <div className="mt-2 flex flex-wrap gap-2 pl-7 text-[11px]">
+                <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                  Rota: {clienteSelecionado.rota?.trim() || "Não informada"}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                  Tabela: {tabelaPrecoSelecionada?.nome || "Padrão"}
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
 
         <aside className="border-b border-slate-200 bg-white">
           <nav className="flex gap-2 overflow-x-auto px-4 py-2 sm:px-6">

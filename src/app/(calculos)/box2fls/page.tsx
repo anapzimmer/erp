@@ -14,6 +14,7 @@ import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
+import { formatarNomePadrão } from "@/utils/formatarNome";
 import {
   AlertTriangle,
   Calendar,
@@ -30,6 +31,7 @@ import {
   MoveHorizontal,
   MoveVertical,
   Palette,
+  Plus,
   Printer,
   RailSymbol,
   Save,
@@ -45,7 +47,25 @@ import { mesclarMateriaisAutomaticos } from "@/utils/materiaisAutomaticos";
 type ClienteCadastro = {
   id: string;
   nome: string;
+  rota?: string | null;
   grupo_preco_id?: string | null;
+};
+
+type TabelaPrecoCadastro = {
+  id: string;
+  nome: string;
+};
+
+type NovoClienteForm = {
+  tipo_pessoa: "juridica" | "fisica";
+  cpf_cnpj: string;
+  nome: string;
+  rota: string;
+  grupo_preco_id: string;
+  telefone: string;
+  email: string;
+  cidade: string;
+  estado: string;
 };
 
 type VidroCadastro = {
@@ -160,6 +180,55 @@ const formatarQtdMaterial = (qtd: number, unidade?: string) =>
 const parseQtdMaterial = (valor: string, unidade?: string) =>
   ehUnidadeM2(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
 
+const somenteNumeros = (valor = "") => valor.replace(/\D/g, "");
+
+const formatarCnpj = (valor = "") => {
+  const numeros = somenteNumeros(valor).slice(0, 14);
+  return numeros
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+};
+
+const formatarCpf = (valor = "") => {
+  const numeros = somenteNumeros(valor).slice(0, 11);
+  return numeros
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/(\d{3})(\d)/, "$1-$2");
+};
+
+const formatarDocumento = (valor: string, tipo: "juridica" | "fisica") =>
+  tipo === "juridica" ? formatarCnpj(valor) : formatarCpf(valor);
+
+const formatarTelefone = (valor = "") => {
+  const numeros = somenteNumeros(valor).slice(0, 11);
+  if (numeros.length <= 10) {
+    return numeros.replace(/^(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_, ddd, parte1, parte2) => {
+      let resultado = "";
+      if (ddd) resultado += `(${ddd}`;
+      if (ddd.length === 2) resultado += ") ";
+      if (parte1) resultado += parte1;
+      if (parte2) resultado += `-${parte2}`;
+      return resultado;
+    });
+  }
+  return numeros.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+};
+
+const novoClienteInicial: NovoClienteForm = {
+  tipo_pessoa: "juridica",
+  cpf_cnpj: "",
+  nome: "",
+  rota: "",
+  grupo_preco_id: "",
+  telefone: "",
+  email: "",
+  cidade: "",
+  estado: "",
+};
+
 const limitarNumero4Digitos = (valor: string) => {
   const somenteDigitos = valor.replace(/\D/g, "").slice(0, 4);
   return Number(somenteDigitos || 0);
@@ -273,6 +342,9 @@ export default function Box2FlsPage() {
   const logoUsuario = theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl || null;
   const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
   const [carregandoClientes, setCarregandoClientes] = useState(false);
+  const [salvandoNovoCliente, setSalvandoNovoCliente] = useState(false);
+  const [modalNovoClienteAberto, setModalNovoClienteAberto] = useState(false);
+  const [novoCliente, setNovoCliente] = useState<NovoClienteForm>(novoClienteInicial);
   const [listaClientesAberta, setListaClientesAberta] = useState(false);
   const [clienteAtivoIndex, setClienteAtivoIndex] = useState(0);
   const clienteInputRef = useRef<HTMLInputElement>(null);
@@ -282,6 +354,7 @@ export default function Box2FlsPage() {
   const [vidroAtivoIndex, setVidroAtivoIndex] = useState(0);
   const vidroInputRef = useRef<HTMLInputElement>(null);
   const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
+  const [tabelasPreco, setTabelasPreco] = useState<TabelaPrecoCadastro[]>([]);
   const [kits, setKits] = useState<KitCadastro[]>([]);
   const [perfis, setPerfis] = useState<PerfilCadastro[]>([]);
   const [ferragens, setFerragens] = useState<FerragemCadastro[]>([]);
@@ -339,7 +412,7 @@ export default function Box2FlsPage() {
 
       }
     } catch (erro) {
-      console.warn("Nao foi possivel restaurar o rascunho do projeto individual:", erro);
+      console.warn("Não foi possível restaurar o rascunho do projeto individual:", erro);
     } finally {
       setRascunhoRestaurado(true);
     }
@@ -354,7 +427,7 @@ export default function Box2FlsPage() {
         JSON.stringify({ dados, materiais })
       );
     } catch (erro) {
-      console.warn("Nao foi possivel salvar o rascunho do projeto individual:", erro);
+      console.warn("Não foi possível salvar o rascunho do projeto individual:", erro);
     }
   }, [centralItemId, dados, editId, materiais, rascunhoRestaurado]);
 
@@ -452,6 +525,10 @@ export default function Box2FlsPage() {
     () => clientes.find((cliente) => cliente.nome === dados.cliente) || null,
     [clientes, dados.cliente]
   );
+  const tabelaPrecoSelecionada = useMemo(
+    () => tabelasPreco.find((tabela) => String(tabela.id) === String(clienteSelecionado?.grupo_preco_id || "")) || null,
+    [clienteSelecionado?.grupo_preco_id, tabelasPreco]
+  );
   const vidroSelecionado = useMemo(
     () => localizarVidroPorDescricao(vidros, dados.vidro, formatarVidroCadastro),
     [dados.vidro, vidros]
@@ -541,6 +618,98 @@ export default function Box2FlsPage() {
     atualizarCampo("cliente", cliente.nome);
     setListaClientesAberta(false);
     setClienteAtivoIndex?.(0);
+  };
+
+  const salvarNovoCliente = async () => {
+    if (!empresaId) {
+      setMensagemSistema({
+        tipo: "erro",
+        titulo: "Empresa não encontrada",
+        mensagem: "Não foi possível cadastrar o cliente sem empresa ativa.",
+      });
+      return;
+    }
+
+    if (!novoCliente.nome.trim() || !novoCliente.rota.trim()) {
+      setMensagemSistema({
+        tipo: "aviso",
+        titulo: "Dados obrigatórios",
+        mensagem: "Informe pelo menos nome e rota do cliente.",
+      });
+      return;
+    }
+
+    const documento = somenteNumeros(novoCliente.cpf_cnpj || "");
+    if (documento && novoCliente.tipo_pessoa === "juridica" && documento.length !== 14) {
+      setMensagemSistema({ tipo: "aviso", titulo: "CNPJ inválido", mensagem: "Informe um CNPJ com 14 números." });
+      return;
+    }
+    if (documento && novoCliente.tipo_pessoa === "fisica" && documento.length !== 11) {
+      setMensagemSistema({ tipo: "aviso", titulo: "CPF inválido", mensagem: "Informe um CPF com 11 números." });
+      return;
+    }
+
+    setSalvandoNovoCliente(true);
+    try {
+      if (documento) {
+        const { data: duplicado, error: erroDuplicado } = await supabase
+          .from("clientes")
+          .select("id, nome")
+          .eq("empresa_id", empresaId)
+          .eq("cpf_cnpj", documento)
+          .limit(1);
+
+        if (erroDuplicado) throw erroDuplicado;
+        if (duplicado?.length) {
+          throw new Error(`Documento já cadastrado para ${duplicado[0].nome}.`);
+        }
+      }
+
+      const payload = {
+        empresa_id: empresaId,
+        tipo_pessoa: novoCliente.tipo_pessoa,
+        cpf_cnpj: documento || null,
+        nome: formatarNomePadrão(novoCliente.nome),
+        rota: novoCliente.rota.trim(),
+        grupo_preco_id: novoCliente.grupo_preco_id || null,
+        telefone: novoCliente.telefone.trim() || null,
+        email: novoCliente.email.trim().toLowerCase() || null,
+        cidade: novoCliente.cidade ? formatarNomePadrão(novoCliente.cidade) : null,
+        estado: novoCliente.estado.trim().toUpperCase().slice(0, 2) || null,
+      };
+
+      const { data: clienteInserido, error: erroInsercao } = await supabase
+        .from("clientes")
+        .insert([payload])
+        .select("id, nome, grupo_preco_id, rota")
+        .single();
+
+      if (erroInsercao) throw erroInsercao;
+
+      if (clienteInserido) {
+        const clienteNovo = {
+          id: String(clienteInserido.id),
+          nome: String(clienteInserido.nome),
+          rota: clienteInserido.rota ?? null,
+          grupo_preco_id: clienteInserido.grupo_preco_id ?? null,
+        } as ClienteCadastro;
+
+        setClientes((lista) => [...lista, clienteNovo].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+        atualizarCampo("cliente", clienteNovo.nome);
+      }
+
+      setModalNovoClienteAberto(false);
+      setNovoCliente(novoClienteInicial);
+      setMensagemSistema({ tipo: "sucesso", titulo: "Cliente cadastrado", mensagem: "Cliente criado e selecionado no orçamento." });
+    } catch (erro) {
+      setMensagemSistema({
+        tipo: "erro",
+        titulo: "Erro ao cadastrar",
+        mensagem: erro instanceof Error ? erro.message : "Não foi possível cadastrar o cliente.",
+      });
+    } finally {
+      setSalvandoNovoCliente(false);
+    }
   };
 
   const selecionarVidro = (vidro: VidroCadastro) => {
@@ -639,13 +808,14 @@ export default function Box2FlsPage() {
         { data: clientesData, error: clientesError },
         { data: vidrosData, error: vidrosError },
         { data: precosVidroData, error: precosVidroError },
+        { data: tabelasData, error: tabelasError },
         { data: kitsData, error: kitsError },
         { data: perfisData, error: perfisError },
         { data: ferragensData, error: ferragensError },
       ] = await Promise.all([
         supabase
           .from("clientes")
-          .select("id, nome, grupo_preco_id")
+          .select("id, nome, rota, grupo_preco_id")
           .eq("empresa_id", empresaId)
           .order("nome", { ascending: true }),
 
@@ -659,6 +829,12 @@ export default function Box2FlsPage() {
           .from("vidro_precos_grupos")
           .select("vidro_id, grupo_preco_id, preco")
           .eq("empresa_id", empresaId),
+
+        supabase
+          .from("tabelas")
+          .select("id, nome")
+          .eq("empresa_id", empresaId)
+          .order("nome", { ascending: true }),
 
         supabase
           .from("kits")
@@ -715,6 +891,13 @@ export default function Box2FlsPage() {
         setPrecosVidroGrupos([]);
       } else {
         setPrecosVidroGrupos((precosVidroData || []) as PrecoVidroGrupo[]);
+      }
+
+      if (tabelasError) {
+        console.error("Erro ao carregar tabelas:", tabelasError);
+        setTabelasPreco([]);
+      } else {
+        setTabelasPreco((tabelasData || []) as TabelaPrecoCadastro[]);
       }
 
       if (ferragensError) {
@@ -1186,118 +1369,146 @@ export default function Box2FlsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3">
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
-                <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
-                <div className="min-w-0">
-                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
-                  <input
-                    value={dados.numero}
-                    tabIndex={-1}
-                    onChange={(e) => atualizarCampo("numero", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
-                <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
-                <div className="min-w-0">
-                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
-                  <input
-                    value={dados.data}
-                    tabIndex={-1}
-                    onChange={(e) => atualizarCampo("data", e.target.value)}
-                    className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-l sm:border-t-0 sm:px-5">
-                <UserRound size={28} strokeWidth={1.6} className="shrink-0 text-slate-500" />
-                <div className="relative min-w-0">
-                  <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
-                  {listaClientesAberta ? (
+            <div className="sm:border-l sm:border-slate-200/80 sm:pl-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
+                <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-t-0 sm:px-3">
+                  <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
+                  <div className="min-w-0">
+                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
                     <input
-                      ref={clienteInputRef}
-                      value={dados.cliente}
+                      value={dados.numero}
                       tabIndex={-1}
-                      onChange={(e) => {
-                        atualizarCampo("cliente", e.target.value);
-                        setClienteAtivoIndex?.(0);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault();
-                          setClienteAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
-                        } else if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          setClienteAtivoIndex?.((atual) => Math.max(atual - 1, 0));
-                        } else if (e.key === "Enter" && clientesFiltrados[clienteAtivoIndex]) {
-                          e.preventDefault();
-                          selecionarCliente(clientesFiltrados[clienteAtivoIndex]);
-                        } else if (e.key === "Escape") {
-                          setListaClientesAberta(false);
-                        }
-                      }}
-                      onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
-                      disabled={carregandoClientes}
-                      className="w-full min-w-[180px] border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
-                      placeholder={carregandoClientes ? "Carregando..." : "Digite o cliente"}
+                      onChange={(e) => atualizarCampo("numero", e.target.value)}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
                     />
-                  ) : (
-                    <button
-                      type="button"
+                  </div>
+                </div>
+                <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-t-0 sm:px-3">
+                  <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
+                  <div className="min-w-0">
+                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
+                    <input
+                      value={dados.data}
                       tabIndex={-1}
-                      onClick={() => setListaClientesAberta(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowDown" || e.key === "Enter") {
-                          e.preventDefault();
-                          setListaClientesAberta(true);
-                        }
-                      }}
-                      className="block w-full min-w-[180px] truncate bg-transparent p-0 text-left text-sm font-semibold text-[#07385a]"
-                    >
-                      {dados.cliente || "Digite o cliente"}
-                    </button>
-                  )}
-                  {listaClientesAberta && (
-                    <div className="absolute right-0 top-[42px] z-30 max-h-[250px] w-[260px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
-                      {carregandoClientes ? (
-                        <div className="px-3 py-2 font-medium text-slate-500">Carregando clientes...</div>
-                      ) : clientesFiltrados.length > 0 ? (
-                        clientesFiltrados.map((cliente, index) => (
-                          <button
-                            key={cliente.id}
-                            type="button"
-                            onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              selecionarCliente(cliente);
-                            }}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              selecionarCliente(cliente);
-                            }}
-                            onMouseEnter={() => setClienteAtivoIndex?.(index)}
-                            onClick={() => selecionarCliente(cliente)}
-                            className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === clienteAtivoIndex ? "bg-[#07385a]/10" : "bg-transparent hover:bg-[#07385a]/10"
-                              }`}
-                          >
-                            {cliente.nome}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 font-medium text-slate-500">Nenhum cliente encontrado</div>
-                      )}
-                    </div>
-                  )}
+                      onChange={(e) => atualizarCampo("data", e.target.value)}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </header>
 
+          <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6">
+            <div className="relative min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
+              <div className="mb-0.5 flex items-center justify-between gap-2">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListaClientesAberta(false);
+                    setModalNovoClienteAberto(true);
+                  }}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                  title="Cadastrar novo cliente"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+              <div className="relative">
+                <UserRound size={20} strokeWidth={1.6} className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-500" />
+                {listaClientesAberta ? (
+                  <input
+                    ref={clienteInputRef}
+                    value={dados.cliente}
+                    tabIndex={-1}
+                    onChange={(e) => {
+                      atualizarCampo("cliente", e.target.value);
+                      setClienteAtivoIndex?.(0);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setClienteAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setClienteAtivoIndex?.((atual) => Math.max(atual - 1, 0));
+                      } else if (e.key === "Enter" && clientesFiltrados[clienteAtivoIndex]) {
+                        e.preventDefault();
+                        selecionarCliente(clientesFiltrados[clienteAtivoIndex]);
+                      } else if (e.key === "Escape") {
+                        setListaClientesAberta(false);
+                      }
+                    }}
+                    onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
+                    disabled={carregandoClientes}
+                    className="w-full border-0 bg-transparent py-1 pl-7 pr-1 text-[15px] font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                    placeholder={carregandoClientes ? "Carregando..." : "Digite ou pesquise o cliente"}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setListaClientesAberta(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown" || e.key === "Enter") {
+                        e.preventDefault();
+                        setListaClientesAberta(true);
+                      }
+                    }}
+                    className="block w-full truncate bg-transparent py-1 pl-7 pr-1 text-left text-[15px] font-semibold text-[#07385a]"
+                  >
+                    {dados.cliente || "Digite ou pesquise o cliente"}
+                  </button>
+                )}
+                {listaClientesAberta && (
+                  <div className="absolute left-0 top-full z-[120] mt-2 max-h-[280px] w-full overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                    {carregandoClientes ? (
+                      <div className="px-3 py-2 font-medium text-slate-500">Carregando clientes...</div>
+                    ) : clientesFiltrados.length > 0 ? (
+                      clientesFiltrados.map((cliente, index) => (
+                        <button
+                          key={cliente.id}
+                          type="button"
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            selecionarCliente(cliente);
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            selecionarCliente(cliente);
+                          }}
+                          onMouseEnter={() => setClienteAtivoIndex?.(index)}
+                          onClick={() => selecionarCliente(cliente)}
+                          className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === clienteAtivoIndex ? "bg-[#07385a]/10" : "bg-transparent hover:bg-[#07385a]/10"
+                            }`}
+                        >
+                          {cliente.nome}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 font-medium text-slate-500">Nenhum cliente encontrado</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {clienteSelecionado && (
+                <div className="mt-2 flex flex-wrap gap-2 pl-7 text-[11px]">
+                  <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                    Rota: {clienteSelecionado.rota?.trim() || "Não informada"}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                    Tabela: {tabelaPrecoSelecionada?.nome || "Padrão"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+
           <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="mx-4 mt-3 w-auto shrink-0 rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur sm:mx-6">
+            <aside className="relative z-[20] mx-4 mt-2 w-auto shrink-0 rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur sm:mx-6">
               <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
                 {[
                   { label: "Orçamento", icon: ClipboardList, ativo: true },
@@ -1670,6 +1881,160 @@ export default function Box2FlsPage() {
                 }}
               >
                 OK
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {modalNovoClienteAberto && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
+          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 md:px-6">
+              <h2 className="text-base font-semibold text-slate-900">Cadastrar cliente</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  if (salvandoNovoCliente) return;
+                  setModalNovoClienteAberto(false);
+                }}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="max-h-[75vh] overflow-y-auto p-4 md:p-6">
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-800">Identificação</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Tipo
+                      <select
+                        value={novoCliente.tipo_pessoa}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, tipo_pessoa: e.target.value as "juridica" | "fisica", cpf_cnpj: "" }))}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      >
+                        <option value="juridica">Pessoa jurídica</option>
+                        <option value="fisica">Pessoa física</option>
+                      </select>
+                    </label>
+
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {novoCliente.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}
+                      <input
+                        value={novoCliente.cpf_cnpj}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, cpf_cnpj: formatarDocumento(e.target.value, atual.tipo_pessoa) }))}
+                        placeholder={novoCliente.tipo_pessoa === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Nome do cliente *
+                      <input
+                        value={novoCliente.nome}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, nome: e.target.value }))}
+                        placeholder="Nome do cliente"
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Rota *
+                      <input
+                        value={novoCliente.rota}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, rota: e.target.value }))}
+                        placeholder="Ex.: 05MM"
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Tabela de precos
+                      <select
+                        value={novoCliente.grupo_preco_id}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, grupo_preco_id: e.target.value }))}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      >
+                        <option value="">Tabela padrao</option>
+                        {tabelasPreco.map((tabela) => (
+                          <option key={tabela.id} value={tabela.id}>{tabela.nome}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-800">Contato</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Telefone
+                      <input
+                        value={novoCliente.telefone}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, telefone: formatarTelefone(e.target.value) }))}
+                        placeholder="(00) 00000-0000"
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      E-mail
+                      <input
+                        type="email"
+                        value={novoCliente.email}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, email: e.target.value }))}
+                        placeholder="cliente@empresa.com"
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-800">Endereço</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Cidade
+                      <input
+                        value={novoCliente.cidade}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, cidade: e.target.value }))}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      UF
+                      <input
+                        value={novoCliente.estado}
+                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, estado: e.target.value.toUpperCase().slice(0, 2) }))}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                      />
+                    </label>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4 md:px-6">
+              <button
+                type="button"
+                onClick={() => {
+                  if (salvandoNovoCliente) return;
+                  setModalNovoClienteAberto(false);
+                }}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={salvandoNovoCliente}
+                onClick={salvarNovoCliente}
+                className="rounded-lg bg-[#07385a] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {salvandoNovoCliente ? "Salvando..." : "Cadastrar cliente"}
               </button>
             </div>
           </section>
