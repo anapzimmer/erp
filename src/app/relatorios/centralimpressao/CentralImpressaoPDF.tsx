@@ -1283,6 +1283,31 @@ const inferirPecasVidroMaterial = (
   item: CentralImpressaoItem,
   totalVidrosDoItem: number
 ) => {
+  const detalhesVidroMaterial =
+    material.medida || material.vidroDescricao
+      ? {
+          medida: String(material.medida || "").trim(),
+          vidroDescricao: String(material.vidroDescricao || "").trim(),
+        }
+      : extrairVidroRelacao(material.descricao);
+
+  const medidaMaterial = normalizarTexto(detalhesVidroMaterial.medida).replace(/\s+/g, "");
+  const descricaoMaterial = normalizarTexto(detalhesVidroMaterial.vidroDescricao);
+  const correspondenciasAvulsas = (item.vidrosAvulsos || []).filter((vidro) => {
+    const medidaVidro = normalizarTexto(vidro.medida).replace(/\s+/g, "");
+    const descricaoVidro = normalizarTexto(vidro.vidro);
+    const mesmaMedida = medidaMaterial ? medidaVidro === medidaMaterial : false;
+    const mesmaDescricao = descricaoMaterial
+      ? descricaoVidro.includes(descricaoMaterial) || descricaoMaterial.includes(descricaoVidro)
+      : true;
+    return mesmaMedida && mesmaDescricao;
+  });
+
+  if (correspondenciasAvulsas.length === 1) {
+    const quantidadeAvulsa = numeroSeguro(correspondenciasAvulsas[0].quantidade);
+    if (quantidadeAvulsa > 0) return quantidadeAvulsa;
+  }
+
   const descricao = normalizarTexto(material.descricao);
   const projeto = normalizarTexto(item.projeto);
   const origemRota = normalizarTexto(item.origemRota);
@@ -1453,7 +1478,7 @@ const consolidarMateriais = (
      * Eles passam a entrar na relação mesmo que a página de origem
      * não tenha preenchido item.materiais.
      */
-    if (tipo === "vidros" && item.vidrosAvulsos?.length) {
+    if (tipo === "vidros" && item.vidrosAvulsos?.length && materiaisDoTipo.length === 0) {
       item.vidrosAvulsos.forEach((vidro, vidroIndex) => {
 
         const quantidade = numeroSeguro(vidro.quantidade);

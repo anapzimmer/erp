@@ -174,9 +174,13 @@ const calcularValorSeguroOrcamento = (orcamento: Orcamento) => {
 
         if (dadosProjetos.tipo === "orcamento_projetos") {
             const usarProjetosOtimizados = otimizacaoSalvaEhSegura(dadosProjetos.otimizacaoPerfis);
-            const projetosOrigem = usarProjetosOtimizados &&
-                Array.isArray(dadosProjetos.projetosOtimizados) &&
-                dadosProjetos.projetosOtimizados.length > 0
+            const temProjetosPdfSalvos = Array.isArray(dadosProjetos.projetosPdf) &&
+                dadosProjetos.projetosPdf.length > 0;
+            const projetosOrigem = temProjetosPdfSalvos
+                ? dadosProjetos.projetosPdf
+                : usarProjetosOtimizados &&
+                  Array.isArray(dadosProjetos.projetosOtimizados) &&
+                  dadosProjetos.projetosOtimizados.length > 0
                 ? dadosProjetos.projetosOtimizados
                 : dadosProjetos.projetos;
             const projetosSemAvulsos = Array.isArray(projetosOrigem)

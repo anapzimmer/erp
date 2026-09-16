@@ -796,7 +796,7 @@ export default function PMA2F4MPage() {
   const codigosFerragensAutomaticas = useMemo(
     () => [
       "VT68", "VT39", "VT380", "VT390", "VT10", "VT66", "VT17", "VT47",
-      "1561", "1122D", "1126AC", "1122M",
+      "1560", "1122D", "1126AC", "1122M",
       "3530AROU-CIL", "3530DP", "3230DP", "3530P", "3534", "PUXBC30", "PUXBC60", "PUXBC80",
     ].map(normalizarTexto),
     []
@@ -826,7 +826,7 @@ export default function PMA2F4MPage() {
       );
     } else {
       regras.push(
-        { codigo: "1561", multiplicador: 2 },
+        { codigo: "1560", multiplicador: 1 },
         { codigo: codigoRoldana, multiplicador: multiplicadorRoldana }
       );
     }
