@@ -1,6 +1,7 @@
 //app/relatorios/espelhos/EspelhosPDF.tsx
 "use client";
 import React from 'react';
+import { quantidadePecasEspelho, type MemoriaCalculoEspelho } from '@/utils/calculoEspelhos';
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Ellipse, Path } from '@react-pdf/renderer';
 import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
@@ -19,6 +20,7 @@ interface ItemPedido {
   divisoesAltura?: number;
   m2?: number;
   precoVidroM2?: number;
+  memoriaCalculo?: MemoriaCalculoEspelho;
 }
 
 interface EspelhosPDFProps {
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
 export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra, numeroOrcamento }: EspelhosPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
-  const totalPecas = itens.reduce((sum, item) => sum + Number(item.quantidade || 0), 0);
+  const totalPecas = itens.reduce((sum, item) => sum + quantidadePecasEspelho(item), 0);
   const metragemTotal = itens.reduce((sum, item) => sum + Number(item.m2 || 0), 0);
   const contentColor = textColor || themeColor;
   const formatarM2 = (valor: number) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -290,12 +292,13 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
             </View>
             <View style={[styles.tableCol, styles.colDesc]}>
               <Text style={{ color: contentColor }}>{item.descricao}</Text>
-              <Text style={styles.detalhesTexto}>{item.tipoVisual || "Padrão"}</Text>
+              <Text style={styles.detalhesTexto}>{item.memoriaCalculo?.entrada.acabamento?.nome || item.tipoVisual || "Padrão"}</Text>
+              <Text style={styles.detalhesTexto}>{item.memoriaCalculo ? 'Acabamento: ' + (item.memoriaCalculo.valorAcabamento + item.memoriaCalculo.valorJato + item.memoriaCalculo.valorAdesivo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : ''}</Text>
               <Text style={styles.detalhesTexto}>{item.precoVidroM2 != null ? `${Number(item.precoVidroM2).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/m²` : "Valor/m² não informado"}</Text>
             </View>
             <Text style={[styles.tableCol, styles.colMedidas, { color: contentColor }]}>{item.medidas}</Text>
 
-            <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>{item.quantidade.toString()}</Text>
+            <Text style={[styles.tableCol, styles.colQtd, { color: contentColor }]}>{quantidadePecasEspelho(item).toString()}</Text>
             <Text style={[styles.tableCol, styles.colM2, { color: contentColor }]}>
               {formatarM2(itemM2(item))}
             </Text>

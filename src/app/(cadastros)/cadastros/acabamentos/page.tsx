@@ -168,6 +168,15 @@ export default function AcabamentosPage() {
     };
 
     const salvarAcabamento = async () => {
+        if (!empresaIdUsuario || !novoAcabamento.nome.trim() || !novoAcabamento.formatoSelecionado || !novoAcabamento.bordasSelecionadas.length) {
+            setModalAviso({ titulo: "Confira o acabamento", mensagem: "Informe nome, borda e formato antes de salvar." });
+            return;
+        }
+        const valores = [novoAcabamento.preco, novoAcabamento.sobra_largura, novoAcabamento.sobra_altura, novoAcabamento.preco_jato, novoAcabamento.preco_adesivo];
+        if (valores.some(valor => !Number.isFinite(Number(valor)) || Number(valor) < 0)) {
+            setModalAviso({ titulo: "Confira os valores", mensagem: "Preços, porcentagem e sobras devem ser números maiores ou iguais a zero." });
+            return;
+        }
         setCarregando(true);
         try {
             const ehEdicao = editando && novoAcabamento.id > 0;
@@ -207,7 +216,7 @@ export default function AcabamentosPage() {
                 const { error } = await supabase
                     .from('acabamentos')
                     .update(dadosParaBanco)
-                    .eq('id', novoAcabamento.id);
+                    .eq('id', novoAcabamento.id).eq('empresa_id', empresaIdUsuario);
                 if (error) throw error;
             } else {
                 // Lógica de inserção para nova borda (se houver múltiplas)
@@ -229,7 +238,7 @@ export default function AcabamentosPage() {
                         throw r.error
                     }
                 })
-                await Promise.all(promessas);
+
             }
 
             setMostrarModal(false);
@@ -488,6 +497,12 @@ export default function AcabamentosPage() {
                                     />
                                 </div>
 
+                                <p className="text-xs leading-5 text-slate-500">
+                                    Em Espelhos, m² usa a área com sobras e arredondamento para cima de 5 em 5 cm por peça.
+                                    Metro linear usa 2 × (largura + altura) de cada peça, sem sobras, inclusive em formatos curvos.
+                                    Unitário cobra cada peça do jogo. Porcentagem incide somente sobre o valor do vidro.
+                                    Jato e adesivo são somados por m² quando preenchidos, em qualquer formato; zero não cobra adicional.
+                                </p>
                                 {/* Margem de Cálculo */}
                                 <div>
                                     <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
@@ -501,7 +516,7 @@ export default function AcabamentosPage() {
 
                                 <div>
                                     <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                                        Preços adicionais para LED + adesivo (R$/m²)
+                                        Preços adicionais de jato e adesivo (R$/m²)
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <input

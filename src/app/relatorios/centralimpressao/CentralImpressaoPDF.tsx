@@ -4,6 +4,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import React from "react";
+import type { ItemEspelhoSalvo } from "@/utils/calculoEspelhos";
 import { DesenhoSacadaGrapaPDF } from "../sacadagrapa/SacadaGrapaPDF";
 import { obterAreaCobradaVidro, obterPrecoVidroRelatorio } from "@/utils/precoVidroRelatorio";
 import { Document, Ellipse, G, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
@@ -34,7 +35,7 @@ export type CentralImpressaoItem = {
   desenhoUrl: string;
   vidro?: string;
   itensOriginais?: Array<{ descricao?: string; medidaReal?: string; precoVidroM2?: number }>;
-  espelhoItens?: Array<{ descricao?: string; medidas?: string; precoVidroM2?: number }>;
+  espelhoItens?: ItemEspelhoSalvo[];
   precoVidroM2?: number;
   vidroBandeira?: string;
   corKit?: string;

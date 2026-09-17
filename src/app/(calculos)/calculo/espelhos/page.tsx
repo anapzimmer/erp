@@ -1,13 +1,14 @@
 "use client"
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useAuth } from "@/hooks/useAuth"
 import { Plus, Calculator, Trash2, ReceiptText, Save, Check, AlertTriangle, Sparkles, Printer, X, Pencil, ClipboardList, UserRound, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
+import { calcularEspelho, quantidadePecasEspelho } from "@/utils/calculoEspelhos";
 import { PDFDownloadLink } from '@react-pdf/renderer'; // Se for baixar
 import { EspelhosPDF } from '@/app/relatorios/espelhos/EspelhosPDF'
 import Header from "@/components/Header"
@@ -115,12 +116,6 @@ const numeroMedida = (valor: number) => Math.round(Number(valor || 0)).toLocaleS
 const descricaoVidroSemPrefixo = (descricao?: string) =>
   String(descricao || "Espelho").replace(/^vidro\s+/i, "").trim();
 
-const normalizarTexto = (valor?: string) =>
-  String(valor || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
 const calcularAreaItemEspelho = (item: any) => {
   if (Number(item.m2 || 0) > 0) return Number(item.m2 || 0);
   const largura = Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 0);
@@ -129,16 +124,12 @@ const calcularAreaItemEspelho = (item: any) => {
   return (largura * altura * qtd) / 1_000_000;
 };
 
-const quantidadePecasEspelho = (item: any) => {
-  const divisoes = Math.max(1, Number(item.divisoesLargura || 1)) * Math.max(1, Number(item.divisoesAltura || 1));
-  return Math.max(1, Number(item.quantidade || 1)) * divisoes;
-};
-
 const medidaPecaEspelho = (item: any) => {
   const largura = Number(item.larguraReal || String(item.medidas || "").split("x")[0] || 0);
   const altura = Number(item.alturaReal || String(item.medidas || "").split("x")[1] || 0);
-  const divL = Math.max(1, Number(item.divisoesLargura || 1));
-  const divA = Math.max(1, Number(item.divisoesAltura || 1));
+  const jogo = String(item.tipoVisual || "").toLowerCase().includes("jogo");
+  const divL = jogo ? Math.max(1, Number(item.divisoesLargura || 1)) : 1;
+  const divA = jogo ? Math.max(1, Number(item.divisoesAltura || 1)) : 1;
   return `${numeroMedida(largura / divL)}x${numeroMedida(altura / divA)}`;
 };
 
@@ -237,7 +228,8 @@ export default function CalculoEspelhosPage() {
   const [vidrosDB, setVidrosDB] = useState<any[]>([]);
   const [vidroId, setVidroId] = useState("");
   const [acabamentosDB, setAcabamentosDB] = useState<any[]>([]);
-  const [servicosDB, setServicosDB] = useState<any[]>([]);
+  const [erroCatalogo, setErroCatalogo] = useState("");
+  const [recarregarCatalogos, setRecarregarCatalogos] = useState(0);
   const [catalogosCarregados, setCatalogosCarregados] = useState(false);
   const [acabamentoId, setAcabamentoId] = useState("");
   const [listaItens, setListaItens] = useState<any[]>([]);
@@ -245,6 +237,7 @@ export default function CalculoEspelhosPage() {
   const [showModalCentral, setShowModalCentral] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
   const [nomeObra, setNomeObra] = useState("");
+  const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
   const orcamentoAtivo = useClienteOrcamento({ cliente: nomeCliente, onCliente: setNomeCliente, obra: nomeObra, onObra: setNomeObra });
 
   const [divisoesLargura, setDivisoesLargura] = useState(1);
@@ -257,34 +250,40 @@ export default function CalculoEspelhosPage() {
   );
   const draftKey = `orcamento_espelhos_draft_${empresaId || "sem_empresa"}_${centralItemId || centralLoteId || editId || "novo"}`;
 
-  // --- CARREGAR DADOS ---
+  // Catálogos sempre limitados à empresa autenticada.
   useEffect(() => {
+    if (!empresaId) return;
+    let cancelado = false;
     const carregarDados = async () => {
-      const { data: vData } = await supabase.from("vidros").select("*").ilike('nome', '%espelho%').order("nome");
-      if (vData && vData.length > 0) {
-        setVidrosDB(vData);
-        setVidroId(vData[0].id);
+      setCatalogosCarregados(false);
+      setErroCatalogo("");
+      try {
+        const [vidros, acabamentos] = await Promise.all([
+          supabase.from("vidros").select("*").eq("empresa_id", empresaId).ilike("nome", "%espelho%").order("nome"),
+          supabase.from("acabamentos").select("*").eq("empresa_id", empresaId).order("nome"),
+        ]);
+        if (vidros.error) throw vidros.error;
+        if (acabamentos.error) throw acabamentos.error;
+        if (cancelado) return;
+        setVidrosDB(vidros.data || []);
+        setAcabamentosDB(acabamentos.data || []);
+        setVidroId(atual => atual || String(vidros.data?.[0]?.id || ""));
+        setCatalogosCarregados(true);
+      } catch {
+        if (!cancelado) setErroCatalogo("Não foi possível carregar os cadastros. Tente novamente antes de calcular.");
       }
-      const { data: aData } = await supabase.from("acabamentos").select("*").order("nome");
-      if (aData && aData.length > 0) {
-        setAcabamentosDB(aData);
-        setAcabamentoId(""); // começa como Nenhum
-      }
-      const { data: sData } = await supabase.from("servicos").select("*").order("nome");
-      if (sData && sData.length > 0) {
-        setServicosDB(sData);
-      }
-      setCatalogosCarregados(true);
     };
-    carregarDados();
-  }, []);
+    void carregarDados();
+    return () => { cancelado = true; };
+  }, [empresaId, recarregarCatalogos]);
 
-  const buscarOrcamentoParaEdicao = async (id: string) => {
+  const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
     try {
       const { data: orcamento, error } = await supabase
         .from("orcamentos")
         .select("*")
         .eq("id", id)
+        .eq("empresa_id", empresaId!)
         .single();
 
       if (error) throw error;
@@ -300,14 +299,14 @@ export default function CalculoEspelhosPage() {
     } catch (error) {
       console.error("Erro ao carregar Orçamento de espelho para edição:", error);
     }
-  };
+  }, [empresaId]);
 
   useEffect(() => {
-    if (!editId || carregadoRef.current || vidrosDB.length === 0) return;
+    if (!empresaId || !editId || carregadoRef.current || !catalogosCarregados) return;
 
     buscarOrcamentoParaEdicao(editId);
     carregadoRef.current = true;
-  }, [editId, vidrosDB.length]);
+  }, [editId, empresaId, catalogosCarregados, buscarOrcamentoParaEdicao]);
 
   useEffect(() => {
     if (!empresaId || draftRestauradoRef.current || centralItemId || centralLoteId) return;
@@ -419,118 +418,25 @@ export default function CalculoEspelhosPage() {
     }
   };
 
-  // --- CÁLCULO DEPURADO ---
   const calculoAtual = useMemo(() => {
-    const lOriginal = parseFloat(largura) || 0;
-    const aOriginal = parseFloat(altura) || 0;
+    const vazio = { m2: 0, total: 0, memoriaCalculo: undefined, erro: "" };
+    if (!catalogosCarregados) return { ...vazio, erro: erroCatalogo || "Aguarde o carregamento dos cadastros." };
     const vidro = vidrosDB.find(v => String(v.id) === String(vidroId));
-    const acb = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
-    const tipoVisual = normalizarTexto(acb?.tipo_visual);
-    const nomeAcabamento = normalizarTexto(acb?.nome);
-
-    const divisoesL = Math.max(1, Number(divisoesLargura));
-    const divisoesA = Math.max(1, Number(divisoesAltura));
-    const totalPecas = divisoesL * divisoesA;
-
-    if (!vidro || lOriginal === 0 || aOriginal === 0) return { m2: 0, total: 0 };
-
-    // 1. DEFINIR SOBRAS
-    const sobraL = acb ? (Number(acb.sobra_largura) || 0) * 10 : 0;
-    const sobraA = acb ? (Number(acb.sobra_altura) || 0) * 10 : 0;
-
-    // 2. APLICAR SOBRA E ARREDONDAMENTO
-    const lCalc = Math.ceil((lOriginal + sobraL) / 50) * 50;
-    const aCalc = Math.ceil((aOriginal + sobraA) / 50) * 50;
-
-    // 3. ÁREA TOTAL (Bruta ou do Jogo)
-    let areaTotalM2 = 0;
-    let ehJogo = acb?.tipo_visual?.includes('jogo');
-
-    if (ehJogo) {
-      // Cálculo específico para Jogo: área de cada pecinha * total
-      const lPeca = Math.ceil(((lOriginal / divisoesL) + sobraL) / 50) * 50;
-      const aPeca = Math.ceil(((aOriginal / divisoesA) + sobraA) / 50) * 50;
-      areaTotalM2 = (lPeca * aPeca * totalPecas) / 1_000_000;
-    } else {
-      // Cálculo normal
-      areaTotalM2 = (lCalc * aCalc) / 1_000_000;
+    const acabamento = acabamentoId === "" ? null : acabamentosDB.find(a => String(a.id) === String(acabamentoId));
+    if (!vidro) return { ...vazio, erro: "Selecione um espelho disponível no cadastro da empresa." };
+    if (acabamentoId !== "" && !acabamento) return { ...vazio, erro: "O acabamento não está disponível. Selecione um acabamento cadastrado ou Sem acabamento." };
+    if (!largura || !altura) return vazio;
+    try {
+      return { ...calcularEspelho({
+        largura: Number(largura), altura: Number(altura), quantidade,
+        precoVidroM2: vidro.preco, acabamento: acabamento ?? null,
+        divisoesLargura, divisoesAltura,
+      }), erro: "" };
+    } catch (erro) {
+      return { ...vazio, erro: erro instanceof Error ? erro.message : "Confira os dados do acabamento." };
     }
+  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura, catalogosCarregados, erroCatalogo]);
 
-    // 4. VALOR BASE DO VIDRO (Área Total * Preço)
-    let valorVidro = areaTotalM2 * normalizarPrecoCatalogo(vidro.preco);
-    let totalComAdicionais = valorVidro;
-
-    const ehRedondoComLed = !!acb && tipoVisual.includes("redondo") && tipoVisual.includes("led");
-    const ehAcabamentoLedComAdesivo = nomeAcabamento.includes("led") && nomeAcabamento.includes("adesivo");
-    const ehBordaBisoteOuLapidado =
-      nomeAcabamento.includes("bisote") ||
-      nomeAcabamento.includes("lapidado") ||
-      tipoVisual.startsWith("bisote-") ||
-      tipoVisual.startsWith("lapidado-");
-
-    if (ehRedondoComLed && ehAcabamentoLedComAdesivo && ehBordaBisoteOuLapidado) {
-      const registro = acb as Record<string, unknown>;
-      const lerPreco = (chaves: string[]) => {
-        for (const chave of chaves) {
-          const bruto = Number(registro?.[chave] ?? 0);
-          if (Number.isFinite(bruto) && bruto > 0) return bruto;
-        }
-        return 0;
-      };
-
-      const buscarPrecoServico = (palavras: string[]) => {
-        const servico = servicosDB.find((item: any) => {
-          const nome = normalizarTexto(String(item?.nome || ""));
-          const unidade = normalizarTexto(String(item?.unidade || ""));
-          const bateNome = palavras.some((palavra) => nome.includes(palavra));
-          const ehM2 = unidade === "m²" || unidade === "m2";
-          return bateNome && ehM2;
-        });
-        return Number(servico?.preco || 0);
-      };
-
-      const areaComMargemM2 = ((lOriginal + 100) * (aOriginal + 100)) / 1_000_000;
-      const precoM2Espelho = normalizarPrecoCatalogo(vidro.preco);
-      const precoJatoAcabamento = lerPreco(["preco_jato", "precoJato", "valor_jato", "valorJato", "jato_preco", "preco_jateado", "precoJateado", "preco_jato_m2", "valor_jato_m2"]);
-      const precoAdesivoAcabamento = lerPreco(["preco_adesivo", "precoAdesivo", "valor_adesivo", "valorAdesivo", "adesivo_preco", "preco_adesivo_m2", "valor_adesivo_m2"]);
-      const precoJatoServico = buscarPrecoServico(["jato", "jateado"]);
-      const precoAdesivoServico = buscarPrecoServico(["adesivo", "pelicula", "película"]);
-      const precoJatoM2 = precoJatoAcabamento > 0 ? precoJatoAcabamento : precoJatoServico;
-      const precoAdesivoM2 = precoAdesivoAcabamento > 0 ? precoAdesivoAcabamento : precoAdesivoServico;
-
-      const valorEspelhoComAcrescimo = areaComMargemM2 * precoM2Espelho * 1.1;
-      const valorJato = areaComMargemM2 * precoJatoM2;
-      const valorAdesivo = areaComMargemM2 * precoAdesivoM2;
-
-      return {
-        m2: areaComMargemM2 * quantidade,
-        total: (valorEspelhoComAcrescimo + valorJato + valorAdesivo) * quantidade,
-      };
-    }
-
-    // 5. APLICAR ADICIONAIS DO ACABAMENTO
-    if (acb) {
-      if (acb.tipo_calculo === 'porcentagem') {
-        const percentual = Number(acb.porcentagem_aumento || 0)
-        totalComAdicionais += valorVidro * (percentual / 100)
-      }
-      else if (acb.tipo_calculo === 'm2') {
-        totalComAdicionais += areaTotalM2 * Number(acb.preco);
-      }
-      else if (acb.tipo_calculo === 'metro_linear') {
-        totalComAdicionais += ((lOriginal + aOriginal) * 2 / 1000) * Number(acb.preco);
-      } else if (acb.tipo_calculo === 'unitário') {
-        totalComAdicionais += Number(acb.preco);
-      }
-    }
-
-    return {
-      m2: areaTotalM2 * quantidade,
-      total: totalComAdicionais * quantidade
-    };
-  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, servicosDB, divisoesLargura, divisoesAltura]);
-
-  const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
 
   const restaurarCamposItem = (item: any) => {
     setLargura(String(item.larguraReal || String(item.medidas).split('x')[0] || ''));
@@ -538,11 +444,14 @@ export default function CalculoEspelhosPage() {
     setQuantidade(Number(item.quantidade) || 1);
     setDivisoesLargura(Number(item.divisoesLargura) || 1);
     setDivisoesAltura(Number(item.divisoesAltura) || 1);
-    const vidro = vidrosDB.find(v => String(v.id) === String(item.vidroId)) || vidrosDB.find(v => String(item.descricao || '').includes(v.nome));
-    if (vidro) setVidroId(String(vidro.id));
-    const acabamento = acabamentosDB.find(a => String(a.id) === String(item.acabamentoId)) || (item.acabamentoId === '' || item.tipoVisual === 'padrao' ? undefined : acabamentosDB.find(a => a.tipo_visual === item.tipoVisual));
-    setAcabamentoId(acabamento ? String(acabamento.id) : '');
-    camposOriginaisRef.current = JSON.stringify([String(item.larguraReal || String(item.medidas).split('x')[0] || ''), String(item.alturaReal || String(item.medidas).split('x')[1] || ''), Number(item.quantidade)||1, vidro ? String(vidro.id) : String(vidroId), acabamento ? String(acabamento.id) : '', Number(item.divisoesLargura)||1, Number(item.divisoesAltura)||1]);
+    // Não substituir cadastros excluídos por outro nome/formato semelhante.
+    const vidro = vidrosDB.find(v => String(v.id) === String(item.vidroId));
+    const idVidro = vidro ? String(vidro.id) : String(item.vidroId || "indisponivel");
+    const idAcabamento = item.acabamentoId != null ? String(item.acabamentoId)
+      : item.tipoVisual && item.tipoVisual !== "padrao" ? "indisponivel" : "";
+    setVidroId(idVidro);
+    setAcabamentoId(idAcabamento);
+    camposOriginaisRef.current = JSON.stringify([String(item.larguraReal || String(item.medidas).split('x')[0] || ''), String(item.alturaReal || String(item.medidas).split('x')[1] || ''), Number(item.quantidade)||1, idVidro, idAcabamento, Number(item.divisoesLargura)||1, Number(item.divisoesAltura)||1]);
     setItemEmEdicao(item.id);
   };
 
@@ -580,18 +489,11 @@ export default function CalculoEspelhosPage() {
     } catch (erro) { console.error('Erro ao recuperar lote de espelhos', erro); }
   }, [centralItemId, centralLoteId, vidrosDB, acabamentosDB, catalogosCarregados]);
   const criarItemDoFormulario = () => {
-    if (calculoAtual.total === 0) return null;
+    if (calculoAtual.erro || !calculoAtual.memoriaCalculo) return null;
     const vSel = vidrosDB.find(v => String(v.id) === String(vidroId));
-    const aSel = acabamentosDB.find(a => Number(a.id) === Number(acabamentoId));
+    const aSel = acabamentoId === "" ? undefined : acabamentosDB.find(a => String(a.id) === String(acabamentoId));
 
-    // --- LÓGICA DE LIMPEZA ---
-    let nomeAcabamento = aSel?.nome || '';
-
-    // Remove termos repetitivos como "(Lapidado)" ou "(Bisotê)" do nome do acabamento
-    nomeAcabamento = nomeAcabamento
-      .replace(/\(Lapidado\)/g, '')
-      .replace(/\(Bisotê\)/g, '')
-      .trim();
+    const nomeAcabamento = aSel?.nome || '';
 
     const descricaoFinal = aSel
       ? `${vSel?.nome} ${vSel?.espessura} ${vSel?.tipo} - ${nomeAcabamento}`
@@ -606,13 +508,14 @@ export default function CalculoEspelhosPage() {
       precoVidroM2: normalizarPrecoCatalogo(vSel?.preco),
       m2: calculoAtual.m2,
       total: calculoAtual.total,
+      memoriaCalculo: calculoAtual.memoriaCalculo,
 
       // 🔥 ESSENCIAL PARA O PDF
       tipoVisual: aSel?.tipo_visual || 'padrao',
       larguraReal: Number(largura),
       alturaReal: Number(altura),
-      divisoesLargura: divisoesLargura,
-      divisoesAltura: divisoesAltura,
+      divisoesLargura: calculoAtual.memoriaCalculo.entrada.divisoesLargura,
+      divisoesAltura: calculoAtual.memoriaCalculo.entrada.divisoesAltura,
     };
     return itemAtualizado;
   };
@@ -634,16 +537,21 @@ export default function CalculoEspelhosPage() {
     }, 10);
   };
 
-  const enviarParaCentralImpressao = (comDesenho: boolean) => {
+  const obterItensParaSalvar = () => {
     const camposAlterados = itemEmEdicao !== null && camposOriginaisRef.current !== JSON.stringify([largura, altura, quantidade, String(vidroId), String(acabamentoId), divisoesLargura, divisoesAltura]);
     const itemEditado = camposAlterados ? criarItemDoFormulario() : null;
     if (camposAlterados && !itemEditado) {
-      setModalAvisoTitulo("Confira as medidas");
-      setModalAvisoMensagem("Preencha medidas válidas para atualizar o espelho em edição.");
+      setModalAvisoTitulo("Confira o item em edição");
+      setModalAvisoMensagem(calculoAtual.erro || "Preencha medidas válidas para atualizar o espelho em edição.");
       setShowModalAviso(true);
       return;
     }
-    const itensParaEnviar = itemEditado ? listaItens.map(item => item.id === itemEmEdicao ? itemEditado : item) : listaItens;
+    return itemEditado ? listaItens.map(item => item.id === itemEmEdicao ? itemEditado : item) : listaItens;
+  };
+
+  const enviarParaCentralImpressao = (comDesenho: boolean) => {
+    const itensParaEnviar = obterItensParaSalvar();
+    if (!itensParaEnviar) return;
     if (itensParaEnviar.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Adicione pelo menos um espelho antes de enviar para a central de impressão.");
@@ -661,6 +569,7 @@ export default function CalculoEspelhosPage() {
       medida: medidaPecaEspelho(item),
       vidro: descricaoVidroSemPrefixo(item.descricao),
       precoVidroM2: item.precoVidroM2,
+      areaCobradaM2: calcularAreaItemEspelho(item),
       valorTotal: Number(item.total || 0),
     }));
 
@@ -670,7 +579,7 @@ export default function CalculoEspelhosPage() {
 
       return {
         id: criarId(),
-        qtd: Number(area.toFixed(3)),
+        qtd: area,
         unidade: "m2",
         descricao: `ESPELHO ${medidaPecaEspelho(item)} ${descricaoVidroSemPrefixo(item.descricao)}`.toUpperCase(),
         valorUnitario,
@@ -709,7 +618,7 @@ export default function CalculoEspelhosPage() {
         valorTotal: Number(item.total || 0),
         materiais: [{
           id: criarId(),
-          qtd: Number(calcularAreaItemEspelho(item).toFixed(3)),
+          qtd: calcularAreaItemEspelho(item),
           unidade: "m2",
           descricao: `ESPELHO ${medidaPecaEspelho(item)} ${descricaoVidroSemPrefixo(item.descricao)}`.toUpperCase(),
           valorUnitario: calcularAreaItemEspelho(item) > 0 ? Number(item.total || 0) / calcularAreaItemEspelho(item) : 0,
@@ -871,8 +780,10 @@ export default function CalculoEspelhosPage() {
 
   const handleSalvarOrcamento = async () => {
     if (orcamentoAtivo) { enviarParaCentralImpressao(true); return; }
+    const itensParaSalvar = obterItensParaSalvar();
+    if (!itensParaSalvar) return;
     // Validação
-    if (!nomeCliente || listaItens.length === 0) {
+    if (!nomeCliente || itensParaSalvar.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Para prosseguir, preencha o nome do cliente e adicione pelo menos um item ao Orçamento.");
       setShowModalAviso(true);
@@ -914,15 +825,15 @@ export default function CalculoEspelhosPage() {
         numero = await gerarNumeroOrcamento();
       }
 
-      const totalGeral = listaItens.reduce((sum, item) => sum + item.total, 0);
-      const metragemTotal = listaItens.reduce((sum, item) => sum + (item.m2 || 0), 0);
+      const totalGeral = itensParaSalvar.reduce((sum, item) => sum + item.total, 0);
+      const metragemTotal = itensParaSalvar.reduce((sum, item) => sum + (item.m2 || 0), 0);
 
       const payload = {
         numero_formatado: numero,
         tipo: "espelhos",
         cliente_nome: nomeCliente,
         obra_referencia: nomeObra,
-        itens: listaItens,
+        itens: itensParaSalvar,
         valor_total: Number(totalGeral) || 0,
         metragem_total: Number(metragemTotal) || 0,
         theme_color: theme.contentTextLightBg,
@@ -1184,10 +1095,12 @@ export default function CalculoEspelhosPage() {
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Selecione o Espelho</label>
                     <select
                       value={vidroId}
+                      disabled={!catalogosCarregados}
                       onChange={(e) => setVidroId(e.target.value)}
                       className="w-full p-3 mt-1 rounded-xl border border-gray-200 bg-white focus:ring-2 outline-none transition-all text-sm text-gray-600 cursor-pointer"
                       style={{ "--tw-ring-color": theme.menuIconColor } as any}
                     >
+                      {!vidrosDB.some(v => String(v.id) === String(vidroId)) && <option value={vidroId}>Selecione um espelho cadastrado</option>}
                       {vidrosDB.map(v => (
                         <option key={v.id} value={v.id}>
                           {v.nome} {v.espessura} - {v.tipo} ({Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/m²)
@@ -1199,11 +1112,14 @@ export default function CalculoEspelhosPage() {
               </div>
 
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-bold" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
+                  <button type="button" disabled={!catalogosCarregados && !erroCatalogo} onClick={() => setRecarregarCatalogos(v => v + 1)} className="text-xs underline disabled:opacity-50">Atualizar preços do cadastro</button>
+                </div>
                 <div className="space-y-2 max-h-87.5 overflow-y-auto pr-2">
                   {/* OPÇÃO: SEM ACABAMENTO */}
                   <label className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
-                    <span className="text-sm font-medium text-gray-500">Nenhum / Apenas Lapidado</span>
+                    <span className="text-sm font-medium text-gray-500">Sem acabamento</span>
                     <input
                       type="radio"
                       name="acabamento"
@@ -1218,29 +1134,32 @@ export default function CalculoEspelhosPage() {
                   {acabamentosDB.map((item) => {
                     // Define o estilo do ícone baseado no tipo_visual do banco
                     let iconStyle = "border-2 border-gray-400";
-                    if (item.tipo_visual.includes('redondo')) iconStyle = "rounded-full border-2 border-gray-400";
-                    else if (item.tipo_visual.includes('bisote')) iconStyle = "rounded-sm border-4 border-double border-gray-400";
-                    else if (item.tipo_visual.includes('organico') || item.tipo_visual.includes('molde')) iconStyle = "rounded-[20px] border-2 border-gray-400";
-                    else if (item.tipo_visual.includes('led')) iconStyle = "rounded border-4 border-gray-400";
+                    if (String(item.tipo_visual || '').includes('redondo')) iconStyle = "rounded-full border-2 border-gray-400";
+                    else if (String(item.tipo_visual || '').includes('bisote')) iconStyle = "rounded-sm border-4 border-double border-gray-400";
+                    else if (String(item.tipo_visual || '').includes('organico') || String(item.tipo_visual || '').includes('molde')) iconStyle = "rounded-[20px] border-2 border-gray-400";
+                    else if (String(item.tipo_visual || '').includes('led')) iconStyle = "rounded border-4 border-gray-400";
 
                     return (
                       <label key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
                         {/* --- EXIBIÇÃO DO DESENHO NA LISTA --- */}
                         <div className={`shrink-0 bg-gray-300 w-10 h-10 ${iconStyle} flex items-center justify-center`}>
-                          {item.tipo_visual.includes('jogo') && (
+                          {String(item.tipo_visual || '').includes('jogo') && (
                             <div className="grid grid-cols-3 gap-0.5 p-0.5 h-full w-full">
                               {[...Array(9)].map((_, i) => <div key={i} className="bg-white rounded-sm"></div>)}
                             </div>
                           )}
-                          {item.tipo_visual.includes('led') && (
+                          {String(item.tipo_visual || '').includes('led') && (
                             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                           )}
                         </div>
 
                         <div className="flex-1">
                           <span className="text-sm font-medium text-gray-700">{item.nome}</span>
+                          <p className="text-xs text-gray-500">{item.tipo_calculo === "porcentagem"
+                            ? Number(item.porcentagem_aumento || 0).toLocaleString("pt-BR") + "% sobre o vidro"
+                            : Number(item.preco || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + ({ m2: "/m²", metro_linear: "/m", "unitário": "/peça" }[item.tipo_calculo as string] || "")}</p>
                           {/* Mostra o tipo técnico do banco como label secundária */}
-                          <p className="text-xs text-gray-400 capitalize">{item.tipo_visual.replace(/-/g, ' ')}</p>
+                          <p className="text-xs text-gray-400 capitalize">{String(item.tipo_visual || '').replace(/-/g, ' ')}</p>
                         </div>
 
                         <input
@@ -1274,13 +1193,36 @@ export default function CalculoEspelhosPage() {
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subtotal do item</p>
+                  {itemEmEdicao !== null && <p className="mt-1 text-xs text-gray-500">Atualizar o item aplica os preços atuais do cadastro.</p>}
+                  {calculoAtual.erro && <p role="alert" className="mt-2 text-sm text-red-600">{calculoAtual.erro}</p>}
+                  {erroCatalogo && <button type="button" className="text-sm underline" onClick={() => setRecarregarCatalogos(v => v + 1)}>Tentar novamente</button>}
+                  <p className="mt-1 text-xs text-gray-500">Área com sobras cadastradas e arredondamento de 5 em 5 cm por peça.</p>
+                  {calculoAtual.memoriaCalculo && (() => {
+                    const memoria = calculoAtual.memoriaCalculo;
+                    const regra = memoria.entrada.acabamento;
+                    const dinheiro = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                    const decimal = (valor: number) => valor.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+                    return <details className="mt-2 text-xs text-gray-600" open>
+                      <summary className="cursor-pointer font-medium">Composição do cálculo</summary>
+                      <dl className="mt-2 space-y-1">
+                        <div>Acabamento: {regra?.nome || "Sem acabamento"}</div>
+                        <div>Medidas cobradas por peça: {decimal(memoria.larguraCobrada)} × {decimal(memoria.alturaCobrada)} mm · Área total: {decimal(memoria.m2)} m²</div>
+                        <div>Espelho: {decimal(memoria.m2)} m² × {dinheiro(memoria.entrada.precoVidroM2)} = {dinheiro(memoria.valorVidro)}</div>
+                        <div>{regra?.tipo_calculo === "porcentagem"
+                          ? "Acréscimo de " + decimal(regra.porcentagem_aumento) + "% sobre o espelho"
+                          : "Acabamento (" + (regra?.tipo_calculo || "nenhum") + ")"}: {dinheiro(memoria.valorAcabamento)}</div>
+                        <div>Jato: {decimal(memoria.m2)} m² × {dinheiro(regra?.preco_jato || 0)} = {dinheiro(memoria.valorJato)}</div>
+                        <div>Adesivo: {decimal(memoria.m2)} m² × {dinheiro(regra?.preco_adesivo || 0)} = {dinheiro(memoria.valorAdesivo)}</div>
+                      </dl>
+                    </details>;
+                  })()}
                   <p className="text-2xl font-bold text-gray-700">
                     {calculoAtual.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </p>
                 </div>
                 <button
                   onClick={adicionarAoPedido}
-                  disabled={calculoAtual.total === 0}
+                  disabled={!!calculoAtual.erro || !calculoAtual.memoriaCalculo}
                   className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm border-2 transition-all disabled:opacity-30 active:scale-95"
                   style={{
                     borderColor: theme.menuIconColor,

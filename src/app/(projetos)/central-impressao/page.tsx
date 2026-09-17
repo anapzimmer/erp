@@ -17,6 +17,7 @@ import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividu
 import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
+import { trocarVidroComposicaoEspelhos } from "@/utils/espelhosCentral";
 import { obterAreaCobradaVidro } from "@/utils/precoVidroRelatorio";
 import { descricaoVidroCompativel } from "@/utils/vidros";
 
@@ -1730,6 +1731,12 @@ export default function CentralImpressaoPage() {
   };
 
   const atualizarItem = <K extends keyof ProjetoComposicao>(id: string, campo: K, valor: ProjetoComposicao[K]) => {
+    const atual = itens.find(item => item.id === id);
+    if (atual && (/^espelhos?/i.test(atual.projeto || "") || atual.espelhoItens?.length)
+      && ["valorTotal", "largura", "altura", "quantidade", "vidro", "trilho", "puxador", "tamanhoPuxador", "vidrosAvulsos", "materiais"].includes(String(campo))) {
+      setMensagem("Use Editar para alterar as medidas, o vidro ou o acabamento deste espelho e recalcular o valor.");
+      return;
+    }
     setItens((lista) =>
       lista.map((item) => {
         if (item.id !== id) return item;
@@ -1793,45 +1800,56 @@ export default function CentralImpressaoPage() {
       return area * precoVidroSelecionado;
     };
 
-    const itensNovoVidro = itens.map((item) => {
-      const materiaisAtualizados = item.materiais?.map((material) => ({
-        ...material,
-        id: criarId(),
-        descricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
-          : material.descricao,
-        valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
-          : material.valorUnitario,
-      }));
-      const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro, index) => {
-        if (!deveTrocarVidro(vidro.vidro)) return { ...vidro, id: criarId() };
+    let itensNovoVidro: ProjetoComposicao[];
+    try {
+      itensNovoVidro = itens.map((item) => {
+        if (/^espelhos?/i.test(item.projeto || "") || item.espelhoItens?.length) {
+          const corresponde = [item.vidro, ...(item.espelhoItens || []).map(peca => peca.descricao), ...(item.vidrosAvulsos || []).map(peca => peca.vidro), ...(item.materiais || []).map(material => material.descricao)].some(deveTrocarVidro);
+          if (!corresponde) return { ...item, id: criarId(), numero: "Novo Orçamento" };
+          return { ...trocarVidroComposicaoEspelhos(item, { id: vidroSelecionadoOrcamento.id, descricao: novoVidro, preco: precoVidroSelecionado }, deveTrocarVidro), id: criarId(), numero: "Novo Orçamento" };
+        }
+        const materiaisAtualizados = item.materiais?.map((material) => ({
+          ...material,
+          id: criarId(),
+          descricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
+            : material.descricao,
+          valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
+            : material.valorUnitario,
+        }));
+        const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro, index) => {
+          if (!deveTrocarVidro(vidro.vidro)) return { ...vidro, id: criarId() };
+
+          return {
+            ...vidro,
+            id: criarId(),
+            vidro: novoVidro,
+            precoVidroM2: precoVidroSelecionado,
+            areaCobradaM2: obterAreaCobradaVidro(vidro, item, index),
+            valorTotal: valorVidroAvulsoAtualizado(vidro, item, index),
+          };
+        });
+        const valorTotalAtualizado = vidrosAvulsosAtualizados?.length
+          ? vidrosAvulsosAtualizados.reduce((total, vidro) => total + Number(vidro.valorTotal || 0), 0)
+          : materiaisAtualizados?.length ? somarMateriais(materiaisAtualizados) : Number(item.valorTotal || 0);
 
         return {
-          ...vidro,
+          ...item,
           id: criarId(),
-          vidro: novoVidro,
-          precoVidroM2: precoVidroSelecionado,
-          areaCobradaM2: obterAreaCobradaVidro(vidro, item, index),
-          valorTotal: valorVidroAvulsoAtualizado(vidro, item, index),
+          numero: "Novo Orçamento",
+          vidro: deveTrocarVidro(item.vidro) ? novoVidro : item.vidro,
+          vidroPeitoril: deveTrocarVidro(item.vidroPeitoril) ? novoVidro : item.vidroPeitoril,
+          vidroJanela: deveTrocarVidro(item.vidroJanela) ? novoVidro : item.vidroJanela,
+          vidroBandeira: deveTrocarVidro(item.vidroBandeira) ? novoVidro : item.vidroBandeira,
+          materiais: materiaisAtualizados,
+          vidrosAvulsos: vidrosAvulsosAtualizados,
+          valorTotal: valorTotalAtualizado,
         };
       });
-      const valorTotalAtualizado = vidrosAvulsosAtualizados?.length
-        ? vidrosAvulsosAtualizados.reduce((total, vidro) => total + Number(vidro.valorTotal || 0), 0)
-        : materiaisAtualizados?.length ? somarMateriais(materiaisAtualizados) : Number(item.valorTotal || 0);
 
-      return {
-        ...item,
-        id: criarId(),
-        numero: "Novo Orçamento",
-        vidro: deveTrocarVidro(item.vidro) ? novoVidro : item.vidro,
-        vidroPeitoril: deveTrocarVidro(item.vidroPeitoril) ? novoVidro : item.vidroPeitoril,
-        vidroJanela: deveTrocarVidro(item.vidroJanela) ? novoVidro : item.vidroJanela,
-        vidroBandeira: deveTrocarVidro(item.vidroBandeira) ? novoVidro : item.vidroBandeira,
-        materiais: materiaisAtualizados,
-        vidrosAvulsos: vidrosAvulsosAtualizados,
-        valorTotal: valorTotalAtualizado,
-      };
-    });
-
+    } catch (erro) {
+      setMensagem(erro instanceof Error ? erro.message : "Não foi possível recalcular os espelhos.");
+      return;
+    }
     setItens(itensNovoVidro);
     setNumeroOrcamento("Novo Orçamento");
     setMensagem(`Cópia do orçamento criada com vidro ${novoVidro}. Revise os valores e salve para gerar um novo número.`);
@@ -3012,9 +3030,10 @@ router.push(
                             <input
                               value={numeroDecimal(vidroAvulso ? resumoAvulso?.valor || 0 : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
                               onChange={(e) => atualizarItem(item.id, "valorTotal", parseNumero(e.target.value))}
-                              readOnly={otimizacaoAplicada}
+                              readOnly={otimizacaoAplicada || /^espelhos?/i.test(item.projeto || "")}
                               className={`w-full bg-transparent text-sm font-bold text-slate-700 outline-none ${otimizacaoAplicada ? "cursor-default" : ""}`}
                             />
+                            {/^espelhos?/i.test(item.projeto || "") && <p className="mt-1 text-xs text-slate-500">Valor calculado pelos acabamentos. Use Editar para alterar.</p>}
                             {otimizacaoAplicada ? (
                               <p className="mt-1 text-[11px] font-semibold text-emerald-700">
                                 Valor com otimização rateada
