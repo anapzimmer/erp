@@ -14,7 +14,7 @@ import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
-import { formatarNomePadrão } from "@/utils/formatarNome";
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import {
   AlertTriangle,
   Calendar,
@@ -669,12 +669,12 @@ export default function Box2FlsPage() {
         empresa_id: empresaId,
         tipo_pessoa: novoCliente.tipo_pessoa,
         cpf_cnpj: documento || null,
-        nome: formatarNomePadrão(novoCliente.nome),
+        nome: formatarNomePadrao(novoCliente.nome),
         rota: novoCliente.rota.trim(),
         grupo_preco_id: novoCliente.grupo_preco_id || null,
         telefone: novoCliente.telefone.trim() || null,
         email: novoCliente.email.trim().toLowerCase() || null,
-        cidade: novoCliente.cidade ? formatarNomePadrão(novoCliente.cidade) : null,
+        cidade: novoCliente.cidade ? formatarNomePadrao(novoCliente.cidade) : null,
         estado: novoCliente.estado.trim().toUpperCase().slice(0, 2) || null,
       };
 
