@@ -205,7 +205,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
 });
 
 const corMaterialOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
-const maxProjetoOpcoes = ["Max Ãšnico", "Max V/V", "Max com tubo", "Max bandeira"];
+const maxProjetoOpcoes = ["Max Único", "Max V/V", "Max com tubo", "Max bandeira"];
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -291,7 +291,7 @@ export default function MaxPage() {
     corKit: "Escolher",
     puxador: "",
     tamanhoPuxador: "",
-    trinco: "Max Ãšnico",
+    trinco: "Max Único",
     observacao: "",
     tuboPerfil: "Escolher",
   });
@@ -380,7 +380,7 @@ export default function MaxPage() {
         corKit: item.corPerfil || item.corKit || "Escolher",
         puxador: item.puxador || "",
         tamanhoPuxador: item.tamanhoPuxador || "",
-        trinco: item.trinco || "Max Ãšnico",
+        trinco: item.trinco || "Max Único",
         observacao: item.observacao || "",
         tuboPerfil: item.observacao || "Escolher",
       }));
@@ -402,7 +402,7 @@ export default function MaxPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * (dados.trinco === "Max Ãšnico" ? 1 : 2);
+  const totalVidros = Number(dados.quantidade || 0) * (dados.trinco === "Max Único" ? 1 : 2);
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
@@ -512,7 +512,7 @@ export default function MaxPage() {
     const largura = Number(dados.largura || 0);
     const altura = Number(dados.altura || 0);
     const quantidadeProjeto = Number(dados.quantidade || 0);
-    const maxUnico = dados.trinco === "Max Ãšnico";
+    const maxUnico = dados.trinco === "Max Único";
     const alturaBase = maxUnico ? altura : altura / 2;
     const larguraMaxMedida = Math.max(0, largura - 12);
     const alturaMaxMedida = Math.max(0, alturaBase - 12);
@@ -804,7 +804,7 @@ export default function MaxPage() {
     const projeto = dados.trinco;
     const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> = [];
 
-    if (projeto === "Max Ãšnico" || projeto === "Max com tubo") {
+    if (projeto === "Max Único" || projeto === "Max com tubo") {
       regras.push({ codigo: "KTM30VA", multiplicador: 1 });
     }
 
@@ -847,7 +847,7 @@ export default function MaxPage() {
     const alturaFixo = Number(calculoVidro.alturaFixoMedida || 0);
     const larguraFixo = Number(calculoVidro.larguraFixoMedida || 0);
     const espessura = obterEspessuraVidro(dados.vidro);
-    const maxUnico = dados.trinco === "Max Ãšnico";
+    const maxUnico = dados.trinco === "Max Único";
 
     if (quantidadeProjeto <= 0 || largura <= 0 || alturaMax <= 0) return [];
 
@@ -901,7 +901,7 @@ export default function MaxPage() {
         descricao: descricaoVidroMax,
         valorUnitario: precoVidroM2,
       });
-      const vidroFixo = dados.trinco === "Max Ãšnico" ? null : criarMaterial({
+      const vidroFixo = dados.trinco === "Max Único" ? null : criarMaterial({
         qtd: calculoVidro.areaFixo,
         unidade: "m2",
         descricao: descricaoVidroFixo,
@@ -938,7 +938,7 @@ export default function MaxPage() {
       corKit: "Escolher",
       puxador: "",
       tamanhoPuxador: "",
-      trinco: "Max Ãšnico",
+      trinco: "Max Único",
       observacao: "",
       tuboPerfil: "Escolher",
     }));
@@ -1558,7 +1558,7 @@ export default function MaxPage() {
                         <OptionInput
                           icon={<Settings size={24} strokeWidth={1.6} />}
                           label="Projeto"
-                          value={dados.trinco || "Max Ãšnico"}
+                          value={dados.trinco || "Max Único"}
                           options={maxProjetoOpcoes}
                           onChange={(v) => {
                             atualizarCampo("trinco", v);
