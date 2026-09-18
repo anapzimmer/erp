@@ -111,6 +111,7 @@ type CentralImpressaoProjetoItem = {
   numero?: string;
   projeto?: string;
   cliente?: string;
+  obra?: string;
   medidas?: string;
   largura?: number;
   altura?: number;
@@ -244,6 +245,8 @@ export default function PC2FBarraPage() {
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
+
+    obra: "",
     largura: 0,
     altura: 0,
     quantidade: 1,
@@ -327,6 +330,7 @@ export default function PC2FBarraPage() {
         projeto: "PC2F - BARRA",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
+        obra: item.obra || "",
         largura: Number(item.largura || 0),
         altura: Number(item.altura || 0),
         quantidade: Number(item.quantidade || 1),
@@ -866,6 +870,8 @@ export default function PC2FBarraPage() {
     setDados((atual) => ({
       ...atual,
       cliente: "",
+
+      obra: "",
       largura: 0,
       altura: 0,
       quantidade: 1,
@@ -890,6 +896,7 @@ export default function PC2FBarraPage() {
       numero: dados.numero || "novo",
       projeto: "Porta de correr 2 folhas - Barra",
       cliente: dados.cliente || "",
+      obra: dados.obra?.trim() || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
@@ -968,6 +975,7 @@ export default function PC2FBarraPage() {
       ...(itens.dados || {}),
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
+      obra: itens.dados?.obra || "",
       projeto: "PC2F - BARRA",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
@@ -1073,7 +1081,7 @@ export default function PC2FBarraPage() {
       const payload = {
         numero_formatado: numeroFinal,
         cliente_nome: dadosAtualizados.cliente || "Consumidor",
-        obra_referencia: dadosAtualizados.projeto,
+        obra_referencia: dadosAtualizados.obra?.trim() || null,
         itens: itensPersistidos,
         valor_total: Number(totalMateriais || 0),
         metragem_total: Number(calculoVidro.areaTotalCobrada || 0),
@@ -1133,7 +1141,7 @@ export default function PC2FBarraPage() {
     <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
       <div className="flex min-h-screen w-full">
         <div className="flex min-h-screen w-full flex-col bg-transparent">
-          <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(280px,0.9fr)_minmax(520px,1.45fr)]">
+          <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">
             <div className="flex items-center">
               <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
@@ -1161,7 +1169,7 @@ export default function PC2FBarraPage() {
               />
             </div>
 
-                        <div className="sm:border-l sm:border-slate-200/80 sm:pl-4">
+                        <div className="sm:justify-self-end sm:border-l sm:border-slate-200/80 sm:pl-4">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
                 <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-t-0 sm:px-3">
                   <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
@@ -1191,6 +1199,7 @@ export default function PC2FBarraPage() {
             </div></header>
 
           <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6">
+            <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
             <div className="relative min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
               <div className="mb-0.5 flex items-center justify-between gap-2">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
@@ -1296,6 +1305,16 @@ export default function PC2FBarraPage() {
                   </span>
                 </div>
               )}
+            </div>
+              <label className="block min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Nome da obra (opcional)</span>
+                <input
+                  value={dados.obra || ""}
+                  onChange={(e) => atualizarCampo("obra", e.target.value)}
+                  placeholder="Informe o nome da obra"
+                  className="w-full border-0 bg-transparent py-1 text-[15px] text-[#07385a] outline-none placeholder:text-slate-400"
+                />
+              </label>
             </div>
           </section>
 

@@ -29,6 +29,7 @@ export type ProjetoIndividualDados = {
   numero: string;
   data: string;
   cliente: string;
+  obra?: string;
   largura: number;
   altura: number;
   quantidade: number;
