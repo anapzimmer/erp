@@ -47,19 +47,12 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "Espelhos", href: "/calculo/espelhos" },
       { label: "Vidros", href: "/calculo/calculovidro" },
-      { label: "Pinázio", href: "/calculo/pinazio" },
-      { label: "Sacada Frontal", href: "/calculo/sacadafrontal" },
-      { label: "Sacada com Torre", href: "/calculo/sacadatorre" },
-      { label: "Sacada Grapa", href: "/calculo/sacadagrapa" },
-      { label: "Fechamento Sacada", href: "/calculo/fechamentosacada" },
-      { label: "Pele de Vidro", href: "/calculo/peledevidro" },
-      { label: "Fora de esquadro", href: "/calculo/fora-esquadro" },
+      { label: "Matriz de Orçamentos", href: "/matriz-projetos" },
     ],
   },
   {
     group: "Projetos",
     items: [
-      { label: "Matriz de Projetos", href: "/matriz-projetos" },
       { label: "Central de Impressão", href: "/central-impressao" },
       { label: "Imagens", href: "/imagens" },
     ],

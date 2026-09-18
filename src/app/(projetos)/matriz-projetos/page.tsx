@@ -10,6 +10,72 @@ import { useTheme } from "@/context/ThemeContext";
 
 const projetos = [
   {
+    "id": "pinazio",
+    "nome": "Pinázio",
+    "categoria": "Pinázio",
+    "titulo": "Divisões e acabamentos",
+    "descricao": "Monte a composição do vidro e ajuste as divisões do pinázio.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-pinazio.svg",
+    "kitHref": "/calculo/pinazio",
+    "kitLabel": "Calcular"
+  },
+  {
+    "id": "sacadafrontal",
+    "nome": "Sacada frontal",
+    "categoria": "Sacadas",
+    "titulo": "Fixação frontal",
+    "descricao": "Configure os vidros, as divisões e os perfis da sacada frontal.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-sacadafrontal.svg",
+    "kitHref": "/calculo/sacadafrontal",
+    "kitLabel": "Calcular"
+  },
+  {
+    "id": "sacadatorre",
+    "nome": "Sacada com torre",
+    "categoria": "Sacadas",
+    "titulo": "Vidros com torres",
+    "descricao": "Defina medidas, divisões e torres de fixação.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-sacadatorre.svg",
+    "kitHref": "/calculo/sacadatorre",
+    "kitLabel": "Calcular"
+  },
+  {
+    "id": "sacadagrapa",
+    "nome": "Sacada com grapa",
+    "categoria": "Sacadas",
+    "titulo": "Grapas e tubo opcional",
+    "descricao": "Ajuste as divisões, as grapas e a posição do tubo.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-sacadagrapa.svg",
+    "kitHref": "/calculo/sacadagrapa",
+    "kitLabel": "Calcular"
+  },
+  {
+    "id": "fechamentosacada",
+    "nome": "Fechamento de sacada",
+    "categoria": "Sacadas",
+    "titulo": "Painéis e divisões",
+    "descricao": "Configure o fechamento de sacada conforme as medidas do vão.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-fechamentosacada.svg",
+    "kitHref": "/calculo/fechamentosacada",
+    "kitLabel": "Calcular"
+  },
+  {
+    "id": "peledevidro",
+    "nome": "Pele de vidro",
+    "categoria": "Fachadas",
+    "titulo": "Quadros fixos e móveis",
+    "descricao": "Defina os quadros, as divisões e os materiais da fachada.",
+    "status": "Disponível",
+    "imagem": "/desenhos/matriz-peledevidro.svg",
+    "kitHref": "/calculo/peledevidro",
+    "kitLabel": "Calcular"
+  },
+  {
     id: "pfv1f",
     nome: "Porta fora vão - 1 folha",
     titulo: "Cálculo com e sem puxador",
@@ -382,6 +448,9 @@ const projetos = [
 ];
 
 const ordemCategorias = [
+  "Pinázio",
+  "Sacadas",
+  "Fachadas",
   "Porta fora vão",
   "Portas giro",
   "Portas",
@@ -460,7 +529,7 @@ export default function MatrizProjetosPage() {
                   </span>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: theme.menuBackgroundColor }}>
-                      Matriz de projetos
+                      Matriz de orçamentos
                     </p>
                     <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: theme.contentTextLightBg }}>
                       Escolha o projeto para calcular
@@ -468,7 +537,7 @@ export default function MatrizProjetosPage() {
                   </div>
                 </div>
                 <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-                  Selecione uma tipologia para abrir o cálculo individual. Os projetos com dois modos permitem escolher entre kit e barra.
+                  Escolha o desenho para abrir o cálculo e ajustar medidas e variações. Nos projetos com dois modos, selecione kit ou barra.
                 </p>
               </div>
 

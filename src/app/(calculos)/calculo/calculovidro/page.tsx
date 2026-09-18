@@ -2065,7 +2065,7 @@ useEffect(() => {
   type="button"
   onClick={() => router.push("/matriz-projetos")}
   className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-  title="Abrir matriz de projetos"
+  title="Abrir matriz de orçamentos"
 >
   <FolderOpen size={18} />
   Projetos

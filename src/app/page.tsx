@@ -394,7 +394,7 @@ export default function Dashboard() {
   ];
 
   const acoesRapidas = [
-    { titulo: 'Matriz de projetos', descricao: 'Escolha a tipologia e comece a calcular', href: '/matriz-projetos', icon: Layers3 },
+    { titulo: 'Matriz de orçamentos', descricao: 'Escolha a tipologia e comece a calcular', href: '/matriz-projetos', icon: Layers3 },
     { titulo: 'Cadastrar cliente', descricao: 'Organize os contatos da sua vidraçaria', href: '/cadastros/clientes', icon: UserPlus },
     { titulo: 'Central de impressão', descricao: 'Prepare os documentos dos projetos', href: '/central-impressao', icon: Printer },
     { titulo: 'Relatórios de orçamentos', descricao: 'Consulte valores e registros', href: '/admin/relatorio.orcamento', icon: BarChart3 },
