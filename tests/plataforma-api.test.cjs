@@ -52,3 +52,28 @@ test('API não executa alterações sem permissão ou com dados inválidos', asy
   assert.equal((await owner.POST(req(body))).status, 200);
   assert.equal(owner.chamadas.filter(c => c.name === 'gc_alterar_acesso').length, 1);
 });
+
+test('financeiro mantém autorização e aceita somente ações permitidas', async () => {
+  const tenant = route();
+  assert.equal((await tenant.POST(req({ acao: 'pagar', dados: { motivo: 'teste' } }))).status, 403);
+  assert.ok(!tenant.chamadas.some(c => c.name === 'gc_financeiro_alterar'));
+  const owner = route({ owner: true });
+  assert.equal((await owner.POST(req({ acao: 'excluir', dados: {} }))).status, 400);
+  assert.equal((await owner.POST(req({ acao: 'pagar', dados: [] }))).status, 400);
+  assert.equal((await owner.POST(req({ acao: 'pagar', dados: { motivo: 'teste' } }))).status, 200);
+  assert.equal(owner.chamadas.filter(c => c.name === 'gc_financeiro_alterar').length, 1);
+  const request = new Request('http://localhost/api/plataforma?modo=financeiro', { headers: { Authorization: 'Bearer test' } });
+  assert.equal((await owner.GET(request)).status, 200);
+  assert.ok(owner.chamadas.some(c => c.name === 'gc_financeiro'));
+});
+
+test('situação exige proprietária e encaminha a operação validada pelo banco', async () => {
+  const body={acao:'situacao',dados:{tipo:'empresa',alvo:'20000000-0000-4000-8000-000000000002',situacao:'regularizacao',categoria:'inadimplencia',motivo:'Conferência manual',mensagem:'Mensagem pública',contato:'',prazo:'2099-01-01'}};
+  const tenant=route();
+  assert.equal((await tenant.POST(req(body))).status,403);
+  assert.ok(!tenant.chamadas.some(c=>c.name==='gc_definir_situacao'));
+  const owner=route({owner:true});
+  assert.equal((await owner.POST(req({...body,dados:[]}))).status,400);
+  assert.equal((await owner.POST(req(body))).status,200);
+  assert.equal(owner.chamadas.filter(c=>c.name==='gc_definir_situacao').length,1);
+});
