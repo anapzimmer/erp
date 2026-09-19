@@ -8,6 +8,7 @@ import ThemeLoader from "@/components/ThemeLoader";
 import SecurityProvider from "@/components/SecurityProvider";
 import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
 import { OrcamentoProvider } from "@/context/OrcamentoContext";
+import PlatformAccessGate from "@/components/PlatformAccessGate";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -30,8 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* 🔥 Agora o Loader está em um componente client separado */}
           <ThemeLoader>
             <SecurityProvider>
-              <OrcamentoProvider>{children}</OrcamentoProvider>
-              <ProjetoAssistenteGlobal />
+              <PlatformAccessGate>
+                <OrcamentoProvider>{children}</OrcamentoProvider>
+                <ProjetoAssistenteGlobal />
+              </PlatformAccessGate>
             </SecurityProvider>
           </ThemeLoader>
         </ThemeProvider>

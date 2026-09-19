@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Building2, ChevronDown, Settings, Palette, LogOut, TableProperties } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "@/context/ThemeContext";
+import { consultarPlataforma } from "@/lib/plataforma";
 
 type MenuSubItem = {
   label: string;
@@ -84,6 +85,13 @@ export default function Header({
   const { theme } = useTheme();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [proprietaria, setProprietaria] = useState(false);
+  useEffect(() => {
+    let ativo = true;
+    setProprietaria(false);
+    consultarPlataforma("?verificar=1").then(() => { if (ativo) setProprietaria(true); }).catch(() => {});
+    return () => { ativo = false; };
+  }, [usuarioEmail]);
   const [openDesktopGroup, setOpenDesktopGroup] = useState<string | null>(null);
 
   const closeMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -316,6 +324,7 @@ export default function Header({
                   </p>
                 </div>
                 <hr className="my-1" style={{ borderColor: `${theme.contentTextLightBg}14` }} />
+                {proprietaria && <Link href="/plataforma" onClick={() => setShowUserMenu(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-black/5" style={{ color: theme.contentTextLightBg }}><Building2 size={16} /> Painel Glass Code</Link>}
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
