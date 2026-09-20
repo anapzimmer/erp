@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { DRAWING_COLORS } from "@/design/drawing";
 import {
   Document,
   G,
@@ -14,7 +15,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 interface PerfilPDF {
   nome: string;
@@ -98,16 +99,16 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingHorizontal: 36,
     paddingBottom: 54,
-    backgroundColor: "#ffffff",
-    color: "#153047",
-    fontFamily: "Helvetica",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
+    fontFamily: "Inter",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#d9e2ea",
+    borderBottomColor: PDF_COLORS.border,
     paddingBottom: 12,
     marginBottom: 12,
   },
@@ -115,23 +116,23 @@ const styles = StyleSheet.create({
   headerText: { flexDirection: "column", alignItems: "flex-end", maxWidth: 260 },
   title: {
     fontSize: 15,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
   },
-  subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
+  subtitle: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 5 },
   logo: {
     width: 118,
     height: 42,
     objectFit: "contain",
     objectPosition: "left",
   },
-  empresaFallback: { fontSize: 15, color: "#153047", fontWeight: "bold" },
-  empresaSlogan: { fontSize: 7.5, color: "#6f8193", marginTop: 2 },
+  empresaFallback: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: "bold" },
+  empresaSlogan: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 2 },
   infoStrip: {
     flexDirection: "row",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
@@ -139,24 +140,24 @@ const styles = StyleSheet.create({
   infoBox: { flex: 1 },
   label: {
     fontSize: 8,
-    color: "#718398",
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
   },
-  value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
-  valueStrong: { fontSize: 9, color: "#153047", fontWeight: "bold" },
+  value: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
+  valueStrong: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold" },
   mainGrid: { flexDirection: "column", gap: 10, marginBottom: 12 },
   drawingBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
   drawingTitle: {
     fontSize: 9,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginBottom: 6,
   },
@@ -164,14 +165,14 @@ const styles = StyleSheet.create({
   dataBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
   dataTitle: {
     fontSize: 9,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginBottom: 7,
   },
@@ -179,20 +180,20 @@ const styles = StyleSheet.create({
   dataItem: {
     width: "31.8%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
   dataItemWide: {
     width: "48%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
   sectionTitle: {
     fontSize: 10,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginTop: 4,
     marginBottom: 6,
@@ -200,14 +201,14 @@ const styles = StyleSheet.create({
   table: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 7,
     overflow: "hidden",
   },
   row: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     minHeight: 24,
     alignItems: "center",
   },
@@ -215,19 +216,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: 22,
     alignItems: "center",
-    backgroundColor: "#f3f6f9",
+    backgroundColor: PDF_COLORS.panelBg,
   },
   th: {
     padding: 4,
     fontSize: 7.6,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textTransform: "uppercase",
     fontWeight: "normal",
   },
   td: {
     padding: 4,
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
   },
   colQtd: { width: "12%", textAlign: "center" },
   colDesc: { width: "46%" },
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     width: "84%",
     padding: 4,
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textAlign: "right",
     textTransform: "uppercase",
     fontWeight: "bold",
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     width: "16%",
     padding: 4,
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textAlign: "right",
     fontWeight: "bold",
   },
@@ -258,24 +259,24 @@ const styles = StyleSheet.create({
     gap: 7,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 10,
   },
   totalBox: { flex: 1 },
   totalLabel: {
     fontSize: 8,
-    color: "#718398",
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
   },
   totalValue: {
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "normal",
   },
   totalValueStrong: {
     fontSize: 12,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
   },
   footer: {
@@ -285,9 +286,9 @@ const styles = StyleSheet.create({
     right: 36,
     textAlign: "center",
     fontSize: 8,
-    color: "#8a9aab",
+    color: PDF_COLORS.muted,
     borderTopWidth: 0.5,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 8,
   },
 });
@@ -368,11 +369,11 @@ export function SacadaFrontalPDF({
     .replace(/[\u0300-\u036f]/g, "");
 
   const perfilCor = corNormalizada.includes("preto")
-    ? { fill: "#2f3439", stroke: "#171a1e" }
+    ? { fill: PDF_COLORS.ink, stroke: PDF_COLORS.ink }
     : corNormalizada.includes("fosco") ||
         corNormalizada.includes("inox")
-      ? { fill: "#b8c0c7", stroke: "#7d8994" }
-      : { fill: "#eef2f5", stroke: "#b5c0ca" };
+      ? { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.muted }
+      : { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.softMuted };
 
   const svgW = 430;
   const pad = 16;
@@ -440,7 +441,7 @@ export function SacadaFrontalPDF({
                 y1={y + altura * 0.9}
                 x2={x + larguraPainel * 0.72}
                 y2={y + altura * 0.1}
-                stroke="#ffffff"
+                stroke={PDF_COLORS.white}
                 strokeWidth={3}
               />
               <Line
@@ -448,7 +449,7 @@ export function SacadaFrontalPDF({
                 y1={y + altura * 0.86}
                 x2={x + larguraPainel * 0.92}
                 y2={y + altura * 0.15}
-                stroke="#ffffff"
+                stroke={PDF_COLORS.white}
                 strokeWidth={1.6}
               />
             </G>
@@ -467,7 +468,7 @@ export function SacadaFrontalPDF({
                 y1={y}
                 x2={x}
                 y2={y + altura}
-                stroke="#273444"
+                stroke={PDF_COLORS.ink}
                 strokeWidth={0.8}
               />
             );
@@ -547,8 +548,8 @@ export function SacadaFrontalPDF({
                 y={y0}
                 width={drawW}
                 height={drawH}
-                fill="#ffffff"
-                stroke="#d6e0e8"
+                fill={PDF_COLORS.panelBg}
+                stroke={PDF_COLORS.softMuted}
                 strokeWidth={0.8}
               />
 
@@ -559,8 +560,8 @@ export function SacadaFrontalPDF({
                     glassY,
                     alturaSuperiorDesenho,
                     divSuperior,
-                    "#edf8ff",
-                    "#a9bfce",
+                    DRAWING_COLORS.glass,
+                    DRAWING_COLORS.frame,
                   )}
 
                   <Rect
@@ -578,8 +579,8 @@ export function SacadaFrontalPDF({
                     yDivisoria + rail,
                     alturaInferiorDesenho,
                     divInferior,
-                    "#edf8ff",
-                    "#a9bfce",
+                    DRAWING_COLORS.glass,
+                    DRAWING_COLORS.frame,
                   )}
                 </>
               ) : (
@@ -588,8 +589,8 @@ export function SacadaFrontalPDF({
                   glassY,
                   glassH,
                   divPadrao,
-                  "#edf8ff",
-                  "#a9bfce",
+                  DRAWING_COLORS.glass,
+                  DRAWING_COLORS.frame,
                 )
               )}
 
@@ -635,13 +636,13 @@ export function SacadaFrontalPDF({
                 y1={y0 + drawH + 10}
                 x2={x0 + drawW}
                 y2={y0 + drawH + 10}
-                stroke="#6aa6d8"
+                stroke={PDF_COLORS.muted}
                 strokeWidth={0.7}
               />
               <Text
                 x={x0 + drawW / 2 - 16}
                 y={y0 + drawH + 22}
-                style={{ fontSize: 10, fill: "#153047" }}
+                style={{ fontSize: 10, fill: PDF_COLORS.ink }}
               >
                 {larguraVaoMm} mm
               </Text>

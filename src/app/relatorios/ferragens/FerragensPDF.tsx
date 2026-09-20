@@ -4,7 +4,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
 import type { Ferragem } from "@/types/ferragem";
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 interface FerragensPDFProps {
   dados: Ferragem[];
@@ -20,8 +20,8 @@ interface FerragensPDFProps {
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica',
+    backgroundColor: PDF_COLORS.white,
+    fontFamily: "Inter",
   },
   header: {
     flexDirection: 'row',
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     marginBottom: PDF_HEADER_LAYOUT.marginBottom,
     paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
     borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
-    borderBottomColor: '#39B89F', // Cor Tema (darkTertiary)
+    borderBottomColor: PDF_COLORS.border, // Cor Tema (darkTertiary)
   },
   headerLeft: {
     flexDirection: 'column',
@@ -39,18 +39,18 @@ const styles = StyleSheet.create({
   tituloRelatorio: {
     fontSize: PDF_HEADER_LAYOUT.titleSize,
     fontWeight: 'bold',
-    color: '#1C415B', // Cor Tema (darkPrimary)
+    color: PDF_COLORS.ink, // Cor Tema (darkPrimary)
     textTransform: 'uppercase',
   },
   subtitulo: {
     fontSize: PDF_HEADER_LAYOUT.subtitleSize,
-    color: '#1C415B',
+    color: PDF_COLORS.ink,
     marginTop: 2,
     fontWeight: 'bold',
   },
   dataEmissao: {
     fontSize: PDF_HEADER_LAYOUT.dateSize,
-    color: '#666',
+    color: PDF_COLORS.ink,
     marginTop: 6,
   },
   headerRight: {
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1C415B', // Cor Tema (darkPrimary)
+    backgroundColor: PDF_COLORS.panelBg, // Cor Tema (darkPrimary)
     borderRadius: 2,
   },
   tableRow: {
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   tableColHeader: {
     padding: 8,
-    color: '#FFFFFF',
+    color: PDF_COLORS.ink,
     fontSize: PDF_TABLE_LAYOUT.headerFontSize,
     fontWeight: 'bold',
     textTransform: 'uppercase',
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   tableCol: {
     padding: 6,
     fontSize: PDF_TABLE_LAYOUT.bodyFontSize,
-    color: '#1C415B', // Padronizado para a cor tema (darkPrimary) em vez de cinza
+    color: PDF_COLORS.ink, // Padronizado para a cor tema (darkPrimary) em vez de cinza
   },
   // LARGURAS
   colCodigo: { width: '15%' },
@@ -104,18 +104,18 @@ const styles = StyleSheet.create({
     right: 40,
     textAlign: 'center',
     fontSize: 8,
-    color: '#999',
+    color: PDF_COLORS.muted,
     borderTopWidth: 0.5,
-    borderTopColor: '#DDD',
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 10,
   }
 });
 
-export function FerragensPDF({ dados, empresa, logoUrl, coresEmpresa }: FerragensPDFProps) {
+export function FerragensPDF({ dados, empresa, logoUrl}: FerragensPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
-  const primaryColor = coresEmpresa?.primary || '#1C415B';
-  const tertiaryColor = coresEmpresa?.tertiary || '#39B89F';
-  const textOnDarkColor = coresEmpresa?.textOnDark || '#FFFFFF';
+  const primaryColor = PDF_COLORS.ink;
+  const tertiaryColor = PDF_COLORS.ink;
+  const textOnDarkColor = PDF_COLORS.ink;
 
   return (
     <Document>
@@ -129,12 +129,12 @@ export function FerragensPDF({ dados, empresa, logoUrl, coresEmpresa }: Ferragen
           </View>
 
           <View style={styles.headerRight}>
-            <Image src={logoUrl || "/glasscode.png"} style={styles.logo} />
+            <Image src={logoUrl || "/glasscode-light.png"} style={styles.logo} />
           </View>
         </View>
 
         <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: primaryColor }]}>
+          <View style={[styles.tableHeader, { backgroundColor: PDF_COLORS.tableHeaderBg }]}>
             <Text style={[styles.tableColHeader, styles.colCodigo, { color: textOnDarkColor }]}>Código</Text>
             <Text style={[styles.tableColHeader, styles.colNome, { color: textOnDarkColor }]}>Descrição do Produto</Text>
             <Text style={[styles.tableColHeader, styles.colCor, { color: textOnDarkColor }]}>Cor</Text>

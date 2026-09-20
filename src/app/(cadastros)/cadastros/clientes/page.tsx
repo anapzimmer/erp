@@ -454,7 +454,7 @@ export default function ClientesPage() {
 
   if (checkingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
         <Loader2 className="animate-spin" size={32} style={{ color: theme.menuBackgroundColor }} />
       </div>
     );
@@ -483,17 +483,17 @@ export default function ClientesPage() {
         <main className="w-full flex-1 p-4 md:p-6 xl:p-8 2xl:p-10">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <div className="flex items-center gap-2 text-sm font-medium text-text-secondary">
                 <UsersRound size={17} /> Cadastros
               </div>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">Clientes</h1>
-              <p className="mt-1 text-sm text-slate-500">Consulte, cadastre e mantenha os dados comerciais em um só lugar.</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">Clientes</h1>
+              <p className="mt-1 text-sm text-text-secondary">Consulte, cadastre e mantenha os dados comerciais em um só lugar.</p>
             </div>
 
             <button
               onClick={abrirNovo}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
-              style={{ backgroundColor: theme.menuBackgroundColor }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-on-primary shadow-sm transition hover:opacity-90"
+              style={{ backgroundColor: theme.buttonDarkBg }}
             >
               <Plus size={18} /> Novo cliente
             </button>
@@ -506,62 +506,62 @@ export default function ClientesPage() {
               { label: "Pessoas físicas", valor: clientes.filter((c) => c.tipo_pessoa === "fisica").length, icon: UserRound },
               { label: "CNPJ ativo", valor: clientes.filter((c) => statusAtivo(c.situacao_cadastral)).length, icon: CheckCircle2 },
             ].map(({ label, valor, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+              <div key={label} className="rounded-2xl border border-border/70 bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-slate-500">{label}</p>
-                  <Icon size={17} className="text-slate-400" />
+                  <p className="text-xs font-medium text-text-secondary">{label}</p>
+                  <Icon size={17} className="text-text-secondary" />
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">{valor}</p>
+                <p className="mt-3 text-2xl font-semibold text-text-primary">{valor}</p>
               </div>
             ))}
           </section>
 
-          <section className="mt-5 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+          <section className="mt-5 rounded-2xl border border-border/70 bg-surface p-4 shadow-sm">
             <div className="grid gap-3 xl:grid-cols-[minmax(280px,1fr)_180px_180px_180px_auto]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
                 <input
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="Buscar por nome, CNPJ, telefone ou cidade..."
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:bg-white focus:ring-2"
-                  style={{ "--tw-ring-color": `${theme.menuBackgroundColor}35` } as React.CSSProperties}
+                  className="h-11 w-full rounded-xl border border-border bg-surface-secondary pl-10 pr-4 text-sm outline-none transition focus:bg-surface focus:ring-2"
+                  style={{ "--tw-ring-color": `color-mix(in srgb, ${theme.menuBackgroundColor} 21%, transparent)` } as React.CSSProperties}
                 />
               </div>
 
-              <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as "" | TipoPessoa)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none">
+              <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as "" | TipoPessoa)} className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text-secondary outline-none">
                 <option value="">Todos os tipos</option>
                 <option value="juridica">Pessoa jurídica</option>
                 <option value="fisica">Pessoa física</option>
               </select>
 
-              <select value={filtroRota} onChange={(e) => setFiltroRota(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none">
+              <select value={filtroRota} onChange={(e) => setFiltroRota(e.target.value)} className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text-secondary outline-none">
                 <option value="">Todas as rotas</option>
                 {rotas.map((rota) => <option key={rota} value={rota}>{rota}</option>)}
               </select>
 
-              <select value={filtroCidade} onChange={(e) => setFiltroCidade(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none">
+              <select value={filtroCidade} onChange={(e) => setFiltroCidade(e.target.value)} className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text-secondary outline-none">
                 <option value="">Todas as cidades</option>
                 {cidades.map((cidade) => <option key={cidade} value={cidade}>{cidade}</option>)}
               </select>
 
-              <button onClick={() => { setBusca(""); setFiltroTipo(""); setFiltroRota(""); setFiltroCidade(""); }} className="h-11 rounded-xl bg-slate-100 px-4 text-sm font-medium text-slate-600 hover:bg-slate-200">
+              <button onClick={() => { setBusca(""); setFiltroTipo(""); setFiltroRota(""); setFiltroCidade(""); }} className="h-11 rounded-xl bg-surface-secondary px-4 text-sm font-medium text-text-secondary hover:bg-border">
                 Limpar
               </button>
             </div>
           </section>
 
-          <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <section className="mt-5 overflow-hidden rounded-2xl border border-border/70 bg-surface shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <h2 className="text-sm font-semibold text-slate-800">Clientes cadastrados</h2>
-                <p className="mt-0.5 text-xs text-slate-500">{clientesFiltrados.length} de {clientes.length} registros</p>
+                <h2 className="text-sm font-semibold text-text-primary">Clientes cadastrados</h2>
+                <p className="mt-0.5 text-xs text-text-secondary">{clientesFiltrados.length} de {clientes.length} registros</p>
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+                <thead className="bg-surface-secondary text-xs font-medium uppercase tracking-wide text-text-secondary">
                   <tr>
                     <th className="px-5 py-3">Cliente</th>
                     <th className="px-5 py-3">CNPJ/CPF</th>
@@ -572,23 +572,23 @@ export default function ClientesPage() {
                     <th className="px-5 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {carregando ? (
-                    <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500"><Loader2 className="mx-auto mb-2 animate-spin" />Carregando clientes...</td></tr>
+                    <tr><td colSpan={7} className="px-5 py-12 text-center text-text-secondary"><Loader2 className="mx-auto mb-2 animate-spin" />Carregando clientes...</td></tr>
                   ) : clientesFiltrados.length === 0 ? (
-                    <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">Nenhum cliente encontrado.</td></tr>
+                    <tr><td colSpan={7} className="px-5 py-12 text-center text-text-secondary">Nenhum cliente encontrado.</td></tr>
                   ) : clientesFiltrados.map((cliente) => (
-                    <tr key={cliente.id} className="transition hover:bg-slate-50/70">
+                    <tr key={cliente.id} className="transition hover:bg-surface-secondary/70">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-secondary text-text-secondary">
                             {cliente.tipo_pessoa === "juridica" ? <Building2 size={17} /> : <UserRound size={17} />}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-600">{cliente.nome}</p>
-                            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                            <p className="truncate font-medium text-text-secondary">{cliente.nome}</p>
+                            <div className="mt-1 flex items-center gap-1.5 text-xs text-text-secondary">
                               {cliente.situacao_cadastral && (
-                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${statusAtivo(cliente.situacao_cadastral) ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${statusAtivo(cliente.situacao_cadastral) ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>
                                   <span className="h-1.5 w-1.5 rounded-full bg-current" />{cliente.situacao_cadastral}
                                 </span>
                               )}
@@ -596,15 +596,15 @@ export default function ClientesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-600">{formatarDocumento(cliente.cpf_cnpj || "", cliente.tipo_pessoa || "juridica") || "—"}</td>
-                      <td className="px-5 py-4 text-slate-600">{cliente.telefone || cliente.email || "—"}</td>
-                      <td className="px-5 py-4 text-slate-600">{[cliente.cidade, cliente.estado].filter(Boolean).join("/ ") || "—"}</td>
-                      <td className="px-5 py-4"><span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{cliente.rota}</span></td>
-                      <td className="px-5 py-4 text-slate-600">{grupos.find((g) => g.id === cliente.grupo_preco_id)?.nome || "Padrão"}</td>
+                      <td className="px-5 py-4 text-text-secondary">{formatarDocumento(cliente.cpf_cnpj || "", cliente.tipo_pessoa || "juridica") || "—"}</td>
+                      <td className="px-5 py-4 text-text-secondary">{cliente.telefone || cliente.email || "—"}</td>
+                      <td className="px-5 py-4 text-text-secondary">{[cliente.cidade, cliente.estado].filter(Boolean).join("/ ") || "—"}</td>
+                      <td className="px-5 py-4"><span className="rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-secondary">{cliente.rota}</span></td>
+                      <td className="px-5 py-4 text-text-secondary">{grupos.find((g) => g.id === cliente.grupo_preco_id)?.nome || "Padrão"}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-1">
-                          <button onClick={() => abrirEdicao(cliente)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Editar"><Edit2 size={17} /></button>
-                          <button onClick={() => excluirCliente(cliente)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" title="Excluir"><Trash2 size={17} /></button>
+                          <button onClick={() => abrirEdicao(cliente)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-secondary" title="Editar"><Edit2 size={17} /></button>
+                          <button onClick={() => excluirCliente(cliente)} className="rounded-lg p-2 text-danger hover:bg-danger-soft" title="Excluir"><Trash2 size={17} /></button>
                         </div>
                       </td>
                     </tr>
@@ -617,34 +617,34 @@ export default function ClientesPage() {
       </div>
 
       {showScrollTop && (
-        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-6 right-6 z-40 rounded-full p-3 text-white shadow-lg" style={{ backgroundColor: theme.menuBackgroundColor }} title="Voltar ao topo">
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-6 right-6 z-40 rounded-full p-3 text-on-primary shadow-lg" style={{ backgroundColor: theme.buttonDarkBg }} title="Voltar ao topo">
           <ChevronDown className="rotate-180" size={20} />
         </button>
       )}
 
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/30 backdrop-blur-[2px]">
-          <div className="flex h-full w-full max-w-5xl flex-col border-l border-slate-200 bg-slate-50 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 md:px-7">
+        <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-navigation/30 backdrop-blur-[2px]">
+          <div className="flex h-full w-full max-w-5xl flex-col border-l border-border bg-surface-secondary shadow-[0_24px_70px_var(--shadow)]">
+            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 md:px-7">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">{editando ? "Editar cliente" : "Novo cliente"}</h2>
-                <p className="mt-0.5 text-xs text-slate-500">Os dados fiscais podem ser preenchidos automaticamente pelo CNPJ.</p>
+                <h2 className="text-lg font-semibold text-text-primary">{editando ? "Editar cliente" : "Novo cliente"}</h2>
+                <p className="mt-0.5 text-xs text-text-secondary">Os dados fiscais podem ser preenchidos automaticamente pelo CNPJ.</p>
               </div>
-              <button onClick={fecharModal} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar"><X size={16} /></button>
+              <button onClick={fecharModal} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary" title="Fechar"><X size={16} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-7">
               <div className="mx-auto max-w-4xl space-y-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
                   <div className="flex items-center gap-2">
                     <FileSearch size={18} style={{ color: theme.menuBackgroundColor }} />
-                    <h3 className="text-sm font-semibold text-slate-800">Identificação</h3>
+                    <h3 className="text-sm font-semibold text-text-primary">Identificação</h3>
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs font-medium text-slate-600">Tipo de cliente</label>
-                      <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+                      <label className="mb-2 block text-xs font-medium text-text-secondary">Tipo de cliente</label>
+                      <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface-secondary p-1">
                         {(["juridica", "fisica"] as TipoPessoa[]).map((tipo) => (
                           <button
                             key={tipo}
@@ -654,7 +654,7 @@ export default function ClientesPage() {
                               setErroCnpj("");
                               ultimaConsultaRef.current = "";
                             }}
-                            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${form.tipo_pessoa === tipo ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${form.tipo_pessoa === tipo ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary"}`}
                           >
                             {tipo === "juridica" ? "Pessoa jurídica" : "Pessoa física"}
                           </button>
@@ -663,7 +663,7 @@ export default function ClientesPage() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="mb-1.5 block text-xs font-medium text-slate-600">{form.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}</label>
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">{form.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}</label>
                       <div className="flex gap-2">
                         <div className="relative flex-1">
                           <input
@@ -674,30 +674,30 @@ export default function ClientesPage() {
                               if (somenteNumeros(valor) !== ultimaConsultaRef.current) setCnpjConsultado(false);
                             }}
                             placeholder={form.tipo_pessoa === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
-                            className="h-11 w-full rounded-xl border border-slate-200 px-3 pr-10 text-sm outline-none focus:ring-2"
-                            style={{ "--tw-ring-color": `${theme.menuBackgroundColor}30` } as React.CSSProperties}
+                            className="h-11 w-full rounded-xl border border-border px-3 pr-10 text-sm outline-none focus:ring-2"
+                            style={{ "--tw-ring-color": `color-mix(in srgb, ${theme.menuBackgroundColor} 19%, transparent)` } as React.CSSProperties}
                           />
-                          {consultandoCnpj && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400" size={18} />}
+                          {consultandoCnpj && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-text-secondary" size={18} />}
                         </div>
                         {form.tipo_pessoa === "juridica" && (
                           <button
                             onClick={() => consultarCnpj()}
                             disabled={consultandoCnpj || somenteNumeros(form.cpf_cnpj || "").length !== 14}
-                            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-medium text-text-primary hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Search size={17} /> Consultar
                           </button>
                         )}
                       </div>
 
-                      {consultandoCnpj && <p className="mt-2 text-xs text-slate-500">Consultando dados cadastrais...</p>}
+                      {consultandoCnpj && <p className="mt-2 text-xs text-text-secondary">Consultando dados cadastrais...</p>}
                       {cnpjConsultado && !erroCnpj && (
-                        <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs font-medium text-emerald-700">
+                        <div className="mt-3 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2.5 text-xs font-medium text-success">
                           <CheckCircle2 size={16} /> Empresa encontrada e campos preenchidos automaticamente.
                         </div>
                       )}
                       {erroCnpj && (
-                        <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
+                        <div className="mt-3 flex items-start gap-2 rounded-xl bg-warning-soft px-3 py-2.5 text-xs text-warning">
                           <AlertCircle className="mt-0.5 shrink-0" size={16} />
                           <span>{erroCnpj} Você ainda pode preencher os dados manualmente.</span>
                         </div>
@@ -714,16 +714,16 @@ export default function ClientesPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2"><Phone size={18} className="text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Contato</h3></div>
+                <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="flex items-center gap-2"><Phone size={18} className="text-text-secondary" /><h3 className="text-sm font-semibold text-text-primary">Contato</h3></div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Campo label="Telefone" value={form.telefone || ""} onChange={(valor) => setForm((atual) => ({ ...atual, telefone: formatarTelefone(valor) }))} placeholder="(00) 00000-0000" />
                     <Campo label="E-mail" type="email" value={form.email || ""} onChange={(valor) => setForm((atual) => ({ ...atual, email: valor }))} placeholder="cliente@empresa.com.br" />
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2"><MapPin size={18} className="text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Endereço</h3></div>
+                <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="flex items-center gap-2"><MapPin size={18} className="text-text-secondary" /><h3 className="text-sm font-semibold text-text-primary">Endereço</h3></div>
                   <div className="mt-4 grid gap-4 md:grid-cols-6">
                     <div className="md:col-span-2"><Campo label="CEP" value={form.cep || ""} onChange={(valor) => setForm((atual) => ({ ...atual, cep: formatarCep(valor) }))} placeholder="00000-000" /></div>
                     <div className="md:col-span-3"><Campo label="Logradouro" value={form.logradouro || ""} onChange={(valor) => setForm((atual) => ({ ...atual, logradouro: valor }))} /></div>
@@ -735,29 +735,29 @@ export default function ClientesPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2"><Building2 size={18} className="text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Configurações comerciais</h3></div>
+                <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                  <div className="flex items-center gap-2"><Building2 size={18} className="text-text-secondary" /><h3 className="text-sm font-semibold text-text-primary">Configurações comerciais</h3></div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Campo label="Rota *" value={form.rota} onChange={(valor) => setForm((atual) => ({ ...atual, rota: valor }))} placeholder="Ex.:: 05 ou Rota Oeste" />
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-slate-600">Tabela de preços</label>
-                      <select value={form.grupo_preco_id || ""} onChange={(e) => setForm((atual) => ({ ...atual, grupo_preco_id: e.target.value || null }))} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">Tabela de preços</label>
+                      <select value={form.grupo_preco_id || ""} onChange={(e) => setForm((atual) => ({ ...atual, grupo_preco_id: e.target.value || null }))} className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none">
                         <option value="">Tabela padrão</option>
                         {grupos.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nome}</option>)}
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="mb-1.5 block text-xs font-medium text-slate-600">Observações</label>
-                      <textarea value={form.observacoes || ""} onChange={(e) => setForm((atual) => ({ ...atual, observacoes: e.target.value }))} rows={4} className="w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:ring-2" style={{ "--tw-ring-color": `${theme.menuBackgroundColor}30` } as React.CSSProperties} placeholder="Informações comerciais, horários, restrições de entrega..." />
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">Observações</label>
+                      <textarea value={form.observacoes || ""} onChange={(e) => setForm((atual) => ({ ...atual, observacoes: e.target.value }))} rows={4} className="w-full resize-none rounded-xl border border-border p-3 text-sm outline-none focus:ring-2" style={{ "--tw-ring-color": `color-mix(in srgb, ${theme.menuBackgroundColor} 19%, transparent)` } as React.CSSProperties} placeholder="Informações comerciais, horários, restrições de entrega..." />
                     </div>
                   </div>
                 </section>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4 md:px-7">
-              <button onClick={fecharModal} className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200">Cancelar</button>
-              <button onClick={salvarCliente} disabled={carregando || consultandoCnpj} className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60" style={{ backgroundColor: theme.menuBackgroundColor }}>
+            <div className="flex items-center justify-end gap-3 border-t border-border bg-surface px-5 py-4 md:px-7">
+              <button onClick={fecharModal} className="rounded-xl bg-surface-secondary px-5 py-2.5 text-sm font-medium text-text-secondary hover:bg-border">Cancelar</button>
+              <button onClick={salvarCliente} disabled={carregando || consultandoCnpj} className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-60" style={{ backgroundColor: theme.buttonDarkBg }}>
                 {carregando && <Loader2 size={17} className="animate-spin" />}{editando ? "Salvar alterações" : "Cadastrar cliente"}
               </button>
             </div>
@@ -797,13 +797,13 @@ function Campo({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-slate-600">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-text-secondary">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+        className="h-11 w-full rounded-xl border border-border px-3 text-sm text-text-primary outline-none transition focus:border-border-strong focus:ring-2 focus:ring-border"
       />
     </div>
   );

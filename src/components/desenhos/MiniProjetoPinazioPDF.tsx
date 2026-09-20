@@ -1,4 +1,5 @@
 import React from "react";
+import { DRAWING_COLORS } from "@/design/drawing";
 import { G, Line, Rect, Svg } from "@react-pdf/renderer";
 import type { CorPinazio } from "./MiniProjetoPinazio";
 
@@ -15,8 +16,8 @@ export interface MiniProjetoPinazioPDFProps {
 const cores = (_cor: CorPinazio = "branco") => ({
   // A cor comercial continua nos dados, porém o desenho técnico
   // é sempre representado com linhas neutras e discretas.
-  preenchimento: "#D9E1E6",
-  contorno: "#8A99A3",
+  preenchimento: DRAWING_COLORS.edge,
+  contorno: DRAWING_COLORS.frame,
 });
 
 export default function MiniProjetoPinazioPDF({
@@ -53,8 +54,8 @@ export default function MiniProjetoPinazioPDF({
         width={desenhoWidth}
         height={desenhoHeight}
         rx="2"
-        fill="#E6F0F4"
-        stroke="#718596"
+        fill={DRAWING_COLORS.glass}
+        stroke={DRAWING_COLORS.frame}
         strokeWidth="1.8"
       />
 

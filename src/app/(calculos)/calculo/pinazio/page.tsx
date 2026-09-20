@@ -1,5 +1,6 @@
 "use client"
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -109,21 +110,21 @@ const gerarDesenhoPinazioUrl = ({
     <svg xmlns="http://www.w3.org/2000/svg" width="${larguraSvg}" height="${alturaSvg}" viewBox="0 0 ${larguraSvg} ${alturaSvg}">
       <defs>
         <linearGradient id="vidro" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#F8FCFD"/>
-          <stop offset="55%" stop-color="#DDEAF0"/>
-          <stop offset="100%" stop-color="#C8DCE5"/>
+          <stop offset="0%" stop-color="${DRAWING_COLORS.glass}"/>
+          <stop offset="55%" stop-color="${DRAWING_COLORS.glass}"/>
+          <stop offset="100%" stop-color="${DRAWING_COLORS.glass}"/>
         </linearGradient>
       </defs>
       <rect width="100%" height="100%" fill="#FFFFFF"/>
       <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5"
-        fill="url(#vidro)" stroke="#718596" stroke-width="3"/>
+        fill="url(#vidro)" stroke={DRAWING_COLORS.frame} stroke-width="3"/>
       <path d="M ${x + w * 0.08} ${y + h * 0.18} L ${x + w * 0.37} ${y + h * 0.05}"
         stroke="#FFFFFF" stroke-width="10" opacity="0.48" stroke-linecap="round"/>
       ${linhasVerticais}
       ${linhasHorizontais}
       <text x="${larguraSvg / 2}" y="350" text-anchor="middle"
-        font-family="Helvetica, Arial, sans-serif" font-size="18"
-        font-weight="700" fill="#334155">
+        font-family="Inter, Arial, sans-serif" font-size="18"
+        font-weight="700" fill={DRAWING_COLORS.ink}>
         ${Math.round(larguraReal)} x ${Math.round(alturaReal)} mm
       </text>
     </svg>
@@ -970,7 +971,7 @@ export default function CalculoPinazioPage() {
         itens: listaItens,
         valor_total: Number(totalGeral) || 0,
         metragem_total: Number(metragemTotal) || 0,
-        theme_color: theme.contentTextLightBg,
+        theme_color: DRAWING_COLORS.ink,
         empresa_id: empresaIdFinal
       };
 
@@ -1033,22 +1034,22 @@ export default function CalculoPinazioPage() {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
         >
-          <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-            <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+          <div className="hidden md:flex flex-col border-l border-border pl-6">
+            <h1 className="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none">
               Orçamento Pinázio
             </h1>
-            <span className="text-xs text-gray-800">
+            <span className="text-xs text-text-primary">
               # {ultimoNumeroGerado || "NOVO"}
             </span>
           </div>
         </Header>
 
-        <nav className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
+        <nav className="sticky top-0 z-20 border-b border-border bg-surface/95 px-4 py-3 shadow-sm backdrop-blur md:px-8">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
             <button
               type="button"
               onClick={iniciarNovoOrcamento}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#0f2742] transition hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
               title="Limpar os dados e iniciar um novo orçamento"
             >
               <Plus size={17} />
@@ -1060,8 +1061,8 @@ export default function CalculoPinazioPage() {
               onClick={() => setShowModalCliente(true)}
               className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                 clienteSelecionadoId
-                  ? "border border-slate-300 bg-slate-100 text-[#0f2742]"
-                  : "border border-transparent text-[#0f2742] hover:bg-slate-50"
+                  ? "border border-border-strong bg-surface-secondary text-text-primary"
+                  : "border border-transparent text-text-primary hover:bg-surface-secondary"
               }`}
             >
               <UserRoundSearch size={17} />
@@ -1071,7 +1072,7 @@ export default function CalculoPinazioPage() {
             <button
               type="button"
               onClick={() => setShowModalPDF(true)}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-surface-secondary"
             >
               <Printer size={17} />
               Imprimir
@@ -1080,7 +1081,7 @@ export default function CalculoPinazioPage() {
             <button
               type="button"
               onClick={() => router.push('/admin/relatorio.orcamento')}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-surface-secondary"
             >
               <FolderOpen size={17} />
               Projetos
@@ -1089,7 +1090,7 @@ export default function CalculoPinazioPage() {
             <button
               type="button"
               onClick={() => setShowModalCentral(true)}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-surface-secondary"
             >
               <FileText size={17} />
               PDF+
@@ -1098,7 +1099,7 @@ export default function CalculoPinazioPage() {
             <button
               type="button"
               onClick={() => setShowModalSalvar(true)}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f2742] transition hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-surface-secondary"
             >
               <Save size={17} />
               Salvar
@@ -1106,13 +1107,13 @@ export default function CalculoPinazioPage() {
           </div>
 
           {clienteSelecionadoId && (
-            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-slate-600">
+            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-text-secondary">
               <BadgeDollarSign size={14} />
               Preços personalizados de <strong>{nomeCliente}</strong> aplicados quando cadastrados.
               <button
                 type="button"
                 onClick={limparClienteSelecionado}
-                className="ml-1 font-semibold text-[#0f2742] underline underline-offset-2"
+                className="ml-1 font-semibold text-text-primary underline underline-offset-2"
               >
                 remover
               </button>
@@ -1126,14 +1127,14 @@ export default function CalculoPinazioPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
             {/* Coluna Esquerda: Configurações */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.menuBackgroundColor }}>
                   <Calculator size={20} /> Dimensões
                 </h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Largura</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Largura</label>
                       <input
                         ref={larguraInputRef} // Adicione a ref aqui
                         type="number"
@@ -1144,12 +1145,12 @@ export default function CalculoPinazioPage() {
                           setLargura(value);
                         }}
                         onKeyDown={(e) => e.key === 'Enter' && document.getElementById('input-altura')?.focus()} // Pula para altura
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm"
                         style={{ "--tw-ring-color": theme.menuIconColor } as any}
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Altura</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Altura</label>
                       <input
                         id="input-altura" // Adicione um ID para facilitar o foco
                         type="number"
@@ -1160,12 +1161,12 @@ export default function CalculoPinazioPage() {
                           setAltura(value);
                         }}
                         onKeyDown={(e) => e.key === 'Enter' && document.getElementById('input-qtd')?.focus()} // Pula para quantidade
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm"
                         style={{ "--tw-ring-color": theme.menuIconColor } as any}
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Qtd</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Qtd</label>
                       <input
                         id="input-qtd" // Adicione um ID
                         type="number"
@@ -1178,7 +1179,7 @@ export default function CalculoPinazioPage() {
                             adicionarAoPedido(); // Adiciona e volta para a largura
                           }
                         }}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm font-bold text-center text-gray-500"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm font-bold text-center text-text-secondary"
                         style={{
                           "--tw-ring-color": theme.menuIconColor
                         } as any}
@@ -1188,7 +1189,7 @@ export default function CalculoPinazioPage() {
 
                   <div className="grid grid-cols-2 gap-3 mt-4">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">
                         Divisões na largura
                       </label>
                       <input
@@ -1197,12 +1198,12 @@ export default function CalculoPinazioPage() {
                         value={acabamentoId === "sem-pinazio" ? 1 : divisoesLargura}
                         disabled={acabamentoId === "sem-pinazio"}
                         onChange={(e) => setDivisoesLargura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        className="w-full p-3 mt-1 rounded-xl border border-border text-sm disabled:bg-surface-secondary disabled:text-text-secondary disabled:cursor-not-allowed"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">
                         Divisões na altura
                       </label>
                       <input
@@ -1211,17 +1212,17 @@ export default function CalculoPinazioPage() {
                         value={acabamentoId === "sem-pinazio" ? 1 : divisoesAltura}
                         disabled={acabamentoId === "sem-pinazio"}
                         onChange={(e) => setDivisoesAltura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        className="w-full p-3 mt-1 rounded-xl border border-border text-sm disabled:bg-surface-secondary disabled:text-text-secondary disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Selecione o Vidro</label>
+                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Selecione o Vidro</label>
                     <select
                       value={vidroId}
                       onChange={(e) => setVidroId(e.target.value)}
-                      className="w-full p-3 mt-1 rounded-xl border border-gray-200 bg-white focus:ring-2 outline-none transition-all text-sm text-gray-600 cursor-pointer"
+                      className="w-full p-3 mt-1 rounded-xl border border-border bg-surface focus:ring-2 outline-none transition-all text-sm text-text-secondary cursor-pointer"
                       style={{ "--tw-ring-color": theme.menuIconColor } as any}
                     >
                       {vidrosDB.map(v => (
@@ -1232,7 +1233,7 @@ export default function CalculoPinazioPage() {
                     </select>
 
                     {clienteSelecionadoId && (
-                      <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                      <div className="mt-2 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-xs text-success">
                         <BadgeDollarSign size={14} />
                         {precosCliente[String(vidroId)] !== undefined
                           ? `Preço especial de ${nomeCliente}: ${obterPrecoVidro(
@@ -1248,7 +1249,7 @@ export default function CalculoPinazioPage() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
                 <h3
                   className="text-lg font-bold mb-4"
                   style={{ color: theme.menuBackgroundColor }}
@@ -1265,15 +1266,15 @@ export default function CalculoPinazioPage() {
                         key={item.id}
                         className={`flex items-center justify-between gap-3 p-4 rounded-2xl cursor-pointer border transition-all ${
                           selecionado
-                            ? "bg-slate-50 border-slate-300"
-                            : "bg-gray-50 border-gray-100 hover:border-gray-200"
+                            ? "bg-surface-secondary border-border-strong"
+                            : "bg-surface-secondary border-border hover:border-border"
                         }`}
                       >
                         <div className="min-w-0">
-                          <span className="block text-sm font-semibold text-gray-700">
+                          <span className="block text-sm font-semibold text-text-primary">
                             {item.nome}
                           </span>
-                          <span className="block text-xs text-gray-400 mt-1">
+                          <span className="block text-xs text-text-secondary mt-1">
                             {item.id === "sem-pinazio"
                               ? "Calcula somente o vidro"
                               : `${item.preco.toLocaleString("pt-BR", {
@@ -1304,13 +1305,13 @@ export default function CalculoPinazioPage() {
                   })}
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <div className="mt-5 rounded-2xl border border-border bg-surface p-4">
+                  <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
                     Preço por metro linear
                   </label>
 
-                  <div className="mt-2 flex items-center rounded-xl border border-gray-200 bg-gray-50 px-3">
-                    <span className="text-sm font-semibold text-gray-500">R$</span>
+                  <div className="mt-2 flex items-center rounded-xl border border-border bg-surface-secondary px-3">
+                    <span className="text-sm font-semibold text-text-secondary">R$</span>
                     <input
                       type="number"
                       min="0"
@@ -1320,12 +1321,12 @@ export default function CalculoPinazioPage() {
                       onChange={(event) =>
                         setPrecoMetroPinazio(event.target.value)
                       }
-                      className="w-full bg-transparent p-3 text-sm font-semibold text-gray-700 outline-none disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="w-full bg-transparent p-3 text-sm font-semibold text-text-primary outline-none disabled:text-text-secondary disabled:cursor-not-allowed"
                     />
-                    <span className="text-xs text-gray-400">/ml</span>
+                    <span className="text-xs text-text-secondary">/ml</span>
                   </div>
 
-                  <p className="mt-2 text-xs text-gray-400">
+                  <p className="mt-2 text-xs text-text-secondary">
                     {acabamentoId === "sem-pinazio"
                       ? "Nesta opção será cobrado somente o valor do vidro."
                       : "Você pode alterar este preço somente para o item que está sendo calculado."}
@@ -1337,26 +1338,26 @@ export default function CalculoPinazioPage() {
             {/* Coluna Direita: Preview e Tabela */}
             <div className="lg:col-span-8 space-y-6">
               {/* Preview Area */}
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-87.5 flex flex-col items-center justify-center relative">
+              <div className="bg-surface rounded-3xl shadow-sm border border-border p-8 min-h-87.5 flex flex-col items-center justify-center relative">
                 <div className="flex items-center justify-center relative">
                   {RenderPreview}
-                  <span className="absolute -bottom-10 text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 uppercase tracking-tighter">
+                  <span className="absolute -bottom-10 text-[11px] font-bold text-text-secondary bg-surface-secondary px-3 py-1 rounded-full border border-border uppercase tracking-tighter">
                     {largura || 0} x {altura || 0} mm
                   </span>
                 </div>
               </div>
 
               {/* Botão de Adição e Valor Atual */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="w-full md:w-auto">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
                     Composição do item
                   </p>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
                     <span>
                       Vidro:{" "}
-                      <strong className="text-gray-700">
+                      <strong className="text-text-primary">
                         {calculoAtual.valorVidro.toLocaleString("pt-BR", {
                           style: "currency",
                           currency: "BRL",
@@ -1366,7 +1367,7 @@ export default function CalculoPinazioPage() {
 
                     <span>
                       {acabamentoId === "sem-pinazio" ? "Pinázio:" : "Pinázio:"}{" "}
-                      <strong className="text-gray-700">
+                      <strong className="text-text-primary">
                         {calculoAtual.valorPinazio.toLocaleString("pt-BR", {
                           style: "currency",
                           currency: "BRL",
@@ -1374,7 +1375,7 @@ export default function CalculoPinazioPage() {
                       </strong>
                     </span>
 
-                    <span className="text-gray-400">
+                    <span className="text-text-secondary">
                       {calculoAtual.metroLinearPinazio.toLocaleString("pt-BR", {
                         minimumFractionDigits: 3,
                         maximumFractionDigits: 3,
@@ -1386,7 +1387,7 @@ export default function CalculoPinazioPage() {
                     </span>
                   </div>
 
-                  <p className="mt-2 text-2xl font-bold text-gray-700">
+                  <p className="mt-2 text-2xl font-bold text-text-primary">
                     {calculoAtual.total.toLocaleString("pt-BR", {
                       style: "currency",
                       currency: "BRL",
@@ -1418,25 +1419,25 @@ export default function CalculoPinazioPage() {
               {/* LISTA DE ITENS DISCRETA */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary flex items-center gap-2">
                     <ReceiptText size={14} /> Resumo do Pedido
                   </h3>
                   <button
                     onClick={() => setListaItens([])}
-                    className="text-[10px] font-bold text-gray-400 hover:text-red-500 uppercase tracking-tighter transition-colors flex items-center gap-1"
+                    className="text-[10px] font-bold text-text-secondary hover:text-danger uppercase tracking-tighter transition-colors flex items-center gap-1"
                   >
                     <Trash2 size={12} /> Limpar Tudo
                   </button>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
                   {listaItens.length > 0 ? (
                     <>
-                      <div className="divide-y divide-gray-100">
+                      <div className="divide-y divide-border">
                         {listaItens.map((item, index) => (
-                          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
+                          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-surface-secondary transition-colors group">
 
-                            <div className="mr-4 w-28 shrink-0 rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
+                            <div className="mr-4 w-28 shrink-0 rounded-xl border border-border bg-surface p-2 shadow-sm">
                               <MiniProjetoPinazio
                                 largura={Number(item.larguraReal || item.largura || String(item.medidas || "").split("x")[0]) || 100}
                                 altura={Number(item.alturaReal || item.altura || String(item.medidas || "").split("x")[1]) || 100}
@@ -1461,17 +1462,17 @@ export default function CalculoPinazioPage() {
                                 </h4>
 
                                 {/* Medidas */}
-                                <span className="shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                <span className="shrink-0 text-xs font-medium text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-md">
                                   {item.medidas}
                                 </span>
                               </div>
 
                               {/* Quantidade */}
-                              <p className="text-xs text-gray-500 mt-1.5">
-                                Quantidade: <span className="font-medium text-gray-700">{item.quantidade}</span>
+                              <p className="text-xs text-text-secondary mt-1.5">
+                                Quantidade: <span className="font-medium text-text-primary">{item.quantidade}</span>
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {item.pinazioNome || "Pinázio"}: <span className="font-medium text-gray-700">{item.divisoesLargura} x {item.divisoesAltura}</span>
+                              <p className="text-xs text-text-secondary mt-1">
+                                {item.pinazioNome || "Pinázio"}: <span className="font-medium text-text-primary">{item.divisoesLargura} x {item.divisoesAltura}</span>
                                 <span className="mx-1">•</span>
                                 {Number(item.metroLinearPinazioTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ml
                               </p>
@@ -1519,7 +1520,7 @@ export default function CalculoPinazioPage() {
                                 }}
                                 title="Editar item"
                                 style={{ '--hover-color': theme.menuIconColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-text-secondary hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Pencil size={16} />
                               </button>
@@ -1529,7 +1530,7 @@ export default function CalculoPinazioPage() {
                                 onClick={() => setListaItens(listaItens.filter(i => i.id !== item.id))}
                                 title="Remover item"
                                 style={{ '--hover-color': theme.modalIconErrorColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-text-secondary hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1539,8 +1540,8 @@ export default function CalculoPinazioPage() {
                       </div>
 
                       {/* --- RODAPÉ COM A SOMA TOTAL --- */}
-                      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-500">Total do Orçamento</span>
+                      <div className="px-5 py-4 bg-surface-secondary border-t border-border flex items-center justify-between">
+                        <span className="text-sm font-medium text-text-secondary">Total do Orçamento</span>
 
                         {/* Soma Total */}
                         <span
@@ -1553,7 +1554,7 @@ export default function CalculoPinazioPage() {
                     </>
                   ) : (
                     // Estado Vazio
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                       <ClipboardList size={28} className="mb-3" />
                       <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento.</p>
                       <p className="text-xs mt-1">Comece adicionando as dimensões, o vidro e as divisões do Pinázio.</p>
@@ -1569,16 +1570,16 @@ export default function CalculoPinazioPage() {
       {/* MODAL DE FINALIZAÇÃO E DOWNLOAD */}
       {showModalCliente && (
         <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 p-6">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl">
+            <div className="flex items-start justify-between border-b border-border p-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-secondary">
                   Tabela personalizada
                 </p>
-                <h3 className="mt-1 text-xl font-semibold text-[#0f2742]">
+                <h3 className="mt-1 text-xl font-semibold text-text-primary">
                   Buscar cliente
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-text-secondary">
                   Ao escolher um cliente, os preços especiais de vidro serão aplicados automaticamente.
                 </p>
               </div>
@@ -1586,7 +1587,7 @@ export default function CalculoPinazioPage() {
               <button
                 type="button"
                 onClick={() => setShowModalCliente(false)}
-                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+                className="rounded-full p-2 text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
               >
                 <X size={18} />
               </button>
@@ -1596,24 +1597,24 @@ export default function CalculoPinazioPage() {
               <div className="relative">
                 <UserRoundSearch
                   size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
                 />
                 <input
                   autoFocus
                   value={buscaCliente}
                   onChange={(event) => setBuscaCliente(event.target.value)}
                   placeholder="Buscar por nome, telefone, e-mail ou cidade..."
-                  className="w-full rounded-2xl border border-slate-200 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-border py-3 pl-11 pr-4 text-sm outline-none transition focus:border-border-strong"
                 />
               </div>
 
               <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
                 {carregandoClientes ? (
-                  <div className="py-10 text-center text-sm text-slate-400">
+                  <div className="py-10 text-center text-sm text-text-secondary">
                     Carregando clientes...
                   </div>
                 ) : clientesFiltrados.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400">
+                  <div className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-text-secondary">
                     Nenhum cliente encontrado.
                   </div>
                 ) : (
@@ -1622,19 +1623,19 @@ export default function CalculoPinazioPage() {
                       key={cliente.id}
                       type="button"
                       onClick={() => selecionarCliente(cliente)}
-                      className="flex w-full items-center justify-between rounded-2xl border border-slate-100 px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/50"
+                      className="flex w-full items-center justify-between rounded-2xl border border-border px-4 py-3 text-left transition hover:border-info-soft hover:bg-info-soft/50"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#0f2742]">
+                        <p className="truncate text-sm font-semibold text-text-primary">
                           {cliente.nome}
                         </p>
-                        <p className="mt-1 truncate text-xs text-slate-400">
+                        <p className="mt-1 truncate text-xs text-text-secondary">
                           {[cliente.telefone, cliente.email, cliente.cidade]
                             .filter(Boolean)
                             .join(" • ") || "Sem dados adicionais"}
                         </p>
                       </div>
-                      <span className="ml-4 text-xs font-semibold text-blue-700">
+                      <span className="ml-4 text-xs font-semibold text-info">
                         Selecionar
                       </span>
                     </button>
@@ -1642,21 +1643,21 @@ export default function CalculoPinazioPage() {
                 )}
               </div>
 
-              <div className="mt-5 flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row">
+              <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => {
                     limparClienteSelecionado();
                     setShowModalCliente(false);
                   }}
-                  className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                  className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary"
                 >
                   Orçamento sem cliente
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModalCliente(false)}
-                  className="flex-1 rounded-xl bg-[#1e3a5a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2a527d]"
+                  className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary-hover"
                 >
                   Fechar
                 </button>
@@ -1672,13 +1673,13 @@ export default function CalculoPinazioPage() {
             style={{
               backgroundColor: theme.modalBackgroundColor,
               color: theme.modalTextColor,
-              borderColor: '#F3F4F6',
+              borderColor: "var(--surface-secondary)",
             }}
             className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border overflow-hidden flex flex-col md:flex-row"
           >
             {/* LADO ESQUERDO */}
-            <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `${theme.menuIconColor}08` }}>
-              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
+            <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 3%, transparent)` }}>
+              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
                 <ClipboardList size={32} />
               </div>
               <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
@@ -1688,7 +1689,7 @@ export default function CalculoPinazioPage() {
             {/* LADO DIREITO */}
             <div className="p-8 md:w-3/5 flex flex-col">
               <div className="flex justify-end mb-4">
-                <button onClick={() => setShowModalPDF(false)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                <button onClick={() => setShowModalPDF(false)} className="p-1.5 rounded-full hover:bg-surface-secondary transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -1712,7 +1713,7 @@ export default function CalculoPinazioPage() {
                     <PinazioPDF
                       itens={listaItens}
                       nomeEmpresa={nomeEmpresa}
-                      logoUrl={theme.logoLightUrl || '/glasscode.png'}
+                      logoUrl={theme.logoLightUrl || '/glasscode-light.png'}
                       themeColor={theme.contentTextLightBg}
                       nomeCliente={nomeCliente}
                       nomeObra={nomeObra}
@@ -1725,7 +1726,7 @@ export default function CalculoPinazioPage() {
                   {({ loading }) => (
                     <button
                       disabled={loading}
-                      className="w-full px-5 py-3 rounded-xl font-semibold bg-[#1e3a5a] text-white hover:bg-[#2a527d] transition-all text-sm flex items-center justify-center gap-2"
+                      className="w-full px-5 py-3 rounded-xl font-semibold bg-primary text-on-primary hover:bg-primary-hover transition-all text-sm flex items-center justify-center gap-2"
                     >
                       <Printer size={16} />
                       {loading ? "Gerando PDF..." : "Baixar Orçamento"}
@@ -1739,14 +1740,14 @@ export default function CalculoPinazioPage() {
       )}
       {showModalCentral && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex items-start justify-between gap-4 border-b border-border p-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Central de impressão</p>
-                <h3 className="mt-1 text-lg font-semibold text-[#0f2742]">Enviar Pinázio</h3>
-                <p className="mt-1 text-sm text-slate-500">A relação será enviada sem desenhos, com vidro e Pinázio separados.</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-secondary">Central de impressão</p>
+                <h3 className="mt-1 text-lg font-semibold text-text-primary">Enviar Pinázio</h3>
+                <p className="mt-1 text-sm text-text-secondary">A relação será enviada sem desenhos, com vidro e Pinázio separados.</p>
               </div>
-              <button onClick={() => setShowModalCentral(false)} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700">
+              <button onClick={() => setShowModalCentral(false)} className="rounded-full p-2 text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary">
                 <X size={18} />
               </button>
             </div>
@@ -1755,10 +1756,10 @@ export default function CalculoPinazioPage() {
               <button
                 type="button"
                 onClick={enviarParaCentralImpressao}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                className="w-full rounded-2xl border border-border bg-surface-secondary p-5 text-left transition hover:border-info-soft hover:bg-info-soft"
               >
-                <p className="text-sm font-semibold text-[#0f2742]">Enviar relação de vidro e Pinázio</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
+                <p className="text-sm font-semibold text-text-primary">Enviar relação de vidro e Pinázio</p>
+                <p className="mt-2 text-xs leading-5 text-text-secondary">
                   Envia as medidas do vidro, as divisões, o metro linear do Pinázio e os valores, sem desenhos.
                 </p>
               </button>
@@ -1771,20 +1772,20 @@ export default function CalculoPinazioPage() {
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
             style={{
-              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
-              color: theme.modalTextColor || '#1F2937',
+              backgroundColor: theme.modalBackgroundColor,
+              color: theme.modalTextColor,
             }}
-            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100 overflow-hidden flex flex-col md:flex-row"
+            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border border-border overflow-hidden flex flex-col md:flex-row"
           >
             {/* LADO ESQUERDO (Acentuado) */}
             <div
               className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center"
-              style={{ backgroundColor: `${theme.menuIconColor}08` }}
+              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 3%, transparent)` }}
             >
               <div
                 className="p-4 rounded-full mb-6"
                 style={{
-                  backgroundColor: `${theme.menuIconColor}15`,
+                  backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`,
                   color: theme.menuIconColor,
                 }}
               >
@@ -1812,7 +1813,7 @@ export default function CalculoPinazioPage() {
                     type="text"
                     value={nomeCliente}
                     onChange={(e) => setNomeCliente(e.target.value)}
-                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    className="w-full bg-transparent border-b border-border py-2.5 outline-none text-sm focus:border-border-strong"
                     placeholder="Nome do cliente..."
                   />
                 </div>
@@ -1822,7 +1823,7 @@ export default function CalculoPinazioPage() {
                     type="text"
                     value={nomeObra}
                     onChange={(e) => setNomeObra(e.target.value)}
-                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    className="w-full bg-transparent border-b border-border py-2.5 outline-none text-sm focus:border-border-strong"
                     placeholder="Ex: Apartamento 402..."
                   />
                 </div>
@@ -1830,8 +1831,8 @@ export default function CalculoPinazioPage() {
 
               <button
                 onClick={handleSalvarOrcamento}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-white transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
-                style={{ backgroundColor: theme.menuBackgroundColor }}
+                className="w-full px-4 py-3 rounded-xl font-semibold text-on-primary transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
+                style={{ backgroundColor: theme.buttonDarkBg }}
               >
                 <Save size={16} />
                 Salvar Orçamento
@@ -1844,9 +1845,9 @@ export default function CalculoPinazioPage() {
       {showModalSucesso && (
         <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
           <div
-            className="backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+            className="backdrop-blur-md border border-border shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
             style={{
-              backgroundColor: `${theme.modalBackgroundColor || '#FFFFFF'}F0`, // Adiciona leve transparência
+              backgroundColor: `color-mix(in srgb, ${theme.modalBackgroundColor} 94%, transparent)`, // Adiciona leve transparência
               borderRight: `4px solid ${theme.menuIconColor}`,
               color: theme.modalTextColor
             }}
@@ -1854,7 +1855,7 @@ export default function CalculoPinazioPage() {
             {/* Ícone com a cor do tema */}
             <div
               className="p-2 rounded-xl shrink-0"
-              style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}
+              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}
             >
               <Sparkles size={20} />
             </div>
@@ -1870,7 +1871,7 @@ export default function CalculoPinazioPage() {
                 </button>
               </div>
 
-              <p className="text-[11px] mt-0.5 font-mono opacity-60">
+              <p className="text-[11px] mt-0.5 font-sans opacity-60">
                 Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
               </p>
 
@@ -1891,16 +1892,16 @@ export default function CalculoPinazioPage() {
       {showModalAviso && (
         <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div
-            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-gray-100"
+            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-border"
             style={{
-              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
-              color: theme.modalTextColor || '#1F2937'
+              backgroundColor: theme.modalBackgroundColor,
+              color: theme.modalTextColor
             }}
           >
             {/* Ícone com Animação de Pulso */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6 relative">
-              <div className="absolute inset-0 rounded-full bg-amber-200 animate-ping opacity-20"></div>
-              <AlertTriangle size={32} className="text-amber-500 animate-bounce" />
+            <div className="mx-auto w-16 h-16 rounded-full bg-warning-soft flex items-center justify-center mb-6 relative">
+              <div className="absolute inset-0 rounded-full bg-warning-soft animate-ping opacity-20"></div>
+              <AlertTriangle size={32} className="text-warning animate-bounce" />
             </div>
 
             <h3 className="text-xl font-bold mb-2">{modalAvisoTitulo}</h3>

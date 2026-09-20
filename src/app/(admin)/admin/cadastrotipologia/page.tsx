@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { DRAWING_COLORS } from "@/design/drawing";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -92,9 +93,9 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
 
   // Função que retorna o desenho (SVG) baseado nas opções
   const renderizarDesenho = () => (
-    <svg viewBox="0 0 400 300" className="w-full h-auto bg-white rounded-2xl border border-gray-200 shadow-inner">
+    <svg viewBox="0 0 400 300" className="w-full h-auto bg-surface rounded-2xl border border-border shadow-inner">
       {/* Moldura Externa */}
-      <rect x="50" y="50" width="300" height="200" fill="none" stroke="#CBD5E1" strokeWidth="8" />
+      <rect x="50" y="50" width="300" height="200" fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="8" />
       {/* Vidro Esquerdo */}
       <rect x="54" y="54" width="146" height="192" fill="#E0F2FE" stroke="#38BDF8" strokeWidth="2" />
       {/* Vidro Direito */}
@@ -102,7 +103,7 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
       
       {/* Linha do Trilho Embutido (Opcional) */}
       {configuracaoAtiva.trilhoEmbutido && (
-        <line x1="50" y1="250" x2="350" y2="250" stroke="#EF4444" strokeWidth="4" strokeDasharray="4" />
+        <line x1="50" y1="250" x2="350" y2="250" stroke={DRAWING_COLORS.ink} strokeWidth="4" strokeDasharray="4" />
       )}
 
       {/* Marcação de Medida */}
@@ -134,11 +135,11 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
         <main className="p-4 md:p-8 flex-1">
           <div className="mb-8">
             <h1 className="text-3xl font-black" style={{ color: theme.contentTextLightBg }}>Configurar Tipologias</h1>
-            <p className="text-gray-500 font-medium">Cadastre regras de corte, vidros e componentes.</p>
+            <p className="text-text-secondary font-medium">Cadastre regras de corte, vidros e componentes.</p>
           </div>
             
           <select 
-            className="w-full p-4 mb-8 border border-gray-200 rounded-2xl outline-none shadow-sm font-bold text-gray-700 bg-white"
+            className="w-full p-4 mb-8 border border-border rounded-2xl outline-none shadow-sm font-bold text-text-primary bg-surface"
             onChange={(e) => handleSelectTipologia(e.target.value)}
           >
             <option value="">Selecione um modelo para configurar...</option>
@@ -152,8 +153,8 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
               <div className="xl:col-span-1 space-y-6">
                 
                 {/* Opções Rápidas */}
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                  <h3 className="font-black mb-4 flex items-center gap-2 text-gray-800"><Settings size={18}/> Opções do Modelo</h3>
+                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm">
+                  <h3 className="font-black mb-4 flex items-center gap-2 text-text-primary"><Settings size={18}/> Opções do Modelo</h3>
                   <div className="space-y-4">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input 
@@ -162,22 +163,22 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
                         checked={configuracaoAtiva.trilhoEmbutido}
                         onChange={(e) => setConfiguracaoAtiva({...configuracaoAtiva, trilhoEmbutido: e.target.checked})}
                       />
-                      <span className="text-sm font-bold text-gray-600">Considerar Trilho Embutido</span>
+                      <span className="text-sm font-bold text-text-secondary">Considerar Trilho Embutido</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Listagem de Materiais Vinculados */}
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                  <h3 className="font-black mb-4 flex items-center gap-2 text-gray-800"><Box size={18}/> Perfis e Vidros</h3>
+                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm">
+                  <h3 className="font-black mb-4 flex items-center gap-2 text-text-primary"><Box size={18}/> Perfis e Vidros</h3>
                   <div className="space-y-2">
                     {dadosConfig.tipologias_perfis?.map((p: any) => (
-                      <div key={p.id} className="p-3 bg-gray-50 rounded-xl text-xs font-bold flex justify-between">
+                      <div key={p.id} className="p-3 bg-surface-secondary rounded-xl text-xs font-bold flex justify-between">
                         <span>{p.codigo_perfil}</span>
-                        <span className="text-blue-600">Fórmula: L / 2 - 10</span>
+                        <span className="text-info">Fórmula: L / 2 - 10</span>
                       </div>
                     ))}
-                    <button className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-xs font-bold text-gray-400 hover:bg-gray-50 transition-all">
+                    <button className="w-full py-2 border-2 border-dashed border-border rounded-xl text-xs font-bold text-text-secondary hover:bg-surface-secondary transition-all">
                       + Adicionar Perfil ou Vidro
                     </button>
                   </div>
@@ -187,29 +188,29 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
               {/* COLUNA 2: DESENHO E SIMULADOR EM TEMPO REAL */}
               <div className="xl:col-span-2 space-y-6">
                 
-                <div className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-surface p-2 rounded-3xl border border-border shadow-sm overflow-hidden">
                    {renderizarDesenho()}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Inputs de Teste */}
-                  <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm">
                     <h2 className="text-lg font-black mb-4 flex items-center gap-2"><Ruler size={20} /> Medidas de Teste</h2>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-black text-gray-400 uppercase">Largura (mm)</label>
+                        <label className="text-xs font-black text-text-secondary uppercase">Largura (mm)</label>
                         <input 
                           type="number" 
-                          className="w-full p-3 bg-gray-50 rounded-xl mt-1 font-black outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-3 bg-surface-secondary rounded-xl mt-1 font-black outline-none focus:ring-2 focus:ring-info"
                           value={medidasTeste.largura}
                           onChange={(e) => setMedidasTeste({...medidasTeste, largura: Number(e.target.value)})}
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-black text-gray-400 uppercase">Altura (mm)</label>
+                        <label className="text-xs font-black text-text-secondary uppercase">Altura (mm)</label>
                         <input 
                           type="number" 
-                          className="w-full p-3 bg-gray-50 rounded-xl mt-1 font-black outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-3 bg-surface-secondary rounded-xl mt-1 font-black outline-none focus:ring-2 focus:ring-info"
                           value={medidasTeste.altura}
                           onChange={(e) => setMedidasTeste({...medidasTeste, altura: Number(e.target.value)})}
                         />
@@ -218,16 +219,16 @@ const vincularPerfil = async (perfilId: string, formula: string) => {
                   </div>
 
                   {/* Resultado da Simulação */}
-                  <div className="bg-slate-800 p-6 rounded-3xl shadow-lg text-white">
-                    <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-blue-400"><RefreshCw size={20} /> Resultado do Corte</h2>
+                  <div className="bg-navigation p-6 rounded-3xl shadow-lg text-white">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-info"><RefreshCw size={20} /> Resultado do Corte</h2>
                     <div className="space-y-3">
-                      <div className="flex justify-between border-b border-slate-700 pb-2">
-                        <span className="text-sm font-medium text-slate-400">Vidro (2x):</span>
-                        <span className="font-black text-blue-400">{(medidasTeste.largura / 2 - 12).toFixed(1)} x {(medidasTeste.altura - 45).toFixed(1)}</span>
+                      <div className="flex justify-between border-b border-border-strong pb-2">
+                        <span className="text-sm font-medium text-text-secondary">Vidro (2x):</span>
+                        <span className="font-black text-info">{(medidasTeste.largura / 2 - 12).toFixed(1)} x {(medidasTeste.altura - 45).toFixed(1)}</span>
                       </div>
-                      <div className="flex justify-between border-b border-slate-700 pb-2">
-                        <span className="text-sm font-medium text-slate-400">Perfil Trilho:</span>
-                        <span className="font-black text-green-400">{medidasTeste.largura - 2} mm</span>
+                      <div className="flex justify-between border-b border-border-strong pb-2">
+                        <span className="text-sm font-medium text-text-secondary">Perfil Trilho:</span>
+                        <span className="font-black text-success">{medidasTeste.largura - 2} mm</span>
                       </div>
                     </div>
                   </div>

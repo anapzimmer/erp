@@ -5,13 +5,14 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const path = require('node:path');
 
-function route({ owner = false, invalid = false, missing = false } = {}) {
+function route({ owner = false, invalid = false, missing = false, usuarios = [], resendError = null } = {}) {
   const chamadas = [];
   const db = {
-    auth: { getUser: async () => ({ data: { user: invalid ? null : { id: 'verified-user' } }, error: invalid ? { message: 'invalid' } : null }) },
+    auth: { resend: async args => { chamadas.push({name:'resend',args}); return {error:resendError}; }, getUser: async () => ({ data: { user: invalid ? null : { id: 'verified-user' } }, error: invalid ? { message: 'invalid' } : null }) },
     rpc: async (name, args) => {
       chamadas.push({ name, args });
       if (name === 'gc_proprietaria') return { data: owner, error: missing ? { code: 'PGRST202' } : null };
+      if (name === 'gc_painel') return { data: { usuarios }, error: null };
       return { data: { success: true }, error: null };
     },
   };
@@ -76,4 +77,23 @@ test('situação exige proprietária e encaminha a operação validada pelo banc
   assert.equal((await owner.POST(req({...body,dados:[]}))).status,400);
   assert.equal((await owner.POST(req(body))).status,200);
   assert.equal(owner.chamadas.filter(c=>c.name==='gc_definir_situacao').length,1);
+});
+
+test('reenvio exige proprietária, cadastro correspondente e confirmação pendente', async () => {
+  const usuario = {id:'user-1',email:'teste@example.com',confirmado:false};
+  const body = {acao:'reenviar_confirmacao',alvo:usuario.id,email:usuario.email};
+  const tenant = route({usuarios:[usuario]});
+  assert.equal((await tenant.POST(req(body))).status,403);
+  assert.ok(!tenant.chamadas.some(c=>c.name==='resend'));
+  const owner=route({owner:true,usuarios:[usuario]});
+  assert.equal((await owner.POST(req({...body,alvo:'outro'}))).status,404);
+  assert.equal((await owner.POST(req({...body,email:'outro@example.com'}))).status,404);
+  assert.equal((await owner.POST(req(body))).status,200);
+  assert.equal(owner.chamadas.filter(c=>c.name==='resend').length,1);
+  assert.equal(owner.chamadas.find(c=>c.name==='resend').args.type,'signup');
+  const confirmed=route({owner:true,usuarios:[{...usuario,confirmado:true}]});
+  assert.equal((await confirmed.POST(req(body))).status,409);
+  assert.ok(!confirmed.chamadas.some(c=>c.name==='resend'));
+  const limited=route({owner:true,usuarios:[usuario],resendError:{status:429}});
+  assert.equal((await limited.POST(req(body))).status,429);
 });

@@ -282,12 +282,12 @@ export default function ImportarTabelaPerfisModal({
   return (
     <div
       data-importador-catalogo="overlay"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]"
     >
       <div
         data-importador-catalogo="box"
         data-importador-vazio={modalRevisaoAberta ? undefined : "true"}
-        className="flex flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
+        className="flex flex-col overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]"
         style={modalRevisaoAberta
           ? {
               width: "calc(100vw - 32px)",
@@ -303,94 +303,94 @@ export default function ImportarTabelaPerfisModal({
               maxHeight: "calc(100vh - 32px)",
             }}
       >
-        <header className="flex shrink-0 flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <header className="flex shrink-0 flex-col gap-4 border-b border-border px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-6">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50 text-slate-500">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/80 bg-surface-secondary text-text-secondary">
               <FileText size={20} strokeWidth={1.8} />
             </div>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">Catálogo de perfis</p>
-              <h2 className="mt-1 text-base font-medium text-slate-800">Importar tabela de perfis</h2>
-              <p className="text-xs text-slate-500">Revise os itens identificados e escolha como deseja importar.</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-text-secondary">Catálogo de perfis</p>
+              <h2 className="mt-1 text-base font-medium text-text-primary">Importar tabela de perfis</h2>
+              <p className="text-xs text-text-secondary">Revise os itens identificados e escolha como deseja importar.</p>
             </div>
           </div>
-          <button onClick={onClose} className="absolute right-5 top-5 rounded-xl border border-slate-200 p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 lg:static" title="Fechar">
+          <button onClick={onClose} className="absolute right-5 top-5 rounded-xl border border-border p-2 text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary lg:static" title="Fechar">
             <X size={20} />
           </button>
         </header>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 text-xs font-normal text-slate-500 sm:gap-6 lg:gap-10">
-          <div className="flex items-center gap-2.5 text-slate-700">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-normal text-slate-700">1</span>
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-b border-border bg-surface-secondary/60 px-4 py-3 text-xs font-normal text-text-secondary sm:gap-6 lg:gap-10">
+          <div className="flex items-center gap-2.5 text-text-primary">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-border text-[11px] font-normal text-text-primary">1</span>
             <span>Enviar arquivo</span>
           </div>
-          <div className="hidden h-px w-20 bg-slate-200 sm:block" />
-          <div className="flex items-center gap-2.5 text-slate-700">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] text-slate-700">2</span>
+          <div className="hidden h-px w-20 bg-border sm:block" />
+          <div className="flex items-center gap-2.5 text-text-primary">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-border text-[11px] text-text-primary">2</span>
             <span>Revisar itens</span>
           </div>
-          <div className="hidden h-px w-20 bg-slate-200 sm:block" />
-          <div className="flex items-center gap-2.5 text-slate-400">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] text-slate-600">3</span>
+          <div className="hidden h-px w-20 bg-border sm:block" />
+          <div className="flex items-center gap-2.5 text-text-secondary">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-border text-[11px] text-text-secondary">3</span>
             <span>Importar</span>
           </div>
         </div>
 
-        <main className={`${modalRevisaoAberta ? "min-h-0 flex-1" : "flex-none"} overflow-y-auto bg-slate-50/40 p-3`}>
+        <main className={`${modalRevisaoAberta ? "min-h-0 flex-1" : "flex-none"} overflow-y-auto bg-surface-secondary/40 p-3`}>
           {!itens.length && !processando ? (
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/40 text-center transition hover:border-slate-300 hover:bg-white"
+              className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-secondary/40 text-center transition hover:border-border-strong hover:bg-surface"
             >
-              <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500">
+              <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-surface text-text-secondary">
                 <Upload size={22} />
               </span>
-              <span className="text-base font-medium text-slate-700">Selecione a tabela do fornecedor</span>
-              <span className="mt-2 text-sm text-slate-500">PDF com texto selecionável, TXT ou CSV</span>
+              <span className="text-base font-medium text-text-primary">Selecione a tabela do fornecedor</span>
+              <span className="mt-2 text-sm text-text-secondary">PDF com texto selecionável, TXT ou CSV</span>
             </button>
           ) : null}
 
           {processando ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl bg-white text-center">
-              <Loader2 className="mb-4 animate-spin text-slate-500" size={34} />
-              <p className="text-base font-semibold text-slate-900">Lendo arquivo</p>
-              <p className="mt-1 text-sm text-slate-500">Separando código, descrição, cor e preço...</p>
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl bg-surface text-center">
+              <Loader2 className="mb-4 animate-spin text-text-secondary" size={34} />
+              <p className="text-base font-semibold text-text-primary">Lendo arquivo</p>
+              <p className="mt-1 text-sm text-text-secondary">Separando código, descrição, cor e preço...</p>
             </div>
           ) : null}
 
           {!!itens.length && (
             <div className="space-y-4">
               <div className="mb-5 grid grid-cols-12 gap-3">
-                <div className="col-span-12 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm 2xl:col-span-3">
+                <div className="col-span-12 flex items-center justify-between rounded-2xl border border-border/80 bg-surface p-4 shadow-sm 2xl:col-span-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-success-soft text-success">
                       <CheckCircle2 size={18} />
                     </div>
                     <div>
-                      <p className="text-xs font-normal text-slate-800">Arquivo enviado com sucesso</p>
-                      <p className="mt-0.5 text-[11px] text-slate-400">{arquivoInfo?.nome} • {arquivoInfo?.tamanho}</p>
+                      <p className="text-xs font-normal text-text-primary">Arquivo enviado com sucesso</p>
+                      <p className="mt-0.5 text-[11px] text-text-secondary">{arquivoInfo?.nome} • {arquivoInfo?.tamanho}</p>
                     </div>
                   </div>
-                  <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-normal text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">
+                  <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-normal text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary">
                     <Upload size={13} />
                     Trocar
                   </button>
                 </div>
                 <div className="col-span-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 2xl:col-span-9">
                   {[
-                    ["Total de itens", resumo.total, "bg-slate-400"],
-                    ["Atualizar", resumo.atualizar, "bg-emerald-500"],
-                    ["Vincular", resumo.vincular, "bg-blue-500"],
-                    ["Criar", resumo.criar, "bg-purple-500"],
-                    ["Ignorar", resumo.ignorar, "bg-amber-500"],
+                    ["Total de itens", resumo.total, "bg-border"],
+                    ["Atualizar", resumo.atualizar, "bg-success"],
+                    ["Vincular", resumo.vincular, "bg-info"],
+                    ["Criar", resumo.criar, "bg-info"],
+                    ["Ignorar", resumo.ignorar, "bg-warning"],
                   ].map(([label, valor, cor]) => (
-                    <div key={label} className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                      <div className="flex items-center gap-1.5 text-[11px] font-normal text-slate-600">
+                    <div key={label} className="rounded-2xl border border-border/80 bg-surface p-3 shadow-sm">
+                      <div className="flex items-center gap-1.5 text-[11px] font-normal text-text-secondary">
                         <span className={`h-2 w-2 rounded-full ${cor}`} />
                         {label}
                       </div>
-                      <p className="mt-1.5 text-lg font-normal text-slate-800">{valor}</p>
+                      <p className="mt-1.5 text-lg font-normal text-text-primary">{valor}</p>
                     </div>
                   ))}
                 </div>
@@ -398,19 +398,19 @@ export default function ImportarTabelaPerfisModal({
 
               <div className="grid items-center gap-3 xl:grid-cols-[1fr_auto_auto]">
                 <div className="relative min-w-[260px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
                   <input
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     placeholder="Buscar por código, nome, cor ou categoria..."
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-400"
+                    className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-border-strong"
                   />
                 </div>
-                <button onClick={() => setItens((atuais) => atuais.map((item) => ({ ...item, selecionado: true })))} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-600 hover:bg-slate-50">Selecionar todos</button>
-                <button onClick={() => setItens((atuais) => atuais.map((item) => ({ ...item, selecionado: false })))} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-600 hover:bg-slate-50">Limpar seleção</button>
+                <button onClick={() => setItens((atuais) => atuais.map((item) => ({ ...item, selecionado: true })))} className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-normal text-text-secondary hover:bg-surface-secondary">Selecionar todos</button>
+                <button onClick={() => setItens((atuais) => atuais.map((item) => ({ ...item, selecionado: false })))} className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-normal text-text-secondary hover:bg-surface-secondary">Limpar seleção</button>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="overflow-hidden rounded-2xl border border-border bg-surface">
                 <div className="min-h-[360px] max-h-[calc(100vh-430px)] overflow-auto">
                   <table className="w-full min-w-[1500px] table-fixed text-left text-xs">
                     <colgroup>
@@ -423,7 +423,7 @@ export default function ImportarTabelaPerfisModal({
                       <col className="w-[150px]" />
                       <col className="w-[455px]" />
                     </colgroup>
-                    <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <thead className="sticky top-0 z-10 bg-surface-secondary text-[10px] uppercase tracking-[0.12em] text-text-secondary">
                       <tr>
                         <th className="w-10 px-3 py-3"></th>
                         <th className="px-3 py-3 font-normal">Código</th>
@@ -435,45 +435,45 @@ export default function ImportarTabelaPerfisModal({
                         <th className="px-3 py-3 font-normal">Vinculação</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                       {itensFiltrados.map((item) => {
                         return (
-                        <tr key={item.revisaoId} className="hover:bg-slate-50/80">
+                        <tr key={item.revisaoId} className="hover:bg-surface-secondary/80">
                           <td className="px-3 py-2 text-center">
                             <input
                               type="checkbox"
                               checked={item.selecionado}
                               onChange={(e) => atualizarItem(item.revisaoId, { selecionado: e.target.checked })}
-                              className="h-3.5 w-3.5 rounded border-slate-300 accent-slate-600"
+                              className="h-3.5 w-3.5 rounded border-border-strong accent-slate-600"
                             />
                           </td>
-                          <td className="px-3 py-2 font-normal text-slate-800">{item.codigo}</td>
-                          <td className="px-3 py-2 text-slate-700">
+                          <td className="px-3 py-2 font-normal text-text-primary">{item.codigo}</td>
+                          <td className="px-3 py-2 text-text-primary">
                             <input
                               value={item.nome}
                               onChange={(e) => atualizarItem(item.revisaoId, { nome: e.target.value })}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-border focus:bg-surface"
                             />
                           </td>
                           <td className="px-3 py-2">
                             <input
                               value={item.cores}
                               onChange={(e) => atualizarItem(item.revisaoId, { cores: e.target.value })}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-border focus:bg-surface"
                             />
                           </td>
                           <td className="px-3 py-2">
                             <input
                               value={item.categoria}
                               onChange={(e) => atualizarItem(item.revisaoId, { categoria: e.target.value })}
-                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-slate-200 focus:bg-white"
+                              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-border focus:bg-surface"
                             />
                           </td>
                           <td className="px-3 py-2">
                             <input
                               value={String(item.preco).replace(".", ",")}
                               onChange={(e) => atualizarItem(item.revisaoId, { preco: converterPreco(e.target.value) })}
-                              className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right outline-none focus:border-slate-400"
+                              className="w-24 rounded-lg border border-border bg-surface px-2 py-1 text-right outline-none focus:border-border-strong"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -481,7 +481,7 @@ export default function ImportarTabelaPerfisModal({
                               <select
                                 value={item.acao}
                                 onChange={(e) => atualizarItem(item.revisaoId, { acao: e.target.value as AcaoImportacao })}
-                                className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-4 pr-7 text-xs font-normal text-slate-700 outline-none focus:border-slate-400"
+                                className="w-full appearance-none rounded-lg border border-border bg-surface py-1.5 pl-4 pr-7 text-xs font-normal text-text-primary outline-none focus:border-border-strong"
                               >
                                 <option value="atualizar">Atualizar</option>
                                 <option value="vincular">Vincular</option>
@@ -491,18 +491,18 @@ export default function ImportarTabelaPerfisModal({
                               <span
                                 className={`absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${
                                   item.acao === "atualizar"
-                                    ? "bg-emerald-500"
+                                    ? "bg-success"
                                     : item.acao === "vincular"
-                                      ? "bg-blue-500"
+                                      ? "bg-info"
                                       : item.acao === "criar"
-                                        ? "bg-purple-500"
-                                        : "bg-amber-500"
+                                        ? "bg-info"
+                                        : "bg-warning"
                                 }`}
                               />
-                              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary" size={14} />
                             </div>
                             {item.precoAnterior !== null && (
-                              <p className="mt-1 text-[10px] text-slate-400">Anterior: R$ {item.precoAnterior.toFixed(2).replace(".", ",")}</p>
+                              <p className="mt-1 text-[10px] text-text-secondary">Anterior: R$ {item.precoAnterior.toFixed(2).replace(".", ",")}</p>
                             )}
                           </td>
                           <td className="px-3 py-2">
@@ -516,7 +516,7 @@ export default function ImportarTabelaPerfisModal({
                                     precoAnterior: perfilSelecionado?.preco ? Number(perfilSelecionado.preco) : null,
                                   })
                                 }}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-normal text-slate-700 outline-none focus:border-slate-400"
+                                className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-[11px] font-normal text-text-primary outline-none focus:border-border-strong"
                               >
                                 <option value="">Selecionar perfil...</option>
                                 {perfis.map((perfil) => (
@@ -526,7 +526,7 @@ export default function ImportarTabelaPerfisModal({
                                 ))}
                               </select>
                             ) : (
-                              <span className="text-slate-300">—</span>
+                              <span className="text-text-secondary">—</span>
                             )}
                           </td>
                         </tr>
@@ -539,49 +539,49 @@ export default function ImportarTabelaPerfisModal({
             </div>
           )}
 
-          {erro ? <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{erro}</p> : null}
+          {erro ? <p className="mt-4 rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm text-danger">{erro}</p> : null}
         </main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-white px-6 py-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-6 py-4">
           <button
             type="button"
             onClick={() => setDiagnosticoAberto((atual) => !atual)}
-            className="flex items-center gap-2 text-sm font-normal text-slate-600"
+            className="flex items-center gap-2 text-sm font-normal text-text-secondary"
           >
             Diagnóstico da extração
             <ChevronDown size={15} className={diagnosticoAberto ? "rotate-180" : ""} />
           </button>
           <div className="flex items-center gap-3">
-            <span className="hidden items-center gap-1 text-xs text-slate-400 md:flex"><Lock size={13} /> Seus dados estão seguros</span>
-            <button onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-normal text-slate-600 hover:bg-slate-50">Cancelar</button>
+            <span className="hidden items-center gap-1 text-xs text-text-secondary md:flex"><Lock size={13} /> Seus dados estão seguros</span>
+            <button onClick={onClose} className="rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-normal text-text-secondary hover:bg-surface-secondary">Cancelar</button>
             <button
               onClick={() => void confirmarImportacao()}
               disabled={!resumo.selecionados || salvando}
-              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-normal text-white disabled:opacity-50"
+              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-normal text-on-primary disabled:opacity-50"
             >
               {salvando ? "Importando..." : `Importar selecionados (${resumo.selecionados})`}
             </button>
           </div>
           {diagnosticoAberto && (diagnostico || erro || itens.length > 0) ? (
-            <div className={`w-full rounded-xl border p-4 ${erro ? "border-red-100 bg-red-50" : "border-emerald-100 bg-emerald-50"}`}>
+            <div className={`w-full rounded-xl border p-4 ${erro ? "border-danger-soft bg-danger-soft" : "border-success-soft bg-success-soft"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2">
-                  {erro ? <AlertCircle size={16} className="mt-0.5 text-red-500" /> : <CheckCircle2 size={16} className="mt-0.5 text-emerald-600" />}
+                  {erro ? <AlertCircle size={16} className="mt-0.5 text-danger" /> : <CheckCircle2 size={16} className="mt-0.5 text-success" />}
                   <div>
-                    <p className={`text-sm font-normal ${erro ? "text-red-700" : "text-emerald-700"}`}>
+                    <p className={`text-sm font-normal ${erro ? "text-danger" : "text-success"}`}>
                       {erro ? "Não foi possível concluir a leitura." : `Leitura concluída com sucesso. ${itens.length} itens encontrados.`}
                     </p>
-                    {erro ? <p className="mt-1 text-xs text-red-600">{erro}</p> : null}
+                    {erro ? <p className="mt-1 text-xs text-danger">{erro}</p> : null}
                   </div>
                 </div>
-                <button type="button" onClick={() => void copiarDiagnostico()} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50" title="Copiar diagnóstico">
+                <button type="button" onClick={() => void copiarDiagnostico()} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary hover:bg-surface-secondary" title="Copiar diagnóstico">
                   <Copy size={14} />
                 </button>
               </div>
               {diagnostico && !erro ? (
-                <pre className="mt-3 max-h-36 overflow-auto rounded-lg bg-white/70 p-3 text-[11px] text-slate-500">{diagnostico}</pre>
+                <pre className="mt-3 max-h-36 overflow-auto rounded-lg bg-surface/70 p-3 text-[11px] text-text-secondary">{diagnostico}</pre>
               ) : null}
-              {diagnosticoCopiado ? <p className="mt-2 text-xs text-slate-500">Diagnóstico copiado.</p> : null}
+              {diagnosticoCopiado ? <p className="mt-2 text-xs text-text-secondary">Diagnóstico copiado.</p> : null}
             </div>
           ) : null}
         </footer>

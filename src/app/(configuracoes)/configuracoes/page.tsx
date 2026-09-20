@@ -93,14 +93,14 @@ export default function ConfiguracoesPage() {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-surface-secondary">
         <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="flex min-h-screen text-text-primary" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
       {/* SIDEBAR PADRONIZADA */}
       <Sidebar 
@@ -128,7 +128,7 @@ export default function ConfiguracoesPage() {
             className="mb-6 rounded-[24px] border p-6 md:p-8 shadow-sm"
             style={{
               backgroundColor: theme.contentTextDarkBg,
-              borderColor: `${theme.contentTextLightBg}14`,
+              borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)`,
             }}
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -136,21 +136,21 @@ export default function ConfiguracoesPage() {
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
                   style={{
-                    backgroundColor: `${theme.menuIconColor}14`,
-                    borderColor: `${theme.menuIconColor}2E`,
+                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`,
+                    borderColor: `color-mix(in srgb, ${theme.menuIconColor} 18%, transparent)`,
                     color: theme.menuIconColor,
                   }}
                 >
                   <Settings size={22} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `${theme.contentTextLightBg}8A` }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 54%, transparent)` }}>
                     Administração
                   </p>
                   <h1 className="mt-1 text-2xl font-semibold md:text-3xl" style={{ color: theme.contentTextLightBg }}>
                     Configurações
                   </h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                     Centralize aqui as preferências gerais que mudam o comportamento do sistema. Tabelas e identidade visual ficam no menu da empresa.
                   </p>
                 </div>
@@ -166,8 +166,8 @@ export default function ConfiguracoesPage() {
                     key={label}
                     className="rounded-2xl border px-4 py-3"
                     style={{
-                      backgroundColor: `${theme.screenBackgroundColor}B8`,
-                      borderColor: `${theme.contentTextLightBg}12`,
+                      backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
+                      borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
                     }}
                   >
                     <Icon size={16} style={{ color: theme.menuIconColor }} />
@@ -184,16 +184,16 @@ export default function ConfiguracoesPage() {
             className="rounded-[24px] border p-5 md:p-6 shadow-sm"
             style={{
               backgroundColor: theme.contentTextDarkBg,
-              borderColor: `${theme.contentTextLightBg}14`,
+              borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)`,
             }}
           >
-            <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: `${theme.contentTextLightBg}12` }}>
+            <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex items-start gap-4">
                 <div
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
                   style={{
-                    backgroundColor: `${theme.menuIconColor}12`,
-                    borderColor: `${theme.menuIconColor}26`,
+                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
+                    borderColor: `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`,
                     color: theme.menuIconColor,
                   }}
                 >
@@ -203,12 +203,12 @@ export default function ConfiguracoesPage() {
                   <h2 className="text-lg font-semibold" style={{ color: theme.contentTextLightBg }}>
                     Preferências do Sistema
                   </h2>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                     Esta área fica preparada para os padrões globais do ERP. Por enquanto, deixei os grupos organizados para recebermos cada ajuste sem misturar com cadastros.
                   </p>
                 </div>
               </div>
-              <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-slate-500">
+              <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-text-secondary">
                 Em planejamento
               </span>
             </div>
@@ -219,14 +219,14 @@ export default function ConfiguracoesPage() {
                   key={item.titulo}
                   className="rounded-2xl border p-4"
                   style={{
-                    backgroundColor: `${theme.screenBackgroundColor}B8`,
-                    borderColor: `${theme.contentTextLightBg}12`,
+                    backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
+                    borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
                   }}
                 >
                   <h3 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
                     {item.titulo}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">{item.descricao}</p>
+                  <p className="mt-2 text-sm leading-6 text-text-secondary">{item.descricao}</p>
                 </div>
               ))}
             </div>
@@ -234,8 +234,8 @@ export default function ConfiguracoesPage() {
             <div
               className="mt-5 rounded-2xl border p-4 md:p-5"
               style={{
-                backgroundColor: `${theme.screenBackgroundColor}B8`,
-                borderColor: `${theme.contentTextLightBg}12`,
+                backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
+                borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
               }}
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -243,11 +243,11 @@ export default function ConfiguracoesPage() {
                   <h3 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
                     Corte de barras longas
                   </h3>
-                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-text-secondary">
                     Escolha como o sistema deve tratar medidas maiores que o tamanho da barra. A regra vale para os novos cálculos e recálculos dos projetos.
                   </p>
                 </div>
-                <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-slate-500">
+                <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-text-secondary">
                   Preferência ativa
                 </span>
               </div>
@@ -274,8 +274,8 @@ export default function ConfiguracoesPage() {
                       onClick={() => alterarModoCorteBarra(opcao.modo)}
                       className="rounded-2xl border p-4 text-left transition"
                       style={{
-                        backgroundColor: ativo ? `${theme.menuIconColor}10` : theme.contentTextDarkBg,
-                        borderColor: ativo ? `${theme.menuIconColor}70` : `${theme.contentTextLightBg}14`,
+                        backgroundColor: ativo ? `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)` : theme.contentTextDarkBg,
+                        borderColor: ativo ? `color-mix(in srgb, ${theme.menuIconColor} 44%, transparent)` : `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)`,
                       }}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -286,17 +286,17 @@ export default function ConfiguracoesPage() {
                           className="h-3 w-3 rounded-full border"
                           style={{
                             backgroundColor: ativo ? theme.menuIconColor : "transparent",
-                            borderColor: ativo ? theme.menuIconColor : `${theme.contentTextLightBg}40`,
+                            borderColor: ativo ? theme.menuIconColor : `color-mix(in srgb, ${theme.contentTextLightBg} 25%, transparent)`,
                           }}
                         />
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">{opcao.descricao}</p>
+                      <p className="mt-2 text-sm leading-6 text-text-secondary">{opcao.descricao}</p>
                     </button>
                   );
                 })}
               </div>
 
-              <p className="mt-3 text-xs leading-5 text-slate-500">
+              <p className="mt-3 text-xs leading-5 text-text-secondary">
                 Nas deslizantes, os trilhos continuam respeitando barras de 7000 mm antes de aplicar esta regra.
               </p>
             </div>

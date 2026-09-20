@@ -35,6 +35,11 @@ export async function GET(request: Request) {
     let { data, error } = await acesso.db!.rpc(historico ? "gc_historico_acessos" : financeiro ? "gc_financeiro" : "gc_painel_situacoes", parametros);
     if (!historico && !financeiro && error?.code === 'PGRST202') ({ data, error } = await acesso.db!.rpc('gc_painel', parametros));
     if (error) return responder({ erro: historico && error.code === "PGRST202" ? "Ative a atualização painel_historico_acessos.sql no Supabase para consultar os logins." : financeiro && error.code === "PGRST202" ? "O financeiro ainda precisa ser ativado no Supabase. Execute a atualização painel_financeiro.sql." : "Não foi possível carregar o painel." }, 503);
+    if (historico) {
+      const ids = [...new Set((data?.eventos || []).map((e: { usuario_id: string }) => e.usuario_id).filter((id: unknown) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)))];
+      const presenca = await acesso.db!.rpc('gc_consultar_presenca', { p_usuarios: ids });
+      return responder({ ...data, presenca_disponivel: !presenca.error, eventos: (data?.eventos || []).map((e: { usuario_id: string }) => ({ ...e, presenca: presenca.error ? null : presenca.data?.[e.usuario_id] || { online: false, visto_em: null } })) });
+    }
     return responder(data);
   } catch { return responder({ erro: "Não foi possível conectar ao painel." }, 503); }
 }
@@ -45,6 +50,17 @@ export async function POST(request: Request) {
     if (acesso.erro) return acesso.erro;
     let body;
     try { body = await request.json(); } catch { return responder({ erro: "Solicitação inválida." }, 400); }
+    if (body?.acao === 'reenviar_confirmacao') {
+      if (typeof body.email !== 'string' || body.email.length > 254 || typeof body.alvo !== 'string') return responder({ erro: 'Cadastro inválido.' }, 400);
+      const { data: painel, error: consultaErro } = await acesso.db!.rpc('gc_painel', { p_busca: body.email, p_pagina: 0 });
+      if (consultaErro) return responder({ erro: 'Não foi possível verificar o cadastro.' }, 503);
+      const usuario = painel?.usuarios?.find((u: { id: string; email: string }) => u.id === body.alvo && u.email === body.email);
+      if (!usuario) return responder({ erro: 'Usuário não encontrado.' }, 404);
+      if (usuario.confirmado) return responder({ erro: 'Este e-mail já está confirmado. Atualize a lista.' }, 409);
+      const { error } = await acesso.db!.auth.resend({ type: 'signup', email: usuario.email });
+      if (error) return responder({ erro: error.status === 429 ? 'Aguarde alguns minutos antes de reenviar. O limite de envios foi atingido.' : 'Não foi possível reenviar. Confira o serviço de e-mail do Supabase e tente novamente.' }, error.status === 429 ? 429 : 503);
+      return responder({ sucesso: true });
+    }
     if (body?.acao === 'situacao') {
       const d = body.dados;
       if (!d || typeof d !== 'object' || Array.isArray(d) || JSON.stringify(d).length > 6000 ||

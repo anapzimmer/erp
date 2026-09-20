@@ -401,7 +401,7 @@ export default function FerragensPage() {
     });
   }
 
-  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
+  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-surface-secondary"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 
   const gerarPDF = async () => {
     try {
@@ -575,12 +575,12 @@ export default function FerragensPage() {
 
         <main className="cad-main-panel w-full flex-1 min-w-0 p-4 md:p-6 xl:p-8">
 
-          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
             <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `${darkTertiary}12`, color: darkTertiary }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: darkTertiary }}
                 >
                   <Square size={23} strokeWidth={1.8} />
                 </div>
@@ -588,7 +588,7 @@ export default function FerragensPage() {
                   <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: darkPrimary }}>
                     Catálogo de ferragens
                   </h1>
-                  <p className="mt-1 text-sm font-normal text-gray-500">
+                  <p className="mt-1 text-sm font-normal text-text-secondary">
                     Gerencie códigos, cores, categorias e preços das ferragens.
                   </p>
                 </div>
@@ -609,7 +609,7 @@ export default function FerragensPage() {
               <button
                 onClick={() => gerarPDF()}
                 title="Gerar catálogo em PDF"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
               >
                 <Printer size={18} />
               </button>
@@ -617,7 +617,7 @@ export default function FerragensPage() {
               <button
                 onClick={exportarCSV}
                 title="Exportar CSV"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
               >
                 <Download size={18} />
               </button>
@@ -625,7 +625,7 @@ export default function FerragensPage() {
               <label
                 htmlFor="importarCSV"
                 title="Importar CSV simples"
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
               >
                 <Upload size={18} />
                 <input
@@ -648,12 +648,12 @@ export default function FerragensPage() {
               { titulo: "Cores", valor: new Set(ferragens.map(f => f.cores)).size, icone: Palette },
               { titulo: "Categorias", valor: new Set(ferragens.map(f => f.categoria)).size, icone: Package }
             ].map(card => (
-              <div key={card.titulo} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: darkTertiary, backgroundColor: `${darkTertiary}10` }}>
+              <div key={card.titulo} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: darkTertiary, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
                 <div>
-                  <p className="text-xs font-normal text-gray-400">{card.titulo}</p>
+                  <p className="text-xs font-normal text-text-secondary">{card.titulo}</p>
                   <p className="text-xl font-semibold" style={{ color: darkPrimary }}>{card.valor}</p>
                 </div>
               </div>
@@ -661,41 +661,41 @@ export default function FerragensPage() {
           </div>
 
           {/* FILTROS E AÇÃO */}
-          <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm filtros-sessao">
+          <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm filtros-sessao">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
                 <input
                   type="text"
                   placeholder="Buscar por nome, código ou categoria..."
                   value={filtroNome}
                   onChange={e => setFiltroNome(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                  style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                  className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2"
+                  style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 15%, transparent)` } as React.CSSProperties}
                 />
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
               <input
                 type="text"
                 placeholder="Buscar por cor..."
                 value={filtroCor}
                 onChange={e => setFiltroCor(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2"
+                style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 15%, transparent)` } as React.CSSProperties}
               />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 no-print">
-              <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50">
+              <button onClick={eliminarDuplicados} className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-normal text-text-secondary transition hover:bg-surface-secondary">
                 <Eraser size={16} /> Duplicados
               </button>
               <button
                 onClick={limparTodasAsFerragens}
-                className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+                className="flex items-center gap-2 rounded-xl border border-danger-soft bg-surface px-3.5 py-2.5 text-sm font-normal text-danger transition hover:bg-danger-soft"
               >
                 <Trash2 size={16} />
                 Limpar tudo
@@ -713,9 +713,9 @@ export default function FerragensPage() {
           </section>
 
           {ferragensSelecionadas.size > 0 && (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CheckSquare2 size={18} className="text-red-500" />
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-danger-soft bg-danger-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                <CheckSquare2 size={18} className="text-danger" />
                 <span>
                   <strong className="font-normal">{ferragensSelecionadas.size}</strong>{" "}
                   {ferragensSelecionadas.size === 1 ? "item selecionado" : "itens selecionados"}
@@ -725,13 +725,13 @@ export default function FerragensPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFerragensSelecionadas(new Set())}
-                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface"
                 >
                   Cancelar seleção
                 </button>
                 <button
                   onClick={excluirFerragensSelecionadas}
-                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                  className="flex items-center gap-2 rounded-xl bg-danger px-4 py-2 text-xs font-normal text-on-danger transition hover:bg-danger"
                 >
                   <Trash2 size={15} />
                   Excluir selecionados
@@ -741,16 +741,16 @@ export default function FerragensPage() {
           )}
 
           {/* TABELA ATUALIZADA */}
-          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-normal text-gray-700">Ferragens cadastradas</h2>
-                <p className="mt-0.5 text-xs text-gray-400">Exibindo {ferragensFiltradas.length} de {ferragens.length} produtos</p>
+                <h2 className="text-base font-normal text-text-primary">Ferragens cadastradas</h2>
+                <p className="mt-0.5 text-xs text-text-secondary">Exibindo {ferragensFiltradas.length} de {ferragens.length} produtos</p>
               </div>
               <button
                 onClick={alternarSelecaoFiltrados}
                 disabled={!ferragensFiltradas.length}
-                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-start rounded-xl border border-border bg-surface px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
               >
                 <ListChecks size={15} />
                 {todosFiltradosSelecionados ? "Desmarcar visíveis" : "Selecionar visíveis"}
@@ -758,16 +758,16 @@ export default function FerragensPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                <thead className="border-b border-border bg-surface-secondary/80 text-xs text-text-secondary">
                   <tr>
                     <th className="w-14 px-5 py-3.5">
                       <button
                         onClick={alternarSelecaoFiltrados}
                         disabled={!ferragensFiltradas.length}
                         className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
-                          todosFiltradosSelecionados ? "border-transparent" : "border-gray-300 bg-white"
+                          todosFiltradosSelecionados ? "border-transparent" : "border-border-strong bg-surface"
                         }`}
-                        style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                        style={todosFiltradosSelecionados ? { backgroundColor: "var(--success)" } : undefined}
                         aria-label="Selecionar todas as ferragens visíveis"
                       >
                         {todosFiltradosSelecionados && <CheckCircle2 size={15} className="text-white" />}
@@ -781,40 +781,40 @@ export default function FerragensPage() {
                     <th className="px-4 py-3.5 text-center font-normal">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border">
                   {ferragensFiltradas.map(f => {
                     const selecionado = ferragensSelecionadas.has(f.id)
 
                     return (
-                    <tr key={f.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
+                    <tr key={f.id} className={`transition-colors ${selecionado ? "bg-success-soft/40" : "hover:bg-surface-secondary/80"}`}>
                       <td className="px-5 py-3.5">
                         <button
                           onClick={() => alternarSelecaoFerragem(f.id)}
                           className={`flex h-5 w-5 items-center justify-center rounded border transition ${
-                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                            selecionado ? "border-transparent" : "border-border-strong bg-surface"
                           }`}
-                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                          style={selecionado ? { backgroundColor: "var(--success)" } : undefined}
                           aria-label={`Selecionar ${f.nome}`}
                         >
                           {selecionado && <CheckCircle2 size={15} className="text-white" />}
                         </button>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600">{f.codigo}</td>
-                      <td className="px-4 py-3.5 text-gray-700">{f.nome}</td>
+                      <td className="px-4 py-3.5 text-text-secondary">{f.codigo}</td>
+                      <td className="px-4 py-3.5 text-text-primary">{f.nome}</td>
                       <td className="px-4 py-3.5">
                         <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
-                          style={{ color: darkTertiary, borderColor: `${darkTertiary}33`, backgroundColor: `${darkTertiary}10` }}>
+                          style={{ color: darkTertiary, borderColor: `color-mix(in srgb, ${darkTertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                           {f.cores || "Padrão"}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600">{f.categoria || "Geral"}</td>
-                      <td className="px-4 py-3.5 text-gray-700">
+                      <td className="px-4 py-3.5 text-text-secondary">{f.categoria || "Geral"}</td>
+                      <td className="px-4 py-3.5 text-text-primary">
                         {f.preco ? formatarPreco(f.preco) : "-"}
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => { setEditando(f); setNovaFerragem(f); setMostrarModal(true); }} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={17} /></button>
-                          <button onClick={() => deletarFerragem(f.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
+                          <button onClick={() => { setEditando(f); setNovaFerragem(f); setMostrarModal(true); }} className="rounded-xl p-2.5 transition hover:bg-surface-secondary" style={{ color: darkPrimary }}><Edit2 size={17} /></button>
+                          <button onClick={() => deletarFerragem(f.id)} className="rounded-xl p-2.5 text-danger transition hover:bg-danger-soft hover:text-danger"><Trash2 size={17} /></button>
                         </div>
                       </td>
                     </tr>
@@ -839,24 +839,24 @@ export default function FerragensPage() {
 
       {/* MODAL DE CADASTRO/EDIÇÃO (PADRÃO MINIMALISTA DISCRETO) */}
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
-          <div className="flex max-h-[92vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] transition-all">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
+          <div className="flex max-h-[92vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)] transition-all">
 
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-text-secondary">
                   Catálogo de ferragens
                 </p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                <h2 className="mt-1 text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
                   {editando ? "Editar Ferragem" : "Cadastrar Ferragem"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-text-secondary">
                   Informe os dados principais e, se precisar, preços diferentes por tabela.
                 </p>
               </div>
               <button
                 onClick={() => setMostrarModal(false)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                 title="Fechar"
               >
                 <X size={20} />
@@ -865,83 +865,83 @@ export default function FerragensPage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-              <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+              <section className="rounded-2xl border border-border bg-surface-secondary/70 p-4 sm:p-5">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-700">Dados da ferragem</h3>
-                    <p className="mt-1 text-xs text-slate-500">Use o mesmo código do fornecedor para facilitar importações.</p>
+                    <h3 className="text-sm font-semibold text-text-primary">Dados da ferragem</h3>
+                    <p className="mt-1 text-xs text-text-secondary">Use o mesmo código do fornecedor para facilitar importações.</p>
                   </div>
-                  <Square size={18} className="text-slate-300" />
+                  <Square size={18} className="text-text-secondary" />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Código do produto</label>
                   <input
                     type="text"
                     placeholder="E?: 3530P"
                     value={novaFerragem.codigo}
                     onChange={e => setNovaFerragem({ ...novaFerragem, codigo: e.target.value.toUpperCase() })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm uppercase text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 33%, transparent)` } as React.CSSProperties}
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Cor</label>
                   <input
                     type="text"
                     placeholder="E?: Preto"
                     value={novaFerragem.cores}
                     onChange={e => setNovaFerragem({ ...novaFerragem, cores: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 33%, transparent)` } as React.CSSProperties}
                   />
                 </div>
                   <div className="sm:col-span-2">
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome da ferragem *</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Nome da ferragem *</label>
                   <input
                     type="text"
                     placeholder="E?: Placa da fechadura"
                     value={novaFerragem.nome}
                     onChange={e => setNovaFerragem({ ...novaFerragem, nome: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 33%, transparent)` } as React.CSSProperties}
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
+                  <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Categoria</label>
                   <input
                     type="text"
                     value={novaFerragem.categoria}
                     onChange={e => setNovaFerragem({ ...novaFerragem, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 33%, transparent)` } as React.CSSProperties}
                   />
                 </div>
 
                   <div>
-                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base</label>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
-                      style={{ "--tw-ring-color": `${darkTertiary}55` } as React.CSSProperties}
+                    <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Preço base</label>
+                    <div className="flex items-center rounded-xl border border-border bg-surface px-3 transition-all focus-within:border-transparent focus-within:ring-2"
+                      style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 33%, transparent)` } as React.CSSProperties}
                     >
-                      <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
+                      <span className="mr-2 text-sm font-semibold text-text-secondary">R$</span>
                   <input
                     type="number"
                     step="0.01"
                     value={novaFerragem.preco ?? ""}
                     onChange={e => setNovaFerragem({ ...novaFerragem, preco: e.target.value ? Number(e.target.value) : null })}
-                        className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
+                        className="w-full bg-transparent py-3 text-sm text-text-primary outline-none"
                   />
                     </div>
                   </div>
                 </div>
               </section>
-                <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                <section className="rounded-3xl border border-border bg-surface p-4 shadow-sm sm:p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Tabelas de preço</h3>
-                      <p className="mt-1 text-xs text-slate-500">Valores específicos por grupo de cliente.</p>
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-text-primary">Tabelas de preço</h3>
+                      <p className="mt-1 text-xs text-text-secondary">Valores específicos por grupo de cliente.</p>
                     </div>
                     <button
                       type="button"
@@ -952,10 +952,10 @@ export default function FerragensPage() {
                       Adicionar
                     </button>
                   </div>
-                  <div className="flex min-h-[172px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-7 text-center">
-                    <Tag size={22} className="text-slate-300" />
-                    <p className="mt-4 text-sm font-medium text-slate-500">Nenhum preço especial cadastrado.</p>
-                    <p className="mt-2 max-w-[210px] text-xs leading-relaxed text-slate-400">
+                  <div className="flex min-h-[172px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-secondary px-4 py-7 text-center">
+                    <Tag size={22} className="text-text-secondary" />
+                    <p className="mt-4 text-sm font-medium text-text-secondary">Nenhum preço especial cadastrado.</p>
+                    <p className="mt-2 max-w-[210px] text-xs leading-relaxed text-text-secondary">
                       O sistema usará o preço base para todos os clientes.
                     </p>
                   </div>
@@ -963,10 +963,10 @@ export default function FerragensPage() {
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+            <div className="flex flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
               <button
                 onClick={() => setMostrarModal(false)}
-                className="rounded-2xl bg-slate-100 px-7 py-3 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-200"
+                className="rounded-2xl bg-surface-secondary px-7 py-3 text-sm font-semibold text-text-secondary transition-all hover:bg-border"
               >
                 Cancelar
               </button>
@@ -985,23 +985,23 @@ export default function FerragensPage() {
 
       {/* MODAL DE LOADING PARA O PDF */}
       {gerandoPDF && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[22px] border border-border bg-surface p-6 text-center shadow-[0_24px_70px_var(--shadow)]">
             <div className="h-10 w-10 animate-spin rounded-full border-4"
               style={{ borderTopColor: 'transparent', borderRightColor: darkTertiary, borderBottomColor: darkTertiary, borderLeftColor: darkTertiary }}>
             </div>
-            <p className="text-sm font-semibold text-gray-700" style={{ color: darkPrimary }}>
+            <p className="text-sm font-semibold text-text-primary" style={{ color: darkPrimary }}>
               Gerando seu Catálogo...
             </p>
-            <span className="text-xs text-gray-400">Isso pode levar alguns segundos</span>
+            <span className="text-xs text-text-secondary">Isso pode levar alguns segundos</span>
           </div>
         </div>
       )}
 
       {/* AVISOS E LOADING */}
       {modalCarregando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <div className="rounded-[22px] border border-slate-200 bg-white px-6 py-5 text-sm font-medium text-slate-700 shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="rounded-[22px] border border-border bg-surface px-6 py-5 text-sm font-medium text-text-primary shadow-[0_24px_70px_var(--shadow)]">
             Processando CSV...
           </div>
         </div>

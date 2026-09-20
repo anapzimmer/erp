@@ -498,7 +498,7 @@ export default function MatrizProjetosPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
         <div
           className="h-10 w-10 animate-spin rounded-full border-4"
           style={{
@@ -520,11 +520,11 @@ export default function MatrizProjetosPage() {
         <Header nomeEmpresa={nomeEmpresa} usuarioEmail={user.email || ""} handleSignOut={signOut} />
 
         <main className="min-w-0 flex-1 p-4 md:p-8 xl:p-10">
-          <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-6" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
+          <section className="rounded-3xl border bg-surface p-5 shadow-sm md:p-6" style={{ borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 9%, transparent)` }}>
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50" style={{ color: theme.menuBackgroundColor }}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary" style={{ color: theme.menuBackgroundColor }}>
                     <LayoutGrid size={21} />
                   </span>
                   <div>
@@ -536,7 +536,7 @@ export default function MatrizProjetosPage() {
                     </h1>
                   </div>
                 </div>
-                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-text-secondary">
                   Escolha o desenho para abrir o cálculo e ajustar medidas e variações. Nos projetos com dois modos, selecione kit ou barra.
                 </p>
               </div>
@@ -549,10 +549,10 @@ export default function MatrizProjetosPage() {
             </div>
           </section>
 
-          <section className="mt-5 rounded-3xl border bg-white p-4 shadow-sm md:p-5" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
+          <section className="mt-5 rounded-3xl border bg-surface p-4 shadow-sm md:p-5" style={{ borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 9%, transparent)` }}>
             <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
-              <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center gap-2 px-2 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <aside className="rounded-2xl border border-border bg-surface-secondary p-3">
+                <div className="flex items-center gap-2 px-2 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
                   <SlidersHorizontal size={15} />
                   Categorias
                 </div>
@@ -567,11 +567,11 @@ export default function MatrizProjetosPage() {
                         type="button"
                         onClick={() => setCategoriaAtiva(categoria)}
                         className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                          ativo ? "bg-white text-[#0f2742] shadow-sm" : "text-slate-500 hover:bg-white/70"
+                          ativo ? "bg-surface text-text-primary shadow-sm" : "text-text-secondary hover:bg-surface/70"
                         }`}
                       >
                         <span className={ativo ? "font-semibold" : "font-normal"}>{categoria}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${ativo ? "bg-[#07385a] text-white" : "bg-white text-slate-400"}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${ativo ? "bg-navigation text-white" : "bg-surface text-text-secondary"}`}>
                           {total}
                         </span>
                       </button>
@@ -583,20 +583,20 @@ export default function MatrizProjetosPage() {
               <div className="min-w-0">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold tracking-tight text-[#0f2742]">
+                    <h2 className="text-lg font-semibold tracking-tight text-text-primary">
                       {categoriaAtiva === "Todos" ? "Todos os projetos" : categoriaAtiva}
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-text-secondary">
                       {projetosFiltrados.length} projeto(s) encontrado(s)
                     </p>
                   </div>
-                  <label className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 md:max-w-sm">
-                    <Search size={18} className="text-slate-400" />
+                  <label className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-border bg-surface-secondary px-4 md:max-w-sm">
+                    <Search size={18} className="text-text-secondary" />
                     <input
                       value={busca}
                       onChange={(e) => setBusca(e.target.value)}
                       placeholder="Buscar projeto"
-                      className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none placeholder:text-slate-400"
+                      className="w-full bg-transparent text-sm font-normal text-text-primary outline-none placeholder:text-text-secondary"
                     />
                   </label>
                 </div>
@@ -605,13 +605,13 @@ export default function MatrizProjetosPage() {
               {projetosFiltrados.map((projeto) => (
                 <article
                   key={projeto.id}
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
+                  className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition hover:border-border-strong hover:shadow-md"
                 >
                   <div className="grid min-h-[190px] grid-cols-1 sm:grid-cols-[150px_minmax(0,1fr)]">
                     <button
                       type="button"
                       onClick={() => router.push(projeto.kitHref)}
-                      className="flex h-44 items-center justify-center bg-[#f7fafc] p-4 transition group-hover:bg-slate-50 sm:h-full"
+                      className="flex h-44 items-center justify-center bg-surface-secondary p-4 transition group-hover:bg-surface-secondary sm:h-full"
                       title={`Abrir ${projeto.nome}`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -621,20 +621,20 @@ export default function MatrizProjetosPage() {
                     <div className="flex min-w-0 flex-col p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{projeto.categoria}</p>
-                          <h3 className="mt-1 truncate text-lg font-semibold text-[#0f2742]">{projeto.nome}</h3>
-                          <p className="mt-1 text-sm font-normal text-slate-600">{projeto.titulo}</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">{projeto.categoria}</p>
+                          <h3 className="mt-1 truncate text-lg font-semibold text-text-primary">{projeto.nome}</h3>
+                          <p className="mt-1 text-sm font-normal text-text-secondary">{projeto.titulo}</p>
                         </div>
-                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-emerald-700">
+                        <span className="shrink-0 rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-semibold uppercase text-success">
                           {projeto.status}
                         </span>
                       </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">{projeto.descricao}</p>
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">{projeto.descricao}</p>
                       <div className={`mt-auto grid gap-2 pt-4 ${projeto.barraHref ? "grid-cols-2" : "grid-cols-1"}`}>
                         <button
                           type="button"
                           onClick={() => router.push(projeto.kitHref)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium transition hover:bg-white"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2.5 text-sm font-medium transition hover:bg-surface"
                           style={{ color: theme.menuBackgroundColor }}
                         >
                           {projeto.kitLabel || "Kit"}
@@ -644,7 +644,7 @@ export default function MatrizProjetosPage() {
                           <button
                             type="button"
                             onClick={() => router.push(projeto.barraHref)}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-[#0f2742]"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:border-border hover:bg-surface-secondary hover:text-text-primary"
                           >
                             {projeto.barraLabel || "Barra"}
                             <ArrowRight size={16} />
@@ -657,9 +657,9 @@ export default function MatrizProjetosPage() {
               ))}
                 </div>
                 {projetosFiltrados.length === 0 ? (
-                  <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                    <p className="text-sm font-semibold text-[#0f2742]">Nenhum projeto encontrado</p>
-                    <p className="mt-1 text-sm text-slate-500">Tente buscar por outro nome ou trocar a categoria.</p>
+                  <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface-secondary p-8 text-center">
+                    <p className="text-sm font-semibold text-text-primary">Nenhum projeto encontrado</p>
+                    <p className="mt-1 text-sm text-text-secondary">Tente buscar por outro nome ou trocar a categoria.</p>
                   </div>
                 ) : null}
               </div>
@@ -673,12 +673,12 @@ export default function MatrizProjetosPage() {
 
 function ResumoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface/80 p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#07385a]">{icon}</div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-secondary text-text-primary">{icon}</div>
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{label}</p>
-          <p className="mt-1 text-lg font-semibold text-[#0f2742]">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-text-secondary">{label}</p>
+          <p className="mt-1 text-lg font-semibold text-text-primary">{value}</p>
         </div>
       </div>
     </div>

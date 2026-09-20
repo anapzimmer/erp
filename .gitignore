@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/tmp/
+/.eslint-*-design.json
 
 # next.js
 /.next/

@@ -542,17 +542,17 @@ export default function ImagensPage() {
             </div>
           ) : (
             <>
-              <section className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+              <section className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}>
+                    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}>
                       <ImageIcon size={14} />
                       Imagens
                     </div>
                     <h1 className="mt-2 text-xl font-medium md:text-2xl" style={{ color: theme.contentTextLightBg }}>
                       Leitura de medidas por imagem
                     </h1>
-                    <p className="mt-1 max-w-3xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                    <p className="mt-1 max-w-3xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                       Envie uma foto do rascunho da obra. O sistema tenta identificar quantidade, projeto, largura e altura para montar uma lista revisável.
                     </p>
                   </div>
@@ -562,7 +562,7 @@ export default function ImagensPage() {
                       type="button"
                       onClick={() => setItens(EXEMPLO_FOTO)}
                       className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm"
-                      style={{ borderColor: `${theme.contentTextLightBg}22`, color: theme.contentTextLightBg }}
+                      style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     >
                       <PencilLine size={15} />
                       Usar exemplo
@@ -571,7 +571,7 @@ export default function ImagensPage() {
                       type="button"
                       onClick={onExtrair}
                       disabled={!hasImage || isPdf || loading || loadingLocal || loadingPdf}
-                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-on-primary shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: theme.menuIconColor }}
                     >
                       {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles size={15} />}
@@ -582,7 +582,7 @@ export default function ImagensPage() {
                       onClick={onExtrairLocal}
                       disabled={!hasImage || isPdf || loading || loadingLocal || loadingPdf}
                       className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ borderColor: `${theme.contentTextLightBg}22`, color: theme.contentTextLightBg }}
+                      style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     >
                       {loadingLocal ? <Loader2 className="size-4 animate-spin" /> : <ScanText size={15} />}
                       {loadingLocal ? `Local ${ocrProgress}%` : "Ler local"}
@@ -591,7 +591,7 @@ export default function ImagensPage() {
                       type="button"
                       onClick={onExtrairPdf}
                       disabled={!isPdf || loading || loadingLocal || loadingPdf}
-                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-on-primary shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: theme.menuIconColor }}
                     >
                       {loadingPdf ? <Loader2 className="size-4 animate-spin" /> : <FileText size={15} />}
@@ -602,7 +602,7 @@ export default function ImagensPage() {
                       onClick={enviarParaCentral}
                       disabled={!itens.length}
                       className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ borderColor: `${theme.contentTextLightBg}22`, color: theme.contentTextLightBg }}
+                      style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     >
                       <FilePlus2 size={15} />
                       PDF+
@@ -612,22 +612,22 @@ export default function ImagensPage() {
               </section>
 
               {error && (
-                <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div className="flex items-center gap-2 rounded-2xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
                   <AlertTriangle className="size-4" />
                   {error}
                 </div>
               )}
 
               {mensagem && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                <div className="rounded-2xl border border-success-soft bg-success-soft px-4 py-3 text-sm font-medium text-success">
                   {mensagem}
                 </div>
               )}
 
               <section className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-                <article className="rounded-3xl border bg-white p-4 shadow-sm">
-                  <h2 className="text-sm font-medium text-slate-800">Arquivo da obra</h2>
-                  <p className="mt-1 text-xs text-slate-500">{uploadHint}</p>
+                <article className="rounded-3xl border bg-surface p-4 shadow-sm">
+                  <h2 className="text-sm font-medium text-text-primary">Arquivo da obra</h2>
+                  <p className="mt-1 text-xs text-text-secondary">{uploadHint}</p>
 
                   <label
                     onDragOver={(event) => {
@@ -642,7 +642,7 @@ export default function ImagensPage() {
                       if (droppedFile) await handleFile(droppedFile);
                     }}
                     className={`mt-4 flex min-h-80 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center transition-all ${
-                      dragActive ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50"
+                      dragActive ? "border-success-soft bg-success-soft" : "border-border bg-surface-secondary"
                     }`}
                   >
                     <input
@@ -656,37 +656,37 @@ export default function ImagensPage() {
                     />
 
                     {isPdf ? (
-                      <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white px-8 py-10 text-center">
-                        <FileText className="size-12 text-slate-400" />
+                      <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-8 py-10 text-center">
+                        <FileText className="size-12 text-text-secondary" />
                         <div>
-                          <p className="text-sm font-medium text-slate-700">{upload.file?.name}</p>
-                          <p className="mt-1 text-xs text-slate-400">PDF pronto para leitura de texto</p>
+                          <p className="text-sm font-medium text-text-primary">{upload.file?.name}</p>
+                          <p className="mt-1 text-xs text-text-secondary">PDF pronto para leitura de texto</p>
                         </div>
                       </div>
                     ) : hasImage ? (
                       <img src={upload.previewUrl} alt="Preview da imagem" className="max-h-[480px] w-full rounded-xl object-contain" />
                     ) : (
                       <>
-                        <UploadCloud className="mb-3 size-10 text-slate-400" />
-                        <p className="text-sm font-medium text-slate-600">Arraste a foto ou PDF aqui</p>
-                        <p className="text-xs text-slate-400">ou clique para selecionar</p>
+                        <UploadCloud className="mb-3 size-10 text-text-secondary" />
+                        <p className="text-sm font-medium text-text-secondary">Arraste a foto ou PDF aqui</p>
+                        <p className="text-xs text-text-secondary">ou clique para selecionar</p>
                       </>
                     )}
                   </label>
                 </article>
 
-                <article className="rounded-3xl border bg-white shadow-sm">
-                  <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
+                <article className="rounded-3xl border bg-surface shadow-sm">
+                  <div className="flex flex-col gap-3 border-b border-border p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h2 className="text-sm font-medium text-slate-800">Itens encontrados</h2>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <h2 className="text-sm font-medium text-text-primary">Itens encontrados</h2>
+                      <p className="mt-1 text-xs text-text-secondary">
                         {totais.vaos} vão(s), {totais.pecas} peça(s) previstas. Confira tudo antes de mandar ao PDF+.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={adicionarLinha}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary"
                     >
                       <Plus size={15} />
                       Adicionar linha
@@ -695,7 +695,7 @@ export default function ImagensPage() {
 
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[850px] text-sm">
-                      <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <thead className="bg-surface-secondary text-[10px] uppercase tracking-[0.12em] text-text-secondary">
                         <tr>
                           <th className="px-4 py-3 text-left font-medium">Projeto</th>
                           <th className="px-4 py-3 text-right font-medium">Qtd.</th>
@@ -709,18 +709,18 @@ export default function ImagensPage() {
                       <tbody>
                         {itens.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-400">
+                            <td colSpan={7} className="px-4 py-12 text-center text-sm text-text-secondary">
                               Nenhum item ainda. Envie uma imagem ou use o exemplo para testar.
                             </td>
                           </tr>
                         ) : (
                           itens.map((item) => (
-                            <tr key={item.id} className="border-t border-slate-100">
+                            <tr key={item.id} className="border-t border-border">
                               <td className="px-4 py-3">
                                 <select
                                   value={item.projeto}
                                   onChange={(event) => atualizarItem(item.id, { projeto: event.target.value as ItemOrcamentoImagem["projeto"] })}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-slate-400"
+                                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 outline-none focus:border-border-strong"
                                 >
                                   {PROJETOS_OPCOES.map((projeto) => (
                                     <option key={projeto.valor} value={projeto.valor}>{projeto.nome}</option>
@@ -732,7 +732,7 @@ export default function ImagensPage() {
                                   value={item.quantidade}
                                   onChange={(event) => atualizarItem(item.id, { quantidade: Number(event.target.value) || 0 })}
                                   inputMode="numeric"
-                                  className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-right outline-none focus:border-slate-400"
+                                  className="w-20 rounded-xl border border-border px-3 py-2 text-right outline-none focus:border-border-strong"
                                 />
                               </td>
                               <td className="px-4 py-3 text-right">
@@ -740,7 +740,7 @@ export default function ImagensPage() {
                                   value={item.largura}
                                   onChange={(event) => atualizarItem(item.id, { largura: Number(event.target.value) || 0 })}
                                   inputMode="numeric"
-                                  className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-right outline-none focus:border-slate-400"
+                                  className="w-28 rounded-xl border border-border px-3 py-2 text-right outline-none focus:border-border-strong"
                                 />
                               </td>
                               <td className="px-4 py-3 text-right">
@@ -748,25 +748,25 @@ export default function ImagensPage() {
                                   value={item.altura}
                                   onChange={(event) => atualizarItem(item.id, { altura: Number(event.target.value) || 0 })}
                                   inputMode="numeric"
-                                  className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-right outline-none focus:border-slate-400"
+                                  className="w-28 rounded-xl border border-border px-3 py-2 text-right outline-none focus:border-border-strong"
                                 />
                               </td>
                               <td className="px-4 py-3">
                                 <input
                                   value={item.observacao || ""}
                                   onChange={(event) => atualizarItem(item.id, { observacao: event.target.value })}
-                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-slate-400"
+                                  className="w-full rounded-xl border border-border px-3 py-2 outline-none focus:border-border-strong"
                                   placeholder="Ex: fume 8mm, preto..."
                                 />
                               </td>
                               <td className="px-4 py-3">
-                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.confianca || "media"}</span>
+                                <span className="rounded-full bg-surface-secondary px-2.5 py-1 text-xs text-text-secondary">{item.confianca || "media"}</span>
                               </td>
                               <td className="px-4 py-3 text-right">
                                 <button
                                   type="button"
                                   onClick={() => setItens((atuais) => atuais.filter((atual) => atual.id !== item.id))}
-                                  className="inline-flex size-9 items-center justify-center rounded-xl border border-red-100 text-red-500 hover:bg-red-50"
+                                  className="inline-flex size-9 items-center justify-center rounded-xl border border-danger-soft text-danger hover:bg-danger-soft"
                                   title="Remover"
                                 >
                                   <Trash2 size={15} />
@@ -779,15 +779,15 @@ export default function ImagensPage() {
                     </table>
                   </div>
 
-                  <div className="flex flex-col gap-3 border-t border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
-                    <p className="text-xs text-slate-500">
+                  <div className="flex flex-col gap-3 border-t border-border p-4 md:flex-row md:items-center md:justify-between">
+                    <p className="text-xs text-text-secondary">
                       {observacoesGerais || "Dica: depois de enviar ao PDF+, confira vidro, cor e modo de cada projeto na Central."}
                     </p>
                     <button
                       type="button"
                       onClick={enviarParaCentral}
                       disabled={!itens.length}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-on-primary shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: theme.menuIconColor }}
                     >
                       Enviar para Central

@@ -13,7 +13,7 @@ import type {
   ProjetoIndividualDados,
   ProjetoIndividualMaterial,
 } from "../projetoindividual/ProjetoIndividualPDF";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type JC4FCBSDadosPDF = ProjetoIndividualDados & {
   alturaPeitoril: number;
@@ -28,6 +28,7 @@ export type JC4FCBSDadosPDF = ProjetoIndividualDados & {
 type JC4FCBSPDFProps = {
   dados: JC4FCBSDadosPDF;
   logoUrl?: string | null;
+  nomeEmpresa: string;
 };
 
 const moeda = (valor: number) =>
@@ -86,9 +87,9 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingHorizontal: 24,
     paddingBottom: 28,
-    fontFamily: "Helvetica",
-    backgroundColor: "#ffffff",
-    color: "#0f2742",
+    fontFamily: "Inter",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
     fontSize: 8,
   },
   header: {
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 9,
     padding: 12,
     marginBottom: 9,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
   logoPlaceholder: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#0f2742",
+    color: PDF_COLORS.ink,
   },
   metaRow: {
     flexDirection: "row",
@@ -118,24 +119,24 @@ const styles = StyleSheet.create({
   meta: {
     minWidth: 72,
     borderLeftWidth: 1,
-    borderLeftColor: "#dbe4ee",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 8,
     marginLeft: 8,
   },
   label: {
     fontSize: 6.8,
-    color: "#64748b",
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
   },
   metaValue: {
     fontSize: 9,
-    color: "#009b55",
-    fontWeight: "bold",
+    color: PDF_COLORS.muted,
+    fontWeight: "normal",
   },
   projectTitle: {
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     paddingVertical: 7,
     paddingHorizontal: 10,
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 9,
     padding: 8,
   },
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   greenLine: {
     width: 22,
     height: 2,
-    backgroundColor: "#00a85a",
+    backgroundColor: PDF_COLORS.panelBg,
     marginTop: 6,
     marginBottom: 9,
   },
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    borderTopColor: PDF_COLORS.border,
   },
   dataItem: {
     width: "33.333%",
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: PDF_COLORS.border,
   },
   dataValue: {
     fontSize: 9.5,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
   },
   tableCard: {
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 9,
     padding: 8,
   },
@@ -212,12 +213,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: 24,
     alignItems: "center",
-    backgroundColor: "#07385a",
+    backgroundColor: PDF_COLORS.panelBg,
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
   th: {
-    color: "#ffffff",
+    color: PDF_COLORS.ink,
     fontSize: 7.4,
     fontWeight: "bold",
     textTransform: "uppercase",
@@ -229,11 +230,11 @@ const styles = StyleSheet.create({
     minHeight: 29,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: PDF_COLORS.border,
   },
   td: {
     fontSize: 7.8,
-    color: "#0f2742",
+    color: PDF_COLORS.ink,
     paddingHorizontal: 5,
     lineHeight: 1.35,
   },
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   summaryBox: {
     width: "31.9%",
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 7,
   },
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     right: 24,
     bottom: 12,
     fontSize: 6.5,
-    color: "#94a3b8",
+    color: PDF_COLORS.muted,
     textAlign: "center",
   },
 });
@@ -300,6 +301,7 @@ function DataItem({
 export function JC4FCBSPDF({
   dados,
   logoUrl,
+  nomeEmpresa,
 }: JC4FCBSPDFProps) {
   const materiaisOrdenados = [...(dados.materiais || [])]
     .map((item, index) => ({ item, index }))
@@ -523,7 +525,7 @@ export function JC4FCBSPDF({
         <Text
           style={styles.footer}
           fixed
-          render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa, pageNumber, totalPages)}
         />
       </Page>
     </Document>

@@ -1,9 +1,10 @@
 //app/relatorios/espelhos/EspelhosPDF.tsx
 "use client";
 import React from 'react';
+import { DRAWING_COLORS } from "@/design/drawing";
 import { quantidadePecasEspelho, type MemoriaCalculoEspelho } from '@/utils/calculoEspelhos';
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Rect, Ellipse, Path } from '@react-pdf/renderer';
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 // --- TIPAGENS ---
 interface ItemPedido {
@@ -37,7 +38,7 @@ interface EspelhosPDFProps {
 
 // --- ESTILOS DO PDF (Cores fixas apenas para fundo/texto neutro) ---
 const styles = StyleSheet.create({
-  page: { padding: 32, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
+  page: { padding: 32, backgroundColor: PDF_COLORS.white, fontFamily: "Inter" },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -48,11 +49,11 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'column', flex: 1 },
   headerRight: { flexDirection: 'column', alignItems: 'flex-end', maxWidth: 230 },
-  tituloRelatorio: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44' },
-  subtitulo: { fontSize: 7.8, color: '#64748B', marginTop: 4 },
-  dataEmissao: { fontSize: 8, color: '#64748B', marginTop: 3 },
-  empresaFallback: { fontSize: 15, color: '#0F2D44', fontWeight: 'bold' },
-  empresaSlogan: { fontSize: 7.5, color: '#64748B', marginTop: 2 },
+  tituloRelatorio: { fontSize: 14, fontWeight: 'bold', color: PDF_COLORS.ink },
+  subtitulo: { fontSize: 7.8, color: PDF_COLORS.muted, marginTop: 4 },
+  dataEmissao: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 3 },
+  empresaFallback: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: 'bold' },
+  empresaSlogan: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 2 },
   logo: {
     width: PDF_HEADER_LAYOUT.logoWidth,
     height: PDF_HEADER_LAYOUT.logoHeight,
@@ -60,22 +61,22 @@ const styles = StyleSheet.create({
     objectPosition: 'left',
   },
 
-  infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: '#E2E8F0', borderRadius: 6 },
-  infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#E2E8F0' },
+  infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: PDF_COLORS.border, borderRadius: 6 },
+  infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: PDF_COLORS.border },
   infoRowLast: { flexDirection: 'row' },
-  infoBoxQuarter: { width: '25%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: '#E2E8F0' },
-  infoBoxHalfBorder: { width: '50%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: '#E2E8F0' },
+  infoBoxQuarter: { width: '25%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: PDF_COLORS.border },
+  infoBoxHalfBorder: { width: '50%', paddingVertical: 7, paddingHorizontal: 9, borderRightWidth: 0.8, borderRightColor: PDF_COLORS.border },
   infoBoxHalf: { width: '50%', paddingVertical: 7, paddingHorizontal: 9 },
   infoBoxLast: { flex: 1, paddingVertical: 7, paddingHorizontal: 9 },
-  label: { fontSize: 6.4, color: '#64748B', textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
-  value: { fontSize: 9, color: '#0F2D44' },
+  label: { fontSize: 6.4, color: PDF_COLORS.muted, textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
+  value: { fontSize: 9, color: PDF_COLORS.ink },
 
   // Tabela
-  table: { width: '100%', borderTopWidth: 0.8, borderTopColor: '#CBD5E1' },
-  tableHeader: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#CBD5E1' },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 0.7, borderBottomColor: '#E2E8F0', alignItems: 'center', minHeight: 72 },
-  tableColHeader: { paddingVertical: 6, paddingHorizontal: 4, color: '#334155', fontSize: 6.8, textTransform: 'uppercase', letterSpacing: 0.25 },
-  tableCol: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 7.6, color: '#0F2D44' },
+  table: { width: '100%', borderTopWidth: 0.8, borderTopColor: PDF_COLORS.border },
+  tableHeader: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: PDF_COLORS.border },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 0.7, borderBottomColor: PDF_COLORS.border, alignItems: 'center', minHeight: 72 },
+  tableColHeader: { paddingVertical: 6, paddingHorizontal: 4, color: PDF_COLORS.ink, fontSize: 6.8, textTransform: 'uppercase', letterSpacing: 0.25 },
+  tableCol: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 7.6, color: PDF_COLORS.ink },
 
   colDesenho: { width: '17%', textAlign: 'center' },
   colDesc: { width: '31%' },
@@ -84,37 +85,37 @@ const styles = StyleSheet.create({
   colM2: { width: '10%', textAlign: 'right' },
   colTotal: { width: '17%', textAlign: 'right' },
   desenhoBox: { alignItems: 'center', justifyContent: 'center' },
-  desenhoMedida: { marginTop: 2, fontSize: 5.8, color: '#64748B', textAlign: 'center' },
-  detalhesTexto: { fontSize: 6.4, color: '#64748B', marginTop: 2 },
+  desenhoMedida: { marginTop: 2, fontSize: 5.8, color: PDF_COLORS.muted, textAlign: 'center' },
+  detalhesTexto: { fontSize: 6.4, color: PDF_COLORS.muted, marginTop: 2 },
   summaryContainer: {
     marginTop: 18,
     paddingTop: 10,
     borderTopWidth: 0.8,
-    borderTopColor: '#CBD5E1',
+    borderTopColor: PDF_COLORS.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   summaryGroup: { flexDirection: 'row', gap: 14 },
   summaryItem: { flexDirection: 'column', alignItems: 'flex-start' },
-  summaryLabel: { fontSize: 6.2, color: '#64748B', textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.5 },
-  summaryValue: { fontSize: 9.4, fontWeight: 'bold', color: '#0F2D44' },
+  summaryLabel: { fontSize: 6.2, color: PDF_COLORS.muted, textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.5 },
+  summaryValue: { fontSize: 9.4, fontWeight: 'bold', color: PDF_COLORS.ink },
   totalFinalBox: { textAlign: 'right' },
-  totalFinalLabel: { fontSize: 6.5, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
-  totalFinalValue: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44', marginTop: 3 },
+  totalFinalLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  totalFinalValue: { fontSize: 14, fontWeight: 'bold', color: PDF_COLORS.ink, marginTop: 3 },
 
   footer: {
     position: 'absolute', bottom: 18, left: 32, right: 32, textAlign: 'center',
-    fontSize: 7, color: '#94A3B8', borderTopWidth: 0.5, borderTopColor: '#E2E8F0', paddingTop: 8,
+    fontSize: 7, color: PDF_COLORS.muted, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border, paddingTop: 8,
   }
 });
 
-export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor, nomeCliente, nomeObra, numeroOrcamento }: EspelhosPDFProps) {
+export function EspelhosPDF({ itens, nomeEmpresa, logoUrl,   nomeCliente, nomeObra, numeroOrcamento }: EspelhosPDFProps) {
   const dataGeracao = new Date().toLocaleDateString('pt-BR');
   const totalGeral = itens.reduce((sum, item) => sum + item.total, 0);
   const totalPecas = itens.reduce((sum, item) => sum + quantidadePecasEspelho(item), 0);
   const metragemTotal = itens.reduce((sum, item) => sum + Number(item.m2 || 0), 0);
-  const contentColor = textColor || themeColor;
+  const contentColor = PDF_COLORS.ink;
   const formatarM2 = (valor: number) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const itemM2 = (item: ItemPedido) => Number(item.m2 || 0);
 
@@ -159,8 +160,8 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
     const ehBisote = tipoVisual.includes("bisote");
     const ehLed = tipoVisual.includes("led");
     const strokeWidth = ehBisote ? 4 : 1.4;
-    const fill = "#E8F1F6";
-    const stroke = "#8FA1AE";
+    const fill = DRAWING_COLORS.glass;
+    const stroke = DRAWING_COLORS.frame;
     const pathSemiOval = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
     const pathOrganico = `M ${x + w * 0.5} ${y} C ${x + w * 0.88} ${y + h * 0.06} ${x + w} ${y + h * 0.36} ${x + w * 0.86} ${y + h * 0.68} C ${x + w * 0.72} ${y + h} ${x + w * 0.25} ${y + h} ${x + w * 0.08} ${y + h * 0.7} C ${x - w * 0.08} ${y + h * 0.4} ${x + w * 0.12} ${y + h * 0.04} ${x + w * 0.5} ${y} Z`;
     const pathMolde = `M ${x + w * 0.16} ${y + h * 0.05} C ${x + w * 0.48} ${y - h * 0.08} ${x + w * 0.78} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.38} C ${x + w * 1.06} ${y + h * 0.62} ${x + w * 0.84} ${y + h * 0.96} ${x + w * 0.52} ${y + h * 0.98} C ${x + w * 0.18} ${y + h} ${x - w * 0.04} ${y + h * 0.7} ${x + w * 0.04} ${y + h * 0.42} C ${x + w * 0.08} ${y + h * 0.26} ${x + w * 0.02} ${y + h * 0.12} ${x + w * 0.16} ${y + h * 0.05} Z`;
@@ -184,8 +185,8 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
                   width={cellW}
                   height={cellH}
                   rx={0}
-                  fill="#E8F1F6"
-                  stroke="#8FA1AE"
+                  fill={PDF_COLORS.panelBg}
+                  stroke={PDF_COLORS.muted}
                   strokeWidth={1}
                 />
               );
@@ -202,7 +203,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
           {ehSemiOval ? (
             <>
               <Path d={pathSemiOval} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-              {ehBisote ? <Path d={`M ${x + 4} ${y + h - 4} L ${x + 4} ${y + h * 0.5} C ${x + 4} ${y + h * 0.18} ${x + w - 4} ${y + h * 0.18} ${x + w - 4} ${y + h * 0.5} L ${x + w - 4} ${y + h - 4} Z`} fill="none" stroke="#FFFFFF" strokeWidth={1} /> : null}
+              {ehBisote ? <Path d={`M ${x + 4} ${y + h - 4} L ${x + 4} ${y + h * 0.5} C ${x + 4} ${y + h * 0.18} ${x + w - 4} ${y + h * 0.18} ${x + w - 4} ${y + h * 0.5} L ${x + w - 4} ${y + h - 4} Z`} fill="none" stroke={PDF_COLORS.white} strokeWidth={1} /> : null}
             </>
           ) : ehOrganico ? (
             <Path d={pathOrganico} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
@@ -211,14 +212,14 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
           ) : ehRedondo || ehOvalVertical || ehOvalHorizontal ? (
             <>
               <Ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-              {ehBisote ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 4)} ry={Math.max(1, h / 2 - 4)} fill="none" stroke="#FFFFFF" strokeWidth={1} /> : null}
-              {ehLed ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 6)} ry={Math.max(1, h / 2 - 6)} fill="none" stroke="#FFFFFF" strokeWidth={1} strokeDasharray="3 3" /> : null}
+              {ehBisote ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 4)} ry={Math.max(1, h / 2 - 4)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1} /> : null}
+              {ehLed ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 6)} ry={Math.max(1, h / 2 - 6)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1} strokeDasharray="3 3" /> : null}
             </>
           ) : (
             <>
               <Rect x={x} y={y} width={w} height={h} rx={rx} ry={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-              {ehBisote ? <Rect x={x + 4} y={y + 4} width={Math.max(0, w - 8)} height={Math.max(0, h - 8)} rx={Math.max(0, rx - 2)} ry={Math.max(0, rx - 2)} fill="none" stroke="#FFFFFF" strokeWidth={1} /> : null}
-              {ehLed ? <Rect x={x + 6} y={y + 6} width={Math.max(0, w - 12)} height={Math.max(0, h - 12)} rx={Math.max(0, rx - 4)} ry={Math.max(0, rx - 4)} fill="none" stroke="#FFFFFF" strokeWidth={1} strokeDasharray="3 3" /> : null}
+              {ehBisote ? <Rect x={x + 4} y={y + 4} width={Math.max(0, w - 8)} height={Math.max(0, h - 8)} rx={Math.max(0, rx - 2)} ry={Math.max(0, rx - 2)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1} /> : null}
+              {ehLed ? <Rect x={x + 6} y={y + 6} width={Math.max(0, w - 12)} height={Math.max(0, h - 12)} rx={Math.max(0, rx - 4)} ry={Math.max(0, rx - 4)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1} strokeDasharray="3 3" /> : null}
             </>
           )}
         </Svg>
@@ -232,7 +233,7 @@ export function EspelhosPDF({ itens, nomeEmpresa, logoUrl, themeColor, textColor
     <Page size="A4" style={styles.page}>
 
       {/* Cabeçalho */}
-      <View style={[styles.header, { borderBottomColor: '#E2E8F0' }]}>
+      <View style={[styles.header, { borderBottomColor: PDF_COLORS.border }]}>
         <View style={styles.headerLeft}>
           {logoUrl ? (
             <Image src={logoUrl} style={styles.logo} />

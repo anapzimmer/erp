@@ -1,0 +1,55 @@
+/* Shared native controls retain their behavior; semantic classes compose with layout utilities. */
+@layer base {
+  body { background: var(--background); color: var(--text-primary); }
+  h1, h2, h3, h4 { font-weight: 600; }
+  button, input, select, textarea { font: inherit; }
+  button, a, input, select, textarea, [tabindex] { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--info); outline-offset: 3px; }
+  input, select, textarea { accent-color: var(--primary); color: var(--text-primary); }
+  input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: .8; }
+  input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]), select, textarea {
+    background-color: var(--surface); border-color: var(--border-strong);
+  }
+  button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
+  dialog { background: var(--surface); color: var(--text-primary); border-color: var(--border); max-height: 90dvh; overflow-y: auto; }
+  dialog::backdrop { background: var(--overlay); backdrop-filter: blur(3px); }
+  th { color: var(--text-secondary); font-weight: 500; }
+  ::selection { background: var(--selection); color: var(--selection-text); }
+}
+@layer components {
+  .gc-action { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.5rem; padding: .6rem 1rem; border: 1px solid transparent; border-radius: .65rem; font-weight: 600; background: var(--primary); color: var(--on-primary); transition: background .15s; }
+  .gc-action:hover:not(:disabled) { background: var(--primary-hover); }
+  .gc-action:active:not(:disabled) { background: var(--primary-active); }
+  .gc-secondary { background: var(--surface); color: var(--text-primary); border-color: var(--border); }
+  .gc-secondary:hover:not(:disabled) { background: var(--surface-secondary); }
+  .gc-panel { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 18px var(--shadow); }
+  .gc-field { width: 100%; min-height: 2.65rem; padding: .65rem .85rem; border: 1px solid var(--border-strong); border-radius: .6rem; background: var(--surface); color: var(--text-primary); }
+  .gc-muted { color: var(--text-secondary); }
+  .gc-table { width: 100%; border-collapse: collapse; }
+  .gc-table th { background: var(--surface-secondary); }
+  .gc-table th, .gc-table td { padding: .8rem; border-bottom: 1px solid var(--border); text-align: left; }
+  .gc-table tbody tr:hover { background: var(--surface-secondary); }
+  .gc-theme-select { padding: .4rem .55rem; border: 1px solid var(--border); border-radius: .5rem; font-size: .8rem; max-width: 8rem; }
+  .gc-header-main { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .gc-header-left { display: flex; gap: 1rem; align-items: center; min-width: 0; }
+  .gc-header-account { flex-shrink: 0; }
+  @media (max-width: 1100px) {
+    .gc-header-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .gc-header-left { display: contents; }
+    .gc-header-nav { grid-column: 1 / -1; grid-row: 2; }
+    .gc-header-account { grid-column: 2; grid-row: 1; }
+  }
+  @media (max-width: 640px) {
+    .gc-nav-dropdown { position: fixed; top: 11rem; left: 1rem; right: 1rem; width: auto; max-height: calc(100dvh - 12rem); overflow: auto; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 640px) {
+  .gc-nav-dropdown { position: fixed; top: 11rem; left: 1rem; right: 1rem; width: auto; max-height: calc(100dvh - 12rem); overflow: auto; }
+}
+@media print {
+  body { background: white !important; color: var(--gc-graphite) !important; }
+  .gc-theme-select { display: none !important; }
+}

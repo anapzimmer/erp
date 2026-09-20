@@ -1,32 +1,9 @@
 @import "tailwindcss";
+@import "../design/tokens.css";
+@import "../design/components.css";
 
 :root {
-  /* Base */
-  --background: #ffffff;
-  --foreground: #171717;
-
-  /* ERP Theme */
-  --gc-screen-bg: #F9FAFB;
-  --gc-menu-bg: #374151;
-  --gc-menu-text: #10B981;
-  --gc-menu-icon: #E5E7EB;
-  --gc-menu-hover: #39B89F;
-  --gc-menu-active-bg: #D1FAE5; /* Verde bem claro para item ativo */
-  --gc-menu-active-text: #065F46; /* Verde escuro para texto ativo */
-  
-
-  --gc-text-light: #1f2937;
-  --gc-text-dark: #ffffff;
-
-  --gc-button-dark-bg: #1C415B;
-  --gc-button-dark-text: #ffffff;
-  --gc-button-light-bg: #ffffff;
-  --gc-button-light-text: #1f2937;
-
-  --gc-modal-bg: #ffffff;
-  --gc-modal-text: #1f2937;
-  --font-sans: "Segoe UI", Arial, sans-serif;
-  --font-app: "Segoe UI", Arial, sans-serif;
+  --font-app: var(--font-inter), Arial, sans-serif;
 }
 
 html {
@@ -46,7 +23,7 @@ button,
 input,
 select,
 textarea {
-  font-family: inherit;
+  font-family: var(--font-app);
 }
 
 /*
@@ -64,7 +41,7 @@ textarea {
 }
 
 .font-semibold {
-  font-weight: 500 !important;
+  font-weight: 600 !important;
 }
 
 th.font-bold,
@@ -182,17 +159,17 @@ label.font-bold {
 }
 
 .spark {
-  fill: #1C415B; /* Ponto central mais escuro para guiar o olho */
-  stroke: #39B89F; /* Borda verde */
+  fill: var(--text-primary); /* Ponto central mais escuro para guiar o olho */
+  stroke: var(--text-secondary); /* Borda verde */
   stroke-width: 0.5;
 }
 
 .glass-element {
   position: absolute;
-  background: rgba(230, 240, 255, 0.4);
+  background: color-mix(in srgb, var(--overlay) 40%, transparent);
   backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(180, 200, 220, 0.4);
-  box-shadow: 0 10px 30px -5px rgba(28, 65, 91, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  border: 1.5px solid color-mix(in srgb, var(--border) 40%, transparent);
+  box-shadow: 0 10px 30px -5px color-mix(in srgb, var(--shadow) 15%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--shadow) 50%, transparent);
   animation: glassFloatLight var(--speed) ease-in-out infinite;
   will-change: transform; 
   pointer-events: none;
@@ -203,9 +180,9 @@ label.font-bold {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: #39B89F;
+  background: var(--surface-secondary);
   border-radius: 50%;
-  box-shadow: 0 0 10px #39B89F;
+  box-shadow: 0 0 10px var(--shadow);
   animation: moveAround var(--lap-time) linear infinite;
 }
 
@@ -223,7 +200,7 @@ label.font-bold {
 }
 
 .industrial-light {
-  background: radial-gradient(circle, rgba(57,184,159,0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--overlay) 10%, transparent) 0%, transparent 70%);
   filter: blur(50px);
   animation: industrialPulseLight 6s infinite;
 }
@@ -245,7 +222,7 @@ label.font-bold {
 .btn-processing {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(57, 184, 159, 0.3);
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
 }
 
 .btn-processing::after {
@@ -258,7 +235,7 @@ label.font-bold {
 background: linear-gradient(
     90deg, 
     transparent, 
-    rgba(57, 184, 159, 0.8), 
+    color-mix(in srgb, var(--overlay) 80%, transparent),
     transparent
 );
   animation: laserScan 3s linear infinite;
@@ -321,14 +298,14 @@ background: linear-gradient(
 .cad-main-panel {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 12%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 12%, var(--border));
   border-radius: 2rem;
-  box-shadow: 0 22px 45px -35px rgba(15, 23, 42, 0.32);
+  box-shadow: 0 22px 45px -35px color-mix(in srgb, var(--shadow) 32%, transparent);
   background: linear-gradient(
     120deg,
-    #ffffff 0%,
-    #f8fafc 62%,
-    color-mix(in srgb, var(--gc-menu-bg) 8%, #ffffff) 100%
+    var(--surface) 0%,
+    var(--surface) 62%,
+    color-mix(in srgb, var(--gc-menu-bg) 8%, var(--surface)) 100%
   );
 }
 
@@ -399,10 +376,10 @@ background: linear-gradient(
 .cad-main-panel > div:has(table),
 .cad-main-panel > div:has(> div > input),
 .cad-main-panel > div:has(> div > select) {
-  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 10%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 10%, var(--border));
   border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 14px 30px rgba(20, 56, 63, 0.08);
+  background: var(--surface);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--shadow) 8%, transparent);
 }
 
 .cad-main-panel > div:first-child {
@@ -417,7 +394,7 @@ background: linear-gradient(
 }
 
 .cad-main-panel > div:first-child p {
-  color: #4d6a70 !important;
+  color: var(--text-secondary) !important;
   font-size: 0.9rem;
 }
 
@@ -427,15 +404,15 @@ background: linear-gradient(
 
 .cad-metric-card {
   min-height: 7rem;
-  border-color: color-mix(in srgb, var(--gc-menu-bg) 10%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--gc-menu-bg) 10%, var(--border)) !important;
   border-radius: 16px !important;
-  box-shadow: 0 10px 24px rgba(20, 56, 63, 0.06) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--shadow) 6%, transparent) !important;
   animation: none;
   opacity: 1;
 }
 
 .cad-metric-card h3 {
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
   letter-spacing: 0.06em !important;
 }
 
@@ -449,15 +426,15 @@ background: linear-gradient(
 .cad-main-panel select {
   min-height: 42px;
   border-radius: 10px !important;
-  border-color: #dbe2e8 !important;
-  color: #14383f;
+  border-color: var(--border) !important;
+  color: var(--text-primary);
   box-shadow: none !important;
 }
 
 .cad-main-panel input:focus,
 .cad-main-panel select:focus {
-  border-color: #4fa2d9 !important;
-  box-shadow: 0 0 0 3px rgba(79, 162, 217, 0.12) !important;
+  border-color: var(--info) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow) 12%, transparent) !important;
 }
 
 .cad-main-panel > div:has(> table),
@@ -476,7 +453,7 @@ background: linear-gradient(
   align-items: center;
   gap: 1rem;
   padding: 1rem 1rem 0.85rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--gc-menu-bg) 8%, #ffffff);
+  border-bottom: 1px solid color-mix(in srgb, var(--gc-menu-bg) 8%, var(--border));
 }
 
 .cadastro-list-head h2 {
@@ -490,7 +467,7 @@ background: linear-gradient(
 .cadastro-list-head span {
   display: block;
   margin-top: 0.18rem;
-  color: #4d6a70;
+  color: var(--text-secondary);
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -501,9 +478,9 @@ background: linear-gradient(
   justify-content: center;
   min-height: 2rem;
   padding: 0.35rem 0.7rem;
-  border: 1px solid rgba(28, 65, 91, 0.1);
+  border: 1px solid color-mix(in srgb, var(--border) 10%, transparent);
   border-radius: 999px;
-  background: rgba(57, 184, 159, 0.1);
+  background: color-mix(in srgb, var(--overlay) 10%, transparent);
   color: var(--gc-menu-bg);
   font-size: 0.78rem;
   font-weight: 800;
@@ -513,21 +490,21 @@ background: linear-gradient(
 .cadastro-table-wrap {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid #d5e0e4;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow) 3%, transparent);
 }
 
 .cad-main-panel thead {
-  background: #ffffff !important;
-  color: #4d6a70 !important;
+  background: var(--surface) !important;
+  color: var(--text-secondary) !important;
 }
 
 .cad-main-panel th {
   padding: 0.78rem 0.55rem !important;
-  border-bottom: 1px solid #d5e0e4;
-  background: #ffffff !important;
-  color: #4d6a70 !important;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface) !important;
+  color: var(--text-secondary) !important;
   font-size: 0.95rem !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
@@ -537,14 +514,14 @@ background: linear-gradient(
 
 .cad-main-panel td {
   padding: 0.78rem 0.55rem !important;
-  border-bottom: 1px solid #d5e0e4;
-  color: #4d6a70;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
   font-size: 0.95rem;
   vertical-align: middle;
 }
 
 .cad-main-panel tbody tr:hover {
-  background: #fafcfd !important;
+  background: var(--surface) !important;
 }
 
 .cad-main-panel button {
@@ -556,11 +533,11 @@ background: linear-gradient(
 .cad-main-panel > div:has(> div > select) button,
 .cad-main-panel > div:first-child label {
   min-height: 42px;
-  border: 1px solid rgba(28, 65, 91, 0.12) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 12%, transparent) !important;
   border-radius: 12px !important;
-  background: #ffffff !important;
+  background: var(--surface) !important;
   color: var(--gc-menu-bg) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(28, 65, 91, 0.04) !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--shadow) 3%, transparent), 0 4px 14px color-mix(in srgb, var(--shadow) 4%, transparent) !important;
   font-size: 0.92rem !important;
   font-weight: 700 !important;
   text-transform: none !important;
@@ -573,9 +550,9 @@ background: linear-gradient(
 .cad-main-panel > div:first-child label:hover {
   background: var(--gc-menu-bg) !important;
   border-color: var(--gc-menu-bg) !important;
-  color: #ffffff !important;
+  color: var(--text-secondary) !important;
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(28, 65, 91, 0.14) !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--shadow) 14%, transparent) !important;
 }
 
 .cad-main-panel > div:first-child button svg,
@@ -593,23 +570,23 @@ background: linear-gradient(
   border: 0 !important;
   border-radius: 8px !important;
   background: transparent !important;
-  color: rgba(28, 65, 91, 0.65) !important;
+  color: color-mix(in srgb, var(--border) 65%, transparent) !important;
   box-shadow: none !important;
   opacity: 0.65;
   font-size: 1rem !important;
 }
 
 .cad-main-panel tbody td button:hover {
-  background: #f1f5f9 !important;
-  color: #2563eb !important;
+  background: var(--surface-secondary) !important;
+  color: var(--text-secondary) !important;
   opacity: 1;
   transform: none;
 }
 
 .cad-main-panel tbody td button:has(svg[class*="lucide-trash"]):hover,
 .cad-main-panel tbody td button:has(svg.lucide-trash-2):hover {
-  color: #dc2626 !important;
-  background: #f1f5f9 !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-secondary) !important;
 }
 
 .cad-main-panel tbody td button svg {
@@ -649,7 +626,7 @@ background: linear-gradient(
 .cadastros-layout > div.fixed.inset-0 {
   z-index: 1000 !important;
   padding: 1rem !important;
-  background: rgba(15, 23, 42, 0.35) !important;
+  background: color-mix(in srgb, var(--overlay) 35%, transparent) !important;
   backdrop-filter: blur(6px);
 }
 
@@ -662,10 +639,10 @@ background: linear-gradient(
   flex-direction: column;
   overflow: hidden;
   padding: 0 !important;
-  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 12%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--gc-menu-bg) 12%, var(--border)) !important;
   border-radius: 20px !important;
-  background: #ffffff !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 30px 80px rgba(28, 65, 91, 0.12) !important;
+  background: var(--surface) !important;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow) 8%, transparent), 0 30px 80px color-mix(in srgb, var(--shadow) 12%, transparent) !important;
   animation: cadastroModalIn 0.22s ease;
 }
 
@@ -716,15 +693,15 @@ background: linear-gradient(
   min-height: 4rem;
   margin: 0 !important;
   padding: 0.95rem 1.2rem !important;
-  border-bottom: 1px solid #eef2f7 !important;
-  background: #ffffff !important;
-  color: #1f2937 !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div > div:first-child h2,
 .cadastros-layout > div.fixed.inset-0 > div > div:first-child h3 {
   margin: 0 !important;
-  color: #1f2937 !important;
+  color: var(--text-primary) !important;
   font-size: 1.02rem !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
@@ -738,16 +715,16 @@ background: linear-gradient(
   height: 2rem;
   min-height: 2rem;
   padding: 0 !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--border) !important;
   border-radius: 999px !important;
-  background: #ffffff !important;
-  color: #64748b !important;
+  background: var(--surface) !important;
+  color: var(--text-secondary) !important;
   box-shadow: none !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div > div:first-child button:hover {
-  background: #f8fafc !important;
-  color: #334155 !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
   transform: none;
 }
 
@@ -770,7 +747,7 @@ background: linear-gradient(
 .cadastros-layout > div.fixed.inset-0 label {
   display: block;
   margin-bottom: 0.35rem;
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
   font-size: 0.78rem !important;
   font-weight: 700 !important;
   letter-spacing: 0 !important;
@@ -782,18 +759,18 @@ background: linear-gradient(
   width: 100%;
   height: 42px;
   padding: 0 0.85rem !important;
-  border: 1px solid #dbe2e8 !important;
+  border: 1px solid var(--border) !important;
   border-radius: 10px !important;
-  background: #ffffff !important;
-  color: #14383f;
+  background: var(--surface) !important;
+  color: var(--text-primary);
   font-size: 0.92rem !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 input:focus,
 .cadastros-layout > div.fixed.inset-0 select:focus {
   outline: none;
-  border-color: #4fa2d9 !important;
-  box-shadow: 0 0 0 3px rgba(79, 162, 217, 0.12) !important;
+  border-color: var(--info) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow) 12%, transparent) !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 button {
@@ -812,9 +789,9 @@ background: linear-gradient(
 .cadastros-layout [data-limpar-catalogo-modal="box"],
 .cadastros-layout [data-limpar-catalogo-modal="header"],
 .cadastros-layout [data-limpar-catalogo-modal="footer"] {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  color: #334155 !important;
+  background: var(--surface) !important;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
 }
 
 .cadastros-layout [data-limpar-catalogo-modal="header"] {
@@ -825,14 +802,14 @@ background: linear-gradient(
 }
 
 .cadastros-layout [data-limpar-catalogo-modal="header"] h2 {
-  color: #1f2937 !important;
+  color: var(--text-primary) !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   line-height: 1.5rem !important;
 }
 
 .cadastros-layout [data-limpar-catalogo-modal="header"] p {
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
   font-size: 0.875rem !important;
   font-weight: 400 !important;
   line-height: 1.5rem !important;
@@ -840,19 +817,19 @@ background: linear-gradient(
 
 .cadastros-layout [data-limpar-catalogo-modal="icon"] {
   display: flex !important;
-  background: rgba(254, 242, 242, 0.72) !important;
-  color: #f87171 !important;
+  background: color-mix(in srgb, var(--overlay) 72%, transparent) !important;
+  color: var(--text-secondary) !important;
 }
 
 .cadastros-layout [data-limpar-catalogo-modal="header"] button {
   display: flex !important;
   background: transparent !important;
-  color: #94a3b8 !important;
+  color: var(--text-secondary) !important;
 }
 
 .cadastros-layout [data-limpar-catalogo-modal="header"] button:hover {
-  background: #f8fafc !important;
-  color: #475569 !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
   transform: none !important;
 }
 
@@ -863,9 +840,9 @@ background: linear-gradient(
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"],
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"],
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="footer"] {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  color: #334155 !important;
+  background: var(--surface) !important;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] {
@@ -876,14 +853,14 @@ background: linear-gradient(
 }
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] h2 {
-  color: #1f2937 !important;
+  color: var(--text-primary) !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   line-height: 1.5rem !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] p {
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
   font-size: 0.875rem !important;
   font-weight: 400 !important;
   line-height: 1.5rem !important;
@@ -891,19 +868,19 @@ background: linear-gradient(
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] [data-limpar-catalogo-modal="icon"] {
   display: flex !important;
-  background: rgba(254, 242, 242, 0.72) !important;
-  color: #f87171 !important;
+  background: color-mix(in srgb, var(--overlay) 72%, transparent) !important;
+  color: var(--text-secondary) !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] button {
   display: flex !important;
   background: transparent !important;
-  color: #94a3b8 !important;
+  color: var(--text-secondary) !important;
 }
 
 .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] button:hover {
-  background: #f8fafc !important;
-  color: #475569 !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
   transform: none !important;
 }
 

@@ -268,22 +268,22 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   const clienteConsultaDesatualizada = !!clienteSelecionado && consultaExpirada(clienteSelecionado.consultado_receita_em);
   const destino = sessao?.rotaEdicao || "/central-impressao";
   const botao = { backgroundColor: theme.buttonDarkBg, color: theme.buttonDarkText };
-  const campo = { backgroundColor: theme.screenBackgroundColor, color: theme.modalTextColor, borderColor: `${theme.modalTextColor}30` };
+  const campo = { backgroundColor: theme.screenBackgroundColor, color: theme.modalTextColor, borderColor: `color-mix(in srgb, ${theme.modalTextColor} 19%, transparent)` };
   return <Context.Provider value={sessao}>
-    {empresaId && <div className="print:hidden flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-6 py-2 text-sm text-slate-800">
+    {empresaId && <div className="print:hidden flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-secondary px-6 py-2 text-sm text-text-primary">
       {sessao ? <>
         <span>Orçamento em andamento: {sessao.cliente.nome}{sessao.obra ? ` · ${sessao.obra}` : ""} · Rascunho automático</span>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={cancelarEIniciarOutro}
-            className="rounded-lg border border-rose-300 bg-white px-4 py-2 font-normal text-rose-700 transition-colors hover:bg-rose-50"
+            className="rounded-lg border border-danger-soft bg-surface px-4 py-2 font-normal text-danger transition-colors hover:bg-danger-soft"
           >
             Cancelar e começar outro
           </button>
-          <Link className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" href={destino}>Ver orçamento{quantidade ? ` (${quantidade})` : ""} / Salvar</Link>
+          <Link className="rounded-lg border border-border-strong bg-surface px-4 py-2 font-normal text-text-secondary transition-colors hover:bg-surface-secondary" href={destino}>Ver orçamento{quantidade ? ` (${quantidade})` : ""} / Salvar</Link>
         </div>
-      </> : <><span>Monte um orçamento com vários cálculos</span><button type="button" aria-keyshortcuts="Shift+Plus" className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-normal text-slate-600 transition-colors hover:bg-slate-100" onClick={() => { setErro(""); setModal(true); }}>+ Novo orçamento</button></>}
+      </> : <><span>Monte um orçamento com vários cálculos</span><button type="button" aria-keyshortcuts="Shift+Plus" className="rounded-lg border border-border-strong bg-surface px-4 py-2 font-normal text-text-secondary transition-colors hover:bg-surface-secondary" onClick={() => { setErro(""); setModal(true); }}>+ Novo orçamento</button></>}
     </div>}
     {children}
     {modal && <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4" onKeyDown={e => { if (e.key === "Escape") setModal(false); }}>
@@ -292,7 +292,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
         {sessao ? <div style={campo} className="rounded-xl border p-4"><p className="text-xs font-semibold uppercase opacity-70">Cliente</p><p className="mt-1 text-lg font-bold">{sessao.cliente.nome}</p><p className="mt-3 text-xs font-semibold uppercase opacity-70">Obra / referência</p><p className="mt-1">{sessao.obra || "Não informada"}</p><p className="mt-4 text-sm opacity-75">Continue a edição dos itens com este cliente ativo.</p></div> : <>
           <label className="mb-4 block text-sm font-semibold">Cliente<select autoFocus style={campo} className="mt-2 block w-full rounded-lg border p-3" value={clienteId} disabled={carregando || atualizandoStatus} onChange={e => { setClienteId(e.target.value); setMensagemStatus(""); setErro(""); }}><option value="">{carregando ? "Carregando clientes…" : "Selecione o cliente"}</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome}{c.situacao_cadastral ? ` (${statusAtivo(c.situacao_cadastral) ? "Ativo" : "Inativo"})` : ""}</option>)}</select></label>
           {clienteSelecionado && (
-            <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${clienteSelecionadoInativo ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+            <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${clienteSelecionadoInativo ? "bg-danger-soft text-danger" : "bg-success-soft text-success"}`}>
               Situação cadastral: {clienteSelecionado.situacao_cadastral || "Não informada"}
             </p>
           )}
@@ -301,27 +301,27 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
               type="button"
               onClick={atualizarStatusClienteSelecionado}
               disabled={atualizandoStatus}
-              className="mb-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="mb-3 rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs font-semibold text-text-primary hover:bg-surface-secondary disabled:opacity-60"
             >
               {atualizandoStatus ? "Atualizando situação..." : "Atualizar situação agora"}
             </button>
           )}
           {clienteConsultaDesatualizada && !clienteSelecionadoInativo && (
-            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <p className="mb-3 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning">
               Cadastro sem consulta recente de CNPJ. Recomendado atualizar o cliente antes de orçar.
             </p>
           )}
           {clienteSelecionadoInativo && (
-            <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
               Cliente inativo. Você pode seguir com o orçamento, mas é recomendado atualizar e validar a situação.
             </p>
           )}
-          {mensagemStatus && <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensagemStatus}</p>}
+          {mensagemStatus && <p className="mb-3 rounded-lg bg-success-soft px-3 py-2 text-xs text-success">{mensagemStatus}</p>}
           <label className="block text-sm font-semibold">Obra / referência<input style={campo} className="mt-2 block w-full rounded-lg border p-3" value={obra} onChange={e => setObra(e.target.value)} /></label>
-          <p className="mt-3 text-sm text-slate-600">Cliente e obra serão preenchidos nos cálculos. Use PDF+ ou Salvar no cálculo para adicionar os itens e finalize na central.</p>
+          <p className="mt-3 text-sm text-text-secondary">Cliente e obra serão preenchidos nos cálculos. Use PDF+ ou Salvar no cálculo para adicionar os itens e finalize na central.</p>
         </>}
-        {erro && <p role="alert" className="mt-3 text-red-700">{erro}</p>}
-        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{sessao && <button type="button" className="rounded-lg border border-rose-300 px-4 py-2 font-semibold text-rose-700 hover:bg-rose-50" onClick={cancelarEIniciarOutro}>Cancelar e começar outro</button>}{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId || atualizandoStatus} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
+        {erro && <p role="alert" className="mt-3 text-danger">{erro}</p>}
+        <div className="mt-6 flex justify-end gap-3 border-t border-current/10 pt-4"><button type="button" className="rounded-lg px-4 py-2" onClick={() => setModal(false)}>Fechar</button><button type="button" style={sessao ? botao : campo} className="rounded-lg border px-4 py-2 font-semibold" onClick={() => { setModal(false); router.push(destino); }}>{sessao ? "Continuar orçamento" : "Abrir central"}</button>{sessao && <button type="button" className="rounded-lg border border-danger-soft px-4 py-2 font-semibold text-danger hover:bg-danger-soft" onClick={cancelarEIniciarOutro}>Cancelar e começar outro</button>}{!sessao && <button type="button" style={botao} disabled={carregando || !clienteId || atualizandoStatus} className="rounded-lg px-4 py-2 font-semibold disabled:opacity-50" onClick={iniciar}>Iniciar orçamento</button>}</div>
       </section>
     </div>}
   </Context.Provider>;

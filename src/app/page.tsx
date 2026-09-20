@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { DRAWING_COLORS } from "@/design/drawing";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { ArrowRight, ArrowUpRight, BarChart3, Building2, CalendarDays, CircleDollarSign, FileText, Plus, UserPlus, UsersRound, TrendingUp, Printer, Layers3 } from "lucide-react";
@@ -341,7 +342,7 @@ export default function Dashboard() {
           <div
             className="h-10 w-10 animate-spin rounded-full border-4"
             style={{
-              borderColor: `${theme.menuBackgroundColor}28`,
+              borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 16%, transparent)`,
               borderTopColor: theme.menuBackgroundColor,
             }}
           />
@@ -365,7 +366,7 @@ export default function Dashboard() {
       descricao: "Base cadastrada",
       icon: UsersRound,
       cor: theme.menuBackgroundColor,
-      fundo: `${theme.menuBackgroundColor}12`,
+      fundo: `color-mix(in srgb, ${theme.menuBackgroundColor} 7%, transparent)`,
     },
     {
       titulo: "Orçamentos",
@@ -437,10 +438,10 @@ export default function Dashboard() {
             </section>
             <section className={styles.panel}>
               <div className={styles.panelHeading}><div><span className={styles.eyebrow}>ATIVIDADE COMERCIAL</span><h2>Evolução dos orçamentos</h2></div><div className={styles.period} role="group" aria-label="Período do gráfico">{([7,30] as const).map(dias => <button key={dias} type="button" aria-pressed={periodo === dias} onClick={() => setPeriodo(dias)}>{dias} dias</button>)}</div></div>
-              <div className={styles.chartSummary}><strong>{carregandoResumo ? '—' : formatarMoeda(total7Dias)}</strong><span>{quantidade7Dias} orçamento(s) no período</span></div>
+              <div className={styles.chartSummary}><div><span className={styles.chartTotalLabel}>Total orçado no período</span><strong>{carregandoResumo ? '—' : formatarMoeda(total7Dias)}</strong></div><span>{quantidade7Dias} orçamento(s) criados</span></div>
               <div className={styles.chart}>
                 {carregandoResumo ? <div className={styles.empty}>Carregando atividade…</div> : serie7Dias.every(item => item.total === 0) ? <div className={styles.empty}><BarChart3 size={28}/><strong>Nenhum valor orçado neste período.</strong><p>Selecione outro período ou crie um orçamento.</p><Link href="/matriz-projetos">Criar orçamento <ArrowRight size={14}/></Link></div> : <>
-                  <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={`Valor orçado por dia nos últimos ${periodo} dias`}><defs><linearGradient id="dashboardChartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#39b89f" stopOpacity=".25"/><stop offset="100%" stopColor="#39b89f" stopOpacity="0"/></linearGradient></defs>{[0,10,20,30,40].map(y => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#dce9e4" strokeWidth=".3" strokeDasharray="1 1"/>)}<polygon points={areaGrafico} fill="url(#dashboardChartGradient)"/><polyline points={pontosGrafico} fill="none" stroke="#329d86" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"/></svg>
+                  <svg viewBox="-1 -4 102 45" preserveAspectRatio="none" role="img" aria-label={`Valor orçado por dia nos últimos ${periodo} dias`}><defs><linearGradient id="dashboardChartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--text-primary)" stopOpacity=".10"/><stop offset="100%" stopColor="var(--text-primary)" stopOpacity="0"/></linearGradient></defs>{[0,20,40].map(y => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="var(--border)" strokeWidth="1" vectorEffect="non-scaling-stroke"/>)}<polygon points={areaGrafico} fill="url(#dashboardChartGradient)"/><polyline points={pontosGrafico} fill="none" stroke="var(--text-primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"/></svg>
                   <div className={`${styles.chartDays} ${periodo === 30 ? styles.monthDays : ""}`}>{serie7Dias.map(item => <div key={item.dia} tabIndex={0} title={`${item.dia}: ${formatarMoeda(item.total)} · ${item.quantidade} orçamento(s)`}><span>{new Date(`${item.dia}T12:00:00`).toLocaleDateString('pt-BR',periodo === 30 ? {day:'2-digit',month:'2-digit'} : {weekday:'short'})}</span><small>{formatarMoeda(item.total)}</small></div>)}</div>
                 </>}
               </div>

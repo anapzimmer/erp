@@ -2,10 +2,11 @@
 "use client";
 
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
+import { DRAWING_COLORS } from "@/design/drawing";
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { compararMateriaisRelacao } from "@/utils/ordemMateriais";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ProjetoIndividualMaterial = {
   id: string;
@@ -50,6 +51,7 @@ export type ProjetoIndividualDados = {
 type ProjetoIndividualPDFProps = {
   dados: ProjetoIndividualDados;
   logoUrl?: string | null;
+  nomeEmpresa: string;
   themeColor?: string;
 };
 
@@ -80,16 +82,16 @@ const arredondar5cm = (valorMm: number) => Math.ceil(Number(valorMm || 0) / 50) 
 const styles = StyleSheet.create({
   page: {
     padding: 24,
-    fontFamily: "Helvetica",
-    backgroundColor: "#ffffff",
-    color: "#0f2742",
+    fontFamily: "Inter",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
   },
   header: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -102,13 +104,13 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#00a85a",
+    borderColor: PDF_COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  logoText: { color: "#00a85a", fontSize: 16, fontWeight: "bold" },
-  brandName: { fontSize: 20, fontWeight: "bold", color: "#10253f" },
-  brandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
+  logoText: { color: PDF_COLORS.muted, fontSize: 16, fontWeight: "bold" },
+  brandName: { fontSize: 20, fontWeight: "bold", color: PDF_COLORS.ink },
+  brandSub: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 2 },
   headerMetaWrap: {
     flexDirection: "row",
     gap: 14,
@@ -118,80 +120,80 @@ const styles = StyleSheet.create({
   },
   metaBox: {
     borderLeftWidth: 1,
-    borderLeftColor: "#dbe4ee",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 10,
     width: 86,
     flexShrink: 0,
   },
   metaClientBox: {
     borderLeftWidth: 1,
-    borderLeftColor: "#dbe4ee",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 8,
     flex: 1,
     minWidth: 0,
   },
-  metaLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  metaValue: { fontSize: 9, color: "#0f2742", fontWeight: "bold" },
+  metaLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  metaValue: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
   metaClientValue: {
     fontSize: 7.5,
-    color: "#0f2742",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     lineHeight: 1.25,
     maxWidth: "100%",
   },
   titleRow: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     marginBottom: 12,
   },
-  titleLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase" },
-  title: { fontSize: 12, color: "#0f2742", fontWeight: "normal", marginTop: 3 },
+  titleLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase" },
+  title: { fontSize: 12, color: PDF_COLORS.ink, fontWeight: "normal", marginTop: 3 },
   grid: { flexDirection: "row", gap: 10, marginBottom: 10 },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     padding: 10,
   },
   drawingCard: { width: "32%" },
   dataCard: { width: "68%" },
-  sectionTitle: { fontSize: 9, color: "#0f2742", fontWeight: "normal", textTransform: "uppercase" },
-  titleLine: { width: 22, height: 2, backgroundColor: "#00a85a", marginTop: 8, marginBottom: 12 },
+  sectionTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal", textTransform: "uppercase" },
+  titleLine: { width: 22, height: 2, backgroundColor: PDF_COLORS.panelBg, marginTop: 8, marginBottom: 12 },
   drawingBox: { height: 190, alignItems: "center", justifyContent: "center" },
   drawingImage: { width: 140, maxHeight: 180, objectFit: "contain" },
-  drawingCaption: { fontSize: 8, color: "#64748b", marginTop: 8 },
-  dataGrid: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  drawingCaption: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 8 },
+  dataGrid: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderTopColor: PDF_COLORS.border },
   dataItem: {
     width: "33.33%",
     paddingVertical: 8,
     paddingHorizontal: 6,
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: PDF_COLORS.border,
   },
-  dataLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  dataValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
+  dataLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  dataValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal" },
   tableCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     padding: 10,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: PDF_COLORS.panelBg,
     borderRadius: 8,
     minHeight: 24,
     alignItems: "center",
   },
-  th: { color: "#475569", fontSize: 8, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
-  tr: { flexDirection: "row", minHeight: 28, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#eef2f7" },
-  td: { fontSize: 8, color: "#0f2742", paddingHorizontal: 6 },
+  th: { color: PDF_COLORS.ink, fontSize: 8, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
+  tr: { flexDirection: "row", minHeight: 28, alignItems: "center", borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border },
+  td: { fontSize: 8, color: PDF_COLORS.ink, paddingHorizontal: 6 },
   colQtd: { width: "10%", textAlign: "center" },
   colDesc: { width: "50%" },
   colUn: { width: "10%", textAlign: "center" },
@@ -199,38 +201,38 @@ const styles = StyleSheet.create({
   summary: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 10 },
   summaryBox: {
     width: "31.8%",
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     borderRadius: 12,
     padding: 8,
   },
-  summaryLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase" },
-  summaryValue: { fontSize: 8, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
-  footer: { position: "absolute", left: 28, right: 28, bottom: 14, fontSize: 8, color: "#94a3b8", textAlign: "center" },
+  summaryLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase" },
+  summaryValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal", marginTop: 5 },
+  footer: { position: "absolute", left: 28, right: 28, bottom: 14, fontSize: 8, color: PDF_COLORS.muted, textAlign: "center" },
   premiumPage: {
     padding: 24,
-    fontFamily: "Helvetica",
-    backgroundColor: "#ffffff",
-    color: "#0f2742",
+    fontFamily: "Inter",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
   },
   premiumHeader: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   premiumLogo: { width: 140, maxHeight: 42, objectFit: "contain", objectPosition: "left" },
-  premiumBrandName: { fontSize: 18, fontWeight: "bold", color: "#10253f" },
-  premiumBrandSub: { fontSize: 8, color: "#00a85a", marginTop: 2 },
+  premiumBrandName: { fontSize: 18, fontWeight: "bold", color: PDF_COLORS.ink },
+  premiumBrandSub: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 2 },
   premiumProjectWrap: { flex: 1, paddingHorizontal: 16, alignItems: "center" },
-  premiumProjectLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", letterSpacing: 1.2 },
-  premiumProjectName: { fontSize: 13, color: "#10253f", fontWeight: "normal", marginTop: 4 },
+  premiumProjectLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", letterSpacing: 1.2 },
+  premiumProjectName: { fontSize: 13, color: PDF_COLORS.ink, fontWeight: "normal", marginTop: 4 },
   premiumMeta: {
     flexDirection: "row",
     gap: 14,
@@ -240,31 +242,31 @@ const styles = StyleSheet.create({
   },
   premiumMetaBox: {
     borderLeftWidth: 1,
-    borderLeftColor: "#e2e8f0",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 10,
     width: 78,
     flexShrink: 0,
   },
   premiumMetaDateBox: {
     borderLeftWidth: 1,
-    borderLeftColor: "#e2e8f0",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 10,
     width: 66,
     flexShrink: 0,
   },
   premiumClientBox: {
     borderLeftWidth: 1,
-    borderLeftColor: "#e2e8f0",
+    borderLeftColor: PDF_COLORS.border,
     paddingLeft: 10,
     width: 150,
     flexShrink: 0,
     minWidth: 0,
   },
-  premiumMetaLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  premiumMetaValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
+  premiumMetaLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  premiumMetaValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal" },
   premiumClientValue: {
     fontSize: 9,
-    color: "#0f2742",
+    color: PDF_COLORS.ink,
     fontWeight: "normal",
     lineHeight: 1.25,
     maxWidth: "100%",
@@ -272,26 +274,26 @@ const styles = StyleSheet.create({
   premiumMainGrid: { flexDirection: "row", gap: 12, marginBottom: 12 },
   premiumDrawingCard: {
     width: "34%",
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     padding: 10,
   },
   premiumInfoCard: {
     width: "66%",
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     padding: 10,
   },
-  premiumSectionTitle: { fontSize: 9, color: "#0f2742", fontWeight: "normal", textTransform: "uppercase", letterSpacing: 0.8 },
-  premiumLine: { width: 24, height: 2, backgroundColor: "#18bd72", marginTop: 7, marginBottom: 10 },
+  premiumSectionTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal", textTransform: "uppercase", letterSpacing: 0.8 },
+  premiumLine: { width: 24, height: 2, backgroundColor: PDF_COLORS.panelBg, marginTop: 7, marginBottom: 10 },
   premiumDrawingBox: {
     height: 180,
     borderRadius: 10,
-    backgroundColor: "#f8fafc",
+    backgroundColor: PDF_COLORS.white,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -302,43 +304,43 @@ const styles = StyleSheet.create({
     minHeight: 46,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
+    borderColor: PDF_COLORS.border,
+    backgroundColor: PDF_COLORS.white,
     padding: 8,
   },
-  premiumInfoLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", marginBottom: 5 },
-  premiumInfoValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
-  premiumValueCard: { backgroundColor: "#ecfdf5", borderColor: "#bbf7d0" },
-  premiumValueText: { fontSize: 10, color: "#0f2742", fontWeight: "bold" },
+  premiumInfoLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 5 },
+  premiumInfoValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal" },
+  premiumValueCard: { backgroundColor: PDF_COLORS.white, borderColor: PDF_COLORS.border },
+  premiumValueText: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold" },
   premiumTitleRow: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     marginBottom: 12,
   },
-  premiumTitleLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 },
-  premiumTitleValue: { fontSize: 10, color: "#0f2742", fontWeight: "normal", marginTop: 4 },
+  premiumTitleLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", letterSpacing: 1 },
+  premiumTitleValue: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "normal", marginTop: 4 },
   premiumTableCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     padding: 10,
     marginBottom: 10,
   },
   premiumTableHeader: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: PDF_COLORS.panelBg,
     borderRadius: 8,
     minHeight: 24,
     alignItems: "center",
   },
-  premiumTh: { color: "#475569", fontSize: 8, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
-  premiumTr: { flexDirection: "row", minHeight: 27, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#eef2f7" },
-  premiumTd: { fontSize: 8, color: "#0f2742", paddingHorizontal: 6 },
+  premiumTh: { color: PDF_COLORS.ink, fontSize: 8, fontWeight: "normal", textTransform: "uppercase", paddingHorizontal: 6 },
+  premiumTr: { flexDirection: "row", minHeight: 27, alignItems: "center", borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border },
+  premiumTd: { fontSize: 8, color: PDF_COLORS.ink, paddingHorizontal: 6 },
   premiumColQtd: { width: "10%", textAlign: "center" },
   premiumColMedida: { width: "18%" },
   premiumColVidro: { width: "42%" },
@@ -350,22 +352,23 @@ const styles = StyleSheet.create({
   premiumSummary: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
   premiumSummaryBox: {
     width: "31.7%",
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     borderRadius: 12,
     padding: 9,
   },
-  premiumSummaryTotal: { borderColor: "#18bd72", backgroundColor: "#ffffff" },
-  premiumSummaryLabel: { fontSize: 8, color: "#64748b", textTransform: "uppercase" },
-  premiumSummaryValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal", marginTop: 5 },
-  premiumSummaryValueStrong: { fontSize: 10, color: "#0f2742", fontWeight: "bold", marginTop: 5 },
+  premiumSummaryTotal: { borderColor: PDF_COLORS.border, backgroundColor: PDF_COLORS.white },
+  premiumSummaryLabel: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase" },
+  premiumSummaryValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal", marginTop: 5 },
+  premiumSummaryValueStrong: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold", marginTop: 5 },
 });
 
 export function ProjetoIndividualPDF({
   dados,
   logoUrl,
-  themeColor = "#07385a",
+  nomeEmpresa,
+
 }: ProjetoIndividualPDFProps) {
   const projetoNormalizado = String(dados.projeto || "").toLowerCase();
   const ehJc4fComSacada = projetoNormalizado.includes("jc4fcs") || projetoNormalizado.includes("janela 4 folhas com sacada inferior") || projetoNormalizado.includes("janela de correr 4 folhas com sacada inferior");
@@ -739,21 +742,21 @@ export function ProjetoIndividualPDF({
         <View style={styles.premiumMeta}>
   <View style={styles.premiumMetaBox}>
     <Text style={styles.premiumMetaLabel}>Nº OR:</Text>
-    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+    <Text style={[styles.premiumMetaValue, { color: PDF_COLORS.ink }]}>
       {dados.numero || "-"}
     </Text>
   </View>
 
   <View style={styles.premiumClientBox}>
     <Text style={styles.premiumMetaLabel}>Cliente</Text>
-    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+    <Text style={[styles.premiumMetaValue, { color: PDF_COLORS.ink }]}>
       {dados.cliente || "-"}
     </Text>
   </View>
 
   <View style={styles.premiumMetaDateBox}>
     <Text style={styles.premiumMetaLabel}>Data</Text>
-    <Text style={[styles.premiumMetaValue, { color: themeColor }]}>
+    <Text style={[styles.premiumMetaValue, { color: PDF_COLORS.ink }]}>
       {dados.data || "-"}
     </Text>
   </View>
@@ -766,7 +769,7 @@ export function ProjetoIndividualPDF({
     style={[
       styles.premiumTitleValue,
       {
-        color: themeColor,
+        color: PDF_COLORS.ink,
         lineHeight: 1.25,
         maxWidth: "100%",
       },
@@ -893,7 +896,7 @@ export function ProjetoIndividualPDF({
           <Text
             style={styles.footer}
             fixed
-            render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+            render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa, pageNumber, totalPages)}
           />
         </Page>
       </Document>
@@ -923,21 +926,21 @@ export function ProjetoIndividualPDF({
      <View style={styles.headerMetaWrap}>
   <View style={styles.metaBox}>
     <Text style={styles.metaLabel}>Nº Orçamento</Text>
-    <Text style={[styles.metaValue, { color: themeColor }]}>
+    <Text style={[styles.metaValue, { color: PDF_COLORS.ink }]}>
       {dados.numero || "-"}
     </Text>
   </View>
 
   <View style={styles.metaClientBox}>
     <Text style={styles.metaLabel}>Cliente</Text>
-    <Text style={[styles.metaValue, { color: themeColor }]}>
+    <Text style={[styles.metaValue, { color: PDF_COLORS.ink }]}>
       {dados.cliente || "-"}
     </Text>
   </View>
 
   <View style={styles.metaBox}>
     <Text style={styles.metaLabel}>Data</Text>
-    <Text style={[styles.metaClientValue, { color: themeColor }]}>
+    <Text style={[styles.metaClientValue, { color: PDF_COLORS.ink }]}>
       {dados.data || "-"}
     </Text>
   </View>
@@ -950,7 +953,7 @@ export function ProjetoIndividualPDF({
     style={[
       styles.title,
       {
-        color: themeColor,
+        color: PDF_COLORS.ink,
         lineHeight: 1.25,
         maxWidth: "100%",
       },
@@ -1119,7 +1122,7 @@ export function ProjetoIndividualPDF({
         <Text
           style={styles.footer}
           fixed
-          render={({ pageNumber, totalPages }) => buildPdfFooterText("Glass Code", pageNumber, totalPages)}
+          render={({ pageNumber, totalPages }) => buildPdfFooterText(nomeEmpresa, pageNumber, totalPages)}
         />
       </Page>
     </Document>

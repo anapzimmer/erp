@@ -14,7 +14,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 interface PerfilPDF {
   nome: string;
@@ -80,27 +80,27 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingHorizontal: 36,
     paddingBottom: 54,
-    backgroundColor: "#ffffff",
-    color: "#153047",
-    fontFamily: "Helvetica",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
+    fontFamily: "Inter",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     borderBottomWidth: 1,
-    borderBottomColor: "#d9e2ea",
+    borderBottomColor: PDF_COLORS.border,
     paddingBottom: 12,
     marginBottom: 12,
   },
   headerText: { flex: 1, paddingRight: 18 },
   title: {
     fontSize: 15,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
-  subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
+  subtitle: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 5 },
   logo: {
     width: 118,
     height: 42,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
@@ -119,38 +119,38 @@ const styles = StyleSheet.create({
   infoBox: { flex: 1 },
   label: {
     fontSize: 6.5,
-    color: "#718398",
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
   },
-  value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
-  valueStrong: { fontSize: 9, color: "#153047", fontWeight: "bold" },
+  value: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
+  valueStrong: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold" },
   mainGrid: { flexDirection: "column", gap: 10, marginBottom: 12 },
   drawingBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
   drawingTitle: {
     fontSize: 9,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginBottom: 6,
   },
   dataBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
   dataTitle: {
     fontSize: 9,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginBottom: 7,
   },
@@ -158,20 +158,20 @@ const styles = StyleSheet.create({
   dataItem: {
     width: "31.8%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
   dataItemWide: {
     width: "48%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
   sectionTitle: {
     fontSize: 10,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginTop: 4,
     marginBottom: 6,
@@ -179,14 +179,14 @@ const styles = StyleSheet.create({
   table: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 7,
     overflow: "hidden",
   },
   row: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     minHeight: 24,
     alignItems: "center",
   },
@@ -194,16 +194,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: 22,
     alignItems: "center",
-    backgroundColor: "#f3f6f9",
+    backgroundColor: PDF_COLORS.panelBg,
   },
   th: {
     padding: 4,
     fontSize: 6.5,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textTransform: "uppercase",
     fontWeight: "bold",
   },
-  td: { padding: 4, fontSize: 7.5, color: "#153047" },
+  td: { padding: 4, fontSize: 7.5, color: PDF_COLORS.ink },
   perfilCodigo: { width: "9%" },
   perfilNome: { width: "19%" },
   perfilUn: { width: "7%", textAlign: "center" },
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 5,
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textAlign: "right",
     textTransform: "uppercase",
     fontWeight: "bold",
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     width: "15%",
     padding: 5,
     fontSize: 8,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     textAlign: "right",
     fontWeight: "bold",
   },
@@ -241,24 +241,24 @@ const styles = StyleSheet.create({
     gap: 7,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 10,
   },
   totalBox: { flex: 1 },
   totalLabel: {
     fontSize: 6.5,
-    color: "#718398",
+    color: PDF_COLORS.muted,
     textTransform: "uppercase",
     marginBottom: 3,
   },
   totalValue: {
     fontSize: 10,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "normal",
   },
   totalValueStrong: {
     fontSize: 13,
-    color: "#153047",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
   },
   footer: {
@@ -268,9 +268,9 @@ const styles = StyleSheet.create({
     right: 36,
     textAlign: "center",
     fontSize: 10,
-    color: "#8a9aab",
+    color: PDF_COLORS.muted,
     borderTopWidth: 0.5,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 8,
   },
 });
@@ -352,8 +352,8 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                 y={y0}
                 width={drawW}
                 height={drawH}
-                fill="#ffffff"
-                stroke="#d6e0e8"
+                fill={PDF_COLORS.panelBg}
+                stroke={PDF_COLORS.softMuted}
                 strokeWidth={0.8}
               />
 
@@ -368,8 +368,8 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                         y={y}
                         width={panelW}
                         height={panelH}
-                        fill="#edf8ff"
-                        stroke="#a9bfce"
+                        fill={PDF_COLORS.panelBg}
+                        stroke={PDF_COLORS.softMuted}
                         strokeWidth={0.5}
                       />
                       <Line
@@ -377,7 +377,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                         y1={y + panelH * 0.9}
                         x2={x + panelW * 0.72}
                         y2={y + panelH * 0.1}
-                        stroke="#ffffff"
+                        stroke={PDF_COLORS.white}
                         strokeWidth={3}
                       />
                       <Line
@@ -385,7 +385,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                         y1={y + panelH * 0.86}
                         x2={x + panelW * 0.92}
                         y2={y + panelH * 0.15}
-                        stroke="#ffffff"
+                        stroke={PDF_COLORS.white}
                         strokeWidth={1.6}
                       />
                     </G>
@@ -402,8 +402,8 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                     y={y0}
                     width={side}
                     height={drawH}
-                    fill="#eef2f5"
-                    stroke="#b5c0ca"
+                    fill={PDF_COLORS.panelBg}
+                    stroke={PDF_COLORS.softMuted}
                     strokeWidth={0.8}
                   />
                 );
@@ -418,20 +418,20 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
                     y={y - rail / 2}
                     width={drawW}
                     height={rail}
-                    fill="#eef2f5"
-                    stroke="#b5c0ca"
+                    fill={PDF_COLORS.panelBg}
+                    stroke={PDF_COLORS.softMuted}
                     strokeWidth={0.8}
                   />
                 );
               })}
 
-              <Rect x={x0} y={y0} width={drawW} height={rail} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
-              <Rect x={x0} y={y0 + drawH - rail} width={drawW} height={rail} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
-              <Rect x={x0} y={y0} width={side} height={drawH} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
-              <Rect x={x0 + drawW - side} y={y0} width={side} height={drawH} fill="#eef2f5" stroke="#b5c0ca" strokeWidth={0.8} />
+              <Rect x={x0} y={y0} width={drawW} height={rail} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
+              <Rect x={x0} y={y0 + drawH - rail} width={drawW} height={rail} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
+              <Rect x={x0} y={y0} width={side} height={drawH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
+              <Rect x={x0 + drawW - side} y={y0} width={side} height={drawH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
 
-              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke="#6aa6d8" strokeWidth={0.7} />
-              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 10, fill: "#153047" }}>
+              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 10, fill: PDF_COLORS.ink }}>
                 {props.larguraVaoMm} mm
               </Text>
             </Svg>

@@ -1,14 +1,25 @@
+import tokens from "@/design/tokens.json";
+import { Font } from "@react-pdf/renderer";
+
+// Print always consumes the light palette, regardless of the screen theme.
+Font.register({ family: "Inter", fonts: [
+  { src: "/fonts/Inter-Regular.ttf", fontWeight: 400 },
+  { src: "/fonts/Inter-SemiBold.ttf", fontWeight: 500 },
+  { src: "/fonts/Inter-SemiBold.ttf", fontWeight: 600 },
+  { src: "/fonts/Inter-SemiBold.ttf", fontWeight: 700 },
+] });
+
 export const PDF_COLORS = {
-  ink: "#0f2742",
-  muted: "#64748b",
-  softMuted: "#8a9aab",
-  border: "#dbe4ee",
-  borderLight: "#e2e8f0",
-  panelBg: "#f8fafc",
-  tableHeaderBg: "#f1f5f9",
-  white: "#ffffff",
-  accent: "#00a85a",
-  accentSoft: "#bbf7d0",
+  ink: tokens.brand.graphite,
+  muted: tokens.light["text-secondary"],
+  softMuted: tokens.brand.silver,
+  border: tokens.brand.mist,
+  borderLight: tokens.brand.mist,
+  panelBg: tokens.brand.ice,
+  tableHeaderBg: tokens.light["surface-secondary"],
+  white: tokens.light.surface,
+  accent: tokens.brand.lime,
+  accentSoft: tokens.light.selection,
 } as const;
 
 export const PDF_PAGE_LAYOUT = {

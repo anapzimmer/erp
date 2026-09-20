@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { PDF_HEADER_LAYOUT, buildPdfFooterText } from "../shared/pdfLayout"
+import { PDF_COLORS, PDF_HEADER_LAYOUT, buildPdfFooterText } from "../shared/pdfLayout"
 import { compareFerragensByNome } from "@/utils/ordemTecnica"
 
 const chunkArray = <T,>(items: T[], size: number): T[][] => {
@@ -205,8 +205,8 @@ type RelatorioObraPDFProps = {
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 32, paddingHorizontal: 32, paddingBottom: 72, backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
-  coverPage: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 72, backgroundColor: "#FFFFFF", fontFamily: "Helvetica", justifyContent: "space-between" },
+  page: { paddingTop: 32, paddingHorizontal: 32, paddingBottom: 72, backgroundColor: PDF_COLORS.white, fontFamily: "Inter" },
+  coverPage: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 72, backgroundColor: PDF_COLORS.white, fontFamily: "Inter", justifyContent: "space-between" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -223,46 +223,46 @@ const styles = StyleSheet.create({
     objectFit: "contain",
     marginBottom: 24,
   },
-  coverKicker: { fontSize: 9, color: "#64748B", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 },
+  coverKicker: { fontSize: 9, color: PDF_COLORS.muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 },
   coverTitle: { fontSize: 24, fontWeight: "bold", textTransform: "uppercase", textAlign: "center" },
-  coverSubtitle: { fontSize: 11, color: "#475569", marginTop: 8, textAlign: "center" },
+  coverSubtitle: { fontSize: 11, color: PDF_COLORS.ink, marginTop: 8, textAlign: "center" },
   coverInfoWrap: { marginTop: 28, width: "100%" },
   coverInfoBox: {
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: PDF_COLORS.border,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 14,
     marginBottom: 10,
   },
-  coverInfoLabel: { fontSize: 7, color: "#94A3B8", textTransform: "uppercase", marginBottom: 4, fontWeight: "bold" },
-  coverInfoValue: { fontSize: 12, color: "#0F172A", fontWeight: "bold" },
+  coverInfoLabel: { fontSize: 7, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 4, fontWeight: "bold" },
+  coverInfoValue: { fontSize: 12, color: PDF_COLORS.ink, fontWeight: "bold" },
   coverResumoGrid: { flexDirection: "row", gap: 10, marginTop: 14 },
   coverResumoBox: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: PDF_COLORS.border,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 12,
   },
-  coverResumoLabel: { fontSize: 7, color: "#94A3B8", textTransform: "uppercase", marginBottom: 4, fontWeight: "bold" },
-  coverResumoValor: { fontSize: 14, color: "#0F172A", fontWeight: "bold" },
+  coverResumoLabel: { fontSize: 7, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 4, fontWeight: "bold" },
+  coverResumoValor: { fontSize: 14, color: PDF_COLORS.ink, fontWeight: "bold" },
   coverModesWrap: { marginTop: 14 },
-  coverModesTitle: { fontSize: 8, color: "#64748B", textTransform: "uppercase", marginBottom: 6, fontWeight: "bold" },
+  coverModesTitle: { fontSize: 8, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 6, fontWeight: "bold" },
   coverModesRow: { flexDirection: "row", gap: 10 },
   coverModesBox: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: PDF_COLORS.border,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 12,
   },
   coverModesLabel: { fontSize: 8, fontWeight: "bold", marginBottom: 5 },
-  coverModesLine: { fontSize: 8, color: "#475569", marginBottom: 3 },
-  coverBottom: { borderTopWidth: 1, borderTopColor: "#E2E8F0", paddingTop: 14 },
-  coverBottomText: { fontSize: 8.5, color: "#64748B", textAlign: "center", marginBottom: 3 },
+  coverModesLine: { fontSize: 8, color: PDF_COLORS.ink, marginBottom: 3 },
+  coverBottom: { borderTopWidth: 1, borderTopColor: PDF_COLORS.border, paddingTop: 14 },
+  coverBottomText: { fontSize: 8.5, color: PDF_COLORS.muted, textAlign: "center", marginBottom: 3 },
   logo: {
     width: PDF_HEADER_LAYOUT.logoWidth,
     height: PDF_HEADER_LAYOUT.logoHeight,
@@ -270,47 +270,47 @@ const styles = StyleSheet.create({
     objectPosition: "right",
   },
   titulo: { fontSize: 18, fontWeight: "bold", textTransform: "uppercase" },
-  subtitulo: { fontSize: 10, color: "#64748B", marginTop: 3 },
+  subtitulo: { fontSize: 10, color: PDF_COLORS.muted, marginTop: 3 },
   blocoInfos: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  infoBox: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 8, padding: 10, borderLeftWidth: 3 },
-  infoLabel: { fontSize: 6.5, textTransform: "uppercase", color: "#94A3B8", marginBottom: 3, fontWeight: "bold" },
-  infoValue: { fontSize: 9.5, color: "#0F172A", fontWeight: "bold" },
+  infoBox: { flex: 1, backgroundColor: PDF_COLORS.white, borderRadius: 8, padding: 10, borderLeftWidth: 3 },
+  infoLabel: { fontSize: 6.5, textTransform: "uppercase", color: PDF_COLORS.muted, marginBottom: 3, fontWeight: "bold" },
+  infoValue: { fontSize: 9.5, color: PDF_COLORS.ink, fontWeight: "bold" },
   sectionHeaderBlock: { marginBottom: 10 },
-  sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: "#334155", marginBottom: 4 },
-  sectionLead: { fontSize: 8, color: "#64748B", marginTop: 0, marginBottom: 0 },
+  sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: PDF_COLORS.ink, marginBottom: 4 },
+  sectionLead: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 0, marginBottom: 0 },
   resumoGrid: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  resumoBox: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#E2E8F0" },
-  resumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
-  resumoValor: { fontSize: 10, color: "#0F172A", fontWeight: "bold" },
+  resumoBox: { flex: 1, backgroundColor: PDF_COLORS.white, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: PDF_COLORS.border },
+  resumoLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3, fontWeight: "bold" },
+  resumoValor: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold" },
   pageBadge: {
     alignSelf: "flex-start",
     marginTop: 6,
     borderRadius: 999,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: PDF_COLORS.panelBg,
     paddingVertical: 4,
     paddingHorizontal: 8,
     fontSize: 7,
-    color: "#334155",
+    color: PDF_COLORS.ink,
     textTransform: "uppercase",
     fontWeight: "bold",
   },
-  card: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 10, marginBottom: 12, overflow: "hidden" },
-  cardHeader: { padding: 10, backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
+  card: { borderWidth: 1, borderColor: PDF_COLORS.border, borderRadius: 10, marginBottom: 12, overflow: "hidden" },
+  cardHeader: { padding: 10, backgroundColor: PDF_COLORS.white, borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border },
   cardHeaderTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
-  cardTitle: { fontSize: 10.5, fontWeight: "bold", color: "#0F172A" },
-  cardMeta: { fontSize: 7.5, lineHeight: 1.35, color: "#64748B", marginTop: 3 },
+  cardTitle: { fontSize: 10.5, fontWeight: "bold", color: PDF_COLORS.ink },
+  cardMeta: { fontSize: 7.5, lineHeight: 1.35, color: PDF_COLORS.muted, marginTop: 3 },
   cardBody: { padding: 10 },
   row: { flexDirection: "row", gap: 10 },
   col: { flex: 1 },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 6 },
   chip: { fontSize: 7, paddingVertical: 4, paddingHorizontal: 6, borderRadius: 999 },
-  bloco: { backgroundColor: "#FFFFFF", borderRadius: 8, padding: 8, marginBottom: 10, borderWidth: 1, borderColor: "#E2E8F0" },
-  blocoSemContorno: { backgroundColor: "#FFFFFF", borderRadius: 8, padding: 8, marginBottom: 10 },
-  blocoSemMargem: { backgroundColor: "#FFFFFF", borderRadius: 8, padding: 8, borderWidth: 1, borderColor: "#E2E8F0" },
+  bloco: { backgroundColor: PDF_COLORS.white, borderRadius: 8, padding: 8, marginBottom: 10, borderWidth: 1, borderColor: PDF_COLORS.border },
+  blocoSemContorno: { backgroundColor: PDF_COLORS.white, borderRadius: 8, padding: 8, marginBottom: 10 },
+  blocoSemMargem: { backgroundColor: PDF_COLORS.white, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: PDF_COLORS.border },
   desenhoPaginaBloco: {
     flex: 1,
     borderRadius: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 12,
   },
   destaqueVao: {
@@ -318,16 +318,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     borderWidth: 1,
-    borderColor: "#93C5FD",
+    borderColor: PDF_COLORS.border,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   destaqueVaoTexto: {
     fontSize: 9,
     fontWeight: "bold",
-    color: "#1D4ED8",
+    color: PDF_COLORS.ink,
     textTransform: "uppercase",
   },
   cotaContainer: {
@@ -371,69 +371,69 @@ const styles = StyleSheet.create({
   },
   medidaLabel: {
     fontSize: 7.5,
-    color: "#64748B",
+    color: PDF_COLORS.muted,
     fontWeight: "bold",
     marginRight: 4,
     textTransform: "uppercase",
   },
   medidaValor: {
     fontSize: 7.5,
-    color: "#0F172A",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
   },
   desenhoMiniaturaBox: {
     width: 220,
     height: 220,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 4,
   },
   desenhoMiniatura: { width: "100%", height: "100%", objectFit: "contain" },
   desenhoTexto: { flex: 1 },
-  blocoTitulo: { fontSize: 8.5, fontWeight: "bold", color: "#334155", marginBottom: 5 },
-  blocoSubtitulo: { fontSize: 7.2, color: "#64748B", marginBottom: 6 },
-  linha: { fontSize: 7.5, lineHeight: 1.35, color: "#475569", marginBottom: 3 },
-  destaque: { fontWeight: "bold", color: "#0F172A" },
-  table: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, overflow: "hidden" },
-  tableHeader: { flexDirection: "row", backgroundColor: "#F1F5F9", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
-  tableRow: { flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0" },
+  blocoTitulo: { fontSize: 8.5, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 5 },
+  blocoSubtitulo: { fontSize: 7.2, color: PDF_COLORS.muted, marginBottom: 6 },
+  linha: { fontSize: 7.5, lineHeight: 1.35, color: PDF_COLORS.ink, marginBottom: 3 },
+  destaque: { fontWeight: "bold", color: PDF_COLORS.ink },
+  table: { borderWidth: 1, borderColor: PDF_COLORS.border, borderRadius: 8, overflow: "hidden" },
+  tableHeader: { flexDirection: "row", backgroundColor: PDF_COLORS.panelBg, borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border },
+  tableRow: { flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: PDF_COLORS.border },
   tableRowLast: { flexDirection: "row", alignItems: "center" },
-  tableCellHeader: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 6.6, color: "#475569", fontWeight: "bold", textTransform: "uppercase" },
-  tableCell: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 7.2, lineHeight: 1.35, color: "#334155" },
+  tableCellHeader: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 6.6, color: PDF_COLORS.ink, fontWeight: "bold", textTransform: "uppercase" },
+  tableCell: { paddingVertical: 5, paddingHorizontal: 6, fontSize: 7.2, lineHeight: 1.35, color: PDF_COLORS.ink },
   cellGrow: { flex: 1.4 },
   cellSmall: { flex: 0.65 },
   cellMedium: { flex: 0.9 },
   materialGrid: { flexDirection: "row", gap: 8, marginBottom: 10 },
   materialCol: { flex: 1 },
-  materialRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, borderBottomWidth: 0.5, borderBottomColor: "#E2E8F0", paddingVertical: 4 },
-  materialName: { flex: 1, fontSize: 7.3, lineHeight: 1.35, color: "#334155" },
-  materialQty: { fontSize: 7.3, lineHeight: 1.35, color: "#0F172A", fontWeight: "bold" },
-  noteBox: { borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0", padding: 8, marginBottom: 10 },
-  noteText: { fontSize: 7.2, color: "#64748B", lineHeight: 1.35 },
-  barraLista: { marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
-  barraLinha: { fontSize: 7.2, lineHeight: 1.35, color: "#475569", marginBottom: 5 },
+  materialRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, borderBottomWidth: 0.5, borderBottomColor: PDF_COLORS.border, paddingVertical: 4 },
+  materialName: { flex: 1, fontSize: 7.3, lineHeight: 1.35, color: PDF_COLORS.ink },
+  materialQty: { fontSize: 7.3, lineHeight: 1.35, color: PDF_COLORS.ink, fontWeight: "bold" },
+  noteBox: { borderRadius: 8, backgroundColor: PDF_COLORS.white, borderWidth: 1, borderColor: PDF_COLORS.border, padding: 8, marginBottom: 10 },
+  noteText: { fontSize: 7.2, color: PDF_COLORS.muted, lineHeight: 1.35 },
+  barraLista: { marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border },
+  barraLinha: { fontSize: 7.2, lineHeight: 1.35, color: PDF_COLORS.ink, marginBottom: 5 },
   otimResumoGrid: { flexDirection: "row", gap: 6, marginBottom: 10 },
-  otimResumoBox: { flex: 1, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, backgroundColor: "#F8FAFC", padding: 8 },
-  otimResumoLabel: { fontSize: 6.5, color: "#94A3B8", textTransform: "uppercase", fontWeight: "bold", marginBottom: 3 },
-  otimResumoValor: { fontSize: 10, color: "#0F172A", fontWeight: "bold" },
-  otimCard: { borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 8, marginBottom: 8, overflow: "hidden" },
-  otimCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", padding: 8, backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: "#E2E8F0", gap: 8 },
+  otimResumoBox: { flex: 1, borderWidth: 1, borderColor: PDF_COLORS.border, borderRadius: 8, backgroundColor: PDF_COLORS.white, padding: 8 },
+  otimResumoLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", fontWeight: "bold", marginBottom: 3 },
+  otimResumoValor: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold" },
+  otimCard: { borderWidth: 1, borderColor: PDF_COLORS.border, borderRadius: 8, marginBottom: 8, overflow: "hidden" },
+  otimCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", padding: 8, backgroundColor: PDF_COLORS.white, borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border, gap: 8 },
   otimCardLeft: { flex: 1 },
   otimCardRight: { alignItems: "flex-end" },
-  otimCardTitle: { fontSize: 8.5, fontWeight: "bold", color: "#1E293B", marginBottom: 2 },
-  otimCardMeta: { fontSize: 7, color: "#94A3B8" },
-  otimCardPreco: { fontSize: 9, fontWeight: "bold", color: "#1E293B", marginBottom: 2 },
+  otimCardTitle: { fontSize: 8.5, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 2 },
+  otimCardMeta: { fontSize: 7, color: PDF_COLORS.muted },
+  otimCardPreco: { fontSize: 9, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 2 },
   otimCardBody: { padding: 8 },
   otimChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 6 },
-  otimChip: { backgroundColor: "#F1F5F9", borderRadius: 6, paddingVertical: 3, paddingHorizontal: 6 },
-  otimChipText: { fontSize: 7, color: "#475569", fontWeight: "bold" },
-  otimBodyLinha: { fontSize: 7.5, lineHeight: 1.35, color: "#64748B", marginBottom: 4 },
-  otimBarraLista: { marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: "#CBD5E1" },
-  otimBarraLinha: { fontSize: 7, lineHeight: 1.35, color: "#475569", marginBottom: 3 },
+  otimChip: { backgroundColor: PDF_COLORS.panelBg, borderRadius: 6, paddingVertical: 3, paddingHorizontal: 6 },
+  otimChipText: { fontSize: 7, color: PDF_COLORS.ink, fontWeight: "bold" },
+  otimBodyLinha: { fontSize: 7.5, lineHeight: 1.35, color: PDF_COLORS.muted, marginBottom: 4 },
+  otimBarraLista: { marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border },
+  otimBarraLinha: { fontSize: 7, lineHeight: 1.35, color: PDF_COLORS.ink, marginBottom: 3 },
   footer: {
     position: "absolute", bottom: 18, left: 32, right: 32,
-    textAlign: "center", fontSize: 8, color: "#94A3B8",
-    paddingTop: 10, borderTopWidth: 0.5, borderTopColor: "#CBD5E1"
+    textAlign: "center", fontSize: 8, color: PDF_COLORS.muted,
+    paddingTop: 10, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border
   },
 })
 
@@ -442,7 +442,7 @@ export function RelatorioObraPDF({
   logoUrl,
   nomeCliente,
   nomeObra,
-  themeColor,
+
   relatorioObra,
   otimizacaoGlobal,
 }: RelatorioObraPDFProps) {
@@ -503,7 +503,7 @@ export function RelatorioObraPDF({
         <View style={styles.coverTop}>
           {logoUrl && <Image src={logoUrl} style={styles.coverLogo} />}
           <Text style={styles.coverKicker}>Glass Code ERP</Text>
-          <Text style={[styles.coverTitle, { color: themeColor }]}>Relatório Técnico da Obra</Text>
+          <Text style={[styles.coverTitle, { color: PDF_COLORS.ink }]}>Relatório Técnico da Obra</Text>
           <Text style={styles.coverSubtitle}>Caderno de conferência com desenhos, vidros, ferragens e otimização de barras</Text>
 
           <View style={styles.coverInfoWrap}>
@@ -543,7 +543,7 @@ export function RelatorioObraPDF({
               <Text style={styles.coverModesTitle}>Classificação dos Itens</Text>
               <View style={styles.coverModesRow}>
                 <View style={styles.coverModesBox}>
-                  <Text style={[styles.coverModesLabel, { color: "#166534" }]}>Modo Kit ({projetosKit.length})</Text>
+                  <Text style={[styles.coverModesLabel, { color: PDF_COLORS.ink }]}>Modo Kit ({projetosKit.length})</Text>
                   {projetosKit.length > 0 ? projetosKit.map((obra) => (
                     <Text key={`kit-${obra.itemId}`} style={styles.coverModesLine}>
                       Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
@@ -553,7 +553,7 @@ export function RelatorioObraPDF({
                   )}
                 </View>
                 <View style={styles.coverModesBox}>
-                  <Text style={[styles.coverModesLabel, { color: "#92400E" }]}>Modo Barra ({projetosBarra.length})</Text>
+                  <Text style={[styles.coverModesLabel, { color: PDF_COLORS.ink }]}>Modo Barra ({projetosBarra.length})</Text>
                   {projetosBarra.length > 0 ? projetosBarra.map((obra) => (
                     <Text key={`barra-${obra.itemId}`} style={styles.coverModesLine}>
                       Item {indicesProjetos.get(obra.itemId)} - {obra.projetoNome}
@@ -582,9 +582,9 @@ export function RelatorioObraPDF({
 
       {relatorioObra.map((obra) => (
         <Page key={`relatorio-vidros-${obra.itemId}`} size="A4" style={styles.page}>
-          <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+          <View style={[styles.header, { borderBottomColor: PDF_COLORS.border, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.titulo, { color: themeColor }]}>Relatório Técnico da Obra</Text>
+              <Text style={[styles.titulo, { color: PDF_COLORS.ink }]}>Relatório Técnico da Obra</Text>
               <Text style={styles.subtitulo}>Caderno 1: desenhos e vidros</Text>
               <Text style={styles.subtitulo}>Emissão em: {new Date().toLocaleDateString("pt-BR")}</Text>
               <Text style={styles.pageBadge}>Item {indicesProjetos.get(obra.itemId)} - Desenhos e Vidros</Text>
@@ -667,9 +667,9 @@ export function RelatorioObraPDF({
 
       {(otimizacaoGlobalOrdenada.length > 0 || ferragensGlobal.length > 0) && (
         <Page key="relatorio-materiais-global" size="A4" style={styles.page}>
-          <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+          <View style={[styles.header, { borderBottomColor: PDF_COLORS.border, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.titulo, { color: themeColor }]}>Relatório Técnico da Obra</Text>
+              <Text style={[styles.titulo, { color: PDF_COLORS.ink }]}>Relatório Técnico da Obra</Text>
               <Text style={styles.subtitulo}>Caderno 2: ferragens e otimização</Text>
               <Text style={styles.subtitulo}>Emissão em: {new Date().toLocaleDateString("pt-BR")}</Text>
               <Text style={styles.pageBadge}>Materiais Globais</Text>
@@ -708,7 +708,7 @@ export function RelatorioObraPDF({
                   {economiaValor > 0 && (
                     <View style={{ alignItems: "flex-end" }}>
                       <Text style={[styles.blocoSubtitulo, { marginBottom: 2 }]}>Economia potencial</Text>
-                      <Text style={{ fontSize: 11, fontWeight: "bold", color: themeColor }}>{fmtMoeda(economiaValor)}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "bold", color: PDF_COLORS.ink }}>{fmtMoeda(economiaValor)}</Text>
                     </View>
                   )}
                 </View>
@@ -804,9 +804,9 @@ export function RelatorioObraPDF({
 
       {paginasMateriais.map((pagina, paginaIndex) => (
         <Page key={`relatorio-materiais-${paginaIndex}`} size="A4" style={styles.page}>
-          <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+          <View style={[styles.header, { borderBottomColor: PDF_COLORS.border, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.titulo, { color: themeColor }]}>Relatório Técnico da Obra</Text>
+              <Text style={[styles.titulo, { color: PDF_COLORS.ink }]}>Relatório Técnico da Obra</Text>
               <Text style={styles.subtitulo}>Caderno 2: ferragens e otimização</Text>
               <Text style={styles.subtitulo}>Emissão em: {new Date().toLocaleDateString("pt-BR")}</Text>
               <Text style={styles.pageBadge}>Página {paginaIndex + 1} - Ferragens e Otimização</Text>
@@ -839,7 +839,7 @@ export function RelatorioObraPDF({
                   {economiaValor > 0 && (
                     <View style={{ alignItems: "flex-end" }}>
                       <Text style={[styles.blocoSubtitulo, { marginBottom: 2 }]}>Economia potencial</Text>
-                      <Text style={{ fontSize: 11, fontWeight: "bold", color: themeColor }}>{fmtMoeda(economiaValor)}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "bold", color: PDF_COLORS.ink }}>{fmtMoeda(economiaValor)}</Text>
                     </View>
                   )}
                 </View>

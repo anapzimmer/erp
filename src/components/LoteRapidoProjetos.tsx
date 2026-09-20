@@ -305,20 +305,20 @@ export function LoteRapidoProjetos({
   onEnviar,
 }: LoteRapidoProjetosProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="h-1 w-8 rounded-full bg-[#8ad846]" />
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[#0f2742]">{titulo}</h2>
+            <span className="h-1 w-8 rounded-full bg-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-text-primary">{titulo}</h2>
           </div>
-          <p className="mt-2 text-xs font-medium text-slate-500">{descricao}</p>
+          <p className="mt-2 text-xs font-medium text-text-secondary">{descricao}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onAlternar}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#0f2742] shadow-sm hover:bg-slate-50"
+            className="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary shadow-sm hover:bg-surface-secondary"
           >
             {aberto ? "Fechar lote" : "Abrir lote"}
           </button>
@@ -327,7 +327,7 @@ export function LoteRapidoProjetos({
               <button
                 type="button"
                 onClick={onAdicionar}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#0f2742] shadow-sm hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-primary shadow-sm hover:bg-surface-secondary"
               >
                 <Plus size={14} />
                 Adicionar linha
@@ -335,7 +335,7 @@ export function LoteRapidoProjetos({
               <button
                 type="button"
                 onClick={onEnviar}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#07385a] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#0a466f]"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-on-primary shadow-sm hover:bg-primary-hover"
               >
                 <Send size={14} />
                 Enviar lote PDF+
@@ -346,14 +346,14 @@ export function LoteRapidoProjetos({
       </div>
 
       {editando ? (
-        <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+        <div className="mt-3 rounded-xl border border-success-soft bg-success-soft px-3 py-2 text-xs font-semibold text-success">
           Editando lote existente. Ao enviar, as linhas antigas deste lote serão substituídas.
         </div>
       ) : null}
 
       {aberto ? (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-          <div className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-border">
+          <div className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
             <div className="px-3 py-2">Largura</div>
             <div className="px-3 py-2">Altura</div>
             <div className="px-3 py-2">Qtd.</div>
@@ -363,13 +363,13 @@ export function LoteRapidoProjetos({
           {linhas.map((linha, index) => (
             <div
               key={linha.id}
-              className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] items-center border-t border-slate-200 text-sm"
+              className="grid min-w-180 grid-cols-[120px_120px_110px_minmax(180px,1fr)_64px] items-center border-t border-border text-sm"
             >
               <div className="px-3 py-2">
                 <input
                   value={linha.largura || ""}
                   onChange={(event) => onAtualizar(linha.id, "largura", limitarNumero4Digitos(event.target.value))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-border-strong/40 focus:ring-2 focus:ring-border-strong/10"
                   placeholder="mm"
                   inputMode="numeric"
                 />
@@ -378,7 +378,7 @@ export function LoteRapidoProjetos({
                 <input
                   value={linha.altura || ""}
                   onChange={(event) => onAtualizar(linha.id, "altura", limitarNumero4Digitos(event.target.value))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-border-strong/40 focus:ring-2 focus:ring-border-strong/10"
                   placeholder="mm"
                   inputMode="numeric"
                 />
@@ -387,7 +387,7 @@ export function LoteRapidoProjetos({
                 <input
                   value={linha.quantidade || ""}
                   onChange={(event) => onAtualizar(linha.id, "quantidade", limitarNumero4Digitos(event.target.value))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-border-strong/40 focus:ring-2 focus:ring-border-strong/10"
                   placeholder="Qtd."
                   inputMode="numeric"
                 />
@@ -396,7 +396,7 @@ export function LoteRapidoProjetos({
                 <input
                   value={linha.observacao || ""}
                   onChange={(event) => onAtualizar(linha.id, "observacao", event.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#07385a]/40 focus:ring-2 focus:ring-[#07385a]/10"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-border-strong/40 focus:ring-2 focus:ring-border-strong/10"
                   placeholder={`Medida ${index + 1}`}
                 />
               </div>
@@ -404,7 +404,7 @@ export function LoteRapidoProjetos({
                 <button
                   type="button"
                   onClick={() => onRemover(linha.id)}
-                  className="rounded-lg border border-red-100 px-2 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"
+                  className="rounded-lg border border-danger-soft px-2 py-2 text-xs font-semibold text-danger hover:bg-danger-soft"
                   aria-label="Remover linha do lote"
                 >
                   <Trash2 size={14} />

@@ -1,6 +1,7 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { descricaoSemMarcadorExtra } from "@/utils/perfisExtras";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
@@ -504,8 +505,8 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
 
   const x = (220 - w) / 2;
   const y = (180 - h) / 2;
-  const fill = "#e8f1f6";
-  const stroke = "#8fa1ae";
+  const fill = DRAWING_COLORS.glass;
+  const stroke = DRAWING_COLORS.frame;
   const strokeWidth = ehBisote ? 8 : 3;
   const rx = ehCapsula ? Math.min(w, h) / 2 : 0;
   const semiOvalPath = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
@@ -608,10 +609,10 @@ function ForaEsquadroPreview({
           <stop offset="100%" stopColor="#eef8fc" />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#f8fafc" />
-      <polygon points={pontos} fill={`url(#vidroForaEsquadroCentral-${item.largura}-${item.altura})`} stroke="#b9c9d4" strokeWidth="2.4" strokeLinejoin="round" />
-      <polygon points={pontos} fill="none" stroke="#e4eef4" strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
-      <polygon points={pontos} fill="none" stroke="#b9c9d4" strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
+      <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill={DRAWING_COLORS.glass} />
+      <polygon points={pontos} fill={`url(#vidroForaEsquadroCentral-${item.largura}-${item.altura})`} stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
+      <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.glass} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
+      <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
       <line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke="#ffffff" strokeWidth="8" opacity="0.22" />
       <line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke="#ffffff" strokeWidth="6" opacity="0.24" />
       {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
@@ -622,23 +623,23 @@ function ForaEsquadroPreview({
 
         return (
           <g key={`fora-esquadro-preview-div-${posicao}`}>
-            <line x1={x} y1={yTop} x2={x} y2={yBase} stroke="#b9c9d4" strokeWidth="1.8" opacity="0.82" />
-            <text x={x + 8} y={yTop - 10} fontSize="18" fontFamily="Segoe UI, Arial" fill="#0f2742">
+            <line x1={x} y1={yTop} x2={x} y2={yBase} stroke={DRAWING_COLORS.frame} strokeWidth="1.8" opacity="0.82" />
+            <text x={x + 8} y={yTop - 10} fontSize="18" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
               {Math.round(altura)}
             </text>
           </g>
         );
       })}
-      <line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke="#2086e8" strokeWidth="1.6" />
-      <line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke="#2086e8" strokeWidth="1.6" />
-      <line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke="#2086e8" strokeWidth="1.6" />
-      <text x={x0 + drawW / 2} y={yBase + 62} textAnchor="middle" fontSize="21" fontFamily="Segoe UI, Arial" fontWeight="500" fill="#0f2742">
+      <line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+      <line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+      <line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+      <text x={x0 + drawW / 2} y={yBase + 62} textAnchor="middle" fontSize="21" fontFamily="Segoe UI, Arial" fontWeight="500" fill={DRAWING_COLORS.ink}>
         {Math.round(largura).toLocaleString("pt-BR")} mm
       </text>
-      <text x={x0 + 14} y={(yInicial + yBase) / 2} textAnchor="start" fontSize="19" fontFamily="Segoe UI, Arial" fill="#0f2742">
+      <text x={x0 + 14} y={(yInicial + yBase) / 2} textAnchor="start" fontSize="19" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
         {Math.round(alturaInicial).toLocaleString("pt-BR")} mm
       </text>
-      <text x={x0 + drawW - 14} y={(yFinal + yBase) / 2} textAnchor="end" fontSize="19" fontFamily="Segoe UI, Arial" fill="#0f2742">
+      <text x={x0 + drawW - 14} y={(yFinal + yBase) / 2} textAnchor="end" fontSize="19" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
         {Math.round(alturaFinal).toLocaleString("pt-BR")} mm
       </text>
     </svg>
@@ -675,7 +676,7 @@ const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "alt
         <rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/>
         <rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/>
         <rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="url(#glassGrad)" rx="1"/>
-        <rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="#7cbfb5" stroke-width="0.6" stroke-opacity="0.5" rx="1"/>
+        <rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="${DRAWING_COLORS.frame}" stroke-width="0.6" stroke-opacity="0.5" rx="1"/>
         <line x1="${gX + glassW * 0.18}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/>
         <line x1="${gX + glassW * 0.24}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.14}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.18"/>
       </g>
@@ -686,9 +687,9 @@ const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "alt
     <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
       <defs>
         <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#b8e6e0" stop-opacity="0.35"/>
-          <stop offset="50%" stop-color="#b8e6e0" stop-opacity="0.18"/>
-          <stop offset="100%" stop-color="#b8e6e0" stop-opacity="0.3"/>
+          <stop offset="0%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.35"/>
+          <stop offset="50%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.3"/>
         </linearGradient>
         <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${cor.fill}"/>
@@ -703,14 +704,14 @@ const desenhoSacadaFrontalUrl = (item?: Pick<ProjetoComposicao, "largura" | "alt
       ${paineis}
       <rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/>
       <rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/>
-      <line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text>
-      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text>
+      <line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text>
+      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text>
     </svg>
   `);
 };
@@ -775,7 +776,7 @@ const desenhoFechamentoSacadaUrl = (item?: Pick<ProjetoComposicao, "largura" | "
           <rect x="${gX}" y="${yModulo}" width="${glassW}" height="${glassH}" fill="${fill}" fill-opacity="0.35" rx="1"/>
           <rect x="${gX}" y="${yModulo}" width="${glassW}" height="${glassH}" fill="none" stroke="${stroke}" stroke-width="0.6" stroke-opacity="0.5" rx="1"/>
           <line x1="${gX + glassW * 0.18}" y1="${yModulo + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${yModulo + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/>
-          ${showLabelInside ? `<text x="${gX + glassW / 2}" y="${yModulo + glassH / 2 + 3}" text-anchor="middle" font-size="${glassW > 55 ? 7.5 : 6}" fill="#4a7a73" opacity="0.55" font-weight="600" font-family="Segoe UI, Arial">${larguraVidroMm}</text>` : ""}
+          ${showLabelInside ? `<text x="${gX + glassW / 2}" y="${yModulo + glassH / 2 + 3}" text-anchor="middle" font-size="${glassW > 55 ? 7.5 : 6}" fill="#4a7a73" opacity="0.55" font-weight="600" font-family="Inter, Arial, sans-serif">${larguraVidroMm}</text>` : ""}
         </g>
       `;
     }).join("");
@@ -785,7 +786,7 @@ const desenhoFechamentoSacadaUrl = (item?: Pick<ProjetoComposicao, "largura" | "
         ${paineis}
         <rect x="${pFinal}" y="${yModulo}" width="${postW}" height="${glassH}" fill="${corAluminio}" rx="0.5"/>
         <rect x="${pFinal}" y="${yModulo}" width="${postW}" height="${glassH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.4" rx="0.5"/>
-        <text x="${x0 + 3}" y="${yModulo + 11}" font-size="8" fill="#0f2742" opacity="0.55" font-weight="700" font-family="Segoe UI, Arial">${modulo}</text>
+        <text x="${x0 + 3}" y="${yModulo + 11}" font-size="8" fill="${DRAWING_COLORS.ink}" opacity="0.55" font-weight="700" font-family="Inter, Arial, sans-serif">${modulo}</text>
       </g>
     `;
   };
@@ -807,16 +808,16 @@ const desenhoFechamentoSacadaUrl = (item?: Pick<ProjetoComposicao, "largura" | "
       <rect x="${x0}" y="${yMeio}" width="${drawW}" height="${railH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.5" rx="1.5"/>
       <rect x="${x0}" y="${yBase}" width="${drawW}" height="${railH}" fill="url(#railGradFechamento)" rx="1.5"/>
       <rect x="${x0}" y="${yBase}" width="${drawW}" height="${railH}" fill="none" stroke="${corAluminioBorda}" stroke-width="0.5" rx="1.5"/>
-      ${renderModulo("SUP", yModuloSup, moduloSupH, divisoesSuperior, larguraVidroSuperior, "#b8dff2", "#7fb7d4")}
-      ${renderModulo("INF", yModuloInf, moduloInfH, divisoesInferior, larguraVidroInferior, "#b8e6e0", "#7cbfb5")}
-      <line x1="${x0}" y1="${yBase + railH + 14}" x2="${x0 + drawW}" y2="${yBase + railH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0}" y1="${yBase + railH + 10}" x2="${x0}" y2="${yBase + railH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 + drawW}" y1="${yBase + railH + 10}" x2="${x0 + drawW}" y2="${yBase + railH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <text x="${x0 + drawW / 2}" y="${yBase + railH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Segoe UI, Arial">${largura} mm</text>
-      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${yBase + railH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <line x1="${x0 - 14}" y1="${yBase + railH}" x2="${x0 - 6}" y2="${yBase + railH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/>
-      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Segoe UI, Arial" transform="translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)">${totalAltura} mm</text>
+      ${renderModulo("SUP", yModuloSup, moduloSupH, divisoesSuperior, larguraVidroSuperior, DRAWING_COLORS.glass, DRAWING_COLORS.frame)}
+      ${renderModulo("INF", yModuloInf, moduloInfH, divisoesInferior, larguraVidroInferior, DRAWING_COLORS.glass, DRAWING_COLORS.frame)}
+      <line x1="${x0}" y1="${yBase + railH + 14}" x2="${x0 + drawW}" y2="${yBase + railH + 14}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0}" y1="${yBase + railH + 10}" x2="${x0}" y2="${yBase + railH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 + drawW}" y1="${yBase + railH + 10}" x2="${x0 + drawW}" y2="${yBase + railH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="${x0 + drawW / 2}" y="${yBase + railH + 28}" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Inter, Arial, sans-serif">${largura} mm</text>
+      <line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${yBase + railH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <line x1="${x0 - 14}" y1="${yBase + railH}" x2="${x0 - 6}" y2="${yBase + railH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/>
+      <text x="0" y="0" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Inter, Arial, sans-serif" transform="translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)">${totalAltura} mm</text>
     </svg>
   `);
 };
@@ -2017,7 +2018,7 @@ router.push(
         metragem_total: 0,
         peso_total: 0,
         empresa_id: empresaId,
-        theme_color: theme.menuIconColor || "#07385a",
+        theme_color: DRAWING_COLORS.ink,
       });
 
       let payload = montarPayload(numeroFinal);
@@ -2068,7 +2069,7 @@ router.push(
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
         <div
           className="h-10 w-10 animate-spin rounded-full border-4"
           style={{
@@ -2091,8 +2092,8 @@ router.push(
 
         <main className="min-w-0 flex-1 p-4 md:p-8 xl:p-10">
           <section
-            className="rounded-4xl border bg-white p-6 shadow-[0_22px_45px_-35px_rgba(15,23,42,0.32)] md:p-8"
-            style={{ borderColor: `${theme.menuBackgroundColor}1A` }}
+            className="rounded-4xl border bg-surface p-6 shadow-[0_22px_45px_-35px_var(--shadow)] md:p-8"
+            style={{ borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 10%, transparent)` }}
           >
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div>
@@ -2118,14 +2119,14 @@ router.push(
             </div>
           </section>
 
-          <section className="mt-6 rounded-3xl border bg-white p-5 shadow-sm" style={{ borderColor: `${theme.menuBackgroundColor}18` }}>
+          <section className="mt-6 rounded-3xl border bg-surface p-5 shadow-sm" style={{ borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 9%, transparent)` }}>
             <div className="grid gap-4 xl:grid-cols-[0.75fr_1fr_1fr_auto] xl:items-end">
               <Field label="Nº Orçamento">
                 <input
                   value={numeroOrcamento}
                   onChange={(e) => setNumeroOrcamento(e.target.value)}
                   placeholder="Novo Orçamento"
-                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                 />
               </Field>
               <Field label="Cliente">
@@ -2133,7 +2134,7 @@ router.push(
                   value={cliente} readOnly={Boolean(orcamentoAtivo)}
                   onChange={(e) => setCliente(e.target.value)}
                   placeholder="Cliente do Orçamento"
-                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                 />
               </Field>
               <Field label="Obra / referência">
@@ -2141,7 +2142,7 @@ router.push(
                   value={obra} readOnly={Boolean(orcamentoAtivo)}
                   onChange={(e) => setObra(e.target.value)}
                   placeholder="Ex.:: Obra Centro"
-                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                 />
               </Field>
 
@@ -2164,7 +2165,7 @@ router.push(
                     <PDFDownloadLink
                       document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfis} somenteRelacaoObra />}
                       fileName={`${sanitizarNomeArquivo(`Relação da obra N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary"
                     >
                       {({ loading: gerando }) => (
                         <>
@@ -2175,7 +2176,7 @@ router.push(
                     </PDFDownloadLink>
                   </>
                 ) : (
-                  <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">
+                  <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-border px-4 py-3 text-sm font-semibold text-text-secondary">
                     <FileDown size={16} />
                     Gerar PDF
                   </button>
@@ -2184,7 +2185,7 @@ router.push(
                   type="button"
                   onClick={salvarOrcamento}
                   disabled={salvando}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary"
                   title="Salvar esta composição como Orçamento único."
                 >
                   <Save size={16} />
@@ -2199,7 +2200,7 @@ router.push(
                     setModalVidroAberto(true);
                   }}
                   disabled={itens.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
                   title="Criar uma nova versão deste orçamento com outra cor de vidro."
                 >
                   <Palette size={16} />
@@ -2208,7 +2209,7 @@ router.push(
                 <button
                   type="button"
                   onClick={limparTudo}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-bold text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <X size={16} />
                   Limpar
@@ -2217,18 +2218,18 @@ router.push(
             </div>
 
             {mensagem ? (
-              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">{mensagem}</p>
+              <p className="mt-4 rounded-2xl bg-surface-secondary px-4 py-3 text-sm font-bold text-text-secondary">{mensagem}</p>
             ) : null}
 
-            <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <section className="mt-5 rounded-2xl border border-border bg-surface-secondary p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-[#0f2742]">Materiais avulsos</h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <h2 className="text-base font-semibold text-text-primary">Materiais avulsos</h2>
+                  <p className="mt-1 text-sm text-text-secondary">
                     Inclua perfil, tubo, kit, ferragem ou qualquer item extra que não veio de um projeto.
                   </p>
                 </div>
-                <p className="text-sm font-semibold text-[#0f2742]">Total: {moeda(totalMateriaisAvulsos)}</p>
+                <p className="text-sm font-semibold text-text-primary">Total: {moeda(totalMateriaisAvulsos)}</p>
               </div>
 
               <div className="mt-4 grid gap-3 xl:grid-cols-[1.4fr_0.45fr_0.45fr_0.55fr_auto]">
@@ -2241,25 +2242,25 @@ router.push(
                         setBuscaMaterialAvulso(e.target.value);
                       }}
                       placeholder="Digite ou escolha um item cadastrado"
-                      className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                      className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                     />
                   </Field>
                   {buscaMaterialAvulso.trim() ? (
-                    <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                    <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-border bg-surface p-2 shadow-xl">
                       {catalogoMateriaisFiltrado.length > 0 ? (
                         catalogoMateriaisFiltrado.map((item) => (
                           <button
                             key={`${item.tipo}-${item.id}`}
                             type="button"
                             onClick={() => selecionarMaterialCatalogo(item)}
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm text-text-secondary transition hover:bg-surface-secondary"
                           >
-                            <span className="font-semibold text-[#0f2742]">{labelCatalogoMaterial(item)}</span>
-                            <span className="ml-2 text-xs text-slate-400">{item.tipo} · {moeda(Number(item.preco || 0))}</span>
+                            <span className="font-semibold text-text-primary">{labelCatalogoMaterial(item)}</span>
+                            <span className="ml-2 text-xs text-text-secondary">{item.tipo} · {moeda(Number(item.preco || 0))}</span>
                           </button>
                         ))
                       ) : (
-                        <p className="px-3 py-2 text-sm text-slate-400">Nenhum cadastro encontrado. Pode seguir digitando manualmente.</p>
+                        <p className="px-3 py-2 text-sm text-text-secondary">Nenhum cadastro encontrado. Pode seguir digitando manualmente.</p>
                       )}
                     </div>
                   ) : null}
@@ -2268,14 +2269,14 @@ router.push(
                   <input
                     value={materialAvulsoForm.qtd}
                     onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, qtd: e.target.value }))}
-                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                    className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                   />
                 </Field>
                 <Field label="Unidade">
                   <select
                     value={materialAvulsoForm.unidade}
                     onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, unidade: e.target.value }))}
-                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                    className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                   >
                     <option value="und">und</option>
                     <option value="barra">barra</option>
@@ -2289,14 +2290,14 @@ router.push(
                   <input
                     value={materialAvulsoForm.valorUnitario}
                     onChange={(e) => setMaterialAvulsoForm((form) => ({ ...form, valorUnitario: e.target.value }))}
-                    className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                    className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                   />
                 </Field>
                 <button
                   type="button"
                   onClick={adicionarMaterialAvulso}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
-                  style={{ backgroundColor: theme.menuBackgroundColor }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-on-primary transition hover:brightness-95"
+                  style={{ backgroundColor: theme.buttonDarkBg }}
                 >
                   <Plus size={16} />
                   Adicionar
@@ -2304,8 +2305,8 @@ router.push(
               </div>
 
               {materiaisAvulsosValidos.length > 0 ? (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  <div className="grid grid-cols-[90px_1fr_110px_150px_52px] bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
+                  <div className="grid grid-cols-[90px_1fr_110px_150px_52px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
                     <div className="px-3 py-2 text-center">Qtd</div>
                     <div className="px-3 py-2">Descrição</div>
                     <div className="px-3 py-2">Unidade</div>
@@ -2313,16 +2314,16 @@ router.push(
                     <div className="px-3 py-2" />
                   </div>
                   {materiaisAvulsosValidos.map((material) => (
-                    <div key={material.id} className="grid grid-cols-[90px_1fr_110px_150px_52px] border-t border-slate-100 text-sm text-slate-700">
+                    <div key={material.id} className="grid grid-cols-[90px_1fr_110px_150px_52px] border-t border-border text-sm text-text-primary">
                       <div className="px-3 py-2 text-center">{formatarQuantidadeMaterialTela(material.qtd, material.unidade)}</div>
                       <div className="px-3 py-2">{material.descricao}</div>
                       <div className="px-3 py-2">{material.unidade}</div>
-                      <div className="px-3 py-2 text-right font-semibold text-[#0f2742]">{moeda(Number(material.qtd || 0) * Number(material.valorUnitario || 0))}</div>
+                      <div className="px-3 py-2 text-right font-semibold text-text-primary">{moeda(Number(material.qtd || 0) * Number(material.valorUnitario || 0))}</div>
                       <div className="px-2 py-1 text-right">
                         <button
                           type="button"
                           onClick={() => removerMaterialAvulso(material.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-danger transition hover:bg-danger-soft"
                           title="Remover material avulso"
                         >
                           <Trash2 size={15} />
@@ -2366,10 +2367,10 @@ router.push(
                     return (
                       <article
                         key={item.id}
-                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                        className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
                       >
                         <div className="flex flex-col gap-4 lg:flex-row">
-                          <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
+                          <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-surface-secondary p-4 lg:w-72">
                             {desenhoCentral ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -2381,9 +2382,9 @@ router.push(
                               <div className="text-center">
                                 <Layers3
                                   size={42}
-                                  className="mx-auto text-slate-300"
+                                  className="mx-auto text-text-secondary"
                                 />
-                                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
                                   Sem desenho
                                 </p>
                               </div>
@@ -2393,10 +2394,10 @@ router.push(
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
-                                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                                <p className="text-xs font-black uppercase tracking-[0.18em] text-text-secondary">
                                   Projeto {index + 1}
                                 </p>
-                                <h2 className="mt-1 text-xl font-normal text-[#0f2742]">
+                                <h2 className="mt-1 text-xl font-normal text-text-primary">
                                   Janela de correr com bandeira e peitoril
                                 </h2>
                               </div>
@@ -2405,7 +2406,7 @@ router.push(
                                 <button
                                   type="button"
                                   onClick={() => copiarItem(item)}
-                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-success-soft bg-success-soft text-success transition hover:bg-success-soft"
                                   title="Copiar e alterar medida"
                                 >
                                   <Copy size={16} />
@@ -2415,7 +2416,7 @@ router.push(
                                   <button
                                     type="button"
                                     onClick={() => editarLote(item)}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-info-soft bg-info-soft text-info transition hover:bg-info-soft"
                                     title="Editar lote"
                                   >
                                     <Layers3 size={16} />
@@ -2425,7 +2426,7 @@ router.push(
                                 <button
                                   type="button"
                                   onClick={() => editarItem(item)}
-                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-100 hover:bg-blue-50 hover:text-blue-600"
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:border-info-soft hover:bg-info-soft hover:text-info"
                                   title="Editar projeto"
                                 >
                                   <PencilLine size={16} />
@@ -2434,7 +2435,7 @@ router.push(
                                 <button
                                   type="button"
                                   onClick={() => removerItem(item.id)}
-                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-danger-soft bg-danger-soft text-danger transition hover:bg-danger-soft"
                                   title="Remover projeto"
                                 >
                                   <Trash2 size={16} />
@@ -2454,7 +2455,7 @@ router.push(
                                       Number(e.target.value || 0)
                                     )
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2469,7 +2470,7 @@ router.push(
                                       Number(e.target.value || 0)
                                     )
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2484,7 +2485,7 @@ router.push(
                                       Number(e.target.value || 0)
                                     )
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2497,7 +2498,7 @@ router.push(
                                     atualizarItem(item.id, "alturaTotal", valor);
                                     atualizarItem(item.id, "altura", valor);
                                   }}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2512,7 +2513,7 @@ router.push(
                                       Number(e.target.value || 0)
                                     )
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2522,7 +2523,7 @@ router.push(
                                   onChange={(e) =>
                                     atualizarItem(item.id, "modo", e.target.value)
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 >
                                   <option>Kit</option>
                                   <option>Barra</option>
@@ -2544,7 +2545,7 @@ router.push(
                                       e.target.value
                                     );
                                   }}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2563,7 +2564,7 @@ router.push(
                                       e.target.value
                                     );
                                   }}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2586,7 +2587,7 @@ router.push(
                                       e.target.value
                                     );
                                   }}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2605,7 +2606,7 @@ router.push(
                                       e.target.value
                                     );
                                   }}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2619,7 +2620,7 @@ router.push(
                                       e.target.value
                                     )
                                   }
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
 
@@ -2637,7 +2638,7 @@ router.push(
                                     )
                                   }
                                   readOnly={otimizacaoAplicada}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                             </div>
@@ -2648,9 +2649,9 @@ router.push(
                   }
 
                   return (
-                  <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <article key={item.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
-                      <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-[#f7fafc] p-4 lg:w-72">
+                      <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-surface-secondary p-4 lg:w-72">
                         {foraEsquadro ? (
                           <ForaEsquadroPreview item={item} />
                         ) : espelhoComDesenho ? (
@@ -2660,11 +2661,11 @@ router.push(
                           <img src={desenhoCentral} alt={item.projeto} className="max-h-full max-w-full object-contain" />
                         ) : (
                           <div className="text-center">
-                            <Layers3 size={42} className="mx-auto text-slate-300" />
-                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            <Layers3 size={42} className="mx-auto text-text-secondary" />
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
                               Sem desenho
                             </p>
-                            <p className="mt-1 text-sm text-slate-500">Itens avulsos</p>
+                            <p className="mt-1 text-sm text-text-secondary">Itens avulsos</p>
                           </div>
                         )}
                       </div>
@@ -2672,10 +2673,10 @@ router.push(
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-text-secondary">
                               Projeto {index + 1}
                             </p>
-                            <h2 className="mt-1 text-xl font-normal text-[#0f2742]">
+                            <h2 className="mt-1 text-xl font-normal text-text-primary">
                               {nomeProjetoVisivel(item.projeto)}
                             </h2>
                           </div>
@@ -2683,7 +2684,7 @@ router.push(
                             <button
                               type="button"
                               onClick={() => copiarItem(item)}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-success-soft bg-success-soft text-success transition hover:bg-success-soft"
                               title="Copiar e alterar medida"
                             >
                               <Copy size={16} />
@@ -2692,7 +2693,7 @@ router.push(
                               <button
                                 type="button"
                                 onClick={() => editarLote(item)}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-info-soft bg-info-soft text-info transition hover:bg-info-soft"
                                 title="Editar lote"
                               >
                                 <Layers3 size={16} />
@@ -2701,7 +2702,7 @@ router.push(
                             <button
                               type="button"
                               onClick={() => editarItem(item)}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-100 hover:bg-blue-50 hover:text-blue-600"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:border-info-soft hover:bg-info-soft hover:text-info"
                               title="Editar projeto"
                             >
                               <PencilLine size={16} />
@@ -2709,7 +2710,7 @@ router.push(
                             <button
                               type="button"
                               onClick={() => removerItem(item.id)}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-danger-soft bg-danger-soft text-danger transition hover:bg-danger-soft"
                               title="Remover projeto"
                             >
                               <Trash2 size={16} />
@@ -2725,7 +2726,7 @@ router.push(
                                   type="number"
                                   value={item.largura}
                                   onChange={(e) => atualizarItem(item.id, "largura", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               {!fechamentoSacada ? (
@@ -2734,7 +2735,7 @@ router.push(
                                   type="number"
                                   value={item.altura}
                                   onChange={(e) => atualizarItem(item.id, "altura", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               ) : null}
@@ -2747,7 +2748,7 @@ router.push(
                                 value={vidroAvulso ? `${resumoAvulso?.pecas || 0} peça(s)` : item.quantidade}
                                 onChange={(e) => !vidroAvulso && atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
                                 readOnly={vidroAvulso}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2756,7 +2757,7 @@ router.push(
                               <input
                                 value={`${numeroDecimal(resumoAvulso?.area || 0)} m²`}
                                 readOnly
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2765,7 +2766,7 @@ router.push(
                               <input
                                 value={item.vidro || "Conforme relação"}
                                 readOnly
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2776,7 +2777,7 @@ router.push(
                                   type="number"
                                   value={item.quantidade}
                                   onChange={(e) => atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quadros horizontal">
@@ -2784,7 +2785,7 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.trilho, 1)}
                                   onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quadros vertical">
@@ -2792,7 +2793,7 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.trinco, 1)}
                                   onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quantidade de lajes">
@@ -2800,7 +2801,7 @@ router.push(
                                   type="number"
                                   value={Number(item.alturaAteTubo || 0)}
                                   onChange={(e) => atualizarItem(item.id, "alturaAteTubo", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quadros fixos">
@@ -2808,7 +2809,7 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.puxador, 0)}
                                   onChange={(e) => atualizarItem(item.id, "puxador", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quadros móveis">
@@ -2816,21 +2817,21 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.tamanhoPuxador, 0)}
                                   onChange={(e) => atualizarItem(item.id, "tamanhoPuxador", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quantidade de quadros">
                                 <input
                                   readOnly
                                   value={totalQuadrosPeleDeVidroComVaos(item)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Vidro da fachada">
                                 <input
                                   value={descricaoVidroItem(item)}
                                   onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                             </>
@@ -2842,7 +2843,7 @@ router.push(
                                   type="number"
                                   value={item.alturaAteTubo || 0}
                                   onChange={(e) => atualizarItem(item.id, "alturaAteTubo", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Altura da sacada superior">
@@ -2850,7 +2851,7 @@ router.push(
                                   type="number"
                                   value={alturaSuperiorFechamento(item)}
                                   onChange={(e) => atualizarItem(item.id, "tamanhoPuxador", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Quantidade de vão">
@@ -2858,7 +2859,7 @@ router.push(
                                   type="number"
                                   value={item.quantidade}
                                   onChange={(e) => atualizarItem(item.id, "quantidade", Number(e.target.value || 0))}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Divisão da parte de baixo">
@@ -2866,7 +2867,7 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.trilho, 1)}
                                   onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Divisão da parte de cima">
@@ -2874,28 +2875,28 @@ router.push(
                                   type="number"
                                   value={numeroCampoFechamento(item.trinco, 1)}
                                   onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Cor do perfil">
                                 <input
                                   value={item.corPerfil || item.corKit || ""}
                                   onChange={(e) => atualizarItem(item.id, "corPerfil", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Vidro inferior">
                                 <input
                                   value={item.vidro || ""}
                                   onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                               <Field label="Vidro de cima">
                                 <input
                                   value={item.vidroBandeira || ""}
                                   onChange={(e) => atualizarItem(item.id, "vidroBandeira", e.target.value)}
-                                  className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                                 />
                               </Field>
                             </>
@@ -2905,7 +2906,7 @@ router.push(
                               <select
                                 value={item.modo}
                                 onChange={(e) => atualizarItem(item.id, "modo", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               >
                                 <option>Kit</option>
                                 <option>Barra</option>
@@ -2918,7 +2919,7 @@ router.push(
                                 type="number"
                                 value={Number(item.pecasDivisao || 1)}
                                 onChange={(e) => atualizarItem(item.id, "pecasDivisao", Number(e.target.value || 1))}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2927,7 +2928,7 @@ router.push(
                               <input
                                 value={formatarPinazioItem(item)}
                                 readOnly
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : !(vidroAvulso || espelhoComDesenho || fechamentoSacada || peleDeVidro) ? (
@@ -2935,7 +2936,7 @@ router.push(
                               <input
                                 value={item.corPerfil || item.corKit || ""}
                                 onChange={(e) => atualizarItem(item.id, "corPerfil", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2944,7 +2945,7 @@ router.push(
                               <input
                                 value={ehSacadaFrontal(item.projeto) ? descricaoVidroItem(item) : item.vidro || ""}
                                 onChange={(e) => atualizarItem(item.id, "vidro", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2953,7 +2954,7 @@ router.push(
                               <input
                                 value={item.vidroBandeira || ""}
                                 onChange={(e) => atualizarItem(item.id, "vidroBandeira", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2962,7 +2963,7 @@ router.push(
                               <input
                                 value={item.alturaAteTubo || 0}
                                 onChange={(e) => atualizarItem(item.id, "alturaAteTubo", Number(e.target.value || 0))}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2971,14 +2972,14 @@ router.push(
                               <input
                                 value={item.tuboPerfil || ""}
                                 onChange={(e) => atualizarItem(item.id, "tuboPerfil", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
                           {ehPortaGiroFixo(item.projeto) ? (
                             <>
-                              <Field label="Largura da porta de giro"><input readOnly value={`${item.alturaAteTubo || 0} mm`} className="w-full bg-transparent text-sm text-slate-700" /></Field>
-                              <Field label="Largura do fixo"><input readOnly value={`${Math.max(0, Number(item.largura || 0) - Number(item.alturaAteTubo || 0))} mm`} className="w-full bg-transparent text-sm text-slate-700" /></Field>
+                              <Field label="Largura da porta de giro"><input readOnly value={`${item.alturaAteTubo || 0} mm`} className="w-full bg-transparent text-sm text-text-primary" /></Field>
+                              <Field label="Largura do fixo"><input readOnly value={`${Math.max(0, Number(item.largura || 0) - Number(item.alturaAteTubo || 0))} mm`} className="w-full bg-transparent text-sm text-text-primary" /></Field>
                             </>
                           ) : null}
                           {ehFixos(item.projeto) ? (
@@ -2986,7 +2987,7 @@ router.push(
                               <input
                                 value={`${normalizarDivisaoFixos(item.pecasDivisao || item.tamanhoPuxador)} peça(s)`}
                                 readOnly
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -2995,7 +2996,7 @@ router.push(
                               <input
                                 value={item.trilho || ""}
                                 onChange={(e) => atualizarItem(item.id, "trilho", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -3004,7 +3005,7 @@ router.push(
                               <input
                                 value={formatarPuxador(item.puxador, item.tamanhoPuxador)}
                                 onChange={(e) => atualizarItem(item.id, "puxador", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -3013,7 +3014,7 @@ router.push(
                               <input
                                 value={item.trinco || ""}
                                 onChange={(e) => atualizarItem(item.id, "trinco", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -3022,7 +3023,7 @@ router.push(
                               <input
                                 value={item.observacao || "Padrão"}
                                 onChange={(e) => atualizarItem(item.id, "observacao", e.target.value)}
-                                className="w-full bg-transparent text-sm font-normal text-slate-700 outline-none"
+                                className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                               />
                             </Field>
                           ) : null}
@@ -3031,30 +3032,30 @@ router.push(
                               value={numeroDecimal(vidroAvulso ? resumoAvulso?.valor || 0 : valoresRateadosPorItem.get(item.id) ?? Number(item.valorTotal || 0))}
                               onChange={(e) => atualizarItem(item.id, "valorTotal", parseNumero(e.target.value))}
                               readOnly={otimizacaoAplicada || /^espelhos?/i.test(item.projeto || "")}
-                              className={`w-full bg-transparent text-sm font-bold text-slate-700 outline-none ${otimizacaoAplicada ? "cursor-default" : ""}`}
+                              className={`w-full bg-transparent text-sm font-bold text-text-primary outline-none ${otimizacaoAplicada ? "cursor-default" : ""}`}
                             />
-                            {/^espelhos?/i.test(item.projeto || "") && <p className="mt-1 text-xs text-slate-500">Valor calculado pelos acabamentos. Use Editar para alterar.</p>}
+                            {/^espelhos?/i.test(item.projeto || "") && <p className="mt-1 text-xs text-text-secondary">Valor calculado pelos acabamentos. Use Editar para alterar.</p>}
                             {otimizacaoAplicada ? (
-                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                              <p className="mt-1 text-[11px] font-semibold text-success">
                                 Valor com otimização rateada
                               </p>
                             ) : null}
                           </Field>
                           {item.vidrosAvulsos?.length ? (
                             <div className="md:col-span-2 xl:col-span-4">
-                              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-600">
+                              <div className="overflow-hidden rounded-xl border border-border bg-surface">
+                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
                                   <div className="px-3 py-2 text-center">Peças</div>
                                   <div className="px-3 py-2">Medidas</div>
                                   <div className="px-3 py-2">Cor e espessura do vidro</div>
                                   <div className="px-3 py-2 text-right">Valor total</div>
                                 </div>
                                 {item.vidrosAvulsos.map((vidro) => (
-                                  <div key={vidro.id} className="grid grid-cols-[90px_1fr_1.6fr_130px] border-t border-slate-100 text-sm text-slate-700">
+                                  <div key={vidro.id} className="grid grid-cols-[90px_1fr_1.6fr_130px] border-t border-border text-sm text-text-primary">
                                     <div className="px-3 py-2 text-center">{Number(vidro.quantidade || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</div>
                                     <div className="px-3 py-2">{vidro.medida}</div>
                                     <div className="px-3 py-2">{vidro.vidro}</div>
-                                    <div className="px-3 py-2 text-right font-semibold text-[#0f2742]">{moeda(vidro.valorTotal)}</div>
+                                    <div className="px-3 py-2 text-right font-semibold text-text-primary">{moeda(vidro.valorTotal)}</div>
                                   </div>
                                 ))}
                               </div>
@@ -3066,7 +3067,7 @@ router.push(
                                   value={item.medidasDetalhadas}
                                   onChange={(e) => atualizarItem(item.id, "medidasDetalhadas", e.target.value)}
                                   rows={Math.min(6, Math.max(3, (item.medidasDetalhadas || "").split("\n").length))}
-                                  className="w-full resize-none bg-transparent text-sm font-normal leading-6 text-slate-700 outline-none"
+                                  className="w-full resize-none bg-transparent text-sm font-normal leading-6 text-text-primary outline-none"
                                 />
                               </Field>
                             </div>
@@ -3078,15 +3079,15 @@ router.push(
                   );
                 })
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                  <p className="text-sm font-bold text-slate-600">Nenhum projeto na composição.</p>
-                  <p className="mt-1 text-sm text-slate-500">Abra um cálculo de projeto e clique em PDF + para enviar o item para cá.</p>
+                <div className="rounded-2xl border border-dashed border-border-strong bg-surface-secondary p-8 text-center">
+                  <p className="text-sm font-bold text-text-secondary">Nenhum projeto na composição.</p>
+                  <p className="mt-1 text-sm text-text-secondary">Abra um cálculo de projeto e clique em PDF + para enviar o item para cá.</p>
                 </div>
               )}
             </div>
 
             {itensPdf.length > 0 ? (
-              <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(96px,1fr))_minmax(210px,1.6fr)]">
+              <div className="mt-5 grid gap-3 rounded-2xl border border-border bg-surface-secondary p-4 md:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(96px,1fr))_minmax(210px,1.6fr)]">
                 <TotalResumo label="Quantidade de vão" value={String(totais.projetos)} />
                 <TotalResumo label="Peças dos vãos" value={String(totais.pecasVaos)} />
                 <TotalResumo label="Peças avulsas" value={String(totais.pecasAvulsas)} />
@@ -3097,14 +3098,14 @@ router.push(
             ) : null}
 
             {otimizacaoPerfis.length > 0 ? (
-              <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <section className="mt-5 rounded-2xl border border-border bg-surface-secondary p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-black tracking-tight text-[#0f2742]">Relação de materiais otimizada</h2>
-                    <p className="text-sm text-slate-500">Cortes agrupados por perfil para aproveitamento em barras. Marque para aplicar a otimização no valor.</p>
+                    <h2 className="text-lg font-black tracking-tight text-text-primary">Relação de materiais otimizada</h2>
+                    <p className="text-sm text-text-secondary">Cortes agrupados por perfil para aproveitamento em barras. Marque para aplicar a otimização no valor.</p>
                   </div>
                   <div className="flex flex-col gap-2 sm:items-end">
-                    <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#0f2742] shadow-sm">
+                    <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
                       <input
                         type="checkbox"
                         checked={usarOtimizacao}
@@ -3112,17 +3113,17 @@ router.push(
                           setUsarOtimizacao(event.target.checked);
                           if (!event.target.checked) setImprimirOtimizacao(false);
                         }}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-border-strong"
                       />
                       Otimizar
                     </label>
-                    <label className={`inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm ${usarOtimizacao ? "cursor-pointer text-[#0f2742]" : "cursor-not-allowed text-slate-400"}`}>
+                    <label className={`inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold shadow-sm ${usarOtimizacao ? "cursor-pointer text-text-primary" : "cursor-not-allowed text-text-secondary"}`}>
                       <input
                         type="checkbox"
                         checked={usarOtimizacao && imprimirOtimizacao}
                         onChange={(event) => setImprimirOtimizacao(event.target.checked)}
                         disabled={!usarOtimizacao}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-border-strong"
                       />
                       Otimização no PDF
                     </label>
@@ -3141,24 +3142,24 @@ router.push(
                     const chavePerfil = `${perfil.origem}-${perfil.codigo}-${perfil.descricao}-${perfil.comprimentoBarra}-${perfilIndex}`;
 
                     return (
-                    <article key={chavePerfil} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <article key={chavePerfil} className="rounded-2xl border border-border bg-surface p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-400">{perfil.codigo}</p>
-                          <h3 className="mt-1 text-sm font-black text-[#0f2742]">{descricaoPerfil}</h3>
+                          <p className="text-xs font-black uppercase tracking-wide text-text-secondary">{perfil.codigo}</p>
+                          <h3 className="mt-1 text-sm font-black text-text-primary">{descricaoPerfil}</h3>
                         </div>
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                        <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-black text-success">
                           {perfil.barrasOriginais} → {perfil.barras.length} barras
                         </span>
                       </div>
-                      <p className="mt-2 text-xs font-semibold text-slate-500">
+                      <p className="mt-2 text-xs font-semibold text-text-secondary">
                         Valor: {moeda(perfil.valorOriginal)} → {moeda(perfil.valorOtimizado)}
                       </p>
                       <div className="mt-3 space-y-1.5">
                         {perfil.barras.map((barra, index) => {
                           const usado = barra.reduce((soma, corte) => soma + corte, 0);
                           return (
-                            <p key={`${chavePerfil}-barra-${index}`} className="text-xs font-semibold text-slate-600">
+                            <p key={`${chavePerfil}-barra-${index}`} className="text-xs font-semibold text-text-secondary">
                               Barra {index + 1}: {barra.join(" + ")} = {usado} mm
                             </p>
                           );
@@ -3175,22 +3176,22 @@ router.push(
       </div>
 
       {modalVidroAberto ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <section className="w-full max-w-2xl overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+          <section className="w-full max-w-2xl overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-secondary">
                   Nova versão
                 </p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-900">Duplicar com outro vidro</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
+                <h2 className="mt-1 text-lg font-semibold text-text-primary">Duplicar com outro vidro</h2>
+                <p className="mt-1 text-sm leading-6 text-text-secondary">
                   Escolha primeiro qual vidro do orçamento será substituído. A central criará uma nova cópia mantendo o restante igual.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setModalVidroAberto(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                 title="Fechar"
               >
                 <X size={17} />
@@ -3198,8 +3199,8 @@ router.push(
             </div>
 
             <div className="px-5 py-4">
-            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Qual vidro deseja trocar</label>
+            <div className="mb-4 rounded-2xl border border-border bg-surface-secondary p-3">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Qual vidro deseja trocar</label>
               <div className="mt-2 space-y-2">
                 {vidrosOrigemOrcamento.length > 0 ? (
                   vidrosOrigemOrcamento.map((vidro) => {
@@ -3211,26 +3212,26 @@ router.push(
                         type="button"
                         onClick={() => setVidroOrigemOrcamento(vidro.chave)}
                         className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${
-                          selecionado ? "border-slate-300 bg-white text-slate-900 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:bg-white"
+                          selecionado ? "border-border-strong bg-surface text-text-primary shadow-sm" : "border-border bg-surface/70 text-text-secondary hover:bg-surface"
                         }`}
                       >
                         <span className="font-medium">{vidro.descricao}</span>
-                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500">
+                        <span className="rounded-full bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary">
                           {vidro.ocorrencias} ocorrência(s)
                         </span>
                       </button>
                     );
                   })
                 ) : (
-                  <p className="rounded-xl bg-white px-3 py-3 text-sm text-slate-500">
+                  <p className="rounded-xl bg-surface px-3 py-3 text-sm text-text-secondary">
                     Não encontrei vidros no orçamento atual para sugerir a troca.
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Trocar pelo vidro cadastrado</label>
+            <div className="rounded-2xl border border-border bg-surface-secondary p-3">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Trocar pelo vidro cadastrado</label>
               <input
                 value={buscaVidroOrcamento}
                 onChange={(e) => {
@@ -3238,9 +3239,9 @@ router.push(
                   setVidroSelecionadoOrcamento(null);
                 }}
                 placeholder="Digite cor, tipo ou espessura"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-300"
+                className="mt-2 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-border-strong"
               />
-              <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white">
+              <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-border bg-surface">
                 {vidrosFiltrados.length > 0 ? (
                   vidrosFiltrados.map((vidro) => {
                     const nomeVidro = formatarVidroCadastro(vidro);
@@ -3255,18 +3256,18 @@ router.push(
                           setBuscaVidroOrcamento(nomeVidro);
                         }}
                         className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
-                          selecionado ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"
+                          selecionado ? "bg-surface-secondary text-text-primary" : "text-text-secondary hover:bg-surface-secondary"
                         }`}
                       >
                         <span className="font-medium">{nomeVidro}</span>
-                        <span className={`text-xs ${selecionado ? "text-slate-500" : "text-slate-400"}`}>
+                        <span className={`text-xs ${selecionado ? "text-text-secondary" : "text-text-secondary"}`}>
                           {moeda(Number(vidro.preco || 0))}
                         </span>
                       </button>
                     );
                   })
                 ) : (
-                  <p className="px-3 py-3 text-sm font-semibold text-slate-500">Nenhum vidro encontrado.</p>
+                  <p className="px-3 py-3 text-sm font-semibold text-text-secondary">Nenhum vidro encontrado.</p>
                 )}
               </div>
             </div>
@@ -3275,7 +3276,7 @@ router.push(
               <button
                 type="button"
                 onClick={() => setModalVidroAberto(false)}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary"
               >
                 Cancelar
               </button>
@@ -3283,8 +3284,8 @@ router.push(
                 type="button"
                 onClick={duplicarOrcamentoComVidro}
                 disabled={!vidroOrigemOrcamento || !vidroSelecionadoOrcamento}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ backgroundColor: theme.menuBackgroundColor }}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ backgroundColor: theme.buttonDarkBg }}
               >
                 Criar cópia
               </button>
@@ -3299,12 +3300,12 @@ router.push(
 
 function ResumoCard({ icon, label, value, strong = false }: { icon: React.ReactNode; label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`rounded-2xl border bg-white/80 shadow-sm ${strong ? "border-emerald-200 p-4" : "border-slate-200 p-3"}`}>
+    <div className={`rounded-2xl border bg-surface/80 shadow-sm ${strong ? "border-success-soft p-4" : "border-border p-3"}`}>
       <div className="flex items-center gap-3">
-        <div className={`${strong ? "h-11 w-11 bg-emerald-50 text-emerald-700" : "h-9 w-9 bg-slate-100 text-[#07385a]"} flex items-center justify-center rounded-xl`}>{icon}</div>
+        <div className={`${strong ? "h-11 w-11 bg-success-soft text-success" : "h-9 w-9 bg-surface-secondary text-text-primary"} flex items-center justify-center rounded-xl`}>{icon}</div>
         <div>
-          <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-medium uppercase tracking-[0.14em] text-slate-400`}>{label}</p>
-          <p className={`mt-1 text-[#0f2742] ${strong ? "text-xl font-bold" : "text-base font-semibold"}`}>{value}</p>
+          <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-medium uppercase tracking-[0.14em] text-text-secondary`}>{label}</p>
+          <p className={`mt-1 text-text-primary ${strong ? "text-xl font-bold" : "text-base font-semibold"}`}>{value}</p>
         </div>
       </div>
     </div>
@@ -3313,17 +3314,17 @@ function ResumoCard({ icon, label, value, strong = false }: { icon: React.ReactN
 
 function TotalResumo({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`rounded-2xl border bg-white shadow-sm ${strong ? "border-emerald-200 px-5 py-4" : "border-white px-3 py-3"}`}>
-      <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-black uppercase tracking-[0.14em] text-slate-400`}>{label}</p>
-      <p className={`mt-1 text-[#0f2742] ${strong ? "text-2xl font-black" : "text-base font-normal"}`}>{value}</p>
+    <div className={`rounded-2xl border bg-surface shadow-sm ${strong ? "border-success-soft px-5 py-4" : "border-border px-3 py-3"}`}>
+      <p className={`${strong ? "text-[11px]" : "text-[10px]"} font-black uppercase tracking-[0.14em] text-text-secondary`}>{label}</p>
+      <p className={`mt-1 text-text-primary ${strong ? "text-2xl font-black" : "text-base font-normal"}`}>{value}</p>
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</span>
+    <label className="block rounded-2xl border border-border bg-surface-secondary px-4 py-3">
+      <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.16em] text-text-secondary">{label}</span>
       {children}
     </label>
   );

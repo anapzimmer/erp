@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import PresencaUsuario from "./PresencaUsuario";
 
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
 const WARNING_THRESHOLD_MS = 5 * 60 * 1000;
@@ -148,20 +149,21 @@ export default function SecurityProvider({ children }: { children: React.ReactNo
 
   return (
     <div className="select-none h-full w-full relative">
+      <PresencaUsuario />
       {children}
 
       {tempoRestanteAvisoMs !== null && (
-        <div className="fixed bottom-4 right-4 z-9999 max-w-sm rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-lg">
-          <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">
+        <div className="fixed bottom-4 right-4 z-9999 max-w-sm rounded-2xl border border-warning-soft bg-warning-soft px-4 py-3 shadow-lg">
+          <p className="text-[11px] font-black uppercase tracking-wider text-warning">
             Sessão por inatividade
           </p>
-          <p className="mt-1 text-sm font-semibold text-amber-900">
+          <p className="mt-1 text-sm font-semibold text-warning">
             Sua sessão expira em {formatarTempoRestante(tempoRestanteAvisoMs)} se não houver atividade.
           </p>
           <button
             type="button"
             onClick={() => renovarSessaoRef.current?.()}
-            className="mt-3 rounded-xl border border-amber-400 bg-amber-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-800 transition-colors hover:bg-amber-200"
+            className="mt-3 rounded-xl border border-warning bg-warning-soft px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-warning transition-colors hover:bg-warning-soft"
           >
             Continuar sessão
           </button>

@@ -1,5 +1,6 @@
 "use client";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, FilePlus2, Package2, PanelsTopLeft, Printer, Ruler, Save, Search, SquareStack } from "lucide-react";
@@ -155,7 +156,7 @@ const formatarNumero = (valor: number, casasDecimais = 3) =>
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
 const corPerfilSvg = () => {
-  return { fill: "#eef2f5", stroke: "#aeb9c3", shadow: "#d9e0e6" };
+  return { fill: "var(--drawing-glass)", stroke: "#aeb9c3", shadow: "#d9e0e6" };
 };
 
 const posicaoVerticalGrapa = (index: number, total: number, glassY: number, glassH: number, alturaGrapa: number) => {
@@ -235,14 +236,14 @@ const gerarSvgsacadagrapa = ({
       const y = posicaoVerticalGrapa(index, grapasPorUniao, glassY, glassH, 28);
       return `<g>
         <rect x="${x}" y="${y}" width="36" height="28" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-        ${index === 0 ? `<text x="${x + 42}" y="${y + 18}" font-family="Segoe UI, Arial" font-size="10" fill="#0f2742">1305</text>` : ""}
+        ${index === 0 ? `<text x="${x + 42}" y="${y + 18}" font-family="Inter, Arial, sans-serif" font-size="10" fill="${DRAWING_COLORS.ink}">1305</text>` : ""}
       </g>`;
     }).join("");
   }).join("");
 
   const tubosEmCimaSvg = temTuboEmCima
     ? `<rect x="${x0 - 3}" y="${y0 - 17}" width="${drawW + 6}" height="20" rx="2" fill="${tubo.fill}" stroke="${tubo.stroke}" stroke-width="1.2"/>
-       <text x="${x0 + drawW / 2}" y="${y0 - 24}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" fill="#0f2742">TUBO NA LARGURA</text>`
+       <text x="${x0 + drawW / 2}" y="${y0 - 24}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${DRAWING_COLORS.ink}">TUBO NA LARGURA</text>`
     : "";
 
   const tubosMeioSvg = temTuboNoMeio
@@ -282,7 +283,7 @@ const gerarSvgsacadagrapa = ({
         <stop offset="100%" stop-color="#f8fcff"/>
       </linearGradient>
       <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#f8fafc"/>
+        <stop offset="0%" stop-color="${DRAWING_COLORS.glass}"/>
         <stop offset="45%" stop-color="${profile.fill}"/>
         <stop offset="100%" stop-color="${profile.shadow}"/>
       </linearGradient>
@@ -300,9 +301,9 @@ const gerarSvgsacadagrapa = ({
     ${tubosSvg}
     <g filter="url(#softShadow)">${grapasLateraisSvg}${grapasInferioresSvg}${grapas1305Svg}</g>
     <line x1="${x0}" y1="${y0 + drawH + 18}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 + drawW / 2}" y="${y0 + drawH + 38}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="600" fill="#0f2742">${Math.round(largura || 0)} mm</text>
+    <text x="${x0 + drawW / 2}" y="${y0 + drawH + 38}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}">${Math.round(largura || 0)} mm</text>
     <line x1="${x0 - 18}" y1="${y0}" x2="${x0 - 18}" y2="${y0 + drawH}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 - 30}" y="${y0 + drawH / 2}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="600" fill="#0f2742" transform="rotate(-90 ${x0 - 30} ${y0 + drawH / 2})">${Math.round(altura || 0)} mm</text>
+    <text x="${x0 - 30}" y="${y0 + drawH / 2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}" transform="rotate(-90 ${x0 - 30} ${y0 + drawH / 2})">${Math.round(altura || 0)} mm</text>
   </svg>`;
 };
 
@@ -809,9 +810,9 @@ export default function CalculosacadagrapaPage() {
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+              <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex items-center gap-2 flex-1 relative">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                     <input
@@ -820,10 +821,10 @@ export default function CalculosacadagrapaPage() {
                       onFocus={() => setMostrarClientes(true)}
                       placeholder="Pesquisar cliente..."
                       className="w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none bg-transparent"
-                      style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                      style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     />
                     {mostrarClientes && buscaCliente && clientesFiltrados.length > 0 && (
-                      <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}20` }}>
+                      <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)` }}>
                         {clientesFiltrados.map((cliente) => (
                           <button
                             key={cliente.id}
@@ -841,13 +842,13 @@ export default function CalculosacadagrapaPage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Obra:</span>
                   <input
                     value={obra}
                     onChange={(e) => setObra(e.target.value)}
                     placeholder="Identificacao da obra"
                     className="flex-1 py-2 px-3 rounded-xl border text-sm outline-none bg-transparent"
-                    style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                    style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                   />
                 </div>
 
@@ -868,7 +869,7 @@ export default function CalculosacadagrapaPage() {
                     window.localStorage.removeItem(chaveDraft);
                   }}
                   className="px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider border shadow-sm"
-                  style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                 >
                   Novo
                 </button>
@@ -876,15 +877,15 @@ export default function CalculosacadagrapaPage() {
                   onClick={handleSalvar}
                   disabled={salvando}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                  style={{ backgroundColor: theme.menuIconColor, color: "#fff" }}
+                  style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
                 >
-                  {salvando ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
+                  {salvando ? <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" /> : <Save size={16} />}
                   Salvar
                 </button>
                 <button
                   onClick={enviarParaCentralImpressao}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider border shadow-sm"
-                  style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                 >
                   <FilePlus2 size={16} />
                   PDF+
@@ -922,11 +923,11 @@ export default function CalculosacadagrapaPage() {
                   {({ loading: pdfLoading }) => (
                     <button
                       className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider border shadow-sm"
-                      style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                      style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                       disabled={pdfLoading}
                     >
                       {pdfLoading ? (
-                        <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-border-strong border-t-border-strong rounded-full animate-spin" />
                       ) : (
                         <Printer size={16} />
                       )}
@@ -937,16 +938,16 @@ export default function CalculosacadagrapaPage() {
               </div>
 
               {mensagem && (
-                <span className={`inline-flex text-xs font-medium px-3 py-1 rounded-full ${mensagem.includes("Erro") ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+                <span className={`inline-flex text-xs font-medium px-3 py-1 rounded-full ${mensagem.includes("Erro") ? "bg-danger-soft text-danger" : "bg-success-soft text-success"}`}>
                   {mensagem}
                 </span>
               )}
 
-              <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+              <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.menuIconColor }}>
+                      <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}>
                       <PanelsTopLeft size={14} />
                       Sacada com Grapa
                       </div>
@@ -954,7 +955,7 @@ export default function CalculosacadagrapaPage() {
                         Cálculo de sacada com grapa
                       </h1>
                     </div>
-                    <p className="max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                    <p className="max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                       Informe medidas, divisões, grapas e tubo opcional. O desenho e a relação de materiais atualizam automaticamente.
                     </p>
                   </div>
@@ -969,8 +970,8 @@ export default function CalculosacadagrapaPage() {
                       ["Grapas embaixo por vidro", grapasInferioresPorVao, setGrapasInferioresPorVao],
                       ["1305 por uniao", grapas1305PorUniao, setGrapas1305PorUniao],
                     ].map(([label, value, setter]) => (
-                      <label key={String(label)} className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                        <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                      <label key={String(label)} className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                        <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                           {String(label)}
                         </span>
                         <input
@@ -983,8 +984,8 @@ export default function CalculosacadagrapaPage() {
                       </label>
                     ))}
 
-                    <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                    <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Cor dos perfis
                       </span>
                       <select
@@ -994,20 +995,20 @@ export default function CalculosacadagrapaPage() {
                         style={{ color: theme.contentTextLightBg }}
                       >
                         {CORES_PERFIL.map((cor) => (
-                          <option key={cor} value={cor} className="text-slate-900">{cor}</option>
+                          <option key={cor} value={cor} className="text-text-primary">{cor}</option>
                         ))}
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 xl:col-span-2" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 xl:col-span-2" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Cor do vidro
                       </span>
                       <input
                         value={buscaVidro}
                         onChange={(e) => setBuscaVidro(e.target.value)}
                         placeholder="Digite para filtrar o vidro"
-                        className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
+                        className="mt-1.5 w-full rounded-xl border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       />
                       <select
@@ -1016,17 +1017,17 @@ export default function CalculosacadagrapaPage() {
                         className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       >
-                        <option value="" className="text-slate-900">Selecione o vidro</option>
+                        <option value="" className="text-text-primary">Selecione o vidro</option>
                         {vidrosFiltrados.map((vidro) => (
-                          <option key={vidro.id} value={vidro.id} className="text-slate-900">
+                          <option key={vidro.id} value={vidro.id} className="text-text-primary">
                             {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                           </option>
                         ))}
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Tubo opcional
                       </span>
                       <select
@@ -1035,17 +1036,17 @@ export default function CalculosacadagrapaPage() {
                         className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       >
-                        <option value="" className="text-slate-900">Selecione o tubo</option>
+                        <option value="" className="text-text-primary">Selecione o tubo</option>
                         {tubosDisponiveis.map((perfil, index) => (
-                          <option key={`${perfil.codigo}-${index}`} value={perfil.codigo} className="text-slate-900">
+                          <option key={`${perfil.codigo}-${index}`} value={perfil.codigo} className="text-text-primary">
                             {perfil.codigo} - {perfil.nome}
                           </option>
                         ))}
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Posicao do tubo
                       </span>
                       <select
@@ -1055,7 +1056,7 @@ export default function CalculosacadagrapaPage() {
                         style={{ color: theme.contentTextLightBg }}
                       >
                         {TUBO_POSICOES.map((opcao) => (
-                          <option key={opcao.valor} value={opcao.valor} className="text-slate-900">{opcao.label}</option>
+                          <option key={opcao.valor} value={opcao.valor} className="text-text-primary">{opcao.label}</option>
                         ))}
                       </select>
                     </label>
@@ -1070,14 +1071,14 @@ export default function CalculosacadagrapaPage() {
                   { titulo: "Grapas", valor: `${resultado.quantidadeGrapas}`, detalhe: `${resultado.quantidadeGrapas3019} da 3019 e ${resultado.quantidadeGrapas1305} da 1305`, icone: Package2 },
                   { titulo: "Total geral", valor: formatarPreco(resultado.totalGeral), detalhe: "Vidro, grapa e tubo", icone: Calculator },
                 ].map((card) => (
-                  <article key={card.titulo} className="rounded-2xl border p-4 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                  <article key={card.titulo} className="rounded-2xl border p-4 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>{card.titulo}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>{card.titulo}</p>
                         <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
-                        <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>{card.detalhe}</p>
+                        <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 64%, transparent)` }}>{card.detalhe}</p>
                       </div>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                         <card.icone size={19} />
                       </div>
                     </div>
@@ -1086,15 +1087,15 @@ export default function CalculosacadagrapaPage() {
               </section>
 
               <section className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
-                <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-                  <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                  <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relação de materiais</h2>
-                    <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>3019 nas laterais/embaixo, 1305 nas uniões e tubo opcional.</p>
+                    <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>3019 nas laterais/embaixo, 1305 nas uniões e tubo opcional.</p>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-170 text-sm">
-                      <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                      <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                         <tr>
                           <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Item</th>
                           <th className="text-right px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Qtd</th>
@@ -1105,10 +1106,10 @@ export default function CalculosacadagrapaPage() {
                       </thead>
                       <tbody>
                         {montarMateriaisCentral().map((material, index) => (
-                          <tr key={`${material.id}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                          <tr key={`${material.id}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                             <td className="px-5 py-3" style={{ color: theme.contentTextLightBg }}>{material.descricao}</td>
                             <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(Number(material.qtd || 0), material.unidade === "barra" || material.unidade === "und" ? 0 : 3)}</td>
-                            <td className="px-5 py-3 text-right" style={{ color: `${theme.contentTextLightBg}B3` }}>{material.unidade}</td>
+                            <td className="px-5 py-3 text-right" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>{material.unidade}</td>
                             <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(Number(material.valorUnitario || 0))}</td>
                             <td className="px-5 py-3 text-right font-medium" style={{ color: theme.contentTextLightBg }}>{formatarPreco(Number(material.qtd || 0) * Number(material.valorUnitario || 0))}</td>
                           </tr>
@@ -1118,10 +1119,10 @@ export default function CalculosacadagrapaPage() {
                   </div>
                 </article>
 
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}99` }}>Desenho conforme divisões, grapas, 1305 e tubo opcional.</p>
-                  <div className="mt-4 rounded-2xl border bg-white p-3" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                  <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Desenho conforme divisões, grapas, 1305 e tubo opcional.</p>
+                  <div className="mt-4 rounded-2xl border bg-surface p-3" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <div dangerouslySetInnerHTML={{ __html: svgSacada }} />
                   </div>
                 </article>

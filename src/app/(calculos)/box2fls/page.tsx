@@ -1,5 +1,6 @@
 "use client";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
+import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -338,7 +339,7 @@ export default function Box2FlsPage() {
   const centralItemId = searchParams.get("centralItem");
   const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
-  const { empresaId } = useAuth();
+  const { empresaId, nomeEmpresa } = useAuth();
   const { theme } = useTheme();
   const logoUsuario = theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl || null;
   const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
@@ -1289,7 +1290,7 @@ export default function Box2FlsPage() {
         metragem_total: Number(calculoVidro.areaTotalCobrada || 0),
         peso_total: 0,
         empresa_id: empresaId,
-        theme_color: theme.menuIconColor || "#07385a",
+        theme_color: DRAWING_COLORS.ink,
       };
 
       const { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
@@ -1347,20 +1348,20 @@ export default function Box2FlsPage() {
   }, [dados.corKit, ferragens, kits, perfis]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f5f8fb_34%,#eef3f7_100%)] text-[#0f2742]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-background text-text-primary">
       <div className="flex min-h-screen w-full">
         <div className="flex min-h-screen w-full flex-col bg-transparent">
-<header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-white/80 bg-white/90 px-5 py-4 shadow-[0_18px_50px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">            <div className="flex items-center">
+<header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-border bg-surface/90 px-5 py-4 shadow-[0_18px_50px_var(--shadow)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">            <div className="flex items-center">
               <div className="flex h-[54px] w-full max-w-[220px] items-center">
                 {logoUsuario ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={logoUsuario}
+                    src={theme.logoUrl || logoUsuario}
                     alt="Logo da empresa"
                     className="max-h-[54px] w-auto max-w-[220px] object-contain"
                   />
                 ) : (
-                  <div className="text-[22px] font-semibold leading-none text-[#10253f]">
+                  <div className="text-[22px] font-semibold leading-none text-text-primary">
                     Logo da empresa
                   </div>
                 )}
@@ -1368,38 +1369,38 @@ export default function Box2FlsPage() {
             </div>
 
             <div className="flex items-center justify-start gap-2 xl:justify-end">
-              <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Projeto:</label>
+              <label className="text-xs font-medium uppercase tracking-wide text-text-secondary">Projeto:</label>
               <input
                 value={dados.projeto}
                 tabIndex={-1}
                 onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-[#102d4d] outline-none"
+                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-text-primary outline-none"
               />
             </div>
 
-            <div className="sm:justify-self-end sm:border-l sm:border-slate-200/80 sm:pl-4">
+            <div className="sm:justify-self-end sm:border-l sm:border-border/80 sm:pl-4">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-t-0 sm:px-3">
-                  <FileText size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
+                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
+                  <FileText size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
                   <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Nº Orçamento</label>
+                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Nº Orçamento</label>
                     <input
                       value={dados.numero}
                       tabIndex={-1}
                       onChange={(e) => atualizarCampo("numero", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
                     />
                   </div>
                 </div>
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-slate-200/80 py-2 sm:border-t-0 sm:px-3">
-                  <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-slate-500" />
+                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
+                  <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
                   <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Data</label>
+                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Data</label>
                     <input
                       value={dados.data}
                       tabIndex={-1}
                       onChange={(e) => atualizarCampo("data", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-[#07385a] outline-none"
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
                     />
                   </div>
                 </div>
@@ -1407,25 +1408,25 @@ export default function Box2FlsPage() {
             </div>
           </header>
 
-          <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] backdrop-blur sm:mx-6">
+          <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] backdrop-blur sm:mx-6">
             <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-            <div className="relative min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
+            <div className="relative min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
               <div className="mb-0.5 flex items-center justify-between gap-2">
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cliente</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cliente</label>
                 <button
                   type="button"
                   onClick={() => {
                     setListaClientesAberta(false);
                     setModalNovoClienteAberto(true);
                   }}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border-strong text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
                   title="Cadastrar novo cliente"
                 >
                   <Plus size={13} />
                 </button>
               </div>
               <div className="relative">
-                <UserRound size={20} strokeWidth={1.6} className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-500" />
+                <UserRound size={20} strokeWidth={1.6} className="absolute left-0 top-1/2 -translate-y-1/2 text-text-secondary" />
                 {listaClientesAberta ? (
                   <input
                     ref={clienteInputRef}
@@ -1451,7 +1452,7 @@ export default function Box2FlsPage() {
                     }}
                     onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
                     disabled={carregandoClientes}
-                    className="w-full border-0 bg-transparent py-1 pl-7 pr-1 text-[15px] font-semibold text-[#07385a] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                    className="w-full border-0 bg-transparent py-1 pl-7 pr-1 text-[15px] font-semibold text-text-primary outline-none placeholder:text-text-secondary disabled:text-text-secondary"
                     placeholder={carregandoClientes ? "Carregando..." : "Digite ou pesquise o cliente"}
                   />
                 ) : (
@@ -1465,15 +1466,15 @@ export default function Box2FlsPage() {
                         setListaClientesAberta(true);
                       }
                     }}
-                    className="block w-full truncate bg-transparent py-1 pl-7 pr-1 text-left text-[15px] font-semibold text-[#07385a]"
+                    className="block w-full truncate bg-transparent py-1 pl-7 pr-1 text-left text-[15px] font-semibold text-text-primary"
                   >
                     {dados.cliente || "Digite ou pesquise o cliente"}
                   </button>
                 )}
                 {listaClientesAberta && (
-                  <div className="absolute left-0 top-full z-[120] mt-2 max-h-[280px] w-full overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                  <div className="absolute left-0 top-full z-[120] mt-2 max-h-[280px] w-full overflow-auto rounded-lg border border-border-strong/20 bg-surface py-1 text-sm shadow-xl shadow-slate-900/10">
                     {carregandoClientes ? (
-                      <div className="px-3 py-2 font-medium text-slate-500">Carregando clientes...</div>
+                      <div className="px-3 py-2 font-medium text-text-secondary">Carregando clientes...</div>
                     ) : clientesFiltrados.length > 0 ? (
                       clientesFiltrados.map((cliente, index) => (
                         <button
@@ -1491,43 +1492,43 @@ export default function Box2FlsPage() {
                           }}
                           onMouseEnter={() => setClienteAtivoIndex?.(index)}
                           onClick={() => selecionarCliente(cliente)}
-                          className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === clienteAtivoIndex ? "bg-[#07385a]/10" : "bg-transparent hover:bg-[#07385a]/10"
+                          className={`block w-full px-3 py-2 text-left font-semibold text-text-primary ${index === clienteAtivoIndex ? "bg-primary/10" : "bg-transparent hover:bg-navigation/10"
                             }`}
                         >
                           {cliente.nome}
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 font-medium text-slate-500">Nenhum cliente encontrado</div>
+                      <div className="px-3 py-2 font-medium text-text-secondary">Nenhum cliente encontrado</div>
                     )}
                   </div>
                 )}
               </div>
               {clienteSelecionado && (
                 <div className="mt-2 flex flex-wrap gap-2 pl-7 text-[11px]">
-                  <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                  <span className="rounded-full bg-surface-secondary px-2 py-1 font-medium text-text-secondary">
                     Rota: {clienteSelecionado.rota?.trim() || "Não informada"}
                   </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
+                  <span className="rounded-full bg-surface-secondary px-2 py-1 font-medium text-text-secondary">
                     Tabela: {tabelaPrecoSelecionada?.nome || "Padrão"}
                   </span>
                 </div>
               )}
             </div>
-              <label className="block min-h-[66px] rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 sm:bg-white sm:px-4">
-                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Nome da obra (opcional)</span>
+              <label className="block min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-text-secondary">Nome da obra (opcional)</span>
                 <input
                   value={dados.obra || ""}
                   onChange={(e) => atualizarCampo("obra", e.target.value)}
                   placeholder="Informe o nome da obra"
-                  className="w-full border-0 bg-transparent py-1 text-[15px] text-[#07385a] outline-none placeholder:text-slate-400"
+                  className="w-full border-0 bg-transparent py-1 text-[15px] text-text-primary outline-none placeholder:text-text-secondary"
                 />
               </label>
             </div>
           </section>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="relative z-[20] mx-4 mt-2 w-auto shrink-0 rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur sm:mx-6">
+            <aside className="relative z-[20] mx-4 mt-2 w-auto shrink-0 rounded-2xl border border-border bg-surface/85 shadow-sm backdrop-blur sm:mx-6">
               <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
                 {[
                   { label: "Orçamento", icon: ClipboardList, ativo: true },
@@ -1538,14 +1539,14 @@ export default function Box2FlsPage() {
                   { label: "Configurações", icon: Settings },
                   { label: "Ajuda", icon: HelpCircle },
                 ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-emerald-200 bg-emerald-50 text-[#07385a] shadow-sm" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white"}`;
+                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-success-soft bg-success-soft text-text-primary shadow-sm" : "border-transparent text-text-secondary hover:border-border hover:bg-surface"}`;
 
                   if (label === "Imprimir") {
                     return (
                       <PDFDownloadLink
                         key={label}
                         tabIndex={-1}
-                        document={<ProjetoIndividualPDF dados={projetoPdf} logoUrl={logoUsuario} />}
+                        document={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />}
                         fileName={`box2fls_${dados.numero || "novo"}.pdf`}
                         className={itemClass}
                       >
@@ -1589,15 +1590,15 @@ export default function Box2FlsPage() {
             <section className="flex min-w-0 flex-1 flex-col">
               <div className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
-                  <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
+                  <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
                     <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-[#eef8f3] p-4 sm:min-h-[420px] xl:min-h-[430px]">
+                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-border bg-gradient-to-br from-surface via-surface-secondary to-surface-secondary p-4 sm:min-h-[420px] xl:min-h-[430px]">
                       <ProjetoDrawing modelo={dados.trinco || "Tradicional"} puxador={dados.puxador} />
                     </div>
                   </section>
 
                   <div className="space-y-4">
-                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
+                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
                       <SectionTitle>Dados do projeto</SectionTitle>
                       <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                         <DataInput
@@ -1622,12 +1623,12 @@ export default function Box2FlsPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
-                          <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
+                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+                          <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cor do vidro</span>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cor do vidro</span>
                             {listaVidrosAberta ? (
                               <input
                                 ref={vidroInputRef}
@@ -1652,7 +1653,7 @@ export default function Box2FlsPage() {
                                 }}
                                 onBlur={() => window.setTimeout(() => setListaVidrosAberta(false), 250)}
                                 disabled={carregandoVidros}
-                                className="mt-1 w-full bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none placeholder:text-slate-400 disabled:text-slate-400"
+                                className="mt-1 w-full bg-transparent text-base font-semibold leading-tight text-text-primary outline-none placeholder:text-text-secondary disabled:text-text-secondary"
                                 placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
                               />
                             ) : (
@@ -1666,16 +1667,16 @@ export default function Box2FlsPage() {
                                     setListaVidrosAberta(true);
                                   }
                                 }}
-                                className="mt-1 block w-full truncate rounded-lg bg-transparent p-0 text-left text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+                                className="mt-1 block w-full truncate rounded-lg bg-transparent p-0 text-left text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
                               >
                                 {dados.vidro || "Digite o vidro"}
                               </button>
                             )}
                           </span>
                           {listaVidrosAberta && (
-                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-[#07385a]/20 bg-white py-1 text-sm shadow-xl shadow-slate-900/10">
+                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-border-strong/20 bg-surface py-1 text-sm shadow-xl shadow-slate-900/10">
                               {carregandoVidros ? (
-                                <div className="px-3 py-2 font-medium text-slate-500">Carregando vidros...</div>
+                                <div className="px-3 py-2 font-medium text-text-secondary">Carregando vidros...</div>
                               ) : vidrosFiltrados.length > 0 ? (
                                 vidrosFiltrados.map((vidro, index) => (
                                   <button
@@ -1687,15 +1688,15 @@ export default function Box2FlsPage() {
                                       selecionarVidro(vidro);
                                     }}
                                     onMouseEnter={() => setVidroAtivoIndex?.(index)}
-                                    className={`block w-full px-3 py-2 text-left font-semibold text-[#07385a] ${index === vidroAtivoIndex ? "bg-[#07385a]/10"
-                                        : "bg-transparent hover:bg-[#07385a]/10"
+                                    className={`block w-full px-3 py-2 text-left font-semibold text-text-primary ${index === vidroAtivoIndex ? "bg-primary/10"
+                                        : "bg-transparent hover:bg-navigation/10"
                                       }`}
                                   >
                                     {formatarVidroCadastro(vidro)}
                                   </button>
                                 ))
                               ) : (
-                                <div className="px-3 py-2 font-medium text-slate-500">Nenhum vidro encontrado</div>
+                                <div className="px-3 py-2 font-medium text-text-secondary">Nenhum vidro encontrado</div>
                               )}
                             </div>
                           )}
@@ -1748,21 +1749,21 @@ export default function Box2FlsPage() {
                     />
 
 
-                    <section className="rounded-2xl border border-white/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(15,39,66,0.08)]">
+                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <SectionTitle>Relação de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
                           <button
                             type="button"
                             onClick={novoProjeto}
-                            className="rounded-xl bg-slate-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
+                            className="rounded-xl bg-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-text-primary shadow-sm"
                           >
                             Novo
                           </button>
                           <button
                             type="button"
                             onClick={() => setMateriais((lista) => [...lista, criarMaterial()])}
-                            className="rounded-xl bg-[#07385a] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm"
+                            className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-on-primary shadow-sm"
                           >
                             Adicionar item
                           </button>
@@ -1770,25 +1771,25 @@ export default function Box2FlsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-slate-200/80 px-3 py-3">Produto / descrição</div>
-                          <div className="border-r border-slate-200/80 px-3 py-3 text-center">Unidade</div>
+                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-border/80 bg-surface shadow-sm">
+                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+                          <div className="border-r border-border/80 px-3 py-3 text-center">Qtd</div>
+                          <div className="border-r border-border/80 px-3 py-3">Produto / descrição</div>
+                          <div className="border-r border-border/80 px-3 py-3 text-center">Unidade</div>
                           <div className="px-3 py-3 text-center" />
-                          <div className="border-r border-slate-200/80 px-3 py-3 text-right">Valor unit.</div>
+                          <div className="border-r border-border/80 px-3 py-3 text-right">Valor unit.</div>
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
                         {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-slate-100 bg-white text-xs text-[#10253f] transition hover:bg-slate-50/70">
+                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
                             <div className="px-3 py-2.5">
                               <input
                                 type="text"
                                 inputMode="decimal"
                                 value={formatarQtdMaterial(item.qtd, item.unidade)}
                                 onChange={(e) => atualizarMaterial(item.id, "qtd", parseQtdMaterial(e.target.value, item.unidade))}
-                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-slate-50"
+                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
                               />
                             </div>
                             <div className="flex items-center px-3 py-2.5">
@@ -1803,7 +1804,7 @@ export default function Box2FlsPage() {
                               <input
                                 value={item.unidade}
                                 onChange={(e) => atualizarMaterial(item.id, "unidade", e.target.value)}
-                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-slate-50"
+                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
                               />
                             </div>
                             <div className="px-3 py-2.5 text-center font-medium">R$</div>
@@ -1811,18 +1812,18 @@ export default function Box2FlsPage() {
                               <input
                                 value={numero(item.valorUnitario)}
                                 onChange={(e) => atualizarMaterial(item.id, "valorUnitario", parseNumeroPtBr(e.target.value))}
-                                className="w-full bg-transparent text-right font-medium outline-none focus:rounded-md focus:bg-slate-50"
+                                className="w-full bg-transparent text-right font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
                               />
                             </div>
                             <div className="px-3 py-2.5 text-center font-medium">R$</div>
                             <div className="px-3 py-2.5 text-right font-medium">
                               {numero(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}
                             </div>
-                            <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-lg bg-white/95 p-1 shadow-sm group-hover:flex">
-                              <button type="button" onClick={() => duplicarMaterial(item)} className="rounded-md bg-blue-50 p-1.5 text-blue-700">
+                            <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-lg bg-surface/95 p-1 shadow-sm group-hover:flex">
+                              <button type="button" onClick={() => duplicarMaterial(item)} className="rounded-md bg-info-soft p-1.5 text-info">
                                 <Copy size={16} />
                               </button>
-                              <button type="button" onClick={() => removerMaterial(item.id)} className="rounded-md bg-red-50 p-1.5 text-red-600">
+                              <button type="button" onClick={() => removerMaterial(item.id)} className="rounded-md bg-danger-soft p-1.5 text-danger">
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -1830,9 +1831,9 @@ export default function Box2FlsPage() {
                         ))}
                       </div>
 
-                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0f2742]">Valor total do Orçamento</p>
-                        <div className="rounded-2xl bg-slate-100 px-7 py-3 text-xl font-bold text-[#0f2742]">
+                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-border bg-surface-secondary px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-text-primary">Valor total do Orçamento</p>
+                        <div className="rounded-2xl bg-surface-secondary px-7 py-3 text-xl font-bold text-text-primary">
                           {moeda(totalMateriais)}
                         </div>
                       </div>
@@ -1840,7 +1841,7 @@ export default function Box2FlsPage() {
                   </div>
                 </div>
 
-                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,39,66,0.08)] md:grid-cols-3 xl:grid-cols-6">
+                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] md:grid-cols-3 xl:grid-cols-6">
                   <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
@@ -1855,13 +1856,13 @@ export default function Box2FlsPage() {
         </div>
       </div>
       {mensagemSistema && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/20 p-4 pt-8 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-navigation/20 p-4 pt-8 backdrop-blur-[1px]">
           <section
             className="w-full max-w-sm rounded-xl border p-4 shadow-lg"
             style={{
-              backgroundColor: theme.modalBackgroundColor || "#ffffff",
-              borderColor: `${theme.menuBackgroundColor || "#07385a"}22`,
-              color: theme.modalTextColor || "#0f2742",
+              backgroundColor: theme.modalBackgroundColor,
+              borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 13%, transparent)`,
+              color: theme.modalTextColor,
             }}
           >
             <div className="flex items-start gap-3">
@@ -1869,13 +1870,13 @@ export default function Box2FlsPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor:
-                    mensagemSistema.tipo === "sucesso" ? `${theme.modalIconSuccessColor || "#18bd72"}14`
-                      : mensagemSistema.tipo === "erro" ? `${theme.modalIconErrorColor || "#dc2626"}14`
-                        : `${theme.modalIconWarningColor || "#d97706"}14`,
+                    mensagemSistema.tipo === "sucesso" ? `color-mix(in srgb, ${theme.modalIconSuccessColor} 8%, transparent)`
+                      : mensagemSistema.tipo === "erro" ? `color-mix(in srgb, ${theme.modalIconErrorColor} 8%, transparent)`
+                        : `color-mix(in srgb, ${theme.modalIconWarningColor} 8%, transparent)`,
                   color:
-                    mensagemSistema.tipo === "sucesso" ? theme.modalIconSuccessColor || "#18bd72"
-                      : mensagemSistema.tipo === "erro" ? theme.modalIconErrorColor || "#dc2626"
-                        : theme.modalIconWarningColor || "#d97706",
+                    mensagemSistema.tipo === "sucesso" ? theme.modalIconSuccessColor
+                      : mensagemSistema.tipo === "erro" ? theme.modalIconErrorColor
+                        : theme.modalIconWarningColor,
                 }}
               >
                 {mensagemSistema.tipo === "sucesso" ? <CheckCircle2 size={21} /> : <AlertTriangle size={21} />}
@@ -1893,10 +1894,10 @@ export default function Box2FlsPage() {
                   setMensagemSistema(null);
                   aoFechar?.();
                 }}
-                className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition hover:brightness-95"
+                className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wide text-on-primary shadow-sm transition hover:brightness-95"
                 style={{
-                  backgroundColor: theme.modalButtonBackgroundColor || theme.menuBackgroundColor || "#07385a",
-                  color: theme.modalButtonTextColor || "#ffffff",
+                  backgroundColor: theme.modalButtonBackgroundColor || theme.menuBackgroundColor,
+                  color: theme.modalButtonTextColor,
                 }}
               >
                 OK
@@ -1906,17 +1907,17 @@ export default function Box2FlsPage() {
         </div>
       )}
       {modalNovoClienteAberto && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
-          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 md:px-6">
-              <h2 className="text-base font-semibold text-slate-900">Cadastrar cliente</h2>
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navigation/35 p-4 backdrop-blur-[2px]">
+          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-border bg-surface-secondary shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 md:px-6">
+              <h2 className="text-base font-semibold text-text-primary">Cadastrar cliente</h2>
               <button
                 type="button"
                 onClick={() => {
                   if (salvandoNovoCliente) return;
                   setModalNovoClienteAberto(false);
                 }}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-surface-secondary"
               >
                 Fechar
               </button>
@@ -1924,57 +1925,57 @@ export default function Box2FlsPage() {
 
             <div className="max-h-[75vh] overflow-y-auto p-4 md:p-6">
               <div className="space-y-4">
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Identificação</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Identificação</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Tipo
                       <select
                         value={novoCliente.tipo_pessoa}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, tipo_pessoa: e.target.value as "juridica" | "fisica", cpf_cnpj: "" }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       >
                         <option value="juridica">Pessoa jurídica</option>
                         <option value="fisica">Pessoa física</option>
                       </select>
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       {novoCliente.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}
                       <input
                         value={novoCliente.cpf_cnpj}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, cpf_cnpj: formatarDocumento(e.target.value, atual.tipo_pessoa) }))}
                         placeholder={novoCliente.tipo_pessoa === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Nome do cliente *
                       <input
                         value={novoCliente.nome}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, nome: e.target.value }))}
                         placeholder="Nome do cliente"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Rota *
                       <input
                         value={novoCliente.rota}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, rota: e.target.value }))}
                         placeholder="Ex.: 05MM"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Tabela de precos
                       <select
                         value={novoCliente.grupo_preco_id}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, grupo_preco_id: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       >
                         <option value="">Tabela padrao</option>
                         {tabelasPreco.map((tabela) => (
@@ -1985,50 +1986,50 @@ export default function Box2FlsPage() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Contato</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Contato</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Telefone
                       <input
                         value={novoCliente.telefone}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, telefone: formatarTelefone(e.target.value) }))}
                         placeholder="(00) 00000-0000"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       E-mail
                       <input
                         type="email"
                         value={novoCliente.email}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, email: e.target.value }))}
                         placeholder="cliente@empresa.com"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Endereço</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Endereço</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Cidade
                       <input
                         value={novoCliente.cidade}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, cidade: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       UF
                       <input
                         value={novoCliente.estado}
                         onChange={(e) => setNovoCliente((atual) => ({ ...atual, estado: e.target.value.toUpperCase().slice(0, 2) }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
@@ -2036,14 +2037,14 @@ export default function Box2FlsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4 md:px-6">
+            <div className="flex justify-end gap-2 border-t border-border bg-surface px-5 py-4 md:px-6">
               <button
                 type="button"
                 onClick={() => {
                   if (salvandoNovoCliente) return;
                   setModalNovoClienteAberto(false);
                 }}
-                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+                className="rounded-lg bg-surface-secondary px-4 py-2 text-sm font-semibold text-text-primary hover:bg-border"
               >
                 Cancelar
               </button>
@@ -2051,7 +2052,7 @@ export default function Box2FlsPage() {
                 type="button"
                 disabled={salvandoNovoCliente}
                 onClick={salvarNovoCliente}
-                className="rounded-lg bg-[#07385a] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
               >
                 {salvandoNovoCliente ? "Salvando..." : "Cadastrar cliente"}
               </button>
@@ -2066,8 +2067,8 @@ export default function Box2FlsPage() {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0f2742]">{children}</h2>
-      <div className="mt-3 h-[2px] w-10 rounded-full bg-[#18bd72]" />
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-text-primary">{children}</h2>
+      <div className="mt-3 h-[2px] w-10 rounded-full bg-primary" />
     </div>
   );
 }
@@ -2088,10 +2089,10 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10">
-      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">{icon}</span>
+    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
         <span className="mt-0.5 flex items-center gap-1.5">
           <input
             type="number"
@@ -2104,9 +2105,9 @@ function DataInput({
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80"
+            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
           />
-          {suffix && <span className="text-sm font-medium leading-tight text-slate-500">{suffix}</span>}
+          {suffix && <span className="text-sm font-medium leading-tight text-text-secondary">{suffix}</span>}
         </span>
       </span>
     </label>
@@ -2132,16 +2133,16 @@ function OptionInput({
 }) {
   return (
     <label
-      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 ${
+      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
-      <span className="flex w-7 shrink-0 justify-start text-[#0f2742]/65">
+      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
         {icon}
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
           {label}
         </span>
 
@@ -2150,7 +2151,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-[#10253f] outline-none focus-visible:bg-white/80 disabled:cursor-not-allowed"
+          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80 disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>
@@ -2206,11 +2207,11 @@ function DescricaoMaterialInput({
           setAberto(true);
         }}
         onBlur={() => window.setTimeout(() => setAberto(false), 250)}
-        className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-slate-50"
+        className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-surface-secondary"
       />
 
       {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
           {itensFiltrados.map((catalogo) => (
             <button
               key={catalogo.id}
@@ -2231,10 +2232,10 @@ function DescricaoMaterialInput({
                 selecionarItemCatalogo(item.id, catalogo);
                 setAberto(false);
               }}
-              className="block w-full px-3 py-2 text-left text-xs font-semibold text-[#07385a] hover:bg-[#07385a]/10"
+              className="block w-full px-3 py-2 text-left text-xs font-semibold text-text-primary hover:bg-navigation/10"
             >
               <span>{catalogo.descricao}</span>
-              <span className="ml-2 text-[10px] text-slate-400">
+              <span className="ml-2 text-[10px] text-text-secondary">
                 {catalogo.tipo}
               </span>
             </button>
@@ -2263,19 +2264,19 @@ function ProjetoDrawing({ modelo, puxador }: { modelo: string; puxador?: string 
 
 function SummaryCard({ icon, label, value, detail, tone }: { icon: React.ReactNode; label: string; value: string; detail: string; tone: "green" | "blue" | "purple" | "orange" | "emerald" }) {
   const tones = {
-    green: "bg-emerald-100 text-emerald-700",
-    blue: "bg-blue-100 text-blue-700",
-    purple: "bg-purple-100 text-purple-700",
-    orange: "bg-orange-100 text-orange-700",
-    emerald: "bg-green-100 text-green-700",
+    green: "bg-success-soft text-success",
+    blue: "bg-info-soft text-info",
+    purple: "bg-info-soft text-info",
+    orange: "bg-warning-soft text-warning",
+    emerald: "bg-success-soft text-success",
   };
   return (
-    <div className="flex items-center gap-3 border-slate-200 px-3 py-2 xl:border-r last:border-r-0">
+    <div className="flex items-center gap-3 border-border px-3 py-2 xl:border-r last:border-r-0">
       <div className={`flex h-11 w-12 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}>{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="mt-0.5 text-base font-semibold leading-tight text-[#0f2742]">{value}</p>
-        <p className="mt-0.5 text-[11px] text-slate-500">{detail}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">{label}</p>
+        <p className="mt-0.5 text-base font-semibold leading-tight text-text-primary">{value}</p>
+        <p className="mt-0.5 text-[11px] text-text-secondary">{detail}</p>
       </div>
     </div>
   );

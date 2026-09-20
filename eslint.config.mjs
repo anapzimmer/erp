@@ -5,6 +5,10 @@ const eslintConfig = [
   ...nextVitals,
   ...nextTypescript,
   {
+    files: ["scripts/**/*.cjs", "tests/**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     ignores: [
       "node_modules/**",
       ".next/**",
@@ -15,6 +19,7 @@ const eslintConfig = [
     ],
   },
   {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "prefer-const": "warn",

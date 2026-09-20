@@ -48,13 +48,13 @@ export default function ConfiguracaoTipologia() {
             {dadosConfig && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Aqui virá a edição das fórmulas */}
-                    <div className="bg-white p-6 rounded-3xl border">
+                    <div className="bg-surface p-6 rounded-3xl border">
                         <h2 className="font-bold mb-4">Fórmulas de Corte</h2>
                         {/* Mapear tipologias_vidros e campos de input aqui */}
                     </div>
 
                     {/* Aqui virá o simulador */}
-                    <div className="bg-gray-50 p-6 rounded-3xl border">
+                    <div className="bg-surface-secondary p-6 rounded-3xl border">
                         <h2 className="font-bold mb-4">Simulador de Medidas</h2>
                         {/* Inputs L e A para testar se a fórmula está correta */}
                     </div>

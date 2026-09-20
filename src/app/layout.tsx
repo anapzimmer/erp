@@ -1,6 +1,6 @@
 ﻿// app/layout.tsx
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 // 🔥 Importe o novo componente
@@ -10,22 +10,23 @@ import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
 import { OrcamentoProvider } from "@/context/OrcamentoContext";
 import PlatformAccessGate from "@/components/PlatformAccessGate";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const inter = localFont({
+  src: "../../public/fonts/Inter.ttf",
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Nome do seu ERP",
+  title: "Glass Code ERP",
   description: "Sistema de Gestão",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <ThemeProvider>
           {/* 🔥 Agora o Loader está em um componente client separado */}

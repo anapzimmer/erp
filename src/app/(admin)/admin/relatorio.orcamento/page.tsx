@@ -783,7 +783,7 @@ export default function RelatorioOrcamento() {
 
     if (checkingAuth) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+            <div className="flex items-center justify-center min-h-screen bg-surface-secondary">
                 <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }}></div>
             </div>
         );
@@ -854,7 +854,7 @@ export default function RelatorioOrcamento() {
                                 >
                                     Histórico de Orçamentos
                                 </h1>
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-text-secondary">
                                     Consulte, filtre e gerencie os orçamentos cadastrados.
                                 </p>
                             </div>
@@ -881,17 +881,17 @@ export default function RelatorioOrcamento() {
                                 return (
                                     <div
                                         key={item.label}
-                                        className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_25px_-20px_rgba(15,23,42,0.45)]"
+                                        className="rounded-2xl border border-border/80 bg-surface p-5 shadow-[0_8px_25px_-20px_rgba(15,23,42,0.45)]"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div
                                                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                                                style={{ backgroundColor: `${item.color}12`, color: item.color }}
+                                                style={{ backgroundColor: `color-mix(in srgb, ${item.color} 7%, transparent)`, color: item.color }}
                                             >
                                                 <Icone size={22} />
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-slate-500">{item.label}</p>
+                                                <p className="text-xs font-semibold text-text-secondary">{item.label}</p>
                                                 <p
                                                     className="mt-1 truncate text-xl font-black"
                                                     style={{ color: theme.contentTextLightBg }}
@@ -908,28 +908,28 @@ export default function RelatorioOrcamento() {
                         <section className={styles.filters} aria-label="Filtros dos orçamentos">
                             <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(280px,1fr)_auto_auto_auto]">
                                 <div className="relative">
-                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
                                     <input
                                         type="text"
                                         value={filtro}
                                         onChange={(event) => setFiltro(event.target.value)}
                                         aria-label="Pesquisar por número, cliente ou obra"
                                         placeholder="Pesquisar por número, cliente ou obra..."
-                                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-100"
+                                        className="h-11 w-full rounded-xl border border-border bg-surface-secondary/70 pl-11 pr-4 text-sm text-text-primary outline-none transition focus:border-border-strong focus:bg-surface focus:ring-4 focus:ring-border"
                                     />
                                 </div>
 
-                                <button type="button" onClick={() => aplicarPeriodoRapido(1)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                <button type="button" onClick={() => aplicarPeriodoRapido(1)} className="h-11 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary">
                                     Hoje
                                 </button>
-                                <button type="button" onClick={() => aplicarPeriodoRapido(7)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                <button type="button" onClick={() => aplicarPeriodoRapido(7)} className="h-11 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary">
                                     7 dias
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => aplicarPeriodoRapido(30)}
                                     className="h-11 rounded-xl border px-4 text-sm font-bold transition"
-                                    style={{ borderColor: `${theme.menuIconColor}55`, backgroundColor: `${theme.menuIconColor}0D`, color: theme.menuIconColor }}
+                                    style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 33%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)`, color: theme.menuIconColor }}
                                 >
                                     30 dias
                                 </button>
@@ -937,28 +937,28 @@ export default function RelatorioOrcamento() {
 
                             <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
                                 <div className="relative flex-1">
-                                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data inicial</span>
+                                    <span className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Data inicial</span>
                                     <input
                                         type="date"
                                         aria-label="Data inicial" value={dataInicio}
                                         onChange={(event) => setDataInicio(event.target.value)}
-                                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
+                                        className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-secondary outline-none focus:ring-4 focus:ring-border"
                                     />
                                 </div>
                                 <div className="relative flex-1">
-                                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Data final</span>
+                                    <span className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Data final</span>
                                     <input
                                         type="date"
                                         aria-label="Data final" value={dataFim}
                                         onChange={(event) => setDataFim(event.target.value)}
-                                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:ring-4 focus:ring-slate-100"
+                                        className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text-secondary outline-none focus:ring-4 focus:ring-border"
                                     />
                                 </div>
                                 {(filtro || dataInicio || dataFim) && (
                                     <button
                                         type="button"
                                         onClick={limparFiltros}
-                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
                                     >
                                         <RefreshCcw size={16} />
                                         Limpar filtros
@@ -973,12 +973,12 @@ export default function RelatorioOrcamento() {
                                     <h2 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>Orçamentos encontrados</h2>
                                     <span
                                         className="rounded-full px-2.5 py-1 text-xs font-bold"
-                                        style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}
+                                        style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}
                                     >
                                         {orcamentosFiltrados.length}
                                     </span>
                                 </div>
-                                <p className="mt-1 text-xs text-slate-400">Os registros mais recentes aparecem primeiro.</p>
+                                <p className="mt-1 text-xs text-text-secondary">Os registros mais recentes aparecem primeiro.</p>
                             </div>
 
                             {selecionados.length > 0 && (
@@ -994,7 +994,7 @@ export default function RelatorioOrcamento() {
                                             labelCancelar: "Cancelar",
                                         });
                                     }}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-danger-soft bg-danger-soft px-4 py-2.5 text-sm font-bold text-danger transition hover:bg-danger-soft"
                                 >
                                     <Trash2 size={17} />
                                     Excluir selecionados ({selecionados.length})
@@ -1003,19 +1003,19 @@ export default function RelatorioOrcamento() {
                         </div>
 
                         {loadingDados ? (
-                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-slate-200 bg-white">
+                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-border bg-surface">
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-transparent" style={{ borderTopColor: theme.menuIconColor }} />
-                                    <span className="text-sm font-medium text-slate-400">Sincronizando dados...</span>
+                                    <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-border border-t-transparent" style={{ borderTopColor: theme.menuIconColor }} />
+                                    <span className="text-sm font-medium text-text-secondary">Sincronizando dados...</span>
                                 </div>
                             </div>
                         ) : orcamentosFiltrados.length === 0 ? (
-                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-slate-200 bg-white p-8">
+                            <div className="flex min-h-80 items-center justify-center rounded-2xl border border-border bg-surface p-8">
                                 <div className="flex max-w-sm flex-col items-center text-center">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Filter size={22} /></div>
-                                    <h3 className="mt-4 font-bold text-slate-700">Nenhum orçamento encontrado</h3>
-                                    <p className="mt-1 text-sm text-slate-400">Limpe a pesquisa ou altere o período para visualizar outros registros.</p>
-                                    <button type="button" onClick={limparFiltros} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Limpar filtros</button>
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-secondary text-text-secondary"><Filter size={22} /></div>
+                                    <h3 className="mt-4 font-bold text-text-primary">Nenhum orçamento encontrado</h3>
+                                    <p className="mt-1 text-sm text-text-secondary">Limpe a pesquisa ou altere o período para visualizar outros registros.</p>
+                                    <button type="button" onClick={limparFiltros} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-surface-secondary">Limpar filtros</button>
                                 </div>
                             </div>
                         ) : (
@@ -1030,11 +1030,11 @@ export default function RelatorioOrcamento() {
                                     return (
                                         <article
                                             key={orc.id}
-                                            className={`${styles.card} group relative overflow-hidden rounded-2xl border bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${selecionado ? "border-emerald-300 ring-4 ring-emerald-50" : "border-slate-200/90 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.7)]"}`}
+                                            className={`${styles.card} group relative overflow-hidden rounded-2xl border bg-surface p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${selecionado ? "border-success-soft ring-4 ring-success-soft" : "border-border/90 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.7)]"}`}
                                         >
                                             <div
                                                 className="absolute left-0 top-0 h-full w-1"
-                                                style={{ backgroundColor: expiraHoje ? "#ef4444" : urgente ? "#f59e0b" : theme.menuIconColor }}
+                                                style={{ backgroundColor: expiraHoje ? "var(--danger)" : urgente ? "var(--warning)" : theme.menuIconColor }}
                                             />
 
                                             <div className="flex items-start justify-between gap-3">
@@ -1043,19 +1043,19 @@ export default function RelatorioOrcamento() {
                                                         type="checkbox"
                                                         checked={selecionado}
                                                         onChange={() => setSelecionados((atuais) => atuais.includes(orc.id) ? atuais.filter((id) => id !== orc.id) : [...atuais, orc.id])}
-                                                        className="mt-1 h-4 w-4 rounded border-slate-300 accent-emerald-600"
+                                                        className="mt-1 h-4 w-4 rounded border-border-strong accent-emerald-600"
                                                         aria-label={`Selecionar orçamento ${orc.numero_formatado}`}
                                                     />
                                                     <div>
-                                                        <p className="font-mono text-sm font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>{orc.numero_formatado || "Sem número"}</p>
-                                                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Orçamento</p>
+                                                        <p className="font-sans text-sm font-black tracking-tight" style={{ color: theme.contentTextLightBg }}>{orc.numero_formatado || "Sem número"}</p>
+                                                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-text-secondary">Orçamento</p>
                                                     </div>
                                                 </div>
                                                 <span
                                                     className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide"
                                                     style={{
-                                                        backgroundColor: expiraHoje ? "#fef2f2" : urgente ? "#fffbeb" : `${theme.menuIconColor}12`,
-                                                        color: expiraHoje ? "#dc2626" : urgente ? "#d97706" : theme.menuIconColor,
+                                                        backgroundColor: expiraHoje ? "var(--danger-soft)" : urgente ? "var(--warning-soft)" : `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
+                                                        color: expiraHoje ? "var(--danger)" : urgente ? "var(--warning)" : theme.menuIconColor,
                                                     }}
                                                 >
                                                     {expiraHoje ? "Expira hoje" : urgente ? "Atenção" : "Ativo"}
@@ -1064,32 +1064,32 @@ export default function RelatorioOrcamento() {
 
                                             <div className="mt-5">
                                                 <div className="flex items-center gap-2">
-                                                    <UserRound size={16} className="shrink-0 text-slate-400" />
+                                                    <UserRound size={16} className="shrink-0 text-text-secondary" />
                                                     <h3 className="truncate text-sm font-black" style={{ color: theme.contentTextLightBg }}>{orc.cliente_nome || "Cliente não informado"}</h3>
                                                 </div>
-                                                <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                                                    <Building2 size={15} className="shrink-0 text-slate-400" />
+                                                <div className="mt-2 flex items-center gap-2 text-xs text-text-secondary">
+                                                    <Building2 size={15} className="shrink-0 text-text-secondary" />
                                                     <span className="truncate">{orc.obra_referencia || "Projeto geral"}</span>
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-50/80 p-3">
+                                            <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-surface-secondary/80 p-3">
                                                 <div>
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"><Calendar size={13} />Criado em</div>
-                                                    <p className="mt-1 text-xs font-bold text-slate-600">{new Date(orc.created_at).toLocaleDateString("pt-BR")}</p>
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary"><Calendar size={13} />Criado em</div>
+                                                    <p className="mt-1 text-xs font-bold text-text-secondary">{new Date(orc.created_at).toLocaleDateString("pt-BR")}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor</p>
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Valor</p>
                                                     <p className="mt-1 text-sm " style={{ color: theme.menuIconColor }}>{valorFormatado}</p>
                                                 </div>
                                             </div>
 
-                                            <div className={`mt-4 flex items-center gap-2 text-xs font-bold ${expiraHoje ? "text-red-600" : urgente ? "text-amber-600" : "text-slate-500"}`}>
+                                            <div className={`mt-4 flex items-center gap-2 text-xs font-bold ${expiraHoje ? "text-danger" : urgente ? "text-warning" : "text-text-secondary"}`}>
                                                 <Clock3 size={15} />
                                                 {expiraHoje ? "Este orçamento expira hoje" : `Expira em ${dias} ${dias === 1 ? "dia" : "dias"}`}
                                             </div>
 
-                                            <div className="mt-5 flex items-center border-t border-slate-100 pt-4">
+                                            <div className="mt-5 flex items-center border-t border-border pt-4">
                                                 <div className="flex flex-1 items-center gap-2">
                                                     <button
                                                         type="button"
@@ -1098,7 +1098,7 @@ export default function RelatorioOrcamento() {
                                                             setTipoPreviewCalculoprojeto("comercial");
                                                             setShowPDFModal(true);
                                                         }}
-                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs font-bold text-text-secondary transition hover:bg-surface-secondary"
                                                         title="Visualizar orçamento"
                                                     >
                                                         <Eye size={15} />Visualizar
@@ -1106,7 +1106,7 @@ export default function RelatorioOrcamento() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleEditarOrcamento(orc)}
-                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                                                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs font-bold text-text-secondary transition hover:bg-surface-secondary"
                                                         title="Editar orçamento"
                                                     >
                                                         <PencilLine size={15} />Editar
@@ -1124,7 +1124,7 @@ export default function RelatorioOrcamento() {
                                                             labelCancelar: "Cancelar",
                                                         });
                                                     }}
-                                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition hover:bg-danger-soft hover:text-danger"
                                                     title="Excluir orçamento"
                                                 >
                                                     <Trash2 size={16} />
@@ -1137,8 +1137,8 @@ export default function RelatorioOrcamento() {
                         )}
 
                         {!loadingDados && orcamentosFiltrados.length > 0 && (
-                            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
-                                <span className="text-xs font-semibold text-slate-400">Exibindo {orcamentosFiltrados.length} de {orcamentos.length} orçamentos</span>
+                            <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
+                                <span className="text-xs font-semibold text-text-secondary">Exibindo {orcamentosFiltrados.length} de {orcamentos.length} orçamentos</span>
                                 {(filtro || dataInicio || dataFim) && (
                                     <button type="button" onClick={limparFiltros} className="text-xs font-bold" style={{ color: theme.menuIconColor }}>Mostrar todos</button>
                                 )}
@@ -1167,12 +1167,12 @@ export default function RelatorioOrcamento() {
             {showToast && (
                 <div className="fixed bottom-8 right-8 z-110 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div
-                        className="flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border border-white/10"
+                        className="flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border border-border"
                         style={{ backgroundColor: theme.menuBackgroundColor, color: theme.menuTextColor }}
                     >
                         <div
                             className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
-                            style={{ backgroundColor: `${theme.menuIconColor}20`, color: theme.menuIconColor }}
+                            style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 13%, transparent)`, color: theme.menuIconColor }}
                         >
                             <Trash2 size={20} />
                         </div>
@@ -1185,15 +1185,15 @@ export default function RelatorioOrcamento() {
             )}
             {showPDFModal && (
                 <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
-                        <div className="p-4 border-b bg-gray-50">
+                    <div className="bg-surface rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-scale-up">
+                        <div className="p-4 border-b bg-surface-secondary">
                             <div className="flex justify-between items-center gap-4">
-                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">
+                                <h3 className="text-sm font-bold text-text-primary uppercase tracking-widest">
                                     Visualização: {orcamentoParaVisualizar?.numero_formatado || "Sem número"}
                                 </h3>
                                 <button
                                     onClick={() => setShowPDFModal(false)}
-                                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                                    className="p-2 hover:bg-border rounded-full transition-colors"
                                 >
                                     <X size={20} />
                                 </button>
@@ -1211,8 +1211,8 @@ export default function RelatorioOrcamento() {
                                             type="button"
                                             onClick={() => setTipoPreviewCalculoprojeto(aba.id as "comercial" | "tecnico" | "tempera")}
                                             className="px-3 py-2 rounded-2xl text-xs font-black border transition-all"
-                                            style={tipoPreviewCalculoprojeto === aba.id ? { backgroundColor: theme.menuBackgroundColor, color: "#fff", borderColor: theme.menuBackgroundColor }
-                                                : { backgroundColor: "#fff", color: "#64748b", borderColor: "#e5e7eb" }}
+                                            style={tipoPreviewCalculoprojeto === aba.id ? { backgroundColor: theme.buttonDarkBg, color: "#fff", borderColor: theme.menuBackgroundColor }
+                                                : { backgroundColor: "var(--surface)", color: "var(--text-secondary)", borderColor: "var(--border)" }}
                                         >
                                             {aba.label}
                                         </button>
@@ -1221,8 +1221,8 @@ export default function RelatorioOrcamento() {
                             )}
                         </div>
 
-                        <div className="flex-1 w-full h-full bg-gray-200">
-                            <div className="flex-1 w-full h-full bg-gray-200">
+                        <div className="flex-1 w-full h-full bg-border">
+                            <div className="flex-1 w-full h-full bg-border">
                                 <PDFViewer style={{ width: "100%", height: "100%" }}>
                                     {/* PDF da Pele de Vidro */}
                                     {(() => {
@@ -1376,7 +1376,7 @@ export default function RelatorioOrcamento() {
                                                 : [];
 
                                             return (
-                                                <ProjetoIndividualPDF
+                                                <ProjetoIndividualPDF nomeEmpresa={nomeEmpresa}
                                                     logoUrl={logoEmpresaPdf || theme.logoLightUrl || undefined}
                                                     dados={{
                                                         projeto: String(dadosPdf.projeto || (tipo === "max" ? "MAX" : tipo === "pg2fva" ? "PG2FVA - Porta de giro com fixo lateral" : tipo === "pgf" ? "Porta de giro com fixo lateral" : tipo === "jc4fcb" || tipo === "jc4fcb_kit" ? "Janela de correr 4 folhas com bandeira" : tipo === "jc4fcs" || tipo === "jc4fcs_kit" ? "Janela de correr 4 folhas com sacada inferior" : tipo === "jc2fcs" || tipo === "jc2fcs_kit" ? "Janela de correr 2 folhas com sacada inferior" : tipo === "pc4fcb" || tipo === "pc4fcb_kit" ? "Porta de correr 4 folhas com bandeira" : tipo === "pc2fcb" || tipo === "pc2fcb_kit" ? "Porta de correr 2 folhas com bandeira" : tipo === "deslizante6f" ? "Deslizante 6 folhas" : tipo === "deslizante5f" ? "Deslizante 5 folhas" : tipo === "deslizante4f" ? "Deslizante 4 folhas" : tipo === "deslizante3f" ? "Deslizante 3 folhas" : tipo === "deslizante2f" ? "Deslizante 2 folhas" : tipo === "boxcanto3f" ? "Box de canto 3 folhas" : tipo === "boxcanto" ? "Box de canto" : tipo === "box2fls" ? "Box 2 folhas" : tipo === "pma2f4m" ? "PMA2F4M" : tipo === "pma6f" ? "PMA6F" : tipo === "pma5f" ? "PMA5F" : tipo === "pma4f" ? "PMA4F" : tipo === "pma3f" ? "PMA3F" : tipo === "pma2f" ? "PMA2F" : tipo === "fixos" ? "Fixos" : tipo === "pg_2f" ? "PG - 2 folhas" : tipo === "pg_1f" ? "PG - 1 folha" : tipo === "jc4f_barra" ? "JC4F - BARRA" : tipo === "pc4f_barra" ? "PC4F - BARRA" : tipo === "jc2f_barra" ? "JC2F - BARRA" : tipo === "pc2f_barra" ? "PC2F - BARRA" : tipo === "pfv2f_barra" ? "PFV2F - BARRA" : tipo === "pfv1f_barra" ? "PFV1F - BARRA" : tipo === "jc2f_kit" ? "JC2F - KIT" : tipo === "jc4f_kit" ? "JC4F - KIT" : tipo === "pc4f_kit" ? "PC4F - KIT" : tipo === "pc2f_kit" ? "PC2F - KIT" : tipo === "pfv2f_kit" ? "PFV2F - KIT" : "PFV1F - KIT")),

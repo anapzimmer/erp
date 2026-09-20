@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Document, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ForaEsquadroPecaPDF = {
   indice: number;
@@ -46,55 +46,55 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingHorizontal: 36,
     paddingBottom: 44,
-    backgroundColor: "#ffffff",
-    color: "#153047",
-    fontFamily: "Helvetica",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
+    fontFamily: "Inter",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     borderBottomWidth: 1,
-    borderBottomColor: "#d9e2ea",
+    borderBottomColor: PDF_COLORS.border,
     paddingBottom: 12,
     marginBottom: 12,
   },
   headerBrand: { width: 165, paddingRight: 18 },
   headerText: { flex: 1, alignItems: "flex-end" },
-  title: { fontSize: 15, color: "#153047", fontWeight: "bold", textTransform: "uppercase" },
-  subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5, textAlign: "right" },
+  title: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: "bold", textTransform: "uppercase" },
+  subtitle: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 5, textAlign: "right" },
   logo: { width: 118, height: 42, objectFit: "contain", objectPosition: "left" },
-  brandFallback: { fontSize: 16, color: "#153047", fontWeight: "bold" },
-  brandSlogan: { fontSize: 7.5, color: "#6f8193", marginTop: 3 },
+  brandFallback: { fontSize: 16, color: PDF_COLORS.ink, fontWeight: "bold" },
+  brandSlogan: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 3 },
   infoStrip: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
   },
   infoBox: { width: "23.7%" },
   infoBoxWide: { width: "48.5%" },
-  label: { fontSize: 6.5, color: "#718398", textTransform: "uppercase", marginBottom: 3 },
-  value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
+  label: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  value: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
   drawingBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 10,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 10, color: "#153047", fontWeight: "bold", marginBottom: 7 },
+  sectionTitle: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold", marginBottom: 7 },
   drawing: { width: "100%", height: 250 },
   table: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 7,
     overflow: "hidden",
   },
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: 22,
     alignItems: "center",
-    backgroundColor: "#f3f6f9",
+    backgroundColor: PDF_COLORS.panelBg,
   },
   row: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     minHeight: 24,
     alignItems: "center",
   },
-  th: { padding: 5, fontSize: 6.5, color: "#153047", textTransform: "uppercase", fontWeight: "bold" },
-  td: { padding: 5, fontSize: 7, color: "#153047" },
+  th: { padding: 5, fontSize: 6.5, color: PDF_COLORS.ink, textTransform: "uppercase", fontWeight: "bold" },
+  td: { padding: 5, fontSize: 7, color: PDF_COLORS.ink },
   colPeca: { width: "12%" },
   colMedida: { width: "18%" },
   colAltura: { width: "18%" },
@@ -123,13 +123,13 @@ const styles = StyleSheet.create({
     gap: 7,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 10,
   },
   totalBox: { flex: 1 },
-  totalLabel: { fontSize: 6.5, color: "#718398", textTransform: "uppercase", marginBottom: 3 },
-  totalValue: { fontSize: 10, color: "#153047", fontWeight: "normal" },
-  totalValueStrong: { fontSize: 12, color: "#153047", fontWeight: "bold" },
+  totalLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  totalValue: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "normal" },
+  totalValueStrong: { fontSize: 12, color: PDF_COLORS.ink, fontWeight: "bold" },
   footer: {
     position: "absolute",
     bottom: 18,
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     right: 36,
     textAlign: "center",
     fontSize: 7,
-    color: "#8a9aab",
+    color: PDF_COLORS.muted,
     borderTopWidth: 0.5,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 8,
   },
 });
@@ -170,12 +170,12 @@ function DesenhoPDF({
 
   return (
     <Svg width="100%" height={250} viewBox={`0 0 ${svgW} ${svgH}`}>
-      <Rect x={0} y={0} width={svgW} height={svgH} rx={12} fill="#f8fafc" />
-      <Path d={pathVidro} fill="#e3f3fa" stroke="#b9c9d4" strokeWidth={1.4} />
-      <Path d={pathVidro} fill="none" stroke="#e4eef4" strokeWidth={6.8} opacity={0.95} />
-      <Path d={pathVidro} fill="none" stroke="#b9c9d4" strokeWidth={0.9} opacity={0.78} />
-      <Line x1={x0 + 22} y1={yInicial + 22} x2={x0 + drawW * 0.68} y2={yTopoEm(totalDivisoes * 0.68) + 28} stroke="#ffffff" strokeWidth={5.2} opacity={0.22} />
-      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(totalDivisoes * 0.38) + 32} x2={x0 + drawW - 34} y2={yFinal + 42} stroke="#ffffff" strokeWidth={4} opacity={0.24} />
+      <Rect x={0} y={0} width={svgW} height={svgH} rx={12} fill={PDF_COLORS.panelBg} />
+      <Path d={pathVidro} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={1.4} />
+      <Path d={pathVidro} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={6.8} opacity={0.95} />
+      <Path d={pathVidro} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={0.9} opacity={0.78} />
+      <Line x1={x0 + 22} y1={yInicial + 22} x2={x0 + drawW * 0.68} y2={yTopoEm(totalDivisoes * 0.68) + 28} stroke={PDF_COLORS.white} strokeWidth={5.2} opacity={0.22} />
+      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(totalDivisoes * 0.38) + 32} x2={x0 + drawW - 34} y2={yFinal + 42} stroke={PDF_COLORS.white} strokeWidth={4} opacity={0.24} />
 
       {Array.from({ length: Math.max(totalDivisoes - 1, 0) }, (_, index) => {
         const posicao = index + 1;
@@ -186,25 +186,25 @@ function DesenhoPDF({
 
         return (
           <React.Fragment key={posicao}>
-            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke="#b9c9d4" strokeWidth={1} />
-            <Text x={x + 4} y={yTexto} style={{ fontSize: 8, fill: "#153047" }}>
+            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke={PDF_COLORS.softMuted} strokeWidth={1} />
+            <Text x={x + 4} y={yTexto} style={{ fontSize: 8, fill: PDF_COLORS.ink }}>
               {Math.round(altura)}
             </Text>
           </React.Fragment>
         );
       })}
 
-      <Line x1={x0} y1={yBase + 20} x2={x0 + drawW} y2={yBase + 20} stroke="#2086e8" strokeWidth={0.9} />
-      <Line x1={x0} y1={yBase + 14} x2={x0} y2={yBase + 26} stroke="#2086e8" strokeWidth={0.9} />
-      <Line x1={x0 + drawW} y1={yBase + 14} x2={x0 + drawW} y2={yBase + 26} stroke="#2086e8" strokeWidth={0.9} />
-      <Text x={x0 + drawW / 2 - 28} y={yBase + 36} style={{ fontSize: 10, fill: "#153047" }}>
+      <Line x1={x0} y1={yBase + 20} x2={x0 + drawW} y2={yBase + 20} stroke={PDF_COLORS.muted} strokeWidth={0.9} />
+      <Line x1={x0} y1={yBase + 14} x2={x0} y2={yBase + 26} stroke={PDF_COLORS.muted} strokeWidth={0.9} />
+      <Line x1={x0 + drawW} y1={yBase + 14} x2={x0 + drawW} y2={yBase + 26} stroke={PDF_COLORS.muted} strokeWidth={0.9} />
+      <Text x={x0 + drawW / 2 - 28} y={yBase + 36} style={{ fontSize: 10, fill: PDF_COLORS.ink }}>
         {fmtMm(largura)}
       </Text>
 
-      <Text x={x0 + 7} y={(yInicial + yBase) / 2} style={{ fontSize: 9, fill: "#153047" }}>
+      <Text x={x0 + 7} y={(yInicial + yBase) / 2} style={{ fontSize: 9, fill: PDF_COLORS.ink }}>
         {fmtMm(alturaInicial)}
       </Text>
-      <Text x={x0 + drawW - 34} y={(yFinal + yBase) / 2} style={{ fontSize: 9, fill: "#153047" }}>
+      <Text x={x0 + drawW - 34} y={(yFinal + yBase) / 2} style={{ fontSize: 9, fill: PDF_COLORS.ink }}>
         {fmtMm(alturaFinal)}
       </Text>
     </Svg>

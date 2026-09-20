@@ -1,5 +1,6 @@
 ﻿"use client"
 import React, { useEffect, useState, useRef } from "react"
+
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
@@ -39,14 +40,8 @@ export default function ServicosPage() {
 
   // ESTADOS DE BRANDING (Iniciam com padrão e mudam depois)
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-  const [logoUrl, setLogoUrl] = useState("/glasscode2.png");
-  const [theme, setTheme] = useState({
-    primary: "#1C415B",
-    secondary: "#FFFFFF",
-    tertiary: "#39B89F",
-    hover: "#39B89F",
-    bgLight: "#F4F7FA"
-  });
+  const [logoUrl, setLogoUrl] = useState("/glasscode-dark.png");
+  const theme = { primary: "var(--text-primary)", secondary: "var(--surface)", tertiary: "var(--primary)", hover: "var(--navigation-hover)", bgLight: "var(--background)" };
 
   // --- ESTADOS LÓGICA ---
   const [servicos, setServicos] = useState<Servico[]>([])
@@ -99,7 +94,7 @@ if (emp) setNomeEmpresa(emp.nome);
 // 2. BUSQUE A LOGO NA TABELA DE BRANDING
 const { data: branding, error: brandingError } = await supabase
   .from("configuracoes_branding") // --- TABELA CORRETA ---
-  .select("*")
+  .select("logo_light, logo_dark")
   .eq("empresa_id", perfil.empresa_id)
   .single();
 
@@ -108,17 +103,11 @@ if (branding) {
   if (branding.logo_dark) {
     setLogoUrl(branding.logo_dark);
   } else {
-    setLogoUrl("/glasscode2.png");
+    setLogoUrl("/glasscode-dark.png");
   }
 
   // --- ATUALIZE O TEMA COM O RESTO DOS DADOS ---
-  setTheme({
-    primary: branding.menu_background_color || "#1C415B",
-    secondary: "#FFFFFF",
-    tertiary: branding.menu_icon_color || "#39B89F",
-    hover: branding.menu_hover_color || "#39B89F",
-    bgLight: branding.screen_background_color || "#F4F7FA"
-  });
+
 }
           // Carrega os serviços da empresa
           await carregarDados(perfil.empresa_id);
@@ -205,7 +194,7 @@ if (branding) {
     });
   };
 
-  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
+  if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-surface-secondary"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icone;
@@ -215,7 +204,7 @@ if (branding) {
         <div onClick={() => { if (!temSubmenu) { router.push(item.rota); setShowMobileMenu(false); } }}
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
           style={{ color: theme.secondary }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.hover}33`}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${theme.hover} 20%, transparent)`}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
         >
           <div className="flex items-center gap-3">
@@ -229,7 +218,7 @@ if (branding) {
               <div key={sub.nome} onClick={() => { router.push(sub.rota); setShowMobileMenu(false); }}
                 className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
                 style={{ color: theme.secondary }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.hover}33`}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${theme.hover} 20%, transparent)`}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               >{sub.nome}</div>
             ))}
@@ -263,15 +252,15 @@ if (branding) {
         />
 
         <main className="cad-main-panel flex-1 min-w-0 p-4 md:p-8 xl:p-10">
-          <section className="mb-10 rounded-[24px] border border-gray-100 bg-white p-6 shadow-sm">
+          <section className="mb-10 rounded-[24px] border border-border bg-surface p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${theme.tertiary}15`, color: theme.tertiary }}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `color-mix(in srgb, ${theme.tertiary} 8%, transparent)`, color: theme.tertiary }}>
                   <Briefcase size={23} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: theme.primary }}>Catálogo de serviços</h1>
-                  <p className="mt-1 text-sm font-normal text-gray-500">Gerencie serviços, unidades e preços.</p>
+                  <p className="mt-1 text-sm font-normal text-text-secondary">Gerencie serviços, unidades e preços.</p>
                 </div>
               </div>
             </div>
@@ -284,13 +273,13 @@ if (branding) {
               { label: "Unitário", value: servicos.filter(s => s.unidade === "unitário").length, icon: Package },
               { label: "Metro linear", value: servicos.filter(s => s.unidade === "metro_linear").length, icon: Wrench },
             ].map(item => (
-              <div key={item.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div key={item.label} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${theme.tertiary}12`, color: theme.tertiary }}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in srgb, ${theme.tertiary} 7%, transparent)`, color: theme.tertiary }}>
                     <item.icon size={18} />
                   </span>
                   <div>
-                    <p className="text-xs font-normal text-gray-400">{item.label}</p>
+                    <p className="text-xs font-normal text-text-secondary">{item.label}</p>
                     <p className="text-xl font-semibold" style={{ color: theme.primary }}>{item.value}</p>
                   </div>
                 </div>
@@ -298,17 +287,17 @@ if (branding) {
             ))}
           </section>
 
-          <section className="mb-8 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <section className="mb-8 rounded-2xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="relative w-full md:max-w-xl">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
                 <input
                   type="text"
                   placeholder="Buscar por nome..."
                   value={filtroNome}
                   onChange={e => setFiltroNome(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                  style={{ "--tw-ring-color": `${theme.tertiary}25` } as any}
+                  className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2"
+                  style={{ "--tw-ring-color": `color-mix(in srgb, ${theme.tertiary} 15%, transparent)` } as any}
                 />
               </div>
 
@@ -331,16 +320,16 @@ if (branding) {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-normal text-gray-700">Serviços cadastrados</h2>
-                <p className="mt-0.5 text-xs text-gray-400">Exibindo {servicosFiltrados.length} de {servicos.length} serviços</p>
+                <h2 className="text-base font-normal text-text-primary">Serviços cadastrados</h2>
+                <p className="mt-0.5 text-xs text-text-secondary">Exibindo {servicosFiltrados.length} de {servicos.length} serviços</p>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                <thead className="border-b border-border bg-surface-secondary/80 text-xs text-text-secondary">
                   <tr>
                     <th className="px-4 py-3.5 font-normal">Serviço</th>
                     <th className="px-4 py-3.5 font-normal">Unidade</th>
@@ -348,21 +337,21 @@ if (branding) {
                     <th className="px-4 py-3.5 text-center font-normal">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border">
                   {servicosFiltrados.map(s => (
-                    <tr key={s.id} className="transition-colors hover:bg-gray-50/80">
-                      <td className="px-4 py-3.5 text-gray-700">{s.nome}</td>
+                    <tr key={s.id} className="transition-colors hover:bg-surface-secondary/80">
+                      <td className="px-4 py-3.5 text-text-primary">{s.nome}</td>
                       <td className="px-4 py-3.5">
                         <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
-                          style={{ color: theme.tertiary, borderColor: `${theme.tertiary}33`, backgroundColor: `${theme.tertiary}10` }}>
+                          style={{ color: theme.tertiary, borderColor: `color-mix(in srgb, ${theme.tertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.tertiary} 6%, transparent)` }}>
                           {s.unidade}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-700">{formatarPreco(s.preco)}</td>
+                      <td className="px-4 py-3.5 text-text-primary">{formatarPreco(s.preco)}</td>
                       <td className="px-4 py-3.5">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => { setEditando(s); setNovoServico(s); setMostrarModal(true); }} className="rounded-xl p-2.5 transition hover:bg-gray-100" style={{ color: theme.primary }}><Edit2 size={17} /></button>
-                          <button onClick={() => deletarServico(s.id)} className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"><Trash2 size={17} /></button>
+                          <button onClick={() => { setEditando(s); setNovoServico(s); setMostrarModal(true); }} className="rounded-xl p-2.5 transition hover:bg-surface-secondary" style={{ color: theme.primary }}><Edit2 size={17} /></button>
+                          <button onClick={() => deletarServico(s.id)} className="rounded-xl p-2.5 text-danger transition hover:bg-danger-soft hover:text-danger"><Trash2 size={17} /></button>
                         </div>
                       </td>
                     </tr>
@@ -376,19 +365,19 @@ if (branding) {
 
       {/* MODAL */}
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">{editando ? "Editar" : "Novo"} Serviço</h2>
-                <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200" />
+                <h2 className="text-lg font-semibold text-text-primary">{editando ? "Editar" : "Novo"} Serviço</h2>
+                <div className="mt-2 h-0.5 w-8 rounded-full bg-border" />
               </div>
-              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+              <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary" title="Fechar">
                 <X size={16} />
               </button>
             </div>
             <div className="space-y-4 px-5 py-5">
-              <input type="text" placeholder="Nome do Serviço" value={novoServico.nome} onChange={e => setNovoServico({ ...novoServico, nome: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+              <input type="text" placeholder="Nome do Serviço" value={novoServico.nome} onChange={e => setNovoServico({ ...novoServico, nome: e.target.value })} className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
               <div className="grid grid-cols-2 gap-4">
                 <select
                   value={novoServico.unidade}
@@ -396,7 +385,7 @@ if (branding) {
                     ...novoServico,
                     unidade: e.target.value as Servico["unidade"]
                   })}
-                  className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                  className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                   style={{ "--tw-ring-color": theme.tertiary } as any}
                 >
                   <option value="m²">m²</option>
@@ -411,12 +400,12 @@ if (branding) {
                     ...novoServico,
                     preco: parseFloat(e.target.value) || 0
                   })}
-                  className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                  className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                   style={{ "--tw-ring-color": theme.tertiary } as any}
                 />
               </div>
               <div className="flex justify-end gap-3 pt-3">
-                <button onClick={() => setMostrarModal(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50">Cancelar</button>
+                <button onClick={() => setMostrarModal(false)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary">Cancelar</button>
                 <button onClick={salvarServico} className="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:brightness-95" style={{ backgroundColor: theme.tertiary, color: theme.primary }}>
                   {carregando ? <Loader2 className="animate-spin" size={20} /> : "Salvar"}
                 </button>

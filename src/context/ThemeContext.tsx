@@ -1,17 +1,9 @@
-//ThemeContext.tsx
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useCallback
-} from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { resolveCompanyLogos } from "@/design/companyLogos";
 
-// Tipagem rigorosa para evitar erros de propriedade inexistente
 export interface ThemeColors {
   screenBackgroundColor: string;
   menuBackgroundColor: string;
@@ -36,177 +28,79 @@ export interface ThemeColors {
   logoDarkUrl: string | null;
 }
 
-const defaultTheme: ThemeColors = {
-  screenBackgroundColor: "#F4F7FA",
-  menuBackgroundColor: "#1C415B",
-  menuTextColor: "#FFFFFF",
-  menuIconColor: "#39B89F",
-  menuHoverColor: "#2A5C7E",
-  contentTextLightBg: "#1C415B",
-  contentTextDarkBg: "#FFFFFF",
-  buttonDarkBg: "#1C415B",
-  buttonDarkText: "#FFFFFF",
-  buttonLightBg: "#FFFFFF",
-  buttonLightText: "#1C415B",
-  modalBackgroundColor: "#FFFFFF",
-  modalTextColor: "#1C415B",
-  modalButtonBackgroundColor: "#1C415B",
-  modalButtonTextColor: "#FFFFFF",
-  modalIconSuccessColor: "#059669",
-  modalIconErrorColor: "#DC2626",
-  modalIconWarningColor: "#D97706",
-  logoLightUrl: "/glasscode.png",
-  logoDarkUrl: "/glasscode2.png",
-};
 
+export type ThemeMode = "light" | "dark" | "system";
+const MODE_KEY = "glasscode:appearance";
+const officialColors = {
+  screenBackgroundColor: "var(--background)", menuBackgroundColor: "var(--navigation)",
+  menuTextColor: "var(--on-navigation)", menuIconColor: "var(--primary)", menuHoverColor: "var(--navigation-hover)",
+  contentTextLightBg: "var(--text-primary)", contentTextDarkBg: "var(--surface)",
+  buttonDarkBg: "var(--primary)", buttonDarkText: "var(--on-primary)",
+  buttonLightBg: "var(--surface)", buttonLightText: "var(--text-primary)",
+  modalBackgroundColor: "var(--surface)", modalTextColor: "var(--text-primary)",
+  modalButtonBackgroundColor: "var(--primary)", modalButtonTextColor: "var(--on-primary)",
+  modalIconSuccessColor: "var(--success)", modalIconErrorColor: "var(--danger)", modalIconWarningColor: "var(--warning)",
+};
 interface ThemeContextType {
   theme: ThemeColors;
   refreshTheme: () => Promise<void>;
   isLoading: boolean;
+  mode: ThemeMode;
+  resolvedMode: "light" | "dark";
+  setMode: (mode: ThemeMode) => void;
 }
-
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState<ThemeColors>(defaultTheme);
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [logos, setLogos] = useState(() => resolveCompanyLogos());
   const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTheme = useCallback(async (showLoader = false) => {
-    try {
-      if (showLoader) {
-        setIsLoading(true);
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        setTheme(defaultTheme); // Se não há sessão, volta ao padrão
-        return;
-      }
-
-      // BUSCA O PERFIL COM EMPRESA_ID ESPECÍFICO DO USUÁRIO LOGADO
-      const { data: perfil, error: perfilError } = await supabase
-        .from("perfis_usuarios") // Certifique-se que o nome é este no banco
-        .select("*") // Usar * evita o erro 400 se 'nome_completo' não existir
-        .eq("id", session.user.id)
-        .maybeSingle();
-
-      if (perfilError) {
-        console.error("Erro ao buscar vínculo de empresa:", perfilError);
-        setTheme(defaultTheme);
-        return;
-      }
-
-      if (!perfil?.empresa_id) {
-        setTheme(defaultTheme);
-        return;
-      }
-
-      const { data: branding, error: brandingError } = await supabase
-        .from("configuracoes_branding")
-        .select("*")
-        .eq("empresa_id", perfil.empresa_id) // 👈 O segredo está aqui
-        .limit(1)
-        .maybeSingle();
-
-      if (brandingError && brandingError.code !== 'PGRST116') throw brandingError;
-
-      if (branding) {
-        setTheme({
-          screenBackgroundColor: branding.screen_background_color || defaultTheme.screenBackgroundColor,
-          menuBackgroundColor: branding.menu_background_color || defaultTheme.menuBackgroundColor,
-          menuTextColor: branding.menu_text_color || defaultTheme.menuTextColor,
-          menuIconColor: branding.menu_icon_color || defaultTheme.menuIconColor,
-          menuHoverColor: branding.menu_hover_color || defaultTheme.menuHoverColor,
-          contentTextLightBg: branding.content_text_light_bg || defaultTheme.contentTextLightBg,
-          contentTextDarkBg: branding.content_text_dark_bg || defaultTheme.contentTextDarkBg,
-          buttonDarkBg: branding.button_dark_bg || defaultTheme.buttonDarkBg,
-          buttonDarkText: branding.button_dark_text || defaultTheme.buttonDarkText,
-          buttonLightBg: branding.button_light_bg || defaultTheme.buttonLightBg,
-          buttonLightText: branding.button_light_text || defaultTheme.buttonLightText,
-          modalBackgroundColor: branding.modal_background_color || defaultTheme.modalBackgroundColor,
-          modalTextColor: branding.modal_text_color || defaultTheme.modalTextColor,
-          modalButtonBackgroundColor: branding.modal_button_background_color || defaultTheme.modalButtonBackgroundColor,
-          modalButtonTextColor: branding.modal_button_text_color || defaultTheme.modalButtonTextColor,
-          modalIconSuccessColor: branding.modal_icon_success_color || defaultTheme.modalIconSuccessColor,
-          modalIconErrorColor: branding.modal_icon_error_color || defaultTheme.modalIconErrorColor,
-          modalIconWarningColor: branding.modal_icon_warning_color || defaultTheme.modalIconWarningColor,
-          logoUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
-          logoLightUrl: branding.logo_light || defaultTheme.logoLightUrl,
-          logoDarkUrl: branding.logo_dark || defaultTheme.logoDarkUrl,
-        });
-      } else {
-        // Evita manter tema/logo de uma empresa anterior em memória.
-        setTheme(defaultTheme);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar branding:", error);
-      setTheme(defaultTheme);
-    } finally {
-      setIsLoading(false);
-    }
+  const [mode, updateMode] = useState<ThemeMode>("system");
+  const [resolvedMode, setResolvedMode] = useState<"light" | "dark">("light");
+  const generation = useRef(0);
+  useEffect(() => {
+    try { const saved = localStorage.getItem(MODE_KEY); if (saved === "light" || saved === "dark" || saved === "system") updateMode(saved); } catch {}
   }, []);
-
   useEffect(() => {
-    fetchTheme(true);
-  }, [fetchTheme]);
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-        fetchTheme(false);
-      }
-
-      if (event === "SIGNED_OUT") {
-        setTheme(defaultTheme);
-        setIsLoading(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      const resolved = mode === "system" ? (media.matches ? "dark" : "light") : mode;
+      document.documentElement.dataset.theme = resolved;
+      setResolvedMode(resolved);
     };
-  }, [fetchTheme]);
-
-  
-  // Sincronização de CSS Variables
+    apply(); media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [mode]);
+  const setMode = (next: ThemeMode) => { updateMode(next); try { localStorage.setItem(MODE_KEY, next); } catch {} };
+  const refreshTheme = useCallback(async () => {
+    const current = ++generation.current;
+    let next = resolveCompanyLogos();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase.from("perfis_usuarios").select("empresa_id").eq("id", session.user.id).maybeSingle();
+        if (profile?.empresa_id) {
+          const { data, error } = await supabase.from("configuracoes_branding").select("logo_light, logo_dark").eq("empresa_id", profile.empresa_id).limit(1).maybeSingle();
+          if (error) throw error;
+          next = resolveCompanyLogos(data?.logo_light, data?.logo_dark);
+        }
+      }
+    } catch (error) { console.error("Erro ao carregar logos:", error); }
+    finally { if (current === generation.current) { setLogos(next); setIsLoading(false); } }
+  }, []);
   useEffect(() => {
-    const root = document.documentElement;
-    const styles: Record<string, string> = {
-      "--gc-screen-bg": theme.screenBackgroundColor,
-      "--gc-menu-bg": theme.menuBackgroundColor,
-      "--gc-menu-text": theme.menuTextColor,
-      "--gc-menu-icon": theme.menuIconColor,
-      "--gc-menu-hover": theme.menuHoverColor,
-      "--gc-text-light": theme.contentTextLightBg,
-      "--gc-text-dark": theme.contentTextDarkBg,
-      "--gc-btn-dark-bg": theme.buttonDarkBg,
-      "--gc-btn-dark-text": theme.buttonDarkText,
-      "--gc-modal-bg": theme.modalBackgroundColor,
-      "--gc-modal-text": theme.modalTextColor,
-      "--gc-modal-btn-bg": theme.modalButtonBackgroundColor,
-      "--gc-modal-btn-text": theme.modalButtonTextColor,
-      "--gc-success": theme.modalIconSuccessColor,
-      "--gc-error": theme.modalIconErrorColor,
-      "--gc-warning": theme.modalIconWarningColor,
-    };
-
-    Object.entries(styles).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
+    void refreshTheme();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT" || event === "SIGNED_IN") { ++generation.current; setLogos(resolveCompanyLogos()); }
+      if (event === "SIGNED_OUT") setIsLoading(false);
+      else if (event === "SIGNED_IN" || event === "USER_UPDATED") setTimeout(() => void refreshTheme(), 0);
     });
-  }, [theme]);
-
-  return (
-    <ThemeContext.Provider value={{ theme, refreshTheme: () => fetchTheme(false), isLoading }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-export const useTheme = () => {
+    const invalidatePending = () => { ++generation.current; };
+    return () => { invalidatePending(); subscription.unsubscribe(); };
+  }, [refreshTheme]);
+  const theme = useMemo(() => ({ ...officialColors, ...logos, logoUrl: resolvedMode === "dark" ? logos.logoDarkUrl : logos.logoLightUrl }), [logos, resolvedMode]);
+  return <ThemeContext.Provider value={{ theme, refreshTheme, isLoading, mode, resolvedMode, setMode }}>{children}</ThemeContext.Provider>;
+}
+export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) throw new Error("useTheme deve ser usado dentro de um ThemeProvider");
   return context;
-};
+}

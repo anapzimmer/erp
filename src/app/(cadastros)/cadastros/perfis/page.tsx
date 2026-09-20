@@ -1,6 +1,7 @@
 ﻿//app/perfis/page.tsx
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react"
+
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { formatarNomePadrao } from "@/utils/formatarNome"
@@ -45,13 +46,13 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
 
   // --- Estados de Cores e Logo (Conectados ao Supabase) ---
   const [logoDark, setLogoDark] = useState<string | null>(null);
-  const [darkPrimary, setDarkPrimary] = useState("#1C415B");
-  const [darkSecondary, setDarkSecondary] = useState("#FFFFFF");
-  const [darkTertiary, setDarkTertiary] = useState("#39B89F");
-  const [darkHover, setDarkHover] = useState("#39B89F");
-  const [lightPrimary, setLightPrimary] = useState("#F4F7FA");
-  const [lightSecondary, setLightSecondary] = useState("#FFFFFF");
-  const [lightTertiary, setLightTertiary] = useState("#1C415B");
+  const darkPrimary = "var(--text-primary)";
+  const darkSecondary = "var(--surface)";
+  const darkTertiary = "var(--primary)";
+  const darkHover = "var(--navigation-hover)";
+  const lightPrimary = "var(--background)";
+  const lightSecondary = "var(--surface)";
+  const lightTertiary = "var(--text-primary)";
 
   // --- Estados da Lógica de Negócio ---
   const [perfis, setPerfis] = useState<Perfil[]>([])
@@ -69,7 +70,6 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
   const [filtroCor, setFiltroCor] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState("")
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [branding, setBranding] = useState<any>(null);
 
   // --- Efeitos de Inicialização e Auth ---
   useEffect(() => {
@@ -106,7 +106,7 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
         // Buscamos o nome da empresa e as configurações visuais em paralelo
         const [resEmpresa, resBranding] = await Promise.all([
           supabase.from("empresas").select("nome").eq("id", empresaId).single(),
-          supabase.from("configuracoes_branding").select("*").eq("empresa_id", empresaId).single()
+          supabase.from("configuracoes_branding").select("logo_light, logo_dark").eq("empresa_id", empresaId).single()
         ]);
 
         if (!resEmpresa.error && resEmpresa.data) {
@@ -118,19 +118,12 @@ const [sidebarExpandido, setSidebarExpandido] = useState(true);
 
           // 🔥 ARRUADO AQUI: Salve as duas logos separadamente
           // Use b.logo_dark para o que for aparecer na tela (se o fundo for escuro)
-          setLogoDark(b.logo_dark);
+          setLogoDark(b.logo_dark || b.logo_light || "/glasscode-dark.png");
 
           // Use b.logo_light para o PDF (que tem fundo branco)
-          setLogoLight(b.logo_light);
+          setLogoLight(b.logo_light || b.logo_dark || "/glasscode-light.png");
 
           // Mapeamento exato das colunas
-          setDarkPrimary(b.menu_background_color || "#1C415B");
-          setDarkSecondary(b.menu_text_color || "#FFFFFF");
-          setDarkTertiary(b.menu_icon_color || "#39B89F");
-          setDarkHover(b.menu_hover_color || "#39B89F");
-          setLightPrimary(b.screen_background_color || "#F4F7FA");
-          setLightSecondary(b.modal_background_color || "#FFFFFF");
-          setLightTertiary(b.content_text_light_bg || "#1C415B");
         }
 
         await carregarDados(empresaId);
@@ -569,7 +562,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1"
           style={{ color: darkSecondary }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = `${darkHover}33`;
+            e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${darkHover} 20%, transparent)`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = "transparent";
@@ -593,7 +586,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 className="text-sm p-2 rounded-lg cursor-pointer hover:translate-x-1 transition-all"
                 style={{ color: darkSecondary }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = `${darkHover}33`;
+                  e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${darkHover} 20%, transparent)`;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
@@ -609,10 +602,10 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   };
 
 
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-surface-secondary"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: darkPrimary, borderBottomColor: darkPrimary, borderLeftColor: darkPrimary }}></div></div>;
 
   return (
-    <div className="cadastros-layout flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
+    <div className="cadastros-layout flex min-h-screen text-text-primary overflow-x-hidden" style={{ backgroundColor: lightPrimary }}>
 
       <Sidebar
         showMobileMenu={showMobileMenu}
@@ -636,12 +629,12 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
         {/* CORPO DA PÁGINA */}
         <main className="cad-main-panel w-full flex-1 min-w-0 p-4 md:p-6 xl:p-8">
-          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
             <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `${darkTertiary}12`, color: darkTertiary }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: darkTertiary }}
                 >
                   <Square size={23} strokeWidth={1.8} />
                 </div>
@@ -653,7 +646,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   >
                     Catálogo de perfis
                   </h1>
-                  <p className="mt-1 text-sm font-normal text-gray-500">
+                  <p className="mt-1 text-sm font-normal text-text-secondary">
                     Gerencie códigos, cores, categorias e preços dos perfis.
                   </p>
                 </div>
@@ -674,7 +667,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 <button
                   onClick={gerarPDF}
                   title="Gerar catálogo em PDF"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Printer size={18} />
                 </button>
@@ -682,7 +675,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 <button
                   onClick={exportarCSV}
                   title="Exportar CSV"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Download size={18} />
                 </button>
@@ -690,7 +683,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                 <label
                   htmlFor="importarCSVPerfis"
                   title="Importar CSV simples"
-                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Upload size={18} />
                   <input
@@ -715,16 +708,16 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
             ].map((card) => (
               <div
                 key={card.titulo}
-                className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm"
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ color: darkTertiary, backgroundColor: `${darkTertiary}10` }}
+                  style={{ color: darkTertiary, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}
                 >
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
                 <div>
-                  <p className="text-xs font-normal text-gray-400">{card.titulo}</p>
+                  <p className="text-xs font-normal text-text-secondary">{card.titulo}</p>
                   <p className="text-xl font-semibold" style={{ color: darkPrimary }}>
                     {card.valor}
                   </p>
@@ -734,7 +727,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           </div>
 
           {/* FILTROS E AÇÕES */}
-          <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-3">
                 {[
@@ -745,15 +738,15 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <div key={label} className="relative">
                     <Search
                       size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary"
                     />
                     <input
                       type="text"
                       placeholder={`Buscar por ${String(label).toLowerCase()}...`}
                       value={valor}
                       onChange={(e) => setter(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
-                      style={{ "--tw-ring-color": `${darkTertiary}25` } as React.CSSProperties}
+                      className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2"
+                      style={{ "--tw-ring-color": `color-mix(in srgb, ${darkTertiary} 15%, transparent)` } as React.CSSProperties}
                     />
                   </div>
                 ))}
@@ -762,7 +755,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={eliminarDuplicados}
-                  className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50"
+                  className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-normal text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Eraser size={16} />
                   Duplicados
@@ -770,7 +763,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
                 <button
                   onClick={limparTodosOsPerfis}
-                  className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+                  className="flex items-center gap-2 rounded-xl border border-danger-soft bg-surface px-3.5 py-2.5 text-sm font-normal text-danger transition hover:bg-danger-soft"
                 >
                   <Trash2 size={16} />
                   Limpar tudo
@@ -789,9 +782,9 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           </section>
 
           {perfisSelecionados.size > 0 && (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CheckSquare2 size={18} className="text-red-500" />
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-danger-soft bg-danger-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                <CheckSquare2 size={18} className="text-danger" />
                 <span>
                   <strong className="font-normal">{perfisSelecionados.size}</strong>{" "}
                   {perfisSelecionados.size === 1 ? "item selecionado" : "itens selecionados"}
@@ -801,13 +794,13 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPerfisSelecionados(new Set())}
-                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface"
                 >
                   Cancelar seleção
                 </button>
                 <button
                   onClick={excluirPerfisSelecionados}
-                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                  className="flex items-center gap-2 rounded-xl bg-danger px-4 py-2 text-xs font-normal text-on-danger transition hover:bg-danger"
                 >
                   <Trash2 size={15} />
                   Excluir selecionados
@@ -817,18 +810,18 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           )}
 
           {/* TABELA */}
-          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-normal text-gray-700">Perfis cadastrados</h2>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <h2 className="text-base font-normal text-text-primary">Perfis cadastrados</h2>
+                <p className="mt-0.5 text-xs text-text-secondary">
                   Exibindo {perfisFiltrados.length} de {totalPerfis} produtos
                 </p>
               </div>
               <button
                 onClick={alternarSelecaoFiltrados}
                 disabled={!perfisFiltrados.length}
-                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-start rounded-xl border border-border bg-surface px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
               >
                 <ListChecks size={15} />
                 {todosFiltradosSelecionados ? "Desmarcar visíveis" : "Selecionar visíveis"}
@@ -836,7 +829,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
             </div>
             <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+              <thead className="border-b border-border bg-surface-secondary/80 text-xs text-text-secondary">
                 <tr>
                   <th className="w-14 px-5 py-3.5">
                     <button
@@ -844,9 +837,9 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                       disabled={!perfisFiltrados.length}
                       className={`flex h-5 w-5 items-center justify-center rounded border transition disabled:opacity-50 ${
                         todosFiltradosSelecionados ? "border-transparent"
-                          : "border-gray-300 bg-white"
+                          : "border-border-strong bg-surface"
                       }`}
-                      style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                      style={todosFiltradosSelecionados ? { backgroundColor: "var(--success)" } : undefined}
                       aria-label="Selecionar todos os perfis visíveis"
                     >
                       {todosFiltradosSelecionados && (
@@ -862,19 +855,19 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   <th className="px-5 py-3.5 text-center font-normal">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-600">
+              <tbody className="divide-y divide-border text-text-secondary">
                 {perfisFiltrados.map(p => {
                   const selecionado = perfisSelecionados.has(p.id)
 
                   return (
-                    <tr key={p.id} className={`transition-colors ${selecionado ? "bg-emerald-50/40" : "hover:bg-gray-50/70"}`}>
+                    <tr key={p.id} className={`transition-colors ${selecionado ? "bg-success-soft/40" : "hover:bg-surface-secondary/70"}`}>
                       <td className="px-5 py-3.5">
                         <button
                           onClick={() => alternarSelecaoPerfil(p.id)}
                           className={`flex h-5 w-5 items-center justify-center rounded border transition ${
-                            selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                            selecionado ? "border-transparent" : "border-border-strong bg-surface"
                           }`}
-                          style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                          style={selecionado ? { backgroundColor: "var(--success)" } : undefined}
                           aria-label={`Selecionar ${p.nome}`}
                         >
                           {selecionado && (
@@ -882,20 +875,20 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                           )}
                         </button>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-500 font-normal">{p.codigo}</td>
-                      <td className="px-4 py-3.5 text-gray-700 font-normal"><span style={{ color: lightTertiary }}>{p.nome}</span></td>
+                      <td className="px-4 py-3.5 text-text-secondary font-normal">{p.codigo}</td>
+                      <td className="px-4 py-3.5 text-text-primary font-normal"><span style={{ color: lightTertiary }}>{p.nome}</span></td>
                       <td className="px-4 py-3.5">
                         <span className="px-3 py-1 rounded-full text-[10px] font-normal uppercase border"
-                          style={{ color: darkTertiary, borderColor: `${darkTertiary}44`, backgroundColor: `${darkTertiary}11` }}>
+                          style={{ color: darkTertiary, borderColor: `color-mix(in srgb, ${darkTertiary} 27%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)` }}>
                           {p.cores || "Padrão"}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-500 font-normal">{p.categoria || "Geral"}</td>
-                      <td className="px-4 py-3.5 text-gray-500 font-normal" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
+                      <td className="px-4 py-3.5 text-text-secondary font-normal">{p.categoria || "Geral"}</td>
+                      <td className="px-4 py-3.5 text-text-secondary font-normal" style={{ color: darkPrimary }}>{p.preco ? formatarPreco(p.preco) : "-"}</td>
                       <td className="px-5 py-3.5 text-center">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => abrirModalParaEdicao(p)} className="p-2 rounded-xl hover:bg-gray-100" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
-                          <button onClick={() => deletarPerfil(p.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50"><Trash2 size={18} /></button>
+                          <button onClick={() => abrirModalParaEdicao(p)} className="p-2 rounded-xl hover:bg-surface-secondary" style={{ color: darkPrimary }}><Edit2 size={18} /></button>
+                          <button onClick={() => deletarPerfil(p.id)} className="p-2 rounded-xl text-danger hover:bg-danger-soft"><Trash2 size={18} /></button>
                         </div>
                       </td>
                     </tr>
@@ -920,26 +913,26 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       />
 
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
           <div
-            className="flex max-h-[92vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[22px] border border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.16)] transition-all"
-            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
+            className="flex max-h-[92vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[22px] border border-border shadow-[0_24px_70px_var(--shadow)] transition-all"
+            style={{ backgroundColor: "var(--surface)" }}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-text-secondary">
                   Catálogo de perfis
                 </p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                <h2 className="mt-1 text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
                   {editando ? "Editar Perfil" : "Cadastrar Perfil"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-text-secondary">
                   Informe os dados principais e, se precisar, preços diferentes por tabela.
                 </p>
               </div>
               <button
                 onClick={() => setMostrarModal(false)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                 title="Fechar"
               >
                 <X size={20} />
@@ -948,84 +941,84 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-              <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+              <section className="rounded-2xl border border-border bg-surface-secondary/70 p-4 sm:p-5">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-700">Dados do perfil</h3>
-                    <p className="mt-1 text-xs text-slate-500">Use o mesmo código e descrição do fornecedor.</p>
+                    <h3 className="text-sm font-semibold text-text-primary">Dados do perfil</h3>
+                    <p className="mt-1 text-xs text-text-secondary">Use o mesmo código e descrição do fornecedor.</p>
                   </div>
-                  <Square size={18} className="text-slate-300" />
+                  <Square size={18} className="text-text-secondary" />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Código do produto</label>
                   <input
                     type="text"
                     placeholder="E?: VT66"
                     value={novoPerfil.codigo}
                     onChange={e => setNovoPerfil({ ...novoPerfil, codigo: e.target.value.toUpperCase() })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": branding?.modal_button_background_color || darkTertiary } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm uppercase text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Cor</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Cor</label>
                   <input
                     type="text"
                     placeholder="E?: Alumínio"
                     value={novoPerfil.cores}
                     onChange={e => setNovoPerfil({ ...novoPerfil, cores: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": branding?.modal_button_background_color || darkTertiary } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                   />
                 </div>
                   <div className="sm:col-span-2">
-                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do perfil *</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Nome do perfil *</label>
                   <input
                     type="text"
                     placeholder="E?: Trilho superior"
                     value={novoPerfil.nome}
                     onChange={e => setNovoPerfil({ ...novoPerfil, nome: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": branding?.modal_button_background_color || darkTertiary } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Categoria</label>
+                  <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Categoria</label>
                   <input
                     type="text"
                     placeholder="E?: Trilho"
                     value={novoPerfil.categoria}
                     onChange={e => setNovoPerfil({ ...novoPerfil, categoria: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                    style={{ "--tw-ring-color": branding?.modal_button_background_color || darkTertiary } as React.CSSProperties}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                    style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                   />
                 </div>
 
                   <div>
-                <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base</label>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
-                      style={{ "--tw-ring-color": branding?.modal_button_background_color || darkTertiary } as React.CSSProperties}
+                <label className="mb-1.5 block px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Preço base</label>
+                    <div className="flex items-center rounded-xl border border-border bg-surface px-3 transition-all focus-within:border-transparent focus-within:ring-2"
+                      style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                     >
-                      <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
+                      <span className="mr-2 text-sm font-semibold text-text-secondary">R$</span>
                       <input
                         type="number"
                         placeholder="0,00"
                         value={novoPerfil.preco ?? ""}
                         onChange={e => setNovoPerfil({ ...novoPerfil, preco: e.target.value ? Number(e.target.value) : null })}
-                        className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
+                        className="w-full bg-transparent py-3 text-sm text-text-primary outline-none"
                       />
                     </div>
                   </div>
                 </div>
               </section>
-                <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                <section className="rounded-3xl border border-border bg-surface p-4 shadow-sm sm:p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Tabelas de preço</h3>
-                      <p className="mt-1 text-xs text-slate-500">Valores específicos por grupo de cliente.</p>
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-text-primary">Tabelas de preço</h3>
+                      <p className="mt-1 text-xs text-text-secondary">Valores específicos por grupo de cliente.</p>
                     </div>
                     <button
                       type="button"
@@ -1036,10 +1029,10 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                       Adicionar
                     </button>
                   </div>
-                  <div className="flex min-h-[172px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-7 text-center">
-                    <Tag size={22} className="text-slate-300" />
-                    <p className="mt-4 text-sm font-medium text-slate-500">Nenhum preço especial cadastrado.</p>
-                    <p className="mt-2 max-w-[210px] text-xs leading-relaxed text-slate-400">
+                  <div className="flex min-h-[172px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-secondary px-4 py-7 text-center">
+                    <Tag size={22} className="text-text-secondary" />
+                    <p className="mt-4 text-sm font-medium text-text-secondary">Nenhum preço especial cadastrado.</p>
+                    <p className="mt-2 max-w-[210px] text-xs leading-relaxed text-text-secondary">
                       O sistema usará o preço base para todos os clientes.
                     </p>
                   </div>
@@ -1047,8 +1040,8 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-              <button onClick={() => setMostrarModal(false)} className="rounded-2xl bg-slate-100 px-7 py-3 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-200">
+            <div className="flex flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+              <button onClick={() => setMostrarModal(false)} className="rounded-2xl bg-surface-secondary px-7 py-3 text-sm font-semibold text-text-secondary transition-all hover:bg-border">
                 Cancelar
               </button>
               <button
@@ -1071,25 +1064,25 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
         aviso={modalAviso}
         onClose={() => setModalAviso(null)}
         colors={{
-          bg: branding?.modal_background_color || "#FFFFFF",
-          text: branding?.modal_text_color || darkPrimary,
-          primaryButtonBg: branding?.modal_button_background_color || darkPrimary,
-          primaryButtonText: branding?.modal_button_text_color || darkSecondary,
-          success: branding?.modal_icon_success_color || "#059669",
-          error: branding?.modal_icon_error_color || "#DC2626",
-          warning: branding?.modal_icon_warning_color || "#D97706",
+          bg: "var(--surface)",
+          text: "var(--text-primary)",
+          primaryButtonBg: "var(--primary)",
+          primaryButtonText: "var(--on-primary)",
+          success: "var(--success)",
+          error: "var(--danger)",
+          warning: "var(--warning)",
         }}
       />
       {/* MODAL DE CARREGAMENTO DA IMPORTAÇÃO */}
       {modalCarregando && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-          <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-border bg-surface p-6 text-center shadow-[0_24px_70px_var(--shadow)]">
             <div className="relative mb-4">
               <Loader2 size={34} className="animate-spin" style={{ color: darkTertiary }} />
-              <Upload size={15} className="absolute inset-0 m-auto text-slate-400" />
+              <Upload size={15} className="absolute inset-0 m-auto text-text-secondary" />
             </div>
-            <h3 className="mb-1 text-base font-semibold text-slate-900">Importando dados</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className="mb-1 text-base font-semibold text-text-primary">Importando dados</h3>
+            <p className="text-sm text-text-secondary">
               Por favor, não feche a página...
             </p>
           </div>

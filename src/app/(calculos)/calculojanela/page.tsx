@@ -171,7 +171,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         larguraRef.current?.focus();
     };
 
-    const focusClass = "focus:ring-1 focus:ring-[#92D050] focus:border-[#92D050] outline-none transition-all font-normal";
+    const focusClass = "focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all font-normal";
 
     const handleNovo = () => {
   // Cliente
@@ -213,27 +213,27 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 }
 
     return (
-        <div className="p-6 bg-[#F8FAFC] min-h-screen font-sans text-[#1C415B]">
+        <div className="p-6 bg-surface-secondary min-h-screen font-sans text-text-primary">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#92D050] rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
+            <div className="p-2 bg-primary rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
             <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Janelas</h1>
             </div>
             <div className="flex gap-2">
             <button onClick={() => { 
                 setItens([])
                 handleNovo()
-                }}className="px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50">Novo Orçamento</button>
-            <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-[#1C415B] rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm"><Printer size={18} /> Gerar PDF</button>
+                }}className="px-4 py-2 border border-border-strong rounded-xl text-sm font-semibold hover:bg-surface-secondary">Novo Orçamento</button>
+            <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-border-strong rounded-xl text-sm font-semibold hover:bg-surface-secondary shadow-sm"><Printer size={18} /> Gerar PDF</button>
             </div>
         </div>
 
         {/* CLIENTE */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-4 relative">
-            <span className="text-[11px] font-bold text-gray-400 uppercase">Cliente:</span>
+        <div className="bg-surface p-4 rounded-2xl shadow-sm border border-border mb-6 flex items-center gap-4 relative">
+            <span className="text-[11px] font-bold text-text-secondary uppercase">Cliente:</span>
             <div className="relative w-96">
-            <input tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-gray-200 bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..." 
+            <input tabIndex={1} type="text" className={`w-full py-1 text-sm border-b border-border bg-transparent px-2 ${focusClass}`} value={buscaCliente} placeholder="Pesquisar cliente..."
                 onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
                 onKeyDown={(e) => {
                 if (e.key === "ArrowDown") setClienteIndex(p => Math.min(p + 1, clientesFiltrados.length - 1));
@@ -245,18 +245,18 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
                 }}
             />
             {mostrarClientes && buscaCliente && (
-                <div className="absolute top-full w-full bg-white border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
+                <div className="absolute top-full w-full bg-surface border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
                 {clientesFiltrados.map((c, i) => (
-                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} onClick={() => { setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
+                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`} onClick={() => { setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
                 ))}
                 </div>
             )}
             </div>
-            <button className="p-2 bg-[#1C415B] text-white rounded-xl"><UserPlus size={20} /></button>
+            <button className="p-2 bg-primary text-on-primary rounded-xl"><UserPlus size={20} /></button>
         </div>
 
         {/* BOX CONFIGURAÇÃO */}
-<div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 mb-6 shadow-sm">
+<div className="bg-surface border border-border rounded-[2.5rem] p-8 mb-6 shadow-sm">
   <div className="grid grid-cols-12 gap-8">
 
     {/* ================= COLUNA ESQUERDA ================= */}
@@ -266,11 +266,11 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
         {/* 1️⃣ JANELA / FOLHAS / TRINCO */}
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] text-gray-300 uppercase">Janela</label>
+          <label className="text-[10px] text-text-secondary uppercase">Janela</label>
 
           <select
             ref={modeloRef}
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+            className={`border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
             value={modelo}
             onChange={e => {
               setModelo(e.target.value)
@@ -286,7 +286,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
           {modelo === "Janela Canto" && (
             <select
-              className={`border border-[#92D050] rounded-xl p-2.5 text-sm ${focusClass}`}
+              className={`border border-primary rounded-xl p-2.5 text-sm ${focusClass}`}
               value={anguloCanto}
               onChange={e => setAnguloCanto(e.target.value)}
             >
@@ -296,7 +296,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           )}
 
           <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+            className={`border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
             value={folhas}
             onChange={e => setFolhas(e.target.value)}
           >
@@ -306,7 +306,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           </select>
 
           <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+            className={`border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
             value={trinco}
             onChange={e => setTrinco(e.target.value)}
           >
@@ -318,10 +318,10 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
         {/* 2️⃣ KIT / COR / VIDRO */}
         <div className="flex flex-col gap-2 relative">
-          <label className="text-[10px] text-gray-300 uppercase">Kit / Vidro</label>
+          <label className="text-[10px] text-text-secondary uppercase">Kit / Vidro</label>
 
           <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+            className={`border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
             value={tipoOrcamento}
             onChange={e => setTipoOrcamento(e.target.value)}
           >
@@ -331,7 +331,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           </select>
 
           <select
-            className={`border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+            className={`border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
             value={corKit}
             onChange={e => {
               setCorKit(e.target.value)
@@ -349,7 +349,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           <div className="relative">
             <input
               type="text"
-              className={`w-full border border-gray-200 rounded-xl p-2.5 text-sm ${focusClass}`}
+              className={`w-full border border-border rounded-xl p-2.5 text-sm ${focusClass}`}
               value={buscaVidro}
               placeholder="Vidro..."
               onChange={e => {
@@ -372,12 +372,12 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
             />
 
             {mostrarVidros && buscaVidro && (
-              <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
+              <div className="absolute top-full w-full bg-surface border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                 {vidrosFiltrados.map((v, i) => (
                   <div
                     key={v.id}
                     className={`px-4 py-2 text-xs cursor-pointer ${
-                      i === vidroIndex ? "bg-[#F4FFF0]" : "hover:bg-gray-50"
+                      i === vidroIndex ? "bg-selection" : "hover:bg-surface-secondary"
                     }`}
                     onClick={() => {
                       setVidroSel(v)
@@ -396,11 +396,11 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         {/* 3️⃣ MEDIDAS */}
         <div className="col-span-2 grid grid-cols-3 gap-2">
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Largura</label>
+            <label className="text-[10px] text-text-secondary uppercase">Largura</label>
             <input
               ref={larguraRef}
               type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+              className={`border border-border rounded-xl p-2.5 text-center ${focusClass}`}
               value={larguraVao}
               onChange={e => setLarguraVao(e.target.value)}
             />
@@ -408,10 +408,10 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
           {modelo === "Janela Canto" && (
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] text-gray-300 uppercase">Largura B</label>
+              <label className="text-[10px] text-text-secondary uppercase">Largura B</label>
               <input
                 type="number"
-                className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
+                className={`border border-primary rounded-xl p-2.5 text-center ${focusClass}`}
                 value={larguraVaoB}
                 onChange={e => setLarguraVaoB(e.target.value)}
               />
@@ -419,10 +419,10 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           )}
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Altura</label>
+            <label className="text-[10px] text-text-secondary uppercase">Altura</label>
             <input
               type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+              className={`border border-border rounded-xl p-2.5 text-center ${focusClass}`}
               value={alturaVao}
               onChange={e => setAlturaVao(e.target.value)}
             />
@@ -430,10 +430,10 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
           {modelo === "Janela Bandeira" && (
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] text-gray-300 uppercase">Alt. Band.</label>
+              <label className="text-[10px] text-text-secondary uppercase">Alt. Band.</label>
               <input
                 type="number"
-                className={`border border-[#92D050] rounded-xl p-2.5 text-center ${focusClass}`}
+                className={`border border-primary rounded-xl p-2.5 text-center ${focusClass}`}
                 value={alturaBandeira}
                 onChange={e => setAlturaBandeira(e.target.value)}
               />
@@ -441,10 +441,10 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
           )}
 
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] text-gray-300 uppercase">Qtd</label>
+            <label className="text-[10px] text-text-secondary uppercase">Qtd</label>
             <input
               type="number"
-              className={`border border-gray-200 rounded-xl p-2.5 text-center ${focusClass}`}
+              className={`border border-border rounded-xl p-2.5 text-center ${focusClass}`}
               value={quantidade}
               onChange={e => setQuantidade(e.target.value)}
             />
@@ -456,11 +456,11 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
                 {/* ADICIONAIS */}
                 <div className="mt-8 pt-4">
-                    <div className="flex items-center gap-2 mb-2"><Plus size={14} className="text-[#92D050]" /><span className="text-[10px] font-black text-[#92D050] uppercase">Adicional (Ferragens/Perfis)</span></div>
+                    <div className="flex items-center gap-2 mb-2"><Plus size={14} className="text-selection-text" /><span className="text-[10px] font-black text-selection-text uppercase">Adicional (Ferragens/Perfis)</span></div>
                     <div className="grid grid-cols-12 gap-4 mb-3">
                     <div className="col-span-8 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-                        <input type="text" placeholder="Pesquisar adicional..." className={`w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm ${focusClass}`} value={buscaAdicional} 
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={14} />
+                        <input type="text" placeholder="Pesquisar adicional..." className={`w-full pl-9 pr-4 py-2 border border-border rounded-xl text-sm ${focusClass}`} value={buscaAdicional}
                         onChange={(e) => { setBuscaAdicional(e.target.value); setMostrarAdicionais(true); setAdicionalIndex(-1); }}
                         onKeyDown={(e) => {
                             if (e.key === "ArrowDown") setAdicionalIndex(p => Math.min(p + 1, adicionaisFiltrados.length - 1));
@@ -472,76 +472,76 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
                         }}
                         />
                         {mostrarAdicionais && buscaAdicional && (
-                        <div className="absolute top-full w-full bg-white border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
+                        <div className="absolute top-full w-full bg-surface border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                             {adicionaisFiltrados.map((a, i) => (
-                            <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-[#F4FFF0] text-[#1C415B] font-bold" : "hover:bg-gray-50"}`} 
+                            <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`}
                                 onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(String(a.preco)); setMostrarAdicionais(false); }}>
-                                <span>{a.codigo} - {a.nome} <span className="text-gray-400 font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
-                                <span className="text-[#92D050] font-bold">R$ {a.preco}</span>
+                                <span>{a.codigo} - {a.nome} <span className="text-text-secondary font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
+                                <span className="text-selection-text font-bold">R$ {a.preco}</span>
                             </div>
                             ))}
                         </div>
                         )}
                     </div>
-                    <div className="col-span-2"><input type="text" className={`w-full p-2 bg-[#F4FFF0] border border-[#92D050]/20 rounded-xl text-sm text-center ${focusClass}`} value={qtdAdicional} onChange={e => setQtdAdicional(e.target.value)} /></div>
+                    <div className="col-span-2"><input type="text" className={`w-full p-2 bg-selection border border-primary/20 rounded-xl text-sm text-center ${focusClass}`} value={qtdAdicional} onChange={e => setQtdAdicional(e.target.value)} /></div>
                     <div className="col-span-2"><button onClick={() => {
                         if (!buscaAdicional) return;
                         setAdicionaisPendentes([...adicionaisPendentes, { texto: buscaAdicional, qtd: qtdAdicional, valor: valorUnitAdicional }]);
                         setBuscaAdicional(""); setValorUnitAdicional("0,00"); setQtdAdicional("1");
-                    }} className="w-full bg-[#92D050] text-white py-2 rounded-xl font-bold text-[10px] uppercase shadow-md">+ Selecionar</button></div>
+                    }} className="w-full bg-primary text-on-primary py-2 rounded-xl font-bold text-[10px] uppercase shadow-md">+ Selecionar</button></div>
                     </div>
 
                     {adicionaisPendentes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-3 rounded-2xl border border-dashed border-gray-200">
+                    <div className="flex flex-wrap gap-2 mb-4 bg-surface-secondary p-3 rounded-2xl border border-dashed border-border">
                         {adicionaisPendentes.map((adic, idx) => (
-                        <div key={idx} className="bg-white px-3 py-1 rounded-full border border-gray-200 text-[10px] flex items-center gap-2">
-                            <span className="font-bold text-[#92D050]">{adic.qtd}x</span> {adic.texto}
-                            <button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}><X size={12} className="text-red-300" /></button>
+                        <div key={idx} className="bg-surface px-3 py-1 rounded-full border border-border text-[10px] flex items-center gap-2">
+                            <span className="font-bold text-selection-text">{adic.qtd}x</span> {adic.texto}
+                            <button onClick={() => setAdicionaisPendentes(adicionaisPendentes.filter((_, i) => i !== idx))}><X size={12} className="text-danger" /></button>
                         </div>
                         ))}
                     </div>
                     )}
 
                     <div className="flex justify-end gap-3">
-                    <button tabIndex={11} onClick={adicionarItem} className="bg-[#1C415B] text-white px-10 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Item ao Orçamento</button>
+                    <button tabIndex={11} onClick={adicionarItem} className="bg-primary text-on-primary px-10 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all outline-none">Adicionar Item ao Orçamento</button>
                     </div>
                 </div>
             </div>
 
             <div className="col-span-2 flex items-center justify-center">
-                <div className="w-full aspect-square bg-gray-50 rounded-4xl border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
-                    {imgPath ? <Image src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" width={200} height={200} /> : <ImageIcon className="text-gray-200" size={40} />}
+                <div className="w-full aspect-square bg-surface-secondary rounded-4xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
+                    {imgPath ? <Image src={imgPath} className="w-full h-full object-contain p-4" alt="Preview" width={200} height={200} /> : <ImageIcon className="text-text-secondary" size={40} />}
                 </div>
             </div>
             </div>
         </div>
 
         {/* TABELA RESULTADOS */}
-        <div className="rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm">
+        <div className="rounded-3xl overflow-hidden border border-border bg-surface shadow-sm">
             <table className="w-full text-left text-sm">
-            <thead className="bg-[#1C415B] text-white text-[10px] uppercase font-bold tracking-widest">
+            <thead className="bg-navigation text-white text-[10px] uppercase font-bold tracking-widest">
                 <tr><th className="p-4">DESCRIÇÃO / VIDRO / EXTRAS</th><th className="p-4 text-center">QTD</th><th className="p-4 text-center">MEDIDA DO VÃO (MM)</th><th className="p-4 text-center">TOTAL</th><th className="p-4 text-center">AÇÕES</th></tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
                 {itens.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={item.id} className="hover:bg-surface-secondary transition-colors">
                     <td className="p-4 flex items-start gap-4">
                     {item.imagem && <Image src={item.imagem} className="w-20 h-20 object-contain" alt="item" width={80} height={80} />}
                     <div>
-                        <span className="uppercase text-[#1C415B] text-xs font-bold block">{item.descricao}</span>
-                        <span className="text-[10px] text-gray-400 font-normal block">{item.vidroInfo}</span>
+                        <span className="uppercase text-text-primary text-xs font-bold block">{item.descricao}</span>
+                        <span className="text-[10px] text-text-secondary font-normal block">{item.vidroInfo}</span>
                         {item.adicionais && item.adicionais.map((a: AdicionalPendente, i: number) => (
-                        <span key={i} className="text-[9px] text-[#92D050] font-medium block">+ {a.qtd}x {a.texto}</span>
+                        <span key={i} className="text-[9px] text-selection-text font-medium block">+ {a.qtd}x {a.texto}</span>
                         ))}
                     </div>
                     </td>
                     <td className="p-4 text-center">{item.quantidade}</td>
-                    <td className="p-4 text-center font-mono text-xs">{item.medidaVao}</td>
-                    <td className="p-4 text-center text-[#92D050] font-bold">
+                    <td className="p-4 text-center font-sans text-xs">{item.medidaVao}</td>
+                    <td className="p-4 text-center text-selection-text font-bold">
                     {item.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
                     <td className="p-4 text-center">
-                    <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-red-300 hover:text-red-500"><Trash2 size={18} /></button>
+                    <button onClick={() => setItens(itens.filter(i => i.id !== item.id))} className="text-danger hover:text-danger"><Trash2 size={18} /></button>
                     </td>
                 </tr>
                 ))}

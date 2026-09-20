@@ -23,3 +23,6 @@ export function prazoRegularizacao(base = dataBrasil()) {
   data.setUTCDate(data.getUTCDate() + 3);
   return data.toISOString().slice(0, 10);
 }
+export function diasParaRegularizar(prazo: string, base = dataBrasil()) {
+  return Math.round((Date.parse(`${prazo}T12:00:00Z`) - Date.parse(`${base}T12:00:00Z`)) / 86400000);
+}

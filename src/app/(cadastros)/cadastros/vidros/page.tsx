@@ -3,6 +3,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
+import { DRAWING_COLORS } from "@/design/drawing";
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import { decodeCsvFile } from "@/utils/csvEncoding"
@@ -666,7 +667,7 @@ const carregarBranding = useCallback(async () => {
   try {
     const { data, error } = await supabase
       .from('configuracoes_branding')
-      .select('*')
+      .select("logo_light, logo_dark")
       .eq('empresa_id', empresaId) // 🔥 FILTRO ESSENCIAL: busca apenas o branding desta empresa
       .single();
 
@@ -686,16 +687,16 @@ const carregarBranding = useCallback(async () => {
 
 
 // 2. Antes de chegar ao PDFDownloadLink, defina as constantes:
-const logoLight = branding?.logo_light || null;
-  const darkPrimary = branding?.button_dark_bg || '#1C415B';
-  const darkSecondary = branding?.button_dark_text || '#FFFFFF';
-  const darkTertiary = branding?.menu_hover_color || '#39B89F';
-  const textDefault = branding?.content_text_light_bg || '#1C415B';
+const logoLight = branding?.logo_light || branding?.logo_dark || null;
+  const darkPrimary = "var(--navigation)";
+  const darkSecondary = "var(--on-navigation)";
+  const darkTertiary = "var(--primary)";
+  const textDefault = "var(--text-primary)";
 
-  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div></div>;
+  if (checkingAuth) return <div className="flex items-center justify-center min-h-screen bg-surface-secondary"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div></div>;
 
   return (
-    <div className="cadastros-layout flex min-h-screen text-gray-900" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="cadastros-layout flex min-h-screen text-text-primary" style={{ backgroundColor: theme.screenBackgroundColor }}>
     {/* --- SIDEBAR CORRIGIDA --- */}
 <Sidebar
   showMobileMenu={showMobileMenu}
@@ -720,13 +721,13 @@ const logoLight = branding?.logo_light || null;
 
         {/* CONTEÚDO ESPECÍFICO */}
         <main className="cad-main-panel w-full flex-1 min-w-0 p-4 md:p-6 xl:p-8">
-          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
+          <section className="mb-6 w-full overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
             <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
                   style={{
-                    backgroundColor: `${theme.menuIconColor}12`,
+                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
                     color: theme.menuIconColor,
                   }}
                 >
@@ -740,7 +741,7 @@ const logoLight = branding?.logo_light || null;
                   >
                     Catálogo de vidros
                   </h1>
-                  <p className="mt-1 text-sm font-normal text-gray-500">
+                  <p className="mt-1 text-sm font-normal text-text-secondary">
                     Gerencie produtos, códigos, preços e tabelas especiais.
                   </p>
                 </div>
@@ -749,7 +750,7 @@ const logoLight = branding?.logo_light || null;
               <div className="flex flex-wrap items-center gap-2 no-print">
                 <button
                   onClick={() => setMostrarImportador(true)}
-                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-on-primary shadow-sm transition hover:brightness-105 active:scale-[0.98]"
                   style={{ backgroundColor: theme.menuIconColor }}
                   title="Importar tabela PDF, TXT ou CSV"
                 >
@@ -775,7 +776,7 @@ const logoLight = branding?.logo_light || null;
                     fileName={`catalogo_vidros_${(nomeEmpresa || "empresa")
                       .toLowerCase()
                       .replace(/\s+/g, "_")}.pdf`}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                     title="Gerar catálogo em PDF"
                   >
                     {({ loading }) =>
@@ -791,7 +792,7 @@ const logoLight = branding?.logo_light || null;
                 <button
                   onClick={exportarCSV}
                   title="Exportar CSV"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Download size={18} />
                 </button>
@@ -799,7 +800,7 @@ const logoLight = branding?.logo_light || null;
                 <label
                   htmlFor="importarCSV"
                   title="Importar CSV simples"
-                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Upload size={18} />
                   <input
@@ -836,19 +837,19 @@ const logoLight = branding?.logo_light || null;
             ].map((card) => (
               <div
                 key={card.titulo}
-                className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm"
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                   style={{
                     color: theme.menuIconColor,
-                    backgroundColor: `${theme.menuIconColor}10`,
+                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`,
                   }}
                 >
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
                 <div>
-                  <p className="text-xs font-normal text-gray-400">
+                  <p className="text-xs font-normal text-text-secondary">
                     {card.titulo}
                   </p>
                   <p
@@ -863,7 +864,7 @@ const logoLight = branding?.logo_light || null;
           </div>
 
           {/* FILTROS E AÇÕES */}
-          <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-3">
                 {[
@@ -874,16 +875,16 @@ const logoLight = branding?.logo_light || null;
                   <div key={label} className="relative">
                     <Search
                       size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary"
                     />
                     <input
                       type="text"
                       placeholder={`Buscar por ${String(label).toLowerCase()}...`}
                       value={valor}
                       onChange={(e) => setter(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2"
+                      className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2"
                       style={{
-                        "--tw-ring-color": `${theme.menuIconColor}25`,
+                        "--tw-ring-color": `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`,
                       } as React.CSSProperties}
                     />
                   </div>
@@ -893,7 +894,7 @@ const logoLight = branding?.logo_light || null;
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={limparDuplicados}
-                  className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-normal text-gray-500 transition hover:bg-gray-50"
+                  className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-normal text-text-secondary transition hover:bg-surface-secondary"
                 >
                   <Eraser size={16} />
                   Duplicados
@@ -901,7 +902,7 @@ const logoLight = branding?.logo_light || null;
 
                 <button
                   onClick={limparTodosOsVidros}
-                  className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3.5 py-2.5 text-sm font-normal text-red-500 transition hover:bg-red-50"
+                  className="flex items-center gap-2 rounded-xl border border-danger-soft bg-surface px-3.5 py-2.5 text-sm font-normal text-danger transition hover:bg-danger-soft"
                 >
                   <Trash2 size={16} />
                   Limpar tudo
@@ -909,7 +910,7 @@ const logoLight = branding?.logo_light || null;
 
                 <button
                   onClick={abrirModalParaNovo}
-                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-on-primary shadow-sm transition hover:brightness-105 active:scale-[0.98]"
                   style={{
                     backgroundColor: theme.menuIconColor,
                     color: theme.buttonDarkText,
@@ -923,9 +924,9 @@ const logoLight = branding?.logo_light || null;
           </section>
 
           {vidrosSelecionados.size > 0 && (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CheckSquare2 size={18} className="text-red-500" />
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-danger-soft bg-danger-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                <CheckSquare2 size={18} className="text-danger" />
                 <span>
                   <strong className="font-normal">
                     {vidrosSelecionados.size}
@@ -938,13 +939,13 @@ const logoLight = branding?.logo_light || null;
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setVidrosSelecionados(new Set())}
-                  className="rounded-xl px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-white"
+                  className="rounded-xl px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface"
                 >
                   Cancelar seleção
                 </button>
                 <button
                   onClick={excluirVidrosSelecionados}
-                  className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-xs font-normal text-white transition hover:bg-red-600"
+                  className="flex items-center gap-2 rounded-xl bg-danger px-4 py-2 text-xs font-normal text-on-danger transition hover:bg-danger"
                 >
                   <Trash2 size={15} />
                   Excluir selecionados
@@ -954,13 +955,13 @@ const logoLight = branding?.logo_light || null;
           )}
 
           {/* TABELA */}
-          <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-normal text-gray-700">
+                <h2 className="text-base font-normal text-text-primary">
                   Vidros cadastrados
                 </h2>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="mt-0.5 text-xs text-text-secondary">
                   Exibindo {vidrosFiltrados.length} de {vidros.length} produtos
                 </p>
               </div>
@@ -968,7 +969,7 @@ const logoLight = branding?.logo_light || null;
               <button
                 onClick={alternarSelecaoFiltrados}
                 disabled={!vidrosFiltrados.length}
-                className="flex items-center gap-2 self-start rounded-xl border border-gray-200 px-3 py-2 text-xs font-normal text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-start rounded-xl border border-border px-3 py-2 text-xs font-normal text-text-secondary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
               >
                 <ListChecks size={15} />
                 {todosFiltradosSelecionados ? "Desmarcar visíveis"
@@ -978,7 +979,7 @@ const logoLight = branding?.logo_light || null;
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                <thead className="border-b border-border bg-surface-secondary/80 text-xs text-text-secondary">
                   <tr>
                     <th className="w-14 px-5 py-3.5">
                       <button
@@ -986,9 +987,9 @@ const logoLight = branding?.logo_light || null;
                         disabled={!vidrosFiltrados.length}
                         className={`flex h-5 w-5 items-center justify-center rounded border transition ${
                           todosFiltradosSelecionados ? "border-transparent"
-                            : "border-gray-300 bg-white"
+                            : "border-border-strong bg-surface"
                         }`}
-                        style={todosFiltradosSelecionados ? { backgroundColor: "#16a34a" } : undefined}
+                        style={todosFiltradosSelecionados ? { backgroundColor: "var(--success)" } : undefined}
                         aria-label="Selecionar todos os itens visíveis"
                       >
                         {todosFiltradosSelecionados && (
@@ -1010,7 +1011,7 @@ const logoLight = branding?.logo_light || null;
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-gray-100 text-gray-600">
+                <tbody className="divide-y divide-border text-text-secondary">
                   {vidrosFiltrados.map((vidro) => {
                     const selecionado = vidrosSelecionados.has(vidro.id)
 
@@ -1018,17 +1019,17 @@ const logoLight = branding?.logo_light || null;
                       <tr
                         key={vidro.id}
                         className={`transition ${
-                          selecionado ? "bg-emerald-50/40"
-                            : "hover:bg-gray-50/70"
+                          selecionado ? "bg-success-soft/40"
+                            : "hover:bg-surface-secondary/70"
                         }`}
                       >
                         <td className="px-5 py-3.5">
                           <button
                             onClick={() => alternarSelecaoVidro(vidro.id)}
                             className={`flex h-5 w-5 items-center justify-center rounded border transition ${
-                              selecionado ? "border-transparent" : "border-gray-300 bg-white"
+                              selecionado ? "border-transparent" : "border-border-strong bg-surface"
                             }`}
-                            style={selecionado ? { backgroundColor: "#16a34a" } : undefined}
+                            style={selecionado ? { backgroundColor: "var(--success)" } : undefined}
                             aria-label={`Selecionar ${vidro.nome}`}
                           >
                             {selecionado && (
@@ -1041,12 +1042,12 @@ const logoLight = branding?.logo_light || null;
                         </td>
 
                         <td className="px-4 py-3.5">
-                          <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-normal uppercase text-gray-500">
+                          <span className="rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-normal uppercase text-text-secondary">
                             {vidro.codigo || "Sem código"}
                           </span>
                         </td>
 
-                        <td className="px-4 py-3.5 font-normal text-gray-700">
+                        <td className="px-4 py-3.5 font-normal text-text-primary">
                           {vidro.nome}
                         </td>
                         <td className="px-4 py-3.5">{vidro.espessura}</td>
@@ -1062,7 +1063,7 @@ const logoLight = branding?.logo_light || null;
                           <div className="flex justify-center gap-1">
                             <button
                               onClick={() => abrirModalParaEdicao(vidro)}
-                              className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                              className="rounded-lg p-2 text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                               title="Editar"
                             >
                               <Edit2 size={17} />
@@ -1070,7 +1071,7 @@ const logoLight = branding?.logo_light || null;
 
                             <button
                               onClick={() => deletarVidro(vidro.id)}
-                              className="rounded-lg p-2 text-red-400 transition hover:bg-red-50 hover:text-red-500"
+                              className="rounded-lg p-2 text-danger transition hover:bg-danger-soft hover:text-danger"
                               title="Excluir"
                             >
                               <Trash2 size={17} />
@@ -1085,11 +1086,11 @@ const logoLight = branding?.logo_light || null;
                     <tr>
                       <td colSpan={7} className="px-5 py-16 text-center">
                         <div className="mx-auto flex max-w-sm flex-col items-center">
-                          <Box size={30} className="mb-3 text-gray-300" />
-                          <p className="font-medium text-gray-500">
+                          <Box size={30} className="mb-3 text-text-secondary" />
+                          <p className="font-medium text-text-secondary">
                             Nenhum vidro encontrado
                           </p>
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className="mt-1 text-xs text-text-secondary">
                             Ajuste os filtros ou cadastre um novo produto.
                           </p>
                         </div>
@@ -1105,27 +1106,27 @@ const logoLight = branding?.logo_light || null;
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px] animate-fade-in">
           <div
-            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[22px] border border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.16)] transition-all"
-            style={{ backgroundColor: branding?.modal_background_color || '#FFFFFF' }}
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[22px] border border-border shadow-[0_24px_70px_var(--shadow)] transition-all"
+            style={{ backgroundColor: "var(--surface)" }}
           >
             {/* Cabeçalho */}
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-text-secondary">
                   Catálogo de vidros
                 </p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                <h2 className="mt-1 text-lg font-semibold tracking-tight text-text-primary sm:text-xl">
                   {editando ? "Editar Vidro" : "Cadastrar Vidro"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-text-secondary">
                   Informe os dados principais e, se precisar, preços diferentes por tabela.
                 </p>
               </div>
               <button
                 onClick={() => setMostrarModal(false)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                 title="Fechar"
               >
                 <X size={20} />
@@ -1135,78 +1136,78 @@ const logoLight = branding?.logo_light || null;
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
                 {/* Inputs Principais */}
-                <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+                <section className="rounded-2xl border border-border bg-surface-secondary/70 p-4 sm:p-5">
                   <div className="mb-5 flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-700">Dados do vidro</h3>
-                      <p className="mt-1 text-xs text-slate-500">Campos obrigatórios marcados com *.</p>
+                      <h3 className="text-sm font-semibold text-text-primary">Dados do vidro</h3>
+                      <p className="mt-1 text-xs text-text-secondary">Campos obrigatórios marcados com *.</p>
                     </div>
-                    <Square size={20} className="text-slate-300" />
+                    <Square size={20} className="text-text-secondary" />
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Código do produto</label>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Código do produto</label>
                       <input
                         type="text"
                         placeholder="E?: INC08TE"
                         value={novoVidro.codigo || ""}
                         onChange={e => setNovoVidro({ ...novoVidro, codigo: e.target.value.toUpperCase() })}
-                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm uppercase text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                        style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                        className="w-full rounded-xl border border-border bg-surface p-3 text-sm uppercase text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                       />
-                      <p className="mt-1.5 ml-1 text-[10px] text-slate-400">Use o mesmo código do fornecedor.</p>
+                      <p className="mt-1.5 ml-1 text-[10px] text-text-secondary">Use o mesmo código do fornecedor.</p>
                     </div>
 
                     <div>
-                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Espessura *</label>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Espessura *</label>
                       <input
                         type="text"
                         placeholder="8mm ou 04+04mm"
                         value={novoVidro.espessura}
                         onChange={e => setNovoVidro({ ...novoVidro, espessura: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                        style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                        className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                       />
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Nome do vidro *</label>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Nome do vidro *</label>
                       <input
                         type="text"
                         placeholder="E?: Vidro Temperado"
                         value={novoVidro.nome}
                         onChange={e => setNovoVidro({ ...novoVidro, nome: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                        style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                        className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Tipo *</label>
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Tipo *</label>
                       <input
                         type="text"
                         placeholder="Liso, temperado, laminado..."
                         value={novoVidro.tipo}
                         onChange={e => setNovoVidro({ ...novoVidro, tipo: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition-all focus:border-transparent focus:ring-2"
-                        style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                        className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none transition-all focus:border-transparent focus:ring-2"
+                        style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Preço base por m²</label>
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-transparent focus-within:ring-2"
-                        style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                      <label className="mb-1.5 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Preço base por m²</label>
+                      <div className="flex items-center rounded-xl border border-border bg-surface px-3 transition-all focus-within:border-transparent focus-within:ring-2"
+                        style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                       >
-                        <span className="mr-2 text-sm font-semibold text-slate-400">R$</span>
+                        <span className="mr-2 text-sm font-semibold text-text-secondary">R$</span>
                         <input
                           type="number"
                           step="0.01"
                           placeholder="0,00"
                           value={novoVidro.preco}
                           onChange={e => setNovoVidro({ ...novoVidro, preco: Number(e.target.value) })}
-                          className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none"
+                          className="w-full bg-transparent py-3 text-sm text-text-primary outline-none"
                         />
                       </div>
                     </div>
@@ -1214,34 +1215,34 @@ const logoLight = branding?.logo_light || null;
                 </section>
 
                 {/* SEÇÃO DE PREÇOS POR GRUPO */}
-                <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                <section className="rounded-3xl border border-border bg-surface p-4 shadow-sm sm:p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">Tabelas de preço</h3>
-                      <p className="mt-1 text-xs text-slate-500">Valores específicos por grupo de cliente.</p>
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-text-primary">Tabelas de preço</h3>
+                      <p className="mt-1 text-xs text-text-secondary">Valores específicos por grupo de cliente.</p>
                     </div>
                     <button
                       onClick={() => setPrecosGruposModal([...precosGruposModal, { id: "", vidro_id: editando?.id || "", grupo_preco_id: "", preco: 0, grupo_nome: "" }])}
-                      className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition hover:bg-slate-50"
-                      style={{ color: branding?.button_dark_bg || theme.menuIconColor }}
+                      className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition hover:bg-surface-secondary"
+                      style={{ color: "var(--primary)" }}
                     >
                       <PlusCircle size={14} /> Adicionar
                     </button>
                   </div>
 
                   {precosGruposModal.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-                      <Tag size={22} className="mx-auto text-slate-300" />
-                      <p className="mt-2 text-sm font-medium text-slate-500">Nenhum preço especial cadastrado.</p>
-                      <p className="mt-1 text-xs text-slate-400">O sistema usará o preço base para todos os clientes.</p>
+                    <div className="rounded-2xl border border-dashed border-border bg-surface-secondary px-4 py-8 text-center">
+                      <Tag size={22} className="mx-auto text-text-secondary" />
+                      <p className="mt-2 text-sm font-medium text-text-secondary">Nenhum preço especial cadastrado.</p>
+                      <p className="mt-1 text-xs text-text-secondary">O sistema usará o preço base para todos os clientes.</p>
                     </div>
                   ) : (
                     <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                       {precosGruposModal.map((p, index) => (
-                        <div key={index} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 transition-all hover:border-slate-200">
+                        <div key={index} className="rounded-2xl border border-border bg-surface-secondary/80 p-3 transition-all hover:border-border">
                           <div className="grid gap-3 sm:grid-cols-[1fr_130px_auto] sm:items-end">
                             <div>
-                              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Tabela</label>
+                              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">Tabela</label>
                               <input
                                 type="text"
                                 list="listaGrupos"
@@ -1254,13 +1255,13 @@ const logoLight = branding?.logo_light || null;
                                   if (grupo) novos[index].grupo_preco_id = grupo.id;
                                   setPrecosGruposModal(novos);
                                 }}
-                                className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-700 outline-none focus:ring-1"
-                                style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                                className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs text-text-primary outline-none focus:ring-1"
+                                style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                               />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Preço m²</label>
+                              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">Preço m²</label>
                               <input
                                 type="number"
                                 step="0.01"
@@ -1271,14 +1272,14 @@ const logoLight = branding?.logo_light || null;
                                   novos[index].preco = Number(e.target.value);
                                   setPrecosGruposModal(novos);
                                 }}
-                                className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-700 outline-none focus:ring-1"
-                                style={{ "--tw-ring-color": branding?.button_dark_bg || theme.menuIconColor } as React.CSSProperties}
+                                className="w-full rounded-xl border border-border bg-surface p-2.5 text-xs font-semibold text-text-primary outline-none focus:ring-1"
+                                style={{ "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
                               />
                             </div>
 
                             <button
                               onClick={() => setPrecosGruposModal(precosGruposModal.filter((_, i) => i !== index))}
-                              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-danger-soft hover:text-danger"
                               title="Remover preço especial"
                             >
                               <Trash2 size={16} />
@@ -1293,13 +1294,13 @@ const logoLight = branding?.logo_light || null;
             </div>
 
             {/* Botões de Ação */}
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-              <button onClick={() => setMostrarModal(false)} className="rounded-2xl bg-slate-100 px-7 py-3 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-200">
+            <div className="flex flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+              <button onClick={() => setMostrarModal(false)} className="rounded-2xl bg-surface-secondary px-7 py-3 text-sm font-semibold text-text-secondary transition-all hover:bg-border">
                 Cancelar
               </button>
               <button onClick={salvarVidro} disabled={carregando}
                 className="rounded-2xl px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: branding?.modal_button_background_color || theme.menuBackgroundColor }}>
+                style={{ backgroundColor: "var(--primary)" }}>
                 {carregando ? "Processando..." : editando ? "Atualizar" : "Salvar Vidro"}
               </button>
             </div>
@@ -1327,24 +1328,24 @@ const logoLight = branding?.logo_light || null;
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"],
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"],
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="footer"] {
-              background: #ffffff !important;
-              background-color: #ffffff !important;
-              color: #334155 !important;
+              background: var(--surface) !important;
+              background-color: var(--surface) !important;
+              color: var(--text-primary) !important;
             }
 
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] h2 {
-              color: #1f2937 !important;
+              color: var(--text-primary) !important;
               font-weight: 600 !important;
             }
 
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] p {
-              color: #64748b !important;
+              color: var(--text-secondary) !important;
               font-weight: 400 !important;
             }
 
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] button {
               background: transparent !important;
-              color: #94a3b8 !important;
+              color: var(--text-secondary) !important;
             }
 
             .cadastros-layout > div.fixed.inset-0 > div[data-limpar-catalogo-modal="box"] > div[data-limpar-catalogo-modal="header"] {
@@ -1369,26 +1370,26 @@ const logoLight = branding?.logo_light || null;
           `}</style>
           <div
             data-limpar-catalogo-modal="box"
-            className="vidros-limpar-catalogo-modal w-full max-w-[420px] overflow-hidden rounded-[18px] border border-slate-200 shadow-[0_18px_48px_rgba(15,23,42,0.10)]"
-            style={{ backgroundColor: "#FFFFFF", color: "#334155" }}
+            className="vidros-limpar-catalogo-modal w-full max-w-[420px] overflow-hidden rounded-[18px] border border-border shadow-[0_18px_48px_var(--shadow)]"
+            style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)" }}
           >
             <div
               data-limpar-catalogo-modal="header"
               className="flex flex-col items-center justify-center gap-3 px-6 pb-5 pt-6 text-center"
-              style={{ backgroundColor: "#FFFFFF" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div data-limpar-catalogo-modal="content" className="flex min-w-0 flex-col items-center gap-3 text-center">
                 <div
                   data-limpar-catalogo-modal="icon"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50/50 text-red-400"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-danger-soft bg-danger-soft/50 text-danger"
                 >
                   <Trash2 size={17} strokeWidth={1.7} />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-base font-medium leading-6 text-slate-800">
+                  <h2 className="text-base font-medium leading-6 text-text-primary">
                     Limpar todo o catálogo
                   </h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                  <p className="mt-1 text-sm leading-6 text-text-secondary">
                     Essa ação excluirá permanentemente todos os {vidros.length} vidros e os preços especiais associados.
                   </p>
                 </div>
@@ -1396,7 +1397,7 @@ const logoLight = branding?.logo_light || null;
               <button
                 type="button"
                 onClick={() => setConfirmarLimparCatalogo(false)}
-                className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
                 title="Fechar"
               >
                 <X size={16} />
@@ -1405,20 +1406,20 @@ const logoLight = branding?.logo_light || null;
 
             <div
               data-limpar-catalogo-modal="footer"
-              className="flex justify-center gap-2 border-t border-slate-100 px-5 py-4"
-              style={{ backgroundColor: "#FFFFFF" }}
+              className="flex justify-center gap-2 border-t border-border px-5 py-4"
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <button
                 type="button"
                 onClick={() => setConfirmarLimparCatalogo(false)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => void executarLimpezaCatalogo()}
-                className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 active:scale-[0.98]"
+                className="rounded-xl border border-danger-soft bg-surface px-4 py-2.5 text-sm font-medium text-danger transition hover:bg-danger-soft active:scale-[0.98]"
               >
                 Confirmar
               </button>
@@ -1431,29 +1432,29 @@ const logoLight = branding?.logo_light || null;
         aviso={modalAviso}
         onClose={() => setModalAviso(null)}
         colors={{
-          bg: "#FFFFFF",
-          text: "#0f172a",
-          primaryButtonBg: "#334155",
-          primaryButtonText: "#FFFFFF",
-          success: "#059669",
-          error: "#DC2626",
-          warning: "#D97706",
+          bg: "var(--surface)",
+          text: DRAWING_COLORS.ink,
+          primaryButtonBg: DRAWING_COLORS.ink,
+          primaryButtonText: "var(--surface)",
+          success: "var(--success)",
+          error: "var(--danger)",
+          warning: "var(--warning)",
         }}
       />
 
       {carregando && !modalAviso && !mostrarModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/15 px-4 backdrop-blur-[2px]">
-          <div className="flex min-w-72 flex-col items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-9 py-8 shadow-[0_22px_60px_rgba(15,23,42,0.14)]">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-navigation/15 px-4 backdrop-blur-[2px]">
+          <div className="flex min-w-72 flex-col items-center gap-3 rounded-[22px] border border-border bg-surface px-9 py-8 shadow-[0_22px_60px_var(--shadow)]">
             <div className="relative">
               <div
-                className="h-14 w-14 rounded-full border-4 border-gray-200 border-t-transparent animate-spin"
+                className="h-14 w-14 rounded-full border-4 border-border border-t-transparent animate-spin"
                 style={{ borderTopColor: theme.menuIconColor }}
               />
             </div>
 
             <div className="text-center">
-              <p className="text-sm font-medium text-slate-600">Processando...</p>
-              <p className="mt-1 text-xs text-slate-400">Aguarde enquanto os dados são atualizados.</p>
+              <p className="text-sm font-medium text-text-secondary">Processando...</p>
+              <p className="mt-1 text-xs text-text-secondary">Aguarde enquanto os dados são atualizados.</p>
             </div>
           </div>
         </div>

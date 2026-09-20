@@ -1,5 +1,6 @@
 "use client";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator, PanelsTopLeft, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
@@ -1448,7 +1449,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
         empresa_id: empresaId,
         metragem_total: totalAreaVidroCalculado,
         peso_total: 0,
-        theme_color: theme.menuIconColor || "#1e3a5a",
+        theme_color: DRAWING_COLORS.ink,
       };
 
       if (editId) {
@@ -1501,17 +1502,17 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           ) : (<>
 
           {/* CLIENTE / OBRA / AÇÕES */}
-          <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+          <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             {/* Cliente */}
             <div className="flex items-center gap-2 flex-1 relative">
-              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                 <input
                   type="text"
                   placeholder="Pesquisar cliente..."
                   className="w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none bg-transparent"
-                  style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                   value={buscaCliente}
                   onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
                   onFocus={() => setMostrarClientes(true)}
@@ -1525,13 +1526,13 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   }}
                 />
                 {mostrarClientes && buscaCliente && clientesFiltrados.length > 0 && (
-                  <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}20` }}>
+                  <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)` }}>
                     {clientesFiltrados.map((c, i) => (
                       <div
                         key={c.id}
                         className="px-4 py-2 text-xs cursor-pointer"
                         style={{
-                          backgroundColor: i === clienteIndex ? `${theme.menuIconColor}18` : "transparent",
+                          backgroundColor: i === clienteIndex ? `color-mix(in srgb, ${theme.menuIconColor} 9%, transparent)` : "transparent",
                           color: theme.contentTextLightBg,
                           fontWeight: i === clienteIndex ? 700 : 400,
                         }}
@@ -1547,12 +1548,12 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
             {/* Obra */}
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Obra:</span>
               <input
                 type="text"
                 placeholder="Identificação da obra"
                 className="flex-1 py-2 px-3 rounded-xl border text-sm outline-none bg-transparent"
-                style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                 value={obra}
                 onChange={(e) => setObra(e.target.value)}
               />
@@ -1579,7 +1580,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   setMensagemSalvo("");
                 }}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
               >
                 <FilePlus2 size={16} />
                 Novo
@@ -1589,10 +1590,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 onClick={handleSalvar}
                 disabled={salvando}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                style={{ backgroundColor: theme.menuIconColor, color: "#fff" }}
+                style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
               >
                 {salvando ? (
-                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                 ) : (
                   <Save size={16} />
                 )}
@@ -1602,7 +1603,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               <button
                 onClick={enviarParaCentralImpressao}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
               >
                 <FilePlus2 size={16} />
                 PDF+
@@ -1650,11 +1651,11 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 {({ loading: pdfLoading }) => (
                   <button
                     className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                    style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                    style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                     disabled={pdfLoading}
                   >
                     {pdfLoading ? (
-                      <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-border-strong border-t-border-strong rounded-full animate-spin" />
                     ) : (
                       <Printer size={16} />
                     )}
@@ -1665,30 +1666,30 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             </div>
 
             {mensagemSalvo && (
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${mensagemSalvo.includes("Erro") ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${mensagemSalvo.includes("Erro") ? "bg-danger-soft text-danger" : "bg-success-soft text-success"}`}>
                 {mensagemSalvo}
               </span>
             )}
           </div>
 
-          <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+          <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             <div className="flex flex-col gap-4">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                   <PanelsTopLeft size={14} />
                   Fechamento Sacada
                 </div>
                 <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
                   Cálculo de fechamento de sacada com gradil de alumínio
                 </h1>
-                <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}B3` }}>
+                <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>
                   Informe as dimensoes em mm para os módulos inferior e superior, com divisões e vidros independentes. O sistema calcula cada módulo separado e soma no total.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Largura do vao (mm)
                   </span>
                   <input
@@ -1700,8 +1701,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Altura sacada inferior (mm)
                   </span>
                   <input
@@ -1713,8 +1714,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Altura fechamento superior (mm)
                   </span>
                   <input
@@ -1726,8 +1727,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Quantidade de vãos
                   </span>
                   <input
@@ -1739,8 +1740,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Divisão sacada (inferior)
                   </span>
                   <input
@@ -1752,8 +1753,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Divisão sacada (superior)
                   </span>
                   <input
@@ -1765,8 +1766,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Cor dos perfis
                   </span>
                   <select
@@ -1775,24 +1776,24 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
-                    <option value="" className="text-slate-900">Selecione a cor</option>
+                    <option value="" className="text-text-primary">Selecione a cor</option>
                     {CORES_PERFIL.map((cor) => (
-                      <option key={cor} value={cor} className="text-slate-900">
+                      <option key={cor} value={cor} className="text-text-primary">
                         {cor}
                       </option>
                     ))}
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Vidro (inferio)
                   </span>
                   <input
                     value={buscaVidroInferior}
                     onChange={(e) => setBuscaVidroInferior(e.target.value)}
                     placeholder="Digite para filtrar o vidro"
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                   <select
@@ -1801,14 +1802,14 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
-                    <option value="" className="text-slate-900">Selecione o vidro</option>
+                    <option value="" className="text-text-primary">Selecione o vidro</option>
                     {vidrosFiltradosInferior.length === 0 ? (
-                      <option value="" className="text-slate-900">Nenhum vidro encontrado</option>
+                      <option value="" className="text-text-primary">Nenhum vidro encontrado</option>
                     ) : vidros.length === 0 ? (
-                      <option value="" className="text-slate-900">Nenhum vidro cadastrado</option>
+                      <option value="" className="text-text-primary">Nenhum vidro cadastrado</option>
                     ) : (
                       vidrosFiltradosInferior.map((vidro) => (
-                        <option key={vidro.id} value={vidro.id} className="text-slate-900">
+                        <option key={vidro.id} value={vidro.id} className="text-text-primary">
                           {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                         </option>
                       ))
@@ -1816,15 +1817,15 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Vidro (superior)
                   </span>
                   <input
                     value={buscaVidroSuperior}
                     onChange={(e) => setBuscaVidroSuperior(e.target.value)}
                     placeholder="Digite para filtrar o vidro"
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   />
                   <select
@@ -1833,14 +1834,14 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                     style={{ color: theme.contentTextLightBg }}
                   >
-                    <option value="" className="text-slate-900">Selecione o vidro</option>
+                    <option value="" className="text-text-primary">Selecione o vidro</option>
                     {vidrosFiltradosSuperior.length === 0 ? (
-                      <option value="" className="text-slate-900">Nenhum vidro encontrado</option>
+                      <option value="" className="text-text-primary">Nenhum vidro encontrado</option>
                     ) : vidros.length === 0 ? (
-                      <option value="" className="text-slate-900">Nenhum vidro cadastrado</option>
+                      <option value="" className="text-text-primary">Nenhum vidro cadastrado</option>
                     ) : (
                       vidrosFiltradosSuperior.map((vidro) => (
-                        <option key={vidro.id} value={vidro.id} className="text-slate-900">
+                        <option key={vidro.id} value={vidro.id} className="text-text-primary">
                           {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
                         </option>
                       ))
@@ -1878,20 +1879,20 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 icone: Calculator,
               },
             ].map((card) => (
-              <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+              <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
                       {card.titulo}
                     </p>
                     <p className="mt-2 text-xl font-medium leading-tight whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>
                       {card.valor}
                     </p>
-                    <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>
+                    <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 64%, transparent)` }}>
                       {card.detalhe}
                     </p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
                     <card.icone size={19} />
                   </div>
                 </div>
@@ -1900,19 +1901,19 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           </section>
 
           <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
-            <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
-              <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+            <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Perfis do guarda corpo
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                   Barras calculadas com base em 6000 mm por barra.
                 </p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full min-w-190 text-sm">
-                  <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                  <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                     <tr>
                       <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>
                       <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
@@ -1924,9 +1925,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </thead>
                   <tbody>
                     {perfisComPrecoTabela.map((perfil, index) => (
-                      <tr key={`${perfil.codigo}-${perfil.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                      <tr key={`${perfil.codigo}-${perfil.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                         <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(perfil.nome)}</td>
-                        <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{perfil.codigo}</td>
+                        <td className="px-5 py-3" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>{perfil.codigo}</td>
                         <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarNumero(perfil.comprimentoTotal, 0)} mm</td>
                         <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{perfil.quantidadeBarras}</td>
                         <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>{formatarPreco(perfil.precoBarra)}</td>
@@ -1935,7 +1936,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                    <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                       <td colSpan={5} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                         Total dos perfis
                       </td>
@@ -1947,19 +1948,19 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 </table>
               </div>
 
-              <div className="border-t" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+              <div className="border-t" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                     Acessórios do guarda corpo
                   </h3>
-                  <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                     Valores localizados na tabela de ferragens conforme a cor selecionada.
                   </p>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-190 text-sm">
-                    <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                    <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                       <tr>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Acessorio</th>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Codigo</th>
@@ -1970,9 +1971,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     </thead>
                     <tbody>
                       {acessoriosComPrecoTabela.map((acessorio, index) => (
-                        <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                        <tr key={`${acessorio.codigo}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                           <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(acessorio.nome)}</td>
-                          <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{acessorio.codigo}</td>
+                          <td className="px-5 py-3" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>{acessorio.codigo}</td>
                           <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>
                             {acessorio.quantidadePacote
                               ? <span>{acessorio.quantidadePacote} <span className="text-[10px] opacity-60">(pct {acessorio.pacote})</span></span>
@@ -1984,7 +1985,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                      <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                         <td colSpan={4} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total dos acessórios
                         </td>
@@ -1996,18 +1997,18 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </table>
                 </div>
 
-                <div className="px-5 py-4 border-y" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                <div className="px-5 py-4 border-y" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                     Fechamento de sacada
                   </h3>
-                  <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                     Materiais da parte superior com preços vindos do cadastro de ferragens.
                   </p>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-190 text-sm">
-                    <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                    <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                       <tr>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Material</th>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Codigo</th>
@@ -2018,9 +2019,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     </thead>
                     <tbody>
                       {acessoriosFechamentoSacadaTabela.map((item, index) => (
-                        <tr key={`${item.codigo}-${item.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                        <tr key={`${item.codigo}-${item.nome}-${index}`} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                           <td className="px-5 py-3 font-semibold" style={{ color: theme.contentTextLightBg }}>{sentenceCase(item.nome)}</td>
-                          <td className="px-5 py-3" style={{ color: `${theme.contentTextLightBg}B3` }}>{item.codigo}</td>
+                          <td className="px-5 py-3" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>{item.codigo}</td>
                           <td className="px-5 py-3 text-right" style={{ color: theme.contentTextLightBg }}>
                             {item.quantidadePacote
                               ? <span>{formatarNumero(item.quantidadePacote)} <span className="text-[10px] opacity-60">(pct {item.pacote})</span></span>
@@ -2032,7 +2033,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                      <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                         <td colSpan={4} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total fechamento de sacada
                         </td>
@@ -2048,11 +2049,11 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
             <div className="space-y-6">
               {/* Preview visual da sacada */}
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Vista frontal
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>
+                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                   Representação proporcional do vão
                 </p>
                 <div className="mt-4">
@@ -2109,10 +2110,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                           : "#787878";
 
                     // Cor do vidro por módulo (suportando vidros diferentes)
-                    const corVidroFillSup = "#b8dff2";
-                    const corVidroBordaSup = "#7fb7d4";
-                    const corVidroFillInf = "#b8e6e0";
-                    const corVidroBordaInf = "#7cbfb5";
+                    const corVidroFillSup = DRAWING_COLORS.glass;
+                    const corVidroBordaSup = DRAWING_COLORS.frame;
+                    const corVidroFillInf = DRAWING_COLORS.glass;
+                    const corVidroBordaInf = DRAWING_COLORS.frame;
                     const corVidroReflexo = "#ffffff";
 
                     const renderModulo = (
@@ -2155,7 +2156,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                                     fill="#4a7a73"
                                     opacity={0.55}
                                     fontWeight={600}
-                                    fontFamily="system-ui, sans-serif"
+                                    fontFamily="Inter, Arial, sans-serif"
                                   >
                                     {formatarNumero(larguraVidroMm, 0)}
                                   </text>
@@ -2167,7 +2168,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                           <rect x={x0 + divisoes * (glassW + postW)} y={yModulo} width={postW} height={glassH} fill={corAluminio} rx={0.5} />
                           <rect x={x0 + divisoes * (glassW + postW)} y={yModulo} width={postW} height={glassH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
 
-                          <text x={x0 + 3} y={yModulo + 11} fontSize={8} fill={theme.contentTextLightBg} opacity={0.55} fontWeight={700} fontFamily="system-ui, sans-serif">
+                          <text x={x0 + 3} y={yModulo + 11} fontSize={8} fill={theme.contentTextLightBg} opacity={0.55} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
                             {modulo}
                           </text>
                         </g>
@@ -2219,7 +2220,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                         <line x1={x0} y1={yBase + railH + 14} x2={x0 + drawW} y2={yBase + railH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                         <line x1={x0} y1={yBase + railH + 10} x2={x0} y2={yBase + railH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                         <line x1={x0 + drawW} y1={yBase + railH + 10} x2={x0 + drawW} y2={yBase + railH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={x0 + drawW / 2} y={yBase + railH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif">
+                        <text x={x0 + drawW / 2} y={yBase + railH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
                           {formatarNumero(larg, 0)} mm
                         </text>
 
@@ -2227,7 +2228,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                         <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={yBase + railH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                         <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                         <line x1={x0 - 14} y1={yBase + railH} x2={x0 - 6} y2={yBase + railH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif" transform={`translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)`}>
+                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)`}>
                           {formatarNumero(alt, 0)} mm
                         </text>
                       </svg>
@@ -2236,21 +2237,21 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 </div>
                 {/* Medida do vidro e info de vãos */}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                  <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
+                  <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
                     SUP: {formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x {formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm · INF: {formatarNumero(resultadoInferior.larguraVidroMm, 0)} x {formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm
                   </span>
                   {quantidadeNumero > 1 && (
-                    <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}50` }}>
+                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
                       x {quantidadeNumero} vãos
                     </span>
                   )}
-                  <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
+                  <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
                     SUP: {quantidadeDivisoesSuperiorNumero} {quantidadeDivisoesSuperiorNumero === 1 ? "peça" : "peças"} · INF: {quantidadeDivisoesInferiorNumero} {quantidadeDivisoesInferiorNumero === 1 ? "peça" : "peças"} por vão
                   </span>
                 </div>
               </article>
 
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Resumo técnico
                 </h2>
@@ -2270,7 +2271,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     ["Total geral", formatarPreco(totalGeralCalculado)],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-start justify-between gap-3">
-                      <span className="text-sm" style={{ color: `${theme.contentTextLightBg}8F` }}>{label}</span>
+                      <span className="text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 56%, transparent)` }}>{label}</span>
                       <span className="text-sm font-medium text-right whitespace-pre-line" style={{ color: theme.contentTextLightBg }}>{value}</span>
                     </div>
                   ))}

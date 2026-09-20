@@ -2,7 +2,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 // Tipagem baseada no seu componente de Vidros
 interface Vidro {
@@ -18,14 +18,14 @@ interface VidrosPDFProps {
   empresa: string;
   logoUrl: string | null;
   coresEmpresa: {
-    primary: string;    // button_dark_bg
+    primary: string;    // Compatibilidade com chamadas antigas; a impressão usa a paleta oficial.
     secondary: string;  // button_dark_text
     tertiary: string;   // menu_hover_color
     textDefault: string; // content_text_light_bg
   };
 }
 
-export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFProps) {
+export function VidrosPDF({ dados, empresa, logoUrl}: VidrosPDFProps) {
   const dataGeracao = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -33,15 +33,15 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
   }).format(new Date());
 
   // Definimos a cor do texto: Prioridade para o banco, senão o azul desejado
-  const textColor = coresEmpresa.textDefault || '#1C415B';
+  const textColor = PDF_COLORS.ink;
 
   const styles = StyleSheet.create({
     page: {
       paddingTop: 40,
       paddingHorizontal: 40,
       paddingBottom: 80, // 👈 Aumente de 70 para 80 para dar espaço ao rodapé
-      backgroundColor: '#FFFFFF',
-      fontFamily: 'Helvetica',
+      backgroundColor: PDF_COLORS.white,
+      fontFamily: "Inter",
     },
     header: {
       flexDirection: 'row',
@@ -50,7 +50,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
       marginBottom: PDF_HEADER_LAYOUT.marginBottom,
       paddingBottom: PDF_HEADER_LAYOUT.paddingBottom,
       borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth,
-      borderBottomColor: coresEmpresa.tertiary || '#39B89F',
+      borderBottomColor: PDF_COLORS.border,
     },
     headerLeft: {
       flexDirection: 'column',
@@ -59,7 +59,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     tituloRelatorio: {
       fontSize: PDF_HEADER_LAYOUT.titleSize,
       fontWeight: 'bold',
-      color: coresEmpresa.primary || '#1C415B',
+      color: PDF_COLORS.ink,
       textTransform: 'uppercase',
     },
     subtitulo: {
@@ -70,7 +70,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     },
     dataEmissao: {
       fontSize: PDF_HEADER_LAYOUT.dateSize,
-      color: '#666',
+      color: PDF_COLORS.ink,
       marginTop: 6,
     },
     logo: {
@@ -85,7 +85,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     },
     tableHeader: {
       flexDirection: 'row',
-      backgroundColor: coresEmpresa.primary || '#1C415B',
+      backgroundColor: PDF_COLORS.tableHeaderBg,
       borderRadius: 4,
       minHeight: 30,
       alignItems: 'center',
@@ -99,7 +99,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
     },
     tableColHeader: {
       paddingHorizontal: 6,
-      color: coresEmpresa.secondary || '#FFFFFF',
+      color: PDF_COLORS.ink,
       fontSize: PDF_TABLE_LAYOUT.headerFontSize,
       fontWeight: 'bold',
       textTransform: 'uppercase',
@@ -122,9 +122,9 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
   right: 40,
   textAlign: 'center',
   fontSize: 8,
-  color: '#999',
+  color: PDF_COLORS.muted,
   borderTopWidth: 0.5,
-  borderTopColor: '#DDD',
+  borderTopColor: PDF_COLORS.border,
   paddingTop: 10,
 }
   });
@@ -142,7 +142,7 @@ export function VidrosPDF({ dados, empresa, logoUrl, coresEmpresa }: VidrosPDFPr
           </View>
 
           <View style={{ width: 120, alignItems: 'flex-end' }}>
-            <Image src={logoUrl || "/glasscode.png"} style={styles.logo} />
+            <Image src={logoUrl || "/glasscode-light.png"} style={styles.logo} />
           </View>
         </View>
 

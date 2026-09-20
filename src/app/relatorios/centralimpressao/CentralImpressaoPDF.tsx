@@ -3,6 +3,7 @@
 
 /* eslint-disable jsx-a11y/alt-text */
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
+import { DRAWING_COLORS } from "@/design/drawing";
 import React from "react";
 import type { ItemEspelhoSalvo } from "@/utils/calculoEspelhos";
 import { DesenhoSacadaGrapaPDF } from "../sacadagrapa/SacadaGrapaPDF";
@@ -105,7 +106,7 @@ type CentralImpressaoPDFProps = {
 const styles = StyleSheet.create({
   page: {
     padding: 24,
-    fontFamily: "Helvetica",
+    fontFamily: "Inter",
     backgroundColor: PDF_COLORS.white,
     color: PDF_COLORS.ink,
   },
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
@@ -136,12 +137,12 @@ const styles = StyleSheet.create({
   topInfoClientBox: { width: "38%" },
   topInfoWorkBox: { flex: 1 },
   topLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
-  topValue: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold" },
+  topValue: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
   list: { gap: 8 },
   card: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     flexDirection: "row",
@@ -156,52 +157,52 @@ const styles = StyleSheet.create({
     height: 112,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 6,
   },
   image: { maxWidth: 112, maxHeight: 104, objectFit: "contain" },
-  imagePlaceholderTitle: { fontSize: 9, color: "#0f2742", fontWeight: "bold", textAlign: "center" },
-  imagePlaceholderText: { fontSize: 7, color: "#64748b", marginTop: 3, textAlign: "center" },
+  imagePlaceholderTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold", textAlign: "center" },
+  imagePlaceholderText: { fontSize: 7, color: PDF_COLORS.muted, marginTop: 3, textAlign: "center" },
   infoArea: { flex: 1 },
-  projectLabel: { fontSize: 7, color: "#00a85a", fontWeight: "bold", textTransform: "uppercase", marginBottom: 3 },
-  projectName: { fontSize: 11, fontWeight: "normal", color: "#0f2742", marginBottom: 7 },
+  projectLabel: { fontSize: 7, color: PDF_COLORS.muted, fontWeight: "normal", textTransform: "uppercase", marginBottom: 3 },
+  projectName: { fontSize: 11, fontWeight: "normal", color: PDF_COLORS.ink, marginBottom: 7 },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  info: { width: "31.8%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
-  infoAvulso: { width: "23%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
-  infoWide: { width: "98%", borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 4 },
-  infoLabel: { fontSize: 6, color: "#64748b", textTransform: "uppercase" },
-  infoValue: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "normal" },
-  infoMultiline: { fontSize: 7, color: "#0f2742", marginTop: 2, lineHeight: 1.35, fontWeight: "normal" },
-  infoValueStrong: { fontSize: 8, color: "#0f2742", marginTop: 2, fontWeight: "bold" },
+  info: { width: "31.8%", borderTopWidth: 1, borderTopColor: PDF_COLORS.border, paddingTop: 4 },
+  infoAvulso: { width: "23%", borderTopWidth: 1, borderTopColor: PDF_COLORS.border, paddingTop: 4 },
+  infoWide: { width: "98%", borderTopWidth: 1, borderTopColor: PDF_COLORS.border, paddingTop: 4 },
+  infoLabel: { fontSize: 6, color: PDF_COLORS.muted, textTransform: "uppercase" },
+  infoValue: { fontSize: 8, color: PDF_COLORS.ink, marginTop: 2, fontWeight: "normal" },
+  infoMultiline: { fontSize: 7, color: PDF_COLORS.ink, marginTop: 2, lineHeight: 1.35, fontWeight: "normal" },
+  infoValueStrong: { fontSize: 8, color: PDF_COLORS.ink, marginTop: 2, fontWeight: "normal" },
   vidroTable: {
     width: "98%",
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 5,
     overflow: "hidden",
     marginTop: 4,
   },
-  vidroHeader: { flexDirection: "row", backgroundColor: "#f1f5f9", color: "#475569" },
-  vidroRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  vidroHeader: { flexDirection: "row", backgroundColor: PDF_COLORS.panelBg, color: PDF_COLORS.ink },
+  vidroRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: PDF_COLORS.border },
   vidroCellQtd: { width: "16%", padding: 4, fontSize: 7, textAlign: "center" },
   vidroCellMedida: { width: "24%", padding: 4, fontSize: 7 },
   vidroCellDesc: { width: "40%", padding: 4, fontSize: 7 },
   vidroCellTotal: { width: "20%", padding: 4, fontSize: 7, textAlign: "right" },
   materialAvulsoTable: {
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 6,
     overflow: "hidden",
     marginTop: 8,
   },
   materialAvulsoTitle: {
     fontSize: 10,
-    color: "#0f2742",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginBottom: 4,
   },
-  materialAvulsoHeader: { flexDirection: "row", backgroundColor: "#f1f5f9", color: "#475569" },
-  materialAvulsoRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  materialAvulsoHeader: { flexDirection: "row", backgroundColor: PDF_COLORS.panelBg, color: PDF_COLORS.ink },
+  materialAvulsoRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: PDF_COLORS.border },
   materialAvulsoQtd: { width: "13%", padding: 5, fontSize: 7, textAlign: "center" },
   materialAvulsoDesc: { width: "47%", padding: 5, fontSize: 7 },
   materialAvulsoUnd: { width: "13%", padding: 5, fontSize: 7 },
@@ -211,82 +212,82 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 6,
     marginTop: 10,
-    backgroundColor: "#f8fafc",
+    backgroundColor: PDF_COLORS.white,
   },
   totalBox: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 6,
     padding: 5,
   },
   totalBoxStrong: {
     flex: 1.55,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 6,
     padding: 6,
     borderWidth: 1,
-    borderColor: "#bbf7d0",
+    borderColor: PDF_COLORS.border,
   },
-  totalLabel: { fontSize: 5.4, color: "#64748b", textTransform: "uppercase", marginBottom: 3 },
-  totalValue: { fontSize: 8, color: "#0f2742", fontWeight: "normal" },
-  totalValueStrong: { fontSize: 9.5, color: "#0f2742", fontWeight: "bold" },
+  totalLabel: { fontSize: 5.4, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  totalValue: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal" },
+  totalValueStrong: { fontSize: 9.5, color: PDF_COLORS.ink, fontWeight: "bold" },
   optSection: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
   },
-  optTitle: { fontSize: 10, fontWeight: "bold", color: "#0f2742", marginBottom: 6 },
-  optCard: { borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 6, marginTop: 6 },
-  optName: { fontSize: 8, color: "#0f2742", fontWeight: "bold" },
-  optLine: { fontSize: 7, color: "#475569", marginTop: 3 },
+  optTitle: { fontSize: 10, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 6 },
+  optCard: { borderTopWidth: 1, borderTopColor: PDF_COLORS.border, paddingTop: 6, marginTop: 6 },
+  optName: { fontSize: 8, color: PDF_COLORS.ink, fontWeight: "normal" },
+  optLine: { fontSize: 7, color: PDF_COLORS.ink, marginTop: 3 },
   relationSection: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "#dbe4ee",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
   },
-  relationTitle: { fontSize: 10, fontWeight: "bold", color: "#0f2742", marginBottom: 6 },
-  relationSubtitle: { fontSize: 8, fontWeight: "normal", color: "#0f2742", marginTop: 6, marginBottom: 4 },
+  relationTitle: { fontSize: 10, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 6 },
+  relationSubtitle: { fontSize: 8, fontWeight: "normal", color: PDF_COLORS.ink, marginTop: 6, marginBottom: 4 },
   relationHeader: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
-    color: "#475569",
+    backgroundColor: PDF_COLORS.panelBg,
+    color: PDF_COLORS.ink,
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: PDF_COLORS.border,
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
-  relationRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
-  relationTotalRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#cbd5e1", marginTop: 2 },
-  relationCellQty: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
-  relationCellDesc: { width: "48%", padding: 4, fontSize: 7, color: "#0f2742" },
-  relationCellUnit: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
-  relationCellUnitPrice: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
-  relationCellValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
-  relationGlassCellQty: { width: "9%", padding: 4, fontSize: 7, textAlign: "center", color: "#0f2742" },
-  relationGlassCellMeasure: { width: "17%", padding: 4, fontSize: 7, color: "#0f2742" },
-  relationGlassCellDesc: { width: "34%", padding: 4, fontSize: 7, color: "#0f2742" },
-  relationGlassCellArea: { width: "10%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
-  relationGlassCellUnitPrice: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
-  relationGlassCellValue: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742" },
-  relationTotalLabel: { width: "84%", padding: 4, fontSize: 7, textAlign: "right", color: "#64748b", fontWeight: "bold" },
-  relationTotalValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: "#0f2742", fontWeight: "bold" },
+  relationRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: PDF_COLORS.border },
+  relationTotalRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: PDF_COLORS.border, marginTop: 2 },
+  relationCellQty: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: PDF_COLORS.ink },
+  relationCellDesc: { width: "48%", padding: 4, fontSize: 7, color: PDF_COLORS.ink },
+  relationCellUnit: { width: "10%", padding: 4, fontSize: 7, textAlign: "center", color: PDF_COLORS.ink },
+  relationCellUnitPrice: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink },
+  relationCellValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink },
+  relationGlassCellQty: { width: "9%", padding: 4, fontSize: 7, textAlign: "center", color: PDF_COLORS.ink },
+  relationGlassCellMeasure: { width: "17%", padding: 4, fontSize: 7, color: PDF_COLORS.ink },
+  relationGlassCellDesc: { width: "34%", padding: 4, fontSize: 7, color: PDF_COLORS.ink },
+  relationGlassCellArea: { width: "10%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink },
+  relationGlassCellUnitPrice: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink },
+  relationGlassCellValue: { width: "15%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink },
+  relationTotalLabel: { width: "84%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.muted, fontWeight: "bold" },
+  relationTotalValue: { width: "16%", padding: 4, fontSize: 7, textAlign: "right", color: PDF_COLORS.ink, fontWeight: "bold" },
   footer: {
     position: "absolute",
     left: 24,
     right: 24,
     bottom: 12,
     fontSize: 7,
-    color: "#94a3b8",
+    color: PDF_COLORS.muted,
     textAlign: "center",
   },
 });
@@ -419,10 +420,10 @@ const desenhoSacadaFrontalUrl = (item?: Pick<CentralImpressaoItem, "largura" | "
   const paineis = Array.from({ length: divisoes }).map((_, i) => {
     const pX = x0 + i * (glassW + postW);
     const gX = pX + postW;
-    return `<g><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="url(#glassGrad)" rx="1"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="#7cbfb5" stroke-width="0.6" stroke-opacity="0.5" rx="1"/><line x1="${gX + glassW * 0.18}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/><line x1="${gX + glassW * 0.24}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.14}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.18"/></g>`;
+    return `<g><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${pX}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="url(#glassGrad)" rx="1"/><rect x="${gX}" y="${y0 + railH}" width="${glassW}" height="${glassH}" fill="none" stroke="${DRAWING_COLORS.frame}" stroke-width="0.6" stroke-opacity="0.5" rx="1"/><line x1="${gX + glassW * 0.18}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.08}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.3"/><line x1="${gX + glassW * 0.24}" y1="${y0 + railH + glassH * 0.06}" x2="${gX + glassW * 0.14}" y2="${y0 + railH + glassH * 0.38}" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.18"/></g>`;
   }).join("");
 
-  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}"><defs><linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b8e6e0" stop-opacity="0.35"/><stop offset="50%" stop-color="#b8e6e0" stop-opacity="0.18"/><stop offset="100%" stop-color="#b8e6e0" stop-opacity="0.3"/></linearGradient><linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${cor.fill}"/><stop offset="50%" stop-color="${cor.stroke}"/><stop offset="100%" stop-color="${cor.fill}"/></linearGradient></defs><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/>${paineis}<rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text><line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="#0f2742" stroke-width="0.6" stroke-opacity="0.4"/><text x="0" y="0" text-anchor="middle" font-size="9.5" fill="#0f2742" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text></svg>`);
+  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}"><defs><linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.35"/><stop offset="50%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.18"/><stop offset="100%" stop-color="${DRAWING_COLORS.glass}" stop-opacity="0.3"/></linearGradient><linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${cor.fill}"/><stop offset="50%" stop-color="${cor.stroke}"/><stop offset="100%" stop-color="${cor.fill}"/></linearGradient></defs><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="url(#railGrad)" rx="1.5"/><rect x="${x0}" y="${y0 + drawH - railH}" width="${drawW}" height="${railH}" fill="none" stroke="${cor.stroke}" stroke-width="0.5" rx="1.5"/>${paineis}<rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="${cor.fill}" rx="0.5"/><rect x="${x0 + divisoes * (glassW + postW)}" y="${y0}" width="${postW}" height="${drawH}" fill="none" stroke="${cor.stroke}" stroke-width="0.4" rx="0.5"/><line x1="${x0}" y1="${y0 + drawH + 14}" x2="${x0 + drawW}" y2="${y0 + drawH + 14}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0}" y1="${y0 + drawH + 10}" x2="${x0}" y2="${y0 + drawH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 + drawW}" y1="${y0 + drawH + 10}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><text x="${x0 + drawW / 2}" y="${y0 + drawH + 28}" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Arial">${largura} mm</text><line x1="${x0 - 10}" y1="${y0}" x2="${x0 - 10}" y2="${y0 + drawH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0}" x2="${x0 - 6}" y2="${y0}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><line x1="${x0 - 14}" y1="${y0 + drawH}" x2="${x0 - 6}" y2="${y0 + drawH}" stroke="${DRAWING_COLORS.ink}" stroke-width="0.6" stroke-opacity="0.4"/><text x="0" y="0" text-anchor="middle" font-size="9.5" fill="${DRAWING_COLORS.ink}" opacity="0.6" font-weight="700" font-family="Arial" transform="translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)">${altura} mm</text></svg>`);
 };
 
 const desenhoTecnicoUrl = (projeto?: string, item?: CentralImpressaoItem) => {
@@ -438,11 +439,11 @@ const desenhoTecnicoUrl = (projeto?: string, item?: CentralImpressaoItem) => {
   }
 
   if (ehFechamentoSacada(projeto)) {
-    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="#f8fbfd"/><rect x="48" y="30" width="224" height="158" rx="4" fill="#eef7fb" stroke="#12324d" stroke-width="5"/><line x1="48" y1="92" x2="272" y2="92" stroke="#12324d" stroke-width="5"/><line x1="104" y1="30" x2="104" y2="188" stroke="#12324d" stroke-width="3"/><line x1="160" y1="30" x2="160" y2="188" stroke="#12324d" stroke-width="3"/><line x1="216" y1="30" x2="216" y2="188" stroke="#12324d" stroke-width="3"/><rect x="48" y="188" width="224" height="10" rx="3" fill="#d5dde5" stroke="#12324d" stroke-width="3"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="#12324d">Fechamento de sacada</text></svg>`);
+    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="${DRAWING_COLORS.glass}"/><rect x="48" y="30" width="224" height="158" rx="4" fill="${DRAWING_COLORS.glass}" stroke="${DRAWING_COLORS.ink}" stroke-width="5"/><line x1="48" y1="92" x2="272" y2="92" stroke="${DRAWING_COLORS.ink}" stroke-width="5"/><line x1="104" y1="30" x2="104" y2="188" stroke="${DRAWING_COLORS.ink}" stroke-width="3"/><line x1="160" y1="30" x2="160" y2="188" stroke="${DRAWING_COLORS.ink}" stroke-width="3"/><line x1="216" y1="30" x2="216" y2="188" stroke="${DRAWING_COLORS.ink}" stroke-width="3"/><rect x="48" y="188" width="224" height="10" rx="3" fill="${DRAWING_COLORS.edge}" stroke="${DRAWING_COLORS.ink}" stroke-width="3"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="${DRAWING_COLORS.ink}">Fechamento de sacada</text></svg>`);
   }
 
   if (ehPeleDeVidro(projeto)) {
-    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="#f8fbfd"/><rect x="58" y="28" width="204" height="160" rx="4" fill="#edf8fc" stroke="#12324d" stroke-width="5"/><line x1="126" y1="28" x2="126" y2="188" stroke="#12324d" stroke-width="4"/><line x1="194" y1="28" x2="194" y2="188" stroke="#12324d" stroke-width="4"/><line x1="58" y1="81" x2="262" y2="81" stroke="#12324d" stroke-width="4"/><line x1="58" y1="134" x2="262" y2="134" stroke="#12324d" stroke-width="4"/><path d="M72 68 L112 42 M141 120 L183 87 M204 172 L247 139" stroke="#bfe4f2" stroke-width="5" opacity="0.8"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="#12324d">Pele de vidro</text></svg>`);
+    return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><rect width="320" height="220" rx="18" fill="${DRAWING_COLORS.glass}"/><rect x="58" y="28" width="204" height="160" rx="4" fill="${DRAWING_COLORS.glass}" stroke="${DRAWING_COLORS.ink}" stroke-width="5"/><line x1="126" y1="28" x2="126" y2="188" stroke="${DRAWING_COLORS.ink}" stroke-width="4"/><line x1="194" y1="28" x2="194" y2="188" stroke="${DRAWING_COLORS.ink}" stroke-width="4"/><line x1="58" y1="81" x2="262" y2="81" stroke="${DRAWING_COLORS.ink}" stroke-width="4"/><line x1="58" y1="134" x2="262" y2="134" stroke="${DRAWING_COLORS.ink}" stroke-width="4"/><path d="M72 68 L112 42 M141 120 L183 87 M204 172 L247 139" stroke="${DRAWING_COLORS.glass}" stroke-width="5" opacity="0.8"/><text x="160" y="215" text-anchor="middle" font-family="Arial" font-size="15" fill="${DRAWING_COLORS.ink}">Pele de vidro</text></svg>`);
   }
 
   return "";
@@ -479,9 +480,9 @@ function SacadaFrontalDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         return (
           <G key={`sacada-painel-${index}`}>
             <Rect x={pX} y={y0} width={postW} height={drawH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
-            <Rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="#dff5f2" stroke="#7cbfb5" strokeWidth={0.7} />
-            <Line x1={gX + glassW * 0.2} y1={y0 + railH + 4} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.42} stroke="#ffffff" strokeWidth={1.2} />
-            <Line x1={gX + glassW * 0.34} y1={y0 + railH + 5} x2={gX + glassW * 0.2} y2={y0 + railH + glassH * 0.42} stroke="#ffffff" strokeWidth={0.7} />
+            <Rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.7} />
+            <Line x1={gX + glassW * 0.2} y1={y0 + railH + 4} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.42} stroke={PDF_COLORS.white} strokeWidth={1.2} />
+            <Line x1={gX + glassW * 0.34} y1={y0 + railH + 5} x2={gX + glassW * 0.2} y2={y0 + railH + glassH * 0.42} stroke={PDF_COLORS.white} strokeWidth={0.7} />
           </G>
         );
       })}
@@ -548,7 +549,7 @@ function FechamentoSacadaDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
             <G key={`${prefixo}-${index}`}>
               <Rect x={pX} y={yModulo} width={postW} height={glassH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.4} />
               <Rect x={gX} y={yModulo} width={glassW} height={glassH} fill={fill} stroke={stroke} strokeWidth={0.45} opacity={0.55} />
-              <Line x1={gX + glassW * 0.18} y1={yModulo + glassH * 0.06} x2={gX + glassW * 0.08} y2={yModulo + glassH * 0.38} stroke="#ffffff" strokeWidth={0.55} />
+              <Line x1={gX + glassW * 0.18} y1={yModulo + glassH * 0.06} x2={gX + glassW * 0.08} y2={yModulo + glassH * 0.38} stroke={PDF_COLORS.white} strokeWidth={0.55} />
             </G>
           );
         })}
@@ -562,8 +563,8 @@ function FechamentoSacadaDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
       <Rect x={x0} y={y0} width={drawW} height={railH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
       <Rect x={x0} y={yMeio} width={drawW} height={railH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
       <Rect x={x0} y={yBase} width={drawW} height={railH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
-      {renderModulo("sup", yModuloSup, supH, divisoesSuperior, "#b8dff2", "#7fb7d4")}
-      {renderModulo("inf", yModuloInf, infH, divisoesInferior, "#b8e6e0", "#7cbfb5")}
+      {renderModulo("sup", yModuloSup, supH, divisoesSuperior, DRAWING_COLORS.glass, DRAWING_COLORS.frame)}
+      {renderModulo("inf", yModuloInf, infH, divisoesInferior, DRAWING_COLORS.glass, DRAWING_COLORS.frame)}
     </Svg>
   );
 }
@@ -602,7 +603,7 @@ function PeleDeVidroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         return (
           <G key={`pv-${row}-${col}`}>
             <Rect x={x} y={y} width={glassW} height={glassH} fill={vidroFill} stroke={vidroStroke} strokeWidth={0.35} />
-            <Line x1={x + glassW * 0.2} y1={y + glassH * 0.08} x2={x + glassW * 0.08} y2={y + glassH * 0.42} stroke="#ffffff" strokeWidth={0.45} />
+            <Line x1={x + glassW * 0.2} y1={y + glassH * 0.08} x2={x + glassW * 0.08} y2={y + glassH * 0.42} stroke={PDF_COLORS.white} strokeWidth={0.45} />
           </G>
         );
       })}
@@ -652,8 +653,8 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
           width={w}
           height={h}
           rx={3}
-          fill="#e8f4f7"
-          stroke="#718596"
+          fill={PDF_COLORS.panelBg}
+          stroke={PDF_COLORS.muted}
           strokeWidth={1.2}
         />
 
@@ -662,7 +663,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
           y1={y + h * 0.18}
           x2={x + w * 0.38}
           y2={y + h * 0.06}
-          stroke="#ffffff"
+          stroke={PDF_COLORS.white}
           strokeWidth={2.2}
           opacity={0.65}
         />
@@ -767,8 +768,8 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const y = 10;
   const ehBisote = tipoVisual.includes("bisote");
   const ehLed = tipoVisual.includes("led");
-  const fill = "#e8f1f6";
-  const stroke = "#8fa1ae";
+  const fill = DRAWING_COLORS.glass;
+  const stroke = DRAWING_COLORS.frame;
   const strokeWidth = ehBisote ? 5 : 1.8;
   const rx = ehCapsula ? Math.min(w, h) / 2 : 0;
   const pathSemiOval = `M ${x} ${y + h} L ${x} ${y + h * 0.48} C ${x} ${y + h * 0.08} ${x + w} ${y + h * 0.08} ${x + w} ${y + h * 0.48} L ${x + w} ${y + h} Z`;
@@ -794,8 +795,8 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
                 width={cellW}
                 height={cellH}
                 rx={0}
-                fill="#e8f1f6"
-                stroke="#8fa1ae"
+                fill={PDF_COLORS.panelBg}
+                stroke={PDF_COLORS.muted}
                 strokeWidth={1.2}
               />
             );
@@ -812,7 +813,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         {ehSemiOval ? (
           <>
             <Path d={pathSemiOval} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-            {ehBisote ? <Path d={`M ${x + 5} ${y + h - 5} L ${x + 5} ${y + h * 0.5} C ${x + 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.5} L ${x + w - 5} ${y + h - 5} Z`} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
+            {ehBisote ? <Path d={`M ${x + 5} ${y + h - 5} L ${x + 5} ${y + h * 0.5} C ${x + 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.18} ${x + w - 5} ${y + h * 0.5} L ${x + w - 5} ${y + h - 5} Z`} fill="none" stroke={PDF_COLORS.white} strokeWidth={1.5} /> : null}
           </>
         ) : ehOrganico ? (
           <Path d={pathOrganico} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
@@ -821,14 +822,14 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         ) : ehRedondo || ehOvalVertical || ehOvalHorizontal ? (
           <>
             <Ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-            {ehBisote ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 5)} ry={Math.max(1, h / 2 - 5)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
-            {ehLed ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 8)} ry={Math.max(1, h / 2 - 8)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
+            {ehBisote ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 5)} ry={Math.max(1, h / 2 - 5)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1.5} /> : null}
+            {ehLed ? <Ellipse cx={x + w / 2} cy={y + h / 2} rx={Math.max(1, w / 2 - 8)} ry={Math.max(1, h / 2 - 8)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1.2} strokeDasharray="4 4" /> : null}
           </>
         ) : (
           <>
             <Rect x={x} y={y} width={w} height={h} rx={rx} ry={rx} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-            {ehBisote ? <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(0, rx - 3)} ry={Math.max(0, rx - 3)} fill="none" stroke="#ffffff" strokeWidth={1.5} /> : null}
-            {ehLed ? <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(0, rx - 5)} ry={Math.max(0, rx - 5)} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="4 4" /> : null}
+            {ehBisote ? <Rect x={x + 5} y={y + 5} width={Math.max(0, w - 10)} height={Math.max(0, h - 10)} rx={Math.max(0, rx - 3)} ry={Math.max(0, rx - 3)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1.5} /> : null}
+            {ehLed ? <Rect x={x + 8} y={y + 8} width={Math.max(0, w - 16)} height={Math.max(0, h - 16)} rx={Math.max(0, rx - 5)} ry={Math.max(0, rx - 5)} fill="none" stroke={PDF_COLORS.white} strokeWidth={1.2} strokeDasharray="4 4" /> : null}
           </>
         )}
       </Svg>
@@ -868,12 +869,12 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 
   return (
     <Svg width={112} height={104} viewBox={`0 0 ${svgW} ${svgH}`}>
-      <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill="#f8fafc" />
-      <Path d={path} fill="#e4f4fa" stroke="#b9c9d4" strokeWidth={2.4} />
-      <Path d={path} fill="none" stroke="#e4eef4" strokeWidth={13} opacity={0.95} />
-      <Path d={path} fill="none" stroke="#b9c9d4" strokeWidth={1.4} opacity={0.78} />
-      <Line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke="#ffffff" strokeWidth={8} opacity={0.22} />
-      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke="#ffffff" strokeWidth={6} opacity={0.24} />
+      <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill={PDF_COLORS.panelBg} />
+      <Path d={path} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={2.4} />
+      <Path d={path} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={13} opacity={0.95} />
+      <Path d={path} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={1.4} opacity={0.78} />
+      <Line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke={PDF_COLORS.white} strokeWidth={8} opacity={0.22} />
+      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke={PDF_COLORS.white} strokeWidth={6} opacity={0.24} />
       {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
         const posicao = index + 1;
         const x = x0 + panelW * posicao;
@@ -882,23 +883,23 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 
         return (
           <G key={`fora-esquadro-div-${posicao}`}>
-            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke="#b9c9d4" strokeWidth={1.8} opacity={0.82} />
-            <Text x={x + 8} y={yTop - 10} style={{ fontSize: 18, fill: "#0f2742" }}>
+            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke={PDF_COLORS.softMuted} strokeWidth={1.8} opacity={0.82} />
+            <Text x={x + 8} y={yTop - 10} style={{ fontSize: 18, fill: PDF_COLORS.ink }}>
               {Math.round(altura)}
             </Text>
           </G>
         );
       })}
-      <Line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke="#2086e8" strokeWidth={1.6} />
-      <Line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke="#2086e8" strokeWidth={1.6} />
-      <Line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke="#2086e8" strokeWidth={1.6} />
-      <Text x={x0 + drawW / 2 - 44} y={yBase + 62} style={{ fontSize: 21, fill: "#0f2742" }}>
+      <Line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke={PDF_COLORS.muted} strokeWidth={1.6} />
+      <Line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke={PDF_COLORS.muted} strokeWidth={1.6} />
+      <Line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke={PDF_COLORS.muted} strokeWidth={1.6} />
+      <Text x={x0 + drawW / 2 - 44} y={yBase + 62} style={{ fontSize: 21, fill: PDF_COLORS.ink }}>
         {largura.toLocaleString("pt-BR")} mm
       </Text>
-      <Text x={x0 + 14} y={(yInicial + yBase) / 2} style={{ fontSize: 19, fill: "#0f2742" }}>
+      <Text x={x0 + 14} y={(yInicial + yBase) / 2} style={{ fontSize: 19, fill: PDF_COLORS.ink }}>
         {alturaInicial.toLocaleString("pt-BR")} mm
       </Text>
-      <Text x={x0 + drawW - 82} y={(yFinal + yBase) / 2} style={{ fontSize: 19, fill: "#0f2742" }}>
+      <Text x={x0 + drawW - 82} y={(yFinal + yBase) / 2} style={{ fontSize: 19, fill: PDF_COLORS.ink }}>
         {alturaFinal.toLocaleString("pt-BR")} mm
       </Text>
     </Svg>

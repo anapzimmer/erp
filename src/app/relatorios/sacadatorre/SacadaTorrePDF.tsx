@@ -4,7 +4,7 @@
 import React from "react";
 import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
-import { buildPdfFooterText } from "../shared/pdfLayout";
+import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 type SacadaTorrePDFProps = {
   nomeEmpresa: string;
@@ -44,83 +44,83 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingHorizontal: 36,
     paddingBottom: 54,
-    backgroundColor: "#ffffff",
-    color: "#153047",
-    fontFamily: "Helvetica",
+    backgroundColor: PDF_COLORS.white,
+    color: PDF_COLORS.ink,
+    fontFamily: "Inter",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     borderBottomWidth: 1,
-    borderBottomColor: "#d9e2ea",
+    borderBottomColor: PDF_COLORS.border,
     paddingBottom: 12,
     marginBottom: 12,
   },
   headerText: { flex: 1, paddingRight: 18 },
-  title: { fontSize: 15, color: "#153047", fontWeight: "bold", textTransform: "uppercase" },
-   subtitle: { fontSize: 8, color: "#6f8193", marginTop: 5 },
+  title: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: "bold", textTransform: "uppercase" },
+   subtitle: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 5 },
   logo: { width: 118, height: 42, objectFit: "contain", objectPosition: "right" },
   infoStrip: {
     flexDirection: "row",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
   },
   infoBox: { flex: 1 },
-  label: { fontSize: 6.5, color: "#718398", textTransform: "uppercase", marginBottom: 3 },
-  value: { fontSize: 9, color: "#153047", fontWeight: "normal" },
-  valueStrong: { fontSize: 9, color: "#153047", fontWeight: "bold" },
+  label: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  value: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "normal" },
+  valueStrong: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold" },
   mainGrid: { flexDirection: "column", gap: 10, marginBottom: 12 },
   drawingBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
-  drawingTitle: { fontSize: 9, color: "#153047", fontWeight: "bold", marginBottom: 6 },
+  drawingTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold", marginBottom: 6 },
   drawing: { width: "100%", height: 170, objectFit: "contain" },
   dataBox: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: "#ffffff",
+    backgroundColor: PDF_COLORS.white,
   },
-  dataTitle: { fontSize: 9, color: "#153047", fontWeight: "bold", marginBottom: 7 },
+  dataTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold", marginBottom: 7 },
   dataGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   dataItem: {
     width: "31.8%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
   dataItemWide: {
     width: "48%",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
     minHeight: 30,
   },
-  sectionTitle: { fontSize: 10, color: "#153047", fontWeight: "bold", marginTop: 4, marginBottom: 6 },
+  sectionTitle: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "bold", marginTop: 4, marginBottom: 6 },
   table: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#dce5ed",
+    borderColor: PDF_COLORS.border,
     borderRadius: 7,
     overflow: "hidden",
   },
   row: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e8eef3",
+    borderTopColor: PDF_COLORS.border,
     minHeight: 24,
     alignItems: "center",
   },
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: 22,
     alignItems: "center",
-    backgroundColor: "#f3f6f9",
+    backgroundColor: PDF_COLORS.panelBg,
   },
-  th: { padding: 5, fontSize: 6.5, color: "#153047", textTransform: "uppercase", fontWeight: "bold" },
-  td: { padding: 5, fontSize: 7, color: "#153047" },
+  th: { padding: 5, fontSize: 6.5, color: PDF_COLORS.ink, textTransform: "uppercase", fontWeight: "bold" },
+  td: { padding: 5, fontSize: 7, color: PDF_COLORS.ink },
   colQtd: { width: "12%", textAlign: "center" },
   colDesc: { width: "46%" },
   colUn: { width: "11%", textAlign: "center" },
@@ -142,13 +142,13 @@ const styles = StyleSheet.create({
     gap: 7,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 10,
   },
   totalBox: { flex: 1 },
-  totalLabel: { fontSize: 6.5, color: "#718398", textTransform: "uppercase", marginBottom: 3 },
-  totalValue: { fontSize: 10, color: "#153047", fontWeight: "normal" },
-  totalValueStrong: { fontSize: 13, color: "#153047", fontWeight: "bold" },
+  totalLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: "uppercase", marginBottom: 3 },
+  totalValue: { fontSize: 10, color: PDF_COLORS.ink, fontWeight: "normal" },
+  totalValueStrong: { fontSize: 13, color: PDF_COLORS.ink, fontWeight: "bold" },
   footer: {
     position: "absolute",
     bottom: 20,
@@ -156,9 +156,9 @@ const styles = StyleSheet.create({
     right: 36,
     textAlign: "center",
     fontSize: 7,
-    color: "#8a9aab",
+    color: PDF_COLORS.muted,
     borderTopWidth: 0.5,
-    borderTopColor: "#dce5ed",
+    borderTopColor: PDF_COLORS.border,
     paddingTop: 8,
   },
 });
@@ -191,10 +191,10 @@ export function SacadaTorrePDF({
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
   const perfilCor = corNormalizada.includes("preto")
-    ? { fill: "#2f3439", stroke: "#171a1e" }
+    ? { fill: PDF_COLORS.ink, stroke: PDF_COLORS.ink }
     : corNormalizada.includes("fosco") || corNormalizada.includes("inox")
-      ? { fill: "#b8c0c7", stroke: "#7d8994" }
-      : { fill: "#eef2f5", stroke: "#b5c0ca" };
+      ? { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.muted }
+      : { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.softMuted };
   const svgW = 430;
   const pad = 16;
   const drawW = svgW - pad * 2;
@@ -245,15 +245,15 @@ export function SacadaTorrePDF({
           <View style={styles.drawingBox}>
             <Text style={styles.drawingTitle}>Vista frontal</Text>
             <Svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" height={210} preserveAspectRatio="xMidYMid meet">
-              <Rect x={x0} y={y0} width={drawW} height={drawH} fill="#ffffff" stroke="#d6e0e8" strokeWidth={0.8} />
+              <Rect x={x0} y={y0} width={drawW} height={drawH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
 
               {Array.from({ length: divs }).map((_, index) => {
                 const x = x0 + side + panelW * index;
                 return (
                   <G key={`vidro-${index}`}>
-                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill="#edf8ff" stroke="#a9bfce" strokeWidth={0.5} />
-                    <Line x1={x + panelW * 0.14} y1={glassY + glassH * 0.9} x2={x + panelW * 0.72} y2={glassY + glassH * 0.1} stroke="#ffffff" strokeWidth={3} />
-                    <Line x1={x + panelW * 0.34} y1={glassY + glassH * 0.86} x2={x + panelW * 0.92} y2={glassY + glassH * 0.15} stroke="#ffffff" strokeWidth={1.6} />
+                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.5} />
+                    <Line x1={x + panelW * 0.14} y1={glassY + glassH * 0.9} x2={x + panelW * 0.72} y2={glassY + glassH * 0.1} stroke={PDF_COLORS.white} strokeWidth={3} />
+                    <Line x1={x + panelW * 0.34} y1={glassY + glassH * 0.86} x2={x + panelW * 0.92} y2={glassY + glassH * 0.15} stroke={PDF_COLORS.white} strokeWidth={1.6} />
                   </G>
                 );
               })}
@@ -265,7 +265,7 @@ export function SacadaTorrePDF({
 
               {Array.from({ length: Math.max(divs - 1, 0) }).map((_, index) => {
                 const x = x0 + side + panelW * (index + 1);
-                return <Line key={`div-${index}`} x1={x} y1={y0 + rail} x2={x} y2={y0 + drawH - rail} stroke="#273444" strokeWidth={0.8} />;
+                return <Line key={`div-${index}`} x1={x} y1={y0 + rail} x2={x} y2={y0 + drawH - rail} stroke={PDF_COLORS.ink} strokeWidth={0.8} />;
               })}
 
               {Array.from({ length: divs + 1 }).map((_, index) => {
@@ -276,8 +276,8 @@ export function SacadaTorrePDF({
                 const w = ehPonta ? 12 : 22;
                 return (
                   <G key={`grapa-${index}`}>
-                    <Rect x={x} y={y} width={w} height={18} fill="#eef2f5" stroke="#8a96a3" strokeWidth={0.7} />
-                    <Text x={x + w + 4} y={y + 12} style={{ fontSize: 5.8, fill: "#153047" }}>{codigo}</Text>
+                    <Rect x={x} y={y} width={w} height={18} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                    <Text x={x + w + 4} y={y + 12} style={{ fontSize: 5.8, fill: PDF_COLORS.ink }}>{codigo}</Text>
                   </G>
                 );
               })}
@@ -292,8 +292,8 @@ export function SacadaTorrePDF({
                       const y = y0 + drawH - rail - towerH + 8;
                       return (
                         <G key={`torre-${painel}-${torreIndex}`}>
-                          <Rect x={x} y={y} width={towerW} height={towerH} fill="#eef2f5" stroke="#7e8b97" strokeWidth={0.8} />
-                          <Line x1={x + 2} y1={y + 3} x2={x + 2} y2={y + towerH - 3} stroke="#ffffff" strokeWidth={0.8} />
+                          <Rect x={x} y={y} width={towerW} height={towerH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.8} />
+                          <Line x1={x + 2} y1={y + 3} x2={x + 2} y2={y + towerH - 3} stroke={PDF_COLORS.white} strokeWidth={0.8} />
                         </G>
                       );
                     })}
@@ -301,8 +301,8 @@ export function SacadaTorrePDF({
                 );
               })}
 
-              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke="#6aa6d8" strokeWidth={0.7} />
-              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 7, fill: "#153047" }}>{larguraVaoMm} mm</Text>
+              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 7, fill: PDF_COLORS.ink }}>{larguraVaoMm} mm</Text>
             </Svg>
           </View>
 

@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useState, useRef } from "react"
+
 import { supabase } from "@/lib/supabaseClient"
 import { formatarPreco } from "@/utils/formatarPreco"
 import {
@@ -33,18 +34,18 @@ interface Acabamento {
 
 // --- ESTRUTURA VISUAL PARA O CADASTRO ---
 const opcoesVisual = [
-    { value: 'padrao', label: 'Reta', className: 'rounded-none border-2 border-gray-400' },
-    { value: 'lapidado', label: 'Lapidado', className: 'rounded-sm border-4 border-gray-400' },
-    { value: 'bisote', label: 'Bisotê', className: 'rounded-sm border-[8px] border-double border-gray-400' },
-    { value: 'molde', label: 'Molde', className: 'rounded-[20px_5px_20px_5px] border-2 border-gray-400' },
-    { value: 'organico', label: 'Orgânico', className: 'rounded-[50px_30px_70px_30px] border-2 border-gray-400' },
-    { value: 'redondo', label: 'Redondo', className: 'rounded-full border-2 border-gray-400' },
+    { value: 'padrao', label: 'Reta', className: 'rounded-none border-2 border-border-strong' },
+    { value: 'lapidado', label: 'Lapidado', className: 'rounded-sm border-4 border-border-strong' },
+    { value: 'bisote', label: 'Bisotê', className: 'rounded-sm border-[8px] border-double border-border-strong' },
+    { value: 'molde', label: 'Molde', className: 'rounded-[20px_5px_20px_5px] border-2 border-border-strong' },
+    { value: 'organico', label: 'Orgânico', className: 'rounded-[50px_30px_70px_30px] border-2 border-border-strong' },
+    { value: 'redondo', label: 'Redondo', className: 'rounded-full border-2 border-border-strong' },
     // LEDS
-    { value: 'led', label: 'LED', className: 'rounded border-4 border-gray-400 relative after:absolute after:inset-2 after:border-2 after:border-dashed after:border-gray-500 after:rounded' },
-    { value: 'redondo_led', label: 'Redondo LED', className: 'rounded-full border-4 border-gray-400 relative after:absolute after:inset-3 after:border-2 after:border-dashed after:border-gray-500 after:rounded-full' },
+    { value: 'led', label: 'LED', className: 'rounded border-4 border-border-strong relative after:absolute after:inset-2 after:border-2 after:border-dashed after:border-border-strong after:rounded' },
+    { value: 'redondo_led', label: 'Redondo LED', className: 'rounded-full border-4 border-border-strong relative after:absolute after:inset-3 after:border-2 after:border-dashed after:border-border-strong after:rounded-full' },
     // OVAL
-    { value: 'semi_oval', label: 'Semi Oval', className: 'rounded-t-full border-4 border-gray-400' },
-    { value: 'capsula_vertical', label: 'Oval Vertical', className: 'rounded-full border-4 border-gray-400', size: 'w-10 h-16' },
+    { value: 'semi_oval', label: 'Semi Oval', className: 'rounded-t-full border-4 border-border-strong' },
+    { value: 'capsula_vertical', label: 'Oval Vertical', className: 'rounded-full border-4 border-border-strong', size: 'w-10 h-16' },
 ];
 
 export default function AcabamentosPage() {
@@ -60,13 +61,7 @@ export default function AcabamentosPage() {
     const [acabamentoParaExcluir, setAcabamentoParaExcluir] = useState<Acabamento | null>(null);
 
     const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
-    const [theme, setTheme] = useState({
-        primary: "#1C415B",
-        secondary: "#FFFFFF",
-        tertiary: "#39B89F",
-        hover: "#39B89F",
-        bgLight: "#F4F7FA"
-    });
+    const theme = { primary: "var(--text-primary)", secondary: "var(--surface)", tertiary: "var(--primary)", hover: "var(--navigation-hover)", bgLight: "var(--background)" };
 
     // --- ESTADOS LÓGICA ---
     const [acabamentos, setAcabamentos] = useState<Acabamento[]>([])
@@ -126,18 +121,12 @@ export default function AcabamentosPage() {
 
                     const { data: branding } = await supabase
                         .from("configuracoes_branding")
-                        .select("*")
+                        .select("logo_light, logo_dark")
                         .eq("empresa_id", perfil.empresa_id)
                         .single();
 
                     if (branding) {
-                        setTheme({
-                            primary: branding.menu_background_color || "#1C415B",
-                            secondary: "#FFFFFF",
-                            tertiary: branding.menu_icon_color || "#39B89F",
-                            hover: branding.menu_hover_color || "#39B89F",
-                            bgLight: branding.screen_background_color || "#F4F7FA"
-                        });
+
                     }
                     await carregarDados(perfil.empresa_id);
                 }
@@ -259,7 +248,7 @@ export default function AcabamentosPage() {
         setAcabamentos(prev => prev.filter(s => s.id !== id));
     };
 
-    if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
+    if (checkingAuth) return <div className="flex h-screen items-center justify-center bg-surface-secondary"><div className="w-8 h-8 border-4 animate-spin rounded-full" style={{ borderTopColor: 'transparent', borderRightColor: theme.primary, borderBottomColor: theme.primary, borderLeftColor: theme.primary }}></div></div>;
 
     const acabamentosFiltrados = acabamentos.filter(s =>
         s.nome.toLowerCase().includes(filtroNome.toLowerCase())
@@ -285,15 +274,15 @@ export default function AcabamentosPage() {
                 />
 
                 <main className="cad-main-panel flex-1 min-w-0 p-4 md:p-8 xl:p-10">
-                    <section className="mb-10 rounded-[24px] border border-gray-100 bg-white p-6 shadow-sm">
+                    <section className="mb-10 rounded-[24px] border border-border bg-surface p-6 shadow-sm">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${theme.tertiary}15`, color: theme.tertiary }}>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `color-mix(in srgb, ${theme.tertiary} 8%, transparent)`, color: theme.tertiary }}>
                                     <Palette size={23} />
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: theme.primary }}>Catálogo de acabamentos</h1>
-                                    <p className="mt-1 text-sm font-normal text-gray-500">Gerencie acabamentos, modelos e preços.</p>
+                                    <p className="mt-1 text-sm font-normal text-text-secondary">Gerencie acabamentos, modelos e preços.</p>
                                 </div>
                             </div>
                         </div>
@@ -306,13 +295,13 @@ export default function AcabamentosPage() {
                             { label: "M²", value: acabamentos.filter(s => s.tipo_calculo === "m2").length, icon: Square },
                             { label: "Porcentagem", value: acabamentos.filter(s => s.tipo_calculo === "porcentagem").length, icon: Palette },
                         ].map(item => (
-                            <div key={item.label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                            <div key={item.label} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                                 <div className="flex items-center gap-3">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${theme.tertiary}12`, color: theme.tertiary }}>
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `color-mix(in srgb, ${theme.tertiary} 7%, transparent)`, color: theme.tertiary }}>
                                         <item.icon size={18} />
                                     </span>
                                     <div>
-                                        <p className="text-xs font-normal text-gray-400">{item.label}</p>
+                                        <p className="text-xs font-normal text-text-secondary">{item.label}</p>
                                         <p className="text-xl font-semibold" style={{ color: theme.primary }}>{item.value}</p>
                                     </div>
                                 </div>
@@ -320,11 +309,11 @@ export default function AcabamentosPage() {
                         ))}
                     </section>
 
-                    <section className="mb-8 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <section className="mb-8 rounded-2xl border border-border bg-surface p-4 shadow-sm">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div className="relative w-full md:max-w-xl">
-                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                <input type="text" placeholder="Buscar por nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-3 text-sm text-gray-600 outline-none transition focus:bg-white focus:ring-2" style={{ "--tw-ring-color": `${theme.tertiary}25` } as any} />
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
+                                <input type="text" placeholder="Buscar por nome..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="w-full rounded-xl border border-border bg-surface-secondary/50 py-2.5 pl-10 pr-3 text-sm text-text-secondary outline-none transition focus:bg-surface focus:ring-2" style={{ "--tw-ring-color": `color-mix(in srgb, ${theme.tertiary} 15%, transparent)` } as any} />
                             </div>
                             <button
                                 onClick={() => {
@@ -353,16 +342,16 @@ export default function AcabamentosPage() {
                         </div>
                     </section>
 
-                    <section className="overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-sm">
-                        <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <section className="overflow-hidden rounded-[22px] border border-border bg-surface shadow-sm">
+                        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-base font-normal text-gray-700">Acabamentos cadastrados</h2>
-                                <p className="mt-0.5 text-xs text-gray-400">Exibindo {acabamentosFiltrados.length} de {acabamentos.length} acabamentos</p>
+                                <h2 className="text-base font-normal text-text-primary">Acabamentos cadastrados</h2>
+                                <p className="mt-0.5 text-xs text-text-secondary">Exibindo {acabamentosFiltrados.length} de {acabamentos.length} acabamentos</p>
                             </div>
                         </div>
                         <div className="overflow-x-auto">
                         <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                            <thead className="border-b border-gray-100 bg-gray-50/80 text-xs text-gray-500">
+                            <thead className="border-b border-border bg-surface-secondary/80 text-xs text-text-secondary">
                                 <tr>
                                     <th className="px-4 py-3.5 font-normal">Acabamento</th>
                                     <th className="px-4 py-3.5 font-normal">Tipo cálculo</th>
@@ -371,7 +360,7 @@ export default function AcabamentosPage() {
                                     <th className="px-4 py-3.5 text-center font-normal">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-border">
                                 {acabamentosFiltrados.map(s => {
                                     let opcaoVisual = opcoesVisual.find(o => o.value === s.tipo_visual);
 
@@ -384,22 +373,22 @@ export default function AcabamentosPage() {
                                     const labelVisual = opcaoVisual ? opcaoVisual.label : s.tipo_visual;
 
                                     return (
-                                        <tr key={s.id} className="transition-colors hover:bg-gray-50/80">
-                                            <td className="px-4 py-3.5 text-gray-700">
+                                        <tr key={s.id} className="transition-colors hover:bg-surface-secondary/80">
+                                            <td className="px-4 py-3.5 text-text-primary">
                                                 {s.nome}
                                                 {(s.sobra_largura > 0 || s.sobra_altura > 0) && (
-                                                    <span className="block text-xs text-gray-400">+{s.sobra_largura}cm x +{s.sobra_altura}cm</span>
+                                                    <span className="block text-xs text-text-secondary">+{s.sobra_largura}cm x +{s.sobra_altura}cm</span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3.5"><span className="rounded-full border px-2.5 py-1 text-[11px] font-normal" style={{ color: theme.tertiary, borderColor: `${theme.tertiary}33`, backgroundColor: `${theme.tertiary}10` }}>{s.tipo_calculo}</span></td>
-                                            <td className="px-4 py-3.5 text-gray-700">
+                                            <td className="px-4 py-3.5"><span className="rounded-full border px-2.5 py-1 text-[11px] font-normal" style={{ color: theme.tertiary, borderColor: `color-mix(in srgb, ${theme.tertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.tertiary} 6%, transparent)` }}>{s.tipo_calculo}</span></td>
+                                            <td className="px-4 py-3.5 text-text-primary">
                                                 {s.tipo_calculo === 'porcentagem' ? `${s.porcentagem_aumento ?? 0}%`
                                                     : s.tipo_calculo === 'm2' ? `${formatarPreco(s.preco)} / m²` // <--- Adicionado
                                                         : formatarPreco(s.preco)}
                                             </td>
 
                                             {/* --- AQUI É ONDE EXIBIMOS O NOME DO MODELO --- */}
-                                            <td className="px-4 py-3.5 text-gray-600">{labelVisual}</td>
+                                            <td className="px-4 py-3.5 text-text-secondary">{labelVisual}</td>
 
                                             <td className="px-4 py-3.5">
                                                 <div className="flex justify-center gap-2">
@@ -419,7 +408,7 @@ export default function AcabamentosPage() {
 
                                                             setMostrarModal(true);
                                                         }}
-                                                        className="rounded-xl p-2.5 transition hover:bg-gray-100"
+                                                        className="rounded-xl p-2.5 transition hover:bg-surface-secondary"
                                                         style={{ color: theme.primary }}
                                                     >
                                                         <Edit2 size={17} />
@@ -429,7 +418,7 @@ export default function AcabamentosPage() {
                                                             setAcabamentoParaExcluir(s);
                                                             setMostrarModalExclusao(true);
                                                         }}
-                                                        className="rounded-xl p-2.5 text-red-400 transition hover:bg-red-50 hover:text-red-500"
+                                                        className="rounded-xl p-2.5 text-danger transition hover:bg-danger-soft hover:text-danger"
                                                     >
                                                         <Trash2 size={17} />
                                                     </button>
@@ -447,18 +436,18 @@ export default function AcabamentosPage() {
 
             {/* MODAL */}
             {mostrarModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-                    <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+                    <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]">
 
                         {/* HEADER FIXO */}
-                        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+                        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
                             <div>
-                              <h2 className="text-lg font-semibold text-slate-900">
+                              <h2 className="text-lg font-semibold text-text-primary">
                                 {editando ? "Editar" : "Novo"} Acabamento
                               </h2>
-                              <div className="mt-2 h-0.5 w-8 rounded-full bg-slate-200" />
+                              <div className="mt-2 h-0.5 w-8 rounded-full bg-border" />
                             </div>
-                            <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600" title="Fechar">
+                            <button onClick={() => setMostrarModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary" title="Fechar">
                                 <X size={16} />
                             </button>
                         </div>
@@ -471,7 +460,7 @@ export default function AcabamentosPage() {
                                     placeholder="Nome do Acabamento (ex: Orgânico)"
                                     value={novoAcabamento.nome}
                                     onChange={e => setNovoAcabamento({ ...novoAcabamento, nome: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                                     style={{ "--tw-ring-color": theme.tertiary } as any}
                                 />
 
@@ -479,7 +468,7 @@ export default function AcabamentosPage() {
                                     <select
                                         value={novoAcabamento.tipo_calculo}
                                         onChange={e => setNovoAcabamento({ ...novoAcabamento, tipo_calculo: e.target.value as Acabamento["tipo_calculo"] })}
-                                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                        className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                                         style={{ "--tw-ring-color": theme.tertiary } as any}
                                     >
                                         <option value="metro_linear">Metro Linear (R$/m)</option>
@@ -492,12 +481,12 @@ export default function AcabamentosPage() {
                                         placeholder={novoAcabamento.tipo_calculo === 'porcentagem' ? "Porcentagem (ex: 20)" : "Preço (ex: 15.50)"}
                                         value={novoAcabamento.preco === 0 ? "" : novoAcabamento.preco}
                                         onChange={e => setNovoAcabamento({ ...novoAcabamento, preco: parseFloat(e.target.value) || 0 })}
-                                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                        className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                                         style={{ "--tw-ring-color": theme.tertiary } as any}
                                     />
                                 </div>
 
-                                <p className="text-xs leading-5 text-slate-500">
+                                <p className="text-xs leading-5 text-text-secondary">
                                     Em Espelhos, m² usa a área com sobras e arredondamento para cima de 5 em 5 cm por peça.
                                     Metro linear usa 2 × (largura + altura) de cada peça, sem sobras, inclusive em formatos curvos.
                                     Unitário cobra cada peça do jogo. Porcentagem incide somente sobre o valor do vidro.
@@ -505,17 +494,17 @@ export default function AcabamentosPage() {
                                 </p>
                                 {/* Margem de Cálculo */}
                                 <div>
-                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">
                                         Margem de Cálculo para Área (em cm)
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="number" placeholder="Sobra Largura (cm)" value={novoAcabamento.sobra_largura === 0 ? "" : novoAcabamento.sobra_largura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_largura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
-                                        <input type="number" placeholder="Sobra Altura (cm)" value={novoAcabamento.sobra_altura === 0 ? "" : novoAcabamento.sobra_altura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_altura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+                                        <input type="number" placeholder="Sobra Largura (cm)" value={novoAcabamento.sobra_largura === 0 ? "" : novoAcabamento.sobra_largura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_largura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
+                                        <input type="number" placeholder="Sobra Altura (cm)" value={novoAcabamento.sobra_altura === 0 ? "" : novoAcabamento.sobra_altura} onChange={e => setNovoAcabamento({ ...novoAcabamento, sobra_altura: parseFloat(e.target.value) || 0 })} className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2" style={{ "--tw-ring-color": theme.tertiary } as any} />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                                    <label className="mb-2 ml-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">
                                         Preços adicionais de jato e adesivo (R$/m²)
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
@@ -524,7 +513,7 @@ export default function AcabamentosPage() {
                                             placeholder="Preço Jato (R$/m²)"
                                             value={novoAcabamento.preco_jato === 0 ? "" : novoAcabamento.preco_jato}
                                             onChange={e => setNovoAcabamento({ ...novoAcabamento, preco_jato: parseFloat(e.target.value) || 0 })}
-                                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                            className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                                             style={{ "--tw-ring-color": theme.tertiary } as any}
                                         />
                                         <input
@@ -532,7 +521,7 @@ export default function AcabamentosPage() {
                                             placeholder="Preço Adesivo (R$/m²)"
                                             value={novoAcabamento.preco_adesivo === 0 ? "" : novoAcabamento.preco_adesivo}
                                             onChange={e => setNovoAcabamento({ ...novoAcabamento, preco_adesivo: parseFloat(e.target.value) || 0 })}
-                                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:ring-2"
+                                            className="rounded-xl border border-border bg-surface p-3 text-sm text-text-primary outline-none focus:ring-2"
                                             style={{ "--tw-ring-color": theme.tertiary } as any}
                                         />
                                     </div>
@@ -540,7 +529,7 @@ export default function AcabamentosPage() {
 
                                 {/* 1. SELEÇÃO DE BORDA (MODIFICADO PARA MÚLTIPLA SELEÇÃO) */}
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-3 block">
+                                    <label className="text-xs font-bold text-text-secondary uppercase ml-1 mb-3 block">
                                         Tipos de Borda a Cadastrar
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
@@ -554,9 +543,9 @@ export default function AcabamentosPage() {
                                                 setNovoAcabamento({ ...novoAcabamento, bordasSelecionadas: novasBordas } as any);
                                             }}
                                             className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all 
-                                ${novoAcabamento.bordasSelecionadas?.includes('lapidado') ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}
+                                ${novoAcabamento.bordasSelecionadas?.includes('lapidado') ? 'border-info bg-info-soft' : 'border-border hover:border-border'}`}
                                         >
-                                            <div className="w-6 h-6 border-4 border-gray-300 rounded-sm"></div>
+                                            <div className="w-6 h-6 border-4 border-border-strong rounded-sm"></div>
                                             <span className="text-sm font-semibold">Lapidado</span>
                                         </button>
                                         <button
@@ -568,9 +557,9 @@ export default function AcabamentosPage() {
                                                 setNovoAcabamento({ ...novoAcabamento, bordasSelecionadas: novasBordas } as any);
                                             }}
                                             className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all 
-                                ${novoAcabamento.bordasSelecionadas?.includes('bisote') ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}
+                                ${novoAcabamento.bordasSelecionadas?.includes('bisote') ? 'border-info bg-info-soft' : 'border-border hover:border-border'}`}
                                         >
-                                            <div className="w-6 h-6 border-[6px] border-double border-gray-300 rounded-sm"></div>
+                                            <div className="w-6 h-6 border-[6px] border-double border-border-strong rounded-sm"></div>
                                             <span className="text-sm font-semibold">Bisotê</span>
                                         </button>
                                     </div>
@@ -578,7 +567,7 @@ export default function AcabamentosPage() {
 
                                 {/* 2. FORMATO DO ESPELHO */}
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-3 block">
+                                    <label className="text-xs font-bold text-text-secondary uppercase ml-1 mb-3 block">
                                         Formato do Espelho
                                     </label>
                                     <div className="grid grid-cols-4 gap-3">
@@ -595,16 +584,16 @@ export default function AcabamentosPage() {
                                             }}
                                             className={`col-span-2 flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all 
     ${novoAcabamento.formatoSelecionado === 'jogo'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
+                                                    ? 'border-info bg-info-soft'
+                                                    : 'border-border hover:border-border bg-surface-secondary'}`}
                                         >
                                             {/* --- O DESENHO DO JOGO PERMANECE AQUI --- */}
-                                            <div className="grid grid-cols-3 gap-1 p-2 bg-white rounded-lg">
+                                            <div className="grid grid-cols-3 gap-1 p-2 bg-surface rounded-lg">
                                                 {[...Array(9)].map((_, i) => (
-                                                    <div key={i} className={`w-5 h-5 bg-gray-200 rounded-sm border border-gray-300`}></div>
+                                                    <div key={i} className={`w-5 h-5 bg-border rounded-sm border border-border-strong`}></div>
                                                 ))}
                                             </div>
-                                            <span className="text-xs font-semibold text-gray-700">Jogo de Espelhos</span>
+                                            <span className="text-xs font-semibold text-text-primary">Jogo de Espelhos</span>
                                         </button>
 
                                         {/* DEMAIS FORMATOS */}
@@ -622,11 +611,11 @@ export default function AcabamentosPage() {
                                                             setNovoAcabamento({ ...novoAcabamento, formatoSelecionado: opt.value as any })
                                                         }}
                                                         className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all 
-                                ${novoAcabamento.formatoSelecionado === opt.value ? 'border-blue-500 bg-blue-50'
-                                                                : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
+                                ${novoAcabamento.formatoSelecionado === opt.value ? 'border-info bg-info-soft'
+                                                                : 'border-border hover:border-border bg-surface-secondary'}`}
                                                     >
-                                                        <div className={`${opt.size ?? 'w-12 h-12'} bg-white ${opt.className}`}></div>
-                                                        <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{opt.label}</span>
+                                                        <div className={`${opt.size ?? 'w-12 h-12'} bg-surface ${opt.className}`}></div>
+                                                        <span className="text-xs font-semibold text-text-primary text-center leading-tight">{opt.label}</span>
                                                     </button>
                                                 );
                                             })}
@@ -636,10 +625,10 @@ export default function AcabamentosPage() {
                         </div>
 
                         {/* FOOTER FIXO */}
-                        <div className="p-5 border-t border-gray-100 bg-white flex gap-3">
+                        <div className="p-5 border-t border-border bg-surface flex gap-3">
                             <button
                                 onClick={() => setMostrarModal(false)}
-                                className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition"
+                                className="flex-1 py-2.5 text-sm font-semibold text-text-secondary bg-surface border border-border rounded-xl hover:bg-surface-secondary hover:border-border-strong transition"
                             >
                                 Cancelar
                             </button>
@@ -658,32 +647,32 @@ export default function AcabamentosPage() {
             )}
 
             {mostrarModalExclusao && acabamentoParaExcluir && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-[2px]">
-                    <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
+                    <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]">
 
                         {/* Título e ícone menor */}
                         <div className="flex items-start gap-3 px-5 py-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50">
-                                <Trash2 className="h-5 w-5 text-red-600" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-danger-soft">
+                                <Trash2 className="h-5 w-5 text-danger" />
                             </div>
                             <div>
-                                <h3 className="text-base font-semibold text-gray-900">
+                                <h3 className="text-base font-semibold text-text-primary">
                                     Excluir Acabamento
                                 </h3>
-                                <p className="mt-1 text-sm leading-6 text-gray-500">
-                                    Tem certeza que deseja excluir o acabamento <span className="font-medium text-gray-700">{acabamentoParaExcluir.nome}</span>x
+                                <p className="mt-1 text-sm leading-6 text-text-secondary">
+                                    Tem certeza que deseja excluir o acabamento <span className="font-medium text-text-primary">{acabamentoParaExcluir.nome}</span>x
                                 </p>
                             </div>
                         </div>
 
                         {/* FOOTER DO MODAL (BOTOES MENORES) */}
-                        <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+                        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
                             <button
                                 onClick={() => {
                                     setAcabamentoParaExcluir(null);
                                     setMostrarModalExclusao(false);
                                 }}
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary"
                             >
                                 Cancelar
                             </button>
@@ -694,7 +683,7 @@ export default function AcabamentosPage() {
                                     setAcabamentoParaExcluir(null);
                                     setMostrarModalExclusao(false);
                                 }}
-                                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                                className="rounded-xl bg-danger px-4 py-2.5 text-sm font-semibold text-on-danger transition hover:bg-danger"
                             >
                                 {carregando ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Excluir"}
                             </button>

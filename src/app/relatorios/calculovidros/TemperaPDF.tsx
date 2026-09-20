@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer"
-import { PDF_HEADER_LAYOUT, buildPdfFooterText } from "../shared/pdfLayout"
+import { PDF_COLORS, PDF_HEADER_LAYOUT, buildPdfFooterText } from "../shared/pdfLayout"
 
 const DESENHO_W = 220
 const DESENHO_H = 220
@@ -28,7 +28,7 @@ type TemperaPDFProps = {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 28, backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
+  page: { padding: 28, backgroundColor: PDF_COLORS.white, fontFamily: "Inter" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flex: 1 },
   titulo: { fontSize: 16, fontWeight: "bold", textTransform: "uppercase" },
-  subtitulo: { fontSize: 9, color: "#64748B", marginTop: 2 },
+  subtitulo: { fontSize: 9, color: PDF_COLORS.muted, marginTop: 2 },
   logo: {
     width: PDF_HEADER_LAYOUT.logoWidth,
     height: PDF_HEADER_LAYOUT.logoHeight,
@@ -49,26 +49,26 @@ const styles = StyleSheet.create({
   bloco: {
     flex: 1,
     borderRadius: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     padding: 12,
   },
-  blocoTitulo: { fontSize: 11, fontWeight: "bold", color: "#0F172A", marginBottom: 6 },
-  blocoMeta: { fontSize: 8, color: "#475569", marginBottom: 3 },
+  blocoTitulo: { fontSize: 11, fontWeight: "bold", color: PDF_COLORS.ink, marginBottom: 6 },
+  blocoMeta: { fontSize: 8, color: PDF_COLORS.ink, marginBottom: 3 },
   destaqueVao: {
     alignSelf: "flex-start",
     marginTop: 4,
     marginBottom: 8,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     borderWidth: 1,
-    borderColor: "#93C5FD",
+    borderColor: PDF_COLORS.border,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   destaqueVaoTexto: {
     fontSize: 9,
     fontWeight: "bold",
-    color: "#1D4ED8",
+    color: PDF_COLORS.ink,
     textTransform: "uppercase",
   },
   cotaContainer: {
@@ -86,14 +86,14 @@ const styles = StyleSheet.create({
   },
   medidaLabel: {
     fontSize: 8,
-    color: "#475569",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
     marginRight: 4,
     textTransform: "uppercase",
   },
   medidaValor: {
     fontSize: 8,
-    color: "#0F172A",
+    color: PDF_COLORS.ink,
     fontWeight: "bold",
   },
   desenhoArea: {
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   desenhoWrap: {
     width: DESENHO_W + 20,
     height: DESENHO_H + 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: PDF_COLORS.white,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -136,23 +136,23 @@ const styles = StyleSheet.create({
     right: 28,
     textAlign: "center",
     fontSize: 8,
-    color: "#94A3B8",
+    color: PDF_COLORS.muted,
     paddingTop: 8,
     borderTopWidth: 0.5,
-    borderTopColor: "#CBD5E1",
+    borderTopColor: PDF_COLORS.border,
   },
 })
 
-export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeColor, itens }: TemperaPDFProps) {
+export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra,  itens }: TemperaPDFProps) {
   const itensComDesenho = itens.filter((item) => Boolean(item.desenhoUrl))
 
   return (
     <Document>
       {itensComDesenho.length > 0 ? itensComDesenho.map((item, pageIndex) => (
         <Page key={`tempera-page-${item.id}-${pageIndex}`} size="A4" style={styles.page}>
-          <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+          <View style={[styles.header, { borderBottomColor: PDF_COLORS.border, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.titulo, { color: themeColor }]}>Tempera</Text>
+              <Text style={[styles.titulo, { color: PDF_COLORS.ink }]}>Tempera</Text>
               <Text style={styles.subtitulo}>Cliente: {nomeCliente || "Nao informado"}</Text>
               <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Itens"}</Text>
             </View>
@@ -211,9 +211,9 @@ export function TemperaPDF({ nomeEmpresa, logoUrl, nomeCliente, nomeObra, themeC
         </Page>
       )) : (
         <Page size="A4" style={styles.page}>
-          <View style={[styles.header, { borderBottomColor: themeColor, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}> 
+          <View style={[styles.header, { borderBottomColor: PDF_COLORS.border, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.titulo, { color: themeColor }]}>Tempera</Text>
+              <Text style={[styles.titulo, { color: PDF_COLORS.ink }]}>Tempera</Text>
               <Text style={styles.subtitulo}>Cliente: {nomeCliente || "Nao informado"}</Text>
               <Text style={styles.subtitulo}>Obra: {nomeObra || "Composicao de Itens"}</Text>
             </View>

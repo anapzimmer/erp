@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   page: {
     padding: 32,
     backgroundColor: PDF_COLORS.white,
-    fontFamily: "Helvetica",
+    fontFamily: "Inter",
     color: PDF_COLORS.ink,
   },
   header: {
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
   table: {
     width: "100%",
     borderTopWidth: 0.8,
-    borderTopColor: "#CBD5E1",
+    borderTopColor: PDF_COLORS.border,
   },
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 0.8,
-    borderBottomColor: "#CBD5E1",
+    borderBottomColor: PDF_COLORS.border,
   },
   tableRow: {
     flexDirection: "row",
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   tableColHeader: {
     paddingHorizontal: 4,
     paddingVertical: 6,
-    color: "#334155",
+    color: PDF_COLORS.ink,
     fontSize: PDF_TABLE_LAYOUT.headerFontSize,
     textTransform: "uppercase",
     letterSpacing: 0.25,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 10,
     borderTopWidth: 0.8,
-    borderTopColor: "#CBD5E1",
+    borderTopColor: PDF_COLORS.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     right: 32,
     textAlign: "center",
     fontSize: 7,
-    color: PDF_COLORS.softMuted,
+    color: PDF_COLORS.ink,
     borderTopWidth: 0.5,
     borderTopColor: PDF_COLORS.borderLight,
     paddingTop: 8,

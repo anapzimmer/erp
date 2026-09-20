@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Check, Layers3 } from 'lucide-react';
+import { DRAWING_COLORS } from "@/design/drawing";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import styles from './login.module.css';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeSelect from "@/components/ThemeSelect";
 
 
 const LoginPage = () => {
   const router = useRouter();
+  const { resolvedMode } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -188,8 +192,8 @@ const LoginPage = () => {
 
   return (
     <main className={styles.page}>
-      <section className={styles.story} aria-label="GlassCode — gestão para vidraçarias">
-        <div className={styles.brand}><Layers3 size={28} /><span>glass<span className={styles.brandLight}>code</span><small>GESTÃO PARA VIDRAÇARIAS</small></span></div>
+      <section className={styles.story} aria-label="GlassCode — software para setor de vidro">
+        <div className={styles.brand}><Image src="/glasscodeicone.png" alt="" width={35} height={48} unoptimized priority style={{ objectFit: 'contain', flexShrink: 0 }} /><span>glass<span className={styles.brandLight}>code</span><small>SOFTWARE PARA SETOR DE VIDRO</small></span></div>
         <div className={styles.storyContent}>
           <span className={styles.eyebrow}><span /> DA IDEIA À INSTALAÇÃO</span>
           <h1>Precisão em cada corte.<br /><em>Controle em cada projeto.</em></h1>
@@ -197,13 +201,13 @@ const LoginPage = () => {
           <div className={styles.blueprint}>
             <div className={styles.drawingTitle}><span>ESTUDO DE PROJETO</span><span>01 / JANELA DE CORRER</span></div>
             <svg viewBox="0 0 560 320" role="img" aria-label="Desenho animado de uma janela de correr com duas folhas">
-              <defs><linearGradient id="login-glass" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#75e4d1" stopOpacity=".2"/><stop offset="1" stopColor="#75e4d1" stopOpacity=".02"/></linearGradient></defs>
-              <g stroke="#79c9be" strokeWidth="1" opacity=".65" fill="none"><path d="M90 58V30M470 58V30M90 40H470M78 40L96 40M90 34V46M470 34V46M482 70H510M482 266H510M500 70V266M494 70H506M494 266H506"/></g>
-              <g fill="#a7d7d2" fontSize="11" fontFamily="monospace"><text x="250" y="30">1.200 mm</text><text x="516" y="195" transform="rotate(-90 516 195)">1.000 mm</text></g>
-              <g className={styles.frame} fill="none" stroke="#8ae6d4" strokeWidth="2"><rect x="90" y="70" width="380" height="196"/><rect x="96" y="76" width="368" height="184"/><path d="M280 76V260M90 270H470"/></g>
-              <g className={styles.slidingGlass}><rect x="102" y="82" width="172" height="172" fill="url(#login-glass)" stroke="#b0f1e5" strokeOpacity=".4"/><path d="M125 180L210 100M145 202L242 110" stroke="#ddfff8" strokeOpacity=".15"/><rect x="111" y="157" width="4" height="25" rx="2" fill="#a5e8da"/></g>
-              <g className={styles.glass}><rect x="286" y="82" width="172" height="172" fill="url(#login-glass)" stroke="#b0f1e5" strokeOpacity=".4"/><path d="M305 180L390 100M325 202L422 110" stroke="#ddfff8" strokeOpacity=".15"/></g>
-              <path d="M240 293H320M310 288L320 293L310 298" stroke="#68c9b5" fill="none"/>
+              <defs><linearGradient id="login-glass" x1="0" y1="0" x2="1" y2="1"><stop stopColor={DRAWING_COLORS.frame} stopOpacity=".2"/><stop offset="1" stopColor={DRAWING_COLORS.frame} stopOpacity=".02"/></linearGradient></defs>
+              <g stroke={DRAWING_COLORS.frame} strokeWidth="1" opacity=".65" fill="none"><path d="M90 58V30M470 58V30M90 40H470M78 40L96 40M90 34V46M470 34V46M482 70H510M482 266H510M500 70V266M494 70H506M494 266H506"/></g>
+              <g fill={DRAWING_COLORS.frame} fontSize="11" fontFamily="Inter, Arial, sans-serif"><text x="250" y="30">1.200 mm</text><text x="516" y="195" transform="rotate(-90 516 195)">1.000 mm</text></g>
+              <g className={styles.frame} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="2"><rect x="90" y="70" width="380" height="196"/><rect x="96" y="76" width="368" height="184"/><path d="M280 76V260M90 270H470"/></g>
+              <g className={styles.slidingGlass}><rect x="102" y="82" width="172" height="172" fill="url(#login-glass)" stroke={DRAWING_COLORS.frame} strokeOpacity=".4"/><path d="M125 180L210 100M145 202L242 110" stroke={DRAWING_COLORS.frame} strokeOpacity=".15"/><rect x="111" y="157" width="4" height="25" rx="2" fill={DRAWING_COLORS.frame}/></g>
+              <g className={styles.glass}><rect x="286" y="82" width="172" height="172" fill="url(#login-glass)" stroke={DRAWING_COLORS.frame} strokeOpacity=".4"/><path d="M305 180L390 100M325 202L422 110" stroke={DRAWING_COLORS.frame} strokeOpacity=".15"/></g>
+              <path d="M240 293H320M310 288L320 293L310 298" stroke={DRAWING_COLORS.frame} fill="none"/>
             </svg>
             <div className={styles.drawingFooter}><span><span className={styles.dot}/> Cada detalhe faz a diferença.</span><span>GLASSCODE / PROJETOS</span></div>
           </div>
@@ -213,7 +217,8 @@ const LoginPage = () => {
       </section>
       <section className={styles.access}>
         <div className={styles.formCard}>
-          <Image src="/glasscode.png" alt="GlassCode" width={160} height={80} priority unoptimized className={styles.logo}/>
+          <div className="mb-4 flex justify-end"><ThemeSelect /></div>
+          <Image src={resolvedMode === "dark" ? "/glasscode-dark.png" : "/glasscode-light.png"} alt="GlassCode" width={160} height={80} priority unoptimized className={styles.logo}/>
           <div className={styles.heading}><span className={styles.kicker}>SEU ESPAÇO DE TRABALHO</span><h2>{showSignup ? 'Crie sua conta' : 'Bom ter você aqui.'}</h2><p>{showSignup ? 'Comece uma nova etapa na gestão da sua vidraçaria.' : 'Acesse sua conta e dê vida aos seus projetos.'}</p></div>
           {modalConfig.show && <div role={modalConfig.type === 'error' ? 'alert' : 'status'} className={`${styles.notice} ${modalConfig.type === 'success' ? styles.success : ''}`}><strong>{modalConfig.title}</strong><p>{modalConfig.message}</p><button type="button" aria-label="Fechar mensagem" onClick={() => setModalConfig(prev => ({...prev, show:false}))}>×</button></div>}
           <form onSubmit={showSignup ? handleSignup : handleLogin} className={styles.form}>

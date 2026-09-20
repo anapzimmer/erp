@@ -108,13 +108,13 @@ export default function UpdatePasswordPage() {
   if (checkingSession) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF] p-4">
-      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-[#1C415B]/10">
+    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+      <div className="bg-surface p-10 rounded-3xl shadow-2xl w-full max-w-md border border-border-strong/10">
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <Image
-            src="/glasscode.png"
+            src="/glasscode-light.png"
             alt="Logo"
             width={280}
             height={80}
@@ -122,11 +122,11 @@ export default function UpdatePasswordPage() {
           />
         </div>
 
-        <h2 className="text-2xl font-bold text-[#1C415B] text-center">
+        <h2 className="text-2xl font-bold text-text-primary text-center">
           Redefinir Senha
         </h2>
 
-        <p className="text-sm text-[#1C415B]/70 text-center mt-2 mb-6">
+        <p className="text-sm text-text-primary/70 text-center mt-2 mb-6">
           Crie uma nova senha segura para acessar sua conta.
         </p>
 
@@ -139,13 +139,13 @@ export default function UpdatePasswordPage() {
                 placeholder="Nova senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39B89F] focus:border-[#39B89F] outline-none transition-all"
+                className="w-full px-4 py-3 border border-border-strong/15 rounded-xl text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-3 text-text-secondary hover:text-text-secondary"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -158,24 +158,24 @@ export default function UpdatePasswordPage() {
               placeholder="Confirmar nova senha"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-[#1C415B]/15 rounded-xl text-sm focus:ring-1 focus:ring-[#39B89F] focus:border-[#39B89F] outline-none transition-all"
+              className="w-full px-4 py-3 border border-border-strong/15 rounded-xl text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
               required
             />
-            <p className="mt-2 text-xs text-[#1C415B]/50 leading-relaxed">
+            <p className="mt-2 text-xs text-text-primary/50 leading-relaxed">
               A senha deve ter pelo menos 6 caracteres, incluindo letra maiúscula,
               número e caractere especial.
             </p>
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-3 text-[#1C415B]/50 hover:text-[#39b89f]"
+              className="absolute right-3 top-3 text-text-primary/50 hover:text-selection-text"
             >
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
 
           {errorMsg && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-600 text-xs p-3 rounded-xl">
+            <div className="bg-danger/10 border border-danger/30 text-danger text-xs p-3 rounded-xl">
               {errorMsg}
             </div>
           )}
@@ -183,7 +183,7 @@ export default function UpdatePasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-70"
+            className="w-full bg-primary hover:bg-primary text-on-primary py-3 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-70"
           >
             {loading ? "Atualizando..." : "Atualizar Senha"}
           </button>
@@ -194,24 +194,24 @@ export default function UpdatePasswordPage() {
       {showSuccessModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-[#1C415B]/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-navigation/30 backdrop-blur-sm"
             onClick={handleCloseModal}
           />
-          <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-gray-100 text-center">
+          <div className="relative bg-surface rounded-3xl p-8 shadow-2xl w-full max-w-sm border border-border text-center">
             <div className="flex justify-center mb-5">
-              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-[#39B89F]/10">
-                <CheckCircle className="text-[#39B89F]" size={32} strokeWidth={2.5} />
+              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-primary/10">
+                <CheckCircle className="text-selection-text" size={32} strokeWidth={2.5} />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-[#1C415B]">
+            <h3 className="text-xl font-bold text-text-primary">
               Senha Atualizada!
             </h3>
-            <p className="text-sm text-[#1C415B]/70 mt-3 leading-relaxed">
+            <p className="text-sm text-text-primary/70 mt-3 leading-relaxed">
               Sua senha foi redefinida com sucesso. Faça login novamente para acessar o sistema.
             </p>
             <button
               onClick={handleCloseModal}
-              className="mt-8 w-full bg-[#1C415B] hover:bg-[#39b89f] text-white py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              className="mt-8 w-full bg-primary hover:bg-primary text-on-primary py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
             >
               Entendido
             </button>

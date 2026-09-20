@@ -522,18 +522,18 @@ export default function ProjetoAssistenteGlobal() {
   if (!ativoNestaRota || !painel) return null;
 
   return (
-    <div className="fixed inset-0 z-80 flex items-start justify-center bg-slate-950/30 px-4 py-6 pt-8 backdrop-blur-[2px]">
-      <section className={`w-full overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] ${painel === "ajuda" ? "max-w-4xl" : "max-w-2xl"}`}>
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+    <div className="fixed inset-0 z-80 flex items-start justify-center bg-navigation/30 px-4 py-6 pt-8 backdrop-blur-[2px]">
+      <section className={`w-full overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)] ${painel === "ajuda" ? "max-w-4xl" : "max-w-2xl"}`}>
+        <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-text-secondary">
               {painel === "ajuda" ? <HelpCircle size={22} /> : <Settings size={22} />}
             </span>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="text-base font-semibold text-text-primary">
                 {painel === "ajuda" ? "Ajuda do projeto" : "Configurações do projeto"}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">{projetoNome}</p>
+              <p className="mt-1 text-sm text-text-secondary">{projetoNome}</p>
             </div>
           </div>
           <button
@@ -543,7 +543,7 @@ export default function ProjetoAssistenteGlobal() {
               setBusca("");
               setSalvo(false);
             }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary"
             aria-label="Fechar"
           >
             <X size={18} />
@@ -552,16 +552,16 @@ export default function ProjetoAssistenteGlobal() {
 
         {painel === "ajuda" ? (
           <div className="p-5">
-            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4">
-              <Search size={18} className="shrink-0 text-slate-400" />
+            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-border bg-surface-secondary px-4">
+              <Search size={18} className="shrink-0 text-text-secondary" />
               <input
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
                 placeholder="Pesquisar por vidro, tubo, puxador, PDF, salvar, cor, roldana, kit..."
-                className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-secondary"
               />
             </label>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary">
               <span>
                 {topicosFiltrados.length} tópico(s) encontrado(s)
               </span>
@@ -572,20 +572,20 @@ export default function ProjetoAssistenteGlobal() {
             <div className="mt-4 max-h-[58vh] space-y-3 overflow-auto pr-1">
               {topicosFiltrados.length > 0 ? (
                 topicosFiltrados.map((topico) => (
-                  <article key={`${topico.categoria}-${topico.titulo}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <article key={`${topico.categoria}-${topico.titulo}`} className="rounded-xl border border-border bg-surface p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      <span className="rounded-full bg-surface-secondary px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-text-secondary">
                         {topico.categoria}
                       </span>
-                      <h3 className="text-sm font-semibold text-slate-900">{topico.titulo}</h3>
+                      <h3 className="text-sm font-semibold text-text-primary">{topico.titulo}</h3>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{topico.texto}</p>
+                    <p className="mt-2 text-sm leading-6 text-text-secondary">{topico.texto}</p>
                   </article>
                 ))
               ) : (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-                  <p className="text-sm font-semibold text-slate-900">Nenhum tópico encontrado</p>
-                  <p className="mt-1 text-sm text-slate-500">Tente pesquisar por outro termo.</p>
+                <div className="rounded-xl border border-dashed border-border bg-surface-secondary p-6 text-center">
+                  <p className="text-sm font-semibold text-text-primary">Nenhum tópico encontrado</p>
+                  <p className="mt-1 text-sm text-text-secondary">Tente pesquisar por outro termo.</p>
                 </div>
               )}
             </div>
@@ -607,7 +607,7 @@ export default function ProjetoAssistenteGlobal() {
               <ToggleConfig titulo="Mostrar materiais no PDF" descricao="Preferencia global para relacoes de material no PDF." ativo={config.mostrarMateriaisPdf} onChange={(valor) => setConfig((atual) => ({ ...atual, mostrarMateriaisPdf: valor }))} />
               <ToggleConfig titulo="Ajuda detalhada" descricao="Mantem a auto ajuda completa com regras gerais e especificas do projeto." ativo={config.ajudaDetalhada} onChange={(valor) => setConfig((atual) => ({ ...atual, ajudaDetalhada: valor }))} />
             </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
               <button
                 type="button"
                 onClick={() => {
@@ -617,14 +617,14 @@ export default function ProjetoAssistenteGlobal() {
                     .forEach((chave) => window.localStorage.removeItem(chave));
                   setSalvo(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary"
               >
                 <Trash2 size={16} />
                 Limpar rascunho desta pagina
               </button>
               <div className="flex items-center gap-3">
                 {salvo ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-success">
                     <CheckCircle2 size={16} />
                     Configuração salva
                   </span>
@@ -632,7 +632,7 @@ export default function ProjetoAssistenteGlobal() {
                 <button
                   type="button"
                   onClick={() => setPainel(null)}
-                  className="rounded-xl bg-slate-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                  className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-navigation"
                 >
                   Concluir
                 </button>
@@ -647,9 +647,9 @@ export default function ProjetoAssistenteGlobal() {
 
 function CampoConfig({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium text-slate-700 outline-none">
+    <label className="block rounded-xl border border-border bg-surface-secondary px-4 py-3">
+      <span className="block text-[11px] font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium text-text-primary outline-none">
         {["Escolher", "Preto", "Branco", "Fosco", "Gold", "Cromado", "Rose"].map((opcao) => (
           <option key={opcao} value={opcao}>{opcao}</option>
         ))}
@@ -660,14 +660,14 @@ function CampoConfig({ label, value, onChange }: { label: string; value: string;
 
 function CampoNumeroConfig({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
-    <label className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+    <label className="block rounded-xl border border-border bg-surface-secondary px-4 py-3">
+      <span className="block text-[11px] font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
       <input
         type="number"
         min={1}
         value={value}
         onChange={(event) => onChange(Number(event.target.value || 1))}
-        className="mt-1 w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
+        className="mt-1 w-full bg-transparent text-sm font-medium text-text-primary outline-none"
       />
     </label>
   );
@@ -675,13 +675,13 @@ function CampoNumeroConfig({ label, value, onChange }: { label: string; value: n
 
 function ToggleConfig({ titulo, descricao, ativo, onChange }: { titulo: string; descricao: string; ativo: boolean; onChange: (ativo: boolean) => void }) {
   return (
-    <button type="button" onClick={() => onChange(!ativo)} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50">
+    <button type="button" onClick={() => onChange(!ativo)} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface px-4 py-3 text-left transition hover:bg-surface-secondary">
       <span>
-        <span className="block text-sm font-semibold text-slate-900">{titulo}</span>
-        <span className="mt-1 block text-xs leading-5 text-slate-500">{descricao}</span>
+        <span className="block text-sm font-semibold text-text-primary">{titulo}</span>
+        <span className="mt-1 block text-xs leading-5 text-text-secondary">{descricao}</span>
       </span>
-      <span className={`flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition ${ativo ? "bg-[#18bd72]" : "bg-slate-300"}`}>
-        <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition ${ativo ? "translate-x-5" : "translate-x-0"}`} />
+      <span className={`flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition ${ativo ? "bg-primary" : "bg-border"}`}>
+        <span className={`h-4 w-4 rounded-full bg-surface shadow-sm transition ${ativo ? "translate-x-5" : "translate-x-0"}`} />
       </span>
     </button>
   );

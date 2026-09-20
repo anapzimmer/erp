@@ -199,24 +199,24 @@ export default function ClienteQuickCreateButton({ empresaId, onClientCreated, o
         type="button"
         disabled={disabled}
         onClick={() => setAberto(true)}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border-strong text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary disabled:opacity-50"
         title="Cadastrar novo cliente"
       >
         <Plus size={13} />
       </button>
 
       {aberto && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
-          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 md:px-6">
-              <h2 className="text-base font-semibold text-slate-900">Cadastrar cliente</h2>
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navigation/35 p-4 backdrop-blur-[2px]">
+          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-border bg-surface-secondary shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 md:px-6">
+              <h2 className="text-base font-semibold text-text-primary">Cadastrar cliente</h2>
               <button
                 type="button"
                 onClick={() => {
                   if (salvando) return;
                   setAberto(false);
                 }}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-surface-secondary"
               >
                 Fechar
               </button>
@@ -224,57 +224,57 @@ export default function ClienteQuickCreateButton({ empresaId, onClientCreated, o
 
             <div className="max-h-[75vh] overflow-y-auto p-4 md:p-6">
               <div className="space-y-4">
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Identificação</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Identificação</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Tipo
                       <select
                         value={form.tipo_pessoa}
                         onChange={(e) => setForm((atual) => ({ ...atual, tipo_pessoa: e.target.value as "juridica" | "fisica", cpf_cnpj: "" }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       >
                         <option value="juridica">Pessoa jurídica</option>
                         <option value="fisica">Pessoa física</option>
                       </select>
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       {form.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}
                       <input
                         value={form.cpf_cnpj}
                         onChange={(e) => setForm((atual) => ({ ...atual, cpf_cnpj: formatarDocumento(e.target.value, atual.tipo_pessoa) }))}
                         placeholder={form.tipo_pessoa === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Nome do cliente *
                       <input
                         value={form.nome}
                         onChange={(e) => setForm((atual) => ({ ...atual, nome: e.target.value }))}
                         placeholder="Nome do cliente"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Rota *
                       <input
                         value={form.rota}
                         onChange={(e) => setForm((atual) => ({ ...atual, rota: e.target.value }))}
                         placeholder="Ex.: 05MM"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Tabela de preços
                       <select
                         value={form.grupo_preco_id}
                         onChange={(e) => setForm((atual) => ({ ...atual, grupo_preco_id: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       >
                         <option value="">Tabela padrão</option>
                         {tabelas.map((tabela) => (
@@ -285,50 +285,50 @@ export default function ClienteQuickCreateButton({ empresaId, onClientCreated, o
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Contato</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Contato</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Telefone
                       <input
                         value={form.telefone}
                         onChange={(e) => setForm((atual) => ({ ...atual, telefone: formatarTelefone(e.target.value) }))}
                         placeholder="(00) 00000-0000"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       E-mail
                       <input
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm((atual) => ({ ...atual, email: e.target.value }))}
                         placeholder="cliente@empresa.com"
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">Endereço</h3>
+                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-text-primary">Endereço</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       Cidade
                       <input
                         value={form.cidade}
                         onChange={(e) => setForm((atual) => ({ ...atual, cidade: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       UF
                       <input
                         value={form.estado}
                         onChange={(e) => setForm((atual) => ({ ...atual, estado: e.target.value.toUpperCase().slice(0, 2) }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 outline-none"
+                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
@@ -336,14 +336,14 @@ export default function ClienteQuickCreateButton({ empresaId, onClientCreated, o
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4 md:px-6">
+            <div className="flex justify-end gap-2 border-t border-border bg-surface px-5 py-4 md:px-6">
               <button
                 type="button"
                 onClick={() => {
                   if (salvando) return;
                   setAberto(false);
                 }}
-                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+                className="rounded-lg bg-surface-secondary px-4 py-2 text-sm font-semibold text-text-primary hover:bg-border"
               >
                 Cancelar
               </button>
@@ -351,7 +351,7 @@ export default function ClienteQuickCreateButton({ empresaId, onClientCreated, o
                 type="button"
                 disabled={!podeSalvar}
                 onClick={salvar}
-                className="rounded-lg bg-[#07385a] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
               >
                 {salvando ? "Salvando..." : "Cadastrar cliente"}
               </button>

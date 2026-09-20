@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 export type CorPinazio = "branco" | "preto" | "nogal";
 
@@ -18,8 +19,8 @@ export interface MiniProjetoPinazioProps {
 export const obterCoresPinazio = (_cor: CorPinazio = "branco") => ({
   // O modelo escolhido continua salvo no orçamento, mas a miniatura
   // permanece neutra para não alterar visualmente a cor do Pinázio.
-  preenchimento: "#D9E1E6",
-  contorno: "#8A99A3",
+  preenchimento: DRAWING_COLORS.edge,
+  contorno: DRAWING_COLORS.frame,
 });
 
 export default function MiniProjetoPinazio({
@@ -81,7 +82,7 @@ export default function MiniProjetoPinazio({
           height={desenhoAltura}
           rx="5"
           fill="url(#pinazio-vidro)"
-          stroke="#718596"
+          stroke={DRAWING_COLORS.ink}
           strokeWidth="3"
         />
 
@@ -150,10 +151,10 @@ export default function MiniProjetoPinazio({
             x={viewBoxLargura / 2}
             y="365"
             textAnchor="middle"
-            fontFamily="Arial, Helvetica, sans-serif"
+            fontFamily="Inter, Arial, sans-serif"
             fontSize="20"
             fontWeight="700"
-            fill="#334155"
+            fill={DRAWING_COLORS.ink}
           >
             {Math.round(larguraReal)} x {Math.round(alturaReal)} mm
           </text>
@@ -161,9 +162,9 @@ export default function MiniProjetoPinazio({
             x={viewBoxLargura / 2}
             y="397"
             textAnchor="middle"
-            fontFamily="Arial, Helvetica, sans-serif"
+            fontFamily="Inter, Arial, sans-serif"
             fontSize="15"
-            fill="#64748B"
+            fill={DRAWING_COLORS.ink}
           >
             {colunas} x {linhas} divisões
           </text>

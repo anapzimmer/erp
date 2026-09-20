@@ -37,7 +37,7 @@ export default function ThemeLoader({ children }: ThemeLoaderProps) {
           </div>
           <span
             className="mt-4 text-xs tracking-[0.08em]"
-            style={{ color: `${theme.contentTextLightBg}AA` }}
+            style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 67%, transparent)` }}
           >
             Carregando...
           </span>

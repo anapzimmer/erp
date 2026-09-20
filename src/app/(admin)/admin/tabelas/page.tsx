@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { DRAWING_COLORS } from "@/design/drawing";
 import { supabase } from "@/lib/supabaseClient"
 import { PlusCircle, Trash2, Percent, Check, Search, Layers3, DollarSign, Edit2, TableProperties, Upload, FileText, Link2, Sparkles, X, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -827,14 +828,14 @@ const { error } = await supabase
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-surface-secondary">
         <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: 'transparent', borderRightColor: theme.menuBackgroundColor, borderBottomColor: theme.menuBackgroundColor, borderLeftColor: theme.menuBackgroundColor }}></div>
       </div>
     );
   }
 
    return (
-    <div className="flex min-h-screen text-gray-900 overflow-x-hidden" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="flex min-h-screen text-text-primary overflow-x-hidden" style={{ backgroundColor: theme.screenBackgroundColor }}>
 
   <Sidebar 
     showMobileMenu={showMobileMenu}
@@ -863,22 +864,22 @@ const { error } = await supabase
         <main className="p-4 md:p-8 flex-1">
           <div
             className="mb-6 rounded-[24px] border p-6 md:p-8 shadow-sm"
-            style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}
+            style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-start gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
-                  style={{ backgroundColor: `${theme.menuIconColor}14`, borderColor: `${theme.menuIconColor}2E`, color: theme.menuIconColor }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 18%, transparent)`, color: theme.menuIconColor }}
                 >
                   <TableProperties size={22} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `${theme.contentTextLightBg}8A` }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 54%, transparent)` }}>
                     Configurações
                   </p>
                   <h1 className="mt-1 text-2xl font-semibold md:text-3xl" style={{ color: theme.contentTextLightBg }}>Tabelas</h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                     Gerencie tabelas de preço, vincule vidros e aplique reajustes sem sair do padrão visual do sistema.
                   </p>
                 </div>
@@ -893,9 +894,9 @@ const { error } = await supabase
                   <div
                     key={item.label}
                     className="rounded-2xl border px-4 py-3"
-                    style={{ backgroundColor: `${theme.screenBackgroundColor}B8`, borderColor: `${theme.contentTextLightBg}12` }}
+                    style={{ backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}
                   >
-                    <p className="text-[11px] font-medium text-slate-500">{item.label}</p>
+                    <p className="text-[11px] font-medium text-text-secondary">{item.label}</p>
                     <p className="mt-1 text-xl font-semibold" style={{ color: theme.contentTextLightBg }}>{item.valor}</p>
                   </div>
                 ))}
@@ -903,14 +904,14 @@ const { error } = await supabase
             </div>
           </div>
 
-          <div className="mb-5 flex flex-col gap-4 rounded-[22px] border p-4 md:flex-row md:items-center md:justify-between md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
+          <div className="mb-5 flex flex-col gap-4 rounded-[22px] border p-4 md:flex-row md:items-center md:justify-between md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: `${theme.menuIconColor}12`, borderColor: `${theme.menuIconColor}26`, color: theme.menuIconColor }}>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`, color: theme.menuIconColor }}>
                 <FileText size={19} />
               </div>
               <div>
                 <h2 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>Importar tabela pelo relatório TXT</h2>
-                <p className="mt-1 text-sm text-slate-500">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
+                <p className="mt-1 text-sm text-text-secondary">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
               </div>
             </div>
 
@@ -930,7 +931,7 @@ const { error } = await supabase
               onClick={() => arquivoTabelaRef.current?.click()}
               disabled={carregando}
               className="flex shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold shadow-sm transition hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: theme.menuBackgroundColor, color: theme.contentTextDarkBg, boxShadow: `0 12px 28px ${theme.menuBackgroundColor}24` }}
+              style={{ backgroundColor: theme.buttonDarkBg, color: theme.contentTextDarkBg, boxShadow: `0 12px 28px color-mix(in srgb, ${theme.menuBackgroundColor} 14%, transparent)` }}
             >
               <Upload size={18} />
               {carregando ? "Importando..." : "Enviar tabela TXT"}
@@ -939,7 +940,7 @@ const { error } = await supabase
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
 
-            <div className="h-fit rounded-[22px] border p-5 shadow-sm xl:col-span-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
+            <div className="h-fit rounded-[22px] border p-5 shadow-sm xl:col-span-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
               <h2 className="mb-4 flex items-center gap-2 text-base font-semibold" style={{ color: theme.contentTextLightBg }}>
                 <Layers3 size={18} style={{ color: theme.menuIconColor }} /> Grupos de Preço
               </h2>
@@ -950,12 +951,12 @@ const { error } = await supabase
                   value={nomeNovaTabela}
                   onChange={e => setNomeNovaTabela(e.target.value)}
                   placeholder="Nova tabela..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white p-3 pr-14 text-sm outline-none focus:border-slate-300"
+                  className="w-full rounded-2xl border border-border bg-surface p-3 pr-14 text-sm outline-none focus:border-border-strong"
                 />
                 <button
                   onClick={criarTabela}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-xl p-2 transition-all duration-200"
-                  style={{ backgroundColor: theme.menuBackgroundColor, color: theme.contentTextDarkBg }}
+                  style={{ backgroundColor: theme.buttonDarkBg, color: theme.contentTextDarkBg }}
                 >
                   <PlusCircle size={18} />
                 </button>
@@ -967,12 +968,12 @@ const { error } = await supabase
                   return (
                   <div
                     key={t.id}
-                    className={`w-full group text-left p-3 rounded-2xl text-sm font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-slate-50'
+                    className={`w-full group text-left p-3 rounded-2xl text-sm font-medium flex justify-between items-center transition-all ${tabelaSelecionada?.id === t.id ? 'shadow-inner' : 'hover:bg-surface-secondary'
                       }`}
                     style={{
-                      backgroundColor: tabelaSelecionada?.id === t.id ? `${theme.menuBackgroundColor}15` : 'transparent',
+                      backgroundColor: tabelaSelecionada?.id === t.id ? `color-mix(in srgb, ${theme.menuBackgroundColor} 8%, transparent)` : 'transparent',
                       color: tabelaSelecionada?.id === t.id ? theme.menuBackgroundColor : 'inherit',
-                      border: `1px solid ${tabelaSelecionada?.id === t.id ? `${theme.menuBackgroundColor}80` : '#E2E8F0'}`
+                      border: `1px solid ${tabelaSelecionada?.id === t.id ? `color-mix(in srgb, ${theme.menuBackgroundColor} 50%, transparent)` : DRAWING_COLORS.edge}`
                     }}
                   >
                     {editandoEstaTabela ? (
@@ -984,7 +985,7 @@ const { error } = await supabase
                           if (e.key === "Escape") cancelarEdicaoTabela();
                         }}
                         autoFocus
-                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none focus:border-slate-400"
+                        className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm font-medium text-text-primary outline-none focus:border-border-strong"
                       />
                     ) : (
                       <div className="flex-1 cursor-pointer truncate" onClick={() => setTabelaSelecionada(t)}>
@@ -999,7 +1000,7 @@ const { error } = await supabase
                             type="button"
                             onClick={() => void salvarNomeTabela(t)}
                             disabled={carregando}
-                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                            className="p-1.5 rounded-lg text-success hover:bg-success-soft transition-colors"
                             title="Salvar nome"
                           >
                             <Check size={16} />
@@ -1008,7 +1009,7 @@ const { error } = await supabase
                             type="button"
                             onClick={cancelarEdicaoTabela}
                             disabled={carregando}
-                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                            className="p-1.5 rounded-lg text-text-secondary hover:bg-surface-secondary hover:text-text-secondary transition-colors"
                             title="Cancelar edição"
                           >
                             <X size={16} />
@@ -1021,7 +1022,7 @@ const { error } = await supabase
                           <button
                             type="button"
                             onClick={() => iniciarEdicaoTabela(t)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-slate-700 hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors opacity-0 group-hover:opacity-100"
                             title="Editar nome da tabela"
                           >
                             <Edit2 size={16} />
@@ -1036,7 +1037,7 @@ const { error } = await supabase
                               labelConfirmar: "Excluir",
                               labelCancelar: "Cancelar",
                             })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-danger hover:bg-danger-soft transition-colors opacity-0 group-hover:opacity-100"
                             title="Excluir tabela"
                           >
                             <Trash2 size={16} />
@@ -1049,18 +1050,18 @@ const { error } = await supabase
               </div>
             </div>
 
-            <div className="rounded-[22px] border p-5 shadow-sm xl:col-span-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}14` }}>
+            <div className="rounded-[22px] border p-5 shadow-sm xl:col-span-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
               {tabelaSelecionada ? (
                 <>
-                  <div className="mb-5 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mb-5 flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Tabela selecionada</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">Tabela selecionada</p>
                       <h2 className="mt-1 text-2xl font-semibold" style={{ color: theme.contentTextLightBg }}>{tabelaSelecionada.nome}</h2>
                     </div>
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface-secondary p-3">
                       <div className="relative">
-                        <Percent size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                        <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 rounded-xl border border-slate-200 bg-white p-2.5 pl-9 text-sm font-semibold" />
+                        <Percent size={16} className="absolute left-3 top-3.5 text-text-secondary" />
+                        <input type="number" value={percentualReajuste} onChange={e => setPercentualReajuste(e.target.value)} placeholder="%" className="w-24 rounded-xl border border-border bg-surface p-2.5 pl-9 text-sm font-semibold" />
                       </div>
                       <button
                         onClick={() => setModalConfirmacao({
@@ -1072,22 +1073,22 @@ const { error } = await supabase
                         })}
                         disabled={carregando}
                         className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
-                        style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
+                        style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
                       >
                         {carregando ? "Processando..." : "Reajustar %"}
                       </button>
                     </div>
                   </div>
 
-                  <div className="mb-5 grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:grid-cols-12">
+                  <div className="mb-5 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-surface-secondary p-4 md:grid-cols-12">
                     <div className="md:col-span-5 relative">
-                      <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                      <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full rounded-xl border border-slate-200 bg-white p-2.5 pl-10 text-sm" />
+                      <Search className="absolute left-3 top-3 text-text-secondary" size={18} />
+                      <input type="text" value={termoPesquisa} onChange={e => setTermoPesquisa(e.target.value)} placeholder="Pesquisar vidro..." className="w-full rounded-xl border border-border bg-surface p-2.5 pl-10 text-sm" />
                     </div>
                     <select
                       value={novoVidroId}
                       onChange={e => setNovoVidroId(e.target.value)}
-                      className="rounded-xl border border-slate-200 bg-white p-2.5 text-sm md:col-span-4"
+                      className="rounded-xl border border-border bg-surface p-2.5 text-sm md:col-span-4"
                     >
                       <option value="">Selecione o Vidro</option>
                       {vidrosFiltrados.map(v => (
@@ -1095,14 +1096,14 @@ const { error } = await supabase
                       ))}
                     </select>
                     <div className="md:col-span-2 relative">
-                      <DollarSign size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                      <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full rounded-xl border border-slate-200 bg-white p-2.5 pl-8 text-sm" />
+                      <DollarSign size={16} className="absolute left-3 top-3.5 text-text-secondary" />
+                      <input type="number" value={novoPrecoVidro} onChange={e => setNovoPrecoVidro(e.target.value)} placeholder="Preço" className="w-full rounded-xl border border-border bg-surface p-2.5 pl-8 text-sm" />
                     </div>
                     <button
                       onClick={adicionarVidroATabela}
                       disabled={carregando}
                       className="flex items-center justify-center rounded-xl p-2.5 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 md:col-span-1"
-                      style={{ backgroundColor: theme.menuIconColor, color: "#FFF" }}
+                      style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
                     >
                       {carregando ? (
                         <div
@@ -1115,18 +1116,18 @@ const { error } = await supabase
                     </button>
                   </div>
 
-                  <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-100">
+                  <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50">
-                          <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Vidro / Especificação</th>
-                          <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Preço (R$)</th>
-                          <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Ações</th>
+                        <tr className="border-b border-border bg-surface-secondary">
+                          <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Vidro / Especificação</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Preço (R$)</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {itensTabela.map((item) => (
-                          <tr key={item.id} className="group border-b border-slate-100 transition-all hover:bg-slate-50/70">
+                          <tr key={item.id} className="group border-b border-border transition-all hover:bg-surface-secondary/70">
                             <td className="px-4 py-4">
                               <div className="flex flex-col">
                                 <span
@@ -1135,7 +1136,7 @@ const { error } = await supabase
                                 >
                                   {item.vidros?.nome}
                                 </span>
-                                <span className="text-[10px] text-gray-400 uppercase tracking-tight">
+                                <span className="text-[10px] text-text-secondary uppercase tracking-tight">
                                   {item.vidros?.espessura} | {item.vidros?.tipo}
                                 </span>
                               </div>
@@ -1172,7 +1173,7 @@ const { error } = await supabase
                               <div className="flex justify-end gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                                 <button
                                   onClick={() => iniciarEdicao(item)}
-                                  className="p-2 hover:bg-white rounded-lg shadow-sm text-gray-400 hover:text-blue-500 transition-all"
+                                  className="p-2 hover:bg-surface rounded-lg shadow-sm text-text-secondary hover:text-info transition-all"
                                 >
                                   <Edit2 size={16} />
                                 </button>
@@ -1184,7 +1185,7 @@ const { error } = await supabase
                                     labelConfirmar: "Excluir",
                                     labelCancelar: "Cancelar",
                                   })}
-                                  className="p-2 hover:bg-white rounded-lg shadow-sm text-gray-400 hover:text-red-500 transition-all"
+                                  className="p-2 hover:bg-surface rounded-lg shadow-sm text-text-secondary hover:text-danger transition-all"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -1197,8 +1198,8 @@ const { error } = await supabase
                   </div>
                 </>
               ) : (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-20 text-center text-slate-500">
-                  <TableProperties size={44} className="mx-auto mb-4 text-slate-400" />
+                <div className="rounded-3xl border border-dashed border-border bg-surface-secondary py-20 text-center text-text-secondary">
+                  <TableProperties size={44} className="mx-auto mb-4 text-text-secondary" />
                   <p className="text-base font-semibold">Nenhuma tabela selecionada</p>
                   <p className="text-sm">Selecione um grupo de preço ao lado para gerenciar.</p>
                 </div>
@@ -1211,18 +1212,18 @@ const { error } = await supabase
 
       {importacaoPendente && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 md:p-6">
-          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl border border-white/20 flex flex-col" style={{ backgroundColor: theme.modalBackgroundColor }}>
-            <div className="p-5 md:p-7 border-b border-gray-100 flex items-start justify-between gap-4">
+          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl border border-border flex flex-col" style={{ backgroundColor: theme.modalBackgroundColor }}>
+            <div className="p-5 md:p-7 border-b border-border flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles size={20} style={{ color: theme.menuIconColor }} />
                   <h2 className="text-xl md:text-2xl font-black" style={{ color: theme.modalTextColor }}>Conferir produtos da importação</h2>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-text-secondary">
                   Tabela <strong>{importacaoPendente.nomeTabela}</strong>: {importacaoPendente.reconhecidos.length} reconhecido(s) e {importacaoPendente.pendentes.length} aguardando decisão.
                 </p>
               </div>
-              <button onClick={() => setImportacaoPendente(null)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"><X size={22} /></button>
+              <button onClick={() => setImportacaoPendente(null)} className="p-2 rounded-xl hover:bg-surface-secondary text-text-secondary"><X size={22} /></button>
             </div>
 
             <div className="overflow-y-auto p-4 md:p-6 space-y-4">
@@ -1232,20 +1233,20 @@ const { error } = await supabase
                   : item.acao === "criar" && (!item.novoNome || !item.novaEspessura || !item.novoTipo);
 
                 return (
-                  <div key={`${item.codigo}-${indice}`} className={`rounded-2xl border p-4 ${incompleto ? "border-amber-300 bg-amber-50/40" : "border-gray-100"}`}>
+                  <div key={`${item.codigo}-${indice}`} className={`rounded-2xl border p-4 ${incompleto ? "border-warning-soft bg-warning-soft/40" : "border-border"}`}>
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-black text-sm px-2.5 py-1 rounded-lg bg-gray-100" style={{ color: theme.modalTextColor }}>{item.codigo}</span>
+                          <span className="font-black text-sm px-2.5 py-1 rounded-lg bg-surface-secondary" style={{ color: theme.modalTextColor }}>{item.codigo}</span>
                           <span className="font-bold text-sm" style={{ color: theme.modalTextColor }}>{item.descricao}</span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Preço importado: R$ {item.precoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-xs text-text-secondary mt-1">Preço importado: R$ {item.precoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <button onClick={() => atualizarItemPendente(indice, { acao: "vincular" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "vincular" ? theme.menuBackgroundColor : "#FFF", color: item.acao === "vincular" ? "#FFF" : theme.modalTextColor }}><Link2 size={15} /> Vincular</button>
                         <button onClick={() => atualizarItemPendente(indice, { acao: "criar" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "criar" ? theme.menuIconColor : "#FFF", color: item.acao === "criar" ? "#FFF" : theme.modalTextColor }}><PlusCircle size={15} /> Criar novo</button>
-                        <button onClick={() => atualizarItemPendente(indice, { acao: "ignorar" })} className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${item.acao === "ignorar" ? "bg-gray-700 text-white" : "bg-white text-gray-500"}`}><AlertTriangle size={15} /> Ignorar</button>
+                        <button onClick={() => atualizarItemPendente(indice, { acao: "ignorar" })} className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${item.acao === "ignorar" ? "bg-primary text-on-primary" : "bg-surface text-text-secondary"}`}><AlertTriangle size={15} /> Ignorar</button>
                       </div>
                     </div>
 
@@ -1254,33 +1255,33 @@ const { error } = await supabase
                         {item.sugestaoVidroId && item.vidroSelecionadoId === item.sugestaoVidroId && (
                           <p className="text-xs font-semibold mb-2" style={{ color: theme.menuIconColor }}>Sugestão automática encontrada</p>
                         )}
-                        <select value={item.vidroSelecionadoId} onChange={(e) => atualizarItemPendente(indice, { vidroSelecionadoId: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 bg-white text-sm">
+                        <select value={item.vidroSelecionadoId} onChange={(e) => atualizarItemPendente(indice, { vidroSelecionadoId: e.target.value })} className="w-full p-3 rounded-xl border border-border bg-surface text-sm">
                           <option value="">Selecione um vidro cadastrado</option>
                           {vidros.map((vidro) => <option key={vidro.id} value={vidro.id}>{vidro.codigo ? `${vidro.codigo} — ` : ""}{vidro.nome} | {vidro.espessura} | {vidro.tipo}</option>)}
                         </select>
-                        {selecionado && <p className="text-xs text-gray-500 mt-2">O código <strong>{item.codigo}</strong> será gravado em “{selecionado.nome}”.</p>}
+                        {selecionado && <p className="text-xs text-text-secondary mt-2">O código <strong>{item.codigo}</strong> será gravado em “{selecionado.nome}”.</p>}
                       </div>
                     )}
 
                     {item.acao === "criar" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input value={item.novoNome} onChange={(e) => atualizarItemPendente(indice, { novoNome: e.target.value })} placeholder="Nome do vidro" className="p-3 rounded-xl border border-gray-200 text-sm" />
-                        <input value={item.novaEspessura} onChange={(e) => atualizarItemPendente(indice, { novaEspessura: e.target.value })} placeholder="Espessura, ex.: 08mm" className="p-3 rounded-xl border border-gray-200 text-sm" />
-                        <input value={item.novoTipo} onChange={(e) => atualizarItemPendente(indice, { novoTipo: e.target.value })} placeholder="Tipo, ex.: Temperado" className="p-3 rounded-xl border border-gray-200 text-sm" />
+                        <input value={item.novoNome} onChange={(e) => atualizarItemPendente(indice, { novoNome: e.target.value })} placeholder="Nome do vidro" className="p-3 rounded-xl border border-border text-sm" />
+                        <input value={item.novaEspessura} onChange={(e) => atualizarItemPendente(indice, { novaEspessura: e.target.value })} placeholder="Espessura, ex.: 08mm" className="p-3 rounded-xl border border-border text-sm" />
+                        <input value={item.novoTipo} onChange={(e) => atualizarItemPendente(indice, { novoTipo: e.target.value })} placeholder="Tipo, ex.: Temperado" className="p-3 rounded-xl border border-border text-sm" />
                       </div>
                     )}
 
-                    {item.acao === "ignorar" && <p className="text-xs text-gray-500">Este produto não será salvo e voltará a aparecer em uma próxima importação.</p>}
+                    {item.acao === "ignorar" && <p className="text-xs text-text-secondary">Este produto não será salvo e voltará a aparecer em uma próxima importação.</p>}
                   </div>
                 );
               })}
             </div>
 
-            <div className="p-5 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <p className="text-xs text-gray-500">Os produtos já reconhecidos serão atualizados automaticamente após a confirmação.</p>
+            <div className="p-5 md:p-6 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs text-text-secondary">Os produtos já reconhecidos serão atualizados automaticamente após a confirmação.</p>
               <div className="flex gap-3 justify-end">
-                <button onClick={() => setImportacaoPendente(null)} disabled={carregando} className="px-5 py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-600">Cancelar</button>
-                <button onClick={() => confirmarImportacao()} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ backgroundColor: theme.modalButtonBackgroundColor }}>
+                <button onClick={() => setImportacaoPendente(null)} disabled={carregando} className="px-5 py-3 rounded-xl text-sm font-bold bg-surface-secondary text-text-secondary">Cancelar</button>
+                <button onClick={() => confirmarImportacao()} disabled={carregando} className="px-6 py-3 rounded-xl text-sm font-black text-on-primary disabled:opacity-50" style={{ backgroundColor: theme.modalButtonBackgroundColor }}>
                   {carregando ? "Salvando..." : "Confirmar importação"}
                 </button>
               </div>

@@ -1,6 +1,7 @@
 //app/calculovidro/page.tsx
 "use client"
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { CSSProperties } from "react"
@@ -1089,8 +1090,8 @@ useEffect(() => {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#1e3a5a]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-surface">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-border-strong"></div>
       </div>
     );
   }
@@ -1460,7 +1461,7 @@ useEffect(() => {
         empresa_id: empresaId,
         metragem_total: Number(mTotal) || 0, // Garante que é número
         peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
-        theme_color: theme.menuIconColor || '#1e3a5a'
+        theme_color: DRAWING_COLORS.ink
       };
 
       let error;
@@ -1940,35 +1941,35 @@ useEffect(() => {
   usuarioEmail={user?.email || ""}
   handleSignOut={handleLogout}
 >
-  <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+  <div className="hidden md:flex flex-col border-l border-border pl-6">
+    <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none">
       Orçamento
     </span>
 
-    <span className="text-xs text-gray-800 font-bold">
+    <span className="text-xs text-text-primary font-bold">
       # {ultimoNumeroGerado || "NOVO"}
     </span>
   </div>
 </Header>
 
-<div className="relative z-10 w-full border-b border-slate-200 bg-white shadow-sm">
+<div className="relative z-10 w-full border-b border-border bg-surface shadow-sm">
   <div className="flex min-h-16.5 items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
 
     <button
       type="button"
       onClick={handleNovoOrcamento}
-      className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+      className="flex shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:border-border-strong hover:bg-surface-secondary"
     >
       <Plus size={18} />
       Orçamento
     </button>
 
-    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm font-semibold text-text-primary">
       <UserRound size={18} />
       <span className="sr-only">Cliente</span>
       <select
         id="cliente-orcamento"
-        className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none md:w-56"
+        className="w-44 bg-transparent text-sm font-semibold text-text-primary outline-none md:w-56"
         value={clienteId}
         onChange={(e) => setClienteId(e.target.value)}
         aria-label="Cliente do orçamento"
@@ -1982,13 +1983,13 @@ useEffect(() => {
       </select>
     </label>
 
-    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm font-semibold text-text-primary">
       <FolderOpen size={18} />
       <span className="sr-only">Obra</span>
       <input
         type="text"
         placeholder="Identificação da obra"
-        className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:font-normal placeholder:text-slate-400 md:w-56"
+        className="w-44 bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:font-normal placeholder:text-text-secondary md:w-56"
         value={obra}
         onChange={(e) => setObra(e.target.value)}
         aria-label="Obra do orçamento"
@@ -2053,7 +2054,7 @@ useEffect(() => {
         <button
           type="button"
           disabled={loading || itens.length === 0}
-          className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Printer size={18} />
           {loading ? "Gerando..." : "Imprimir"}
@@ -2064,7 +2065,7 @@ useEffect(() => {
     <button
   type="button"
   onClick={() => router.push("/matriz-projetos")}
-  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
   title="Abrir matriz de orçamentos"
 >
   <FolderOpen size={18} />
@@ -2075,7 +2076,7 @@ useEffect(() => {
       type="button"
       onClick={enviarParaCentralImpressao}
       disabled={itens.length === 0}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
     >
       <FileText size={18} />
       PDF+
@@ -2085,7 +2086,7 @@ useEffect(() => {
       type="button"
       onClick={handleSalvarOrcamento}
       disabled={itens.length === 0}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Save size={18} />
       Salvar
@@ -2098,14 +2099,14 @@ useEffect(() => {
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
               {/* CARD DIMENSÕES (MANTIDO) */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 relative overflow-hidden">
+              <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-4 relative overflow-hidden">
 
                 {/* AVISO DE EDIÇÃO SOFISTICADO */}
                 {editandoId && (
-                  <div className="absolute top-0 left-0 w-full bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between animate-fade-in">
+                  <div className="absolute top-0 left-0 w-full bg-warning-soft border-b border-warning-soft px-4 py-2 flex items-center justify-between animate-fade-in">
                     <div className="flex items-center gap-2">
-                      <Edit2 size={14} className="text-amber-600" />
-                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                      <Edit2 size={14} className="text-warning" />
+                      <span className="text-[10px] font-bold text-warning uppercase tracking-wider">
                         {editandoAdicional ? "Editando adicional" : "Modo Edição Ativo"}
                       </span>
                     </div>
@@ -2119,29 +2120,29 @@ useEffect(() => {
                         setQuantidadeAdicional(1);
                         setValorUnitarioAdicional("");
                       }}
-                      className="text-amber-700 hover:text-amber-900"
+                      className="text-warning hover:text-warning"
                     >
                       <X size={14} />
                     </button>
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
-                  <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
+                <div className="flex items-center gap-3 pb-2 border-b border-border">
+                  <div className="p-2 bg-navigation/5 rounded-xl text-text-primary">
                     <Calculator size={20} strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
+                    <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] leading-none">
                       Especificações
                     </span>
-                    <h3 className="text-sm font-bold text-[#1e3a5a]">
+                    <h3 className="text-sm font-bold text-text-primary">
                       Dimensões
                     </h3>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Largura</label>
+                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Largura</label>
                     <input
                       ref={larguraRef}
                       type="text"
@@ -2152,13 +2153,13 @@ useEffect(() => {
                         setLargura(valorNumerico);
                       }}
                       onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
                      focus:border-(--menu-icon-color) focus:ring-2 focus:ring-(--menu-icon-color)/10"
                        style={{ '--menu-icon-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Altura</label>
+                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Altura</label>
                     <input
                       ref={alturaRef}
                       type="text"
@@ -2169,14 +2170,14 @@ useEffect(() => {
                         setAltura(valorNumerico);
                       }}
                       onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
                      focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
                        style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                   {/* CAMPO QUANTIDADE */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Qtd</label>
+                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Qtd</label>
                     <input
                       ref={qtdRef}
                       type="number"
@@ -2184,16 +2185,16 @@ useEffect(() => {
                       value={quantidade}
                       onChange={(e) => setQuantidade(Number(e.target.value))}
                       onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm transition-all 
+                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
                      focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
                        style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Material</label>
+                  <label className="text-[10px] font-bold text-text-secondary uppercase">Material</label>
                   <select
-                    className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                    className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm text-text-primary"
                     value={vidroSelecionado?.id}
                     onChange={(e) => setVidroSelecionado(listaVidros.find((v: Vidro) => String(v.id) === String(e.target.value)) || null)}
                   >
@@ -2227,13 +2228,13 @@ useEffect(() => {
 
                     return (
                       <div className="mt-1 space-y-1">
-                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${especial ? 'text-gray-600' : 'text-gray-400'}`}>
+                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${especial ? 'text-text-secondary' : 'text-text-secondary'}`}>
                           {especial
                             ? `⭐ Preço Diferenciado: ${formatarMoeda(precoBase)} /m²`
                             : `Preço padrão: ${formatarMoeda(precoBase)} /m²`}
                         </p>
                         {precoComAcrescimo !== null && (
-                          <p className="text-[10px] font-bold uppercase tracking-tighter text-amber-600">
+                          <p className="text-[10px] font-bold uppercase tracking-tighter text-warning">
                             {`Com acréscimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida: ${formatarMoeda(precoComAcrescimo)} /m²`}
                           </p>
                         )}
@@ -2243,18 +2244,18 @@ useEffect(() => {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+              <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-5">
                 {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
-                <div className="flex items-center gap-3 pb-2 border-b border-gray-50">
-                  <div className="p-2 bg-[#1e3a5a]/5 rounded-xl text-[#1e3a5a]">
+                <div className="flex items-center gap-3 pb-2 border-b border-border">
+                  <div className="p-2 bg-navigation/5 rounded-xl text-text-primary">
                     {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
                     <Wrench size={20} strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] leading-none">
+                    <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] leading-none">
                       Personalização
                     </span>
-                    <h3 className="text-sm font-bold text-[#1e3a5a]">
+                    <h3 className="text-sm font-bold text-text-primary">
                       Acabamentos e Serviços
                     </h3>
                   </div>
@@ -2263,7 +2264,7 @@ useEffect(() => {
                   {/* Opção Padrão (Nenhum) */}
                   <div
                     onClick={() => setServicoSelecionado(null)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-gray-50 border-gray-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-surface-secondary border-border' : 'bg-surface-secondary border-border hover:border-border'
                       }`}
                   >
                     <span
@@ -2292,7 +2293,7 @@ useEffect(() => {
                       <div
                         key={s.id}
                         onClick={() => setServicoSelecionado(s)}
-                        className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${isSelected ? 'bg-gray-50 border-gray-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                        className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${isSelected ? 'bg-surface-secondary border-border' : 'bg-surface-secondary border-border hover:border-border'
                           }`}
                       >
                         <span
@@ -2319,10 +2320,10 @@ useEffect(() => {
 
                 {/* O campo aparece se houver serviço e a unidade NÃO for m² */}
                 {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'm²' && (
-                  <div className="mt-4 p-4 bg-[#1e3a5a]/5 rounded-2xl border border-[#1e3a5a]/10 animate-fade-in">
+                  <div className="mt-4 p-4 bg-navigation/5 rounded-2xl border border-border-strong/10 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
-                      <Wrench size={14} className="text-[#1e3a5a]" />
-                      <label className="text-[10px] font-bold text-[#1e3a5a] uppercase tracking-wider">
+                      <Wrench size={14} className="text-text-primary" />
+                      <label className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
                         {servicoSelecionado.unidade?.toLowerCase().includes('ml')
                           ? "Metragem (ML)"
                           : "Quantidade (Furos / Recortes / CNC)"}
@@ -2335,20 +2336,20 @@ useEffect(() => {
                         step="0.01"
                         value={quantidadeServico}
                         onChange={(e) => setQuantidadeServico(parseFloat(e.target.value) || 0)}
-                        className="w-full p-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-bold text-[#1e3a5a] focus:ring-2 focus:ring-[#1e3a5a]/10"
+                        className="w-full p-3 bg-surface rounded-xl border border-border outline-none text-sm font-bold text-text-primary focus:ring-2 focus:ring-border-strong/10"
                         placeholder="Quanto?"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 uppercase">
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary uppercase">
                         {servicoSelecionado.unidade}
                       </span>
                     </div>
                   </div>
                 )}
 
-                <div className="mt-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                <div className="mt-3 rounded-2xl border border-border bg-surface-secondary p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Plus size={14} className="text-[#1e3a5a]" />
-                    <span className="text-[10px] font-bold text-[#1e3a5a] uppercase tracking-wider">
+                    <Plus size={14} className="text-text-primary" />
+                    <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
                       Adicionar kit, perfil ou ferragem
                     </span>
                   </div>
@@ -2360,7 +2361,7 @@ useEffect(() => {
                         setTipoAdicionalSelecionado(e.target.value as "kit" | "perfil" | "ferragem");
                         setAdicionalSelecionadoId("");
                       }}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm text-text-primary"
                     >
                       <option value="kit">Kits</option>
                       <option value="perfil">Perfis</option>
@@ -2371,7 +2372,7 @@ useEffect(() => {
                       type="text"
                       value={filtroCorAdicional}
                       onChange={(e) => setFiltroCorAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
                       placeholder="Cor (perfil/ferragem)"
                     />
                   </div>
@@ -2381,14 +2382,14 @@ useEffect(() => {
                       type="text"
                       value={buscaAdicional}
                       onChange={(e) => setBuscaAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
                       placeholder="Buscar por código ou nome"
                     />
 
                     <select
                       value={adicionalSelecionadoId}
                       onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm text-gray-700"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm text-text-primary"
                     >
                       <option value="">Selecione para adicionar...</option>
                       {adicionaisFiltrados.map((item) => {
@@ -2415,21 +2416,21 @@ useEffect(() => {
                       min="1"
                       value={quantidadeAdicional}
                       onChange={(e) => setQuantidadeAdicional(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
                       placeholder="Qtd"
                     />
                     <input
                       type="text"
                       value={valorUnitarioAdicional}
                       onChange={(e) => setValorUnitarioAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-white rounded-xl border border-gray-100 outline-none text-sm"
+                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
                       placeholder="Valor unitário"
                     />
                   </div>
 
                   <button
                     onClick={adicionarAdicional}
-                    className="w-full py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-surface text-text-primary border border-border-strong/30 rounded-xl font-bold hover:bg-navigation/5 hover:border-border-strong transition-all flex items-center justify-center gap-2"
                   >
                     {editandoAdicional ? <Sparkles size={16} /> : <Plus size={16} />}
                     <span>{editandoAdicional ? "Atualizar adicional" : "Adicionar adicional"}</span>
@@ -2439,7 +2440,7 @@ useEffect(() => {
                 <div className="flex justify-center w-full pt-4">
                   <button
                     onClick={adicionarItem}
-                    className="w-1/2 py-2.5 bg-white text-[#1e3a5a] border border-[#1e3a5a]/30 rounded-xl font-bold hover:bg-[#1e3a5a]/5 hover:border-[#1e3a5a] transition-all flex items-center justify-center gap-2"
+                    className="w-1/2 py-2.5 bg-surface text-text-primary border border-border-strong/30 rounded-xl font-bold hover:bg-navigation/5 hover:border-border-strong transition-all flex items-center justify-center gap-2"
                   >
                     {editandoVidro ? <Sparkles size={18} /> : <Plus size={18} />}
                     <span>{editandoVidro ? "Atualizar Item" : "Adicionar Item"}</span>
@@ -2449,11 +2450,11 @@ useEffect(() => {
             </div>
 
             <div className="lg:col-span-8 space-y-6">
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
-                <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+              <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col h-full">
+                <div className="p-5 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ClipboardList size={18} className="text-[#1e3a5a]" />
-                    <h3 className="font-bold text-gray-700 text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
+                    <ClipboardList size={18} className="text-text-primary" />
+                    <h3 className="font-bold text-text-primary text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
                   </div>
                   <div className="flex items-center gap-4">
                     {/* Input de arquivo escondido */}
@@ -2467,7 +2468,7 @@ useEffect(() => {
 
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 text-[10px] font-bold text-gray-300 hover:text-[#1C415B] transition-colors uppercase tracking-tighter"
+                      className="flex items-center gap-2 text-[10px] font-bold text-text-secondary hover:text-text-primary transition-colors uppercase tracking-tighter"
                     >
                       <Plus size={14} /> Importar Excel
                     </button>
@@ -2475,7 +2476,7 @@ useEffect(() => {
                     {itens.length > 0 && (
                       <button
                         onClick={() => setMostrarModalLimpar(true)}
-                        className="text-[10px] font-bold text-gray-300 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                        className="text-[10px] font-bold text-text-secondary hover:text-danger transition-colors uppercase tracking-tighter"
                       >
                         Limpar Tudo
                       </button>
@@ -2486,14 +2487,14 @@ useEffect(() => {
                 <div className="overflow-x-auto flex-1">
                   {itens.length > 0 ? (
                     <table className="w-full text-left">
-                      <thead className="bg-[#f8fafc] text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+                      <thead className="bg-surface-secondary text-text-secondary text-[10px] uppercase font-bold tracking-wider">
                         <tr>
                           <th className="px-4 py-4 w-10">
                             <input
                               type="checkbox"
                               checked={selecionados.length === itens.length && itens.length > 0}
                               onChange={toggleTodos}
-                              className="rounded border-gray-300 text-[#1e3a5a] focus:ring-[#1e3a5a]"
+                              className="rounded border-border-strong text-text-primary focus:ring-border-strong"
                             />
                           </th>
                           <th className="px-6 py-4">Descrição / Acabamento</th>
@@ -2504,14 +2505,14 @@ useEffect(() => {
                           <th className="px-6 py-4 text-center">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="text-sm divide-y divide-gray-50">
+                      <tbody className="text-sm divide-y divide-border">
                         {itens.map((item) => (
                           <tr
                             key={item.id}
                             ref={(el) => {
                               linhasItensRef.current[String(item.id)] = el;
                             }}
-                            className={`hover:bg-gray-50/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-blue-50/30' : ''} ${editandoId === item.id ? 'bg-amber-50/70 outline-2 outline-amber-200' : ''}`}
+                            className={`hover:bg-surface-secondary/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-info-soft/30' : ''} ${editandoId === item.id ? 'bg-warning-soft/70 outline-2 outline-warning-soft' : ''}`}
                           >
                             {/* 1. CHECKBOX */}
                             <td className="px-4 py-4">
@@ -2519,44 +2520,44 @@ useEffect(() => {
                                 type="checkbox"
                                 checked={selecionados.includes(item.id)}
                                 onChange={() => toggleItem(item.id)}
-                                className="rounded border-gray-300 text-[#1e3a5a] focus:ring-[#1e3a5a]"
+                                className="rounded border-border-strong text-text-primary focus:ring-border-strong"
                               />
                             </td>
 
                             {/* 2. DESCRIÇÃO (Faltava este no seu snippet) */}
                             <td className="px-6 py-4">
                               {/* Nome do Vidro e Espessura */}
-                              <div className="text-gray-700 leading-tight">
+                              <div className="text-text-primary leading-tight">
                                 {item.descricao}
                               </div>
 
                               {/* Tipo do Vidro (Subtítulo discreto) */}
                               {item.tipo && (
-                                <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">
+                                <div className="text-[10px] text-text-secondary font-medium uppercase tracking-tight">
                                   {item.tipo}
                                 </div>
                               )}
 
                               {item.totalRateado && item.observacaoRateio && (
-                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-sky-600">
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-info">
                                   {item.observacaoRateio}
                                 </div>
                               )}
 
                               {item.observacaoPreco && (
-                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-emerald-600">
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-success">
                                   {item.observacaoPreco}
                                 </div>
                               )}
 
                               {item.observacaoDivisao && (
-                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-indigo-600">
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-info">
                                   {item.observacaoDivisao}
                                 </div>
                               )}
 
                               {editandoId === item.id && (
-                                <div className="mt-1 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                                <div className="mt-1 inline-flex items-center rounded-md bg-warning-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-warning">
                                   Em edicao
                                 </div>
                               )}
@@ -2564,15 +2565,15 @@ useEffect(() => {
                               {/* Serviço / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
-                                  <Sparkles size={10} className="text-amber-500" />
-                                  <span className="text-[10px] text-gray-400 uppercase font-bold bg-amber-50 px-1.5 py-0.5 rounded-md">
+                                  <Sparkles size={10} className="text-warning" />
+                                  <span className="text-[10px] text-text-secondary uppercase font-bold bg-warning-soft px-1.5 py-0.5 rounded-md">
                                     {item.servico}
                                   </span>
                                 </div>
                               )}
 
                               {editandoId === item.id && (item.tipo === "adicional" || identificarTipoAdicionalPorDescricao(item.descricao)) && (
-                                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 p-2.5">
+                                <div className="mt-2 rounded-xl border border-warning-soft bg-warning-soft/70 p-2.5">
                                   <div className="grid grid-cols-2 gap-2 mb-2">
                                     <select
                                       value={tipoEdicaoRapidaAdicional}
@@ -2580,7 +2581,7 @@ useEffect(() => {
                                         setTipoEdicaoRapidaAdicional(e.target.value as "kit" | "perfil" | "ferragem");
                                         setAdicionalEdicaoRapidaId("");
                                       }}
-                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      className="w-full p-2 bg-surface rounded-lg border border-warning-soft outline-none text-xs"
                                     >
                                       <option value="kit">Kit</option>
                                       <option value="perfil">Perfil</option>
@@ -2599,7 +2600,7 @@ useEffect(() => {
                                           }
                                         }
                                       }}
-                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      className="w-full p-2 bg-surface rounded-lg border border-warning-soft outline-none text-xs"
                                     >
                                       <option value="">Selecione o item...</option>
                                       {listaEdicaoRapidaAdicional.map((itemCatalogo) => {
@@ -2618,21 +2619,21 @@ useEffect(() => {
                                       min="1"
                                       value={qtdEdicaoRapidaAdicional}
                                       onChange={(e) => setQtdEdicaoRapidaAdicional(e.target.value)}
-                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      className="w-full p-2 bg-surface rounded-lg border border-warning-soft outline-none text-xs"
                                       placeholder="Qtd"
                                     />
                                     <input
                                       type="text"
                                       value={valorEdicaoRapidaAdicional}
                                       onChange={(e) => setValorEdicaoRapidaAdicional(e.target.value)}
-                                      className="w-full p-2 bg-white rounded-lg border border-amber-200 outline-none text-xs"
+                                      className="w-full p-2 bg-surface rounded-lg border border-warning-soft outline-none text-xs"
                                       placeholder="Valor unitário"
                                     />
                                   </div>
                                   <div className="mt-2 flex items-center gap-2">
                                     <button
                                       onClick={salvarEdicaoRapidaAdicional}
-                                      className="px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-[11px] font-bold hover:bg-amber-200 transition-colors"
+                                      className="px-2.5 py-1.5 rounded-lg bg-warning-soft text-warning text-[11px] font-bold hover:bg-warning-soft transition-colors"
                                     >
                                       Salvar aqui
                                     </button>
@@ -2644,7 +2645,7 @@ useEffect(() => {
                                         setQtdEdicaoRapidaAdicional("1");
                                         setValorEdicaoRapidaAdicional("");
                                       }}
-                                      className="px-2.5 py-1.5 rounded-lg bg-white text-gray-600 text-[11px] font-bold border border-gray-200 hover:bg-gray-50 transition-colors"
+                                      className="px-2.5 py-1.5 rounded-lg bg-surface text-text-secondary text-[11px] font-bold border border-border hover:bg-surface-secondary transition-colors"
                                     >
                                       Cancelar
                                     </button>
@@ -2655,23 +2656,23 @@ useEffect(() => {
 
                             {/* 3. MEDIDAS */}
                             <td className="px-6 py-4 text-center">
-                              <div className=" text-gray-700">{item.medidaReal}</div>
+                              <div className=" text-text-primary">{item.medidaReal}</div>
                             </td>
 
                             {/* 4. QTD */}
                             <td className="px-6 py-4 text-center">
-                              <span className="bg-gray-100 px-2.5 py-1 rounded-lg text-xs font-bold text-gray-500">
+                              <span className="bg-surface-secondary px-2.5 py-1 rounded-lg text-xs font-bold text-text-secondary">
                                 {item.qtd}
                               </span>
                             </td>
 
                             {/* 5. UNITÁRIO */}
-                            <td className="px-6 py-4 text-right font-medium text-gray-500">
+                            <td className="px-6 py-4 text-right font-medium text-text-secondary">
                               {formatarMoeda(item.total / item.qtd)}
                             </td>
 
                             {/* 6. SUBTOTAL */}
-                            <td className="px-6 py-4 text-right font-bold text-[#1e3a5a]">
+                            <td className="px-6 py-4 text-right font-bold text-text-primary">
                               {formatarMoeda(item.total)}
                             </td>
 
@@ -2680,13 +2681,13 @@ useEffect(() => {
                               <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => handleEditarItem(item)}
-                                  className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="p-2 text-info hover:bg-info-soft rounded-lg transition-colors"
                                 >
                                   <Edit2 size={16} />
                                 </button>
                                 <button
                                   onClick={() => setItemParaExcluir(item.id)}
-                                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                  className="p-2 text-text-secondary hover:text-danger hover:bg-danger-soft rounded-lg transition-all"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -2697,8 +2698,8 @@ useEffect(() => {
                       </tbody>
                     </table>
                   ) : (
-                    <div className="py-20 flex flex-col items-center justify-center text-gray-400 space-y-3">
-                      <div className="p-4 bg-gray-50 rounded-full">
+                    <div className="py-20 flex flex-col items-center justify-center text-text-secondary space-y-3">
+                      <div className="p-4 bg-surface-secondary rounded-full">
                         <Calculator size={40} className="opacity-20" />
                       </div>
                       <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento</p>
@@ -2706,26 +2707,26 @@ useEffect(() => {
                   )}
                 </div>
                 {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
-                <div className="p-6 bg-white border-t border-gray-100 flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <div className="p-6 bg-surface border-t border-border flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                   <div className="flex items-center gap-8">
 
                     {/* 1. Qtd Total EM EVIDÊNCIA (Destaque colorido) */}
-                    <div className="bg-[#1e3a5a]/5 px-5 py-2 rounded-2xl border border-[#1e3a5a]/10 flex flex-col">
-                      <span className="text-[9px] font-black text-[#1e3a5a]/60 uppercase tracking-widest">Total de Peças</span>
+                    <div className="bg-navigation/5 px-5 py-2 rounded-2xl border border-border-strong/10 flex flex-col">
+                      <span className="text-[9px] font-black text-text-primary/60 uppercase tracking-widest">Total de Peças</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black text-[#1e3a5a]">
+                        <span className="text-xl font-black text-text-primary">
                           {itens.reduce((acc: number, i) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
                         </span>
-                        <span className="text-xs font-bold text-[#1e3a5a]">un</span>
+                        <span className="text-xs font-bold text-text-primary">un</span>
                       </div>
                     </div>
 
-                    <div className="h-8 w-px bg-gray-100" />
+                    <div className="h-8 w-px bg-surface-secondary" />
 
                     {/* 2. Metragem de Cobrança: Sem destaque colorido */}
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">M² de Cobrança</span>
-                      <span className="text-lg font-medium text-gray-500">
+                      <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">M² de Cobrança</span>
+                      <span className="text-lg font-medium text-text-secondary">
                         {itens.reduce((acc: number, item) => {
                           const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
                           return acc + ((l / 1000) * (a / 1000) * item.qtd);
@@ -2733,12 +2734,12 @@ useEffect(() => {
                       </span>
                     </div>
 
-                    <div className="h-8 w-px bg-gray-100" />
+                    <div className="h-8 w-px bg-surface-secondary" />
 
                     {/* 3. Peso da Carga: Sem destaque colorido */}
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Peso Logístico</span>
-                      <span className="text-lg font-medium text-gray-500">
+                      <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Peso Logístico</span>
+                      <span className="text-lg font-medium text-text-secondary">
                         {itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)
                           .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
                       </span>
@@ -2747,26 +2748,26 @@ useEffect(() => {
 
                   {/* 4. Valor Total do Pedido */}
                   <div className="min-w-[320px] text-right">
-                    <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest mb-1">Total do Orçamento</p>
-                    <p className="text-3xl font-light text-[#1e3a5a] tracking-tighter">
+                    <p className="text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1">Total do Orçamento</p>
+                    <p className="text-3xl font-light text-text-primary tracking-tighter">
                       {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
                     </p>
                   </div>
                 </div>
 
                 {itens.length > 0 && (
-                  <div className="border-t border-gray-100 bg-[#fafbfd] px-10 py-5">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="border-t border-border bg-surface-secondary px-10 py-5">
+                    <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-300">Resumo do Orçamento</p>
-                          <h4 className="mt-1 text-sm font-bold text-[#1e3a5a]">Troca de vidro e rateio</h4>
-                          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-text-secondary">Resumo do Orçamento</p>
+                          <h4 className="mt-1 text-sm font-bold text-text-primary">Troca de vidro e rateio</h4>
+                          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                             <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
                             {selecionados.length > 0 && (
                               <button
                                 onClick={() => setSelecionados([])}
-                                className="rounded-full p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                                className="rounded-full p-1 text-text-secondary transition-all hover:bg-danger-soft hover:text-danger"
                                 title="Limpar seleção"
                               >
                                 <X size={14} />
@@ -2776,39 +2777,39 @@ useEffect(() => {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                          <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 shadow-sm">
                             <Edit2 size={13} style={{ color: theme.menuIconColor }} />
                             <select
                               onChange={(e) => trocarMaterialSelecionados(e.target.value)}
-                              className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                              className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-text-primary hover:text-text-primary transition-colors"
                             >
-                              <option value="" className="text-gray-400">Trocar vidro...</option>
+                              <option value="" className="text-text-secondary">Trocar vidro...</option>
                               {listaVidros.map(v => (
-                                <option key={v.id} value={v.id} className="text-slate-700">
+                                <option key={v.id} value={v.id} className="text-text-primary">
                                   {montarRotuloVidro(v)}
                                 </option>
                               ))}
                             </select>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+                          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface-secondary px-3 py-3 shadow-sm">
                             <input
                               type="text"
                               inputMode="decimal"
                               placeholder={selecionados.length > 0 ? "Valor rateio seleção" : "Valor rateio geral"}
                               value={valorRateioLote}
                               onChange={(e) => setValorRateioLote(e.target.value)}
-                              className="w-36 rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-700 outline-none focus:border-[#1e3a5a]"
+                              className="w-36 rounded-full border border-border bg-surface px-3 py-2 text-[12px] font-medium text-text-primary outline-none focus:border-border-strong"
                             />
                             <button
                               onClick={aplicarRateioValorSelecionados}
-                              className="rounded-full bg-slate-900 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-slate-700"
+                              className="rounded-full bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-on-primary transition-colors hover:bg-navigation"
                             >
                               {selecionados.length > 0 ? "Ratear seleção" : "Ratear todos"}
                             </button>
                             <button
                               onClick={removerRateioSelecionados}
-                              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                              className="rounded-full border border-border bg-surface px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
                             >
                               {selecionados.length > 0 ? "Restaurar seleção" : "Restaurar todos"}
                             </button>
@@ -2826,21 +2827,21 @@ useEffect(() => {
         {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
         {itemParaExcluir && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
+            <div className="bg-surface rounded-3xl shadow-2xl border border-border w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Trash2 size={28} className="text-red-500" />
+                  <Trash2 size={28} className="text-danger" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Remover Item?</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <h3 className="text-lg font-bold text-text-primary mb-2">Remover Item?</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
                   Tem certeza que deseja remover este item do pedido? Esta ação não pode ser desfeita.
                 </p>
               </div>
 
-              <div className="flex border-t border-gray-50">
+              <div className="flex border-t border-border">
                 <button
                   onClick={() => setItemParaExcluir(null)}
-                  className="flex-1 px-6 py-4 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-6 py-4 text-sm font-bold text-text-secondary hover:bg-surface-secondary transition-colors"
                 >
                   CANCELAR
                 </button>
@@ -2849,7 +2850,7 @@ useEffect(() => {
                     setItens(itens.filter(i => i.id !== itemParaExcluir));
                     setItemParaExcluir(null);
                   }}
-                  className="flex-1 px-6 py-4 text-sm font-bold text-red-500 hover:bg-red-50 border-l border-gray-50 transition-colors"
+                  className="flex-1 px-6 py-4 text-sm font-bold text-danger hover:bg-danger-soft border-l border-border transition-colors"
                 >
                   EXCLUIR
                 </button>
@@ -2861,21 +2862,21 @@ useEffect(() => {
         {/* 2. Adicione este Modal no final do componente (perto do outro modal) */}
         {mostrarModalLimpar && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden animate-scale-up">
+            <div className="bg-surface rounded-3xl shadow-2xl border border-border w-full max-w-sm overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ClipboardList size={28} className="text-orange-400" />
+                  <ClipboardList size={28} className="text-warning" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Esvaziar Orçamento?</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <h3 className="text-lg font-bold text-text-primary mb-2">Esvaziar Orçamento?</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
                   Isso irá remover **todos os {itens.length} itens** da sua lista atual. Essa ação não pode ser desfeita.
                 </p>
               </div>
 
-              <div className="flex border-t border-gray-50">
+              <div className="flex border-t border-border">
                 <button
                   onClick={() => setMostrarModalLimpar(false)}
-                  className="flex-1 px-6 py-4 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-6 py-4 text-sm font-bold text-text-secondary hover:bg-surface-secondary transition-colors"
                 >
                   CANCELAR
                 </button>
@@ -2884,7 +2885,7 @@ useEffect(() => {
                     setItens([]);
                     setMostrarModalLimpar(false);
                   }}
-                  className="flex-1 px-6 py-4 text-sm font-bold text-red-500 hover:bg-red-50 border-l border-gray-50 transition-colors"
+                  className="flex-1 px-6 py-4 text-sm font-bold text-danger hover:bg-danger-soft border-l border-border transition-colors"
                 >
                   LIMPAR TUDO
                 </button>
@@ -2896,18 +2897,18 @@ useEffect(() => {
         {/* MODAL DE AVISO: CAMPOS VAZIOS */}
         {mostrarModalAviso && (
           <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-xs overflow-hidden animate-scale-up">
+            <div className="bg-surface rounded-3xl shadow-2xl border border-border w-full max-w-xs overflow-hidden animate-scale-up">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calculator size={28} className="text-amber-500" />
+                  <Calculator size={28} className="text-warning" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">{modalAvisoTitulo}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <h3 className="text-lg font-bold text-text-primary mb-2">{modalAvisoTitulo}</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
                   {modalAvisoMensagem}
                 </p>
               </div>
 
-              <div className="p-4 bg-gray-50">
+              <div className="p-4 bg-surface-secondary">
                 {modalAvisoAcoes && modalAvisoAcoes.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
                     {modalAvisoAcoes.map((acao) => (
@@ -2920,8 +2921,8 @@ useEffect(() => {
                         }}
                         className={`w-full py-4 text-sm font-black rounded-2xl transition-all active:scale-95 shadow-sm ${
                           acao.variant === "secondary"
-                            ? "text-gray-600 bg-white border border-gray-200 hover:bg-gray-100"
-                            : "text-[#1e3a5a] bg-white border border-[#1e3a5a]/30 hover:bg-[#1e3a5a]/5"
+                            ? "text-text-secondary bg-surface border border-border hover:bg-surface-secondary"
+                            : "text-text-primary bg-surface border border-border-strong/30 hover:bg-navigation/5"
                         }`}
                       >
                         {acao.label}
@@ -2931,7 +2932,7 @@ useEffect(() => {
                 ) : (
                   <button
                     onClick={fecharModalAviso}
-                    className="w-full py-4 text-sm font-black text-[#1e3a5a] bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+                    className="w-full py-4 text-sm font-black text-text-primary bg-surface border border-border rounded-2xl hover:bg-surface-secondary transition-all active:scale-95 shadow-sm"
                   >
                     Fechar
                   </button>
@@ -2942,19 +2943,19 @@ useEffect(() => {
         )}
 
         {mostrarModalAssociacao && itensNaoEncontrados.length > 0 && (
-          <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-[#1e3a5a]/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up border border-white/20">
+          <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-navigation/40 backdrop-blur-sm animate-fade-in">
+            <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up border border-border">
 
               {/* Cabeçalho */}
-              <div className="p-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-4">
+              <div className="p-6 bg-surface-secondary/50 border-b border-border flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center">
-                  <ClipboardList size={24} className="text-[#1e3a5a]" />
+                  <ClipboardList size={24} className="text-text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-[#1e3a5a] uppercase tracking-tighter leading-tight">
+                  <h3 className="text-lg font-black text-text-primary uppercase tracking-tighter leading-tight">
                     Associar Material
                   </h3>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] text-text-secondary uppercase tracking-widest">
                     Item não reconhecido no sistema
                   </p>
                 </div>
@@ -2963,17 +2964,17 @@ useEffect(() => {
               <div className="p-8 space-y-6">
                 {/* Nome vindo do Excel */}
                 <div className="space-y-2">
-                  <label className="text-[12px] text-gray-300  tracking-widest">
+                  <label className="text-[12px] text-text-secondary  tracking-widest">
                     Nome na Planilha:
                   </label>
-                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 font-mono text-sm">
+                  <div className="p-4 bg-warning-soft rounded-2xl border border-warning-soft text-warning font-sans text-sm">
                     {itensNaoEncontrados[0].nomeExcel}
                   </div>
                 </div>
 
                 {/* Seletor de Material do Sistema */}
                 <div className="space-y-2">
-                  <label className="text-[12px] text-[#1e3a5a]  tracking-widest">
+                  <label className="text-[12px] text-text-primary  tracking-widest">
                     Corresponder para:
                   </label>
                   <input
@@ -3000,12 +3001,12 @@ useEffect(() => {
                       }
                     }}
                     placeholder="Digite nome, espessura ou tipo para filtrar"
-                    className="w-full p-3 bg-white rounded-2xl border border-gray-200 outline-none text-sm text-gray-700 focus:ring-2 focus:ring-[#1e3a5a]/20 transition-all"
+                    className="w-full p-3 bg-surface rounded-2xl border border-border outline-none text-sm text-text-primary focus:ring-2 focus:ring-border-strong/20 transition-all"
                   />
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider">
+                  <p className="text-[11px] text-text-secondary uppercase tracking-wider">
                     Lista filtrada ({vidrosFiltradosAssociacao.length}) - use setas e Enter
                   </p>
-                  <div className="w-full max-h-56 overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50/70 p-1.5 space-y-1">
+                  <div className="w-full max-h-56 overflow-y-auto rounded-2xl border border-border bg-surface-secondary/70 p-1.5 space-y-1">
                     {vidrosFiltradosAssociacao.map((v, index) => {
                       const ativo = index === indiceVidroAssociacaoAtivo;
                       return (
@@ -3016,8 +3017,8 @@ useEffect(() => {
                           onClick={() => associarVidroNaoEncontrado(v)}
                           className="w-full text-left px-3 py-2 rounded-xl text-sm transition-all"
                           style={{
-                            backgroundColor: ativo ? "#e2e8f0" : "transparent",
-                            color: "#334155"
+                            backgroundColor: ativo ? DRAWING_COLORS.edge : "transparent",
+                            color: "var(--text-primary)"
                           }}
                         >
                           {obterRotuloVidroAssociacao(v)}
@@ -3026,7 +3027,7 @@ useEffect(() => {
                     })}
                   </div>
                   {vidrosFiltradosAssociacao.length === 0 && (
-                    <p className="text-[11px] text-amber-600">
+                    <p className="text-[11px] text-warning">
                       Nenhum vidro encontrado com esse filtro.
                     </p>
                   )}
@@ -3044,7 +3045,7 @@ useEffect(() => {
                       setFiltroVidroAssociacao("");
                     }
                   }}
-                  className="w-full py-4 text-[10px] font-black text-[#1e3a5a]/60 hover:text-[#1e3a5a] hover:bg-gray-50 rounded-2xl transition-all uppercase  border border-transparent hover:border-gray-100"
+                  className="w-full py-4 text-[10px] font-black text-text-primary/60 hover:text-text-primary hover:bg-surface-secondary rounded-2xl transition-all uppercase  border border-transparent hover:border-border"
                 >
                   Descartar este material
                 </button>
@@ -3057,7 +3058,7 @@ useEffect(() => {
         {mostrarModalSucesso && (
           <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
             <div
-              className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+              className="bg-surface/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
               style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
             >
 
@@ -3071,16 +3072,16 @@ useEffect(() => {
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-gray-800 tracking-tight">Salvo com sucesso!</h3>
+                  <h3 className="text-sm font-bold text-text-primary tracking-tight">Salvo com sucesso!</h3>
                   <button
                     onClick={() => setMostrarModalSucesso(false)}
-                    className="text-gray-300 hover:text-gray-500 transition-colors ml-2"
+                    className="text-text-secondary hover:text-text-secondary transition-colors ml-2"
                   >
                     <X size={14} />
                   </button>
                 </div>
 
-                <p className="text-[11px] text-gray-500 mt-0.5 font-mono">
+                <p className="text-[11px] text-text-secondary mt-0.5 font-sans">
                   Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
                 </p>
 
@@ -3090,7 +3091,7 @@ useEffect(() => {
                     // Caminho corrigido:
                     router.push('/admin/relatorio.orcamento');
                   }}
-                  className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
+                  className="text-[10px] font-bold text-text-secondary hover:text-text-secondary uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
                 >
                   <ClipboardList size={12} />
                   Ver Histórico

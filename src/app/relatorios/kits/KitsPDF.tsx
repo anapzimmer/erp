@@ -2,7 +2,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { formatarPreco } from "@/utils/formatarPreco";
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 interface Kit {
   id: number;
@@ -26,32 +26,32 @@ interface KitsPDFProps {
   };
 }
 
-export function KitsPDF({ dados, empresa, logoUrl, coresEmpresa }: KitsPDFProps) {
+export function KitsPDF({ dados, empresa, logoUrl}: KitsPDFProps) {
   const dataGeracao = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric'
   }).format(new Date());
 
-  const textColor = coresEmpresa.textDefault || '#1C415B';
+  const textColor = PDF_COLORS.ink;
 
   const styles = StyleSheet.create({
-    page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 70, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: PDF_HEADER_LAYOUT.marginBottom, paddingBottom: PDF_HEADER_LAYOUT.paddingBottom, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth, borderBottomColor: coresEmpresa.tertiary || '#39B89F' },
+    page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 70, backgroundColor: PDF_COLORS.white, fontFamily: "Inter" },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: PDF_HEADER_LAYOUT.marginBottom, paddingBottom: PDF_HEADER_LAYOUT.paddingBottom, borderBottomWidth: PDF_HEADER_LAYOUT.borderBottomWidth, borderBottomColor: PDF_COLORS.border },
     headerLeft: { flexDirection: 'column', flex: 1 },
-    tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', color: coresEmpresa.primary || '#1C415B', textTransform: 'uppercase' },
+    tituloRelatorio: { fontSize: PDF_HEADER_LAYOUT.titleSize, fontWeight: 'bold', color: PDF_COLORS.ink, textTransform: 'uppercase' },
     subtitulo: { fontSize: PDF_HEADER_LAYOUT.subtitleSize, color: textColor, marginTop: 2, fontWeight: 'bold' },
-    dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: '#666', marginTop: 6 },
+    dataEmissao: { fontSize: PDF_HEADER_LAYOUT.dateSize, color: PDF_COLORS.ink, marginTop: 6 },
     logo: { width: PDF_HEADER_LAYOUT.logoWidth, height: PDF_HEADER_LAYOUT.logoHeight, objectFit: 'contain', objectPosition: 'right' },
     table: { width: '100%', marginTop: 10 },
-    tableHeader: { flexDirection: 'row', backgroundColor: coresEmpresa.primary || '#1C415B', borderRadius: 4, minHeight: 30, alignItems: 'center' },
+    tableHeader: { flexDirection: 'row', backgroundColor: PDF_COLORS.tableHeaderBg, borderRadius: 4, minHeight: 30, alignItems: 'center' },
     tableRow: { flexDirection: 'row', borderBottomWidth: PDF_TABLE_LAYOUT.rowBorderWidth, borderBottomColor: PDF_TABLE_LAYOUT.rowBorderColor, alignItems: 'center', paddingVertical: 6 },
-    tableColHeader: { paddingHorizontal: 6, color: coresEmpresa.secondary || '#FFFFFF', fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
+    tableColHeader: { paddingHorizontal: 6, color: PDF_COLORS.ink, fontSize: PDF_TABLE_LAYOUT.headerFontSize, fontWeight: 'bold', textTransform: 'uppercase' },
     tableCol: { paddingHorizontal: 6, fontSize: PDF_TABLE_LAYOUT.bodyFontSize },
     colNome: { width: '30%' },
     colMedidas: { width: '20%' },
     colCor: { width: '20%' },
     colCategoria: { width: '15%' },
     colPreco: { width: '15%', textAlign: 'right' },
-    footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: '#999', borderTopWidth: 0.5, borderTopColor: '#DDD', paddingTop: 10 }
+    footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 8, color: PDF_COLORS.muted, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border, paddingTop: 10 }
   });
 
   return (

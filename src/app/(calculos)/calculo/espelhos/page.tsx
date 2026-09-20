@@ -1,5 +1,6 @@
 "use client"
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useTheme } from "@/context/ThemeContext"
@@ -169,14 +170,14 @@ const gerarDesenhoEspelhosUrl = (itens: any[]) => {
       return `
         <g>
           ${pecas}
-          <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="18" font-weight="600" fill="#0f2742">${qtdPecas} peça(s) - ${medida} mm</text>
+          <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="${DRAWING_COLORS.ink}">${qtdPecas} peça(s) - ${medida} mm</text>
         </g>
       `;
     }
 
     const rx = tipoVisual.includes("redondo") || tipoVisual.includes("oval") ? Math.min(w, h) / 2 : tipoVisual.includes("capsula") ? Math.min(w, h) / 3 : 8;
     const bisote = tipoVisual.includes("bisote")
-      ? `<rect x="${x + 12}" y="${y + 12}" width="${Math.max(0, w - 24)}" height="${Math.max(0, h - 24)}" rx="${Math.max(4, rx - 8)}" fill="none" stroke="#f8fafc" stroke-width="3" />`
+      ? `<rect x="${x + 12}" y="${y + 12}" width="${Math.max(0, w - 24)}" height="${Math.max(0, h - 24)}" rx="${Math.max(4, rx - 8)}" fill="none" stroke="${DRAWING_COLORS.glass}" stroke-width="3" />`
       : "";
     const led = tipoVisual.includes("led")
       ? `<rect x="${x + 16}" y="${y + 16}" width="${Math.max(0, w - 32)}" height="${Math.max(0, h - 32)}" rx="${Math.max(4, rx - 12)}" fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="8 8" opacity="0.9" />`
@@ -187,14 +188,14 @@ const gerarDesenhoEspelhosUrl = (itens: any[]) => {
         <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${tipoVisual.includes("bisote") ? 10 : 3}" />
         ${bisote}
         ${led}
-        <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Segoe UI, Arial" font-size="18" font-weight="600" fill="#0f2742">${qtdPecas} peça(s) - ${medida} mm</text>
+        <text x="${larguraSvg / 2}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="${DRAWING_COLORS.ink}">${qtdPecas} peça(s) - ${medida} mm</text>
       </g>
     `;
   }).join("");
 
   return svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${larguraSvg}" height="${alturaSvg}" viewBox="0 0 ${larguraSvg} ${alturaSvg}">
-      <rect width="100%" height="100%" fill="#f8fafc"/>
+      <rect width="100%" height="100%" fill="${DRAWING_COLORS.glass}"/>
       ${desenhos}
     </svg>
   `);
@@ -711,7 +712,7 @@ export default function CalculoEspelhosPage() {
               gridTemplateColumns: `repeat(${Math.max(1, divisoesLargura)}, 1fr)`,
               gridTemplateRows: `repeat(${Math.max(1, divisoesAltura)}, 1fr)`,
               gap: "6px",
-              background: "#f1f5f9",
+              background: "var(--surface-secondary)",
               borderRadius: temBisote ? "6px" : "6px"
             }}
           >
@@ -719,9 +720,9 @@ export default function CalculoEspelhosPage() {
               <div
                 key={i}
                 style={{
-                  backgroundColor: "#cbd5e1",
+                  backgroundColor: "var(--surface-secondary)",
                   borderRadius: "4px",
-                  boxShadow: "#94a3b8"
+                  boxShadow: DRAWING_COLORS.frame
                 }}
               />
             ))}
@@ -734,8 +735,8 @@ export default function CalculoEspelhosPage() {
     const baseStyle: React.CSSProperties = {
       transition: 'all 0.3s ease-out',
       borderStyle: 'solid',
-      borderColor: '#94a3b8',
-      backgroundColor: '#cbd5e1',
+      borderColor: "var(--border-strong)",
+      backgroundColor: "var(--surface-secondary)",
       boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
@@ -746,7 +747,7 @@ export default function CalculoEspelhosPage() {
 
     if (tipoVisual.includes('bisote')) {
       baseStyle.borderWidth = '12px';
-      baseStyle.borderColor = '#e2e8f0';
+      baseStyle.borderColor = DRAWING_COLORS.edge;
     }
 
     if (tipoVisual.includes('led')) {
@@ -836,7 +837,7 @@ export default function CalculoEspelhosPage() {
         itens: itensParaSalvar,
         valor_total: Number(totalGeral) || 0,
         metragem_total: Number(metragemTotal) || 0,
-        theme_color: theme.contentTextLightBg,
+        theme_color: DRAWING_COLORS.ink,
         empresa_id: empresaIdFinal
       };
 
@@ -918,31 +919,31 @@ export default function CalculoEspelhosPage() {
           usuarioEmail={user?.email || ""}
           handleSignOut={handleLogout}
         >
-          <div className="hidden md:flex flex-col border-l border-gray-200 pl-6">
-            <h1 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Orçamento Espelho</h1>
-            <span className="text-xs font-bold text-gray-800"># {ultimoNumeroGerado || "NOVO"}</span>
+          <div className="hidden md:flex flex-col border-l border-border pl-6">
+            <h1 className="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none">Orçamento Espelho</h1>
+            <span className="text-xs font-bold text-text-primary"># {ultimoNumeroGerado || "NOVO"}</span>
           </div>
         </Header>
 
-        <div className="relative z-10 w-full border-b border-slate-200 bg-white shadow-sm">
+        <div className="relative z-10 w-full border-b border-border bg-surface shadow-sm">
           <div className="flex min-h-[66px] items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
             <button
               type="button"
               onClick={handleNovoOrcamento}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:border-border-strong hover:bg-surface-secondary"
             >
               <Plus size={18} />
               Orçamento
             </button>
 
-            <label className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+            <label className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm font-semibold text-text-primary">
               <UserRound size={18} />
               <span className="sr-only">Cliente</span>
               <input
                 id="cliente-orcamento"
                 type="text"
                 placeholder="Nome do cliente"
-                className="w-44 bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:font-normal placeholder:text-slate-400 md:w-56"
+                className="w-44 bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:font-normal placeholder:text-text-secondary md:w-56"
                 value={nomeCliente}
                 onChange={(e) => setNomeCliente(e.target.value)}
                 aria-label="Cliente do orçamento"
@@ -954,7 +955,7 @@ export default function CalculoEspelhosPage() {
                 <EspelhosPDF
                   itens={listaItens}
                   nomeEmpresa={nomeEmpresa}
-                  logoUrl={theme.logoLightUrl || "/glasscode.png"}
+                  logoUrl={theme.logoLightUrl || "/glasscode-light.png"}
                   themeColor={theme.contentTextLightBg}
                   nomeCliente={nomeCliente}
                   nomeObra=""
@@ -967,7 +968,7 @@ export default function CalculoEspelhosPage() {
                 <button
                   type="button"
                   disabled={loading || listaItens.length === 0}
-                  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Printer size={18} />
                   {loading ? "Gerando..." : "Imprimir"}
@@ -979,7 +980,7 @@ export default function CalculoEspelhosPage() {
               type="button"
               onClick={() => setShowModalCentral(true)}
               disabled={listaItens.length === 0}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
               title="Enviar para a central de impressão"
             >
               <FileText size={18} />
@@ -990,7 +991,7 @@ export default function CalculoEspelhosPage() {
               type="button"
               onClick={handleSalvarOrcamento}
               disabled={listaItens.length === 0}
-              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Save size={18} />
               Salvar
@@ -1003,14 +1004,14 @@ export default function CalculoEspelhosPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
             {/* Coluna Esquerda: Configurações */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: theme.menuBackgroundColor }}>
                   <Calculator size={20} /> Dimensões
                 </h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Largura</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Largura</label>
                       <input
                         ref={larguraInputRef} // Adicione a ref aqui
                         type="number"
@@ -1021,12 +1022,12 @@ export default function CalculoEspelhosPage() {
                           setLargura(value);
                         }}
                         onKeyDown={(e) => e.key === 'Enter' && document.getElementById('input-altura')?.focus()} // Pula para altura
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm"
                         style={{ "--tw-ring-color": theme.menuIconColor } as any}
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Altura</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Altura</label>
                       <input
                         id="input-altura" // Adicione um ID para facilitar o foco
                         type="number"
@@ -1037,12 +1038,12 @@ export default function CalculoEspelhosPage() {
                           setAltura(value);
                         }}
                         onKeyDown={(e) => e.key === 'Enter' && document.getElementById('input-qtd')?.focus()} // Pula para quantidade
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm"
                         style={{ "--tw-ring-color": theme.menuIconColor } as any}
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Qtd</label>
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Qtd</label>
                       <input
                         id="input-qtd" // Adicione um ID
                         type="number"
@@ -1055,7 +1056,7 @@ export default function CalculoEspelhosPage() {
                             adicionarAoPedido(); // Adiciona e volta para a largura
                           }
                         }}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 focus:ring-2 outline-none transition-all text-sm font-bold text-center text-gray-500"
+                        className="w-full p-3 mt-1 rounded-xl border border-border focus:ring-2 outline-none transition-all text-sm font-bold text-center text-text-secondary"
                         style={{
                           "--tw-ring-color": theme.menuIconColor
                         } as any}
@@ -1065,7 +1066,7 @@ export default function CalculoEspelhosPage() {
 
                   <div className="grid grid-cols-2 gap-3 mt-4">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">
                         Div. Jogo Largura
                       </label>
                       <input
@@ -1073,12 +1074,12 @@ export default function CalculoEspelhosPage() {
                         min="1"
                         value={divisoesLargura}
                         onChange={(e) => setDivisoesLargura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">
+                      <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">
                         Div. Jogo Altura
                       </label>
                       <input
@@ -1086,18 +1087,18 @@ export default function CalculoEspelhosPage() {
                         min="1"
                         value={divisoesAltura}
                         onChange={(e) => setDivisoesAltura(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm"
+                        className="w-full p-3 mt-1 rounded-xl border border-border text-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 tracking-widest">Selecione o Espelho</label>
+                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-widest">Selecione o Espelho</label>
                     <select
                       value={vidroId}
                       disabled={!catalogosCarregados}
                       onChange={(e) => setVidroId(e.target.value)}
-                      className="w-full p-3 mt-1 rounded-xl border border-gray-200 bg-white focus:ring-2 outline-none transition-all text-sm text-gray-600 cursor-pointer"
+                      className="w-full p-3 mt-1 rounded-xl border border-border bg-surface focus:ring-2 outline-none transition-all text-sm text-text-secondary cursor-pointer"
                       style={{ "--tw-ring-color": theme.menuIconColor } as any}
                     >
                       {!vidrosDB.some(v => String(v.id) === String(vidroId)) && <option value={vidroId}>Selecione um espelho cadastrado</option>}
@@ -1111,15 +1112,15 @@ export default function CalculoEspelhosPage() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-lg font-bold" style={{ color: theme.menuBackgroundColor }}>Acabamentos</h3>
                   <button type="button" disabled={!catalogosCarregados && !erroCatalogo} onClick={() => setRecarregarCatalogos(v => v + 1)} className="text-xs underline disabled:opacity-50">Atualizar preços do cadastro</button>
                 </div>
                 <div className="space-y-2 max-h-87.5 overflow-y-auto pr-2">
                   {/* OPÇÃO: SEM ACABAMENTO */}
-                  <label className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
-                    <span className="text-sm font-medium text-gray-500">Sem acabamento</span>
+                  <label className="flex items-center justify-between p-3 rounded-2xl hover:bg-surface-secondary cursor-pointer border border-transparent transition-all">
+                    <span className="text-sm font-medium text-text-secondary">Sem acabamento</span>
                     <input
                       type="radio"
                       name="acabamento"
@@ -1133,33 +1134,33 @@ export default function CalculoEspelhosPage() {
                   {/* LISTA DO BANCO */}
                   {acabamentosDB.map((item) => {
                     // Define o estilo do ícone baseado no tipo_visual do banco
-                    let iconStyle = "border-2 border-gray-400";
-                    if (String(item.tipo_visual || '').includes('redondo')) iconStyle = "rounded-full border-2 border-gray-400";
-                    else if (String(item.tipo_visual || '').includes('bisote')) iconStyle = "rounded-sm border-4 border-double border-gray-400";
-                    else if (String(item.tipo_visual || '').includes('organico') || String(item.tipo_visual || '').includes('molde')) iconStyle = "rounded-[20px] border-2 border-gray-400";
-                    else if (String(item.tipo_visual || '').includes('led')) iconStyle = "rounded border-4 border-gray-400";
+                    let iconStyle = "border-2 border-border-strong";
+                    if (String(item.tipo_visual || '').includes('redondo')) iconStyle = "rounded-full border-2 border-border-strong";
+                    else if (String(item.tipo_visual || '').includes('bisote')) iconStyle = "rounded-sm border-4 border-double border-border-strong";
+                    else if (String(item.tipo_visual || '').includes('organico') || String(item.tipo_visual || '').includes('molde')) iconStyle = "rounded-[20px] border-2 border-border-strong";
+                    else if (String(item.tipo_visual || '').includes('led')) iconStyle = "rounded border-4 border-border-strong";
 
                     return (
-                      <label key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer border border-transparent transition-all">
+                      <label key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-secondary cursor-pointer border border-transparent transition-all">
                         {/* --- EXIBIÇÃO DO DESENHO NA LISTA --- */}
-                        <div className={`shrink-0 bg-gray-300 w-10 h-10 ${iconStyle} flex items-center justify-center`}>
+                        <div className={`shrink-0 bg-border w-10 h-10 ${iconStyle} flex items-center justify-center`}>
                           {String(item.tipo_visual || '').includes('jogo') && (
                             <div className="grid grid-cols-3 gap-0.5 p-0.5 h-full w-full">
-                              {[...Array(9)].map((_, i) => <div key={i} className="bg-white rounded-sm"></div>)}
+                              {[...Array(9)].map((_, i) => <div key={i} className="bg-surface rounded-sm"></div>)}
                             </div>
                           )}
                           {String(item.tipo_visual || '').includes('led') && (
-                            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                            <div className="w-2 h-2 rounded-full bg-surface animate-pulse"></div>
                           )}
                         </div>
 
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-700">{item.nome}</span>
-                          <p className="text-xs text-gray-500">{item.tipo_calculo === "porcentagem"
+                          <span className="text-sm font-medium text-text-primary">{item.nome}</span>
+                          <p className="text-xs text-text-secondary">{item.tipo_calculo === "porcentagem"
                             ? Number(item.porcentagem_aumento || 0).toLocaleString("pt-BR") + "% sobre o vidro"
                             : Number(item.preco || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + ({ m2: "/m²", metro_linear: "/m", "unitário": "/peça" }[item.tipo_calculo as string] || "")}</p>
                           {/* Mostra o tipo técnico do banco como label secundária */}
-                          <p className="text-xs text-gray-400 capitalize">{String(item.tipo_visual || '').replace(/-/g, ' ')}</p>
+                          <p className="text-xs text-text-secondary capitalize">{String(item.tipo_visual || '').replace(/-/g, ' ')}</p>
                         </div>
 
                         <input
@@ -1180,29 +1181,29 @@ export default function CalculoEspelhosPage() {
             {/* Coluna Direita: Preview e Tabela */}
             <div className="lg:col-span-8 space-y-6">
               {/* Preview Area */}
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 min-h-87.5 flex flex-col items-center justify-center relative">
+              <div className="bg-surface rounded-3xl shadow-sm border border-border p-8 min-h-87.5 flex flex-col items-center justify-center relative">
                 <div className="flex items-center justify-center relative">
                   {RenderPreview}
-                  <span className="absolute -bottom-10 text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 uppercase tracking-tighter">
+                  <span className="absolute -bottom-10 text-[11px] font-bold text-text-secondary bg-surface-secondary px-3 py-1 rounded-full border border-border uppercase tracking-tighter">
                     {largura || 0} x {altura || 0} mm
                   </span>
                 </div>
               </div>
 
               {/* Botão de Adição e Valor Atual */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="bg-surface p-6 rounded-3xl shadow-sm border border-border flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subtotal do item</p>
-                  {itemEmEdicao !== null && <p className="mt-1 text-xs text-gray-500">Atualizar o item aplica os preços atuais do cadastro.</p>}
-                  {calculoAtual.erro && <p role="alert" className="mt-2 text-sm text-red-600">{calculoAtual.erro}</p>}
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Subtotal do item</p>
+                  {itemEmEdicao !== null && <p className="mt-1 text-xs text-text-secondary">Atualizar o item aplica os preços atuais do cadastro.</p>}
+                  {calculoAtual.erro && <p role="alert" className="mt-2 text-sm text-danger">{calculoAtual.erro}</p>}
                   {erroCatalogo && <button type="button" className="text-sm underline" onClick={() => setRecarregarCatalogos(v => v + 1)}>Tentar novamente</button>}
-                  <p className="mt-1 text-xs text-gray-500">Área com sobras cadastradas e arredondamento de 5 em 5 cm por peça.</p>
+                  <p className="mt-1 text-xs text-text-secondary">Área com sobras cadastradas e arredondamento de 5 em 5 cm por peça.</p>
                   {calculoAtual.memoriaCalculo && (() => {
                     const memoria = calculoAtual.memoriaCalculo;
                     const regra = memoria.entrada.acabamento;
                     const dinheiro = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
                     const decimal = (valor: number) => valor.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
-                    return <details className="mt-2 text-xs text-gray-600" open>
+                    return <details className="mt-2 text-xs text-text-secondary" open>
                       <summary className="cursor-pointer font-medium">Composição do cálculo</summary>
                       <dl className="mt-2 space-y-1">
                         <div>Acabamento: {regra?.nome || "Sem acabamento"}</div>
@@ -1216,7 +1217,7 @@ export default function CalculoEspelhosPage() {
                       </dl>
                     </details>;
                   })()}
-                  <p className="text-2xl font-bold text-gray-700">
+                  <p className="text-2xl font-bold text-text-primary">
                     {calculoAtual.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </p>
                 </div>
@@ -1245,23 +1246,23 @@ export default function CalculoEspelhosPage() {
               {/* LISTA DE ITENS DISCRETA */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary flex items-center gap-2">
                     <ReceiptText size={14} /> Resumo do Pedido
                   </h3>
                   <button
                     onClick={() => setListaItens([])}
-                    className="text-[10px] font-bold text-gray-400 hover:text-red-500 uppercase tracking-tighter transition-colors flex items-center gap-1"
+                    className="text-[10px] font-bold text-text-secondary hover:text-danger uppercase tracking-tighter transition-colors flex items-center gap-1"
                   >
                     <Trash2 size={12} /> Limpar Tudo
                   </button>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
                   {listaItens.length > 0 ? (
                     <>
-                      <div className="divide-y divide-gray-100">
+                      <div className="divide-y divide-border">
                         {listaItens.map((item, index) => (
-                          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
+                          <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-surface-secondary transition-colors group">
 
                             {/* Lado Esquerdo: Descrição e Detalhes */}
                             <div className="flex-1 min-w-0 pr-4">
@@ -1276,14 +1277,14 @@ export default function CalculoEspelhosPage() {
                                 </h4>
 
                                 {/* Medidas */}
-                                <span className="shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                <span className="shrink-0 text-xs font-medium text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-md">
                                   {item.medidas}
                                 </span>
                               </div>
 
                               {/* Quantidade */}
-                              <p className="text-xs text-gray-500 mt-1.5">
-                                Quantidade: <span className="font-medium text-gray-700">{item.quantidade}</span>
+                              <p className="text-xs text-text-secondary mt-1.5">
+                                Quantidade: <span className="font-medium text-text-primary">{item.quantidade}</span>
                               </p>
                             </div>
 
@@ -1304,7 +1305,7 @@ export default function CalculoEspelhosPage() {
                                 }}
                                 title="Editar item"
                                 style={{ '--hover-color': theme.menuIconColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-text-secondary hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Pencil size={16} />
                               </button>
@@ -1314,7 +1315,7 @@ export default function CalculoEspelhosPage() {
                                 onClick={() => { setListaItens(listaItens.filter(i => i.id !== item.id)); if (itemEmEdicao === item.id) { setItemEmEdicao(null); setLargura(""); setAltura(""); } }}
                                 title="Remover item"
                                 style={{ '--hover-color': theme.modalIconErrorColor } as any}
-                                className="p-2 rounded-lg text-gray-400 hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
+                                className="p-2 rounded-lg text-text-secondary hover:text-(--hover-color) hover:bg-(--hover-color)/10 transition-all duration-200"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1324,8 +1325,8 @@ export default function CalculoEspelhosPage() {
                       </div>
 
                       {/* --- RODAPÉ COM A SOMA TOTAL --- */}
-                      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-500">Total do Orçamento</span>
+                      <div className="px-5 py-4 bg-surface-secondary border-t border-border flex items-center justify-between">
+                        <span className="text-sm font-medium text-text-secondary">Total do Orçamento</span>
 
                         {/* Soma Total */}
                         <span
@@ -1338,7 +1339,7 @@ export default function CalculoEspelhosPage() {
                     </>
                   ) : (
                     // Estado Vazio
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                       <ClipboardList size={28} className="mb-3" />
                       <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento.</p>
                       <p className="text-xs mt-1">Comece adicionando as dimensões e o tipo de espelho.</p>
@@ -1358,13 +1359,13 @@ export default function CalculoEspelhosPage() {
             style={{
               backgroundColor: theme.modalBackgroundColor,
               color: theme.modalTextColor,
-              borderColor: '#F3F4F6',
+              borderColor: "var(--surface-secondary)",
             }}
             className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border overflow-hidden flex flex-col md:flex-row"
           >
             {/* LADO ESQUERDO */}
-            <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `${theme.menuIconColor}08` }}>
-              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}>
+            <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 3%, transparent)` }}>
+              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
                 <ClipboardList size={32} />
               </div>
               <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
@@ -1374,7 +1375,7 @@ export default function CalculoEspelhosPage() {
             {/* LADO DIREITO */}
             <div className="p-8 md:w-3/5 flex flex-col">
               <div className="flex justify-end mb-4">
-                <button onClick={() => setShowModalPDF(false)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                <button onClick={() => setShowModalPDF(false)} className="p-1.5 rounded-full hover:bg-surface-secondary transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -1398,7 +1399,7 @@ export default function CalculoEspelhosPage() {
                     <EspelhosPDF
                       itens={listaItens}
                       nomeEmpresa={nomeEmpresa}
-                      logoUrl={theme.logoLightUrl || '/glasscode.png'}
+                      logoUrl={theme.logoLightUrl || '/glasscode-light.png'}
                       themeColor={theme.contentTextLightBg}
                       nomeCliente={nomeCliente}
                       nomeObra={nomeObra}
@@ -1411,7 +1412,7 @@ export default function CalculoEspelhosPage() {
                   {({ loading }) => (
                     <button
                       disabled={loading}
-                      className="w-full px-5 py-3 rounded-xl font-semibold bg-[#1e3a5a] text-white hover:bg-[#2a527d] transition-all text-sm flex items-center justify-center gap-2"
+                      className="w-full px-5 py-3 rounded-xl font-semibold bg-primary text-on-primary hover:bg-primary-hover transition-all text-sm flex items-center justify-center gap-2"
                     >
                       <Printer size={16} />
                       {loading ? "Gerando PDF..." : "Baixar Orçamento"}
@@ -1425,14 +1426,14 @@ export default function CalculoEspelhosPage() {
       )}
       {showModalCentral && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex items-start justify-between gap-4 border-b border-border p-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Central de impressão</p>
-                <h3 className="mt-1 text-lg font-semibold text-[#0f2742]">Enviar espelhos</h3>
-                <p className="mt-1 text-sm text-slate-500">Escolha como este orçamento deve aparecer na central e no PDF.</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-secondary">Central de impressão</p>
+                <h3 className="mt-1 text-lg font-semibold text-text-primary">Enviar espelhos</h3>
+                <p className="mt-1 text-sm text-text-secondary">Escolha como este orçamento deve aparecer na central e no PDF.</p>
               </div>
-              <button onClick={() => setShowModalCentral(false)} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700">
+              <button onClick={() => setShowModalCentral(false)} className="rounded-full p-2 text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary">
                 <X size={18} />
               </button>
             </div>
@@ -1441,18 +1442,18 @@ export default function CalculoEspelhosPage() {
               <button
                 type="button"
                 onClick={() => enviarParaCentralImpressao(true)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                className="rounded-2xl border border-border bg-surface-secondary p-5 text-left transition hover:border-success-soft hover:bg-success-soft"
               >
-                <p className="text-sm font-semibold text-[#0f2742]">Com desenho</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">Leva a miniatura criada pelo sistema junto com a relação dos espelhos.</p>
+                <p className="text-sm font-semibold text-text-primary">Com desenho</p>
+                <p className="mt-2 text-xs leading-5 text-text-secondary">Leva a miniatura criada pelo sistema junto com a relação dos espelhos.</p>
               </button>
               <button
                 type="button"
                 onClick={() => enviarParaCentralImpressao(false)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                className="rounded-2xl border border-border bg-surface-secondary p-5 text-left transition hover:border-info-soft hover:bg-info-soft"
               >
-                <p className="text-sm font-semibold text-[#0f2742]">Sem desenho</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">Envia como avulso, igual aos vidros, mostrando peças, medidas e valores.</p>
+                <p className="text-sm font-semibold text-text-primary">Sem desenho</p>
+                <p className="mt-2 text-xs leading-5 text-text-secondary">Envia como avulso, igual aos vidros, mostrando peças, medidas e valores.</p>
               </button>
             </div>
           </div>
@@ -1463,20 +1464,20 @@ export default function CalculoEspelhosPage() {
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div
             style={{
-              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
-              color: theme.modalTextColor || '#1F2937',
+              backgroundColor: theme.modalBackgroundColor,
+              color: theme.modalTextColor,
             }}
-            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100 overflow-hidden flex flex-col md:flex-row"
+            className="w-full max-w-2xl rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 border border-border overflow-hidden flex flex-col md:flex-row"
           >
             {/* LADO ESQUERDO (Acentuado) */}
             <div
               className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center"
-              style={{ backgroundColor: `${theme.menuIconColor}08` }}
+              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 3%, transparent)` }}
             >
               <div
                 className="p-4 rounded-full mb-6"
                 style={{
-                  backgroundColor: `${theme.menuIconColor}15`,
+                  backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`,
                   color: theme.menuIconColor,
                 }}
               >
@@ -1504,7 +1505,7 @@ export default function CalculoEspelhosPage() {
                     type="text"
                     value={nomeCliente}
                     onChange={(e) => setNomeCliente(e.target.value)}
-                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    className="w-full bg-transparent border-b border-border py-2.5 outline-none text-sm focus:border-border-strong"
                     placeholder="Nome do cliente..."
                   />
                 </div>
@@ -1514,7 +1515,7 @@ export default function CalculoEspelhosPage() {
                     type="text"
                     value={nomeObra}
                     onChange={(e) => setNomeObra(e.target.value)}
-                    className="w-full bg-transparent border-b border-gray-200 py-2.5 outline-none text-sm focus:border-gray-400"
+                    className="w-full bg-transparent border-b border-border py-2.5 outline-none text-sm focus:border-border-strong"
                     placeholder="Ex: Apartamento 402..."
                   />
                 </div>
@@ -1522,8 +1523,8 @@ export default function CalculoEspelhosPage() {
 
               <button
                 onClick={handleSalvarOrcamento}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-white transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
-                style={{ backgroundColor: theme.menuBackgroundColor }}
+                className="w-full px-4 py-3 rounded-xl font-semibold text-on-primary transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
+                style={{ backgroundColor: theme.buttonDarkBg }}
               >
                 <Save size={16} />
                 Salvar Orçamento
@@ -1536,9 +1537,9 @@ export default function CalculoEspelhosPage() {
       {showModalSucesso && (
         <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
           <div
-            className="backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
+            className="backdrop-blur-md border border-border shadow-2xl rounded-2xl p-4 w-72 flex items-center gap-4 ring-1 ring-black/5"
             style={{
-              backgroundColor: `${theme.modalBackgroundColor || '#FFFFFF'}F0`, // Adiciona leve transparência
+              backgroundColor: `color-mix(in srgb, ${theme.modalBackgroundColor} 94%, transparent)`, // Adiciona leve transparência
               borderRight: `4px solid ${theme.menuIconColor}`,
               color: theme.modalTextColor
             }}
@@ -1546,7 +1547,7 @@ export default function CalculoEspelhosPage() {
             {/* Ícone com a cor do tema */}
             <div
               className="p-2 rounded-xl shrink-0"
-              style={{ backgroundColor: `${theme.menuIconColor}15`, color: theme.menuIconColor }}
+              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}
             >
               <Sparkles size={20} />
             </div>
@@ -1562,7 +1563,7 @@ export default function CalculoEspelhosPage() {
                 </button>
               </div>
 
-              <p className="text-[11px] mt-0.5 font-mono opacity-60">
+              <p className="text-[11px] mt-0.5 font-sans opacity-60">
                 Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
               </p>
 
@@ -1583,16 +1584,16 @@ export default function CalculoEspelhosPage() {
       {showModalAviso && (
         <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div
-            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-gray-100"
+            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border border-border"
             style={{
-              backgroundColor: theme.modalBackgroundColor || '#FFFFFF',
-              color: theme.modalTextColor || '#1F2937'
+              backgroundColor: theme.modalBackgroundColor,
+              color: theme.modalTextColor
             }}
           >
             {/* Ícone com Animação de Pulso */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6 relative">
-              <div className="absolute inset-0 rounded-full bg-amber-200 animate-ping opacity-20"></div>
-              <AlertTriangle size={32} className="text-amber-500 animate-bounce" />
+            <div className="mx-auto w-16 h-16 rounded-full bg-warning-soft flex items-center justify-center mb-6 relative">
+              <div className="absolute inset-0 rounded-full bg-warning-soft animate-ping opacity-20"></div>
+              <AlertTriangle size={32} className="text-warning animate-bounce" />
             </div>
 
             <h3 className="text-xl font-bold mb-2">{modalAvisoTitulo}</h3>

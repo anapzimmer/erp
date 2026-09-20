@@ -45,28 +45,28 @@ export default function Toast({
   return (
     <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right fade-in duration-300">
 
-      <div className="relative overflow-hidden flex items-start gap-3 bg-white/90 backdrop-blur-md border border-gray-200 shadow-2xl rounded-2xl px-5 py-4 min-w-[300px]">
+      <div className="relative overflow-hidden flex items-start gap-3 bg-surface/90 backdrop-blur-md border border-border shadow-2xl rounded-2xl px-5 py-4 min-w-[300px]">
 
-        <CheckCircle className="text-emerald-500 mt-[2px]" size={22} />
+        <CheckCircle className="text-success mt-[2px]" size={22} />
 
         <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-800">
+          <p className="text-sm font-semibold text-text-primary">
             Sucesso
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-text-secondary">
             {message}
           </p>
         </div>
 
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition"
+          className="text-text-secondary hover:text-text-secondary transition"
         >
           <X size={16} />
         </button>
 
         {/* Barra progresso */}
-        <div className="absolute bottom-0 left-0 h-[3px] bg-emerald-500 transition-all"
+        <div className="absolute bottom-0 left-0 h-[3px] bg-success transition-all"
           style={{ width: `${progress}%` }}
         />
 

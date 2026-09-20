@@ -2,7 +2,7 @@
 "use client";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
-import { PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
+import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
 
 // --- TIPAGENS ---
 interface ItemVidro {
@@ -49,7 +49,7 @@ interface CalculoVidroPDFProps {
 }
 
 const styles = StyleSheet.create({
-    page: { padding: 32, backgroundColor: '#FFFFFF', fontFamily: 'Helvetica' },
+    page: { padding: 32, backgroundColor: PDF_COLORS.white, fontFamily: "Inter" },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -60,11 +60,11 @@ const styles = StyleSheet.create({
     },
     headerLeft: { flexDirection: 'column', flex: 1 },
     headerRight: { flexDirection: 'column', alignItems: 'flex-end', maxWidth: 230 },
-    tituloRelatorio: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44' },
-    subtitulo: { fontSize: 7.8, color: '#64748B', marginTop: 4 },
-    dataEmissao: { fontSize: 8, color: '#64748B', marginTop: 3 },
-    empresaFallback: { fontSize: 15, color: '#0F2D44', fontWeight: 'bold' },
-    empresaSlogan: { fontSize: 7.5, color: '#64748B', marginTop: 2 },
+    tituloRelatorio: { fontSize: 14, fontWeight: 'bold', color: PDF_COLORS.ink },
+    subtitulo: { fontSize: 7.8, color: PDF_COLORS.muted, marginTop: 4 },
+    dataEmissao: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 3 },
+    empresaFallback: { fontSize: 15, color: PDF_COLORS.ink, fontWeight: 'bold' },
+    empresaSlogan: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 2 },
     logo: {
         width: PDF_HEADER_LAYOUT.logoWidth,
         height: PDF_HEADER_LAYOUT.logoHeight,
@@ -72,64 +72,64 @@ const styles = StyleSheet.create({
         objectPosition: 'left',
     },
 
-    infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: '#E2E8F0', borderRadius: 6 },
-    infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#E2E8F0' },
+    infoSection: { marginBottom: 14, borderWidth: 0.8, borderColor: PDF_COLORS.border, borderRadius: 6 },
+    infoRow: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: PDF_COLORS.border },
     infoRowLast: { flexDirection: 'row' },
     infoBoxQuarter: {
         width: '25%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
         paddingVertical: 7,
         paddingHorizontal: 9,
         borderRightWidth: 0.8,
-        borderRightColor: '#E2E8F0',
+        borderRightColor: PDF_COLORS.border,
     },
     infoBoxHalf: {
         width: '50%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
         paddingVertical: 7,
         paddingHorizontal: 9,
     },
     infoBoxHalfBorder: {
         width: '50%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
         paddingVertical: 7,
         paddingHorizontal: 9,
         borderRightWidth: 0.8,
-        borderRightColor: '#E2E8F0',
+        borderRightColor: PDF_COLORS.border,
     },
     infoBox: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
         paddingVertical: 7,
         paddingHorizontal: 9,
         borderRightWidth: 0.8,
-        borderRightColor: '#E2E8F0',
+        borderRightColor: PDF_COLORS.border,
     },
-    infoBoxLast: { flex: 1, backgroundColor: '#FFFFFF', paddingVertical: 7, paddingHorizontal: 9 },
-    label: { fontSize: 6.4, color: '#64748B', textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
-    value: { fontSize: 9, color: '#0F2D44' },
+    infoBoxLast: { flex: 1, backgroundColor: PDF_COLORS.white, paddingVertical: 7, paddingHorizontal: 9 },
+    label: { fontSize: 6.4, color: PDF_COLORS.muted, textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.8 },
+    value: { fontSize: 9, color: PDF_COLORS.ink },
 
     // Tabela
-    table: { width: '100%', marginTop: 5, borderTopWidth: 0.8, borderTopColor: '#CBD5E1' },
-    tableHeader: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: '#CBD5E1' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 0.7, borderBottomColor: '#E2E8F0', alignItems: 'stretch', minHeight: 30 },
-    tableColHeader: { paddingVertical: 6, paddingHorizontal: 4, color: '#334155', fontSize: 6.8, textTransform: 'uppercase', letterSpacing: 0.25 },
+    table: { width: '100%', marginTop: 5, borderTopWidth: 0.8, borderTopColor: PDF_COLORS.border },
+    tableHeader: { flexDirection: 'row', borderBottomWidth: 0.8, borderBottomColor: PDF_COLORS.border },
+    tableRow: { flexDirection: 'row', borderBottomWidth: 0.7, borderBottomColor: PDF_COLORS.border, alignItems: 'stretch', minHeight: 30 },
+    tableColHeader: { paddingVertical: 6, paddingHorizontal: 4, color: PDF_COLORS.ink, fontSize: 6.8, textTransform: 'uppercase', letterSpacing: 0.25 },
 
     // Textos da Tabela com a cor solicitada
-    tableCol: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 7.6, color: '#0F2D44' },
+    tableCol: { paddingVertical: 6, paddingHorizontal: 4, fontSize: 7.6, color: PDF_COLORS.ink },
     planoCorteContainer: { marginTop: 6, gap: 6 },
-    planoCorteLinha: { borderWidth: 0.5, borderColor: '#E5E7EB', borderRadius: 4, padding: 5, backgroundColor: '#FAFAFA' },
+    planoCorteLinha: { borderWidth: 0.5, borderColor: PDF_COLORS.border, borderRadius: 4, padding: 5, backgroundColor: PDF_COLORS.white },
     planoCorteTopo: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
-    planoCorteTexto: { fontSize: 6.5, color: '#6B7280' },
-    barraVisual: { flexDirection: 'row', width: '100%', height: 8, borderRadius: 999, overflow: 'hidden', marginTop: 5, backgroundColor: '#F3F4F6' },
-    corteVisual: { height: '100%', backgroundColor: '#94A3B8', borderRightWidth: 0.5, borderRightColor: '#FFFFFF' },
-    sobraVisualCurta: { height: '100%', backgroundColor: '#E5E7EB' },
-    sobraVisualReaproveitavel: { height: '100%', backgroundColor: '#DCFCE7' },
-    rowCabecalhoProjeto: { backgroundColor: '#F8FAFC' },
-    rowPerfilConsolidado: { backgroundColor: '#F8FAFC' },
+    planoCorteTexto: { fontSize: 6.5, color: PDF_COLORS.muted },
+    barraVisual: { flexDirection: 'row', width: '100%', height: 8, borderRadius: 999, overflow: 'hidden', marginTop: 5, backgroundColor: PDF_COLORS.panelBg },
+    corteVisual: { height: '100%', backgroundColor: PDF_COLORS.panelBg, borderRightWidth: 0.5, borderRightColor: PDF_COLORS.border },
+    sobraVisualCurta: { height: '100%', backgroundColor: PDF_COLORS.panelBg },
+    sobraVisualReaproveitavel: { height: '100%', backgroundColor: PDF_COLORS.panelBg },
+    rowCabecalhoProjeto: { backgroundColor: PDF_COLORS.white },
+    rowPerfilConsolidado: { backgroundColor: PDF_COLORS.white },
     tituloCabecalhoProjeto: { fontSize: 8.4, fontWeight: 'bold' },
-    seloConsolidado: { marginTop: 3, fontSize: 6.5, color: '#64748B' },
-    vidroDestaque: { fontSize: 7.1, color: '#334155', marginTop: 3 },
+    seloConsolidado: { marginTop: 3, fontSize: 6.5, color: PDF_COLORS.muted },
+    vidroDestaque: { fontSize: 7.1, color: PDF_COLORS.ink, marginTop: 3 },
     descricaoComDesenho: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
     descricaoTexto: { flex: 1 },
     desenhoThumbBox: {
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
         height: 60,
         padding: 2,
         borderRadius: 4,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
     },
     desenhoThumb: {
         width: '100%',
@@ -157,25 +157,25 @@ const styles = StyleSheet.create({
         marginTop: 18,
         paddingTop: 10,
         borderTopWidth: 0.8,
-        borderTopColor: '#CBD5E1',
+        borderTopColor: PDF_COLORS.border,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: PDF_COLORS.white,
     },
     summaryGroup: { flexDirection: 'row', gap: 14 },
     summaryItem: { flexDirection: 'column', alignItems: 'flex-start' },
-    summaryLabel: { fontSize: 6.2, color: '#64748B', textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.5 },
-    summaryValue: { fontSize: 9.4, fontWeight: 'bold', color: '#0F2D44' },
+    summaryLabel: { fontSize: 6.2, color: PDF_COLORS.muted, textTransform: 'uppercase', marginBottom: 2, letterSpacing: 0.5 },
+    summaryValue: { fontSize: 9.4, fontWeight: 'bold', color: PDF_COLORS.ink },
 
     totalFinalBox: { textAlign: 'right' },
-    totalFinalLabel: { fontSize: 6.5, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
-    totalFinalValue: { fontSize: 14, fontWeight: 'bold', color: '#0F2D44', marginTop: 3 },
-    commercialNote: { fontSize: 6.6, color: '#64748B', marginTop: 6, textAlign: 'right' },
+    totalFinalLabel: { fontSize: 6.5, color: PDF_COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    totalFinalValue: { fontSize: 14, fontWeight: 'bold', color: PDF_COLORS.ink, marginTop: 3 },
+    commercialNote: { fontSize: 6.6, color: PDF_COLORS.muted, marginTop: 6, textAlign: 'right' },
 
     footer: {
         position: 'absolute', bottom: 18, left: 34, right: 34, textAlign: 'center',
-        fontSize: 7, color: '#94A3B8', paddingTop: 8, borderTopWidth: 0.5, borderTopColor: '#E2E8F0'
+        fontSize: 7, color: PDF_COLORS.muted, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: PDF_COLORS.border
     }
 });
 
@@ -183,8 +183,8 @@ export function CalculoVidroPDF({
     itens,
     nomeEmpresa,
     logoUrl,
-    themeColor,
-    textColor,
+
+
     nomeCliente,
     nomeObra,
     metragemTotal,
@@ -193,7 +193,7 @@ export function CalculoVidroPDF({
     numeroOrcamento,
     exibirColunaPrecoM2Un,
 }: CalculoVidroPDFProps) {
-    const contentColor = textColor || themeColor;
+    const contentColor = PDF_COLORS.ink;
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
     const ehCabecalhoProjeto = (item: ItemVidro) => item.descricao.startsWith('Projeto:');
     const ehPerfilConsolidado = (item: ItemVidro) => item.descricao.startsWith('Perfil Consolidado ');
@@ -312,7 +312,7 @@ export function CalculoVidroPDF({
             <Page size="A4" style={styles.page}>
 
                 {/* Cabeçalho */}
-                <View style={[styles.header, { borderBottomColor: '#E2E8F0' }]}>
+                <View style={[styles.header, { borderBottomColor: PDF_COLORS.border }]}>
                     <View style={styles.headerLeft}>
                         {logoUrl ? (
                             <Image src={logoUrl} style={styles.logo} />
@@ -354,7 +354,7 @@ export function CalculoVidroPDF({
 
                 {/* Tabela de Itens */}
                 <View style={styles.table}>
-                    <View style={[styles.tableHeader, { backgroundColor: '#F8FAFC' }]}>
+                    <View style={[styles.tableHeader, { backgroundColor: PDF_COLORS.white }]}>
                         {ehRelatorioVidrosAvulsos ? (
                             <>
                                 <Text style={[styles.tableColHeader, styles.colQtd, colQtdOverride]}>Peças</Text>
@@ -416,12 +416,12 @@ export function CalculoVidroPDF({
                                             </Text>
                                         )}
                                         {item.servicos && (
-                                            <Text style={{ fontSize: 7, color: '#c9c9c9', marginTop: 2 }}>
+                                            <Text style={{ fontSize: 7, color: PDF_COLORS.ink, marginTop: 2 }}>
                                                 {ehPerfilConsolidado(item) ? 'Obs.' : 'Serviço'}: {item.servicos}
                                             </Text>
                                         )}
                                         {item.observacaoRateio && (
-                                            <Text style={{ fontSize: 6.5, color: '#7c8b9a', marginTop: 2 }}>
+                                            <Text style={{ fontSize: 6.5, color: PDF_COLORS.muted, marginTop: 2 }}>
                                                 {item.observacaoRateio}
                                             </Text>
                                         )}

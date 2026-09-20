@@ -1,6 +1,7 @@
 //app/calculo/peledevidro/page.tsx
 "use client";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator, Grid3X3, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
@@ -439,7 +440,7 @@ export default function CalculoPeleDeVidroPage() {
         empresa_id: empresaId,
         metragem_total: resultado.areaVidro,
         peso_total: 0,
-        theme_color: theme.menuIconColor || "#1e3a5a",
+        theme_color: DRAWING_COLORS.ink,
       };
 
       if (editId) {
@@ -796,16 +797,16 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
           ) : (<>
 
             {/* CLIENTE / OBRA / AÇÕES */}
-            <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+            <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex items-center gap-2 flex-1 relative">
-                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Cliente:</span>
+                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                   <input
                     type="text"
                     placeholder="Pesquisar cliente..."
                     className="w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none bg-transparent"
-                    style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                    style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     value={buscaCliente}
                     onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); setClienteIndex(-1); }}
                     onFocus={() => setMostrarClientes(true)}
@@ -819,13 +820,13 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     }}
                   />
                   {mostrarClientes && buscaCliente && clientesFiltrados.length > 0 && (
-                    <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}20` }}>
+                    <div className="absolute top-full left-0 w-full border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)` }}>
                       {clientesFiltrados.map((c, i) => (
                         <div
                           key={c.id}
                           className="px-4 py-2 text-xs cursor-pointer"
                           style={{
-                            backgroundColor: i === clienteIndex ? `${theme.menuIconColor}18` : "transparent",
+                            backgroundColor: i === clienteIndex ? `color-mix(in srgb, ${theme.menuIconColor} 9%, transparent)` : "transparent",
                             color: theme.contentTextLightBg,
                             fontWeight: i === clienteIndex ? 700 : 400,
                           }}
@@ -840,12 +841,12 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
               </div>
 
               <div className="flex items-center gap-2 flex-1">
-                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `${theme.contentTextLightBg}80` }}>Obra:</span>
+                <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Obra:</span>
                 <input
                   type="text"
                   placeholder="Identificação da obra"
                   className="flex-1 py-2 px-3 rounded-xl border text-sm outline-none bg-transparent"
-                  style={{ borderColor: `${theme.contentTextLightBg}20`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                   value={obra}
                   onChange={(e) => setObra(e.target.value)}
                 />
@@ -855,7 +856,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                 <button
                   onClick={handleNovo}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                  style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                 >
                   <FilePlus2 size={16} />
                   Novo
@@ -865,10 +866,10 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   onClick={handleSalvar}
                   disabled={salvando}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                  style={{ backgroundColor: theme.menuIconColor, color: "#fff" }}
+                  style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
                 >
                   {salvando ? (
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                   ) : (
                     <Save size={16} />
                   )}
@@ -878,7 +879,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                 <button
                   onClick={enviarParaCentralImpressao}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                  style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                 >
                   <FilePlus2 size={16} />
                   PDF+
@@ -912,38 +913,38 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   }
                   fileName={nomeArquivoPDF}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 border shadow-sm"
-                  style={{ borderColor: `${theme.contentTextLightBg}30`, color: theme.contentTextLightBg }}
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 19%, transparent)`, color: theme.contentTextLightBg }}
                 >
                   Imprimir
                 </PDFDownloadLink>
               </div>
 
               {mensagemSalvo && (
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${mensagemSalvo.includes("Erro") ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${mensagemSalvo.includes("Erro") ? "bg-danger-soft text-danger" : "bg-success-soft text-success"}`}>
                   {mensagemSalvo}
                 </span>
               )}
             </div>
 
             {/* HEADER + INPUTS */}
-            <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}12` }}>
+            <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex flex-col gap-4">
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `${theme.menuIconColor}12`, color: theme.menuIconColor }}>
+                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                     <Grid3X3 size={14} />
                     Pele de Vidro
                   </div>
                   <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
                     Cálculo de orçamento pele de vidro
                   </h1>
-                  <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `${theme.contentTextLightBg}B3` }}>
+                  <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>
                     Informe as dimensões em mm, a quantidade de quadros na horizontal e vertical, e selecione o vidro. O sistema calcula perfis, acessórios e barras automaticamente.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Largura do vão (mm)
                     </span>
                     <input
@@ -955,8 +956,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Altura do vão (mm)
                     </span>
                     <input
@@ -968,8 +969,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Qtd. de fachadas
                     </span>
                     <input
@@ -982,8 +983,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros horizontal
                     </span>
                     <input
@@ -995,8 +996,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros vertical
                     </span>
                     <input
@@ -1008,8 +1009,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quantidade de lajes
                     </span>
                     <input
@@ -1022,8 +1023,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros fixos
                     </span>
                     <input
@@ -1036,8 +1037,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros móveis
                     </span>
                     <input
@@ -1050,15 +1051,15 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `${theme.contentTextLightBg}12`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `${theme.contentTextLightBg}80` }}>
+                  <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Vidro da fachada
                     </span>
                     <input
                       value={buscaVidro}
                       onChange={(e) => setBuscaVidro(e.target.value)}
                       placeholder="Digite para filtrar o vidro"
-                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-transparent px-2.5 py-1.5 text-xs outline-none"
+                      className="mt-1.5 w-full rounded-xl border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     />
                     <select
@@ -1067,12 +1068,12 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                       style={{ color: theme.contentTextLightBg }}
                     >
-                      <option value="" className="text-slate-900">Selecione o vidro</option>
+                      <option value="" className="text-text-primary">Selecione o vidro</option>
                       {vidrosFiltrados.length === 0 ? (
-                        <option value="" className="text-slate-900">Nenhum vidro encontrado</option>
+                        <option value="" className="text-text-primary">Nenhum vidro encontrado</option>
                       ) : (
                         vidrosFiltrados.map((v) => (
-                          <option key={v.id} value={v.id} className="text-slate-900">
+                          <option key={v.id} value={v.id} className="text-text-primary">
                             {montarDescricaoVidro(v)} - {formatarPreco(Number(v.preco) || 0)}/m²
                           </option>
                         ))
@@ -1111,14 +1112,14 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   icone: Calculator,
                 },
               ].map((card) => (
-                <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `${theme.contentTextLightBg}70` }}>{card.titulo}</p>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>{card.titulo}</p>
                       <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
-                      <p className="mt-1 text-xs" style={{ color: `${theme.contentTextLightBg}A3` }}>{card.detalhe}</p>
+                      <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 64%, transparent)` }}>{card.detalhe}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${theme.menuIconColor}14`, color: theme.menuIconColor }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
                       <card.icone size={19} />
                     </div>
                   </div>
@@ -1128,15 +1129,15 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
             {/* TABELAS + PREVIEW */}
             <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
-              <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+              <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 {/* Perfis */}
-                <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Perfis de alumínio</h2>
-                  <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Barras de 6000 mm. {lajes > 0 ? `Multiplicado por ${lajes} laje(s).` : "Térreo (sem multiplicador de lajes)."}</p>
+                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Barras de 6000 mm. {lajes > 0 ? `Multiplicado por ${lajes} laje(s).` : "Térreo (sem multiplicador de lajes)."}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-sm">
-                    <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                    <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                       <tr>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
                         <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>
@@ -1180,7 +1181,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                         const kgTotalDisplay = kgTotalCalculado > 0 ? kgTotalCalculado.toFixed(2) : "-";
 
                         return (
-                          <tr key={perfil.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                          <tr key={perfil.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                             <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
                             <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.nome}</td>
                             <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.unidade}</td>
@@ -1207,7 +1208,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     </tbody>
                     <tfoot>
                       {/* TOTAL VALOR EM DINHEIRO */}
-                      <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                      <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                         <td colSpan={8} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total dos perfis
                         </td>
@@ -1243,14 +1244,14 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                 </div>
 
                 {/* Acessórios */}
-                <div className="border-t" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
-                  <div className="px-5 py-4 border-b" style={{ borderColor: `${theme.contentTextLightBg}10` }}>
+                <div className="border-t" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                  <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <h3 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Acessórios</h3>
-                    <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Presilhas, fechos e braços calculados por quadro.</p>
+                    <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Presilhas, fechos e braços calculados por quadro.</p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[600px] text-sm">
-                      <thead style={{ backgroundColor: `${theme.menuIconColor}10`, color: theme.contentTextLightBg }}>
+                      <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                         <tr>
                           <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Código</th>
                           <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Acessório</th>
@@ -1300,7 +1301,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           const valorTotalLinha = (quantidade || 0) * (precoUnitario || 0);// O valor correto da linha
 
                           return (
-                            <tr key={acessorio.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `${theme.screenBackgroundColor}A6` }}>
+                            <tr key={acessorio.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
                               <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{codigo}</td>
                               <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{acessorio.nome}</td>
                               <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{unidade}</td>
@@ -1316,7 +1317,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr style={{ borderTop: `1px solid ${theme.contentTextLightBg}14` }}>
+                        <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                           <td colSpan={5} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                             Total dos acessórios
                           </td>
@@ -1333,9 +1334,9 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
               <div className="space-y-6">
                 {/* Preview visual */}
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-sm" style={{ color: `${theme.contentTextLightBg}99` }}>Representação proporcional da fachada</p>
+                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Representação proporcional da fachada</p>
                   <div className="mt-4">
                     {(() => {
                       const nH = Math.max(qH, 1);
@@ -1367,8 +1368,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       const corAluminio = "#e8e8e8";
                       const corAluminioBorda = "#e8e8e8";
 
-                      const corVidroFill = "#b8e6e0";
-                      const corVidroBorda = "#7cbfb5";
+                      const corVidroFill = DRAWING_COLORS.glass;
+                      const corVidroBorda = DRAWING_COLORS.frame;
                       const corVidroReflexo = "#ffffff";
 
                       // Remover duplicidade: garantir que não haja outras declarações dessas variáveis neste bloco
@@ -1415,7 +1416,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                           <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                           <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif">
+                          <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
                             {formatarNumero(larg, 0)} mm
                           </text>
 
@@ -1423,7 +1424,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                           <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
                           <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="system-ui, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
+                          <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
                             {formatarNumero(alt, 0)} mm
                           </text>
                         </svg>
@@ -1431,17 +1432,17 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     })()}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                    <span className="text-xs font-semibold" style={{ color: `${theme.contentTextLightBg}70` }}>
+                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
                       Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} x {formatarNumero(resultado.alturaQuadroMm, 0)} mm
                     </span>
-                    <span className="text-xs" style={{ color: `${theme.contentTextLightBg}50` }}>
+                    <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
                       {qH}x{qV} = {qH * qV} quadros{lajes > 0 ? ` x ${lajes} lajes` : ""}
                     </span>
                   </div>
                 </article>
 
                 {/* Resumo técnico */}
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `${theme.contentTextLightBg}10` }}>
+                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Resumo técnico</h2>
                   <div className="mt-5 space-y-4">
                     {[
@@ -1460,7 +1461,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       ["Total geral", formatarPreco(totalGeral)],
                     ].map(([label, value]) => (
                       <div key={label} className="flex items-start justify-between gap-3">
-                        <span className="text-sm" style={{ color: `${theme.contentTextLightBg}8F` }}>{label}</span>
+                        <span className="text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 56%, transparent)` }}>{label}</span>
                         <span className="text-sm font-medium text-right" style={{ color: theme.contentTextLightBg }}>{value}</span>
                       </div>
                     ))}
