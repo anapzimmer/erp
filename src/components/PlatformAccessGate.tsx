@@ -13,7 +13,10 @@ export default function PlatformAccessGate({ children }: { children: React.React
   const [detalhe, setDetalhe] = useState<{situacao:Situacao;mensagem?:string;contato?:string;prazo?:string;prazo_vencido?:boolean;inicio_em?:string}|null>(null);
   const [identificador, setIdentificador] = useState("");
   const [tentativa, setTentativa] = useState(0);
-  const publica =
+const publica =
+  pathname === "/" ||
+  pathname === "/planos" ||
+  pathname === "/recursos" ||
   pathname === "/glasscode" ||
   pathname.startsWith("/glasscode/") ||
   ["/login", "/update-password", "/reset-password"].includes(pathname);

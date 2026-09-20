@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import { Check, ArrowUpRight } from "lucide-react";
+import { usePathname } from "next/navigation";
 import styles from "./planos.module.css";
 
 const planos = [
@@ -61,38 +65,66 @@ const planos = [
 ];
 
 export default function PlanosPage() {
+  const pathname = usePathname();
+
   return (
     <main className={styles.page}>
 
       {/* =====================================================
           HEADER
       ===================================================== */}
-      <header className={styles.header}>
-        <Link href="/glasscode" className={styles.brand}>
-          <img
-            src="/glasscode-icon.png"
-            alt="Glass Code"
-            width={30}
-            height={41}
-          />
+   <header className={styles.header}>
+  <div className={styles.headerInner}>
+    <Link href="/" className={styles.brand}>
+      <Image
+        src="/glasscode-icon.png"
+        alt=""
+        width={35}
+        height={48}
+        priority
+        unoptimized
+        style={{
+          objectFit: "contain",
+          flexShrink: 0,
+        }}
+      />
 
-          <span>
-            Glass Code
-            <small>Software para o setor de vidro</small>
-          </span>
-        </Link>
+      <span className={styles.brandName}>
+        Glass Code
+      </span>
+    </Link>
 
-        <nav aria-label="Navegação">
-          <Link href="/glasscode">
-            Produto
-          </Link>
+    <nav className={styles.nav}>
+      <Link
+        href="/"
+        className={pathname === "/" ? styles.active : ""}
+      >
+        Produto
+      </Link>
 
-          <Link href="/glasscode/recursos">
-            Recursos
-          </Link>
+      <Link
+        href="/recursos"
+        className={pathname === "/recursos" ? styles.active : ""}
+      >
+        Recursos
+      </Link>
 
-        </nav>
-      </header>
+      <Link
+        href="/planos"
+        className={pathname === "/planos" ? styles.active : ""}
+      >
+        Planos
+      </Link>
+
+      <Link
+        href="/login"
+        className={styles.ctaSmall}
+      >
+        Começar agora
+      </Link>
+    </nav>
+  </div>
+</header>
 
 
       {/* =====================================================

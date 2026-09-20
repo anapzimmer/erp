@@ -820,9 +820,13 @@ export default function RecursosPage() {
               Recursos
             </Link>
 
-            <Link href="/glasscode/planos">Planos</Link>
+            <Link href="/glasscode#planos">Planos</Link>
 
-                <Link
+            <Link href="/login" className={styles.login}>
+              Entrar
+            </Link>
+
+            <Link
               href="/glasscode#comecar"
               className={styles.ctaSmall}
             >
