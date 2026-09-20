@@ -1,0 +1,26 @@
+<svg width="520" height="520" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- vidro traseiro -->
+  <path d="M118 92
+       L292 54
+       Q312 50 318 70
+       L382 307
+       Q387 326 367 332
+       L193 379
+       Q173 384 167 364
+       L102 127
+       Q97 107 118 92Z" fill="#DCE2E4" fill-opacity="0.035" stroke="#DCE2E4" stroke-opacity="0.16" stroke-width="2"></path>
+
+  <!-- vidro frontal -->
+  <path d="M219 139
+       L385 94
+       Q405 89 411 109
+       L463 302
+       Q469 322 449 328
+       L283 373
+       Q263 378 257 358
+       L204 165
+       Q199 145 219 139Z" fill="#C8D463" fill-opacity="0.025" stroke="#C8D463" stroke-opacity="0.22" stroke-width="2"></path>
+
+  <!-- reflexo -->
+  <path d="M272 151L323 341" stroke="white" stroke-opacity="0.055" stroke-width="2"></path>
+</svg>

@@ -193,7 +193,7 @@ const LoginPage = () => {
   return (
     <main className={styles.page}>
       <section className={styles.story} aria-label="GlassCode — software para setor de vidro">
-        <div className={styles.brand}><Image src="/glasscodeicone.png" alt="" width={35} height={48} unoptimized priority style={{ objectFit: 'contain', flexShrink: 0 }} /><span>glass<span className={styles.brandLight}>code</span><small>SOFTWARE PARA SETOR DE VIDRO</small></span></div>
+        <div className={styles.brand}><Image src="/glasscode-icon.png" alt="" width={35} height={48} unoptimized priority style={{ objectFit: 'contain', flexShrink: 0 }} /><span>glass<span className={styles.brandLight}>code</span><small>SOFTWARE PARA SETOR DE VIDRO</small></span></div>
         <div className={styles.storyContent}>
           <span className={styles.eyebrow}><span /> DA IDEIA À INSTALAÇÃO</span>
           <h1>Precisão em cada corte.<br /><em>Controle em cada projeto.</em></h1>

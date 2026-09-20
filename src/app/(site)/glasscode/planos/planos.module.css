@@ -1,0 +1,1169 @@
+/* =========================================================
+   GLASS CODE — PÁGINA DE PLANOS
+   planos.module.css
+========================================================= */
+
+
+/* =========================================================
+   PÁGINA
+========================================================= */
+
+.page {
+  min-height: 100vh;
+
+  padding:
+    0
+    max(24px, calc((100vw - 1200px) / 2));
+
+  background: var(--background);
+  color: var(--text-primary);
+
+  font-family: var(--font-app);
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  padding: 24px 0;
+
+  border-bottom: 1px solid var(--border);
+}
+
+
+/* LOGO */
+
+.brand {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  color: var(--text-primary);
+
+  font-size: 21px;
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.brand img {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand small {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--text-secondary);
+
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+
+/* NAVEGAÇÃO */
+
+.header nav {
+  display: flex;
+  align-items: center;
+
+  gap: 24px;
+
+  font-size: 13px;
+}
+
+.header nav a {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: var(--text-primary);
+
+  text-decoration: none;
+
+  transition:
+    opacity 160ms ease,
+    color 160ms ease;
+}
+
+.header nav a:hover {
+  opacity: 0.65;
+}
+
+
+/* =========================================================
+   INTRODUÇÃO
+========================================================= */
+
+.intro {
+  padding: 72px 0 46px;
+
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--text-secondary);
+
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.intro h1 {
+  margin: 18px 0;
+
+  font-size: clamp(34px, 4vw, 54px);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -1.8px;
+}
+
+.intro em {
+  color: var(--text-secondary);
+
+  font-style: normal;
+}
+
+.intro > p {
+  max-width: 600px;
+
+  margin: 0 auto;
+
+  color: var(--text-secondary);
+
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.notice {
+  display: inline-block;
+
+  margin-top: 26px;
+  padding: 9px 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  color: var(--text-secondary);
+
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   GRID DOS PLANOS
+========================================================= */
+
+.grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  align-items: stretch;
+
+  gap: 18px;
+
+  padding: 24px 0 72px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card {
+  position: relative;
+
+  min-height: 620px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 32px;
+
+  overflow: hidden;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(247, 249, 249, 0.94)
+    );
+
+  box-shadow:
+    0 4px 14px rgba(56, 68, 75, 0.025);
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 22px 55px var(--shadow);
+}
+
+
+/* =========================================================
+   PLANO PROFISSIONAL — DESTAQUE
+========================================================= */
+
+.featured {
+  border: 1px solid var(--gc-lime);
+
+  background:
+    linear-gradient(
+      155deg,
+      rgba(200, 212, 99, 0.13),
+      var(--surface) 29%
+    );
+
+  box-shadow:
+    0 24px 65px rgba(56, 68, 75, 0.11);
+}
+
+.recommended {
+  position: absolute;
+
+  top: 0;
+  left: 32px;
+
+  padding: 8px 13px;
+
+  border-radius: 0 0 8px 8px;
+
+  background: var(--gc-lime);
+  color: var(--gc-graphite);
+
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+
+/* =========================================================
+   CABEÇALHO DO CARD
+========================================================= */
+
+.cardTop {
+  min-height: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  color: var(--text-secondary);
+
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.featured .cardTop {
+  padding-top: 14px;
+}
+
+.planNumber {
+  opacity: 0.42;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   NOME DO PLANO
+========================================================= */
+
+.card h2 {
+  margin: 22px 0 12px;
+
+  color: var(--text-primary);
+
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+
+/* =========================================================
+   DESCRIÇÃO
+========================================================= */
+
+.description {
+  min-height: 70px;
+
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+
+/* =========================================================
+   ÁREA DE PREÇO
+========================================================= */
+
+.priceArea {
+  margin: 27px 0 25px;
+  padding: 24px 0;
+
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.price {
+  display: flex;
+  align-items: flex-end;
+
+  margin: 0;
+}
+
+.price > span {
+  margin: 0 6px 8px 0;
+
+  color: var(--text-primary);
+
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.price > strong {
+  color: var(--text-primary);
+
+  font-size: 54px;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+}
+
+.price > div {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0 0 2px 11px;
+}
+
+.price small {
+  color: var(--text-secondary);
+
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.planFocus {
+  display: block;
+
+  margin-top: 17px;
+
+  color: var(--text-secondary);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   BOTÕES
+========================================================= */
+
+.button,
+.primary {
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  padding: 0 16px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.button {
+  border: 1px solid var(--border);
+
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.button:hover {
+  border-color: var(--text-secondary);
+
+  background: var(--surface-secondary);
+}
+
+.primary {
+  border: 1px solid var(--gc-graphite);
+
+  background: var(--gc-graphite);
+  color: #ffffff;
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+
+  opacity: 0.92;
+}
+
+
+/* =========================================================
+   TÍTULO "O QUE ESTÁ INCLUÍDO"
+========================================================= */
+
+.includesTitle {
+  margin-top: 28px;
+
+  color: var(--text-secondary);
+
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+
+/* =========================================================
+   LISTA DE RECURSOS
+========================================================= */
+
+.card ul {
+  list-style: none;
+
+  padding: 18px 0 0;
+  margin: 0;
+}
+
+.card li {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+
+  color: var(--text-primary);
+
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.card li:last-child {
+  margin-bottom: 0;
+}
+
+.check {
+  width: 18px;
+  height: 18px;
+
+  flex: 0 0 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 1px;
+
+  border:
+    1px solid
+    rgba(200, 212, 99, 0.75);
+
+  border-radius: 50%;
+
+  background:
+    rgba(200, 212, 99, 0.13);
+
+  color: var(--gc-graphite);
+}
+
+
+/* =========================================================
+   BLOCO "A MESMA IDENTIDADE"
+========================================================= */
+
+.included {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 48px;
+
+  margin-bottom: 56px;
+  padding: 36px;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--surface-secondary);
+}
+
+.included h2 {
+  max-width: 470px;
+
+  margin: 12px 0 0;
+
+  color: var(--text-primary);
+
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.4px;
+}
+
+.included p {
+  align-self: center;
+
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.faq {
+  max-width: 800px;
+
+  margin: 0 auto 72px;
+}
+
+.faq h2 {
+  margin-bottom: 24px;
+
+  color: var(--text-primary);
+
+  font-size: 27px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+
+.faq details {
+  padding: 20px 0;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.faq summary {
+  cursor: pointer;
+
+  color: var(--text-primary);
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.faq p {
+  max-width: 700px;
+
+  margin: 14px 0 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   BOTÃO ENTRAR — HEADER
+========================================================= */
+
+.header nav .login {
+  padding: 9px 15px;
+
+  border: 1px solid var(--gc-graphite);
+  border-radius: 7px;
+
+  background: var(--gc-graphite);
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.header nav .login:hover {
+  transform: translateY(-1px);
+
+  opacity: 0.9;
+}
+
+
+/* =========================================================
+   CTA FINAL
+========================================================= */
+
+/* =========================================================
+   CTA FINAL
+========================================================= */
+
+.finalCta {
+  position: relative;
+
+  min-height: 220px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 40px;
+
+  margin: 0 0 64px;
+  padding: 44px 48px;
+
+  overflow: hidden;
+
+  border-radius: 18px;
+
+  background: var(--gc-graphite);
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   CONTEÚDO DO CTA
+========================================================= */
+
+.finalCtaContent {
+  position: relative;
+  z-index: 3;
+}
+
+.finalCtaContent .eyebrow {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.finalCtaContent h2 {
+  margin: 16px 0 0;
+
+  color: #ffffff;
+
+  font-size: clamp(30px, 3vw, 43px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -1.3px;
+}
+
+
+/* =========================================================
+   BOTÃO DO CTA
+========================================================= */
+
+.finalCtaButton {
+  position: relative;
+  z-index: 4;
+
+  min-width: 158px;
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  padding: 0 17px;
+
+  border-radius: 8px;
+
+  background: var(--gc-lime);
+  color: var(--gc-graphite);
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.finalCtaButton:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.14);
+}
+
+
+/* =========================================================
+   MARCA D'ÁGUA — SÍMBOLO GLASS CODE
+========================================================= */
+
+.ctaBrandMark {
+  position: absolute;
+
+  top: 50%;
+  right: 205px;
+
+  width: 270px;
+  height: 190px;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+
+  opacity: 0.75;
+
+  z-index: 1;
+}
+
+
+/* =========================================================
+   VIDRO TRASEIRO
+========================================================= */
+
+.ctaGlassBack {
+  position: absolute;
+
+  top: 20px;
+  left: 32px;
+
+  width: 112px;
+  height: 150px;
+
+  border: 1px solid rgba(220, 226, 228, 0.16);
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(220, 226, 228, 0.025),
+      rgba(143, 154, 161, 0.01)
+    );
+
+  transform:
+    skewY(-17deg)
+    rotate(-4deg);
+}
+
+
+/* =========================================================
+   VIDRO DIANTEIRO — LIME
+========================================================= */
+
+.ctaGlassFront {
+  position: absolute;
+
+  top: 28px;
+  left: 100px;
+
+  width: 112px;
+  height: 150px;
+
+  border: 1px solid rgba(200, 212, 99, 0.24);
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(200, 212, 99, 0.035),
+      rgba(200, 212, 99, 0.008)
+    );
+
+  transform:
+    skewY(-17deg)
+    rotate(-4deg);
+}
+
+
+/* reflexo discreto do vidro */
+
+.ctaGlassFront::after {
+  content: "";
+
+  position: absolute;
+
+  top: 18%;
+  left: 25%;
+
+  width: 1px;
+  height: 55%;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent
+    );
+
+  transform: rotate(14deg);
+}
+/* detalhe decorativo */
+
+/* =========================================================
+   MARCA D'ÁGUA — SÍMBOLO GLASS CODE
+========================================================= */
+
+.ctaBrandMark {
+  position: absolute;
+
+  top: 50%;
+  right: 120px;
+
+  width: 250px;
+  height: 210px;
+
+  transform:
+    translateY(-50%)
+    rotate(-4deg);
+
+  pointer-events: none;
+
+  opacity: 0.32;
+}
+
+
+/* VIDRO TRASEIRO */
+
+.ctaGlassBack {
+  position: absolute;
+
+  width: 125px;
+  height: 165px;
+
+  top: 10px;
+  left: 25px;
+
+  border:
+    1px solid
+    rgba(220, 226, 228, 0.24);
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(220, 226, 228, 0.05),
+      rgba(143, 154, 161, 0.025)
+    );
+
+  transform:
+    skewY(-18deg)
+    rotate(-3deg);
+}
+
+
+/* VIDRO DIANTEIRO — LIME */
+
+.ctaGlassFront {
+  position: absolute;
+
+  width: 125px;
+  height: 165px;
+
+  top: 35px;
+  left: 96px;
+
+  border:
+    1px solid
+    rgba(200, 212, 99, 0.38);
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(200, 212, 99, 0.055),
+      rgba(200, 212, 99, 0.015)
+    );
+
+  transform:
+    skewY(-18deg)
+    rotate(-3deg);
+}
+
+
+/* reflexo muito discreto */
+
+.ctaGlassFront::after {
+  content: "";
+
+  position: absolute;
+
+  top: 16%;
+  left: 24%;
+
+  width: 1px;
+  height: 58%;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+
+  transform: rotate(15deg);
+}
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 24px 0;
+
+  border-top: 1px solid var(--border);
+
+  color: var(--text-secondary);
+
+  font-size: 11px;
+}
+
+.footer a {
+  color: var(--text-secondary);
+
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--text-primary);
+}
+
+
+/* =========================================================
+   ACESSIBILIDADE
+========================================================= */
+
+.page a:focus-visible,
+.page summary:focus-visible {
+  outline:
+    2px solid
+    var(--focus-ring, var(--text-primary));
+
+  outline-offset: 5px;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .grid {
+    grid-template-columns: 1fr;
+
+    max-width: 580px;
+
+    margin: 0 auto;
+  }
+
+  .card {
+    min-height: 0;
+  }
+
+  .description {
+    min-height: 0;
+  }
+
+  .included {
+    grid-template-columns: 1fr;
+
+    gap: 18px;
+  }
+
+  .intro {
+    padding-top: 48px;
+  }
+
+  .cardTop {
+    font-size: 10px;
+  }
+}
+
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media (max-width: 520px) {
+
+  .page {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+
+    gap: 18px;
+  }
+
+  .header nav {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .intro {
+    padding:
+      44px
+      0
+      30px;
+  }
+
+  .intro h1 {
+    font-size: 35px;
+
+    letter-spacing: -1px;
+  }
+
+  .intro > p {
+    font-size: 14px;
+  }
+
+  .grid {
+    gap: 16px;
+
+    padding-bottom: 52px;
+  }
+
+  .card {
+    min-height: 0;
+
+    padding: 25px;
+
+    border-radius: 16px;
+  }
+
+  .recommended {
+    left: 25px;
+  }
+
+  .featured .cardTop {
+    padding-top: 14px;
+  }
+
+  .card h2 {
+    font-size: 27px;
+  }
+
+  .price > strong {
+    font-size: 48px;
+  }
+
+  .priceArea {
+    margin:
+      24px
+      0
+      22px;
+  }
+
+  .included {
+    padding: 25px;
+
+    margin-bottom: 48px;
+  }
+
+  .included h2 {
+    font-size: 21px;
+  }
+
+  .faq {
+    margin-bottom: 52px;
+  }
+
+  .footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+    .finalCta {
+  min-height: 280px;
+
+  align-items: flex-start;
+  flex-direction: column;
+
+  gap: 32px;
+
+  padding: 32px 26px;
+}
+
+.finalCtaContent {
+  position: relative;
+  z-index: 3;
+}
+
+.finalCtaContent h2 {
+  font-size: 31px;
+}
+
+.finalCtaButton {
+  width: 100%;
+
+  position: relative;
+  z-index: 4;
+}
+
+.ctaBrandMark {
+  top: 45%;
+  right: -42px;
+
+  width: 220px;
+  height: 175px;
+
+  opacity: 0.42;
+
+  transform:
+    translateY(-50%)
+    scale(0.9);
+}
+}
