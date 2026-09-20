@@ -61,7 +61,10 @@ const formatarDataChaveLocal = (data: Date) => {
 };
 
 export default function Dashboard() {
-  const { theme } = useTheme();
+  const {
+  theme,
+  isLoading: themeLoading,
+} = useTheme();
   const {
     user,
     perfilUsuario,
@@ -332,30 +335,39 @@ export default function Dashboard() {
     carregarResumo();
   }, [user, empresaId]);
 
-  if (loading) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: theme.screenBackgroundColor }}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="h-10 w-10 animate-spin rounded-full border-4"
-            style={{
-              borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 16%, transparent)`,
-              borderTopColor: theme.menuBackgroundColor,
-            }}
-          />
-          <p
-            className="text-sm font-semibold"
-            style={{ color: theme.contentTextLightBg }}
-          >
-            Carregando painel...
-          </p>
-        </div>
+if (loading || themeLoading) {
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center"
+      style={{
+        backgroundColor: theme.screenBackgroundColor,
+      }}
+    >
+      <div className="flex flex-col items-center gap-4">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-4"
+          style={{
+            borderColor: `color-mix(
+              in srgb,
+              ${theme.menuBackgroundColor} 16%,
+              transparent
+            )`,
+            borderTopColor: theme.menuBackgroundColor,
+          }}
+        />
+
+        <p
+          className="text-sm font-semibold"
+          style={{
+            color: theme.contentTextLightBg,
+          }}
+        >
+          Preparando seu espaço...
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (!user) return null;
 

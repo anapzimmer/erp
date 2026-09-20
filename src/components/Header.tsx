@@ -84,7 +84,10 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { theme } = useTheme();
+  const {
+  theme,
+  isLoading: themeLoading,
+} = useTheme();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [proprietaria, setProprietaria] = useState(false);
@@ -99,7 +102,9 @@ export default function Header({
   const closeMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const desktopNavRef = useRef<HTMLDivElement>(null);
-  const displayedLogo = theme.logoUrl || logoUrl;
+  const displayedLogo = themeLoading
+  ? null
+  : theme.logoUrl || logoUrl || null;
 
   const cancelCloseMenu = () => {
     if (closeMenuTimerRef.current) {
