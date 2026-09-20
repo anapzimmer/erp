@@ -6,8 +6,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 // 🔥 Importe o novo componente
 import ThemeLoader from "@/components/ThemeLoader";
 import SecurityProvider from "@/components/SecurityProvider";
-import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
-import { OrcamentoProvider } from "@/context/OrcamentoContext";
+import AppShell from "@/components/AppShell";
 import PlatformAccessGate from "@/components/PlatformAccessGate";
 
 const inter = localFont({
@@ -33,8 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeLoader>
             <SecurityProvider>
               <PlatformAccessGate>
-                <OrcamentoProvider>{children}</OrcamentoProvider>
-                <ProjetoAssistenteGlobal />
+                <AppShell>{children}</AppShell>
               </PlatformAccessGate>
             </SecurityProvider>
           </ThemeLoader>

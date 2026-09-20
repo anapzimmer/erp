@@ -73,58 +73,66 @@ export default function PlanosPage() {
       {/* =====================================================
           HEADER
       ===================================================== */}
-   <header className={styles.header}>
-  <div className={styles.headerInner}>
-    <Link href="/" className={styles.brand}>
-      <Image
-        src="/glasscode-icon.png"
-        alt=""
-        width={35}
-        height={48}
-        priority
-        unoptimized
-        style={{
-          objectFit: "contain",
-          flexShrink: 0,
-        }}
-      />
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brand}>
+            <Image
+              src="/glasscode-icon.png"
+              alt=""
+              width={35}
+              height={48}
+              priority
+              unoptimized
+              style={{
+                objectFit: "contain",
+                flexShrink: 0,
+              }}
+            />
 
-      <span className={styles.brandName}>
-        Glass Code
-      </span>
-    </Link>
+            <span className={styles.brandName}>
+              Glass Code
+            </span>
+          </Link>
 
-    <nav className={styles.nav}>
-      <Link
-        href="/"
-        className={pathname === "/" ? styles.active : ""}
-      >
-        Produto
-      </Link>
+          <nav className={styles.nav}>
+            <Link
+              href="/"
+              className={pathname === "/" ? styles.active : ""}
+            >
+              Produto
+            </Link>
 
-      <Link
-        href="/recursos"
-        className={pathname === "/recursos" ? styles.active : ""}
-      >
-        Recursos
-      </Link>
 
-      <Link
-        href="/planos"
-        className={pathname === "/planos" ? styles.active : ""}
-      >
-        Planos
-      </Link>
+            <Link
+              href="/como-funciona"
+              className={pathname === "/como-funciona" ? styles.active : ""}
+            >
+              Como funciona
+            </Link>
 
-      <Link
-        href="/login"
-        className={styles.ctaSmall}
-      >
-        Começar agora
-      </Link>
-    </nav>
-  </div>
-</header>
+            <Link
+              href="/recursos"
+              className={pathname === "/recursos" ? styles.active : ""}
+            >
+              Recursos
+            </Link>
+
+            <Link
+              href="/planos"
+              className={pathname === "/planos" ? styles.active : ""}
+            >
+              Planos
+            </Link>
+
+            <Link
+              href="/login"
+              className={styles.ctaSmall}
+            >
+              Começar agora
+            </Link>
+          </nav>
+        </div>
+      </header>
 
 
       {/* =====================================================
@@ -159,9 +167,8 @@ export default function PlanosPage() {
         {planos.map((plano) => (
           <article
             key={plano.nome}
-            className={`${styles.card} ${
-              plano.destaque ? styles.featured : ""
-            }`}
+            className={`${styles.card} ${plano.destaque ? styles.featured : ""
+              }`}
           >
             {plano.destaque && (
               <div className={styles.recommended}>

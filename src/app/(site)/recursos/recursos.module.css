@@ -134,10 +134,25 @@
 .ctaSmall {
   padding: 11px 19px;
 
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--lime);
   border-radius: 8px;
 
-  color: white !important;
+  background: var(--lime);
+  color: var(--dark-deep) !important;
+
+  font-weight: 600;
+
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.ctaSmall:hover {
+  background: #d3df6b;
+  border-color: #d3df6b;
+  color: var(--dark-deep) !important;
+  transform: translateY(-1px);
 }
 
 /* =========================================================

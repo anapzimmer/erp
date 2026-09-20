@@ -7,7 +7,7 @@ export default function GlassCodeSitePage() {
         <main className={styles.page}>
             <header className={styles.header}>
                 <div className={styles.headerInner}>
-                    <Link href="/glasscode" className={styles.brand}>
+                    <Link href="/" className={styles.brand}>
                         <Image src="/glasscode-icon.png" alt="" width={35} height={48} priority unoptimized style={{ objectFit: "contain", flexShrink: 0 }} />
 
                         <span className={styles.brandName}>
@@ -53,7 +53,7 @@ export default function GlassCodeSitePage() {
                                 Conhecer o Glass Code
                             </Link>
 
-                            <a href="#produto" className={styles.secondaryButton}>
+                            <a href="/como-funciona" className={styles.secondaryButton}>
                                 Ver como funciona <span>→</span>
                             </a>
                         </div>
