@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./recursos.module.css";
 
 const recursos = [
@@ -806,9 +807,23 @@ export default function RecursosPage() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}>
-            <BrandMark />
-            <span className={styles.brandName}>Glass Code</span>
-          </Link>
+  <Image
+    src="/glasscode-icon.png"
+    alt=""
+    width={35}
+    height={48}
+    priority
+    unoptimized
+    style={{
+      objectFit: "contain",
+      flexShrink: 0,
+    }}
+  />
+
+  <span className={styles.brandName}>
+    Glass Code
+  </span>
+</Link>
 
           <nav className={styles.nav}>
             <Link href="/">Produto</Link>
