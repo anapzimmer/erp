@@ -811,20 +811,16 @@ export default function RecursosPage() {
           </Link>
 
           <nav className={styles.nav}>
-            <Link href="/glasscode">Produto</Link>
+            <Link href="/">Produto</Link>
 
             <Link
-              href="/glasscode/recursos"
+              href="/recursos"
               className={styles.active}
             >
               Recursos
             </Link>
 
-            <Link href="/glasscode#planos">Planos</Link>
-
-            <Link href="/login" className={styles.login}>
-              Entrar
-            </Link>
+            <Link href="/planos">Planos</Link>
 
             <Link
               href="/glasscode#comecar"

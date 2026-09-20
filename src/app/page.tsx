@@ -16,10 +16,10 @@ export default function GlassCodeSitePage() {
                     </Link>
 
                     <nav className={styles.nav}>
-                        <a href="#produto">Produto</a>
+                        <a href="/">Produto</a>
 
-                        <a href="/glasscode/recursos">Recursos</a>
-                        <Link href="/glasscode/planos">Planos</Link>
+                        <a href="/recursos">Recursos</a>
+                        <Link href="/planos">Planos</Link>
 
                         <Link href="/login" className={styles.ctaSmall}>
                             Começar agora
