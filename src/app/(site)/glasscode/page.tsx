@@ -21,10 +21,6 @@ export default function GlassCodeSitePage() {
                         <a href="/glasscode/recursos">Recursos</a>
                         <Link href="/glasscode/planos">Planos</Link>
 
-                        <Link href="/login" className={styles.login}>
-                            Entrar
-                        </Link>
-
                         <Link href="/login" className={styles.ctaSmall}>
                             Começar agora
                         </Link>
@@ -33,8 +29,12 @@ export default function GlassCodeSitePage() {
             </header>
 
             <section className={styles.hero}>
-                             <div className={styles.heroInner}>
-                    <div>
+                <div className={styles.heroInner}>
+                    <div className={styles.heroCopy}>
+                        <svg className={styles.brandWatermark} viewBox="0 0 321 436" aria-hidden="true" focusable="false">
+                            <path d="M12 126 229 3Q237-2 237 8V213Q237 222 228 228L12 353Q2 359 2 348V143Q2 132 12 126Z" className={styles.watermarkSilver} />
+                            <path d="M94 207 308 83Q319 77 319 88V294Q319 305 309 311L95 433Q85 438 85 426V223Q85 213 94 207Z" className={styles.watermarkLime} />
+                        </svg>
                         <div className={styles.eyebrow}>
                             Software para o setor de vidro
                         </div>

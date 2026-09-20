@@ -138,6 +138,41 @@
   gap: 90px;
 }
 
+.heroCopy {
+  position: relative;
+  isolation: isolate;
+}
+
+.brandWatermark {
+  position: absolute;
+  z-index: -1;
+  width: min(75%, 440px);
+  height: auto;
+  left: 8%;
+  top: 48%;
+  transform: translateY(-50%);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.watermarkSilver {
+  fill: rgba(143, 154, 161, 0.035);
+  stroke: rgba(143, 154, 161, 0.16);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.watermarkLime {
+  fill: rgba(200, 212, 99, 0.025);
+  stroke: rgba(200, 212, 99, 0.13);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+@media(max-width:600px) {
+  .brandWatermark { width: 68%; left: 16%; opacity: .7; }
+}
+
 .eyebrow {
   display: flex;
   align-items: center;
