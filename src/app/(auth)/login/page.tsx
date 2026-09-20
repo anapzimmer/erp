@@ -60,7 +60,7 @@ const LoginPage = () => {
         return;
       }
 
-      router.push("/");
+      router.push("/dashboard");
       router.refresh(); // Garante atualização da sessão
 
    } catch (err: unknown) {
