@@ -65,7 +65,7 @@ export default function PlataformaPage() {
   }
   return <main className={styles.root}>
     <aside className={styles.sidebar}>
-      <div className={styles.brand}><Image className={styles.brandLogo} src="/glasscodeicone.png" alt="" width={35} height={48} unoptimized priority/><div>Glass Code<small>Gestão da plataforma</small></div></div>
+      <div className={styles.brand}><Image className={styles.brandLogo} src="/glasscode-icon.png" alt="" width={35} height={48} unoptimized priority/><div>Glass Code<small>Gestão da plataforma</small></div></div>
       <div><p className={styles.navLabel}>Administração</p><nav className={styles.nav} aria-label="Áreas de gestão">
         {([{id:'empresas',nome:'Empresas',Icon:Building2},{id:'usuarios',nome:'Usuários',Icon:Users},{id:'financeiro',nome:'Financeiro',Icon:Wallet},{id:'acessos',nome:'Histórico de acessos',Icon:History},{id:'historico',nome:'Bloqueios e liberações',Icon:ShieldCheck}] as const).map(({id,nome,Icon}) => <button key={id} aria-pressed={aba===id} disabled={salvando} onClick={() => {setAba(id);setPagina(0);}}><Icon size={18}/>{nome}</button>)}
       </nav></div>

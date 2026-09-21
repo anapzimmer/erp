@@ -62,7 +62,19 @@ export async function retomarOrcamentoAtivo(dados: { id: string; empresaId: stri
 
 export function OrcamentoProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  if (["/login", "/update-password"].includes(pathname)) return children;
+
+ const rotaPublica =
+  pathname === "/" ||
+  pathname === "/planos" ||
+  pathname === "/recursos" ||
+  pathname === "/glasscode" ||
+  pathname.startsWith("/glasscode/") ||
+  ["/login", "/update-password", "/reset-password"].includes(pathname);
+
+  if (rotaPublica) {
+    return <>{children}</>;
+  }
+
   return <OrcamentoAutenticado>{children}</OrcamentoAutenticado>;
 }
 

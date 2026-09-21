@@ -1,15 +1,15 @@
-﻿// app/layout.tsx
+﻿// src/app/layout.tsx
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+
 import { ThemeProvider } from "@/context/ThemeContext";
-// 🔥 Importe o novo componente
+import { AuthProvider } from "@/context/AuthContext";
+
 import ThemeLoader from "@/components/ThemeLoader";
 import SecurityProvider from "@/components/SecurityProvider";
-import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
-import { OrcamentoProvider } from "@/context/OrcamentoContext";
 import PlatformAccessGate from "@/components/PlatformAccessGate";
-import { AuthProvider } from "@/context/AuthContext";
+import AppShell from "@/components/AppShell";
 
 const inter = localFont({
   src: "../../public/fonts/Inter.ttf",
@@ -22,27 +22,33 @@ export const metadata: Metadata = {
   description: "Sistema de Gestão",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className={inter.variable}
+      suppressHydrationWarning
+    >
       <body
         suppressHydrationWarning
         className="antialiased"
       >
-<ThemeProvider>
-  <ThemeLoader>
-    <SecurityProvider>
-      <AuthProvider>
-        <PlatformAccessGate>
-          <OrcamentoProvider>{children}</OrcamentoProvider>
-          <ProjetoAssistenteGlobal />
-        </PlatformAccessGate>
-      </AuthProvider>
-    </SecurityProvider>
-  </ThemeLoader>
-</ThemeProvider>
+        <ThemeProvider>
+          <ThemeLoader>
+            <SecurityProvider>
+              <AuthProvider>
+                <PlatformAccessGate>
+                  <AppShell>{children}</AppShell>
+                </PlatformAccessGate>
+              </AuthProvider>
+            </SecurityProvider>
+          </ThemeLoader>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-

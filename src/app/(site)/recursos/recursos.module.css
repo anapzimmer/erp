@@ -1,0 +1,3435 @@
+.page {
+  --dark: #38444b;
+  --dark-deep: #253138;
+  --metal: #8f9aa1;
+  --ice: #dce2e4;
+  --lime: #c8d463;
+  --white: #f7f9f9;
+  --ink: #253138;
+
+  min-height: 100vh;
+  background: var(--white);
+  color: var(--dark);
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+
+  height: 92px;
+
+  display: flex;
+  align-items: center;
+}
+
+.headerInner {
+  width: min(1450px, calc(100% - 80px));
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  color: white;
+  text-decoration: none;
+}
+
+.brandIcon {
+  position: relative;
+  width: 42px;
+  height: 42px;
+}
+
+.glassOne,
+.glassTwo {
+  position: absolute;
+
+  width: 25px;
+  height: 31px;
+
+  border-radius: 5px;
+
+  transform: skewY(-18deg);
+}
+
+.glassOne {
+  top: 2px;
+  left: 3px;
+
+  border: 1px solid rgba(255, 255, 255, 0.55);
+
+  background: rgba(220, 226, 228, 0.22);
+
+  backdrop-filter: blur(4px);
+}
+
+.glassTwo {
+  right: 3px;
+  bottom: 2px;
+
+  border: 1px solid rgba(230, 238, 154, 0.8);
+
+  background: rgba(200, 212, 99, 0.82);
+}
+
+.brandName {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.nav a {
+  position: relative;
+
+  color: rgba(255, 255, 255, 0.68);
+  text-decoration: none;
+
+  font-size: 13px;
+
+  transition: color 180ms ease;
+}
+
+.nav a:hover,
+.nav .active {
+  color: white;
+}
+
+.nav .active::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+
+  height: 2px;
+
+  background: var(--lime);
+}
+
+.login {
+  margin-left: 12px;
+}
+
+.ctaSmall {
+  padding: 11px 19px;
+
+  border: 1px solid var(--lime);
+  border-radius: 8px;
+
+  background: var(--lime);
+  color: var(--dark-deep) !important;
+
+  font-weight: 600;
+
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.ctaSmall:hover {
+  background: #d3df6b;
+  border-color: #d3df6b;
+  color: var(--dark-deep) !important;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+  position: relative;
+
+  min-height: 570px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  color: white;
+
+  background:
+    radial-gradient(
+      circle at 75% 45%,
+      rgba(143, 154, 161, 0.17),
+      transparent 30%
+    ),
+    linear-gradient(
+      125deg,
+      #303c43 0%,
+      #202b31 100%
+    );
+}
+
+.heroInner {
+  width: min(1450px, calc(100% - 80px));
+  margin: 0 auto;
+
+  padding-top: 100px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  margin-bottom: 24px;
+
+  color: var(--lime);
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.27em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+
+  width: 32px;
+  height: 2px;
+
+  background: var(--lime);
+}
+
+.hero h1 {
+  margin: 0;
+
+  max-width: 950px;
+
+  font-size: clamp(50px, 5vw, 76px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+
+.hero h1 strong {
+  color: var(--lime);
+  font-weight: 500;
+}
+
+.hero p {
+  max-width: 650px;
+
+  margin-top: 28px;
+
+  color: rgba(255, 255, 255, 0.58);
+
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.8;
+}
+
+.heroDetail {
+  position: absolute;
+  right: max(40px, calc((100% - 1450px) / 2));
+  bottom: 38px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  color: rgba(255, 255, 255, 0.3);
+
+  font-size: 9px;
+  letter-spacing: 0.22em;
+}
+
+.heroDetail i {
+  width: 22px;
+  height: 1px;
+
+  background: rgba(200, 212, 99, 0.45);
+}
+
+/* =========================================================
+   ESTRUTURA
+========================================================= */
+
+.container {
+  width: min(1320px, calc(100% - 80px));
+  margin: 0 auto;
+}
+
+.sectionNumber {
+  color: var(--metal);
+
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+/* =========================================================
+   INTRO
+========================================================= */
+
+.intro {
+  padding: 120px 0 105px;
+
+  background: #f7f9f9;
+}
+
+.introGrid {
+  margin-top: 38px;
+
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 120px;
+
+  align-items: end;
+}
+
+.introGrid h2 {
+  margin: 0;
+
+  color: var(--ink);
+
+  font-size: clamp(40px, 4vw, 62px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+
+.introGrid h2 span {
+  color: var(--metal);
+}
+
+.introGrid p {
+  margin: 0 0 6px;
+
+  max-width: 470px;
+
+  color: #69767d;
+
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   FEATURES
+========================================================= */
+
+.features {
+  background: #f7f9f9;
+}
+
+.feature {
+  padding: 115px 0;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.11);
+}
+
+.featureContent {
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  gap: 120px;
+
+  align-items: center;
+}
+
+.featureContent.reverse .featureText {
+  order: 2;
+}
+
+.featureContent.reverse .visualArea {
+  order: 1;
+}
+
+.featureText {
+  max-width: 500px;
+}
+
+.featureNumber {
+  display: block;
+
+  margin-bottom: 24px;
+
+  color: var(--lime);
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.featureText h2 {
+  margin: 0;
+
+  color: var(--ink);
+
+  font-size: clamp(34px, 3.2vw, 52px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.featureText > p {
+  margin: 25px 0 30px;
+
+  color: #68757b;
+
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.featureList {
+  border-top: 1px solid rgba(56, 68, 75, 0.11);
+}
+
+.featureList div {
+  min-height: 45px;
+
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+
+  color: #536168;
+
+  font-size: 13px;
+}
+
+.featureList span {
+  color: var(--lime);
+
+  font-size: 17px;
+}
+
+/* =========================================================
+   CARDS VISUAIS
+========================================================= */
+
+.visualArea {
+  position: relative;
+
+  min-height: 450px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visualGlow {
+  position: absolute;
+
+  width: 400px;
+  height: 300px;
+
+  border-radius: 50%;
+
+  background: rgba(200, 212, 99, 0.12);
+
+  filter: blur(85px);
+}
+
+.visualCard {
+  position: relative;
+  z-index: 2;
+
+  width: min(100%, 620px);
+  min-height: 360px;
+
+  padding: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.12);
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(220, 226, 228, 0.55)
+    );
+
+  box-shadow:
+    0 35px 80px rgba(56, 68, 75, 0.12);
+}
+
+/* =========================================================
+   ORÇAMENTO
+========================================================= */
+
+.budgetVisual {
+  width: 100%;
+
+  padding: 24px;
+
+  border: 1px solid rgba(56, 68, 75, 0.11);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.miniTop {
+  display: flex;
+  justify-content: space-between;
+
+  padding-bottom: 16px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.09);
+
+  color: var(--metal);
+
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+
+.clientLine {
+  display: flex;
+  justify-content: space-between;
+
+  padding: 18px 0;
+
+  color: var(--metal);
+
+  font-size: 11px;
+}
+
+.clientLine strong {
+  color: var(--dark);
+
+  font-weight: 500;
+}
+
+.budgetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 17px 0;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.budgetItem div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.budgetItem small {
+  color: var(--metal);
+
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.budgetItem strong {
+  color: var(--dark);
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.budgetItem > span {
+  color: var(--lime);
+
+  font-weight: 700;
+}
+
+.totalLine {
+  margin-top: 8px;
+  padding-top: 18px;
+
+  display: flex;
+  justify-content: space-between;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.1);
+
+  color: var(--metal);
+
+  font-size: 10px;
+}
+
+.totalLine strong {
+  color: #91a123;
+
+  letter-spacing: 0.12em;
+}
+
+/* =========================================================
+   PROJETO EM CÁLCULO — PORTA 4 FOLHAS
+========================================================= */
+
+.calculationVisual {
+  width: 100%;
+}
+
+.visualLabel {
+  margin-bottom: 20px;
+
+  color: var(--metal);
+
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+
+/* =========================================================
+   INFORMAÇÕES DO PROJETO
+========================================================= */
+
+.projectInfo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.projectInfo div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.projectInfo small {
+  color: var(--metal);
+
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+
+.projectInfo strong {
+  color: var(--dark);
+
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.projectInfo > span {
+  color: #9ba82f;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   ÁREA DO DESENHO
+========================================================= */
+
+.doorArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 0 15px;
+}
+
+
+/* =========================================================
+   MOLDURA EXTERNA
+========================================================= */
+
+.doorFrame {
+  position: relative;
+
+  width: min(100%, 410px);
+  height: 205px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  padding:
+    10px
+    8px
+    10px
+    8px;
+
+  overflow: hidden;
+
+  border:
+    2px solid
+    rgba(56, 68, 75, 0.58);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(143, 154, 161, 0.13),
+      rgba(220, 226, 228, 0.12)
+    );
+
+  box-shadow:
+    inset 0 0 0 3px rgba(220, 226, 228, 0.48);
+}
+
+
+/* trilho superior */
+
+.doorFrame::before {
+  content: "";
+
+  position: absolute;
+
+  top: 5px;
+  left: 7px;
+  right: 7px;
+
+  height: 5px;
+
+  z-index: 8;
+
+  border-bottom:
+    1px solid
+    rgba(56, 68, 75, 0.26);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(143, 154, 161, 0.24),
+      rgba(220, 226, 228, 0.12)
+    );
+}
+
+
+/* trilho inferior */
+
+.doorFrame::after {
+  content: "";
+
+  position: absolute;
+
+  bottom: 5px;
+  left: 7px;
+  right: 7px;
+
+  height: 5px;
+
+  z-index: 8;
+
+  border-top:
+    1px solid
+    rgba(56, 68, 75, 0.22);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(220, 226, 228, 0.1),
+      rgba(143, 154, 161, 0.2)
+    );
+}
+
+
+/* =========================================================
+   VIDROS
+========================================================= */
+
+.doorPane {
+  position: relative;
+
+  min-width: 0;
+
+  border-right:
+    1px solid
+    rgba(56, 68, 75, 0.31);
+
+  background:
+    linear-gradient(
+      125deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(220, 226, 228, 0.16) 32%,
+      rgba(255, 255, 255, 0.34) 48%,
+      rgba(220, 226, 228, 0.1) 67%,
+      rgba(255, 255, 255, 0.16) 100%
+    );
+}
+
+.doorPane:last-of-type {
+  border-right: none;
+}
+
+
+/* pequeno reflexo de vidro */
+
+.doorPane::before {
+  content: "";
+
+  position: absolute;
+
+  top: 12%;
+  left: 18%;
+
+  width: 22%;
+  height: 72%;
+
+  opacity: 0.28;
+
+  transform: skewX(-13deg);
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.7),
+      transparent
+    );
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   FOLHAS MÓVEIS
+========================================================= */
+
+.doorMovingLeft,
+.doorMovingRight {
+  z-index: 3;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.doorMovingLeft {
+  animation:
+    openLeftDoor 7s ease-in-out 2s infinite;
+}
+
+.doorMovingRight {
+  animation:
+    openRightDoor 7s ease-in-out 2s infinite;
+}
+
+
+/* =========================================================
+   ROLDANAS SUPERIORES
+========================================================= */
+
+.topRollers {
+  position: absolute;
+
+  top: 5px;
+  left: 0;
+  right: 0;
+
+  z-index: 9;
+
+  height: 7px;
+
+  pointer-events: none;
+}
+
+.topRollers i {
+  position: absolute;
+  top: 0;
+
+  width: 4px;
+  height: 4px;
+
+  border:
+    1px solid
+    rgba(56, 68, 75, 0.34);
+
+  border-radius: 50%;
+
+  background:
+    rgba(143, 154, 161, 0.18);
+
+  opacity: 0.65;
+}
+
+.topRollers i:first-child {
+  left: 8px;
+}
+
+.topRollers i:last-child {
+  right: 8px;
+}
+
+
+/* =========================================================
+   PUXADORES BARRA CHATA
+========================================================= */
+
+.barHandle {
+  position: absolute;
+
+  top: 50%;
+
+  width: 3px;
+  height: 54px;
+
+  z-index: 8;
+
+  border:
+    1px solid
+    rgba(56, 68, 75, 0.27);
+
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(143, 154, 161, 0.18),
+      rgba(220, 226, 228, 0.65),
+      rgba(143, 154, 161, 0.16)
+    );
+
+  opacity: 0.68;
+
+  transform: translateY(-50%);
+
+  box-shadow:
+    0 1px 2px rgba(56, 68, 75, 0.08);
+}
+
+.handleRight {
+  right: 8px;
+}
+
+.handleLeft {
+  left: 8px;
+}
+
+/* =========================================================
+   FECHADURA DIVIDIDA ENTRE AS DUAS FOLHAS MÓVEIS
+========================================================= */
+
+.lockHalf {
+  position: absolute;
+  top: 50%;
+
+  width: 9px;
+  height: 31px;
+
+  z-index: 12;
+
+  overflow: hidden;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.27);
+  border-bottom: 1px solid rgba(56, 68, 75, 0.27);
+
+  background: rgba(220, 226, 228, 0.48);
+
+  opacity: 0.7;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+}
+
+
+/* metade presa na folha esquerda */
+
+.lockHalfLeft {
+  right: 0;
+
+  border-left: 1px solid rgba(56, 68, 75, 0.27);
+
+  border-radius: 4px 0 0 4px;
+}
+
+
+/* metade presa na folha direita */
+
+.lockHalfRight {
+  left: 0;
+
+  border-right: 1px solid rgba(56, 68, 75, 0.27);
+
+  border-radius: 0 4px 4px 0;
+}
+
+
+/* desenho interno */
+
+.lockHalf i {
+  position: absolute;
+
+  top: 50%;
+
+  width: 10px;
+  height: 14px;
+
+  border: 1px solid rgba(56, 68, 75, 0.38);
+  border-radius: 50%;
+
+  transform: translateY(-50%);
+}
+
+
+/* círculo pertence à fechadura completa:
+   mostramos metade dele em cada folha */
+
+.lockHalfLeft i {
+  right: -5px;
+}
+
+.lockHalfRight i {
+  left: -5px;
+}
+
+/* =========================================================
+   SETAS
+========================================================= */
+
+.doorArrow {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 9px;
+  height: 9px;
+
+  z-index: 7;
+
+  border-top:
+    1px solid
+    rgba(169, 181, 67, 0.85);
+
+  border-right:
+    1px solid
+    rgba(169, 181, 67, 0.85);
+
+  opacity: 0.8;
+}
+
+.arrowLeft {
+  transform:
+    translate(-50%, -50%)
+    rotate(-135deg);
+}
+
+.arrowRight {
+  transform:
+    translate(-50%, -50%)
+    rotate(45deg);
+}
+
+
+/* =========================================================
+   RESULTADOS
+========================================================= */
+
+.calculationResults {
+  margin-top: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 32px;
+
+  color: var(--metal);
+
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+
+.calculationResults span {
+  white-space: nowrap;
+}
+
+.calculationResults b {
+  margin-left: 5px;
+
+  color: #9ba82f;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   ANIMAÇÃO DA PORTA
+========================================================= */
+
+@keyframes openLeftDoor {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+
+  38%,
+  60% {
+    transform: translateX(-100%);
+  }
+
+  80%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes openRightDoor {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+
+  38%,
+  60% {
+    transform: translateX(100%);
+  }
+
+  80%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+
+/* =========================================================
+   ACESSIBILIDADE
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .doorMovingLeft,
+  .doorMovingRight {
+    animation: none;
+  }
+}
+/* =========================================================
+   MATERIAIS
+========================================================= */
+
+.materialVisual {
+  width: 100%;
+}
+
+.materialRow {
+  min-height: 64px;
+
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 14px;
+
+  padding: 0 14px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.09);
+}
+
+.materialIcon {
+  width: 31px;
+  height: 31px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(56, 68, 75, 0.12);
+  border-radius: 7px;
+
+  background: rgba(220, 226, 228, 0.38);
+
+  color: var(--dark);
+
+  font-size: 10px;
+}
+
+.materialRow div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.materialRow small {
+  color: var(--metal);
+
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.materialRow strong {
+  color: var(--dark);
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.materialRow > b {
+  color: var(--metal);
+
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   DOCUMENTO
+========================================================= */
+
+/* =========================================================
+   MINI PDF REAL — GLASS CODE
+========================================================= */
+
+.pdfPreview {
+  width: 100%;
+  padding: 20px;
+
+  border: 1px solid rgba(56, 68, 75, 0.10);
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 15px 40px rgba(56, 68, 75, 0.06);
+}
+
+/* CABEÇALHO */
+
+.pdfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-bottom: 12px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.10);
+}
+
+.pdfBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* reduz a logo criada pelo BrandMark */
+.pdfBrand .brandIcon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+.pdfBrand .glassOne,
+.pdfBrand .glassTwo {
+  width: 17px;
+  height: 21px;
+}
+
+.pdfBrand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdfBrand strong {
+  color: var(--dark);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.pdfBrand small {
+  color: var(--metal);
+  font-size: 6px;
+  letter-spacing: 0.15em;
+}
+
+.pdfHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  color: var(--metal);
+  font-size: 6px;
+}
+
+
+/* DADOS CLIENTE */
+
+.pdfCustomer {
+  margin-top: 11px;
+  padding: 9px 12px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+
+  border: 1px solid rgba(56, 68, 75, 0.10);
+  border-radius: 7px;
+}
+
+.pdfCustomer div,
+.pdfDataGrid div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pdfCustomer small,
+.pdfDataGrid small,
+.pdfSummary small {
+  color: #95a0a5;
+
+  font-size: 5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.pdfCustomer strong {
+  color: var(--dark);
+
+  font-size: 8px;
+  font-weight: 500;
+}
+
+
+/* PROJETOS */
+
+.pdfProject {
+  margin-top: 10px;
+  padding: 10px;
+
+  min-height: 96px;
+
+  display: grid;
+  grid-template-columns: 95px 1fr;
+  gap: 14px;
+
+  border: 1px solid rgba(56, 68, 75, 0.10);
+  border-radius: 7px;
+}
+
+.pdfDrawing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdfProjectContent {
+  min-width: 0;
+}
+
+.pdfProjectNumber {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #909ba1;
+
+  font-size: 5px;
+  letter-spacing: 0.11em;
+}
+
+.pdfProjectTitle {
+  display: block;
+
+  padding-bottom: 6px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+
+  color: var(--dark);
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.pdfDataGrid {
+  margin-top: 7px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px 12px;
+}
+
+.pdfDataGrid div {
+  padding-bottom: 3px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.pdfDataGrid span {
+  color: #4e5c63;
+
+  font-size: 6px;
+}
+
+
+/* DESENHO BOX */
+
+.miniBox {
+  width: 65px;
+  height: 74px;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  border: 1px solid rgba(56, 68, 75, 0.45);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(220, 226, 228, 0.30),
+      rgba(255, 255, 255, 0.75),
+      rgba(220, 226, 228, 0.24)
+    );
+}
+
+.miniBox span:first-child {
+  border-right: 1px solid rgba(56, 68, 75, 0.25);
+}
+
+.miniBox span:last-child {
+  position: relative;
+}
+
+.miniBox span:last-child::after {
+  content: "";
+
+  position: absolute;
+  right: 4px;
+  top: 50%;
+
+  width: 3px;
+  height: 3px;
+
+  border: 1px solid rgba(56, 68, 75, 0.35);
+  border-radius: 50%;
+}
+
+
+/* DESENHO MAX */
+
+.miniMax {
+  position: relative;
+
+  width: 70px;
+  height: 65px;
+
+  border: 1px solid rgba(56, 68, 75, 0.45);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(220, 226, 228, 0.25),
+      rgba(255, 255, 255, 0.72),
+      rgba(220, 226, 228, 0.22)
+    );
+}
+
+.miniMax::before,
+.miniMax::after {
+  content: "";
+
+  position: absolute;
+  top: 2px;
+
+  width: 4px;
+  height: 4px;
+
+  border: 1px solid rgba(56, 68, 75, 0.45);
+}
+
+.miniMax::before {
+  left: 5px;
+}
+
+.miniMax::after {
+  right: 5px;
+}
+
+.miniMax span {
+  position: absolute;
+
+  left: 50%;
+  bottom: 7px;
+
+  width: 28px;
+  height: 2px;
+
+  transform: translateX(-50%);
+
+  background: rgba(56, 68, 75, 0.30);
+}
+
+
+/* RESUMO */
+
+.pdfSummary {
+  margin-top: 10px;
+  padding: 9px 11px;
+
+  display: grid;
+  grid-template-columns: 0.7fr 0.7fr 0.9fr 1.3fr;
+  gap: 10px;
+
+  align-items: center;
+
+  border: 1px solid rgba(56, 68, 75, 0.10);
+  border-radius: 7px;
+}
+
+.pdfSummary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pdfSummary strong {
+  color: var(--dark);
+
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.pdfTotal {
+  padding: 7px 9px;
+
+  border: 1px solid rgba(56, 68, 75, 0.13);
+  border-radius: 5px;
+}
+
+.pdfTotal strong {
+  color: var(--dark) !important;
+
+  font-size: 9px !important;
+  font-weight: 650 !important;
+}
+
+/* =========================================================
+   GESTÃO
+========================================================= */
+
+/* =========================================================
+   RELAÇÃO DA OBRA — PREVIEW
+========================================================= */
+
+.materialPdf {
+  width: 100%;
+  padding: 20px;
+
+  border: 1px solid rgba(56, 68, 75, 0.1);
+  border-radius: 9px;
+
+  background: #fff;
+
+  box-shadow:
+    0 18px 50px rgba(56, 68, 75, 0.06);
+}
+
+
+/* CABEÇALHO */
+
+.materialPdfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-bottom: 11px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.09);
+}
+
+.materialBrand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.materialBrand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.materialBrand strong {
+  color: var(--dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.materialBrand small {
+  color: var(--metal);
+  font-size: 5px;
+  letter-spacing: 0.17em;
+}
+
+.materialPdfInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  color: var(--metal);
+
+  font-size: 6px;
+}
+
+
+/* DADOS DO ORÇAMENTO */
+
+.materialOrder {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.7fr;
+  gap: 15px;
+
+  margin-top: 10px;
+  padding: 8px 10px;
+
+  border: 1px solid rgba(56, 68, 75, 0.09);
+  border-radius: 6px;
+}
+
+.materialOrder > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.materialOrder small {
+  color: #9aa4a8;
+
+  font-size: 5px;
+  letter-spacing: 0.08em;
+}
+
+.materialOrder strong {
+  color: var(--dark);
+
+  font-size: 7px;
+  font-weight: 500;
+}
+
+
+/* RELAÇÃO DA OBRA */
+
+.materialTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 9px;
+  padding: 9px 10px;
+
+  border: 1px solid rgba(56, 68, 75, 0.09);
+  border-radius: 6px;
+}
+
+.materialTitle > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.materialTitle strong {
+  color: var(--dark);
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.materialTitle small {
+  color: var(--metal);
+
+  font-size: 5px;
+}
+
+.materialTitle > span {
+  color: #a5b239;
+
+  font-size: 6px;
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* GRUPOS */
+
+.materialGroup {
+  margin-top: 8px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.09);
+  border-radius: 6px;
+}
+
+.materialGroupTitle {
+  min-height: 42px;
+
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 9px;
+
+  padding: 7px 9px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(220, 226, 228, 0.16),
+      rgba(255, 255, 255, 0)
+    );
+}
+
+.materialIcon {
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(56, 68, 75, 0.13);
+  border-radius: 5px;
+
+  color: var(--dark);
+
+  background: rgba(220, 226, 228, 0.18);
+
+  font-size: 7px;
+}
+
+.materialGroupTitle > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.materialGroupTitle small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.13em;
+}
+
+.materialGroupTitle strong {
+  color: var(--dark);
+
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.materialGroupTitle b {
+  color: var(--dark);
+
+  font-size: 7px;
+  font-weight: 600;
+}
+
+
+/* LINHAS DE MATERIAL */
+
+.materialRow {
+  display: grid;
+
+  grid-template-columns:
+    0.9fr
+    1.6fr
+    0.5fr
+    auto;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin: 0 9px;
+  padding: 6px 0;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.materialRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.materialRow small {
+  color: #9aa4a8;
+
+  font-size: 4px;
+  letter-spacing: 0.06em;
+}
+
+.materialRow span {
+  color: #58666c;
+
+  font-size: 6px;
+}
+
+.materialRow > strong {
+  color: var(--dark);
+
+  font-size: 6px;
+  font-weight: 500;
+}
+
+
+/* TOTAL */
+
+.materialTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 9px;
+  padding: 8px 10px;
+
+  border: 1px solid rgba(56, 68, 75, 0.1);
+  border-radius: 6px;
+}
+
+.materialTotal > span {
+  color: var(--metal);
+
+  font-size: 6px;
+  letter-spacing: 0.06em;
+}
+
+.materialTotal > span b {
+  margin-left: 5px;
+
+  color: #a8b536;
+}
+
+.materialTotal > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.materialTotal small {
+  color: var(--metal);
+
+  font-size: 4px;
+  letter-spacing: 0.08em;
+}
+
+.materialTotal strong {
+  color: var(--dark);
+
+  font-size: 10px;
+  font-weight: 650;
+}
+/* =========================================================
+   DOCUMENTOS E PRODUÇÃO
+========================================================= */
+
+.productionPreview {
+  width: 100%;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.1);
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, 0.82);
+
+  box-shadow:
+    0 20px 55px rgba(56, 68, 75, 0.07);
+}
+
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.productionHeader {
+  min-height: 60px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 18px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.09);
+}
+
+.productionBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.productionBrand .brandIcon {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+}
+
+.productionBrand .glassOne,
+.productionBrand .glassTwo {
+  width: 16px;
+  height: 20px;
+}
+
+.productionBrand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.productionBrand strong {
+  color: var(--dark);
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.productionBrand small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.15em;
+}
+
+.productionStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #8e9b2b;
+
+  font-size: 5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.productionStatus i {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: var(--lime);
+
+  box-shadow:
+    0 0 0 4px rgba(200, 212, 99, 0.13);
+}
+
+
+/* =========================================================
+   CORPO
+========================================================= */
+
+.productionBody {
+  display: grid;
+  grid-template-columns: 1.45fr 0.75fr;
+
+  min-height: 245px;
+}
+
+
+/* =========================================================
+   FOLHA TÉCNICA
+========================================================= */
+
+.technicalSheet {
+  padding: 17px 18px;
+
+  border-right: 1px solid rgba(56, 68, 75, 0.09);
+}
+
+.sheetTop {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  padding-bottom: 10px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.sheetTop > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sheetTop small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.12em;
+}
+
+.sheetTop strong {
+  color: var(--dark);
+
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.sheetTop > span {
+  color: #9ca92e;
+
+  font-size: 6px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   DESENHO
+========================================================= */
+
+.technicalDrawing {
+  min-height: 130px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.productionDoor {
+  position: relative;
+
+  width: 235px;
+  height: 105px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  padding: 5px;
+
+  border: 1px solid rgba(56, 68, 75, 0.5);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(143, 154, 161, 0.1),
+      rgba(255, 255, 255, 0.4)
+    );
+
+  box-shadow:
+    inset 0 0 0 2px rgba(220, 226, 228, 0.45);
+}
+
+.productionPane {
+  position: relative;
+
+  border-right: 1px solid rgba(56, 68, 75, 0.24);
+
+  background:
+    linear-gradient(
+      125deg,
+      rgba(220, 226, 228, 0.1),
+      rgba(255, 255, 255, 0.48),
+      rgba(220, 226, 228, 0.13)
+    );
+}
+
+.productionPane:last-child {
+  border-right: none;
+}
+
+
+/* =========================================================
+   ROLDANAS
+========================================================= */
+
+.productionRollerLeft,
+.productionRollerRight {
+  position: absolute;
+
+  top: 4px;
+
+  width: 3px;
+  height: 3px;
+
+  border: 1px solid rgba(56, 68, 75, 0.34);
+  border-radius: 50%;
+
+  opacity: 0.7;
+}
+
+.productionRollerLeft {
+  left: 5px;
+}
+
+.productionRollerRight {
+  right: 5px;
+}
+
+
+/* =========================================================
+   SETAS
+========================================================= */
+
+.productionArrowLeft,
+.productionArrowRight {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 6px;
+  height: 6px;
+
+  border-top: 1px solid #aab63f;
+  border-right: 1px solid #aab63f;
+}
+
+.productionArrowLeft {
+  transform:
+    translate(-50%, -50%)
+    rotate(-135deg);
+}
+
+.productionArrowRight {
+  transform:
+    translate(-50%, -50%)
+    rotate(45deg);
+}
+
+
+/* =========================================================
+   PUXADORES
+========================================================= */
+
+.productionHandleLeft,
+.productionHandleRight {
+  position: absolute;
+
+  top: 50%;
+
+  width: 2px;
+  height: 29px;
+
+  border: 1px solid rgba(56, 68, 75, 0.25);
+  border-radius: 2px;
+
+  background: rgba(143, 154, 161, 0.18);
+
+  opacity: 0.7;
+
+  transform: translateY(-50%);
+}
+
+.productionHandleRight {
+  right: 5px;
+}
+
+.productionHandleLeft {
+  left: 5px;
+}
+
+
+/* =========================================================
+   DADOS TÉCNICOS
+========================================================= */
+
+.sheetData {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  padding-top: 9px;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.sheetData > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sheetData small {
+  color: var(--metal);
+
+  font-size: 4px;
+  letter-spacing: 0.1em;
+}
+
+.sheetData strong {
+  color: var(--dark);
+
+  font-size: 6px;
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   LISTA DE DOCUMENTOS
+========================================================= */
+
+.documentQueue {
+  padding: 17px 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(220, 226, 228, 0.13),
+      rgba(255, 255, 255, 0.3)
+    );
+}
+
+.queueTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  padding-bottom: 10px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.queueTitle small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.14em;
+}
+
+.queueTitle strong {
+  color: var(--dark);
+
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.queueItem {
+  min-height: 43px;
+
+  display: grid;
+  grid-template-columns: 17px 1fr auto;
+  align-items: center;
+  gap: 7px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.queueCheck {
+  width: 15px;
+  height: 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(200, 212, 99, 0.14);
+
+  color: #99a72c;
+
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.queueItem > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.queueItem strong {
+  color: var(--dark);
+
+  font-size: 6px;
+  font-weight: 500;
+}
+
+.queueItem small {
+  color: var(--metal);
+
+  font-size: 5px;
+}
+
+.queueItem > b {
+  color: #9aa4a8;
+
+  font-size: 5px;
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.readyBox {
+  margin-top: 12px;
+  padding: 9px;
+
+  border: 1px solid rgba(200, 212, 99, 0.27);
+  border-radius: 6px;
+
+  background: rgba(200, 212, 99, 0.07);
+}
+
+.readyBox > small {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: var(--metal);
+
+  font-size: 4px;
+  letter-spacing: 0.12em;
+}
+
+.readyBox strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: var(--dark);
+
+  font-size: 6px;
+  font-weight: 500;
+}
+
+.readyBox strong i {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: var(--lime);
+}
+
+
+/* =========================================================
+   RODAPÉ
+========================================================= */
+
+.productionFooter {
+  min-height: 45px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 18px;
+
+  border-top: 1px solid rgba(56, 68, 75, 0.09);
+}
+
+.productionFooter > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  margin-right: 20px;
+
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.08em;
+}
+
+.productionFooter > div b {
+  color: #a3b036;
+}
+
+.generatedPdf {
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: var(--dark);
+
+  font-size: 5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+}
+
+.generatedPdf b {
+  color: #a5b23a;
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   GESTÃO — DASHBOARD
+========================================================= */
+
+.managementPreview {
+  width: 100%;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.1);
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, 0.82);
+
+  box-shadow:
+    0 20px 55px rgba(56, 68, 75, 0.07);
+}
+
+
+/* CABEÇALHO */
+
+.managementHeader {
+  min-height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.managementHeader > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.managementHeader small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.16em;
+}
+
+.managementHeader strong {
+  color: var(--dark);
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.managementLive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #98a52d;
+
+  font-size: 5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.managementLive i {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: var(--lime);
+
+  box-shadow:
+    0 0 0 4px rgba(200, 212, 99, 0.14);
+}
+
+
+/* =========================================================
+   INDICADORES
+========================================================= */
+
+.managementStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  padding: 14px 20px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.managementStat {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  padding-left: 14px;
+
+  border-left: 1px solid rgba(56, 68, 75, 0.1);
+}
+
+.managementStat:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.managementStat span {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.13em;
+}
+
+.managementStat strong {
+  margin-top: 3px;
+
+  color: var(--dark);
+
+  font-size: 23px;
+  line-height: 1;
+  font-weight: 400;
+
+  letter-spacing: -0.05em;
+}
+
+.managementStat small {
+  margin-top: 4px;
+
+  color: #9aa4a8;
+
+  font-size: 5px;
+}
+
+
+/* =========================================================
+   CONTEÚDO
+========================================================= */
+
+.managementContent {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+
+  min-height: 190px;
+}
+
+
+/* ATIVIDADE */
+
+.activityPanel {
+  padding: 15px 18px;
+
+  border-right: 1px solid rgba(56, 68, 75, 0.08);
+}
+
+.panelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-bottom: 9px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.07);
+}
+
+.panelHeading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelHeading small,
+.operationHeading small {
+  color: var(--metal);
+
+  font-size: 5px;
+  letter-spacing: 0.13em;
+}
+
+.panelHeading strong,
+.operationHeading strong {
+  color: var(--dark);
+
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.panelHeading > span {
+  color: #a4b039;
+
+  font-size: 5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+
+/* LINHA DE ATIVIDADE */
+
+.activityItem {
+  min-height: 44px;
+
+  display: grid;
+  grid-template-columns: 25px 1fr auto;
+  align-items: center;
+  gap: 8px;
+
+  border-bottom: 1px solid rgba(56, 68, 75, 0.06);
+}
+
+.activityIcon {
+  width: 23px;
+  height: 23px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(56, 68, 75, 0.11);
+  border-radius: 5px;
+
+  color: var(--metal);
+
+  background: rgba(220, 226, 228, 0.16);
+
+  font-size: 5px;
+}
+
+.activityItem > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activityItem > div strong {
+  color: var(--dark);
+
+  font-size: 6px;
+  font-weight: 500;
+}
+
+.activityItem > div small {
+  color: var(--metal);
+
+  font-size: 5px;
+}
+
+.activityStatus {
+  color: #9eaa34;
+
+  font-size: 4px;
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* =========================================================
+   OPERAÇÃO
+========================================================= */
+/* =========================================================
+   DASHBOARD PREVIEW — GLASS CODE
+========================================================= */
+
+.dashboardPreview {
+  width: 100%;
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.10);
+  border-radius: 11px;
+
+  background: #edf1f2;
+
+  box-shadow:
+    0 22px 55px rgba(56, 68, 75, 0.08);
+}
+
+
+/* =========================================================
+   HERO DO DASHBOARD
+========================================================= */
+
+.dashHero {
+  position: relative;
+
+  min-height: 100px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin: 10px;
+  padding: 18px 22px;
+
+  overflow: hidden;
+
+  border-radius: 8px;
+
+  background: #38444b;
+}
+
+.dashHero > div {
+  position: relative;
+  z-index: 3;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.dashHero small {
+  margin-bottom: 8px;
+
+  color: rgba(255, 255, 255, 0.48);
+
+  font-size: 5px;
+  letter-spacing: 0.16em;
+}
+
+.dashHero strong {
+  color: #fff;
+
+  font-size: 20px;
+  line-height: 1;
+
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.dashHero > div > span {
+  margin-top: 7px;
+
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 6px;
+}
+
+
+/* BOTÃO */
+
+.dashHero button {
+  position: relative;
+  z-index: 4;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 9px 12px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #c8d463;
+
+  color: #38444b;
+
+  font-family: inherit;
+  font-size: 6px;
+  font-weight: 600;
+
+  pointer-events: none;
+}
+
+.dashHero button b {
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.dashHero button span {
+  margin-left: 3px;
+}
+
+
+/* VIDROS DECORATIVOS */
+
+.dashGlassOne,
+.dashGlassTwo {
+  position: absolute;
+
+  width: 82px;
+  height: 120px;
+
+  border: 1px solid rgba(200, 212, 99, 0.17);
+  border-radius: 10px;
+
+  transform: skewY(-32deg);
+
+  pointer-events: none;
+}
+
+.dashGlassOne {
+  right: 125px;
+  top: -55px;
+}
+
+.dashGlassTwo {
+  right: 95px;
+  top: -35px;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.dashStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 7px;
+
+  padding: 0 10px 9px;
+}
+
+.dashStat {
+  position: relative;
+
+  min-height: 79px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 11px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(56, 68, 75, 0.08);
+  border-radius: 7px;
+
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.dashStat::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+
+  width: 2px;
+
+  border-radius: 0 2px 2px 0;
+
+  background: #8f9aa1;
+}
+
+.dashStatAccent {
+  background: rgba(200, 212, 99, 0.13);
+}
+
+.dashStatAccent::before {
+  background: #c8d463;
+}
+
+.dashStatTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashStatTop span {
+  color: #718087;
+
+  font-size: 5px;
+}
+
+.dashStatTop b {
+  color: #536168;
+
+  font-size: 7px;
+  font-weight: 400;
+}
+
+.dashStat > strong {
+  margin-top: 10px;
+
+  color: #38444b;
+
+  font-size: 16px;
+  line-height: 1;
+
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.dashStat > small {
+  margin-top: auto;
+
+  color: #89959a;
+
+  font-size: 5px;
+}
+
+
+/* =========================================================
+   PROJETOS
+========================================================= */
+
+.dashProjects {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 7px;
+
+  padding: 0 10px 9px;
+}
+
+.dashProject {
+  position: relative;
+
+  min-height: 80px;
+
+  display: grid;
+  grid-template-columns: 90px 1fr 10px;
+  align-items: center;
+  gap: 10px;
+
+  padding: 9px;
+
+  border: 1px solid rgba(56, 68, 75, 0.09);
+  border-radius: 7px;
+
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dashProject > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dashProject > div:nth-child(2) strong {
+  color: #46545b;
+
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.dashProject > div:nth-child(2) small {
+  color: #8b979c;
+
+  font-size: 5px;
+}
+
+.dashProject > b {
+  color: #657279;
+
+  font-size: 7px;
+  font-weight: 400;
+}
+
+
+/* =========================================================
+   MINI JANELA
+========================================================= */
+
+.miniWindow {
+  position: relative;
+
+  width: 73px;
+  height: 47px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  margin: auto;
+
+  padding: 3px;
+
+  border: 1px solid #8f9aa1;
+}
+
+.miniWindow::before,
+.miniWindow::after {
+  content: "";
+
+  position: absolute;
+
+  left: -3px;
+  right: -3px;
+
+  height: 1px;
+
+  background: #a3adb1;
+}
+
+.miniWindow::before {
+  top: -7px;
+}
+
+.miniWindow::after {
+  bottom: -4px;
+}
+
+.miniWindow > span {
+  position: relative;
+
+  border-right: 1px solid #9da7ab;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(220,226,228,.15),
+      rgba(255,255,255,.55)
+    );
+}
+
+.miniWindow > span:last-child {
+  border-right: none;
+}
+
+.miniWindow i {
+  position: absolute;
+
+  left: 7px;
+  top: 7px;
+
+  width: 13px;
+  height: 1px;
+
+  background: #a0aaae;
+
+  transform: rotate(-45deg);
+}
+
+
+/* =========================================================
+   MINI BOX
+========================================================= */
+
+.miniShower {
+  width: 54px;
+  height: 52px;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  margin: auto;
+
+  padding: 3px;
+
+  border: 1px solid #8f9aa1;
+}
+
+.miniShower span:first-child {
+  border-right: 1px solid #9da7ab;
+}
+
+.miniShower span {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(220,226,228,.13),
+      rgba(255,255,255,.55)
+    );
+}
+
+
+/* =========================================================
+   MINI SACADA
+========================================================= */
+
+.miniBalcony {
+  width: 76px;
+  height: 43px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  margin: auto;
+
+  padding: 3px;
+
+  border: 1px solid #8f9aa1;
+}
+
+.miniBalcony span {
+  border-right: 1px solid #9da7ab;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(220,226,228,.13),
+      rgba(255,255,255,.55)
+    );
+}
+
+.miniBalcony span:last-child {
+  border-right: none;
+}
+
+
+/* =========================================================
+   PARTE INFERIOR
+========================================================= */
+
+.dashBottom {
+  display: grid;
+  grid-template-columns: 1.65fr 0.8fr;
+
+  gap: 7px;
+
+  padding: 0 10px 10px;
+}
+
+.dashRecent,
+.dashToday {
+  min-height: 69px;
+
+  border-radius: 7px;
+}
+
+.dashRecent {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 12px;
+
+  border: 1px solid rgba(56, 68, 75, 0.09);
+
+  background: rgba(255,255,255,.75);
+}
+
+.dashRecent > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashRecent small,
+.dashToday small {
+  color: #8a969b;
+
+  font-size: 4px;
+  letter-spacing: .13em;
+}
+
+.dashRecent strong {
+  color: #38444b;
+
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.dashRecent > span {
+  padding: 5px 7px;
+
+  border-radius: 4px;
+
+  background: #edf1f2;
+
+  color: #718087;
+
+  font-size: 5px;
+}
+
+
+/* CARD ESCURO */
+
+.dashToday {
+  padding: 12px;
+
+  background: #38444b;
+}
+
+.dashToday small {
+  color: rgba(255,255,255,.5);
+}
+
+.dashToday > strong {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #fff;
+
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.dashToday > div {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 10px;
+  padding-top: 7px;
+
+  border-top: 1px solid rgba(255,255,255,.09);
+
+  color: rgba(255,255,255,.65);
+
+  font-size: 5px;
+}
+
+.dashToday > div b {
+  color: #c8d463;
+
+  font-size: 7px;
+}
+
+/* =========================================================
+   CTA FINAL
+========================================================= */
+
+.finalCta {
+  position: relative;
+
+  min-height: 590px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      125deg,
+      #303c43 0%,
+      #202b31 100%
+    );
+
+  color: white;
+}
+
+.finalGlow {
+  position: absolute;
+
+  width: 600px;
+  height: 400px;
+
+  border-radius: 50%;
+
+  background: rgba(200, 212, 99, 0.07);
+
+  filter: blur(100px);
+}
+
+.finalContent {
+  position: relative;
+  z-index: 2;
+
+  max-width: 850px;
+
+  padding: 80px 30px;
+
+  text-align: center;
+}
+
+.finalContent > span {
+  color: var(--lime);
+
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+}
+
+.finalContent h2 {
+  margin: 25px 0 0;
+
+  font-size: clamp(48px, 5vw, 72px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+
+.finalContent h2 strong {
+  color: var(--lime);
+  font-weight: 500;
+}
+
+.finalContent p {
+  max-width: 600px;
+
+  margin: 27px auto 0;
+
+  color: rgba(255, 255, 255, 0.57);
+
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.finalActions {
+  margin-top: 35px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.primaryButton {
+  min-height: 52px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 27px;
+
+  border-radius: 7px;
+
+  background: var(--lime);
+
+  color: var(--dark);
+
+  text-decoration: none;
+
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.secondaryButton {
+  color: rgba(255, 255, 255, 0.7);
+
+  text-decoration: none;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   RESPONSIVO
+========================================================= */
+
+@media (max-width: 900px) {
+  .headerInner,
+  .heroInner,
+  .container {
+    width: min(100% - 36px, 700px);
+      .dashStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashProjects {
+    grid-template-columns: 1fr;
+  }
+
+  .dashBottom {
+    grid-template-columns: 1fr;
+  }
+
+  .dashProject {
+    grid-template-columns: 90px 1fr 10px;
+  }
+  }
+
+  .nav a:not(.ctaSmall) {
+    display: none;
+  }
+
+  .hero {
+    min-height: 620px;
+  }
+
+  .heroDetail {
+    display: none;
+  }
+
+  .introGrid,
+  .featureContent,
+  .projectsHeader {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .featureContent.reverse .featureText,
+  .featureContent.reverse .visualArea {
+    order: initial;
+  }
+
+  .feature {
+    padding: 80px 0;
+  }
+
+  .visualArea {
+    min-height: auto;
+  }
+
+  .projectGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectItem:nth-child(odd) {
+    border-right: none;
+    padding-right: 25px;
+  }
+
+  .projectItem:nth-child(even) {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .headerInner,
+  .heroInner,
+  .container {
+    width: calc(100% - 28px);
+      .dashStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashHero {
+    min-height: 125px;
+    padding: 16px;
+  }
+
+  .dashHero strong {
+    font-size: 17px;
+  }
+
+  .dashHero > div > span {
+    max-width: 190px;
+  }
+
+  .dashHero button {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .dashProjects {
+    grid-template-columns: 1fr;
+  }
+
+  .dashBottom {
+    grid-template-columns: 1fr;
+  }
+  }
+
+  .login {
+    display: none !important;
+  }
+
+  .brandName {
+    font-size: 18px;
+  }
+
+  .ctaSmall {
+    padding: 10px 13px;
+  }
+
+  .hero h1 {
+    font-size: 46px;
+  }
+
+  .intro,
+  .projects {
+    padding: 85px 0;
+  }
+
+  .visualCard {
+    min-height: 310px;
+    padding: 20px;
+  }
+
+  .window {
+    height: 135px;
+  }
+
+  .calculationResults {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+
+  .finalActions {
+    flex-direction: column;
+  }
+}

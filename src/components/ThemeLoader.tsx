@@ -14,6 +14,19 @@ export default function ThemeLoader({ children }: ThemeLoaderProps) {
   const pathname = usePathname();
   const isRelatorioOrcamentoScreen = pathname?.startsWith("/admin/relatorio.orcamento");
 
+  const rotaPublica =
+  pathname === "/" ||
+  pathname === "/como-funciona" ||
+  pathname === "/recursos" ||
+  pathname === "/planos" ||
+  pathname === "/login" ||
+  pathname === "/update-password" ||
+  pathname === "/reset-password";
+
+if (rotaPublica) {
+  return <>{children}</>;
+}
+
   if (isLoading) {
     if (isRelatorioOrcamentoScreen) {
       return (
