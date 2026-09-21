@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type AuthContextType = {
@@ -23,6 +23,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+
+  const pathname = usePathname();
+
+const rotaPublica =
+  pathname === "/" ||
+  pathname === "/como-funciona" ||
+  pathname === "/recursos" ||
+  pathname === "/planos" ||
+  pathname === "/login" ||
+  pathname === "/update-password" ||
+  pathname === "/reset-password";
 
   const [user, setUser] = useState<any>(null);
   const [perfilUsuario, setPerfilUsuario] = useState<any>(null);
@@ -44,15 +55,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!ativo) return;
 
-        if (authError || !authUser) {
-          setUser(null);
-          setPerfilUsuario(null);
-          setEmpresaId(null);
-          setNomeEmpresa("");
+    if (authError || !authUser) {
+  setUser(null);
+  setPerfilUsuario(null);
+  setEmpresaId(null);
+  setNomeEmpresa("");
 
-          router.replace("/login");
-          return;
-        }
+  // Só manda para o login quando a pessoa tentou
+  // acessar uma área interna do ERP.
+  if (!rotaPublica) {
+    router.replace("/login");
+  }
+
+  return;
+}
 
         setUser(authUser);
 
@@ -149,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       ativo = false;
     };
-  }, [router]);
+}, [router, rotaPublica]);
 
   const signOut = async () => {
     try {
