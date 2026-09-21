@@ -190,8 +190,6 @@ export function ThemeProvider({
   const refreshTheme = useCallback(async () => {
     const current = ++generation.current;
 
-    setIsLoading(true);
-
     try {
       /*
        * Primeiro descobrimos se existe sessão.
@@ -326,24 +324,17 @@ export function ThemeProvider({
       }
 
       if (
-        event === "SIGNED_IN" ||
-        event === "USER_UPDATED"
-      ) {
-        /*
-         * IMPORTANTÍSSIMO:
-         *
-         * limpamos a logo anterior ANTES de buscar a nova.
-         *
-         * Isso também evita mostrar por alguns milissegundos
-         * a logo de outra empresa ao trocar de usuário.
-         */
-        setLogos(emptyLogos);
-        setIsLoading(true);
-
-        setTimeout(() => {
-          void refreshTheme();
-        }, 0);
-      }
+  event === "SIGNED_IN" ||
+  event === "USER_UPDATED"
+) {
+  /*
+   * Mantém a logo atual enquanto confirma o branding.
+   * Não apaga nem pisca a identidade da empresa.
+   */
+  setTimeout(() => {
+    void refreshTheme();
+  }, 0);
+}
     });
 
     return () => {

@@ -50,15 +50,14 @@ const publica =
     }
     if (publica) return;
     void verificar();
-    const intervalo = setInterval(() => { if(document.visibilityState==='visible')void verificar(); }, 15000);
     const foco = () => void verificar();
     const visibilidade = () => { if(document.visibilityState==='visible')void verificar(); };
     window.addEventListener("focus", foco);
     document.addEventListener("visibilitychange", visibilidade);
     // Deferir evita executar chamadas Supabase dentro do lock do callback de autenticação.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { setTimeout(() => { if (ativo) void verificar(); }, 0); });
-    return () => { ativo = false; clearInterval(intervalo); window.removeEventListener("focus", foco); document.removeEventListener("visibilitychange", visibilidade); subscription.unsubscribe(); };
-  }, [pathname, publica, tentativa]);
+    return () => { ativo = false; window.removeEventListener("focus", foco); document.removeEventListener("visibilitychange", visibilidade); subscription.unsubscribe(); };
+  }, [pathname, tentativa]);
   if (publica) return children;
   const texto = detalhe?.mensagem || mensagens[detalhe?.situacao || "suspensa_outro"];
   const atendimento = detalhe?.contato ? <p className="mt-3 text-sm break-words">Atendimento: {detalhe.contato}</p> : null;
