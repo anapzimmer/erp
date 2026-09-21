@@ -9,6 +9,7 @@ import SecurityProvider from "@/components/SecurityProvider";
 import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
 import { OrcamentoProvider } from "@/context/OrcamentoContext";
 import PlatformAccessGate from "@/components/PlatformAccessGate";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = localFont({
   src: "../../public/fonts/Inter.ttf",
@@ -28,17 +29,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
         className="antialiased"
       >
-        <ThemeProvider>
-          {/* 🔥 Agora o Loader está em um componente client separado */}
-          <ThemeLoader>
-            <SecurityProvider>
-              <PlatformAccessGate>
-                <OrcamentoProvider>{children}</OrcamentoProvider>
-                <ProjetoAssistenteGlobal />
-              </PlatformAccessGate>
-            </SecurityProvider>
-          </ThemeLoader>
-        </ThemeProvider>
+<ThemeProvider>
+  <ThemeLoader>
+    <SecurityProvider>
+      <AuthProvider>
+        <PlatformAccessGate>
+          <OrcamentoProvider>{children}</OrcamentoProvider>
+          <ProjetoAssistenteGlobal />
+        </PlatformAccessGate>
+      </AuthProvider>
+    </SecurityProvider>
+  </ThemeLoader>
+</ThemeProvider>
       </body>
     </html>
   );
