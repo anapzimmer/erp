@@ -110,12 +110,11 @@ export default function VidrosPage() {
 
 
   // --- Efeitos ---
-  useEffect(() => {
-    if (empresaId) {
-      carregarDados();
-      carregarBranding();
-    }
-  }, [user, checkingAuth, router]);
+useEffect(() => {
+  if (empresaId) {
+    carregarBranding();
+  }
+}, [empresaId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) { setShowUserMenu(false); } };
