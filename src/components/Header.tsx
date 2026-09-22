@@ -30,7 +30,7 @@ type MenuGroup = {
 const HEADER_MENU_GROUPS: MenuGroup[] = [
   {
     group: "Dashboard",
-    href: "/dashboard",
+    href: "/",
     items: [],
   },
   {
