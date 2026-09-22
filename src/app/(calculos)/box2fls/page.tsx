@@ -542,10 +542,10 @@ export default function Box2FlsPage() {
     if (!vidroSelecionado) return 0;
 
     const precoGrupo = clienteSelecionado?.grupo_preco_id ? precosVidroGrupos.find(
-        (preco) =>
-          String(preco.vidro_id) === String(vidroSelecionado.id) &&
-          String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
-      )
+      (preco) =>
+        String(preco.vidro_id) === String(vidroSelecionado.id) &&
+        String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
+    )
       : null;
 
     return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
@@ -586,13 +586,13 @@ export default function Box2FlsPage() {
     setMateriais((lista) =>
       lista.map((material) =>
         material.id === idMaterial ? {
-            ...material,
-            descricao: item.descricao,
-            unidade: item.tipo === "perfil" ? "barra" : "und",
-            valorUnitario: item.preco,
+          ...material,
+          descricao: item.descricao,
+          unidade: item.tipo === "perfil" ? "barra" : "und",
+          valorUnitario: item.preco,
           codigoPerfil: item.tipo === "perfil" ? item.descricao.split(" - ")[0]?.trim() || material.codigoPerfil : material.codigoPerfil,
           personalizadoCatalogo: Boolean(material.origemCalculo),
-          }
+        }
           : material
       )
     );
@@ -1348,515 +1348,949 @@ export default function Box2FlsPage() {
   }, [dados.corKit, ferragens, kits, perfis]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-background text-text-primary">
-      <div className="flex min-h-screen w-full">
-        <div className="flex min-h-screen w-full flex-col bg-transparent">
-<header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-border bg-surface/90 px-5 py-4 shadow-[0_18px_50px_var(--shadow)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">            <div className="flex items-center">
-              <div className="flex h-[54px] w-full max-w-[220px] items-center">
-                {logoUsuario ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={theme.logoUrl || logoUsuario}
-                    alt="Logo da empresa"
-                    className="max-h-[54px] w-auto max-w-[220px] object-contain"
-                  />
-                ) : (
-                  <div className="text-[22px] font-semibold leading-none text-text-primary">
-                    Logo da empresa
-                  </div>
-                )}
+    <main className="min-h-screen w-full bg-background text-text-primary">
+      <div className="w-full px-4 pb-28 pt-5 sm:px-6 lg:px-8 2xl:px-10">
+
+        {/* =========================================================
+            CABEÇALHO DA PÁGINA
+        ========================================================= */}
+        <header className="mb-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-text-secondary">
+                <span>Orçamentos</span>
+                <span className="opacity-40">/</span>
+                <span>Novo orçamento</span>
+                <span className="opacity-40">/</span>
+                <span className="text-text-primary">Box 2 Folhas</span>
               </div>
-            </div>
 
-            <div className="flex items-center justify-start gap-2 xl:justify-end">
-              <label className="text-xs font-medium uppercase tracking-wide text-text-secondary">Projeto:</label>
-              <input
-                value={dados.projeto}
-                tabIndex={-1}
-                onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-[360px] border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-text-primary outline-none"
-              />
-            </div>
-
-            <div className="sm:justify-self-end sm:border-l sm:border-border/80 sm:pl-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
-                  <FileText size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
-                  <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Nº Orçamento</label>
-                    <input
-                      value={dados.numero}
-                      tabIndex={-1}
-                      onChange={(e) => atualizarCampo("numero", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
-                    />
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface">
+                  <Grid2X2 size={22} strokeWidth={1.7} className="text-primary" />
                 </div>
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
-                  <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
-                  <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Data</label>
-                    <input
-                      value={dados.data}
-                      tabIndex={-1}
-                      onChange={(e) => atualizarCampo("data", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
-                    />
-                  </div>
+
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">
+                    Box 2 Folhas
+                  </h1>
+                  <p className="mt-0.5 text-sm text-text-secondary">
+                    Configure as medidas e o sistema calcula automaticamente os materiais e o valor.
+                  </p>
                 </div>
               </div>
             </div>
-          </header>
 
-          <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] backdrop-blur sm:mx-6">
-            <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-            <div className="relative min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
-              <div className="mb-0.5 flex items-center justify-between gap-2">
-                <label className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cliente</label>
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+              <div className="mr-2 hidden items-center gap-3 text-xs text-text-secondary lg:flex">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  {editId ? "Editando orçamento" : "Orçamento não salvo"}
+                </span>
+
+                <span className="h-4 w-px bg-border" />
+
+                <span className="font-medium text-text-primary">
+                  Nº {dados.numero || "automático"}
+                </span>
+
+                <span className="h-4 w-px bg-border" />
+
+                <span>{dados.data}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={novoProjeto}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
+              >
+                <Plus size={17} />
+                Novo
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/matriz-projetos")}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
+              >
+                <FolderOpen size={17} />
+                Projetos
+              </button>
+
+              <button
+                type="button"
+                disabled={salvandoOrcamento}
+                onClick={salvarOrcamento}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Save size={17} />
+                {salvandoOrcamento ? "Salvando..." : "Salvar orçamento"}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* =========================================================
+            CLIENTE E OBRA
+        ========================================================= */}
+        <section className="mb-4 rounded-xl border border-border bg-surface">
+          <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
+            <UserRound size={18} strokeWidth={1.7} className="text-text-secondary" />
+            <h2 className="text-sm font-semibold text-text-primary">
+              Cliente e Obra
+            </h2>
+          </div>
+
+          <div className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                Cliente
+              </label>
+
+              <div className="flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  {listaClientesAberta ? (
+                    <input
+                      ref={clienteInputRef}
+                      value={dados.cliente}
+                      onChange={(e) => {
+                        atualizarCampo("cliente", e.target.value);
+                        setClienteAtivoIndex(0);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setClienteAtivoIndex((atual) =>
+                            Math.min(
+                              atual + 1,
+                              Math.max(clientesFiltrados.length - 1, 0)
+                            )
+                          );
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setClienteAtivoIndex((atual) =>
+                            Math.max(atual - 1, 0)
+                          );
+                        } else if (
+                          e.key === "Enter" &&
+                          clientesFiltrados[clienteAtivoIndex]
+                        ) {
+                          e.preventDefault();
+                          selecionarCliente(
+                            clientesFiltrados[clienteAtivoIndex]
+                          );
+                        } else if (e.key === "Escape") {
+                          setListaClientesAberta(false);
+                        }
+                      }}
+                      onBlur={() =>
+                        window.setTimeout(
+                          () => setListaClientesAberta(false),
+                          250
+                        )
+                      }
+                      disabled={carregandoClientes}
+                      placeholder={
+                        carregandoClientes
+                          ? "Carregando..."
+                          : "Digite ou pesquise o cliente"
+                      }
+                      className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none transition placeholder:text-text-secondary focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setListaClientesAberta(true)}
+                      className="flex h-11 w-full items-center justify-between rounded-lg border border-border bg-background px-3 text-left text-sm font-medium text-text-primary transition hover:border-border-strong"
+                    >
+                      <span className="truncate">
+                        {dados.cliente || "Digite ou pesquise o cliente"}
+                      </span>
+
+                      <UserRound
+                        size={17}
+                        className="shrink-0 text-text-secondary"
+                      />
+                    </button>
+                  )}
+
+                  {listaClientesAberta && (
+                    <div className="absolute left-0 top-full z-[120] mt-1 max-h-[280px] w-full overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
+                      {carregandoClientes ? (
+                        <div className="px-3 py-2 text-sm text-text-secondary">
+                          Carregando clientes...
+                        </div>
+                      ) : clientesFiltrados.length > 0 ? (
+                        clientesFiltrados.map((cliente, index) => (
+                          <button
+                            key={cliente.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selecionarCliente(cliente);
+                            }}
+                            onMouseEnter={() =>
+                              setClienteAtivoIndex(index)
+                            }
+                            className={`block w-full px-3 py-2.5 text-left text-sm font-medium transition ${index === clienteAtivoIndex
+                                ? "bg-primary/10 text-text-primary"
+                                : "text-text-primary hover:bg-surface-secondary"
+                              }`}
+                          >
+                            {cliente.nome}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-text-secondary">
+                          Nenhum cliente encontrado
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     setListaClientesAberta(false);
                     setModalNovoClienteAberto(true);
                   }}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border-strong text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
-                  title="Cadastrar novo cliente"
+                  className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
                 >
-                  <Plus size={13} />
+                  <Plus size={17} />
+                  <span className="hidden sm:inline">Novo cliente</span>
                 </button>
               </div>
-              <div className="relative">
-                <UserRound size={20} strokeWidth={1.6} className="absolute left-0 top-1/2 -translate-y-1/2 text-text-secondary" />
-                {listaClientesAberta ? (
-                  <input
-                    ref={clienteInputRef}
-                    value={dados.cliente}
-                    tabIndex={-1}
-                    onChange={(e) => {
-                      atualizarCampo("cliente", e.target.value);
-                      setClienteAtivoIndex?.(0);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowDown") {
-                        e.preventDefault();
-                        setClienteAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(clientesFiltrados.length - 1, 0)));
-                      } else if (e.key === "ArrowUp") {
-                        e.preventDefault();
-                        setClienteAtivoIndex?.((atual) => Math.max(atual - 1, 0));
-                      } else if (e.key === "Enter" && clientesFiltrados[clienteAtivoIndex]) {
-                        e.preventDefault();
-                        selecionarCliente(clientesFiltrados[clienteAtivoIndex]);
-                      } else if (e.key === "Escape") {
-                        setListaClientesAberta(false);
-                      }
-                    }}
-                    onBlur={() => window.setTimeout(() => setListaClientesAberta(false), 250)}
-                    disabled={carregandoClientes}
-                    className="w-full border-0 bg-transparent py-1 pl-7 pr-1 text-[15px] font-semibold text-text-primary outline-none placeholder:text-text-secondary disabled:text-text-secondary"
-                    placeholder={carregandoClientes ? "Carregando..." : "Digite ou pesquise o cliente"}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setListaClientesAberta(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowDown" || e.key === "Enter") {
-                        e.preventDefault();
-                        setListaClientesAberta(true);
-                      }
-                    }}
-                    className="block w-full truncate bg-transparent py-1 pl-7 pr-1 text-left text-[15px] font-semibold text-text-primary"
-                  >
-                    {dados.cliente || "Digite ou pesquise o cliente"}
-                  </button>
-                )}
-                {listaClientesAberta && (
-                  <div className="absolute left-0 top-full z-[120] mt-2 max-h-[280px] w-full overflow-auto rounded-lg border border-border-strong/20 bg-surface py-1 text-sm shadow-xl shadow-slate-900/10">
-                    {carregandoClientes ? (
-                      <div className="px-3 py-2 font-medium text-text-secondary">Carregando clientes...</div>
-                    ) : clientesFiltrados.length > 0 ? (
-                      clientesFiltrados.map((cliente, index) => (
-                        <button
-                          key={cliente.id}
-                          type="button"
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            selecionarCliente(cliente);
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            selecionarCliente(cliente);
-                          }}
-                          onMouseEnter={() => setClienteAtivoIndex?.(index)}
-                          onClick={() => selecionarCliente(cliente)}
-                          className={`block w-full px-3 py-2 text-left font-semibold text-text-primary ${index === clienteAtivoIndex ? "bg-primary/10" : "bg-transparent hover:bg-navigation/10"
-                            }`}
-                        >
-                          {cliente.nome}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 font-medium text-text-secondary">Nenhum cliente encontrado</div>
-                    )}
-                  </div>
-                )}
-              </div>
+
               {clienteSelecionado && (
-                <div className="mt-2 flex flex-wrap gap-2 pl-7 text-[11px]">
-                  <span className="rounded-full bg-surface-secondary px-2 py-1 font-medium text-text-secondary">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md bg-surface-secondary px-2.5 py-1 text-[11px] font-medium text-text-secondary">
                     Rota: {clienteSelecionado.rota?.trim() || "Não informada"}
                   </span>
-                  <span className="rounded-full bg-surface-secondary px-2 py-1 font-medium text-text-secondary">
+
+                  <span className="rounded-md bg-surface-secondary px-2.5 py-1 text-[11px] font-medium text-text-secondary">
                     Tabela: {tabelaPrecoSelecionada?.nome || "Padrão"}
                   </span>
                 </div>
               )}
             </div>
-              <label className="block min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
-                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-text-secondary">Nome da obra (opcional)</span>
-                <input
-                  value={dados.obra || ""}
-                  onChange={(e) => atualizarCampo("obra", e.target.value)}
-                  placeholder="Informe o nome da obra"
-                  className="w-full border-0 bg-transparent py-1 text-[15px] text-text-primary outline-none placeholder:text-text-secondary"
-                />
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                Obra
+                <span className="ml-1 opacity-60">(opcional)</span>
               </label>
+
+              <input
+                value={dados.obra || ""}
+                onChange={(e) => atualizarCampo("obra", e.target.value)}
+                placeholder="Ex.: Banheiro suíte"
+                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none transition placeholder:text-text-secondary focus:border-primary focus:ring-2 focus:ring-primary/10"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================
+            CONFIGURAÇÃO + PRÉ-VISUALIZAÇÃO
+        ========================================================= */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,0.85fr)]">
+
+          {/* CONFIGURAÇÃO */}
+          <section className="rounded-xl border border-border bg-surface">
+            <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
+              <Settings
+                size={18}
+                strokeWidth={1.7}
+                className="text-text-secondary"
+              />
+              <h2 className="text-sm font-semibold text-text-primary">
+                Configuração do Projeto
+              </h2>
+            </div>
+
+            <div className="p-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <DataInput
+                  icon={
+                    <MoveHorizontal size={19} strokeWidth={1.7} />
+                  }
+                  label="Largura"
+                  value={dados.largura}
+                  suffix="mm"
+                  onChange={(v) =>
+                    atualizarCampo("largura", v)
+                  }
+                />
+
+                <DataInput
+                  icon={
+                    <MoveVertical size={19} strokeWidth={1.7} />
+                  }
+                  label="Altura"
+                  value={dados.altura}
+                  suffix="mm"
+                  onChange={(v) =>
+                    atualizarCampo("altura", v)
+                  }
+                />
+
+                <DataInput
+                  icon={<Copy size={19} strokeWidth={1.7} />}
+                  label="Quantidade"
+                  value={dados.quantidade}
+                  onChange={(v) =>
+                    atualizarCampo("quantidade", v)
+                  }
+                />
+
+                {/* VIDRO */}
+                <div className="relative">
+                  <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    Tipo de vidro
+                  </label>
+
+                  {listaVidrosAberta ? (
+                    <input
+                      ref={vidroInputRef}
+                      value={dados.vidro}
+                      onChange={(e) => {
+                        atualizarCampo("vidro", e.target.value);
+                        setVidroAtivoIndex(0);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setVidroAtivoIndex((atual) =>
+                            Math.min(
+                              atual + 1,
+                              Math.max(vidrosFiltrados.length - 1, 0)
+                            )
+                          );
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setVidroAtivoIndex((atual) =>
+                            Math.max(atual - 1, 0)
+                          );
+                        } else if (
+                          e.key === "Enter" &&
+                          vidrosFiltrados[vidroAtivoIndex]
+                        ) {
+                          e.preventDefault();
+                          selecionarVidro(
+                            vidrosFiltrados[vidroAtivoIndex]
+                          );
+                        } else if (e.key === "Escape") {
+                          setListaVidrosAberta(false);
+                        }
+                      }}
+                      onBlur={() =>
+                        window.setTimeout(
+                          () => setListaVidrosAberta(false),
+                          250
+                        )
+                      }
+                      disabled={carregandoVidros}
+                      className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setListaVidrosAberta(true)}
+                      className="flex h-11 w-full items-center justify-between rounded-lg border border-border bg-background px-3 text-left text-sm font-semibold text-text-primary transition hover:border-border-strong"
+                    >
+                      <span className="truncate">
+                        {dados.vidro || "Escolher"}
+                      </span>
+                      <span className="text-xs text-text-secondary">⌄</span>
+                    </button>
+                  )}
+
+                  {listaVidrosAberta && (
+                    <div className="absolute left-0 top-full z-40 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
+                      {vidrosFiltrados.map((vidro, index) => (
+                        <button
+                          key={vidro.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selecionarVidro(vidro);
+                          }}
+                          onMouseEnter={() =>
+                            setVidroAtivoIndex(index)
+                          }
+                          className={`block w-full px-3 py-2 text-left text-sm font-medium ${index === vidroAtivoIndex
+                              ? "bg-primary/10"
+                              : "hover:bg-surface-secondary"
+                            }`}
+                        >
+                          {formatarVidroCadastro(vidro)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <OptionInput
+                  icon={<Wrench size={19} strokeWidth={1.7} />}
+                  label="Modelo do kit"
+                  value={dados.trinco || "Tradicional"}
+                  options={modeloKitOpcoes}
+                  onChange={(v) =>
+                    atualizarCampo("trinco", v)
+                  }
+                />
+
+                <OptionInput
+                  icon={<Palette size={19} strokeWidth={1.7} />}
+                  label="Cor"
+                  value={dados.corKit}
+                  options={corKitOpcoes}
+                  onChange={(v) =>
+                    atualizarCampo("corKit", v)
+                  }
+                />
+
+                <OptionInput
+                  icon={<RailSymbol size={19} strokeWidth={1.7} />}
+                  label="Altura do box"
+                  value={dados.trilho}
+                  options={alturaBoxOpcoes}
+                  onChange={(v) =>
+                    atualizarCampo("trilho", v)
+                  }
+                />
+
+                <OptionInput
+                  icon={<Settings size={19} strokeWidth={1.7} />}
+                  label="Puxador"
+                  value={dados.puxador || "Sem puxador"}
+                  options={puxadorOpcoes}
+                  onChange={(v) =>
+                    atualizarCampo("puxador", v)
+                  }
+                />
+              </div>
+
+              {/* INFORMAÇÕES AUTOMÁTICAS */}
+           {/* INFORMAÇÕES AUTOMÁTICAS */}
+<div className="mt-5 grid gap-x-5 gap-y-3 border-t border-border pt-4 sm:grid-cols-2 xl:grid-cols-4">
+
+  {/* KIT */}
+  <div className="flex items-start gap-2">
+    {kitSelecionado ? (
+      <CheckCircle2
+        size={15}
+        className="mt-0.5 shrink-0 text-primary"
+      />
+    ) : (
+      <AlertTriangle
+        size={15}
+        className="mt-0.5 shrink-0 text-amber-500"
+      />
+    )}
+
+    <div className="min-w-0">
+      <p
+        className={`text-xs font-medium ${
+          kitSelecionado
+            ? "text-text-secondary"
+            : "text-text-primary"
+        }`}
+      >
+        {kitSelecionado
+          ? "Kit incluído"
+          : "Kit não incluído"}
+      </p>
+
+      <p className="mt-0.5 truncate text-[10px] text-text-secondary">
+        {kitSelecionado
+          ? `${dados.trinco} · ${dados.corKit}`
+          : dados.corKit === "Escolher"
+          ? "Selecione uma cor"
+          : "Nenhum kit compatível encontrado"}
+      </p>
+    </div>
+  </div>
+
+  {/* PERFIS */}
+  <div className="flex items-start gap-2">
+    <CheckCircle2
+      size={15}
+      className="mt-0.5 shrink-0 text-primary"
+    />
+
+    <div>
+      <p className="text-xs font-medium text-text-secondary">
+        Perfis calculados
+      </p>
+
+      <p className="mt-0.5 text-[10px] text-text-secondary">
+        Conforme medidas
+      </p>
+    </div>
+  </div>
+
+  {/* FERRAGENS */}
+  <div className="flex items-start gap-2">
+    <CheckCircle2
+      size={15}
+      className="mt-0.5 shrink-0 text-primary"
+    />
+
+    <div>
+      <p className="text-xs font-medium text-text-secondary">
+        Ferragens compatíveis
+      </p>
+
+      <p className="mt-0.5 text-[10px] text-text-secondary">
+        Conforme configuração
+      </p>
+    </div>
+  </div>
+
+  {/* PREÇO */}
+  <div className="flex items-start gap-2">
+    {precoVidroM2 > 0 ? (
+      <CheckCircle2
+        size={15}
+        className="mt-0.5 shrink-0 text-primary"
+      />
+    ) : (
+      <AlertTriangle
+        size={15}
+        className="mt-0.5 shrink-0 text-amber-500"
+      />
+    )}
+
+    <div>
+      <p className="text-xs font-medium text-text-secondary">
+        {precoVidroM2 > 0
+          ? "Preço conforme tabela"
+          : "Preço não encontrado"}
+      </p>
+
+      <p className="mt-0.5 text-[10px] text-text-secondary">
+        {precoVidroM2 > 0
+          ? tabelaPrecoSelecionada?.nome || "Tabela padrão"
+          : "Verifique o cadastro"}
+      </p>
+    </div>
+  </div>
+
+</div>
             </div>
           </section>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="relative z-[20] mx-4 mt-2 w-auto shrink-0 rounded-2xl border border-border bg-surface/85 shadow-sm backdrop-blur sm:mx-6">
-              <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
-                {[
-                  { label: "Orçamento", icon: ClipboardList, ativo: true },
-                  { label: "Imprimir", icon: Printer },
-                  { label: "Projetos", icon: FolderOpen },
-                  { label: "PDF +", icon: FileText },
-                  { label: "Salvar", icon: Save },
-                  { label: "Configurações", icon: Settings },
-                  { label: "Ajuda", icon: HelpCircle },
-                ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-success-soft bg-success-soft text-text-primary shadow-sm" : "border-transparent text-text-secondary hover:border-border hover:bg-surface"}`;
+          {/* PRÉ-VISUALIZAÇÃO */}
+          <section className="rounded-xl border border-border bg-surface">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <Grid2X2
+                  size={18}
+                  strokeWidth={1.7}
+                  className="text-text-secondary"
+                />
+                <h2 className="text-sm font-semibold text-text-primary">
+                  Pré-visualização
+                </h2>
+              </div>
 
-                  if (label === "Imprimir") {
-                    return (
-                      <PDFDownloadLink
-                        key={label}
-                        tabIndex={-1}
-                        document={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />}
-                        fileName={`box2fls_${dados.numero || "novo"}.pdf`}
-                        className={itemClass}
-                      >
-                        {() => (
-                          <>
-                            <Icon size={18} />
-                            <span>{label}</span>
-                          </>
-                        )}
-                      </PDFDownloadLink>
-                    );
-                  }
+              <span className="rounded-md bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Vista externa
+              </span>
+            </div>
 
-                  return (
-                    <button
-                      key={label}
-                      tabIndex={-1}
-                      onClick={() => {
-                        if (label === "Projetos") {
-                          router.push("/matriz-projetos");
-                        }
-                        if (label === "PDF +") {
-                          enviarParaCentralImpressao();
-                        }
-                        if (label === "Salvar") {
-                          salvarOrcamento();
-                        }
-                      }}
-                      disabled={label === "Salvar" && salvandoOrcamento}
-                      className={itemClass}
-                      type="button"
-                    >
-                      <Icon size={18} />
-                      <span>{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </aside>
+            <div className="grid min-h-[390px] gap-4 p-5 md:grid-cols-[minmax(0,1fr)_165px] xl:grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_165px]">
+             <div className="flex min-h-[300px] items-center justify-center rounded-lg bg-white p-3">
+                <ProjetoDrawing
+                  modelo={dados.trinco || "Tradicional"}
+                  puxador={dados.puxador}
+                />
+              </div>
 
-            <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
-                  <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                    <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-[320px] items-center justify-center rounded-2xl border border-border bg-gradient-to-br from-surface via-surface-secondary to-surface-secondary p-4 sm:min-h-[420px] xl:min-h-[430px]">
-                      <ProjetoDrawing modelo={dados.trinco || "Tradicional"} puxador={dados.puxador} />
-                    </div>
-                  </section>
-
-                  <div className="space-y-4">
-                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                      <SectionTitle>Dados do projeto</SectionTitle>
-                      <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
-                        <DataInput
-                          icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
-                          label="Largura"
-                          value={dados.largura}
-                          suffix="mm"
-                          onChange={(v) => atualizarCampo("largura", v)}
-                        />
-
-                        <DataInput
-                          icon={<MoveVertical size={24} strokeWidth={1.6} />}
-                          label="Altura"
-                          value={dados.altura}
-                          suffix="mm"
-                          onChange={(v) => atualizarCampo("altura", v)}
-                        />
-
-                        <DataInput
-                          icon={<Copy size={24} strokeWidth={1.6} />}
-                          label="Quantidade"
-                          value={dados.quantidade}
-                          onChange={(v) => atualizarCampo("quantidade", v)}
-                        />
-                        <label className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
-                          <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
-                            <Layers size={24} strokeWidth={1.6} />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cor do vidro</span>
-                            {listaVidrosAberta ? (
-                              <input
-                                ref={vidroInputRef}
-                                value={dados.vidro}
-                                onChange={(e) => {
-                                  atualizarCampo("vidro", e.target.value);
-                                  setVidroAtivoIndex?.(0);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "ArrowDown") {
-                                    e.preventDefault();
-                                    setVidroAtivoIndex?.((atual) => Math.min(atual + 1, Math.max(vidrosFiltrados.length - 1, 0)));
-                                  } else if (e.key === "ArrowUp") {
-                                    e.preventDefault();
-                                    setVidroAtivoIndex?.((atual) => Math.max(atual - 1, 0));
-                                  } else if (e.key === "Enter" && vidrosFiltrados[vidroAtivoIndex]) {
-                                    e.preventDefault();
-                                    selecionarVidro(vidrosFiltrados[vidroAtivoIndex]);
-                                  } else if (e.key === "Escape") {
-                                    setListaVidrosAberta(false);
-                                  }
-                                }}
-                                onBlur={() => window.setTimeout(() => setListaVidrosAberta(false), 250)}
-                                disabled={carregandoVidros}
-                                className="mt-1 w-full bg-transparent text-base font-semibold leading-tight text-text-primary outline-none placeholder:text-text-secondary disabled:text-text-secondary"
-                                placeholder={carregandoVidros ? "Carregando..." : "Digite o vidro"}
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setListaVidrosAberta(true)}
-                                onFocus={() => setListaVidrosAberta(true)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "ArrowDown" || e.key === "Enter") {
-                                    e.preventDefault();
-                                    setListaVidrosAberta(true);
-                                  }
-                                }}
-                                className="mt-1 block w-full truncate rounded-lg bg-transparent p-0 text-left text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
-                              >
-                                {dados.vidro || "Digite o vidro"}
-                              </button>
-                            )}
-                          </span>
-                          {listaVidrosAberta && (
-                            <div className="absolute left-[84px] top-[64px] z-30 max-h-[250px] w-[320px] overflow-auto rounded-lg border border-border-strong/20 bg-surface py-1 text-sm shadow-xl shadow-slate-900/10">
-                              {carregandoVidros ? (
-                                <div className="px-3 py-2 font-medium text-text-secondary">Carregando vidros...</div>
-                              ) : vidrosFiltrados.length > 0 ? (
-                                vidrosFiltrados.map((vidro, index) => (
-                                  <button
-                                    key={vidro.id}
-                                    type="button"
-                                    tabIndex={-1}
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      selecionarVidro(vidro);
-                                    }}
-                                    onMouseEnter={() => setVidroAtivoIndex?.(index)}
-                                    className={`block w-full px-3 py-2 text-left font-semibold text-text-primary ${index === vidroAtivoIndex ? "bg-primary/10"
-                                        : "bg-transparent hover:bg-navigation/10"
-                                      }`}
-                                  >
-                                    {formatarVidroCadastro(vidro)}
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-3 py-2 font-medium text-text-secondary">Nenhum vidro encontrado</div>
-                              )}
-                            </div>
-                          )}
-                        </label>
-                        <OptionInput
-                          icon={<RailSymbol size={24} strokeWidth={1.6} />}
-                          label="Altura"
-                          value={dados.trilho}
-                          options={alturaBoxOpcoes}
-                          onChange={(v) => atualizarCampo("trilho", v)}
-                        />
-
-                        <OptionInput
-                          icon={<Palette size={24} strokeWidth={1.6} />}
-                          label="Cor do perfil"
-                          value={dados.corKit}
-                          options={corKitOpcoes}
-                          onChange={(v) => atualizarCampo("corKit", v)}
-                        />
-
-                        <OptionInput
-                          icon={<Wrench size={24} strokeWidth={1.6} />}
-                          label="Modelo do kit"
-                          value={dados.trinco || "Tradicional"}
-                          options={modeloKitOpcoes}
-                          onChange={(v) => atualizarCampo("trinco", v)}
-                        />
-
-                        <OptionInput
-                          icon={<Settings size={24} strokeWidth={1.6} />}
-                          label="Puxador"
-                          value={dados.puxador || "Sem puxador"}
-                          options={puxadorOpcoes}
-                          onChange={(v) => atualizarCampo("puxador", v)}
-                        />
-                      </div>
-                    </section>
-
-                    <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
-
-                    <LoteRapidoProjetos
-                      aberto={loteRapido.aberto}
-                      editando={loteRapido.editando}
-                      linhas={loteRapido.linhas}
-                      onAlternar={loteRapido.alternar}
-                      onAdicionar={loteRapido.adicionarLinha}
-                      onRemover={loteRapido.removerLinha}
-                      onAtualizar={loteRapido.atualizarLinha}
-                      onEnviar={loteRapido.enviar}
+              <div className="space-y-3">
+                <div className="rounded-lg bg-primary/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2
+                      size={18}
+                      className="text-primary"
                     />
+                    <span className="text-sm font-semibold text-text-primary">
+                      Projeto calculado
+                    </span>
+                  </div>
 
+                  <p className="mt-1 pl-6 text-[11px] leading-4 text-text-secondary">
+                    Materiais atualizados automaticamente.
+                  </p>
+                </div>
 
-                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <SectionTitle>Relação de materiais</SectionTitle>
-                        <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
-                          <button
-                            type="button"
-                            onClick={novoProjeto}
-                            className="rounded-xl bg-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-text-primary shadow-sm"
-                          >
-                            Novo
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMateriais((lista) => [...lista, criarMaterial()])}
-                            className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-on-primary shadow-sm"
-                          >
-                            Adicionar item
-                          </button>
+                <div className="space-y-2 rounded-lg bg-surface-secondary p-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">Folhas</span>
+                    <strong className="text-text-primary">
+                      {numero(totalVidros, 0)}
+                    </strong>
+                  </div>
 
-                        </div>
-                      </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">Área</span>
+                    <strong className="text-text-primary">
+                      {numero(calculoVidro.areaTotalCobrada)} m²
+                    </strong>
+                  </div>
 
-                      <div className="mt-4 overflow-x-auto overflow-y-visible rounded-2xl border border-border/80 bg-surface shadow-sm">
-                        <div className="grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                          <div className="border-r border-border/80 px-3 py-3 text-center">Qtd</div>
-                          <div className="border-r border-border/80 px-3 py-3">Produto / descrição</div>
-                          <div className="border-r border-border/80 px-3 py-3 text-center">Unidade</div>
-                          <div className="px-3 py-3 text-center" />
-                          <div className="border-r border-border/80 px-3 py-3 text-right">Valor unit.</div>
-                          <div className="px-3 py-3 text-center" />
-                          <div className="px-3 py-3 text-right">Valor total</div>
-                        </div>
-                        {materiaisOrdenados.map((item) => (
-                          <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
-                            <div className="px-3 py-2.5">
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={formatarQtdMaterial(item.qtd, item.unidade)}
-                                onChange={(e) => atualizarMaterial(item.id, "qtd", parseQtdMaterial(e.target.value, item.unidade))}
-                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
-                              />
-                            </div>
-                            <div className="flex items-center px-3 py-2.5">
-                              <DescricaoMaterialInput
-                                item={item}
-                                itensCatalogo={itensCatalogo}
-                                atualizarMaterial={atualizarMaterial}
-                                selecionarItemCatalogo={selecionarItemCatalogo}
-                              />
-                            </div>
-                            <div className="px-3 py-2.5">
-                              <input
-                                value={item.unidade}
-                                onChange={(e) => atualizarMaterial(item.id, "unidade", e.target.value)}
-                                className="w-full bg-transparent text-center font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
-                              />
-                            </div>
-                            <div className="px-3 py-2.5 text-center font-medium">R$</div>
-                            <div className="px-3 py-2.5">
-                              <input
-                                value={numero(item.valorUnitario)}
-                                onChange={(e) => atualizarMaterial(item.id, "valorUnitario", parseNumeroPtBr(e.target.value))}
-                                className="w-full bg-transparent text-right font-medium outline-none focus:rounded-md focus:bg-surface-secondary"
-                              />
-                            </div>
-                            <div className="px-3 py-2.5 text-center font-medium">R$</div>
-                            <div className="px-3 py-2.5 text-right font-medium">
-                              {numero(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}
-                            </div>
-                            <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-lg bg-surface/95 p-1 shadow-sm group-hover:flex">
-                              <button type="button" onClick={() => duplicarMaterial(item)} className="rounded-md bg-info-soft p-1.5 text-info">
-                                <Copy size={16} />
-                              </button>
-                              <button type="button" onClick={() => removerMaterial(item.id)} className="rounded-md bg-danger-soft p-1.5 text-danger">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-end gap-4 rounded-2xl border border-border bg-surface-secondary px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-text-primary">Valor total do Orçamento</p>
-                        <div className="rounded-2xl bg-surface-secondary px-7 py-3 text-xl font-bold text-text-primary">
-                          {moeda(totalMateriais)}
-                        </div>
-                      </div>
-                    </section>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">Modelo</span>
+                    <strong className="max-w-[90px] truncate text-right text-text-primary">
+                      {dados.trinco}
+                    </strong>
                   </div>
                 </div>
 
-                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] md:grid-cols-3 xl:grid-cols-6">
-                  <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
-                  <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
-                  <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
-                  <SummaryCard icon={<RailSymbol size={30} />} label="Valor perfis" value={moeda(valorPerfis)} detail="Perfis" tone="blue" />
-                  <SummaryCard icon={<Wrench size={30} />} label="Valor ferragens" value={moeda(valorFerragens)} detail="Kits e acessórios" tone="orange" />
-                  <SummaryCard icon={<DollarSign size={30} />} label="Valor total" value={moeda(totalMateriais)} detail="Orçamento total" tone="emerald" />
-                </section>
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-secondary">
+                    Valor estimado
+                  </p>
+                  <p className="mt-1 text-xl font-bold tracking-tight text-text-primary">
+                    {moeda(totalMateriais)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* =========================================================
+            PERFIS EXTRAS
+        ========================================================= */}
+        <div className="mt-4">
+          <PerfisExtrasProjeto
+            perfis={perfis}
+            materiais={materiais}
+            setMateriais={setMateriais}
+            altura={dados.altura}
+            largura={dados.largura}
+            quantidade={dados.quantidade}
+          />
+        </div>
+
+        {/* =========================================================
+            LOTE RÁPIDO
+        ========================================================= */}
+        <div className="mt-4">
+          <LoteRapidoProjetos
+            aberto={loteRapido.aberto}
+            editando={loteRapido.editando}
+            linhas={loteRapido.linhas}
+            onAlternar={loteRapido.alternar}
+            onAdicionar={loteRapido.adicionarLinha}
+            onRemover={loteRapido.removerLinha}
+            onAtualizar={loteRapido.atualizarLinha}
+            onEnviar={loteRapido.enviar}
+          />
+        </div>
+
+        {/* =========================================================
+            MATERIAIS
+        ========================================================= */}
+        <section className="mt-4 overflow-visible rounded-xl border border-border bg-surface">
+          <div className="flex flex-col gap-3 border-b border-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Layers3
+                size={18}
+                strokeWidth={1.7}
+                className="text-text-secondary"
+              />
+              <div>
+                <h2 className="text-sm font-semibold text-text-primary">
+                  Materiais do Projeto
+                </h2>
+                <p className="mt-0.5 text-[11px] text-text-secondary">
+                  Itens calculados automaticamente e ajustes manuais.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setMateriais((lista) => [
+                  ...lista,
+                  criarMaterial(),
+                ])
+              }
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-text-primary transition hover:bg-surface-secondary"
+            >
+              <Plus size={15} />
+              Adicionar item
+            </button>
+          </div>
+
+          <div className="overflow-x-auto overflow-y-visible">
+            <div className="min-w-[880px]">
+              <div className="grid grid-cols-[80px_minmax(300px,1fr)_90px_130px_140px_74px] border-b border-border bg-surface-secondary/70 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                <div className="px-4 py-3 text-center">Qtd.</div>
+                <div className="px-4 py-3">Descrição</div>
+                <div className="px-4 py-3 text-center">Unidade</div>
+                <div className="px-4 py-3 text-right">Valor unit.</div>
+                <div className="px-4 py-3 text-right">Valor total</div>
+                <div className="px-4 py-3" />
               </div>
 
-            </section>
+              {materiaisOrdenados.map((item) => (
+                <div
+                  key={item.id}
+                  className="group grid grid-cols-[80px_minmax(300px,1fr)_90px_130px_140px_74px] items-center border-b border-border/70 text-xs transition last:border-b-0 hover:bg-surface-secondary/50"
+                >
+                  <div className="px-4 py-3">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formatarQtdMaterial(
+                        item.qtd,
+                        item.unidade
+                      )}
+                      onChange={(e) =>
+                        atualizarMaterial(
+                          item.id,
+                          "qtd",
+                          parseQtdMaterial(
+                            e.target.value,
+                            item.unidade
+                          )
+                        )
+                      }
+                      className="w-full rounded-md bg-transparent px-1 py-1 text-center font-medium text-text-primary outline-none focus:bg-background"
+                    />
+                  </div>
+
+                  <div className="px-4 py-3">
+                    <DescricaoMaterialInput
+                      item={item}
+                      itensCatalogo={itensCatalogo}
+                      atualizarMaterial={atualizarMaterial}
+                      selecionarItemCatalogo={
+                        selecionarItemCatalogo
+                      }
+                    />
+                  </div>
+
+                  <div className="px-4 py-3">
+                    <input
+                      value={item.unidade}
+                      onChange={(e) =>
+                        atualizarMaterial(
+                          item.id,
+                          "unidade",
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-md bg-transparent px-1 py-1 text-center font-medium text-text-primary outline-none focus:bg-background"
+                    />
+                  </div>
+
+                  <div className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-text-secondary">R$</span>
+                      <input
+                        value={numero(item.valorUnitario)}
+                        onChange={(e) =>
+                          atualizarMaterial(
+                            item.id,
+                            "valorUnitario",
+                            parseNumeroPtBr(e.target.value)
+                          )
+                        }
+                        className="w-[82px] rounded-md bg-transparent px-1 py-1 text-right font-medium text-text-primary outline-none focus:bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 text-right font-semibold text-text-primary">
+                    {moeda(
+                      Number(item.qtd || 0) *
+                      Number(item.valorUnitario || 0)
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1 px-3 py-3">
+                    <button
+                      type="button"
+                      title="Duplicar"
+                      onClick={() => duplicarMaterial(item)}
+                      className="rounded-md p-1.5 text-text-secondary transition hover:bg-info-soft hover:text-info"
+                    >
+                      <Copy size={15} />
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Excluir"
+                      onClick={() => removerMaterial(item.id)}
+                      className="rounded-md p-1.5 text-text-secondary transition hover:bg-danger-soft hover:text-danger"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {materiaisOrdenados.length === 0 && (
+                <div className="px-5 py-10 text-center text-sm text-text-secondary">
+                  Configure o projeto para gerar os materiais.
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================
+            RESUMO
+        ========================================================= */}
+        <section className="mt-4 rounded-xl border border-border bg-surface">
+          <div className="grid divide-y divide-border md:grid-cols-5 md:divide-x md:divide-y-0">
+            <div className="px-5 py-4 md:col-span-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Resumo do projeto
+              </p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Atualizado automaticamente
+              </p>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Área total
+              </p>
+              <p className="mt-1 text-lg font-semibold text-text-primary">
+                {numero(calculoVidro.areaTotalCobrada)} m²
+              </p>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Vidros
+              </p>
+              <p className="mt-1 text-lg font-semibold text-text-primary">
+                {numero(totalVidros, 0)}
+              </p>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Vidro
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-text-primary">
+                {dados.vidro || "Não selecionado"}
+              </p>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                Valor total
+              </p>
+              <p className="mt-1 text-xl font-bold text-primary">
+                {moeda(totalMateriais)}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* =========================================================
+          BARRA FIXA DE AÇÕES
+      ========================================================= */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 backdrop-blur">
+        <div className="flex w-full flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 2xl:px-10">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">
+                Área
+              </p>
+              <p className="text-sm font-semibold text-text-primary">
+                {numero(calculoVidro.areaTotalCobrada)} m²
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">
+                Vidros
+              </p>
+              <p className="text-sm font-semibold text-text-primary">
+                {numero(totalVidros, 0)} peças
+              </p>
+            </div>
+
+            <div className="border-l border-border pl-6">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">
+                Total do projeto
+              </p>
+              <p className="text-lg font-bold text-primary">
+                {moeda(totalMateriais)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <PDFDownloadLink
+              document={
+                <ProjetoIndividualPDF
+                  nomeEmpresa={nomeEmpresa}
+                  dados={projetoPdf}
+                  logoUrl={logoUsuario}
+                />
+              }
+              fileName={`box2fls_${dados.numero || "novo"}.pdf`}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
+            >
+              {() => (
+                <>
+                  <Printer size={17} />
+                  Imprimir
+                </>
+              )}
+            </PDFDownloadLink>
+
+            <button
+              type="button"
+              onClick={enviarParaCentralImpressao}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
+            >
+              <FileText size={17} />
+              PDF +
+            </button>
+
+            <button
+              type="button"
+              onClick={enviarParaCentralImpressao}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
+            >
+              <FolderOpen size={17} />
+              Central
+            </button>
+
+            <button
+              type="button"
+              disabled={salvandoOrcamento}
+              onClick={salvarOrcamento}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary transition hover:brightness-95 disabled:opacity-60"
+            >
+              <Save size={17} />
+              {salvandoOrcamento
+                ? "Salvando..."
+                : "Salvar orçamento"}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          MENSAGEM DO SISTEMA
+      ========================================================= */}
       {mensagemSistema && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-navigation/20 p-4 pt-8 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-[200] flex items-start justify-center bg-navigation/20 p-4 pt-8 backdrop-blur-[1px]">
           <section
             className="w-full max-w-sm rounded-xl border p-4 shadow-lg"
             style={{
@@ -1870,22 +2304,36 @@ export default function Box2FlsPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor:
-                    mensagemSistema.tipo === "sucesso" ? `color-mix(in srgb, ${theme.modalIconSuccessColor} 8%, transparent)`
-                      : mensagemSistema.tipo === "erro" ? `color-mix(in srgb, ${theme.modalIconErrorColor} 8%, transparent)`
+                    mensagemSistema.tipo === "sucesso"
+                      ? `color-mix(in srgb, ${theme.modalIconSuccessColor} 8%, transparent)`
+                      : mensagemSistema.tipo === "erro"
+                        ? `color-mix(in srgb, ${theme.modalIconErrorColor} 8%, transparent)`
                         : `color-mix(in srgb, ${theme.modalIconWarningColor} 8%, transparent)`,
                   color:
-                    mensagemSistema.tipo === "sucesso" ? theme.modalIconSuccessColor
-                      : mensagemSistema.tipo === "erro" ? theme.modalIconErrorColor
+                    mensagemSistema.tipo === "sucesso"
+                      ? theme.modalIconSuccessColor
+                      : mensagemSistema.tipo === "erro"
+                        ? theme.modalIconErrorColor
                         : theme.modalIconWarningColor,
                 }}
               >
-                {mensagemSistema.tipo === "sucesso" ? <CheckCircle2 size={21} /> : <AlertTriangle size={21} />}
+                {mensagemSistema.tipo === "sucesso" ? (
+                  <CheckCircle2 size={21} />
+                ) : (
+                  <AlertTriangle size={21} />
+                )}
               </div>
-              <div className="min-w-0 flex-1 text-left">
-                <h2 className="text-sm font-black tracking-tight">{mensagemSistema.titulo}</h2>
-                <p className="mt-1 text-xs leading-5 opacity-70">{mensagemSistema.mensagem}</p>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-bold">
+                  {mensagemSistema.titulo}
+                </h2>
+                <p className="mt-1 text-xs leading-5 opacity-70">
+                  {mensagemSistema.mensagem}
+                </p>
               </div>
             </div>
+
             <div className="mt-4 flex justify-end">
               <button
                 type="button"
@@ -1894,9 +2342,11 @@ export default function Box2FlsPage() {
                   setMensagemSistema(null);
                   aoFechar?.();
                 }}
-                className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wide text-on-primary shadow-sm transition hover:brightness-95"
+                className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wide"
                 style={{
-                  backgroundColor: theme.modalButtonBackgroundColor || theme.menuBackgroundColor,
+                  backgroundColor:
+                    theme.modalButtonBackgroundColor ||
+                    theme.menuBackgroundColor,
                   color: theme.modalButtonTextColor,
                 }}
               >
@@ -1906,11 +2356,23 @@ export default function Box2FlsPage() {
           </section>
         </div>
       )}
+
+      {/* =========================================================
+          MODAL NOVO CLIENTE
+      ========================================================= */}
       {modalNovoClienteAberto && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navigation/35 p-4 backdrop-blur-[2px]">
-          <section className="relative z-[221] w-full max-w-3xl rounded-2xl border border-border bg-surface-secondary shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 md:px-6">
-              <h2 className="text-base font-semibold text-text-primary">Cadastrar cliente</h2>
+          <section className="relative z-[221] w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4 md:px-6">
+              <div>
+                <h2 className="text-base font-semibold text-text-primary">
+                  Cadastrar cliente
+                </h2>
+                <p className="mt-0.5 text-xs text-text-secondary">
+                  Cadastre sem sair do orçamento.
+                </p>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
@@ -1923,138 +2385,221 @@ export default function Box2FlsPage() {
               </button>
             </div>
 
-            <div className="max-h-[75vh] overflow-y-auto p-4 md:p-6">
-              <div className="space-y-4">
-                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-text-primary">Identificação</h3>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+            <div className="max-h-[75vh] overflow-y-auto p-5 md:p-6">
+              <div className="grid gap-5">
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    Identificação
+                  </h3>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-medium text-text-secondary">
                       Tipo
                       <select
                         value={novoCliente.tipo_pessoa}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, tipo_pessoa: e.target.value as "juridica" | "fisica", cpf_cnpj: "" }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            tipo_pessoa: e.target.value as
+                              | "juridica"
+                              | "fisica",
+                            cpf_cnpj: "",
+                          }))
+                        }
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       >
-                        <option value="juridica">Pessoa jurídica</option>
-                        <option value="fisica">Pessoa física</option>
+                        <option value="juridica">
+                          Pessoa jurídica
+                        </option>
+                        <option value="fisica">
+                          Pessoa física
+                        </option>
                       </select>
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                      {novoCliente.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}
+                    <label className="text-xs font-medium text-text-secondary">
+                      {novoCliente.tipo_pessoa === "juridica"
+                        ? "CNPJ"
+                        : "CPF"}
+
                       <input
                         value={novoCliente.cpf_cnpj}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, cpf_cnpj: formatarDocumento(e.target.value, atual.tipo_pessoa) }))}
-                        placeholder={novoCliente.tipo_pessoa === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            cpf_cnpj: formatarDocumento(
+                              e.target.value,
+                              atual.tipo_pessoa
+                            ),
+                          }))
+                        }
+                        placeholder={
+                          novoCliente.tipo_pessoa === "juridica"
+                            ? "00.000.000/0000-00"
+                            : "000.000.000-00"
+                        }
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <label className="text-xs font-medium text-text-secondary md:col-span-2">
                       Nome do cliente *
                       <input
                         value={novoCliente.nome}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, nome: e.target.value }))}
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            nome: e.target.value,
+                          }))
+                        }
                         placeholder="Nome do cliente"
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <label className="text-xs font-medium text-text-secondary">
                       Rota *
                       <input
                         value={novoCliente.rota}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, rota: e.target.value }))}
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            rota: e.target.value,
+                          }))
+                        }
                         placeholder="Ex.: 05MM"
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                      Tabela de precos
+                    <label className="text-xs font-medium text-text-secondary">
+                      Tabela de preços
                       <select
                         value={novoCliente.grupo_preco_id}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, grupo_preco_id: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            grupo_preco_id: e.target.value,
+                          }))
+                        }
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       >
-                        <option value="">Tabela padrao</option>
+                        <option value="">Tabela padrão</option>
                         {tabelasPreco.map((tabela) => (
-                          <option key={tabela.id} value={tabela.id}>{tabela.nome}</option>
+                          <option
+                            key={tabela.id}
+                            value={tabela.id}
+                          >
+                            {tabela.nome}
+                          </option>
                         ))}
                       </select>
                     </label>
                   </div>
-                </section>
+                </div>
 
-                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-text-primary">Contato</h3>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                <div className="border-t border-border pt-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    Contato
+                  </h3>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-medium text-text-secondary">
                       Telefone
                       <input
                         value={novoCliente.telefone}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, telefone: formatarTelefone(e.target.value) }))}
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            telefone: formatarTelefone(
+                              e.target.value
+                            ),
+                          }))
+                        }
                         placeholder="(00) 00000-0000"
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <label className="text-xs font-medium text-text-secondary">
                       E-mail
                       <input
                         type="email"
                         value={novoCliente.email}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, email: e.target.value }))}
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            email: e.target.value,
+                          }))
+                        }
                         placeholder="cliente@empresa.com"
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
-                </section>
+                </div>
 
-                <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-text-primary">Endereço</h3>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                <div className="border-t border-border pt-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    Endereço
+                  </h3>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-medium text-text-secondary">
                       Cidade
                       <input
                         value={novoCliente.cidade}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, cidade: e.target.value }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            cidade: e.target.value,
+                          }))
+                        }
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
 
-                    <label className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <label className="text-xs font-medium text-text-secondary">
                       UF
                       <input
                         value={novoCliente.estado}
-                        onChange={(e) => setNovoCliente((atual) => ({ ...atual, estado: e.target.value.toUpperCase().slice(0, 2) }))}
-                        className="mt-1 h-10 w-full rounded-lg border border-border px-3 text-sm font-medium text-text-primary outline-none"
+                        onChange={(e) =>
+                          setNovoCliente((atual) => ({
+                            ...atual,
+                            estado: e.target.value
+                              .toUpperCase()
+                              .slice(0, 2),
+                          }))
+                        }
+                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
                       />
                     </label>
                   </div>
-                </section>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-border bg-surface px-5 py-4 md:px-6">
+            <div className="flex justify-end gap-2 border-t border-border bg-surface-secondary/60 px-5 py-4 md:px-6">
               <button
                 type="button"
                 onClick={() => {
                   if (salvandoNovoCliente) return;
                   setModalNovoClienteAberto(false);
                 }}
-                className="rounded-lg bg-surface-secondary px-4 py-2 text-sm font-semibold text-text-primary hover:bg-border"
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-primary"
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
                 disabled={salvandoNovoCliente}
                 onClick={salvarNovoCliente}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
               >
-                {salvandoNovoCliente ? "Salvando..." : "Cadastrar cliente"}
+                {salvandoNovoCliente
+                  ? "Salvando..."
+                  : "Cadastrar cliente"}
               </button>
             </div>
           </section>
@@ -2089,26 +2634,39 @@ function DataInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
-      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">{icon}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
-        <span className="mt-0.5 flex items-center gap-1.5">
-          <input
-            type="number"
-            value={value}
-            tabIndex={tabIndex}
-            min={0}
-            max={9999}
-            inputMode="numeric"
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
-            }}
-            onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-[82px] min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
-          />
-          {suffix && <span className="text-sm font-medium leading-tight text-text-secondary">{suffix}</span>}
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-text-secondary">
+        {label}
+      </span>
+
+      <span className="flex h-11 items-center rounded-lg border border-border bg-background px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
+        <span className="mr-2 flex shrink-0 text-text-secondary">
+          {icon}
         </span>
+
+        <input
+          type="number"
+          value={value}
+          tabIndex={tabIndex}
+          min={0}
+          max={9999}
+          inputMode="numeric"
+          onKeyDown={(e) => {
+            if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) =>
+            onChange(limitarNumero4Digitos(e.target.value))
+          }
+          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-text-primary outline-none"
+        />
+
+        {suffix && (
+          <span className="ml-2 text-xs font-medium text-text-secondary">
+            {suffix}
+          </span>
+        )}
       </span>
     </label>
   );
@@ -2132,18 +2690,14 @@ function OptionInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label
-      className={`flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10 ${
-        disabled ? "opacity-50" : ""
-      }`}
-    >
-      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
-        {icon}
+    <label className={`block ${disabled ? "opacity-50" : ""}`}>
+      <span className="mb-1.5 block text-xs font-medium text-text-secondary">
+        {label}
       </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
-          {label}
+      <span className="flex h-11 items-center rounded-lg border border-border bg-background px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
+        <span className="mr-2 flex shrink-0 text-text-secondary">
+          {icon}
         </span>
 
         <select
@@ -2151,7 +2705,7 @@ function OptionInput({
           tabIndex={tabIndex}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80 disabled:cursor-not-allowed"
+          className="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none disabled:cursor-not-allowed"
         >
           {options.map((opcao) => (
             <option key={opcao} value={opcao}>
