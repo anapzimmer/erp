@@ -1,6 +1,25 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./recursos.module.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Recursos do Software para Indústria de Vidro",
+
+  description:
+    "Conheça os recursos do Glass Code para indústrias de vidro temperado: orçamentos, cálculos de vidros e materiais, projetos, preços por cliente, propostas em PDF e gestão comercial.",
+
+  alternates: {
+    canonical: "/recursos",
+  },
+
+  openGraph: {
+    title: "Recursos do Glass Code para Indústrias de Vidro",
+    description:
+      "Orçamentos, cálculos, projetos, materiais, preços e gestão comercial em uma plataforma desenvolvida para indústrias de vidro temperado.",
+    url: "/recursos",
+  },
+};
 
 const recursos = [
   {
