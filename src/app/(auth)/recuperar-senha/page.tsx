@@ -453,23 +453,37 @@ export default function RecuperarSenhaPage() {
         </div>
       </section>
 
-     {showSuccessModal && (
+{showSuccessModal && (
   <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#263238]/65 backdrop-blur-[6px] px-5">
-    <div className="relative w-full max-w-[390px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
+    <div className="relative w-full max-w-[410px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
 
-      {/* detalhe tecnológico */}
+      {/* MARCA D'ÁGUA GLASS CODE */}
       <div
-        className="absolute -right-20 -top-20 w-52 h-52 rounded-full border border-white/[0.06]"
+        className="pointer-events-none absolute -right-5 -top-3 w-[145px] h-[145px] opacity-[0.055] overflow-hidden"
+        aria-hidden="true"
+      >
+        <Image
+          src="/glasscode-dark.png"
+          alt=""
+          width={300}
+          height={120}
+          className="absolute top-8 left-5 max-w-none w-[300px] object-contain object-left"
+        />
+      </div>
+
+      {/* CÍRCULOS TECNOLÓGICOS DISCRETOS */}
+      <div
+        className="pointer-events-none absolute -right-20 -top-20 w-52 h-52 rounded-full border border-white/[0.045]"
         aria-hidden="true"
       />
       <div
-        className="absolute -right-8 -top-8 w-32 h-32 rounded-full border border-white/[0.06]"
+        className="pointer-events-none absolute -right-8 -top-8 w-32 h-32 rounded-full border border-white/[0.045]"
         aria-hidden="true"
       />
 
-      <div className="relative px-8 pt-9 pb-8 text-center">
+      <div className="relative z-10 px-9 pt-10 pb-8 text-center">
 
-        {/* ícone */}
+        {/* ÍCONE DE SUCESSO */}
         <div className="mx-auto w-16 h-16 rounded-2xl bg-[#C8D463]/10 border border-[#C8D463]/20 flex items-center justify-center">
           <CheckCircle
             size={30}
@@ -482,7 +496,7 @@ export default function RecuperarSenhaPage() {
           ACESSO ATUALIZADO
         </span>
 
-        <h3 className="mt-3 text-[26px] font-semibold tracking-[-0.035em] text-white">
+        <h3 className="mt-3 text-[27px] font-semibold tracking-[-0.035em] text-white">
           Senha alterada.
         </h3>
 
@@ -492,7 +506,6 @@ export default function RecuperarSenhaPage() {
           Você já pode acessar o Glass Code.
         </p>
 
-        {/* linha */}
         <div className="my-7 h-px bg-white/[0.08]" />
 
         <button
@@ -501,6 +514,7 @@ export default function RecuperarSenhaPage() {
           className="group w-full h-12 rounded-xl bg-[#C8D463] text-[#38444B] text-sm font-bold flex items-center justify-center gap-2 transition-all hover:brightness-105 active:scale-[0.99]"
         >
           Ir para o login
+
           <ArrowRight
             size={17}
             className="transition-transform group-hover:translate-x-1"
@@ -512,6 +526,7 @@ export default function RecuperarSenhaPage() {
             size={12}
             className="text-white/25"
           />
+
           <span className="text-[10px] tracking-wide text-white/30">
             Acesso protegido pelo Glass Code
           </span>
