@@ -17,7 +17,7 @@ export default function AppShell({
     pathname === "/recursos" ||
     pathname === "/planos" ||
     pathname === "/login" ||
-    pathname === "/update-password" ||
+    pathname === "/recuperar-senha" ||
     pathname === "/reset-password";
 
   // SITE COMERCIAL / AUTENTICAÇÃO

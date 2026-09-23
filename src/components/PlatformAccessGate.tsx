@@ -19,7 +19,7 @@ const publica =
   pathname === "/recursos" ||
   pathname === "/glasscode" ||
   pathname.startsWith("/glasscode/") ||
-  ["/login", "/update-password", "/reset-password"].includes(pathname);
+  ["/login", "/recuperar-senha", "/reset-password"].includes(pathname);
   useEffect(() => {
     let ativo = true;
     let verificando = false;

@@ -151,7 +151,7 @@ const LoginPage = () => {
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/update-password`,
+        redirectTo: `${baseUrl}/recuperar-senha`,
       });
 
       if (error) throw error;

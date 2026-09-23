@@ -43,7 +43,7 @@ export default function SecurityProvider({
     pathname === "/recursos" ||
     pathname === "/planos" ||
     pathname === "/login" ||
-    pathname === "/update-password" ||
+    pathname === "/recuperar-senha" ||
     pathname === "/reset-password";
 
   useEffect(() => {

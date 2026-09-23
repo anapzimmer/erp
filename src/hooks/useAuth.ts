@@ -22,7 +22,7 @@ export function useAuth() {
           pathname === "/recursos" ||
           pathname === "/planos" ||
           pathname === "/login" ||
-          pathname === "/update-password" ||
+          pathname === "/recuperar-senha" ||
           pathname === "/reset-password";
 
         // 1. Pega o usuário logado

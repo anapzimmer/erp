@@ -69,7 +69,7 @@ export function OrcamentoProvider({ children }: { children: ReactNode }) {
   pathname === "/recursos" ||
   pathname === "/glasscode" ||
   pathname.startsWith("/glasscode/") ||
-  ["/login", "/update-password", "/reset-password"].includes(pathname);
+  ["/login", "/recuperar-senha", "/reset-password"].includes(pathname);
 
   if (rotaPublica) {
     return <>{children}</>;

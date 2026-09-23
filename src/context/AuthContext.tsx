@@ -32,7 +32,7 @@ const rotaPublica =
   pathname === "/recursos" ||
   pathname === "/planos" ||
   pathname === "/login" ||
-  pathname === "/update-password" ||
+  pathname === "/recuperar-senha" ||
   pathname === "/reset-password";
 
   const [user, setUser] = useState<any>(null);
