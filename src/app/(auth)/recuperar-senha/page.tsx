@@ -454,47 +454,89 @@ export default function RecuperarSenhaPage() {
       </section>
 
 {showSuccessModal && (
-  <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#263238]/65 backdrop-blur-[6px] px-5">
-    <div className="relative w-full max-w-[410px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
-
- {/* ASSINATURA VISUAL GLASS CODE */}
-<div
-  className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]"
-  aria-hidden="true"
->
-  {/* VIDRO TRASEIRO — CINZA */}
   <div
     className="
-      absolute
-      -right-[42px]
-      -top-[92px]
-      w-[155px]
-      h-[245px]
-      rounded-[22px]
-      border border-[#8F9AA1]/[0.16]
-      rotate-0
+      fixed inset-0 z-[10000]
+      flex items-center justify-center
+      bg-[#263238]/65
+      backdrop-blur-[6px]
+      px-5
     "
-  />
+  >
+    <div
+      className="
+        relative
+        w-full max-w-[410px]
+        overflow-hidden
+        rounded-[28px]
+        border border-white/10
+        bg-[#38444B]
+        shadow-2xl
+      "
+    >
+      {/* =====================================================
+          MARCA D'ÁGUA GLASS CODE
+          Mesma linguagem visual do HERO do dashboard
+         ===================================================== */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-0
+          overflow-hidden
+        "
+        aria-hidden="true"
+      >
+        {/* PLACA TRASEIRA — CINZA */}
+        <div
+          className="
+            absolute
+            w-[190px]
+            h-[190px]
+            right-[18px]
+            -top-[55px]
+            rounded-[8px]
+            border
+            border-[#8F9AA1]/[0.18]
+            bg-[#8F9AA1]/[0.03]
+            [transform:skewY(-28deg)]
+          "
+        />
 
-  {/* VIDRO FRONTAL — LIMA */}
-  <div
-    className="
-      absolute
-      -right-[86px]
-      -top-[20px]
-      w-[155px]
-      h-[245px]
-      rounded-[22px]
-      border border-[#C8D463]/[0.20]
-      rotate-0
-    "
-  />
-</div>
-     
+        {/* PLACA FRONTAL — LIMA */}
+        <div
+          className="
+            absolute
+            w-[190px]
+            h-[190px]
+            -right-[47px]
+            top-[22px]
+            rounded-[8px]
+            border
+            border-[#C8D463]/[0.23]
+            bg-[#C8D463]/[0.03]
+            [transform:skewY(-28deg)]
+          "
+        />
+      </div>
+
+      {/* =====================================================
+          CONTEÚDO
+         ===================================================== */}
       <div className="relative z-10 px-9 pt-10 pb-8 text-center">
 
         {/* ÍCONE DE SUCESSO */}
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-[#C8D463]/10 border border-[#C8D463]/20 flex items-center justify-center">
+        <div
+          className="
+            mx-auto
+            flex h-16 w-16
+            items-center justify-center
+            rounded-2xl
+            border border-[#C8D463]/20
+            bg-[#C8D463]/10
+          "
+        >
           <CheckCircle
             size={30}
             strokeWidth={2}
@@ -502,35 +544,72 @@ export default function RecuperarSenhaPage() {
           />
         </div>
 
-        <span className="mt-6 block text-[10px] tracking-[0.24em] font-bold text-[#C8D463]">
+        {/* ETIQUETA */}
+        <span
+          className="
+            mt-6 block
+            text-[10px]
+            font-bold
+            tracking-[0.24em]
+            text-[#C8D463]
+          "
+        >
           ACESSO ATUALIZADO
         </span>
 
-        <h3 className="mt-3 text-[27px] font-semibold tracking-[-0.035em] text-white">
+        {/* TÍTULO */}
+        <h3
+          className="
+            mt-3
+            text-[27px]
+            font-semibold
+            tracking-[-0.035em]
+            text-white
+          "
+        >
           Senha alterada.
         </h3>
 
+        {/* TEXTO */}
         <p className="mt-3 text-sm leading-6 text-white/55">
           Sua nova senha foi salva com sucesso.
           <br />
           Você já pode acessar o Glass Code.
         </p>
 
+        {/* DIVISÓRIA */}
         <div className="my-7 h-px bg-white/[0.08]" />
 
+        {/* BOTÃO */}
         <button
           type="button"
           onClick={handleCloseModal}
-          className="group w-full h-12 rounded-xl bg-[#C8D463] text-[#38444B] text-sm font-bold flex items-center justify-center gap-2 transition-all hover:brightness-105 active:scale-[0.99]"
+          className="
+            group
+            flex h-12 w-full
+            items-center justify-center
+            gap-2
+            rounded-xl
+            bg-[#C8D463]
+            text-sm font-bold
+            text-[#38444B]
+            transition-all
+            hover:brightness-105
+            active:scale-[0.99]
+          "
         >
           Ir para o login
 
           <ArrowRight
             size={17}
-            className="transition-transform group-hover:translate-x-1"
+            className="
+              transition-transform
+              group-hover:translate-x-1
+            "
           />
         </button>
 
+        {/* RODAPÉ */}
         <div className="mt-6 flex items-center justify-center gap-2">
           <LockKeyhole
             size={12}
