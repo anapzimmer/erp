@@ -90,7 +90,7 @@ A lista inclui arquivos novos e adaptações visuais. Componentes de situação/
 - `src/app/(admin)/admin/tabelas/page.tsx`
 - `src/app/(auth)/login/login.module.css`
 - `src/app/(auth)/login/page.tsx`
-- `src/app/(auth)/update-password/page.tsx`
+- `src/app/(auth)/recuperar-senha/page.tsx`
 - `src/app/(cadastros)/cadastros/acabamentos/page.tsx`
 - `src/app/(cadastros)/cadastros/clientes/page.tsx`
 - `src/app/(cadastros)/cadastros/ferragens/page.tsx`

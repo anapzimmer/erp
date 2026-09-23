@@ -489,7 +489,7 @@ export default function PlatformAccessGate({ children }: { children: React.React
   const publica =
   pathname === "/glasscode" ||
   pathname.startsWith("/glasscode/") ||
-  ["/login", "/update-password", "/reset-password"].includes(pathname);
+  ["/login", "/recuperar-senha", "/reset-password"].includes(pathname);
   useEffect(() => {
     let ativo = true;
     let verificando = false;
@@ -697,7 +697,7 @@ const LoginPage = () => {
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/update-password`,
+        redirectTo: `${baseUrl}/recuperar-senha`,
       });
 
       if (error) throw error;

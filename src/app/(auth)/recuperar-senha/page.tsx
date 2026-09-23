@@ -58,20 +58,28 @@ export default function RecuperarSenhaPage() {
     return "";
   };
 
-  const translateAuthError = (message: string) => {
-    if (
-      message ===
-      "New password should not be the same as the old password."
-    ) {
-      return "A nova senha não pode ser igual à senha anterior.";
-    }
+ const translateAuthError = (message: string) => {
+  const normalizedMessage = message.toLowerCase();
 
-    if (message === "Auth session missing!") {
-      return "O link de recuperação expirou ou não é mais válido.";
-    }
+  if (
+    normalizedMessage.includes("same as the old password") ||
+    normalizedMessage.includes("different from the old password") ||
+    normalizedMessage.includes("new password should be different")
+  ) {
+    return "Essa senha já foi utilizada anteriormente. Crie uma senha diferente da sua senha atual.";
+  }
 
-    return "Não foi possível atualizar sua senha. Tente novamente.";
-  };
+  if (
+    normalizedMessage.includes("expired") ||
+    normalizedMessage.includes("otp_expired") ||
+    normalizedMessage.includes("invalid token") ||
+    normalizedMessage.includes("session missing")
+  ) {
+    return "Este link de recuperação expirou ou não é mais válido. Solicite um novo link para redefinir sua senha.";
+  }
+
+  return "Não foi possível atualizar sua senha. Tente novamente.";
+};
 
   const handleUpdatePassword = async (
     e: React.FormEvent<HTMLFormElement>
