@@ -161,6 +161,7 @@ const abrirAnexo = async (caminhoStorage: string) => {
   }
 };
 
+
 const handleEnviarChamado = async () => {
   if (!user || !empresaId) return;
   if (!titulo.trim() || !mensagem.trim()) {

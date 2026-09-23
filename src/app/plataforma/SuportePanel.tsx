@@ -49,6 +49,23 @@ const statusLabel: Record<string, string> = {
   resolvido: "Resolvido",
 };
 
+const statusStyle: Record<string, string> = {
+  novo:
+    "bg-[#F1F3F3] text-[#667178] border-[#DCE2E4]",
+
+  em_analise:
+    "bg-[#C8D463]/20 text-[#667019] border-[#C8D463]/50",
+
+  em_atendimento:
+    "bg-blue-50 text-blue-700 border-blue-200",
+
+  aguardando_cliente:
+    "bg-amber-50 text-amber-700 border-amber-200",
+
+  resolvido:
+    "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
 const categoriaLabel: Record<string, string> = {
   duvida: "Dúvida",
   problema: "Problema no sistema",
@@ -126,6 +143,67 @@ const abrirAnexo = async (caminho: string) => {
       error instanceof Error
         ? error.message
         : "Não foi possível abrir o anexo."
+    );
+  }
+};
+
+const alterarStatus = async (
+  chamadoId: string,
+  novoStatus: string
+) => {
+  try {
+    setErro("");
+
+    const resultado = (await consultarPlataforma("", {
+      acao: "suporte_status",
+      chamadoId,
+      status: novoStatus,
+    })) as {
+      sucesso?: boolean;
+      chamado?: {
+        id: string;
+        status: string;
+        updated_at: string;
+        resolvido_at: string | null;
+      };
+    };
+
+    if (!resultado.sucesso || !resultado.chamado) {
+      throw new Error(
+        "Não foi possível atualizar o status do chamado."
+      );
+    }
+
+    const atualizado = resultado.chamado;
+
+    setChamados((anteriores) =>
+      anteriores.map((chamado) =>
+        chamado.id === chamadoId
+          ? {
+              ...chamado,
+              status: atualizado.status,
+              updated_at: atualizado.updated_at,
+              resolvido_at: atualizado.resolvido_at,
+            }
+          : chamado
+      )
+    );
+
+    setChamadoAberto((anterior) =>
+      anterior?.id === chamadoId
+        ? {
+            ...anterior,
+            status: atualizado.status,
+            updated_at: atualizado.updated_at,
+            resolvido_at: atualizado.resolvido_at,
+          }
+        : anterior
+    );
+  } catch (error) {
+    setErro(
+      error instanceof Error
+        ? error.message
+        : "Não foi possível atualizar o status do chamado."
     );
   }
 };
@@ -245,10 +323,15 @@ const abrirAnexo = async (caminho: string) => {
                           chamado.categoria}
                       </span>
 
-                      <span className="rounded-full bg-[#C8D463]/20 px-2.5 py-1 text-xs font-medium text-[#38444B]">
-                        {statusLabel[chamado.status] ??
-                          chamado.status}
-                      </span>
+                      <span
+  className={`
+    rounded-full border px-2.5 py-1
+    text-xs font-medium
+    ${statusStyle[chamado.status] ?? statusStyle.novo}
+  `}
+>
+  {statusLabel[chamado.status] ?? chamado.status}
+</span>
                     </div>
 
                     <h3 className="font-medium">
@@ -314,10 +397,16 @@ const abrirAnexo = async (caminho: string) => {
                       "Empresa não identificada"}
                   </span>
 
-                  <span className="rounded-full bg-[#C8D463]/20 px-2.5 py-1 text-xs font-medium text-[#38444B]">
-                    {statusLabel[chamadoAberto.status] ??
-                      chamadoAberto.status}
-                  </span>
+                 <span
+  className={`
+    rounded-full border px-2.5 py-1
+    text-xs font-medium
+    ${statusStyle[chamadoAberto.status] ?? statusStyle.novo}
+  `}
+>
+  {statusLabel[chamadoAberto.status] ??
+    chamadoAberto.status}
+</span>
                 </div>
 
                 <h2 className="text-lg font-medium">
@@ -366,7 +455,44 @@ const abrirAnexo = async (caminho: string) => {
                     )}
                   </p>
                 </div>
-              </div>
+                </div>
+
+                <div className="mt-6">
+  <p className="mb-2 text-xs text-text-secondary">
+    Status do atendimento
+  </p>
+
+  <select
+    value={chamadoAberto.status}
+    onChange={(event) =>
+      void alterarStatus(
+        chamadoAberto.id,
+        event.target.value
+      )
+    }
+    className="
+      h-11 w-full rounded-xl
+      border border-border
+      bg-surface px-3
+      text-sm outline-none
+      transition
+      focus:border-[#C8D463]
+    "
+  >
+    <option value="novo">Novo</option>
+    <option value="em_analise">Em análise</option>
+    <option value="em_atendimento">
+      Em atendimento
+    </option>
+    <option value="aguardando_cliente">
+      Aguardando cliente
+    </option>
+    <option value="resolvido">
+      Resolvido
+    </option>
+  </select>
+</div>
+             
 
               <div className="mt-6">
                 <p className="text-xs text-text-secondary">
