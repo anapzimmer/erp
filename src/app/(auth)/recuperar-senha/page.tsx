@@ -453,41 +453,73 @@ export default function RecuperarSenhaPage() {
         </div>
       </section>
 
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#38444B]/45 backdrop-blur-sm px-5">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-2xl text-center">
-            <div className="mx-auto w-16 h-16 rounded-full bg-[#C8D463]/20 flex items-center justify-center">
-              <CheckCircle
-                size={31}
-                strokeWidth={2}
-                className="text-[#38444B]"
-              />
-            </div>
+     {showSuccessModal && (
+  <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#263238]/65 backdrop-blur-[6px] px-5">
+    <div className="relative w-full max-w-[390px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
 
-            <span className="mt-6 block text-[10px] tracking-[0.2em] font-bold text-[#8F9AA1]">
-              ACESSO ATUALIZADO
-            </span>
+      {/* detalhe tecnológico */}
+      <div
+        className="absolute -right-20 -top-20 w-52 h-52 rounded-full border border-white/[0.06]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -right-8 -top-8 w-32 h-32 rounded-full border border-white/[0.06]"
+        aria-hidden="true"
+      />
 
-            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#38444B]">
-              Senha alterada.
-            </h3>
+      <div className="relative px-8 pt-9 pb-8 text-center">
 
-            <p className="mt-3 text-sm leading-6 text-[#8F9AA1]">
-              Sua nova senha foi salva com sucesso. Agora você
-              já pode entrar novamente no Glass Code.
-            </p>
-
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="mt-7 w-full h-12 rounded-xl bg-[#38444B] text-white text-sm font-semibold flex items-center justify-center gap-2"
-            >
-              Ir para o login
-              <ArrowRight size={17} />
-            </button>
-          </div>
+        {/* ícone */}
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-[#C8D463]/10 border border-[#C8D463]/20 flex items-center justify-center">
+          <CheckCircle
+            size={30}
+            strokeWidth={2}
+            className="text-[#C8D463]"
+          />
         </div>
-      )}
+
+        <span className="mt-6 block text-[10px] tracking-[0.24em] font-bold text-[#C8D463]">
+          ACESSO ATUALIZADO
+        </span>
+
+        <h3 className="mt-3 text-[26px] font-semibold tracking-[-0.035em] text-white">
+          Senha alterada.
+        </h3>
+
+        <p className="mt-3 text-sm leading-6 text-white/55">
+          Sua nova senha foi salva com sucesso.
+          <br />
+          Você já pode acessar o Glass Code.
+        </p>
+
+        {/* linha */}
+        <div className="my-7 h-px bg-white/[0.08]" />
+
+        <button
+          type="button"
+          onClick={handleCloseModal}
+          className="group w-full h-12 rounded-xl bg-[#C8D463] text-[#38444B] text-sm font-bold flex items-center justify-center gap-2 transition-all hover:brightness-105 active:scale-[0.99]"
+        >
+          Ir para o login
+          <ArrowRight
+            size={17}
+            className="transition-transform group-hover:translate-x-1"
+          />
+        </button>
+
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <LockKeyhole
+            size={12}
+            className="text-white/25"
+          />
+          <span className="text-[10px] tracking-wide text-white/30">
+            Acesso protegido pelo Glass Code
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </main>
   );
 }
