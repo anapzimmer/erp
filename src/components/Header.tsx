@@ -183,7 +183,7 @@ const { theme } = useTheme();
     left-0
     top-[2px]
     h-[27px]
-    w-[34px]
+    w-[30px]
     overflow-hidden
     rounded-[2px]
     border
@@ -215,7 +215,7 @@ const { theme } = useTheme();
     right-0
     bottom-[1px]
     h-[27px]
-    w-[34px]
+    w-[30px]
     overflow-hidden
     rounded-[2px]
     border
