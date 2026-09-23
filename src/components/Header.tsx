@@ -84,10 +84,7 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const {
-  theme,
-  isLoading: themeLoading,
-} = useTheme();
+const { theme } = useTheme();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [proprietaria, setProprietaria] = useState(false);
@@ -102,9 +99,7 @@ export default function Header({
   const closeMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const desktopNavRef = useRef<HTMLDivElement>(null);
-  const displayedLogo = themeLoading
-  ? null
-  : theme.logoUrl || logoUrl || null;
+
 
   const cancelCloseMenu = () => {
     if (closeMenuTimerRef.current) {
@@ -166,12 +161,117 @@ export default function Header({
     >
       <div className="gc-header-main">
         <div className="gc-header-left">
-          {displayedLogo ? (
-            <div className="relative h-8 w-32 shrink-0">
-              <Image src={displayedLogo} alt={nomeEmpresa} fill className="object-contain object-left" unoptimized />
-            </div>
-          ) : null}
+{/* MARCA FIXA DO SISTEMA — GLASS CODE */}
+<Link
+  href="/dashboard"
+  aria-label="Glass Code - Dashboard"
+  className="group flex shrink-0 items-center gap-[9px]"
+>
+  {/* =====================================================
+      SÍMBOLO GLASS CODE
+      Recriado em CSS na proporção da marca oficial
+     ===================================================== */}
+  {/* SÍMBOLO GLASS CODE — PROPORÇÃO RETANGULAR */}
+<div
+  className="relative h-[38px] w-[44px] shrink-0"
+  aria-hidden="true"
+>
+{/* LÂMINA TRASEIRA — CINZA */}
+<span
+  className="
+    absolute
+    left-0
+    top-[2px]
+    h-[27px]
+    w-[34px]
+    overflow-hidden
+    rounded-[2px]
+    border
+    border-[#B9C1C6]/80
+    [transform:skewY(-28deg)]
+  "
+ style={{
+  background:
+    "linear-gradient(to top right, rgba(143,154,161,.62) 0%, rgba(143,154,161,.82) 52%, #8F9AA1 100%)",
+}}
+>
+  <span
+    className="
+      absolute inset-[1px]
+      rounded-[3px]
+      bg-gradient-to-tr
+      from-white/[0.12]
+      via-white/[0.04]
+      to-transparent
+    "
+  />
+</span>
 
+ 
+ {/* LÂMINA FRONTAL — LIMA */}
+<span
+  className="
+    absolute
+    right-0
+    bottom-[1px]
+    h-[27px]
+    w-[34px]
+    overflow-hidden
+    rounded-[2px]
+    border
+    border-[#E4E39A]/90
+    [transform:skewY(-28deg)]
+  "
+ style={{
+  background:
+    "linear-gradient(to top, rgba(200,212,99,.68) 0%, rgba(200,212,99,.84) 52%, #C8D463 100%)",
+}}
+>
+  <span
+    className="
+      absolute inset-[1px]
+      rounded-[3px]
+      bg-gradient-to-br
+      from-white/[0.18]
+      via-white/[0.06]
+      to-transparent
+    "
+  />
+</span>
+</div>
+
+  {/* =====================================================
+      GLASS CODE
+     ===================================================== */}
+  <div className="flex items-center whitespace-nowrap leading-none">
+    <span
+      className="
+        text-[20px]
+        font-semibold
+        tracking-[-0.045em]
+      "
+      style={{
+        color: theme.contentTextLightBg,
+      }}
+    >
+      Glass
+    </span>
+
+    <span
+      className="
+        ml-[4px]
+        text-[20px]
+        font-light
+        tracking-[-0.045em]
+      "
+      style={{
+        color: "#9DA7AD",
+      }}
+    >
+      Code
+    </span>
+  </div>
+</Link>
           <div className="gc-header-nav" onMouseEnter={cancelCloseMenu} onMouseLeave={scheduleCloseMenu} ref={desktopNavRef}>
             <nav className="flex flex-wrap items-center gap-2">
               {HEADER_MENU_GROUPS.map((group) => {
