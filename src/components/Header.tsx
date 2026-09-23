@@ -190,9 +190,9 @@ const { theme } = useTheme();
     border-[#B9C1C6]/80
     [transform:skewY(-28deg)]
   "
- style={{
+style={{
   background:
-    "linear-gradient(to top right, rgba(143,154,161,.62) 0%, rgba(143,154,161,.82) 52%, #8F9AA1 100%)",
+    "linear-gradient(to top right, rgba(143,154,161,.42) 0%, rgba(143,154,161,.60) 52%, rgba(143,154,161,.78) 100%)",
 }}
 >
   <span
@@ -222,9 +222,9 @@ const { theme } = useTheme();
     border-[#E4E39A]/90
     [transform:skewY(-28deg)]
   "
- style={{
+style={{
   background:
-    "linear-gradient(to top, rgba(200,212,99,.68) 0%, rgba(200,212,99,.84) 52%, #C8D463 100%)",
+    "linear-gradient(to top, rgba(200,212,99,.42) 0%, rgba(200,212,99,.60) 52%, rgba(200,212,99,.78) 100%)",
 }}
 >
   <span
@@ -265,7 +265,7 @@ const { theme } = useTheme();
         tracking-[-0.045em]
       "
       style={{
-        color: "#9DA7AD",
+        color: "#8F9AA1",
       }}
     >
       Code
