@@ -28,6 +28,24 @@ export async function GET(request: Request) {
     const pagina = Number(url.searchParams.get("pagina") || 0);
     const financeiro = url.searchParams.get("modo") === "financeiro";
     const historico = url.searchParams.get("modo") === "acessos";
+    const suporte = url.searchParams.get("modo") === "suporte";
+    if (suporte) {
+  const { data, error } = await acesso.db!.rpc("gc_suporte_admin");
+
+  if (error) {
+    return responder(
+      {
+        erro:
+          error.code === "PGRST202"
+            ? "O suporte administrativo ainda precisa ser ativado no Supabase."
+            : "Não foi possível carregar os chamados de suporte.",
+      },
+      503
+    );
+  }
+
+  return responder(data);
+}
     const parametros = {
       p_busca: (url.searchParams.get("busca") || "").slice(0, 100),
       p_pagina: Number.isInteger(pagina) && pagina >= 0 ? Math.min(pagina, 100000) : 0,
@@ -50,6 +68,112 @@ export async function POST(request: Request) {
     if (acesso.erro) return acesso.erro;
     let body;
     try { body = await request.json(); } catch { return responder({ erro: "Solicitação inválida." }, 400); }
+if (body?.acao === "suporte_anexo") {
+  if (
+    typeof body.caminho !== "string" ||
+    body.caminho.length < 3 ||
+    body.caminho.length > 1000
+  ) {
+    return responder({ erro: "Anexo inválido." }, 400);
+  }
+
+  // Primeiro confirma no banco que:
+  // 1. a solicitante é a proprietária;
+  // 2. o arquivo realmente pertence a um chamado de suporte.
+  const { data: caminhoValidado, error: validacaoErro } =
+    await acesso.db!.rpc("gc_suporte_anexo_admin", {
+      p_caminho: body.caminho,
+    });
+
+  if (validacaoErro || !caminhoValidado) {
+    return responder(
+      { erro: "Não foi possível abrir o anexo." },
+      403
+    );
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    return responder(
+      { erro: "Serviço de anexos indisponível." },
+      503
+    );
+  }
+
+  // Cliente exclusivo do servidor.
+  // A Service Role nunca é enviada para o navegador.
+  const adminDb = createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const { data: assinatura, error: assinaturaErro } =
+    await adminDb.storage
+      .from("suporte-anexos")
+      .createSignedUrl(caminhoValidado, 60);
+
+  if (assinaturaErro || !assinatura?.signedUrl) {
+    return responder(
+      { erro: "Não foi possível gerar o acesso ao anexo." },
+      503
+    );
+  }
+
+  return responder({
+    url: assinatura.signedUrl,
+  });
+}
+
+if (body?.acao === "suporte_status") {
+  if (
+    typeof body.chamadoId !== "string" ||
+    typeof body.status !== "string"
+  ) {
+    return responder(
+      { erro: "Dados do chamado inválidos." },
+      400
+    );
+  }
+
+  const statusPermitidos = [
+    "novo",
+    "em_analise",
+    "em_atendimento",
+    "aguardando_cliente",
+    "resolvido",
+  ];
+
+  if (!statusPermitidos.includes(body.status)) {
+    return responder(
+      { erro: "Status inválido." },
+      400
+    );
+  }
+
+  const { data, error } = await acesso.db!.rpc(
+    "gc_suporte_atualizar_status_admin",
+    {
+      p_chamado_id: body.chamadoId,
+      p_status: body.status,
+    }
+  );
+
+  if (error || !data) {
+    return responder(
+      { erro: "Não foi possível atualizar o status do chamado." },
+      503
+    );
+  }
+
+  return responder({
+    sucesso: true,
+    chamado: data,
+  });
+}
     if (body?.acao === 'reenviar_confirmacao') {
       if (typeof body.email !== 'string' || body.email.length > 254 || typeof body.alvo !== 'string') return responder({ erro: 'Cadastro inválido.' }, 400);
       const { data: painel, error: consultaErro } = await acesso.db!.rpc('gc_painel', { p_busca: body.email, p_pagina: 0 });
