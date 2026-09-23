@@ -458,16 +458,36 @@ export default function RecuperarSenhaPage() {
     <div className="relative w-full max-w-[410px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
 
       {/* MARCA D'ÁGUA GLASS CODE */}
-     <div
-  className="pointer-events-none absolute -right-3 -top-2 opacity-[0.065]"
+ <div
+  className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]"
   aria-hidden="true"
 >
-  <Image
-    src="/glasscode-icon.svg"
-    alt=""
-    width={125}
-    height={145}
-    className="brightness-0 invert"
+  {/* lâmina traseira cinza */}
+  <div
+    className="
+      absolute
+      -right-[18px]
+      -top-[62px]
+      w-[118px]
+      h-[160px]
+      rounded-[20px]
+      border border-[#8F9AA1]/20
+      rotate-[30deg]
+    "
+  />
+
+  {/* lâmina frontal lima */}
+  <div
+    className="
+      absolute
+      -right-[48px]
+      -top-[8px]
+      w-[118px]
+      h-[160px]
+      rounded-[20px]
+      border border-[#C8D463]/20
+      rotate-[30deg]
+    "
   />
 </div>
 
