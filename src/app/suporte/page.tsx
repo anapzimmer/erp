@@ -25,6 +25,15 @@ type AnexoSuporte = {
   tamanho_bytes: number | null;
 };
 
+type MensagemSuporte = {
+  id: string;
+  chamado_id: string;
+  usuario_id: string | null;
+  autor_tipo: "cliente" | "glass_code" | "sistema";
+  mensagem: string;
+  created_at: string;
+};
+
 type ChamadoSuporte = {
   id: string;
   titulo: string;
@@ -34,33 +43,41 @@ type ChamadoSuporte = {
   prioridade: string;
   created_at: string;
   anexos: AnexoSuporte[];
+  mensagens: MensagemSuporte[];
+  visualizado_cliente_at: string | null;
+visualizado_admin_at: string | null;
 };
 
 export default function SuportePage() {
   const { theme } = useTheme();
-const [novoChamadoAberto, setNovoChamadoAberto] = useState(false);
-const [anexos, setAnexos] = useState<File[]>([]);
-const [categoria, setCategoria] = useState("duvida");
-const [titulo, setTitulo] = useState("");
-const [mensagem, setMensagem] = useState("");
-const [enviando, setEnviando] = useState(false);
-const [erroEnvio, setErroEnvio] = useState("");
-const [chamados, setChamados] = useState<ChamadoSuporte[]>([]);
-const [carregandoChamados, setCarregandoChamados] = useState(true);
-const {
-  user,
-  nomeEmpresa,
-  empresaId,
-  loading,
-  signOut,
-} = useAuth();
+  const [novoChamadoAberto, setNovoChamadoAberto] = useState(false);
+  const [anexos, setAnexos] = useState<File[]>([]);
+  const [categoria, setCategoria] = useState("duvida");
+  const [titulo, setTitulo] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState("");
+  const [chamados, setChamados] = useState<ChamadoSuporte[]>([]);
+  const [chamadoAberto, setChamadoAberto] =
+  useState<ChamadoSuporte | null>(null);
+  const [respostaChamado, setRespostaChamado] = useState("");
+const [enviandoResposta, setEnviandoResposta] = useState(false);
+const [erroResposta, setErroResposta] = useState("");
+  const [carregandoChamados, setCarregandoChamados] = useState(true);
+  const {
+    user,
+    nomeEmpresa,
+    empresaId,
+    loading,
+    signOut,
+  } = useAuth();
 
 
-useEffect(() => {
-  if (!loading && user && empresaId) {
-    void carregarChamados();
-  }
-}, [loading, user?.id, empresaId]);
+  useEffect(() => {
+    if (!loading && user && empresaId) {
+      void carregarChamados();
+    }
+  }, [loading, user?.id, empresaId]);
 
   if (loading) {
     return (
@@ -83,155 +100,263 @@ useEffect(() => {
 
   if (!user) return null;
   const adicionarAnexos = (
-  event: React.ChangeEvent<HTMLInputElement>
-) => {
-  const arquivos = Array.from(event.target.files || []);
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const arquivos = Array.from(event.target.files || []);
 
-  const permitidos = arquivos.filter((arquivo) => {
-    const tipoPermitido = [
-      "application/pdf",
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-    ].includes(arquivo.type);
+    const permitidos = arquivos.filter((arquivo) => {
+      const tipoPermitido = [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+      ].includes(arquivo.type);
 
-    const tamanhoPermitido =
-      arquivo.size <= 10 * 1024 * 1024;
+      const tamanhoPermitido =
+        arquivo.size <= 10 * 1024 * 1024;
 
-    return tipoPermitido && tamanhoPermitido;
-  });
+      return tipoPermitido && tamanhoPermitido;
+    });
 
-  setAnexos((atuais) => [
-    ...atuais,
-    ...permitidos,
-  ]);
+    setAnexos((atuais) => [
+      ...atuais,
+      ...permitidos,
+    ]);
 
-  event.target.value = "";
-};
+    event.target.value = "";
+  };
 
-const removerAnexo = (index: number) => {
-  setAnexos((atuais) =>
-    atuais.filter((_, i) => i !== index)
-  );
-};
+  const removerAnexo = (index: number) => {
+    setAnexos((atuais) =>
+      atuais.filter((_, i) => i !== index)
+    );
+  };
 
 const carregarChamados = async () => {
   if (!empresaId) return;
+
   try {
     setCarregandoChamados(true);
-    const { data: chamadosData, error: chamadosError } = await supabase
-      .from("suporte_chamados")
-      .select("id, titulo, mensagem, categoria, status, prioridade, created_at")
-      .eq("empresa_id", empresaId)
-      .order("created_at", { ascending: false });
+
+    const { data: chamadosData, error: chamadosError } =
+      await supabase
+        .from("suporte_chamados")
+      .select(
+  "id, titulo, mensagem, categoria, status, prioridade, created_at, visualizado_cliente_at, visualizado_admin_at"
+)
+        .eq("empresa_id", empresaId)
+        .order("created_at", { ascending: false });
+
     if (chamadosError) throw chamadosError;
 
     const ids = (chamadosData ?? []).map((c) => c.id);
+
     let anexosData: AnexoSuporte[] = [];
+    let mensagensData: MensagemSuporte[] = [];
+
     if (ids.length > 0) {
-      const { data, error } = await supabase
-        .from("suporte_anexos")
-        .select("id, chamado_id, nome_arquivo, caminho_storage, tipo_arquivo, tamanho_bytes")
-        .in("chamado_id", ids)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      anexosData = (data ?? []) as AnexoSuporte[];
+      const { data: anexos, error: anexosError } =
+        await supabase
+          .from("suporte_anexos")
+          .select(
+            "id, chamado_id, nome_arquivo, caminho_storage, tipo_arquivo, tamanho_bytes"
+          )
+          .in("chamado_id", ids)
+          .order("created_at", { ascending: true });
+
+      if (anexosError) throw anexosError;
+
+      anexosData = (anexos ?? []) as AnexoSuporte[];
+
+      const { data: mensagens, error: mensagensError } =
+        await supabase
+          .from("suporte_mensagens")
+          .select(
+            "id, chamado_id, usuario_id, autor_tipo, mensagem, created_at"
+          )
+          .in("chamado_id", ids)
+          .order("created_at", { ascending: true });
+
+      if (mensagensError) throw mensagensError;
+
+      mensagensData = (mensagens ?? []) as MensagemSuporte[];
     }
 
-    setChamados((chamadosData ?? []).map((c) => ({
-      ...c,
-      anexos: anexosData.filter((a) => a.chamado_id === c.id),
-    })) as ChamadoSuporte[]);
+    setChamados(
+      (chamadosData ?? []).map((chamado) => ({
+        ...chamado,
+
+        anexos: anexosData.filter(
+          (anexo) => anexo.chamado_id === chamado.id
+        ),
+
+        mensagens: mensagensData.filter(
+          (mensagem) =>
+            mensagem.chamado_id === chamado.id
+        ),
+      })) as ChamadoSuporte[]
+    );
   } catch (error) {
-    console.error("Erro ao carregar chamados:", error);
+    console.error(
+      "Erro ao carregar chamados:",
+      error
+    );
   } finally {
     setCarregandoChamados(false);
   }
 };
 
-const abrirAnexo = async (caminhoStorage: string) => {
-  try {
-    const { data, error } = await supabase.storage
-      .from("suporte-anexos")
-      .createSignedUrl(caminhoStorage, 60);
-    if (error) throw error;
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  } catch (error) {
-    console.error("Erro ao abrir anexo:", error);
-  }
-};
+  const abrirAnexo = async (caminhoStorage: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("suporte-anexos")
+        .createSignedUrl(caminhoStorage, 60);
+      if (error) throw error;
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Erro ao abrir anexo:", error);
+    }
+  };
 
 
-const handleEnviarChamado = async () => {
-  if (!user || !empresaId) return;
-  if (!titulo.trim() || !mensagem.trim()) {
-    setErroEnvio("Preencha o assunto e descreva o que aconteceu.");
+  const handleEnviarChamado = async () => {
+    if (!user || !empresaId) return;
+    if (!titulo.trim() || !mensagem.trim()) {
+      setErroEnvio("Preencha o assunto e descreva o que aconteceu.");
+      return;
+    }
+
+    try {
+      setEnviando(true);
+      setErroEnvio("");
+
+      const { data: chamadoCriado, error: chamadoError } = await supabase
+        .from("suporte_chamados")
+        .insert({
+          empresa_id: empresaId,
+          usuario_id: user.id,
+          titulo: titulo.trim(),
+          mensagem: mensagem.trim(),
+          categoria,
+        })
+        .select("id")
+        .single();
+
+      if (chamadoError) throw chamadoError;
+
+      for (const arquivo of anexos) {
+        const extensao = arquivo.name.includes(".")
+          ? arquivo.name.split(".").pop()?.toLowerCase()
+          : undefined;
+        const nomeSeguro = `${crypto.randomUUID()}${extensao ? `.${extensao}` : ""}`;
+        const caminhoStorage = `${empresaId}/${chamadoCriado.id}/${nomeSeguro}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("suporte-anexos")
+          .upload(caminhoStorage, arquivo, {
+            contentType: arquivo.type || undefined,
+            upsert: false,
+          });
+        if (uploadError) throw uploadError;
+
+        const { error: anexoError } = await supabase
+          .from("suporte_anexos")
+          .insert({
+            chamado_id: chamadoCriado.id,
+            empresa_id: empresaId,
+            usuario_id: user.id,
+            nome_arquivo: arquivo.name,
+            caminho_storage: caminhoStorage,
+            tipo_arquivo: arquivo.type || null,
+            tamanho_bytes: arquivo.size,
+          });
+
+        if (anexoError) {
+          await supabase.storage.from("suporte-anexos").remove([caminhoStorage]);
+          throw anexoError;
+        }
+      }
+
+      await carregarChamados();
+      setCategoria("duvida");
+      setTitulo("");
+      setMensagem("");
+      setAnexos([]);
+      setNovoChamadoAberto(false);
+    } catch (error) {
+      console.error("Erro ao enviar chamado:", error);
+      setErroEnvio("Não foi possível enviar o chamado ou algum anexo. Tente novamente.");
+      await carregarChamados();
+    } finally {
+      setEnviando(false);
+    }
+  };
+const enviarRespostaChamado = async () => {
+  if (!user || !empresaId || !chamadoAberto) return;
+
+  const texto = respostaChamado.trim();
+
+  if (!texto) {
+    setErroResposta("Digite uma mensagem.");
     return;
   }
 
   try {
-    setEnviando(true);
-    setErroEnvio("");
+    setEnviandoResposta(true);
+    setErroResposta("");
 
-    const { data: chamadoCriado, error: chamadoError } = await supabase
-      .from("suporte_chamados")
+    const { data, error } = await supabase
+      .from("suporte_mensagens")
       .insert({
+        chamado_id: chamadoAberto.id,
         empresa_id: empresaId,
         usuario_id: user.id,
-        titulo: titulo.trim(),
-        mensagem: mensagem.trim(),
-        categoria,
+        autor_tipo: "cliente",
+        mensagem: texto,
       })
-      .select("id")
+      .select(
+        "id, chamado_id, usuario_id, autor_tipo, mensagem, created_at"
+      )
       .single();
 
-    if (chamadoError) throw chamadoError;
+    if (error) throw error;
 
-    for (const arquivo of anexos) {
-      const extensao = arquivo.name.includes(".")
-        ? arquivo.name.split(".").pop()?.toLowerCase()
-        : undefined;
-      const nomeSeguro = `${crypto.randomUUID()}${extensao ? `.${extensao}` : ""}`;
-      const caminhoStorage = `${empresaId}/${chamadoCriado.id}/${nomeSeguro}`;
+    const novaMensagem = data as MensagemSuporte;
 
-      const { error: uploadError } = await supabase.storage
-        .from("suporte-anexos")
-        .upload(caminhoStorage, arquivo, {
-          contentType: arquivo.type || undefined,
-          upsert: false,
-        });
-      if (uploadError) throw uploadError;
+    setChamadoAberto((anterior) =>
+      anterior
+        ? {
+            ...anterior,
+            mensagens: [
+              ...(anterior.mensagens ?? []),
+              novaMensagem,
+            ],
+          }
+        : anterior
+    );
 
-      const { error: anexoError } = await supabase
-        .from("suporte_anexos")
-        .insert({
-          chamado_id: chamadoCriado.id,
-          empresa_id: empresaId,
-          usuario_id: user.id,
-          nome_arquivo: arquivo.name,
-          caminho_storage: caminhoStorage,
-          tipo_arquivo: arquivo.type || null,
-          tamanho_bytes: arquivo.size,
-        });
+    setChamados((anteriores) =>
+      anteriores.map((chamado) =>
+        chamado.id === chamadoAberto.id
+          ? {
+              ...chamado,
+              mensagens: [
+                ...(chamado.mensagens ?? []),
+                novaMensagem,
+              ],
+            }
+          : chamado
+      )
+    );
 
-      if (anexoError) {
-        await supabase.storage.from("suporte-anexos").remove([caminhoStorage]);
-        throw anexoError;
-      }
-    }
-
-    await carregarChamados();
-    setCategoria("duvida");
-    setTitulo("");
-    setMensagem("");
-    setAnexos([]);
-    setNovoChamadoAberto(false);
+    setRespostaChamado("");
   } catch (error) {
-    console.error("Erro ao enviar chamado:", error);
-    setErroEnvio("Não foi possível enviar o chamado ou algum anexo. Tente novamente.");
-    await carregarChamados();
+    console.error("Erro ao responder chamado:", error);
+    setErroResposta(
+      "Não foi possível enviar sua mensagem. Tente novamente."
+    );
   } finally {
-    setEnviando(false);
+    setEnviandoResposta(false);
   }
 };
 
@@ -278,135 +403,135 @@ const handleEnviarChamado = async () => {
               </p>
             </div>
 
-       <button
-  type="button"
-  onClick={() => setNovoChamadoAberto(true)}
-  className="
+            <button
+              type="button"
+              onClick={() => setNovoChamadoAberto(true)}
+              className="
     flex h-11 items-center justify-center gap-2
     rounded-xl bg-[#C8D463]
     px-5 text-sm font-semibold text-[#38444B]
     transition hover:brightness-95
   "
->
-  <Plus size={17} />
-  Novo chamado
-</button>
-</div>
-{novoChamadoAberto && (
-  <section
-    className="
+            >
+              <Plus size={17} />
+              Novo chamado
+            </button>
+          </div>
+          {novoChamadoAberto && (
+            <section
+              className="
       mb-6 rounded-2xl border border-[#DCE2E4]
       bg-white p-6
     "
-  >
-    <div className="mb-6 flex items-start justify-between gap-4">
-      <div>
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8F9AA1]">
-          Novo atendimento
-        </span>
+            >
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8F9AA1]">
+                    Novo atendimento
+                  </span>
 
-        <h2 className="mt-1 text-xl font-semibold text-[#38444B]">
-          Como podemos ajudar?
-        </h2>
+                  <h2 className="mt-1 text-xl font-semibold text-[#38444B]">
+                    Como podemos ajudar?
+                  </h2>
 
-        <p className="mt-1 text-sm text-[#8F9AA1]">
-          Conte o que está acontecendo no Glass Code.
-        </p>
-      </div>
+                  <p className="mt-1 text-sm text-[#8F9AA1]">
+                    Conte o que está acontecendo no Glass Code.
+                  </p>
+                </div>
 
-      <button
-        type="button"
-        onClick={() => setNovoChamadoAberto(false)}
-        className="
+                <button
+                  type="button"
+                  onClick={() => setNovoChamadoAberto(false)}
+                  className="
           rounded-lg border border-[#DCE2E4]
           px-3 py-2 text-sm font-medium text-[#8F9AA1]
           transition hover:bg-[#F6F8F8]
         "
-      >
-        Cancelar
-      </button>
-    </div>
+                >
+                  Cancelar
+                </button>
+              </div>
 
-    <div className="grid gap-5">
-      <div>
-        <label
-          htmlFor="categoria"
-          className="mb-2 block text-sm font-semibold text-[#38444B]"
-        >
-          Categoria
-        </label>
+              <div className="grid gap-5">
+                <div>
+                  <label
+                    htmlFor="categoria"
+                    className="mb-2 block text-sm font-semibold text-[#38444B]"
+                  >
+                    Categoria
+                  </label>
 
-        <select
-          id="categoria"
-          className="
+                  <select
+                    id="categoria"
+                    className="
             h-11 w-full rounded-xl border border-[#DCE2E4]
             bg-white px-3 text-sm text-[#38444B]
             outline-none focus:border-[#C8D463]
           "
-      value={categoria}
-onChange={(e) => setCategoria(e.target.value)}
-        >
-          <option value="duvida">Dúvida</option>
-          <option value="problema">Problema no sistema</option>
-          <option value="configuracao">Configuração</option>
-          <option value="sugestao">Sugestão</option>
-          <option value="outro">Outro</option>
-        </select>
-      </div>
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                  >
+                    <option value="duvida">Dúvida</option>
+                    <option value="problema">Problema no sistema</option>
+                    <option value="configuracao">Configuração</option>
+                    <option value="sugestao">Sugestão</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
 
-      <div>
-        <label
-          htmlFor="titulo"
-          className="mb-2 block text-sm font-semibold text-[#38444B]"
-        >
-          Assunto
-        </label>
+                <div>
+                  <label
+                    htmlFor="titulo"
+                    className="mb-2 block text-sm font-semibold text-[#38444B]"
+                  >
+                    Assunto
+                  </label>
 
-        <input
-          id="titulo"
-          type="text"
-          placeholder="Ex.: Problema ao calcular um orçamento"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          className="
+                  <input
+                    id="titulo"
+                    type="text"
+                    placeholder="Ex.: Problema ao calcular um orçamento"
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                    className="
             h-11 w-full rounded-xl border border-[#DCE2E4]
             bg-white px-3 text-sm text-[#38444B]
             outline-none placeholder:text-[#8F9AA1]
             focus:border-[#C8D463]
           "
-        />
-      </div>
+                  />
+                </div>
 
-      <div>
-        <label
-          htmlFor="mensagem"
-          className="mb-2 block text-sm font-semibold text-[#38444B]"
-        >
-          Descreva o que aconteceu
-        </label>
+                <div>
+                  <label
+                    htmlFor="mensagem"
+                    className="mb-2 block text-sm font-semibold text-[#38444B]"
+                  >
+                    Descreva o que aconteceu
+                  </label>
 
-        <textarea
-          id="mensagem"
-          rows={6}
-          placeholder="Explique sua dificuldade com o máximo de detalhes que puder..."
-          value={mensagem}
-          onChange={(e) => setMensagem(e.target.value)}
-          className="
+                  <textarea
+                    id="mensagem"
+                    rows={6}
+                    placeholder="Explique sua dificuldade com o máximo de detalhes que puder..."
+                    value={mensagem}
+                    onChange={(e) => setMensagem(e.target.value)}
+                    className="
             w-full resize-none rounded-xl border border-[#DCE2E4]
             bg-white p-3 text-sm text-[#38444B]
             outline-none placeholder:text-[#8F9AA1]
             focus:border-[#C8D463]
           "
-        />
-      </div>
-      <div>
-  <label className="mb-2 block text-sm font-semibold text-[#38444B]">
-    Anexos
-  </label>
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#38444B]">
+                    Anexos
+                  </label>
 
-  <label
-    htmlFor="suporte-anexos"
-    className="
+                  <label
+                    htmlFor="suporte-anexos"
+                    className="
       flex cursor-pointer items-center justify-center gap-2
       rounded-xl border border-dashed border-[#8F9AA1]/50
       bg-[#F6F8F8] px-4 py-5
@@ -415,115 +540,115 @@ onChange={(e) => setCategoria(e.target.value)}
       hover:border-[#C8D463]
       hover:bg-[#C8D463]/5
     "
-  >
-    <Paperclip size={18} />
+                  >
+                    <Paperclip size={18} />
 
-    <span>
-      Adicionar imagem ou PDF
-    </span>
+                    <span>
+                      Adicionar imagem ou PDF
+                    </span>
 
-    <input
-      id="suporte-anexos"
-      type="file"
-      multiple
-      accept=".pdf,.png,.jpg,.jpeg,.webp"
-      onChange={adicionarAnexos}
-      className="hidden"
-    />
-  </label>
+                    <input
+                      id="suporte-anexos"
+                      type="file"
+                      multiple
+                      accept=".pdf,.png,.jpg,.jpeg,.webp"
+                      onChange={adicionarAnexos}
+                      className="hidden"
+                    />
+                  </label>
 
-  <p className="mt-2 text-xs text-[#8F9AA1]">
-    PDF, PNG, JPG ou WEBP · máximo de 10 MB por arquivo.
-  </p>
+                  <p className="mt-2 text-xs text-[#8F9AA1]">
+                    PDF, PNG, JPG ou WEBP · máximo de 10 MB por arquivo.
+                  </p>
 
-  {anexos.length > 0 && (
-    <div className="mt-4 grid gap-2">
-      {anexos.map((arquivo, index) => (
-        <div
-          key={`${arquivo.name}-${index}`}
-          className="
+                  {anexos.length > 0 && (
+                    <div className="mt-4 grid gap-2">
+                      {anexos.map((arquivo, index) => (
+                        <div
+                          key={`${arquivo.name}-${index}`}
+                          className="
             flex items-center justify-between gap-3
             rounded-xl border border-[#DCE2E4]
             bg-white px-4 py-3
           "
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div
+                              className="
                 flex h-9 w-9 shrink-0 items-center
                 justify-center rounded-lg
                 bg-[#38444B]
               "
-            >
-              <Paperclip
-                size={16}
-                color="#C8D463"
-              />
-            </div>
+                            >
+                              <Paperclip
+                                size={16}
+                                color="#C8D463"
+                              />
+                            </div>
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-[#38444B]">
-                {arquivo.name}
-              </p>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-[#38444B]">
+                                {arquivo.name}
+                              </p>
 
-              <p className="text-xs text-[#8F9AA1]">
-                {(arquivo.size / 1024 / 1024).toFixed(2)} MB
-              </p>
-            </div>
-          </div>
+                              <p className="text-xs text-[#8F9AA1]">
+                                {(arquivo.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
 
-          <button
-            type="button"
-            onClick={() => removerAnexo(index)}
-            aria-label={`Remover ${arquivo.name}`}
-            className="
+                          <button
+                            type="button"
+                            onClick={() => removerAnexo(index)}
+                            aria-label={`Remover ${arquivo.name}`}
+                            className="
               flex h-8 w-8 shrink-0 items-center
               justify-center rounded-lg
               text-[#8F9AA1] transition
               hover:bg-[#F6F8F8]
               hover:text-[#38444B]
             "
-          >
-            <X size={16} />
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-      {erroEnvio && (
-        <div
-          className="
+                {erroEnvio && (
+                  <div
+                    className="
             rounded-xl border border-red-200
             bg-red-50 px-4 py-3
             text-sm text-red-700
           "
-        >
-          {erroEnvio}
-        </div>
-      )}
+                  >
+                    {erroEnvio}
+                  </div>
+                )}
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={handleEnviarChamado}
-          disabled={enviando}
-          className="
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleEnviarChamado}
+                    disabled={enviando}
+                    className="
             flex h-11 items-center justify-center gap-2
             rounded-xl bg-[#38444B]
             px-5 text-sm font-semibold text-white
             transition hover:brightness-110
           "
-        >
-          <MessageSquare size={17} color="#C8D463" />
-          {enviando ? "Enviando..." : "Enviar chamado"}
-        </button>
-      </div>
-    </div>
-  </section>
-)}
-        
+                  >
+                    <MessageSquare size={17} color="#C8D463" />
+                    {enviando ? "Enviando..." : "Enviar chamado"}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
 
           {/* HISTÓRICO DE CHAMADOS */}
           {carregandoChamados ? (
@@ -607,6 +732,70 @@ onChange={(e) => setCategoria(e.target.value)}
                           <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#8F9AA1]">
                             {chamado.mensagem}
                           </p>
+                          
+    {chamado.mensagens.length > 0 && (
+  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#DCE2E4] pt-4">
+    <div className="flex items-center gap-2">
+      <span className="h-2 w-2 rounded-full bg-[#C8D463]" />
+
+      <span className="text-sm font-medium text-[#38444B]">
+        {chamado.mensagens.length === 1
+          ? "1 atualização no atendimento"
+          : `${chamado.mensagens.length} atualizações no atendimento`}
+      </span>
+    </div>
+
+<button
+  type="button"
+  onClick={async () => {
+  setChamadoAberto(chamado);
+
+  const { error } = await supabase.rpc(
+    "suporte_marcar_visualizado_cliente",
+    {
+      p_chamado_id: chamado.id,
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao marcar chamado como visualizado:",
+      error
+    );
+    return;
+  }
+
+  const agora = new Date().toISOString();
+
+  setChamados((atuais) =>
+    atuais.map((item) =>
+      item.id === chamado.id
+        ? {
+            ...item,
+            visualizado_cliente_at: agora,
+          }
+        : item
+    )
+  );
+
+  setChamadoAberto((atual) =>
+    atual?.id === chamado.id
+      ? {
+          ...atual,
+          visualizado_cliente_at: agora,
+        }
+      : atual
+  );
+}}
+  className="
+    text-sm font-semibold text-[#38444B]
+    transition hover:text-[#8F9AA1]
+  "
+>
+  Ver chamado →
+</button>
+  </div>
+)}
 
                           {chamado.anexos.length > 0 && (
                             <div className="mt-4">
@@ -708,6 +897,265 @@ onChange={(e) => setCategoria(e.target.value)}
             </section>
           )}
         </div>
+        {/* MODAL DO CHAMADO */}
+{chamadoAberto && (
+  <div
+    className="
+      fixed inset-0 z-[100]
+      flex items-center justify-center
+      bg-black/40 p-4
+    "
+    onClick={() => setChamadoAberto(null)}
+  >
+    <div
+      className="
+        relative flex w-full max-w-2xl
+        max-h-[85vh] flex-col
+        overflow-hidden rounded-2xl
+        border border-[#DCE2E4]
+        bg-white shadow-2xl
+      "
+      onClick={(event) => event.stopPropagation()}
+    >
+      {/* CABEÇALHO */}
+      <div className="flex items-start justify-between gap-4 border-b border-[#DCE2E4] px-6 py-5">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#F6F8F8] px-2.5 py-1 text-xs font-semibold text-[#8F9AA1]">
+              {chamadoAberto.categoria === "duvida"
+                ? "Dúvida"
+                : chamadoAberto.categoria === "problema"
+                  ? "Problema no sistema"
+                  : chamadoAberto.categoria === "configuracao"
+                    ? "Configuração"
+                    : chamadoAberto.categoria === "sugestao"
+                      ? "Sugestão"
+                      : "Outro"}
+            </span>
+
+            <span
+              className={`
+                rounded-full px-2.5 py-1
+                text-xs font-semibold
+                ${
+                  chamadoAberto.status === "novo"
+                    ? "bg-[#C8D463]/20 text-[#38444B]"
+                    : chamadoAberto.status === "em_analise"
+                      ? "bg-amber-100 text-amber-800"
+                      : chamadoAberto.status === "em_atendimento"
+                        ? "bg-blue-100 text-blue-800"
+                        : chamadoAberto.status === "aguardando_cliente"
+                          ? "bg-orange-100 text-orange-800"
+                          : "bg-emerald-100 text-emerald-800"
+                }
+              `}
+            >
+              {chamadoAberto.status === "novo"
+                ? "Novo"
+                : chamadoAberto.status === "em_analise"
+                  ? "Em análise"
+                  : chamadoAberto.status === "em_atendimento"
+                    ? "Em atendimento"
+                    : chamadoAberto.status === "aguardando_cliente"
+                      ? "Aguardando você"
+                      : "Resolvido"}
+            </span>
+          </div>
+
+          <h2 className="text-lg font-semibold text-[#38444B]">
+            {chamadoAberto.titulo}
+          </h2>
+
+          <p className="mt-1 text-xs text-[#8F9AA1]">
+            Aberto em{" "}
+            {new Intl.DateTimeFormat("pt-BR", {
+              dateStyle: "short",
+              timeStyle: "short",
+            }).format(new Date(chamadoAberto.created_at))}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setChamadoAberto(null)}
+          className="
+            flex h-9 w-9 shrink-0 items-center
+            justify-center rounded-lg
+            text-[#8F9AA1] transition
+            hover:bg-[#F6F8F8]
+            hover:text-[#38444B]
+          "
+          aria-label="Fechar chamado"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* CONVERSA */}
+      <div className="flex-1 overflow-y-auto bg-[#F6F8F8]/60 px-6 py-5">
+        <div className="space-y-4">
+
+          {/* MENSAGEM INICIAL */}
+          <div className="flex justify-end">
+            <div className="max-w-[82%]">
+              <p className="mb-1 text-right text-[11px] font-semibold text-[#8F9AA1]">
+                Você
+              </p>
+
+              <div className="rounded-2xl rounded-tr-md bg-[#38444B] px-4 py-3 text-white">
+               <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6">
+  {chamadoAberto.mensagem}
+</p>
+              </div>
+
+              <p className="mt-1 text-right text-[10px] text-[#8F9AA1]">
+                {new Intl.DateTimeFormat("pt-BR", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }).format(new Date(chamadoAberto.created_at))}
+              </p>
+            </div>
+          </div>
+
+          {/* MENSAGENS DA CONVERSA */}
+          {(chamadoAberto.mensagens ?? []).map((mensagem) => {
+            const glassCode =
+              mensagem.autor_tipo === "glass_code";
+
+            const sistema =
+              mensagem.autor_tipo === "sistema";
+
+            if (sistema) {
+              return (
+                <div
+                  key={mensagem.id}
+                  className="flex justify-center py-1"
+                >
+                  <div className="rounded-full bg-[#DCE2E4]/60 px-3 py-1.5 text-xs text-[#8F9AA1]">
+                    {mensagem.mensagem}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={mensagem.id}
+                className={
+                  glassCode
+                    ? "flex justify-start"
+                    : "flex justify-end"
+                }
+              >
+                <div className="max-w-[82%]">
+                  <p
+                    className={`mb-1 text-[11px] font-semibold text-[#8F9AA1] ${
+                      glassCode ? "" : "text-right"
+                    }`}
+                  >
+                    {glassCode ? "Glass Code" : "Você"}
+                  </p>
+
+                  <div
+                    className={
+                      glassCode
+                        ? "rounded-2xl rounded-tl-md border border-[#DCE2E4] bg-white px-4 py-3 text-[#38444B]"
+                        : "rounded-2xl rounded-tr-md bg-[#38444B] px-4 py-3 text-white"
+                    }
+                  >
+                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6">
+  {mensagem.mensagem}
+</p>
+                  </div>
+
+                  <p
+                    className={`mt-1 text-[10px] text-[#8F9AA1] ${
+                      glassCode ? "" : "text-right"
+                    }`}
+                  >
+                    {new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    }).format(
+                      new Date(mensagem.created_at)
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* SEM RESPOSTA */}
+          {chamadoAberto.mensagens.length === 0 && (
+            <div className="flex justify-center py-4">
+              <p className="rounded-full bg-white px-4 py-2 text-xs text-[#8F9AA1]">
+                Aguardando atendimento da Glass Code
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+   {/* RESPOSTA */}
+<div className="border-t border-[#DCE2E4] bg-white px-6 py-4">
+  {chamadoAberto.status === "resolvido" ? (
+    <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+      Chamado resolvido
+    </div>
+  ) : (
+    <>
+      <div className="flex items-end gap-3">
+        <textarea
+          value={respostaChamado}
+          onChange={(event) =>
+            setRespostaChamado(event.target.value)
+          }
+          placeholder="Escreva uma resposta..."
+          rows={2}
+          maxLength={10000}
+          className="
+            min-h-[48px] flex-1 resize-none
+            rounded-xl border border-[#DCE2E4]
+            bg-[#F6F8F8] px-4 py-3
+            text-sm text-[#38444B]
+            outline-none transition
+            placeholder:text-[#8F9AA1]
+            focus:border-[#C8D463]
+            focus:bg-white
+          "
+        />
+
+        <button
+          type="button"
+          onClick={() => void enviarRespostaChamado()}
+          disabled={
+            enviandoResposta ||
+            !respostaChamado.trim()
+          }
+          className="
+            h-12 shrink-0 rounded-xl
+            bg-[#C8D463] px-5
+            text-sm font-semibold text-[#38444B]
+            transition hover:brightness-95
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+        >
+          {enviandoResposta ? "Enviando..." : "Enviar"}
+        </button>
+      </div>
+
+      {erroResposta && (
+        <p className="mt-2 text-xs text-red-600">
+          {erroResposta}
+        </p>
+      )}
+    </>
+  )}
+</div>
+    </div>
+  </div>
+)}
       </main>
     </div>
   );

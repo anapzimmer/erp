@@ -128,6 +128,54 @@ if (body?.acao === "suporte_anexo") {
   });
 }
 
+if (body?.acao === "suporte_responder") {
+  if (
+    typeof body.chamadoId !== "string" ||
+    typeof body.mensagem !== "string"
+  ) {
+    return responder(
+      { erro: "Dados da resposta inválidos." },
+      400
+    );
+  }
+
+  const mensagem = body.mensagem.trim();
+
+  if (!mensagem) {
+    return responder(
+      { erro: "Digite uma mensagem para responder ao cliente." },
+      400
+    );
+  }
+
+  if (mensagem.length > 10000) {
+    return responder(
+      { erro: "A mensagem é muito longa." },
+      400
+    );
+  }
+
+  const { data, error } = await acesso.db!.rpc(
+    "gc_suporte_responder_admin",
+    {
+      p_chamado_id: body.chamadoId,
+      p_mensagem: mensagem,
+    }
+  );
+
+  if (error || !data) {
+    return responder(
+      { erro: "Não foi possível enviar a resposta." },
+      503
+    );
+  }
+
+  return responder({
+    sucesso: true,
+    mensagem: data,
+  });
+}
+
 if (body?.acao === "suporte_status") {
   if (
     typeof body.chamadoId !== "string" ||
