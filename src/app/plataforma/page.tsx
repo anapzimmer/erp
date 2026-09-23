@@ -75,7 +75,7 @@ export default function PlataformaPage() {
       <div className={styles.topline}><span>GLASS CODE / CONTROLE DA PLATAFORMA</span><span className={styles.owner}><ShieldCheck size={14}/>Acesso da proprietária</span></div>
       <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-6">
         <div><p className="text-xs uppercase tracking-widest text-text-secondary">Glass Code · Administração da plataforma</p><h1 className="mt-2 text-2xl font-medium">{aba === "financeiro" ? "Gestão financeira" : aba === "usuarios" ? "Usuários da plataforma" : aba === "acessos" ? "Histórico de acessos" : aba === "historico" ? "Bloqueios e liberações" : "Empresas e relacionamento"}</h1><p className="mt-1 text-sm text-text-secondary">{aba === "financeiro" ? "Mensalidades, vencimentos e acompanhamento de recebimentos." : "Acompanhe sua base de clientes e gerencie o acesso ao Glass Code."}</p></div>
-        <div className="flex gap-2"><Link className={botao} href="/">Voltar ao ERP</Link><button className={botao} disabled={carregando || salvando} onClick={() => void carregar()}>Atualizar</button></div>
+        <div className="flex gap-2"><Link className={botao} href="/dashboard">Voltar ao ERP</Link><button className={botao} disabled={carregando || salvando} onClick={() => void carregar()}>Atualizar</button></div>
       </header>
       {erro && <p role="alert" className="rounded-xl border border-danger-soft bg-danger-soft p-4 text-sm text-danger">{erro}</p>}
       {aviso && <p role="status" className="rounded-xl border border-border bg-surface p-4 text-sm">{aviso}</p>}
