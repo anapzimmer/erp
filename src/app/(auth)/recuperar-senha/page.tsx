@@ -457,50 +457,40 @@ export default function RecuperarSenhaPage() {
   <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#263238]/65 backdrop-blur-[6px] px-5">
     <div className="relative w-full max-w-[410px] overflow-hidden rounded-[28px] bg-[#38444B] shadow-2xl border border-white/10">
 
-      {/* MARCA D'ÁGUA GLASS CODE */}
- <div
+ {/* ASSINATURA VISUAL GLASS CODE */}
+<div
   className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]"
   aria-hidden="true"
 >
-  {/* lâmina traseira cinza */}
+  {/* VIDRO TRASEIRO — CINZA */}
   <div
     className="
       absolute
-      -right-[18px]
-      -top-[62px]
-      w-[118px]
-      h-[160px]
-      rounded-[20px]
-      border border-[#8F9AA1]/20
-      rotate-[30deg]
+      -right-[42px]
+      -top-[92px]
+      w-[155px]
+      h-[245px]
+      rounded-[22px]
+      border border-[#8F9AA1]/[0.16]
+      rotate-0
     "
   />
 
-  {/* lâmina frontal lima */}
+  {/* VIDRO FRONTAL — LIMA */}
   <div
     className="
       absolute
-      -right-[48px]
-      -top-[8px]
-      w-[118px]
-      h-[160px]
-      rounded-[20px]
-      border border-[#C8D463]/20
-      rotate-[30deg]
+      -right-[86px]
+      -top-[20px]
+      w-[155px]
+      h-[245px]
+      rounded-[22px]
+      border border-[#C8D463]/[0.20]
+      rotate-0
     "
   />
 </div>
-
-      {/* CÍRCULOS TECNOLÓGICOS DISCRETOS */}
-      <div
-        className="pointer-events-none absolute -right-20 -top-20 w-52 h-52 rounded-full border border-white/[0.045]"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -right-8 -top-8 w-32 h-32 rounded-full border border-white/[0.045]"
-        aria-hidden="true"
-      />
-
+     
       <div className="relative z-10 px-9 pt-10 pb-8 text-center">
 
         {/* ÍCONE DE SUCESSO */}
