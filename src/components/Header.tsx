@@ -4,8 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, ChevronDown, Settings, Palette, LogOut, TableProperties } from "lucide-react";
-import Image from "next/image";
+import {Building2,ChevronDown,Settings,Palette,LogOut, TableProperties,Headphones,} from "lucide-react";
 import ThemeSelect from "@/components/ThemeSelect";
 import { useTheme } from "@/context/ThemeContext";
 import { consultarPlataforma } from "@/lib/plataforma";
@@ -467,6 +466,17 @@ style={{
                 >
                   <TableProperties size={16} /> Tabelas
                 </button>
+                <button
+  onClick={() => {
+    setShowUserMenu(false);
+    router.push("/suporte");
+  }}
+  className="flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-black/5"
+  style={{ color: theme.contentTextLightBg }}
+>
+  <Headphones size={16} />
+  Suporte
+</button>
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
