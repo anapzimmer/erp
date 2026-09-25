@@ -1,5 +1,6 @@
 // src/components/SecurityProvider.tsx
 "use client";
+import { rotaPublica as ehRotaPublica } from "@/lib/rotasPublicas";
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -38,13 +39,7 @@ export default function SecurityProvider({
   // ROTAS PÚBLICAS DO GLASS CODE
   // Nestas páginas NÃO aplicamos o controle de sessão do ERP.
   // ============================================================
-  const rotaPublica =
-    pathname === "/" ||
-    pathname === "/recursos" ||
-    pathname === "/planos" ||
-    pathname === "/login" ||
-    pathname === "/recuperar-senha" ||
-    pathname === "/reset-password";
+  const rotaPublica = ehRotaPublica(pathname);
 
   useEffect(() => {
     // ============================================================

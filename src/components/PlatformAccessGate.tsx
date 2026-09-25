@@ -1,4 +1,5 @@
 "use client";
+import { rotaPublica as ehRotaPublica } from "@/lib/rotasPublicas";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,13 +14,7 @@ export default function PlatformAccessGate({ children }: { children: React.React
   const [detalhe, setDetalhe] = useState<{situacao:Situacao;mensagem?:string;contato?:string;prazo?:string;prazo_vencido?:boolean;inicio_em?:string}|null>(null);
   const [identificador, setIdentificador] = useState("");
   const [tentativa, setTentativa] = useState(0);
-const publica =
-  pathname === "/" ||
-  pathname === "/planos" ||
-  pathname === "/recursos" ||
-  pathname === "/glasscode" ||
-  pathname.startsWith("/glasscode/") ||
-  ["/login", "/recuperar-senha", "/reset-password"].includes(pathname);
+const publica = ehRotaPublica(pathname);
   useEffect(() => {
     let ativo = true;
     let verificando = false;

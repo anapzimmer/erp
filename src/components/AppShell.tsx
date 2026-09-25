@@ -1,5 +1,8 @@
 "use client";
+import { rotaPublica as ehRotaPublica } from "@/lib/rotasPublicas";
 
+import EntradaAutenticada from "@/components/EntradaAutenticada";
+import SuporteNotificacoes from "@/components/SuporteNotificacoes";
 import { usePathname } from "next/navigation";
 import { OrcamentoProvider } from "@/context/OrcamentoContext";
 import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
@@ -11,19 +14,12 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
 
-  const rotaPublica =
-    pathname === "/" ||
-    pathname === "/como-funciona" ||
-    pathname === "/recursos" ||
-    pathname === "/planos" ||
-    pathname === "/login" ||
-    pathname === "/recuperar-senha" ||
-    pathname === "/reset-password";
+  const rotaPublica = ehRotaPublica(pathname);
 
   // SITE COMERCIAL / AUTENTICAÇÃO
   // Não carrega recursos internos do ERP.
   if (rotaPublica) {
-    return <>{children}</>;
+    return <><EntradaAutenticada />{children}</>;
   }
 
   // ERP
@@ -32,6 +28,7 @@ export default function AppShell({
     <OrcamentoProvider>
       {children}
       <ProjetoAssistenteGlobal />
+      <SuporteNotificacoes />
     </OrcamentoProvider>
   );
 }

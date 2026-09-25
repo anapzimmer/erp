@@ -371,7 +371,7 @@ export default function PlanosPage() {
           Glass Code · Software para o setor de vidro
         </span>
 
-        <Link href="/glasscode">
+        <Link href="/">
           Voltar ao início
         </Link>
       </footer>

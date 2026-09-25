@@ -1,9 +1,11 @@
 "use client";
+import { rotaPublica as ehRotaPublica } from "@/lib/rotasPublicas";
 
 import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -26,36 +28,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const pathname = usePathname();
 
-const rotaPublica =
-  pathname === "/" ||
-  pathname === "/como-funciona" ||
-  pathname === "/recursos" ||
-  pathname === "/planos" ||
-  pathname === "/login" ||
-  pathname === "/recuperar-senha" ||
-  pathname === "/reset-password";
+const rotaPublica = ehRotaPublica(pathname);
 
   const [user, setUser] = useState<any>(null);
   const [perfilUsuario, setPerfilUsuario] = useState<any>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState("Carregando...");
   const [loading, setLoading] = useState(true);
+  const usuarioCarregado = useRef<string | null>(null);
 
   useEffect(() => {
     let ativo = true;
+    let versao = 0;
 
     const carregarAutenticacao = async () => {
+      const atual = ++versao;
       try {
-        setLoading(true);
+        // Revalidar a mesma sessão não deve desmontar formulários e PDFs abertos.
+        if (!usuarioCarregado.current) setLoading(true);
 
         const {
           data: { user: authUser },
           error: authError,
         } = await supabase.auth.getUser();
 
-        if (!ativo) return;
+        if (!ativo || atual !== versao) return;
 
     if (authError || !authUser) {
+  usuarioCarregado.current = null;
   setUser(null);
   setPerfilUsuario(null);
   setEmpresaId(null);
@@ -70,6 +70,13 @@ const rotaPublica =
   return;
 }
 
+        if (usuarioCarregado.current !== authUser.id) {
+          setLoading(true);
+          setPerfilUsuario(null);
+          setEmpresaId(null);
+          setNomeEmpresa("Carregando...");
+        }
+        usuarioCarregado.current = authUser.id;
         setUser(authUser);
 
         const [
@@ -89,7 +96,7 @@ const rotaPublica =
             .maybeSingle(),
         ]);
 
-        if (!ativo) return;
+        if (!ativo || atual !== versao) return;
 
         if (perfilError) {
           console.error(
@@ -135,7 +142,7 @@ const rotaPublica =
               .eq("id", vinculoData.empresa_id)
               .maybeSingle();
 
-          if (!ativo) return;
+          if (!ativo || atual !== versao) return;
 
           if (empresaError) {
             console.error(
@@ -154,16 +161,29 @@ const rotaPublica =
           error
         );
       } finally {
-        if (ativo) {
+        if (ativo && atual === versao) {
           setLoading(false);
         }
       }
     };
 
     void carregarAutenticacao();
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        usuarioCarregado.current = null;
+        ++versao; setUser(null); setPerfilUsuario(null); setEmpresaId(null); setNomeEmpresa(''); setLoading(false);
+        if (!rotaPublica) router.replace('/login');
+      } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session?.user.id && session.user.id !== usuarioCarregado.current) {
+          usuarioCarregado.current = null;
+          setLoading(true); setUser(null); setPerfilUsuario(null); setEmpresaId(null); setNomeEmpresa('');
+        }
+        setTimeout(() => { if (ativo) void carregarAutenticacao(); }, 0);
+      }
+    });
     return () => {
       ativo = false;
+      subscription.unsubscribe();
     };
 }, [router, rotaPublica]);
 

@@ -862,7 +862,7 @@ export default function RecursosPage() {
             <Link href="/planos">Planos</Link>
 
             <Link
-              href="/glasscode#comecar"
+              href="/login"
               className={styles.ctaSmall}
             >
               Começar agora

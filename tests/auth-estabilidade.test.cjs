@@ -1,0 +1,12 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const ts=require('typescript');
+const source=ts.transpileModule(fs.readFileSync('src/context/AuthContext.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+function simulate(){
+ const state=[],events=[];let index=0,listener,cleanup,current={id:'user-a'},pending=null;const effects=[];const exports={};
+ const db={auth:{getUser:async()=>{if(pending)await pending;return {data:{user:current},error:null};},onAuthStateChange:fn=>{listener=fn;return {data:{subscription:{unsubscribe(){}}}};}},from:table=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:table==='perfis'?{nome_completo:'Teste'}:table==='perfis_usuarios'?{empresa_id:'empresa-'+current.id}:{nome:'Empresa'}})})})})};
+ vm.runInNewContext(source,{exports,console,setTimeout,require:name=>name==='react'?{createContext:()=>({Provider:'provider'}),useRef:v=>({current:v}),useState:v=>{const i=index++;state[i]=v;return [v,n=>{state[i]=n;events.push([i,n]);}];},useEffect:f=>effects.push(f)}:name==='react/jsx-runtime'?{jsx:()=>null}:name==='next/navigation'?{usePathname:()=>'/central-impressao',useRouter:()=>({replace(){}})}:name.includes('rotasPublicas')?{rotaPublica:()=>false}:{supabase:db}});
+ exports.AuthProvider({children:null});cleanup=effects[0]();
+ return {state,events,emit:(event,id)=>{current=id?{id}:null;listener(event,id?{user:current}:null);},hold:()=>{let resolve;pending=new Promise(r=>resolve=r);return ()=>{pending=null;resolve();};},cleanup};
+}
+const settle=()=>new Promise(r=>setTimeout(r,15));
+test('voltar à aba revalida sem ativar o carregamento da central',async()=>{const s=simulate();await settle();assert.equal(s.state[4],false);s.events.length=0;const release=s.hold();s.emit('SIGNED_IN','user-a');await settle();assert.equal(s.state[4],false);release();await settle();assert.ok(!s.events.some(([i,v])=>i===4&&v===true));s.cleanup();});
+test('troca de conta esconde os dados antigos e logout limpa a sessão',async()=>{const s=simulate();await settle();const release=s.hold();s.emit('SIGNED_IN','user-b');assert.equal(s.state[4],true);assert.equal(s.state[0],null);assert.equal(s.state[2],null);release();await settle();assert.equal(s.state[0].id,'user-b');assert.equal(s.state[2],'empresa-user-b');s.emit('SIGNED_OUT');assert.equal(s.state[0],null);assert.equal(s.state[2],null);s.cleanup();});

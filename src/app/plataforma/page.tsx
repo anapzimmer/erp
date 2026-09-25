@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Building2, Users, History, Wallet, ArrowLeft, ShieldCheck, Headphones } from "lucide-react";
@@ -21,6 +22,11 @@ const botao = "rounded-lg border border-border bg-surface px-3 py-2 text-sm text
 const data = (valor: string | null) => valor ? new Date(valor).toLocaleString("pt-BR") : "Nunca acessou";
 
 export default function PlataformaPage() {
+  return <Suspense fallback={<p>Carregando plataforma…</p>}><PlataformaConteudo /></Suspense>;
+}
+function PlataformaConteudo() {
+  const parametros = useSearchParams();
+  useEffect(() => { if (parametros.get('aba') === 'suporte') setAba('suporte'); }, [parametros]);
   const [painel, setPainel] = useState<Painel | null>(null);
   const [aba, setAba] = useState<"empresas" | "usuarios" | "historico" | "financeiro" | "acessos" | "suporte">("empresas");
   const [busca, setBusca] = useState("");
@@ -90,7 +96,7 @@ export default function PlataformaPage() {
   </button>
 ))}
       </nav></div>
-      <div className={styles.sidebarFoot}>Administração exclusiva da proprietária.<Link href="/"><ArrowLeft size={15} />Voltar ao ERP</Link></div>
+      <div className={styles.sidebarFoot}>Administração exclusiva da proprietária.<Link href="/dashboard"><ArrowLeft size={15} />Voltar ao ERP</Link></div>
     </aside>
     <div className={`${styles.workspace} space-y-6`}>
       <div className={styles.topline}><span>GLASS CODE / CONTROLE DA PLATAFORMA</span><span className={styles.owner}><ShieldCheck size={14} />Acesso da proprietária</span></div>

@@ -10,9 +10,10 @@ import {
   ExternalLink,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useLeituraSuporte } from "@/hooks/useLeituraSuporte";
 import Header from "@/components/Header";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -63,6 +64,7 @@ export default function SuportePage() {
   const [respostaChamado, setRespostaChamado] = useState("");
 const [enviandoResposta, setEnviandoResposta] = useState(false);
 const [erroResposta, setErroResposta] = useState("");
+  const [erroCarregamento, setErroCarregamento] = useState("");
   const [carregandoChamados, setCarregandoChamados] = useState(true);
   const {
     user,
@@ -76,8 +78,28 @@ const [erroResposta, setErroResposta] = useState("");
   useEffect(() => {
     if (!loading && user && empresaId) {
       void carregarChamados();
+      const timer = setInterval(() => { if (document.visibilityState === "visible") void carregarChamados(true); }, 20000);
+      return () => clearInterval(timer);
     }
   }, [loading, user?.id, empresaId]);
+
+  const erroLeitura = useLeituraSuporte(chamadoAberto);
+  const linkAberto = useRef('');
+  useEffect(() => {
+    const abrir = (evento: Event) => {
+      const id = (evento as CustomEvent<string>).detail;
+      const encontrado = chamados.find(c => c.id === id);
+      if (encontrado) setChamadoAberto(encontrado);
+    };
+    window.addEventListener('glasscode:abrir-suporte', abrir);
+    return () => window.removeEventListener('glasscode:abrir-suporte', abrir);
+  }, [chamados]);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('chamado');
+    if (!id || linkAberto.current === id) return;
+    const encontrado = chamados.find(c => c.id === id);
+    if (encontrado) { linkAberto.current = id; setChamadoAberto(encontrado); }
+  }, [chamados]);
 
   if (loading) {
     return (
@@ -132,11 +154,11 @@ const [erroResposta, setErroResposta] = useState("");
     );
   };
 
-const carregarChamados = async () => {
+const carregarChamados = async (silencioso = false) => {
   if (!empresaId) return;
 
   try {
-    setCarregandoChamados(true);
+    if (!silencioso) setCarregandoChamados(true);
 
     const { data: chamadosData, error: chamadosError } =
       await supabase
@@ -182,8 +204,8 @@ const carregarChamados = async () => {
       mensagensData = (mensagens ?? []) as MensagemSuporte[];
     }
 
-    setChamados(
-      (chamadosData ?? []).map((chamado) => ({
+    setErroCarregamento("");
+    const atualizados = (chamadosData ?? []).map((chamado) => ({
         ...chamado,
 
         anexos: anexosData.filter(
@@ -194,15 +216,17 @@ const carregarChamados = async () => {
           (mensagem) =>
             mensagem.chamado_id === chamado.id
         ),
-      })) as ChamadoSuporte[]
-    );
+      })) as ChamadoSuporte[];
+    setChamados(atualizados);
+    setChamadoAberto(anterior => anterior ? atualizados.find(c => c.id === anterior.id) || null : null);
   } catch (error) {
     console.error(
       "Erro ao carregar chamados:",
       error
     );
+    setErroCarregamento("Não foi possível atualizar as conversas. Tentaremos novamente automaticamente.");
   } finally {
-    setCarregandoChamados(false);
+    if (!silencioso) setCarregandoChamados(false);
   }
 };
 
@@ -364,6 +388,7 @@ const enviarRespostaChamado = async () => {
     <div className="min-h-screen bg-[#F6F8F8]">
 
       {/* HEADER DO SISTEMA */}
+      {(erroLeitura || erroCarregamento) && <p role="status" className="fixed bottom-5 left-5 z-50 max-w-sm rounded-lg border border-border bg-surface p-3 text-xs text-text-secondary">{erroLeitura || erroCarregamento}</p>}
       <Header
         nomeEmpresa={nomeEmpresa}
         usuarioEmail={user.email ?? ""}

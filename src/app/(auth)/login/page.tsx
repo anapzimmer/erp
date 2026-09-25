@@ -60,7 +60,7 @@ const LoginPage = () => {
         return;
       }
 
-      router.push("/dashboard");
+      router.replace("/dashboard");
       router.refresh(); // Garante atualização da sessão
 
    } catch (err: unknown) {
@@ -75,7 +75,7 @@ const LoginPage = () => {
   useEffect(() => {
    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-        localStorage.clear();
+        localStorage.removeItem("glasscode:last-activity-at");
       }
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token renovado com sucesso!');

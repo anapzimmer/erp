@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Headphones,
     MessageSquare,
@@ -10,6 +10,7 @@ import {
     ExternalLink,
 } from "lucide-react";
 
+import { useLeituraSuporte } from "@/hooks/useLeituraSuporte";
 import { consultarPlataforma } from "@/lib/plataforma";
 
 type AnexoSuporte = {
@@ -95,9 +96,9 @@ export default function SuportePanel() {
     const [resposta, setResposta] = useState("");
     const [enviandoResposta, setEnviandoResposta] = useState(false);
 
-    const carregar = useCallback(async () => {
+    const carregar = useCallback(async (silencioso = false) => {
         try {
-            setCarregando(true);
+            if (!silencioso) setCarregando(true);
             setErro("");
 
             const resultado = (await consultarPlataforma(
@@ -105,6 +106,7 @@ export default function SuportePanel() {
             )) as RespostaSuporte;
 
             setChamados(resultado.chamados ?? []);
+            setChamadoAberto(anterior => anterior ? resultado.chamados?.find(c => c.id === anterior.id) || null : null);
         } catch (error) {
             setErro(
                 error instanceof Error
@@ -112,13 +114,32 @@ export default function SuportePanel() {
                     : "Não foi possível carregar os chamados."
             );
         } finally {
-            setCarregando(false);
+            if (!silencioso) setCarregando(false);
         }
     }, []);
 
     useEffect(() => {
         void carregar();
+        const timer = setInterval(() => { if (document.visibilityState === 'visible') void carregar(true); }, 20000);
+        return () => clearInterval(timer);
     }, [carregar]);
+    const erroLeitura = useLeituraSuporte(chamadoAberto);
+    const linkAberto = useRef('');
+  useEffect(() => {
+    const abrir = (evento: Event) => {
+      const id = (evento as CustomEvent<string>).detail;
+      const encontrado = chamados.find(c => c.id === id);
+      if (encontrado) setChamadoAberto(encontrado);
+    };
+    window.addEventListener('glasscode:abrir-suporte', abrir);
+    return () => window.removeEventListener('glasscode:abrir-suporte', abrir);
+  }, [chamados]);
+    useEffect(() => {
+      const id = new URLSearchParams(window.location.search).get('chamado');
+      if (!id || linkAberto.current === id) return;
+      const encontrado = chamados.find(c => c.id === id);
+      if (encontrado) { linkAberto.current = id; setChamadoAberto(encontrado); }
+    }, [chamados]);
 
     const novos = chamados.filter(
         (chamado) => chamado.status === "novo"
@@ -358,9 +379,9 @@ export default function SuportePanel() {
                     </button>
                 </div>
 
-                {erro && (
+                {(erro || erroLeitura) && (
                     <div className="m-4 rounded-xl border border-danger-soft bg-danger-soft p-4 text-sm text-danger">
-                        {erro}
+                        {erro || erroLeitura}
                     </div>
                 )}
 
