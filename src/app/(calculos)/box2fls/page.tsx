@@ -1,5 +1,7 @@
 "use client";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
+import Header from "@/components/Header";
+import CadastroClientes from "@/components/CadastroClientes";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -16,7 +18,7 @@ import { localizarVidroPorDescricao } from "@/utils/vidros";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
-import { formatarNomePadrao } from "@/utils/formatarNome";
+
 import {
   AlertTriangle,
   Calendar,
@@ -56,18 +58,6 @@ type ClienteCadastro = {
 type TabelaPrecoCadastro = {
   id: string;
   nome: string;
-};
-
-type NovoClienteForm = {
-  tipo_pessoa: "juridica" | "fisica";
-  cpf_cnpj: string;
-  nome: string;
-  rota: string;
-  grupo_preco_id: string;
-  telefone: string;
-  email: string;
-  cidade: string;
-  estado: string;
 };
 
 type VidroCadastro = {
@@ -183,55 +173,6 @@ const formatarQtdMaterial = (qtd: number, unidade?: string) =>
 const parseQtdMaterial = (valor: string, unidade?: string) =>
   ehUnidadeM2(unidade) ? parseNumeroPtBr(valor) : Number(valor || 0);
 
-const somenteNumeros = (valor = "") => valor.replace(/\D/g, "");
-
-const formatarCnpj = (valor = "") => {
-  const numeros = somenteNumeros(valor).slice(0, 14);
-  return numeros
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2");
-};
-
-const formatarCpf = (valor = "") => {
-  const numeros = somenteNumeros(valor).slice(0, 11);
-  return numeros
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/(\d{3})(\d)/, "$1-$2");
-};
-
-const formatarDocumento = (valor: string, tipo: "juridica" | "fisica") =>
-  tipo === "juridica" ? formatarCnpj(valor) : formatarCpf(valor);
-
-const formatarTelefone = (valor = "") => {
-  const numeros = somenteNumeros(valor).slice(0, 11);
-  if (numeros.length <= 10) {
-    return numeros.replace(/^(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_, ddd, parte1, parte2) => {
-      let resultado = "";
-      if (ddd) resultado += `(${ddd}`;
-      if (ddd.length === 2) resultado += ") ";
-      if (parte1) resultado += parte1;
-      if (parte2) resultado += `-${parte2}`;
-      return resultado;
-    });
-  }
-  return numeros.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
-};
-
-const novoClienteInicial: NovoClienteForm = {
-  tipo_pessoa: "juridica",
-  cpf_cnpj: "",
-  nome: "",
-  rota: "",
-  grupo_preco_id: "",
-  telefone: "",
-  email: "",
-  cidade: "",
-  estado: "",
-};
-
 const limitarNumero4Digitos = (valor: string) => {
   const somenteDigitos = valor.replace(/\D/g, "").slice(0, 4);
   return Number(somenteDigitos || 0);
@@ -340,14 +281,12 @@ export default function Box2FlsPage() {
   const centralItemId = searchParams.get("centralItem");
   const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
-  const { empresaId, nomeEmpresa } = useAuth();
+  const { empresaId, nomeEmpresa, user, signOut } = useAuth();
   const { theme } = useTheme();
   const logoUsuario = theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl || null;
   const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
   const [carregandoClientes, setCarregandoClientes] = useState(false);
-  const [salvandoNovoCliente, setSalvandoNovoCliente] = useState(false);
   const [modalNovoClienteAberto, setModalNovoClienteAberto] = useState(false);
-  const [novoCliente, setNovoCliente] = useState<NovoClienteForm>(novoClienteInicial);
   const [listaClientesAberta, setListaClientesAberta] = useState(false);
   const [clienteAtivoIndex, setClienteAtivoIndex] = useState(0);
   const clienteInputRef = useRef<HTMLInputElement>(null);
@@ -624,98 +563,6 @@ export default function Box2FlsPage() {
     atualizarCampo("cliente", cliente.nome);
     setListaClientesAberta(false);
     setClienteAtivoIndex?.(0);
-  };
-
-  const salvarNovoCliente = async () => {
-    if (!empresaId) {
-      setMensagemSistema({
-        tipo: "erro",
-        titulo: "Empresa não encontrada",
-        mensagem: "Não foi possível cadastrar o cliente sem empresa ativa.",
-      });
-      return;
-    }
-
-    if (!novoCliente.nome.trim() || !novoCliente.rota.trim()) {
-      setMensagemSistema({
-        tipo: "aviso",
-        titulo: "Dados obrigatórios",
-        mensagem: "Informe pelo menos nome e rota do cliente.",
-      });
-      return;
-    }
-
-    const documento = somenteNumeros(novoCliente.cpf_cnpj || "");
-    if (documento && novoCliente.tipo_pessoa === "juridica" && documento.length !== 14) {
-      setMensagemSistema({ tipo: "aviso", titulo: "CNPJ inválido", mensagem: "Informe um CNPJ com 14 números." });
-      return;
-    }
-    if (documento && novoCliente.tipo_pessoa === "fisica" && documento.length !== 11) {
-      setMensagemSistema({ tipo: "aviso", titulo: "CPF inválido", mensagem: "Informe um CPF com 11 números." });
-      return;
-    }
-
-    setSalvandoNovoCliente(true);
-    try {
-      if (documento) {
-        const { data: duplicado, error: erroDuplicado } = await supabase
-          .from("clientes")
-          .select("id, nome")
-          .eq("empresa_id", empresaId)
-          .eq("cpf_cnpj", documento)
-          .limit(1);
-
-        if (erroDuplicado) throw erroDuplicado;
-        if (duplicado?.length) {
-          throw new Error(`Documento já cadastrado para ${duplicado[0].nome}.`);
-        }
-      }
-
-      const payload = {
-        empresa_id: empresaId,
-        tipo_pessoa: novoCliente.tipo_pessoa,
-        cpf_cnpj: documento || null,
-        nome: formatarNomePadrao(novoCliente.nome),
-        rota: novoCliente.rota.trim(),
-        grupo_preco_id: novoCliente.grupo_preco_id || null,
-        telefone: novoCliente.telefone.trim() || null,
-        email: novoCliente.email.trim().toLowerCase() || null,
-        cidade: novoCliente.cidade ? formatarNomePadrao(novoCliente.cidade) : null,
-        estado: novoCliente.estado.trim().toUpperCase().slice(0, 2) || null,
-      };
-
-      const { data: clienteInserido, error: erroInsercao } = await supabase
-        .from("clientes")
-        .insert([payload])
-        .select("id, nome, grupo_preco_id, rota")
-        .single();
-
-      if (erroInsercao) throw erroInsercao;
-
-      if (clienteInserido) {
-        const clienteNovo = {
-          id: String(clienteInserido.id),
-          nome: String(clienteInserido.nome),
-          rota: clienteInserido.rota ?? null,
-          grupo_preco_id: clienteInserido.grupo_preco_id ?? null,
-        } as ClienteCadastro;
-
-        setClientes((lista) => [...lista, clienteNovo].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
-        atualizarCampo("cliente", clienteNovo.nome);
-      }
-
-      setModalNovoClienteAberto(false);
-      setNovoCliente(novoClienteInicial);
-      setMensagemSistema({ tipo: "sucesso", titulo: "Cliente cadastrado", mensagem: "Cliente criado e selecionado no orçamento." });
-    } catch (erro) {
-      setMensagemSistema({
-        tipo: "erro",
-        titulo: "Erro ao cadastrar",
-        mensagem: erro instanceof Error ? erro.message : "Não foi possível cadastrar o cliente.",
-      });
-    } finally {
-      setSalvandoNovoCliente(false);
-    }
   };
 
   const selecionarVidro = (vidro: VidroCadastro) => {
@@ -1351,6 +1198,7 @@ export default function Box2FlsPage() {
 
   return (
     <main className="min-h-screen w-full bg-background text-text-primary">
+      <Header nomeEmpresa={nomeEmpresa || ""} usuarioEmail={user?.email || ""} handleSignOut={signOut} />
       <div className="w-full px-4 pb-28 pt-5 sm:px-6 lg:px-8 2xl:px-10">
 
         {/* =========================================================
@@ -2362,251 +2210,14 @@ export default function Box2FlsPage() {
       {/* =========================================================
           MODAL NOVO CLIENTE
       ========================================================= */}
-      {modalNovoClienteAberto && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navigation/35 p-4 backdrop-blur-[2px]">
-          <section className="relative z-[221] w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-surface shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4 md:px-6">
-              <div>
-                <h2 className="text-base font-semibold text-text-primary">
-                  Cadastrar cliente
-                </h2>
-                <p className="mt-0.5 text-xs text-text-secondary">
-                  Cadastre sem sair do orçamento.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (salvandoNovoCliente) return;
-                  setModalNovoClienteAberto(false);
-                }}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-surface-secondary"
-              >
-                Fechar
-              </button>
-            </div>
-
-            <div className="max-h-[75vh] overflow-y-auto p-5 md:p-6">
-              <div className="grid gap-5">
-                <div>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                    Identificação
-                  </h3>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-medium text-text-secondary">
-                      Tipo
-                      <select
-                        value={novoCliente.tipo_pessoa}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            tipo_pessoa: e.target.value as
-                              | "juridica"
-                              | "fisica",
-                            cpf_cnpj: "",
-                          }))
-                        }
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      >
-                        <option value="juridica">
-                          Pessoa jurídica
-                        </option>
-                        <option value="fisica">
-                          Pessoa física
-                        </option>
-                      </select>
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary">
-                      {novoCliente.tipo_pessoa === "juridica"
-                        ? "CNPJ"
-                        : "CPF"}
-
-                      <input
-                        value={novoCliente.cpf_cnpj}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            cpf_cnpj: formatarDocumento(
-                              e.target.value,
-                              atual.tipo_pessoa
-                            ),
-                          }))
-                        }
-                        placeholder={
-                          novoCliente.tipo_pessoa === "juridica"
-                            ? "00.000.000/0000-00"
-                            : "000.000.000-00"
-                        }
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary md:col-span-2">
-                      Nome do cliente *
-                      <input
-                        value={novoCliente.nome}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            nome: e.target.value,
-                          }))
-                        }
-                        placeholder="Nome do cliente"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary">
-                      Rota *
-                      <input
-                        value={novoCliente.rota}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            rota: e.target.value,
-                          }))
-                        }
-                        placeholder="Ex.: 05MM"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary">
-                      Tabela de preços
-                      <select
-                        value={novoCliente.grupo_preco_id}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            grupo_preco_id: e.target.value,
-                          }))
-                        }
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      >
-                        <option value="">Tabela padrão</option>
-                        {tabelasPreco.map((tabela) => (
-                          <option
-                            key={tabela.id}
-                            value={tabela.id}
-                          >
-                            {tabela.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-5">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                    Contato
-                  </h3>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-medium text-text-secondary">
-                      Telefone
-                      <input
-                        value={novoCliente.telefone}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            telefone: formatarTelefone(
-                              e.target.value
-                            ),
-                          }))
-                        }
-                        placeholder="(00) 00000-0000"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary">
-                      E-mail
-                      <input
-                        type="email"
-                        value={novoCliente.email}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            email: e.target.value,
-                          }))
-                        }
-                        placeholder="cliente@empresa.com"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-5">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                    Endereço
-                  </h3>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-xs font-medium text-text-secondary">
-                      Cidade
-                      <input
-                        value={novoCliente.cidade}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            cidade: e.target.value,
-                          }))
-                        }
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-
-                    <label className="text-xs font-medium text-text-secondary">
-                      UF
-                      <input
-                        value={novoCliente.estado}
-                        onChange={(e) =>
-                          setNovoCliente((atual) => ({
-                            ...atual,
-                            estado: e.target.value
-                              .toUpperCase()
-                              .slice(0, 2),
-                          }))
-                        }
-                        className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-medium text-text-primary outline-none"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 border-t border-border bg-surface-secondary/60 px-5 py-4 md:px-6">
-              <button
-                type="button"
-                onClick={() => {
-                  if (salvandoNovoCliente) return;
-                  setModalNovoClienteAberto(false);
-                }}
-                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-primary"
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                disabled={salvandoNovoCliente}
-                onClick={salvarNovoCliente}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
-              >
-                {salvandoNovoCliente
-                  ? "Salvando..."
-                  : "Cadastrar cliente"}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      {modalNovoClienteAberto && <CadastroClientes somenteNovo
+        onClose={() => setModalNovoClienteAberto(false)}
+        onCreated={cliente => {
+          setClientes(lista => [...lista.filter(atual => String(atual.id) !== String(cliente.id)), { ...cliente, id: String(cliente.id) }]);
+          setDados(atual => ({ ...atual, cliente: cliente.nome }));
+          setListaClientesAberta(false);
+        }}
+      />}
     </main>
   );
 }
