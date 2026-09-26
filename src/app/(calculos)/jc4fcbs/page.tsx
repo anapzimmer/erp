@@ -1,5 +1,6 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -1340,14 +1341,14 @@ useEffect(() => {
     origemRota: "/jc4fcbs",
   });
 
-  const enviarParaCentral = () => {
+  const enviarParaCentral = async () => {
     try {
+      const itemParaEnviar = montarItemCentral(centralItemId || undefined);
+      if (!await confirmarEnvioOrcamento([itemParaEnviar])) return;
       const salvo = localStorage.getItem(CENTRAL_KEY);
       const lista = salvo ? (JSON.parse(salvo) as CentralImpressaoProjetoItem[])
         : [];
-      const novoItem = montarItemCentral(
-        centralItemId || undefined
-      );
+      const novoItem = itemParaEnviar;
 
       const proximaLista =
         centralItemId &&

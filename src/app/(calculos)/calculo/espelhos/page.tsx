@@ -1,4 +1,5 @@
 "use client"
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -550,7 +551,7 @@ export default function CalculoEspelhosPage() {
     return itemEditado ? listaItens.map(item => item.id === itemEmEdicao ? itemEditado : item) : listaItens;
   };
 
-  const enviarParaCentralImpressao = (comDesenho: boolean) => {
+  const enviarParaCentralImpressao = async (comDesenho: boolean) => {
     const itensParaEnviar = obterItensParaSalvar();
     if (!itensParaEnviar) return;
     if (itensParaEnviar.length === 0) {
@@ -652,13 +653,14 @@ export default function CalculoEspelhosPage() {
         materiais,
         origemRota: "/calculo/espelhos",
       }];
+    if (!await confirmarEnvioOrcamento(itensCentral)) return;
 
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? JSON.parse(salvo) : [];
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista.filter((item: any) => !centralIdsRef.current.includes(item.id)), ...itensCentral]));
       if (nomeCliente) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, nomeCliente);
-      if (nomeObra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, nomeObra);
+      if (nomeObra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, (itensCentral[0] as { obra?: string }).obra ?? nomeObra);
       setShowModalCentral(false);
       router.push(retornoCentral);
     } catch (erro) {

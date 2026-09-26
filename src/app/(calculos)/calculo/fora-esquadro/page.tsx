@@ -1,4 +1,5 @@
 "use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 import styles from "./fora-esquadro.module.css";
@@ -576,7 +577,7 @@ function ForaEsquadroConteudo() {
     };
   }, [empresaId]);
 
-  const enviarParaCentral = () => {
+  const enviarParaCentral = async () => {
     if (centralItemId && itemCarregado !== centralItemId) return;
     if (!vidroSelecionado || !precoVidroM2) {
       setMostrarPreco(true);
@@ -648,6 +649,7 @@ function ForaEsquadroConteudo() {
       origemRota: "/calculo/fora-esquadro",
       origemTipo: "fora-esquadro",
     };
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);

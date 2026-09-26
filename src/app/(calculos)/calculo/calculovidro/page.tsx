@@ -1,5 +1,6 @@
 //app/calculovidro/page.tsx
 "use client"
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -1820,7 +1821,7 @@ useEffect(() => {
     return pesoFinal;
   };
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Adicione pelo menos um vidro antes de enviar para a central de impressão.");
@@ -1901,6 +1902,7 @@ useEffect(() => {
       itensOriginais: itens,
       origemRota: "/calculo/calculovidro",
     };
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
@@ -1910,7 +1912,7 @@ useEffect(() => {
         : [...lista, itemCentral];
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
       if (clienteNome) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteNome);
-      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
+      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, (itemCentral as { obra?: string }).obra ?? obra);
       router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (erro) {
       console.warn("Não foi possível enviar os vidros para a central de impressão:", erro);

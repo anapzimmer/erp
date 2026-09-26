@@ -1,4 +1,5 @@
 "use client"
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -692,7 +693,7 @@ export default function CalculoPinazioPage() {
     }, 10);
   };
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     if (listaItens.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem(
@@ -834,6 +835,7 @@ export default function CalculoPinazioPage() {
         indiceOrigem: index + 1,
       };
     });
+    if (!await confirmarEnvioOrcamento(itensCentral)) return;
 
     try {
       const salvo = window.localStorage.getItem(
@@ -870,7 +872,7 @@ export default function CalculoPinazioPage() {
       if (nomeObra) {
         window.localStorage.setItem(
           CENTRAL_IMPRESSAO_OBRA_KEY,
-          nomeObra
+          (itensCentral[0] as { obra?: string }).obra ?? nomeObra
         );
       }
 

@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { ehAtalhoNovoOrcamento } from "@/utils/atalhoOrcamento";
 import { useTheme } from "@/context/ThemeContext";
 import { ClipboardList, X } from "lucide-react";
+import { SOLICITAR_ENVIO_ORCAMENTO, type PedidoEnvioOrcamento } from "@/utils/envioOrcamento";
 
 type Cliente = {
   id: string;
@@ -95,9 +96,82 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   const [atualizandoStatus, setAtualizandoStatus] = useState(false);
   const [quantidade, setQuantidade] = useState(0);
   const dialogRef = useRef<HTMLElement>(null);
+  const [pedido, setPedido] = useState<PedidoEnvioOrcamento | null>(null);
+  const pedidoRef = useRef<PedidoEnvioOrcamento | null>(null);
+  const [iniciandoPdf, setIniciandoPdf] = useState(false);
+
+  const fecharPedido = () => {
+    pedidoRef.current?.concluir(null);
+    pedidoRef.current = null;
+    setPedido(null);
+  };
 
   useEffect(() => {
-    if (!modal) return;
+    const solicitar = (event: Event) => {
+      event.preventDefault();
+      const novo = (event as CustomEvent<PedidoEnvioOrcamento>).detail;
+      if (!storageKey || !empresaId) { novo.concluir(null); return; }
+      if (ativo?.empresaId === empresaId) {
+        const diferente = novo.itens.some(item => item.cliente?.trim() !== ativo.cliente.nome.trim());
+        if (!diferente) { novo.concluir({ obra: ativo.obra }); return; }
+        setErro("Este cálculo está com outro cliente. Confira o cliente antes de adicionar ao orçamento em andamento.");
+      } else setErro("");
+      pedidoRef.current?.concluir(null);
+      pedidoRef.current = novo;
+      setPedido(novo);
+      setObra(novo.itens[0]?.obra || "");
+    };
+    window.addEventListener(SOLICITAR_ENVIO_ORCAMENTO, solicitar);
+    return () => window.removeEventListener(SOLICITAR_ENVIO_ORCAMENTO, solicitar);
+  }, [ativo, empresaId, storageKey]);
+
+  useEffect(() => () => {
+    pedidoRef.current?.concluir(null);
+    pedidoRef.current = null;
+  }, [storageKey, pathname]);
+
+  const escolherEnvio = async (continuar: boolean) => {
+    if (!pedido || iniciandoPdf || !storageKey || !empresaId) return;
+    const solicitacao = pedido;
+    if (ativo) { setErro("Volte ao cálculo e confira o cliente do orçamento em andamento."); return; }
+    if (!continuar) {
+      solicitacao.concluir({ obra: obra.trim() });
+      pedidoRef.current = null;
+      setPedido(null);
+      return;
+    }
+    setIniciandoPdf(true);
+    setErro("");
+    try {
+      const nome = solicitacao.itens[0]?.cliente?.trim();
+      if (!nome || solicitacao.itens.some(item => item.cliente?.trim() !== nome)) {
+        throw new Error("Selecione um único cliente no cálculo antes de iniciar um orçamento com vários itens.");
+      }
+      const { data, error } = await supabase.from("clientes").select("id, nome, grupo_preco_id")
+        .eq("empresa_id", empresaId).eq("nome", nome).limit(2);
+      if (error || data?.length !== 1) throw new Error("Confira o cadastro do cliente no cálculo antes de continuar.");
+      if (pedidoRef.current !== solicitacao) return;
+      const itens = JSON.parse(localStorage.getItem(`${PREFIXO}composicao`) || "[]") as { cliente?: string }[];
+      const clienteCentral = localStorage.getItem(`${PREFIXO}cliente`);
+      if (itens.some(item => item.cliente?.trim() !== nome) || (clienteCentral && clienteCentral.trim() !== nome)) {
+        throw new Error("A central está com outro cliente. Salve o orçamento atual antes de começar este.");
+      }
+      const novo: OrcamentoAtivo = { id: crypto.randomUUID(), empresaId,
+        cliente: { ...data[0], id: String(data[0].id) }, obra: obra.trim() };
+      localStorage.setItem(storageKey, JSON.stringify(novo));
+      localStorage.setItem(`${PREFIXO}cliente`, nome);
+      localStorage.setItem(`${PREFIXO}obra`, novo.obra);
+      setAtivo(novo);
+      solicitacao.concluir({ obra: novo.obra });
+      pedidoRef.current = null;
+      setPedido(null);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível iniciar o orçamento.");
+    } finally { setIniciandoPdf(false); }
+  };
+
+  useEffect(() => {
+    if (!modal && !pedido) return;
     const anterior = document.activeElement as HTMLElement | null;
     const dialog = dialogRef.current;
     const seletores = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]';
@@ -112,7 +186,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
     };
     document.addEventListener("keydown", limitarFoco);
     return () => { document.removeEventListener("keydown", limitarFoco); anterior?.focus(); };
-  }, [modal, carregando]);
+  }, [modal, pedido, carregando]);
 
   useEffect(() => {
     const chaveArmazenamento = storageKey || "";
@@ -282,22 +356,27 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
   const botao = { backgroundColor: theme.buttonDarkBg, color: theme.buttonDarkText };
   const campo = { backgroundColor: theme.screenBackgroundColor, color: theme.modalTextColor, borderColor: `color-mix(in srgb, ${theme.modalTextColor} 19%, transparent)` };
   return <Context.Provider value={sessao}>
-    {empresaId && <div className="print:hidden flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-secondary px-6 py-2 text-sm text-text-primary">
-      {sessao ? <>
-        <span>Orçamento em andamento: {sessao.cliente.nome}{sessao.obra ? ` · ${sessao.obra}` : ""} · Rascunho automático</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={cancelarEIniciarOutro}
-            className="rounded-lg border border-danger-soft bg-surface px-4 py-2 font-normal text-danger transition-colors hover:bg-danger-soft"
-          >
-            Cancelar e começar outro
-          </button>
-          <Link className="rounded-lg border border-border-strong bg-surface px-4 py-2 font-normal text-text-secondary transition-colors hover:bg-surface-secondary" href={destino}>Ver orçamento{quantidade ? ` (${quantidade})` : ""} / Salvar</Link>
-        </div>
-      </> : <><span>Monte um orçamento com vários cálculos</span><button type="button" aria-keyshortcuts="Shift+Plus" className="rounded-lg border border-border-strong bg-surface px-4 py-2 font-normal text-text-secondary transition-colors hover:bg-surface-secondary" onClick={() => { setErro(""); setModal(true); }}>+ Novo orçamento</button></>}
+    {sessao && <div className="print:hidden flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface px-4 py-1.5 text-xs text-text-secondary">
+      <span className="min-w-0 truncate">Orçamento em andamento · {sessao.cliente.nome}{sessao.obra ? ` · ${sessao.obra}` : ""}</span>
+      <div className="flex shrink-0 items-center gap-4">
+        <Link href="/matriz-projetos" className="hover:underline">Adicionar item</Link>
+        <Link href={destino} className="hover:underline">Ver orçamento{quantidade ? ` (${quantidade})` : ""}</Link>
+        <Link href={destino} className="hover:underline">Encerrar e revisar</Link>
+      </div>
     </div>}
     {children}
+    {pedido && <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4" onKeyDown={event => { if (event.key === "Escape" && !iniciandoPdf) fecharPedido(); }}>
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="envio-orcamento-titulo" className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 text-text-primary shadow-2xl">
+        <div className="flex items-center justify-between gap-4"><h2 id="envio-orcamento-titulo" className="text-lg font-medium">Como deseja montar este orçamento?</h2><button type="button" aria-label="Fechar" disabled={iniciandoPdf} onClick={fecharPedido}><X size={20} /></button></div>
+        <p className="mt-3 text-sm text-text-secondary">Cliente: {pedido.itens[0]?.cliente || "Não selecionado no cálculo"}</p>
+        <label className="mt-4 block text-sm">Obra / referência (opcional)<input className="mt-2 w-full rounded-lg border border-border bg-surface p-2" value={obra} disabled={iniciandoPdf} onChange={event => setObra(event.target.value)} /></label>
+        <div className="mt-5 grid gap-3">
+          <button type="button" disabled={iniciandoPdf || Boolean(sessao)} className="rounded-xl border border-border p-4 text-left hover:bg-surface-secondary disabled:opacity-50" onClick={() => void escolherEnvio(false)}><span className="block font-medium">Somente este item</span><span className="mt-1 block text-sm text-text-secondary">Enviar para revisar e salvar na central.</span></button>
+          <button type="button" disabled={iniciandoPdf || Boolean(sessao)} className="rounded-xl border border-border p-4 text-left hover:bg-surface-secondary disabled:opacity-50" onClick={() => void escolherEnvio(true)}><span className="block font-medium">{iniciandoPdf ? "Iniciando…" : "Adicionar mais itens"}</span><span className="mt-1 block text-sm text-text-secondary">Manter este cliente nos próximos cálculos até salvar o orçamento.</span></button>
+        </div>
+        {erro && <p role="alert" className="mt-3 text-sm text-danger">{erro}</p>}
+      </section>
+    </div>}
     {modal && <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4" onKeyDown={e => { if (e.key === "Escape") setModal(false); }}>
       <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="novo-orcamento-titulo" style={{ backgroundColor: theme.modalBackgroundColor, color: theme.modalTextColor }} className="w-full max-w-lg overflow-hidden rounded-2xl border border-black/5 p-6 shadow-2xl">
         <div className="mb-5 flex items-center gap-3 border-b border-current/10 pb-4"><div style={botao} className="rounded-xl p-3"><ClipboardList size={24} /></div><h2 id="novo-orcamento-titulo" className="flex-1 text-xl font-bold">{sessao ? "Orçamento em andamento" : "Novo orçamento"}</h2><button type="button" aria-label="Fechar" className="rounded-lg p-2 hover:bg-black/5" onClick={() => setModal(false)}><X size={20} /></button></div>

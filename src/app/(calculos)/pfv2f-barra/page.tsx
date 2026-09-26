@@ -1,4 +1,5 @@
 ﻿"use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -938,8 +939,9 @@ export default function PFV2FBarraPage() {
     };
   };
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     const itemCentral = montarItemCentral(centralItemId || undefined);
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);

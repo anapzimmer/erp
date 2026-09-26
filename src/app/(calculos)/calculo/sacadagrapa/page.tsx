@@ -1,4 +1,5 @@
 "use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -712,9 +713,10 @@ export default function CalculosacadagrapaPage() {
     vidroSelecionado,
   ]);
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     try {
       const itemCentral = montarItemCentral(centralItemId || undefined);
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
       const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as SacadaGrapaCentralItem[];
       const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
         ? lista.map((item) => item.id === centralItemId ? itemCentral : item)
@@ -723,7 +725,7 @@ export default function CalculosacadagrapaPage() {
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
       const clienteCentral = clienteSelecionado?.nome || buscaCliente;
       if (clienteCentral) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteCentral);
-      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
+      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, (itemCentral as { obra?: string }).obra ?? obra);
       window.localStorage.removeItem(chaveDraft);
       router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (error) {

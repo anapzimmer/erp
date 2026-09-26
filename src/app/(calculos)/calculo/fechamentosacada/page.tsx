@@ -1,4 +1,5 @@
 "use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -1379,9 +1380,10 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     };
   };
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     try {
       const itemCentral = montarItemCentral(centralItemId || undefined);
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? (JSON.parse(salvo) as FechamentoSacadaCentralItem[]) : [];
       const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
@@ -1391,7 +1393,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(proximaLista));
       const clienteCentral = nomeClienteSelecionado || buscaCliente;
       if (clienteCentral) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteCentral);
-      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, obra);
+      if (obra) window.localStorage.setItem(CENTRAL_IMPRESSAO_OBRA_KEY, (itemCentral as { obra?: string }).obra ?? obra);
       window.localStorage.removeItem(chaveDraft);
       router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (erro) {

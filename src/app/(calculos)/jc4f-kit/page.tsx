@@ -1,4 +1,5 @@
 ﻿"use client";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -1185,8 +1186,9 @@ export default function JC4FKitPage() {
     };
   };
 
-  const enviarParaCentralImpressao = () => {
+  const enviarParaCentralImpressao = async () => {
     const itemCentral = montarItemCentral(centralItemId || undefined);
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
@@ -1234,7 +1236,7 @@ export default function JC4FKitPage() {
     setLinhasLote((lista) => lista.filter((linha) => linha.id !== id));
   };
 
-  const enviarLoteParaCentralImpressao = () => {
+  const enviarLoteParaCentralImpressao = async () => {
     const linhasValidas = linhasLote.filter(
       (linha) =>
         Number(linha.largura || 0) > 0 &&
@@ -1282,6 +1284,7 @@ export default function JC4FKitPage() {
         }
       );
     });
+    if (!await confirmarEnvioOrcamento(itensLote)) return;
 
     try {
       const atual = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
