@@ -1,0 +1,39 @@
+.pagina { padding-bottom: 150px; }
+.pagina [data-campo-legado] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  min-height: 0;
+  box-shadow: none;
+}
+.pagina [data-campo-legado] > span:first-child { display: none; }
+.pagina [data-campo-legado] > span:last-child { width: 100%; }
+.pagina [data-campo-legado] input,
+.pagina [data-campo-legado] select,
+.pagina [data-campo-legado] > span > button {
+  height: 44px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  font-size: 14px;
+}
+.pagina [data-campo-legado] > span > span:first-child {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.pagina [data-campo-legado] > div {
+  left: 0;
+  top: 100%;
+  width: 100%;
+}
+@media (min-width: 1024px) { .pagina { padding-bottom: 100px; } }

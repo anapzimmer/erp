@@ -1,5 +1,11 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
+import PreviaCalculoProjeto from "@/components/PreviaCalculoProjeto";
+import RodapeCalculoProjeto from "@/components/RodapeCalculoProjeto";
+import layoutProjeto from "@/components/CalculoProjeto.module.css";
+import { DataInput } from "@/components/CamposCalculoProjeto";
+import CabecalhoCalculoProjeto from "@/components/CabecalhoCalculoProjeto";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -778,7 +784,7 @@ useEffect(() => {
     [clienteSelecionado, precosVidroGrupos]
   );
 
-  
+
 
   const precoVidroPeitoril = obterPrecoVidro(vidroPeitorilSelecionado);
   const precoVidroJanela = obterPrecoVidro(vidroJanelaSelecionado);
@@ -1590,58 +1596,13 @@ useEffect(() => {
     .slice(0, 8);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-background text-text-primary">
+    <main className={`${layoutProjeto.pagina} min-h-screen w-full bg-background text-text-primary`}>
       <div className="flex min-h-screen w-full flex-col">
-        <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-border bg-surface/90 px-5 py-4 shadow-[0_18px_50px_var(--shadow)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">
-          <div className="flex h-13.5 items-center">
-            {logoUsuario ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={theme.logoUrl || logoUsuario}
-                alt="Logo da empresa"
-                className="max-h-13.5 max-w-55 object-contain"
-              />
-            ) : (
-              <div className="text-[22px] font-semibold">
-                Logo da empresa
-              </div>
-            )}
-          </div>
+        <CabecalhoCalculoProjeto titulo={dados.projeto} numero={dados.numero} data={dados.data} onNovo={novoProjeto} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} />
 
-          <div className="flex items-center gap-2 xl:justify-end">
-            <label className="text-xs font-medium uppercase tracking-wide text-text-secondary">
-              Projeto:
-            </label>
-            <input
-              value={dados.projeto}
-              onChange={(e) =>
-                atualizarCampo("projeto", e.target.value)
-              }
-              className="w-full max-w-75 bg-transparent text-[17px] font-semibold uppercase outline-none"
-            />
-          </div>
-
-          <div className="sm:justify-self-end sm:border-l sm:border-border/80 sm:pl-4">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
-            <HeaderField
-              icon={<FileText size={26} />}
-              label="Nº Orçamento"
-              value={dados.numero}
-              green
-            />
-            <HeaderField
-              icon={<Calendar size={26} />}
-              label="Data"
-              value={dados.data}
-              green
-            />
-            </div>
-          </div>
-        </header>
-
-        <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] backdrop-blur sm:mx-6">
+        <section className="relative z-20 mx-4 mt-4 rounded-xl border border-border bg-surface p-5 sm:mx-6 lg:mx-8 2xl:mx-10"><h2 className="mb-4 border-b border-border pb-3 text-sm font-semibold">Cliente e obra</h2>
             <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-          <div className="relative min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
+          <div className="relative min-h-[66px] rounded-lg border border-border bg-background px-3 py-2">
             <div className="mb-0.5 flex items-center justify-between gap-2">
               <label className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cliente</label>
               <ClienteQuickCreateButton
@@ -1721,7 +1682,7 @@ useEffect(() => {
               </div>
             )}
           </div>
-              <label className="block min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
+              <label className="block min-h-[66px] rounded-lg border border-border bg-background px-3 py-2">
                 <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-text-secondary">Nome da obra (opcional)</span>
                 <input
                   value={dados.obra || ""}
@@ -1733,83 +1694,11 @@ useEffect(() => {
             </div>
           </section>
 
-        <aside className="border-b border-border bg-surface">
-          <nav className="flex gap-2 overflow-x-auto px-4 py-2 sm:px-6">
-            <MenuItem
-              icon={<ClipboardList size={18} />}
-              label="Orçamento"
-              active
-            />
 
-            <PDFDownloadLink
-              document={
-                <JC4FCBSPDF nomeEmpresa={nomeEmpresa}
-                  dados={{
-                    ...projetoPdf,
-                    alturaPeitoril: dados.alturaPeitoril,
-                    alturaJanela: dados.alturaJanela,
-                    alturaTotal: dados.alturaTotal,
-                    alturaBandeira,
-                    vidroPeitoril: dados.vidroPeitoril,
-                    vidroJanelaBandeira: dados.vidroJanelaBandeira,
-                    tuboPerfil: dados.tuboPerfil,
-                  }}
-                  logoUrl={logoUsuario}
-                />
-              }
-              fileName={`JC4FCBS_${dados.numero || "novo"}.pdf`}
-              className="flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-transparent px-3 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
-            >
-              <Printer size={18} />
-              Imprimir
-            </PDFDownloadLink>
-
-            <MenuItem
-              icon={<FolderOpen size={18} />}
-              label="Projetos"
-              onClick={() => router.push("/matriz-projetos")}
-            />
-            <MenuItem
-              icon={<FileText size={18} />}
-              label="PDF +"
-              onClick={enviarParaCentral}
-            />
-            <MenuItem
-              icon={<Save size={18} />}
-              label={
-                salvandoOrcamento ? "Salvando..." : "Salvar"
-              }
-              onClick={salvarOrcamento}
-            />
-        <MenuItem
-  icon={<Settings size={18} />}
-  label="Configurações"
-/>
-
-<MenuItem
-  icon={<HelpCircle size={18} />}
-  label="Ajuda"
-/>
-          </nav>
-        </aside>
 
         <section className="flex-1 bg-transparent p-4 sm:p-6">
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
-            <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-              <SectionTitle>Desenho ilustrativo</SectionTitle>
-              <div className="mt-3 flex min-h-97.5 items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={desenhoPC4FCBS(dados.trinco)}
-                  alt="Desenho JC4FCBS"
-                  className="max-h-102.5 max-w-full object-contain"
-                />
-              </div>
-            </section>
-
-            <div className="space-y-4">
-              <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                <SectionTitle>Dados do projeto</SectionTitle>
+          <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,0.85fr)]"><div className="min-w-0"><section className="h-full rounded-xl border border-border bg-surface p-5">
+                <SectionTitle>Configuração do projeto</SectionTitle>
 
                 <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                   <DataInput
@@ -1961,11 +1850,12 @@ useEffect(() => {
                     Peitoril + janela ultrapassam a altura total.
                   </div>
                 )}
-              </section>
-
-              <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
-
-                    <LoteRapidoProjetos
+              <ResumoConfiguracaoProjeto materiais={materiais} /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}>{/* eslint-disable-next-line @next/next/no-img-element */}<img
+                  src={desenhoPC4FCBS(dados.trinco)}
+                  alt="Desenho JC4FCBS"
+                  className="max-h-102.5 max-w-full object-contain"
+                /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
+<LoteRapidoProjetos
                 aberto={loteRapido.aberto}
                 editando={loteRapido.editando}
                 linhas={loteRapido.linhas}
@@ -1975,8 +1865,7 @@ useEffect(() => {
                 onAtualizar={loteRapido.atualizarLinha}
                 onEnviar={loteRapido.enviar}
               />
-
-                            <section className="rounded-xl border border-border bg-surface shadow-sm">
+<section className="rounded-xl border border-border bg-surface shadow-sm">
                                     <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between">
                                       <SectionTitle>Relação de materiais</SectionTitle>
                                       <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
@@ -2064,11 +1953,9 @@ useEffect(() => {
                                         {moeda(totalMateriais)}
                                       </div>
                                     </div>
-                                  </section>
-            </div>
-          </div>
+                                  </section></div>
 
-          <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] md:grid-cols-3 xl:grid-cols-6">
+          <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
             <SummaryCard
               icon={<Grid2X2 size={30} />}
               label="Área total"
@@ -2162,7 +2049,21 @@ useEffect(() => {
           </section>
         </div>
       )}
-    </main>
+    <RodapeCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} documento={
+                <JC4FCBSPDF nomeEmpresa={nomeEmpresa}
+                  dados={{
+                    ...projetoPdf,
+                    alturaPeitoril: dados.alturaPeitoril,
+                    alturaJanela: dados.alturaJanela,
+                    alturaTotal: dados.alturaTotal,
+                    alturaBandeira,
+                    vidroPeitoril: dados.vidroPeitoril,
+                    vidroJanelaBandeira: dados.vidroJanelaBandeira,
+                    tuboPerfil: dados.tuboPerfil,
+                  }}
+                  logoUrl={logoUsuario}
+                />
+              } arquivo={`JC4FCBS_${dados.numero || "novo"}.pdf`} onEnviar={enviarParaCentral} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} /></main>
   );
 }
 
@@ -2222,73 +2123,9 @@ function MenuItem({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div>
-      <h2 className="text-sm font-bold uppercase tracking-wide text-text-primary">
-        {children}
-      </h2>
-      <div className="mt-3 h-0.5 w-10 rounded-full bg-primary" />
-    </div>
-  );
-}
+function SectionTitle({ children }: { children: React.ReactNode }) { return <div className="-mx-5 -mt-5 mb-4 border-b border-border px-5 py-3.5"><h2 className="text-sm font-semibold text-text-primary">{children}</h2></div>; }
 
-function DataInput({
-  icon,
-  label,
-  value,
-  suffix,
-  onChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
-      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
-        {icon}
-      </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
-          {label}
-        </span>
-
-        <span className="mt-0.5 flex items-center gap-1.5">
-          <input
-            type="number"
-            value={value}
-            min={0}
-            max={9999}
-            inputMode="numeric"
-            data-keyboard-field="true"
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-                e.preventDefault();
-                return;
-              }
-
-              navegarComEnter(e);
-            }}
-            onChange={(e) =>
-              onChange(limitarNumero4Digitos(e.target.value))
-            }
-            className="w-20.5 min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
-          />
-
-          {suffix && (
-            <span className="text-sm font-semibold leading-tight text-text-primary">
-              {suffix}
-            </span>
-          )}
-        </span>
-      </span>
-    </label>
-  );
-}
 
 function OptionInput({
   fieldName,
@@ -2310,8 +2147,8 @@ function OptionInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label
-      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10 ${
+    <label data-campo-legado
+      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10 ${
         disabled ? "opacity-50" : ""
       }`}
     >
@@ -2394,7 +2231,7 @@ function GlassField({
   }, [open]);
 
   return (
-    <label className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+    <label data-campo-legado className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
       <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
         <Layers size={24} />
       </span>

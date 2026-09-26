@@ -1,4 +1,10 @@
 ﻿"use client";
+import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
+import PreviaCalculoProjeto from "@/components/PreviaCalculoProjeto";
+import RodapeCalculoProjeto from "@/components/RodapeCalculoProjeto";
+import layoutProjeto from "@/components/CalculoProjeto.module.css";
+import { DataInput, OptionInput } from "@/components/CamposCalculoProjeto";
+import CabecalhoCalculoProjeto from "@/components/CabecalhoCalculoProjeto";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -1191,69 +1197,14 @@ export default function PMA3FPage() {
   }, [perfis, ferragens]);
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-background text-text-primary">
+    <main className={`${layoutProjeto.pagina} min-h-screen w-full bg-background text-text-primary`}>
       <div className="flex min-h-screen w-full">
         <div className="flex min-h-screen w-full flex-col bg-transparent">
-          <header className="relative z-40 mx-4 mt-4 grid shrink-0 grid-cols-1 items-center gap-4 rounded-2xl border border-border bg-surface/90 px-5 py-4 shadow-[0_18px_50px_var(--shadow)] backdrop-blur sm:mx-6 sm:px-6 xl:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)_auto]">
-            <div className="flex items-center">
-              <div className="flex h-13.5 w-full max-w-55 items-center">
-                {logoUsuario ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={theme.logoUrl || logoUsuario}
-                    alt="Logo da empresa"
-                    className="max-h-13.5 w-auto max-w-55 object-contain"
-                  />
-                ) : (
-                  <div className="text-[22px] font-semibold leading-none text-text-primary">
-                    Logo da empresa
-                  </div>
-                )}
-              </div>
-            </div>
+          <CabecalhoCalculoProjeto titulo={dados.projeto} numero={dados.numero} data={dados.data} onNovo={novoProjeto} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} />
 
-            <div className="flex items-center justify-start gap-2 xl:justify-end">
-              <label className="text-xs font-medium uppercase tracking-wide text-text-secondary">Projeto:</label>
-              <input
-                value={dados.projeto}
-                tabIndex={-1}
-                onChange={(e) => atualizarCampo("projeto", e.target.value)}
-                className="w-full max-w-90 border-0 bg-transparent p-0 text-[18px] font-semibold uppercase leading-tight text-text-primary outline-none"
-              />
-            </div>
-
-                        <div className="sm:justify-self-end sm:border-l sm:border-border/80 sm:pl-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_150px]">
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
-                  <FileText size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
-                  <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Nº Orçamento</label>
-                    <input
-                      value={dados.numero}
-                      tabIndex={-1}
-                      onChange={(e) => atualizarCampo("numero", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex min-h-[54px] items-center gap-3 border-t border-border/80 py-2 sm:border-t-0 sm:px-3">
-                  <Calendar size={26} strokeWidth={1.6} className="shrink-0 text-text-secondary" />
-                  <div className="min-w-0">
-                    <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Data</label>
-                    <input
-                      value={dados.data}
-                      tabIndex={-1}
-                      onChange={(e) => atualizarCampo("data", e.target.value)}
-                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div></header>
-
-          <section className="relative z-[80] mx-4 mt-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] backdrop-blur sm:mx-6">
+          <section className="relative z-20 mx-4 mt-4 rounded-xl border border-border bg-surface p-5 sm:mx-6 lg:mx-8 2xl:mx-10"><h2 className="mb-4 border-b border-border pb-3 text-sm font-semibold">Cliente e obra</h2>
             <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-            <div className="relative min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
+            <div className="relative min-h-[66px] rounded-lg border border-border bg-background px-3 py-2">
               <div className="mb-0.5 flex items-center justify-between gap-2">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cliente</label>
                 <ClienteQuickCreateButton
@@ -1359,7 +1310,7 @@ export default function PMA3FPage() {
                 </div>
               )}
             </div>
-              <label className="block min-h-[66px] rounded-xl border border-border/80 bg-surface-secondary/80 px-3 py-2 sm:bg-surface sm:px-4">
+              <label className="block min-h-[66px] rounded-lg border border-border bg-background px-3 py-2">
                 <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-text-secondary">Nome da obra (opcional)</span>
                 <input
                   value={dados.obra || ""}
@@ -1372,78 +1323,12 @@ export default function PMA3FPage() {
           </section>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            <aside className="mx-4 mt-3 w-auto shrink-0 rounded-2xl border border-border bg-surface/85 shadow-sm backdrop-blur sm:mx-6">
-              <nav className="flex flex-row gap-2 overflow-x-auto px-3 py-2 sm:px-4">
-                {[
-                  { label: "Orçamento", icon: ClipboardList, ativo: true },
-                  { label: "Imprimir", icon: Printer },
-                  { label: "Projetos", icon: FolderOpen },
-                  { label: "PDF +", icon: FileText },
-                  { label: "Salvar", icon: Save },
-                  { label: "Configurações", icon: Settings },
-                  { label: "Ajuda", icon: HelpCircle },
-                ].map(({ label, icon: Icon, ativo }) => {
-                  const itemClass = `flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${ativo ? "border-success-soft bg-success-soft text-text-primary shadow-sm" : "border-transparent text-text-secondary hover:border-border hover:bg-surface"}`;
 
-                  if (label === "Imprimir") {
-                    return (
-                      <PDFDownloadLink
-                        key={label}
-                        tabIndex={-1}
-                        document={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />}
-                        fileName={`PMA3F_${dados.numero || "novo"}.pdf`}
-                        className={itemClass}
-                      >
-                        {() => (
-                          <>
-                            <Icon size={18} />
-                            <span>{label}</span>
-                          </>
-                        )}
-                      </PDFDownloadLink>
-                    );
-                  }
-
-                  return (
-                    <button
-                      key={label}
-                      tabIndex={-1}
-                      onClick={() => {
-                        if (label === "Projetos") {
-                          router.push("/matriz-projetos");
-                        }
-                        if (label === "PDF +") {
-                          enviarParaCentralImpressao();
-                        }
-                        if (label === "Salvar") {
-                          salvarOrcamento();
-                        }
-                      }}
-                      disabled={label === "Salvar" && salvandoOrcamento}
-                      className={itemClass}
-                      type="button"
-                    >
-                      <Icon size={18} />
-                      <span>{label === "Salvar" && salvandoOrcamento ? "Salvando..." : label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </aside>
 
             <section className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
-                  <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                    <SectionTitle>Desenho ilustrativo</SectionTitle>
-                    <div className="mt-4 flex min-h-80 items-center justify-center rounded-2xl border border-border bg-linear-to-br from-surface via-surface-secondary to-surface-secondary p-4 sm:min-h-105 xl:min-h-107.5">
-                      <ProjetoDrawing tipoProjeto={dados.trilho} comPuxador={dados.puxador === "Com puxador"} />
-                    </div>
-                  </section>
-
-                  <div className="space-y-4">
-                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
-                      <SectionTitle>Dados do projeto</SectionTitle>
+              <div className="flex-1 bg-transparent p-4 sm:p-6 lg:px-8 2xl:px-10">
+                <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,0.85fr)]"><div className="min-w-0"><section className="h-full rounded-xl border border-border bg-surface p-5">
+                      <SectionTitle>Configuração do projeto</SectionTitle>
                       <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
                         <DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
@@ -1467,7 +1352,7 @@ export default function PMA3FPage() {
                           value={dados.quantidade}
                           onChange={(v) => atualizarCampo("quantidade", v)}
                         />
-                        <label className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+                        <label data-campo-legado className="relative flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
                           <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
@@ -1603,11 +1488,8 @@ export default function PMA3FPage() {
                           onChange={(v) => atualizarCampo("trinco", v)}
                         />
                       </div>
-                    </section>
-
-                    <PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
-
-                    <LoteRapidoProjetos
+                    <ResumoConfiguracaoProjeto materiais={materiais} /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}><ProjetoDrawing tipoProjeto={dados.trilho} comPuxador={dados.puxador === "Com puxador"} /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
+<LoteRapidoProjetos
                       aberto={loteRapido.aberto}
                       editando={loteRapido.editando}
                       linhas={loteRapido.linhas}
@@ -1617,9 +1499,7 @@ export default function PMA3FPage() {
                       onAtualizar={loteRapido.atualizarLinha}
                       onEnviar={loteRapido.enviar}
                     />
-
-
-                    <section className="rounded-2xl border border-border bg-surface/95 p-5 shadow-[0_18px_45px_var(--shadow)]">
+<section className="rounded-xl border border-border bg-surface p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <SectionTitle>Relação de materiais</SectionTitle>
                         <div className="flex items-center gap-2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
@@ -1707,11 +1587,9 @@ export default function PMA3FPage() {
                           {moeda(totalMateriais)}
                         </div>
                       </div>
-                    </section>
-                  </div>
-                </div>
+                    </section></div>
 
-                <section className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_18px_45px_var(--shadow)] md:grid-cols-3 xl:grid-cols-6">
+                <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4 md:grid-cols-3 xl:grid-cols-6">
                   <SummaryCard icon={<Grid2X2 size={30} />} label="Área total" value={`${numero(calculoVidro.areaTotalCobrada)} m2`} detail="Área de vidro" tone="green" />
                   <SummaryCard icon={<ClipboardList size={30} />} label="Total de vidros" value={numero(totalVidros, 0)} detail="Peças de vidro" tone="blue" />
                   <SummaryCard icon={<Layers3 size={30} />} label="Valor vidros" value={moeda(valorVidros)} detail="Vidros" tone="purple" />
@@ -1776,109 +1654,15 @@ export default function PMA3FPage() {
           </section>
         </div>
       )}
-    </main>
+    <RodapeCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} documento={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />} arquivo={`PMA3F_${dados.numero || "novo"}.pdf`} onEnviar={enviarParaCentralImpressao} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} /></main>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div>
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-text-primary">{children}</h2>
-      <div className="mt-3 h-0.5 w-10 rounded-full bg-primary" />
-    </div>
-  );
-}
+function SectionTitle({ children }: { children: React.ReactNode }) { return <div className="-mx-5 -mt-5 mb-4 border-b border-border px-5 py-3.5"><h2 className="text-sm font-semibold text-text-primary">{children}</h2></div>; }
 
-function DataInput({
-  icon,
-  label,
-  value,
-  suffix,
-  tabIndex,
-  onChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  suffix?: string;
-  tabIndex?: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
-      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">{icon}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">{label}</span>
-        <span className="mt-0.5 flex items-center gap-1.5">
-          <input
-            type="number"
-            value={value}
-            tabIndex={tabIndex}
-            min={0}
-            max={9999}
-            inputMode="numeric"
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
-            }}
-            onChange={(e) => onChange(limitarNumero4Digitos(e.target.value))}
-            className="w-20.5 min-w-0 rounded-lg bg-transparent text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80"
-          />
-          {suffix && <span className="text-sm font-medium leading-tight text-text-secondary">{suffix}</span>}
-        </span>
-      </span>
-    </label>
-  );
-}
 
-function OptionInput({
-  icon,
-  label,
-  value,
-  options,
-  tabIndex,
-  disabled = false,
-  onChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  options: string[];
-  tabIndex?: number;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label
-      className={`flex min-h-19 items-center gap-3 rounded-2xl border border-border/80 bg-surface-secondary/80 px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10 ${
-        disabled ? "opacity-50" : ""
-      }`}
-    >
-      <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
-        {icon}
-      </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
-          {label}
-        </span>
 
-        <select
-          value={value}
-          tabIndex={tabIndex}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          className="mt-1 w-full cursor-pointer appearance-auto rounded-lg border-0 bg-transparent p-0 text-base font-semibold leading-tight text-text-primary outline-none focus-visible:bg-surface/80 disabled:cursor-not-allowed"
-        >
-          {options.map((opcao) => (
-            <option key={opcao} value={opcao}>
-              {opcao}
-            </option>
-          ))}
-        </select>
-      </span>
-    </label>
-  );
-}
 
 function DescricaoMaterialInput({
   item,

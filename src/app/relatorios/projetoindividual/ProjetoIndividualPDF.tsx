@@ -748,9 +748,9 @@ export function ProjetoIndividualPDF({
   </View>
 
   <View style={styles.premiumClientBox}>
-    <Text style={styles.premiumMetaLabel}>Cliente</Text>
+    <Text style={styles.premiumMetaLabel}>Projeto</Text>
     <Text style={[styles.premiumMetaValue, { color: PDF_COLORS.ink }]}>
-      {dados.cliente || "-"}
+      {nomeProjeto}
     </Text>
   </View>
 
@@ -764,7 +764,7 @@ export function ProjetoIndividualPDF({
           </View>
 
           <View style={styles.premiumTitleRow}>
-  <Text style={styles.premiumTitleLabel}>Projeto</Text>
+  <Text style={styles.premiumTitleLabel}>Cliente</Text>
   <Text
     style={[
       styles.premiumTitleValue,
@@ -775,7 +775,7 @@ export function ProjetoIndividualPDF({
       },
     ]}
   >
-    {nomeProjeto}
+    {dados.cliente || "-"}
   </Text>
 </View>
 
@@ -932,9 +932,9 @@ export function ProjetoIndividualPDF({
   </View>
 
   <View style={styles.metaClientBox}>
-    <Text style={styles.metaLabel}>Cliente</Text>
+    <Text style={styles.metaLabel}>Projeto</Text>
     <Text style={[styles.metaValue, { color: PDF_COLORS.ink }]}>
-      {dados.cliente || "-"}
+      {nomeProjeto}
     </Text>
   </View>
 
@@ -948,7 +948,7 @@ export function ProjetoIndividualPDF({
         </View>
 
       <View style={styles.titleRow}>
-  <Text style={styles.titleLabel}>Projeto</Text>
+  <Text style={styles.titleLabel}>Cliente</Text>
   <Text
     style={[
       styles.title,
@@ -959,7 +959,7 @@ export function ProjetoIndividualPDF({
       },
     ]}
   >
-    {nomeProjeto}
+    {dados.cliente || "-"}
   </Text>
 </View>
         <View style={styles.grid}>
