@@ -8,7 +8,7 @@ import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import BotaoImprimirPDF from "@/components/BotaoImprimirPDF";
 import { Copy, FileDown, Layers3, Palette, PencilLine, Plus, Save, Trash2, X } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
@@ -2159,31 +2159,13 @@ router.push(
               <div className="flex flex-wrap gap-2">
                 {itensPdf.length > 0 ? (
                   <>
-                    <PDFDownloadLink
-                      document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
-                      fileName={`${sanitizarNomeArquivo(`Orçamento N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
+                    <BotaoImprimirPDF documento={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
+                      arquivo={`${sanitizarNomeArquivo(`Orçamento N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
-                      style={{ backgroundColor: theme.menuBackgroundColor }}
-                    >
-                      {({ loading: gerando }) => (
-                        <>
-                          <FileDown size={16} />
-                          {gerando ? "Gerando..." : "Gerar PDF"}
-                        </>
-                      )}
-                    </PDFDownloadLink>
-                    <PDFDownloadLink
-                      document={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfis} somenteRelacaoObra />}
-                      fileName={`${sanitizarNomeArquivo(`Relação da obra N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
-                      className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary"
-                    >
-                      {({ loading: gerando }) => (
-                        <>
-                          <FileDown size={16} />
-                          {gerando ? "Gerando..." : "Relação da obra"}
-                        </>
-                      )}
-                    </PDFDownloadLink>
+                      style={{ backgroundColor: theme.menuBackgroundColor }} rotulo="Gerar PDF" icone={<FileDown size={16} />} />
+                    <BotaoImprimirPDF documento={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfis} somenteRelacaoObra />}
+                      arquivo={`${sanitizarNomeArquivo(`Relação da obra N ${numeroOrcamento || "Novo"} _ ${cliente || "Consumidor"}`)}.pdf`}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary" rotulo="Relação da obra" icone={<FileDown size={16} />} />
                   </>
                 ) : (
                   <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-border px-4 py-3 text-sm font-semibold text-text-secondary">

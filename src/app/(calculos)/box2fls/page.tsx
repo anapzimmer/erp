@@ -8,7 +8,7 @@ import { DRAWING_COLORS } from "@/design/drawing";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import BotaoImprimirPDF from "@/components/BotaoImprimirPDF";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -2085,24 +2085,13 @@ export default function Box2FlsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <PDFDownloadLink
-              document={
+            <BotaoImprimirPDF documento={
                 <ProjetoIndividualPDF
                   nomeEmpresa={nomeEmpresa}
                   dados={projetoPdf}
                   logoUrl={logoUsuario}
                 />
-              }
-              fileName={`box2fls_${dados.numero || "novo"}.pdf`}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
-            >
-              {() => (
-                <>
-                  <Printer size={17} />
-                  Imprimir
-                </>
-              )}
-            </PDFDownloadLink>
+              } arquivo={`box2fls_${dados.numero || "novo"}.pdf`} className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary" />
 
             <button
               type="button"

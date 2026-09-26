@@ -1,8 +1,9 @@
 "use client";
 import type { ComponentProps } from "react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import type { PDFDownloadLink } from "@react-pdf/renderer";
 import Link from "next/link";
-import { Printer, FileText, FolderOpen, Save } from "lucide-react";
+import { FileText, FolderOpen, Save } from "lucide-react";
+import BotaoImprimirPDF from "@/components/BotaoImprimirPDF";
 
 type Props = { area: string; pecas: string; total: string; documento: ComponentProps<typeof PDFDownloadLink>["document"]; arquivo: string; onEnviar: () => void; onSalvar: () => void; salvando: boolean };
 export default function RodapeCalculoProjeto({ area, pecas, total, documento, arquivo, onEnviar, onSalvar, salvando }: Props) {
@@ -15,7 +16,7 @@ export default function RodapeCalculoProjeto({ area, pecas, total, documento, ar
         <div className="border-l border-border pl-6"><p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">Total do projeto</p><p className="text-lg font-bold text-primary">{total}</p></div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <PDFDownloadLink document={documento} fileName={arquivo} className={botao}>{({loading})=><><Printer size={17}/>{loading ? "Preparando..." : "Imprimir"}</>}</PDFDownloadLink>
+        <BotaoImprimirPDF documento={documento} arquivo={arquivo} className={botao} />
         <button type="button" className={botao} onClick={onEnviar}><FileText size={17}/>PDF +</button>
         <Link href="/central-impressao" className={botao}><FolderOpen size={17}/>Central</Link>
         <button type="button" onClick={onSalvar} disabled={salvando} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary disabled:opacity-60"><Save size={17}/>{salvando ? "Salvando..." : "Salvar orçamento"}</button>
@@ -23,3 +24,4 @@ export default function RodapeCalculoProjeto({ area, pecas, total, documento, ar
     </div>
   </footer>;
 }
+

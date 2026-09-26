@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoText: { color: PDF_COLORS.muted, fontSize: 16, fontWeight: "bold" },
-  brandName: { fontSize: 20, fontWeight: "bold", color: PDF_COLORS.ink },
+  brandName: { fontSize: 12, maxWidth: 130, fontWeight: "bold", color: PDF_COLORS.ink },
   brandSub: { fontSize: 8, color: PDF_COLORS.muted, marginTop: 2 },
   headerMetaWrap: {
     flexDirection: "row",
@@ -782,7 +782,7 @@ export function ProjetoIndividualPDF({
           <View style={styles.premiumMainGrid}>
             <View style={styles.premiumDrawingCard}>
               <Text style={styles.premiumSectionTitle}>Desenho ilustrativo</Text>
-              <View style={styles.premiumLine} />
+              <View style={[styles.premiumLine, { backgroundColor: PDF_COLORS.accent }]} />
               <View style={styles.premiumDrawingBox}>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
                 <Image src={desenhoSrc} style={styles.premiumDrawingImage} />
@@ -917,7 +917,7 @@ export function ProjetoIndividualPDF({
                   <Text style={styles.logoText}>GV</Text>
                 </View>
                 <View>
-                  <Text style={styles.brandName}>Logo da empresa</Text>
+                  <Text style={styles.brandName}>{nomeEmpresa || "Empresa"}</Text>
                   <Text style={styles.brandSub}>Projetos em vidros e ferragens</Text>
                 </View>
               </>
@@ -965,7 +965,7 @@ export function ProjetoIndividualPDF({
         <View style={styles.grid}>
           <View style={[styles.card, styles.drawingCard]}>
             <Text style={styles.sectionTitle}>Desenho ilustrativo</Text>
-            <View style={styles.titleLine} />
+            <View style={[styles.titleLine, { backgroundColor: PDF_COLORS.accent }]} />
             <View style={styles.drawingBox}>
               {/* eslint-disable-next-line jsx-a11y/alt-text */}
               <Image src={desenhoSrc} style={styles.drawingImage} />

@@ -189,6 +189,7 @@ export function ThemeProvider({
    */
   const refreshTheme = useCallback(async () => {
     const current = ++generation.current;
+    setIsLoading(true);
 
     try {
       /*
@@ -312,9 +313,8 @@ export function ThemeProvider({
       /*
        * Cancela qualquer carregamento anterior.
        */
-      ++generation.current;
-
       if (event === "SIGNED_OUT") {
+        ++generation.current;
         /*
          * Fora do ERP volta para Glass Code.
          */
