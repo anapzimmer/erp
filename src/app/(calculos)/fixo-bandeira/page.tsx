@@ -202,10 +202,11 @@ const PROJETO_INDIVIDUAL_CONFIG_KEY = "glasscode:fixo-bandeira:config";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
-const formatarDescricaoTubo = (perfil: Pick<PerfilCadastro, "codigo" | "nome" | "nome_completo">) => {
+const formatarDescricaoTubo = (perfil: Pick<PerfilCadastro, "codigo" | "nome" | "nome_completo" | "cores">) => {
   const codigo = String(perfil.codigo || "").trim().toUpperCase();
   const nome = String(perfil.nome_completo || perfil.nome || "").trim().toLocaleUpperCase("pt-BR");
-  return `${codigo}${nome ? ` - ${nome}` : ""}`;
+  const cor = String(perfil.cores || "").trim().toLocaleUpperCase("pt-BR");
+  return `${codigo}${nome ? ` - ${nome}` : ""}${cor ? ` | ${cor}` : ""}`;
 };
 
 const limitarDivisaoPecas = (valor: number) => Math.min(6, Math.max(1, Number(valor || 1)));
@@ -999,7 +1000,7 @@ export default function FixoBandeiraPage() {
       : null;
 
     setMateriais((lista) => {
-      const semVidrosAutomaticos = lista.filter((item) => !normalizarTexto(item.descricao).includes("vidro inferior") && !normalizarTexto(item.descricao).includes("vidro bandeira"));
+      const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || (!normalizarTexto(item.descricao).includes("vidro inferior") && !normalizarTexto(item.descricao).includes("vidro bandeira")));
       return [vidroInferior, vidroBandeira, ...semVidrosAutomaticos].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
     });
   }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2]);

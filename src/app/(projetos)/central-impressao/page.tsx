@@ -271,6 +271,7 @@ const descricaoVidroAgrupadaParaTroca = (descricao: string, vidros: VidroCadastr
 };
 
 const ehMaterialDeVidro = (material: ProjetoIndividualMaterial) => {
+  if (material.perfilExtra) return false;
   const descricao = normalizarTexto(material.descricao);
   const unidade = normalizarTexto(material.unidade);
   return descricao.includes("vidro") || unidade.includes("m2") || unidade.includes("m²");
@@ -1088,7 +1089,15 @@ const chaveOtimizacaoPerfil = (
   codigo: string,
   descricao: string,
   comprimentoBarra: number
-) => `${origem}|${codigo}|${descricaoSemMarcadorExtra(String(descricao || codigo)).toUpperCase()}|${comprimentoBarra}`;
+) => {
+  const descricaoLimpa = normalizarTexto(descricaoSemMarcadorExtra(String(descricao || codigo)))
+    .replace(/\s+/g, " ").trim();
+  const codigoLimpo = normalizarTexto(codigo).replace(/\s+/g, "");
+  const cor = descricaoLimpa.includes("|") ? descricaoLimpa.split("|").slice(1).join("|").trim() : "";
+  // Sem acabamento identificado, preserva a descrição para não misturar cores por suposição.
+  const identidade = codigoLimpo && cor ? `${codigoLimpo}|${cor}` : `${codigoLimpo}|${descricaoLimpa}`;
+  return `${origem}|${identidade}|${comprimentoBarra}`;
+};
 
 const calcularValorPerfisOriginaisItem = (item: ProjetoComposicao) =>
   item.materiais?.reduce((total, material) => {
@@ -1102,6 +1111,7 @@ const calcularAreaVidrosItem = (item: ProjetoComposicao) => {
   const areaMateriais = item.materiais?.reduce((total, material) => {
     const descricao = String(material.descricao || "").toLowerCase();
     const unidade = String(material.unidade || "").toLowerCase();
+    if (material.perfilExtra) return total;
     if (!descricao.includes("vidro") && !unidade.includes("m2")) return total;
     return total + Number(material.qtd || 0);
   }, 0) || 0;

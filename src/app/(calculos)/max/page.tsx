@@ -902,7 +902,7 @@ export default function MaxPage() {
     const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
-      const semVidrosAutomaticos = lista.filter((item) => !normalizarTexto(item.descricao).startsWith("vidro"));
+      const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).startsWith("vidro"));
       const vidroMax = criarMaterial({
         qtd: calculoVidro.areaPorta,
         unidade: "m2",

@@ -835,7 +835,7 @@ export default function PGPage() {
 
     setMateriais((lista) => {
       const indiceVidro = lista.findIndex?.((item) =>
-        item.descricao.toLowerCase().includes("vidro")
+        !item.perfilExtra && item.descricao.toLowerCase().includes("vidro")
       );
 
       const itemAtual = lista[indiceVidro] || criarMaterial();

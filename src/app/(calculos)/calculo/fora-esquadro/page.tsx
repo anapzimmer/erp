@@ -2,10 +2,11 @@
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { Calculator, Eraser, FilePlus2, Layers3, Printer, Search, TriangleRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { recuperarForaEsquadro, salvarForaEsquadroCentral, type ForaEsquadroSalvo } from "@/utils/foraEsquadroEdicao";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
@@ -404,7 +405,17 @@ function DesenhoForaEsquadro({
 }
 
 export default function ForaEsquadroPage() {
+  return <Suspense fallback={<p>Carregando projeto...</p>}><ForaEsquadroConteudo /></Suspense>;
+}
+
+function ForaEsquadroConteudo() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const centralItemId = searchParams.get("centralItem");
+  const retornoInformado = searchParams.get("returnTo") || "";
+  const returnTo = /^\/central-impressao(?:\?|$)/.test(retornoInformado) ? retornoInformado : "/central-impressao";
+  const [erroEdicao, setErroEdicao] = useState("");
+  const [itemCarregado, setItemCarregado] = useState<string | null>(null);
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const { theme } = useTheme();
   const [largura, setLargura] = useState(2000);
@@ -422,6 +433,28 @@ export default function ForaEsquadroPage() {
   const [vidroBusca, setVidroBusca] = useState("");
   const [carregandoClientes, setCarregandoClientes] = useState(false);
   const [carregandoVidros, setCarregandoVidros] = useState(false);
+
+  useEffect(() => {
+    if (!centralItemId) return;
+    try {
+      const lista: ForaEsquadroSalvo[] = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]");
+      const item = lista.find(registro => registro.id === centralItemId);
+      if (!item) throw new Error("O item não foi encontrado na central. Volte ao orçamento e abra a edição novamente.");
+      const dados = recuperarForaEsquadro(item);
+      setLargura(dados.largura);
+      setAlturaInicial(dados.alturaInicial);
+      setAlturaFinal(dados.alturaFinal);
+      setQuantidade(dados.quantidade);
+      setDivisoes(dados.divisoes);
+      setClienteBusca(dados.cliente);
+      setVidroBusca(dados.vidro);
+      setMostrarPreco(true);
+      setItemCarregado(centralItemId);
+      setErroEdicao("");
+    } catch (erro) {
+      setErroEdicao(erro instanceof Error ? erro.message : "Não foi possível recuperar o projeto.");
+    }
+  }, [centralItemId]);
 
   const pecas = useMemo(
     () => calcularPecas({ largura, alturaInicial, alturaFinal, divisoes }),
@@ -543,6 +576,7 @@ export default function ForaEsquadroPage() {
   }, [empresaId]);
 
   const enviarParaCentral = () => {
+    if (centralItemId && itemCarregado !== centralItemId) return;
     if (!vidroSelecionado || !precoVidroM2) {
       setMostrarPreco(true);
       return;
@@ -585,8 +619,8 @@ export default function ForaEsquadroPage() {
     ];
 
     const itemCentral = {
-      id: criarId(),
-      numero: "novo",
+      id: centralItemId || criarId(),
+      ...(!centralItemId ? { numero: "novo" } : {}),
       projeto: "Vidros avulsos - fora de esquadro",
       cliente: clienteSelecionado?.nome || "",
       medidas: `${pecas.length * quantidadeVaos} peça(s) | ${formatarM2(areaTotal)} m²`,
@@ -617,11 +651,13 @@ export default function ForaEsquadroPage() {
     try {
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? JSON.parse(salvo) : [];
-      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify([...lista, itemCentral]));
+      const atualizada = salvarForaEsquadroCentral(lista, itemCentral, centralItemId);
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(atualizada));
       if (clienteSelecionado?.nome) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteSelecionado.nome);
-      router.push("/central-impressao");
+      router.push(centralItemId ? returnTo : "/central-impressao");
     } catch (erro) {
       console.warn("Não foi possível enviar o fora de esquadro para a central:", erro);
+      setErroEdicao(erro instanceof Error ? erro.message : "Não foi possível salvar na central.");
     }
   };
 
@@ -665,6 +701,7 @@ export default function ForaEsquadroPage() {
           style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}
         >
           <div className="flex flex-col gap-4">
+            {erroEdicao && <p role="alert" className="text-sm text-danger">{erroEdicao}</p>}
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <div
@@ -725,10 +762,11 @@ export default function ForaEsquadroPage() {
                 <button
                   type="button"
                   onClick={enviarParaCentral}
+                  disabled={Boolean(centralItemId && itemCarregado !== centralItemId)}
                   className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
                   style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                 >
-                  <FilePlus2 size={17} /> PDF+
+                  <FilePlus2 size={17} /> {centralItemId ? "Salvar na central" : "PDF+"}
                 </button>
                 <button
                   type="button"

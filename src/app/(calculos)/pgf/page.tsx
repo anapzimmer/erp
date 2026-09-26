@@ -882,7 +882,7 @@ export default function PGFPage() {
     const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
 
     setMateriais((lista) => {
-      const semVidrosAutomaticos = lista.filter((item) => !normalizarTexto(item.descricao).startsWith("vidro"));
+      const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).startsWith("vidro"));
       const vidroPg = criarMaterial({
         qtd: calculoVidro.areaPorta,
         unidade: "m2",

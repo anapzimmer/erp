@@ -820,7 +820,7 @@ export default function PG2FPage() {
 
     setMateriais((lista) => {
       const indiceVidro = lista.findIndex?.((item) =>
-        item.descricao.toLowerCase().includes("vidro")
+        !item.perfilExtra && item.descricao.toLowerCase().includes("vidro")
       );
 
       const itemAtual = lista[indiceVidro] || criarMaterial();
