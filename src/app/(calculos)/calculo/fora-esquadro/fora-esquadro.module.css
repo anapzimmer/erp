@@ -1,0 +1,7 @@
+.superficieBranca {
+  background-color: #fff;
+  --surface: #fff;
+  --text-primary: #38444b;
+  --text-secondary: #596970;
+  color-scheme: light;
+}

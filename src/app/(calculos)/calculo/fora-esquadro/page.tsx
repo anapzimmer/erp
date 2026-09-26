@@ -1,6 +1,7 @@
 "use client";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
+import styles from "./fora-esquadro.module.css";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -164,7 +165,7 @@ const gerarDesenhoForaEsquadroUrl = ({
           <stop offset="100%" stop-color="${DRAWING_COLORS.glass}"/>
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="28" fill="${DRAWING_COLORS.glass}"/>
+      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="28" fill="#ffffff"/>
       <polygon points="${pontos}" fill="url(#vidroForaEsquadro)" stroke="${DRAWING_COLORS.frame}" stroke-width="2.4" stroke-linejoin="round"/>
       <polygon points="${pontos}" fill="none" stroke="${DRAWING_COLORS.edge}" stroke-width="13" stroke-linejoin="round" opacity="0.95"/>
       <polygon points="${pontos}" fill="none" stroke="${DRAWING_COLORS.frame}" stroke-width="1.4" stroke-linejoin="round" opacity="0.78"/>
@@ -200,7 +201,7 @@ function CampoMedida({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="rounded-2xl border border-border/80 bg-surface-secondary/80 px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+    <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
       <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
       <span className="mt-1.5 flex items-end gap-2">
         <input
@@ -260,7 +261,7 @@ function CampoBusca<T extends { id: string }>({
   const [aberto, setAberto] = useState(false);
 
   return (
-    <label className="relative rounded-2xl border border-border/80 bg-surface-secondary/80 px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+    <label className={`${styles.superficieBranca} relative rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
       <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
       <span className="mt-1.5 flex items-center gap-2">
         <Search size={15} className="text-text-secondary" />
@@ -357,7 +358,7 @@ function DesenhoForaEsquadro({
           </linearGradient>
         </defs>
 
-        <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill={DRAWING_COLORS.glass} />
+        <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#ffffff" />
         <polygon points={pontos} fill="url(#vidroForaEsquadro)" stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
         <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.glass} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
         <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
@@ -785,7 +786,7 @@ function ForaEsquadroConteudo() {
               <CampoMedida label="Altura final" value={alturaFinal} onChange={setAlturaFinal} />
               <CampoMedida label="Quantidade" value={quantidade} suffix="und" maxDigitos={3} onChange={(valor) => setQuantidade(Math.max(1, valor))} />
 
-              <label className="rounded-2xl border border-border/80 bg-surface-secondary/80 px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+              <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
                 <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">Divisões</span>
                 <select
                   value={divisoes}
@@ -863,7 +864,7 @@ function ForaEsquadroConteudo() {
               />
             </div>
 
-            <article className="rounded-3xl border border-border bg-surface p-4 shadow-sm md:p-5">
+            <article className={`${styles.superficieBranca} rounded-3xl border border-border bg-white p-4 shadow-sm md:p-5`}>
               <div className="mb-4 flex items-center gap-2">
                 <Layers3 size={18} className="text-success" />
                 <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-text-primary">Relação das peças</h2>
@@ -871,7 +872,7 @@ function ForaEsquadroConteudo() {
 
               <div className="overflow-hidden rounded-2xl border border-border">
                 <table className="w-full min-w-[900px] border-collapse text-sm">
-                  <thead className="bg-surface-secondary text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+                  <thead className="bg-white text-[11px] uppercase tracking-[0.12em] text-text-secondary">
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">Peça</th>
                       <th className="px-4 py-3 text-left font-medium">Largura</th>
@@ -884,7 +885,7 @@ function ForaEsquadroConteudo() {
                   </thead>
                   <tbody>
                     {pecas.map((peca, index) => (
-                      <tr key={peca.indice} className={`border-t border-border text-text-primary ${index % 2 === 0 ? "bg-surface" : "bg-surface-secondary/70"}`}>
+                      <tr key={peca.indice} className="border-t border-border bg-white text-text-primary">
                         <td className="px-4 py-3">Peça {peca.indice}</td>
                         <td className="px-4 py-3">{formatarMm(peca.largura)}</td>
                         <td className="px-4 py-3">{formatarMm(peca.alturaEsquerda)}</td>
