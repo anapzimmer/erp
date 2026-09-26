@@ -610,7 +610,7 @@ function ForaEsquadroPreview({
           <stop offset="100%" stopColor="#eef8fc" />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill={DRAWING_COLORS.glass} />
+      <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#ffffff" />
       <polygon points={pontos} fill={`url(#vidroForaEsquadroCentral-${item.largura}-${item.altura})`} stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
       <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.glass} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
       <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
@@ -2151,7 +2151,7 @@ router.push(
                 <input
                   value={obra} readOnly={Boolean(orcamentoAtivo)}
                   onChange={(e) => setObra(e.target.value)}
-                  placeholder="Ex.:: Obra Centro"
+                  placeholder="Ex.: Obra Centro"
                   className="w-full bg-transparent text-sm font-normal text-text-primary outline-none"
                 />
               </Field>
@@ -2213,7 +2213,7 @@ router.push(
               <p className="mt-4 rounded-2xl bg-surface-secondary px-4 py-3 text-sm font-bold text-text-secondary">{mensagem}</p>
             ) : null}
 
-            <section className="mt-5 rounded-2xl border border-border bg-surface-secondary p-4">
+            <section className="mt-5 rounded-2xl border border-border bg-white p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-text-primary">Materiais avulsos</h2>
@@ -2298,7 +2298,7 @@ router.push(
 
               {materiaisAvulsosValidos.length > 0 ? (
                 <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
-                  <div className="grid grid-cols-[90px_1fr_110px_150px_52px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
+                  <div className="grid grid-cols-[90px_1fr_110px_150px_52px] bg-white text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
                     <div className="px-3 py-2 text-center">Qtd</div>
                     <div className="px-3 py-2">Descrição</div>
                     <div className="px-3 py-2">Unidade</div>
@@ -2362,7 +2362,7 @@ router.push(
                         className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
                       >
                         <div className="flex flex-col gap-4 lg:flex-row">
-                          <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-surface-secondary p-4 lg:w-72">
+                          <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-white p-4 lg:w-72">
                             {desenhoCentral ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -2386,7 +2386,7 @@ router.push(
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
-                                <p className="text-xs font-black uppercase tracking-[0.18em] text-text-secondary">
+                                <p className="inline-flex rounded-lg border border-[#dce2a3] bg-[#f5f7e6] px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#596321]">
                                   Projeto {index + 1}
                                 </p>
                                 <h2 className="mt-1 text-xl font-normal text-text-primary">
@@ -2643,7 +2643,7 @@ router.push(
                   return (
                   <article key={item.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row">
-                      <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-surface-secondary p-4 lg:w-72">
+                      <div className="flex h-56 shrink-0 items-center justify-center rounded-2xl bg-white p-4 lg:w-72">
                         {foraEsquadro ? (
                           <ForaEsquadroPreview item={item} />
                         ) : espelhoComDesenho ? (
@@ -2665,7 +2665,7 @@ router.push(
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-text-secondary">
+                            <p className="inline-flex rounded-lg border border-[#dce2a3] bg-[#f5f7e6] px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#596321]">
                               Projeto {index + 1}
                             </p>
                             <h2 className="mt-1 text-xl font-normal text-text-primary">
@@ -3036,7 +3036,7 @@ router.push(
                           {item.vidrosAvulsos?.length ? (
                             <div className="md:col-span-2 xl:col-span-4">
                               <div className="overflow-hidden rounded-xl border border-border bg-surface">
-                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-surface-secondary text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
+                                <div className="grid grid-cols-[90px_1fr_1.6fr_130px] bg-white text-[11px] font-semibold uppercase tracking-[0.04em] text-text-secondary">
                                   <div className="px-3 py-2 text-center">Peças</div>
                                   <div className="px-3 py-2">Medidas</div>
                                   <div className="px-3 py-2">Cor e espessura do vidro</div>
@@ -3090,7 +3090,7 @@ router.push(
             ) : null}
 
             {otimizacaoPerfis.length > 0 ? (
-              <section className="mt-5 rounded-2xl border border-border bg-surface-secondary p-4">
+              <section className="mt-5 rounded-2xl border border-border bg-white p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-lg font-black tracking-tight text-text-primary">Relação de materiais otimizada</h2>
@@ -3315,7 +3315,7 @@ function TotalResumo({ label, value, strong = false }: { label: string; value: s
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block rounded-2xl border border-border bg-surface-secondary px-4 py-3">
+    <label className="block rounded-2xl border border-border bg-white px-4 py-3">
       <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.16em] text-text-secondary">{label}</span>
       {children}
     </label>
