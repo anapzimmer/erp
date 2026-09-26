@@ -1,7 +1,8 @@
 "use client";
 import { rotaPublica as ehRotaPublica } from "@/lib/rotasPublicas";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { diasParaRegularizar, mensagens, situacoes, type Situacao } from "@/lib/situacaoConta";
 import AvisoConta from "@/components/AvisoConta";
@@ -14,10 +15,22 @@ export default function PlatformAccessGate({ children }: { children: React.React
   const [detalhe, setDetalhe] = useState<{situacao:Situacao;mensagem?:string;contato?:string;prazo?:string;prazo_vencido?:boolean;inicio_em?:string}|null>(null);
   const [identificador, setIdentificador] = useState("");
   const [tentativa, setTentativa] = useState(0);
+  const primeiraVerificacao = useRef(true);
+  const [mostrarSucesso, setMostrarSucesso] = useState(false);
+  useEffect(() => {
+    if (!mostrarSucesso) return;
+    const timer = window.setTimeout(() => setMostrarSucesso(false), 500);
+    return () => window.clearTimeout(timer);
+  }, [mostrarSucesso]);
 const publica = ehRotaPublica(pathname);
   useEffect(() => {
     let ativo = true;
     let verificando = false;
+    function concluir(permitido: boolean) {
+      if (primeiraVerificacao.current && permitido) setMostrarSucesso(true);
+      primeiraVerificacao.current = false;
+      setEstado(permitido ? "liberado" : "bloqueado");
+    }
     async function verificar() {
       if (verificando) return;
       verificando = true;
@@ -29,7 +42,7 @@ const publica = ehRotaPublica(pathname);
         if (!ativo) return;
         if (!situacao.error) {
           setDetalhe(situacao.data);
-          setEstado(situacao.data?.permitido === true ? "liberado" : "bloqueado");
+          concluir(situacao.data?.permitido === true);
           return;
         }
         if (situacao.error.code !== "PGRST202") { setEstado("erro"); return; }
@@ -39,7 +52,7 @@ const publica = ehRotaPublica(pathname);
         // Compatibilidade durante implantação: o painel só funciona após instalar a migração.
         if (error?.code === "PGRST202") setEstado("liberado");
         else if (error) setEstado("erro");
-        else setEstado(data === true ? "liberado" : "bloqueado");
+        else concluir(data === true);
       } catch { if (ativo) setEstado("erro"); }
       finally { verificando = false; }
     }
@@ -54,6 +67,7 @@ const publica = ehRotaPublica(pathname);
     return () => { ativo = false; window.removeEventListener("focus", foco); document.removeEventListener("visibilitychange", visibilidade); subscription.unsubscribe(); };
   }, [pathname, tentativa]);
   if (publica) return children;
+  if (estado === "verificando" || (estado === "liberado" && mostrarSucesso)) return <CarregamentoAcesso sucesso={estado === "liberado"} />;
   const texto = detalhe?.mensagem || mensagens[detalhe?.situacao || "suspensa_outro"];
   const atendimento = detalhe?.contato ? <p className="mt-3 text-sm break-words">Atendimento: {detalhe.contato}</p> : null;
   const diasRestantes = detalhe?.prazo ? diasParaRegularizar(detalhe.prazo) : null;
@@ -62,8 +76,29 @@ const publica = ehRotaPublica(pathname);
   if (estado === "liberado") return <>{children}{detalhe && detalhe.situacao !== "ativa" && identificador && <AvisoConta identificador={identificador} aviso={aviso} titulo={situacoes[detalhe.situacao]}><p>{texto}</p>{prazo}{diasRestantes !== null && Number.isFinite(diasRestantes) && diasRestantes >= 0 && <p className="mt-2 font-medium">{diasRestantes === 0 ? "O prazo de regularização termina hoje." : `Você tem ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} para regularizar.`}</p>}{atendimento}</AvisoConta>}</>;
   return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-lg rounded-2xl border border-border bg-surface p-8 text-text-primary">
     <p className="mb-5 text-xs uppercase tracking-widest text-text-secondary">Glass Code · Atendimento da conta</p>
-    <h1 className="text-xl font-medium">{estado === "verificando" ? "Verificando acesso…" : estado === "bloqueado" ? detalhe?.situacao === "cancelada" ? "Conta cancelada" : "Acesso temporariamente suspenso" : "Não foi possível verificar seu acesso"}</h1>
-    {estado !== "verificando" && <><p className="mt-4 text-sm leading-6 text-text-secondary">{estado === "bloqueado" ? texto : "Confira sua conexão e tente novamente."}</p>{estado === "bloqueado" && <>{prazo}{atendimento}</>}
-    <div className="mt-6 flex flex-wrap gap-3"><button onClick={() => setTentativa(t => t + 1)} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">Verificar situação novamente</button><button className="rounded-lg border border-border px-4 py-2 text-sm" onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}>Sair da conta</button></div></>}
+    <h1 className="text-xl font-medium">{estado === "bloqueado" ? detalhe?.situacao === "cancelada" ? "Conta cancelada" : "Acesso temporariamente suspenso" : "Não foi possível verificar seu acesso"}</h1>
+    <p className="mt-4 text-sm leading-6 text-text-secondary">{estado === "bloqueado" ? texto : "Confira sua conexão e tente novamente."}</p>{estado === "bloqueado" && <>{prazo}{atendimento}</>}
+    <div className="mt-6 flex flex-wrap gap-3"><button onClick={() => setTentativa(t => t + 1)} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">Verificar situação novamente</button><button className="rounded-lg border border-border px-4 py-2 text-sm" onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}>Sair da conta</button></div>
   </section></main>;
+}
+
+function CarregamentoAcesso({ sucesso }: { sucesso: boolean }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="text-center" role="status" aria-live="polite">
+        <div aria-hidden="true" className="relative mx-auto flex h-16 w-16 items-center justify-center">
+          <span className={sucesso
+            ? "absolute inset-0 rounded-full border-2 border-primary bg-primary/15"
+            : "absolute inset-0 rounded-full border-2 border-border border-t-primary motion-safe:animate-spin"} />
+          {sucesso && <Check size={28} strokeWidth={1.8} className="relative text-text-primary" />}
+        </div>
+        <p className="mt-5 text-sm font-medium text-text-primary">
+          {sucesso ? "Acesso confirmado" : "Verificando sua conta…"}
+        </p>
+        <p className="mt-2 text-xs text-text-secondary">
+          {sucesso ? "Abrindo seu espaço de trabalho." : "Preparando seu espaço de trabalho."}
+        </p>
+      </div>
+    </main>
+  );
 }

@@ -447,21 +447,6 @@ const projetos = [
   }
 ];
 
-const ordemCategorias = [
-  "Pinázio",
-  "Sacadas",
-  "Fachadas",
-  "Porta fora vão",
-  "Portas giro",
-  "Portas",
-  "Janelas",
-  "Mão Amiga",
-  "Deslizante",
-  "Box",
-  "Fixos",
-  "Max",
-];
-
 export default function MatrizProjetosPage() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -471,9 +456,8 @@ export default function MatrizProjetosPage() {
 
   const categorias = useMemo(() => {
     const nomes = Array.from(new Set(projetos.map((projeto) => projeto.categoria)));
-    const ordenadas = ordemCategorias.filter((categoria) => nomes.includes(categoria));
-    const restantes = nomes.filter((categoria) => !ordemCategorias.includes(categoria)).sort();
-    return ["Todos", ...ordenadas, ...restantes];
+    nomes.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+    return ["Todos", ...nomes];
   }, []);
 
   const totalPorCategoria = useMemo(() => {
@@ -605,13 +589,13 @@ export default function MatrizProjetosPage() {
               {projetosFiltrados.map((projeto) => (
                 <article
                   key={projeto.id}
-                  className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition hover:border-border-strong hover:shadow-md"
+                  className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-colors hover:border-primary/60"
                 >
                   <div className="grid min-h-[190px] grid-cols-1 sm:grid-cols-[150px_minmax(0,1fr)]">
                     <button
                       type="button"
                       onClick={() => router.push(projeto.kitHref)}
-                      className="flex h-44 items-center justify-center bg-surface-secondary p-4 transition group-hover:bg-surface-secondary sm:h-full"
+                      className="flex h-44 items-center justify-center bg-white p-4 sm:h-full"
                       title={`Abrir ${projeto.nome}`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -634,8 +618,7 @@ export default function MatrizProjetosPage() {
                         <button
                           type="button"
                           onClick={() => router.push(projeto.kitHref)}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2.5 text-sm font-medium transition hover:bg-surface"
-                          style={{ color: theme.menuBackgroundColor }}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-transparent px-3 py-2.5 text-sm font-normal text-text-secondary transition hover:text-[color-mix(in_srgb,var(--gc-graphite)_65%,var(--gc-lime))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                         >
                           {projeto.kitLabel || "Kit"}
                           <ArrowRight size={16} />
@@ -644,7 +627,7 @@ export default function MatrizProjetosPage() {
                           <button
                             type="button"
                             onClick={() => router.push(projeto.barraHref)}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:border-border hover:bg-surface-secondary hover:text-text-primary"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:text-[color-mix(in_srgb,var(--gc-graphite)_65%,var(--gc-lime))]"
                           >
                             {projeto.barraLabel || "Barra"}
                             <ArrowRight size={16} />
