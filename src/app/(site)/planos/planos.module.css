@@ -1206,3 +1206,81 @@
     scale(0.9);
 }
 }
+
+/* Movimento discreto com as cores da marca; conteúdo visível sem JavaScript. */
+.intro h1::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: 24px auto 0;
+  border-radius: 999px;
+  background: var(--gc-lime);
+}
+
+.button svg,
+.primary svg,
+.finalCtaButton svg {
+  transition: transform 180ms ease;
+}
+
+.card:focus-within {
+  border-color: var(--gc-lime);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: color-mix(in srgb, var(--gc-lime) 65%, var(--border));
+  }
+  .button:hover svg,
+  .primary:hover svg,
+  .finalCtaButton:hover svg {
+    transform: translate(2px, -2px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .intro > * {
+    animation: entradaSuave 550ms ease-out backwards;
+  }
+  .intro h1 { animation-delay: 70ms; }
+  .intro > p { animation-delay: 140ms; }
+  .intro h1::after {
+    animation: linhaMarca 650ms 200ms ease-out backwards;
+  }
+  .card {
+    animation: entradaSuave 600ms ease-out backwards;
+  }
+  .card:nth-child(1) { animation-delay: 150ms; }
+  .card:nth-child(2) { animation-delay: 250ms; }
+  .card:nth-child(3) { animation-delay: 350ms; }
+  .faq details[open] p {
+    animation: entradaSuave 220ms ease-out;
+  }
+}
+
+@keyframes entradaSuave {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes linhaMarca {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *, .page *::before, .page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .card:hover,
+  .primary:hover,
+  .finalCtaButton:hover,
+  .nav .ctaSmall:hover,
+  .button:hover svg,
+  .primary:hover svg,
+  .finalCtaButton:hover svg {
+    transform: none;
+  }
+}
