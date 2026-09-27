@@ -3461,3 +3461,46 @@
   .feature[data-site-revealed="true"] .doorMovingLeft { animation: openLeftDoor 3800ms 200ms ease-in-out both; }
   .feature[data-site-revealed="true"] .doorMovingRight { animation: openRightDoor 3800ms 200ms ease-in-out both; }
 }
+
+/* Demonstrações em sequência ao revelar cada recurso. */
+@media (prefers-reduced-motion: no-preference) {
+.feature[data-site-revealed="true"] .pdfProject { animation: resourceAssemble 650ms 250ms cubic-bezier(.2,.7,.2,1) backwards; }
+.feature[data-site-revealed="true"] .pdfProject:nth-child(2) { animation-delay: 430ms; }
+.feature[data-site-revealed="true"] .pdfProject:nth-child(3) { animation-delay: 570ms; }
+.feature[data-site-revealed="true"] .pdfProject:nth-child(4) { animation-delay: 710ms; }
+.feature[data-site-revealed="true"] .materialGroup { animation: resourceAssemble 650ms 250ms cubic-bezier(.2,.7,.2,1) backwards; }
+.feature[data-site-revealed="true"] .materialGroup:nth-child(2) { animation-delay: 430ms; }
+.feature[data-site-revealed="true"] .materialGroup:nth-child(3) { animation-delay: 570ms; }
+.feature[data-site-revealed="true"] .materialGroup:nth-child(4) { animation-delay: 710ms; }
+.feature[data-site-revealed="true"] .queueItem { animation: resourceAssemble 650ms 250ms cubic-bezier(.2,.7,.2,1) backwards; }
+.feature[data-site-revealed="true"] .queueItem:nth-child(2) { animation-delay: 430ms; }
+.feature[data-site-revealed="true"] .queueItem:nth-child(3) { animation-delay: 570ms; }
+.feature[data-site-revealed="true"] .queueItem:nth-child(4) { animation-delay: 710ms; }
+.feature[data-site-revealed="true"] .dashStat { animation: resourceAssemble 650ms 250ms cubic-bezier(.2,.7,.2,1) backwards; }
+.feature[data-site-revealed="true"] .dashStat:nth-child(2) { animation-delay: 430ms; }
+.feature[data-site-revealed="true"] .dashStat:nth-child(3) { animation-delay: 570ms; }
+.feature[data-site-revealed="true"] .dashStat:nth-child(4) { animation-delay: 710ms; }
+.feature[data-site-revealed="true"] .dashProject { animation: resourceAssemble 650ms 250ms cubic-bezier(.2,.7,.2,1) backwards; }
+.feature[data-site-revealed="true"] .dashProject:nth-child(2) { animation-delay: 430ms; }
+.feature[data-site-revealed="true"] .dashProject:nth-child(3) { animation-delay: 570ms; }
+.feature[data-site-revealed="true"] .dashProject:nth-child(4) { animation-delay: 710ms; }
+.feature[data-site-revealed="true"] .pdfSummary { animation: resourceConfirm 700ms 1100ms ease-out backwards; }
+.feature[data-site-revealed="true"] .materialTotal { animation: resourceConfirm 700ms 1100ms ease-out backwards; }
+.feature[data-site-revealed="true"] .readyBox { animation: resourceConfirm 700ms 1100ms ease-out backwards; }
+.feature[data-site-revealed="true"] .dashToday { animation: resourceConfirm 700ms 1100ms ease-out backwards; }
+.feature[data-site-revealed="true"] .technicalDrawing { animation: drawingReveal 1300ms 250ms ease-out backwards; }
+.feature[data-site-revealed="true"] .pdfHeader { animation: resourceAssemble 650ms 100ms ease-out backwards; }
+.feature[data-site-revealed="true"] .featureNumber { animation: resourceConfirm 750ms ease-out backwards; }
+}
+@keyframes resourceAssemble {
+ from { opacity: 0; translate: 12px 8px; }
+ to { opacity: 1; translate: 0 0; }
+}
+@keyframes resourceConfirm {
+ from { opacity: 0; scale: .97; }
+ to { opacity: 1; scale: 1; }
+}
+@keyframes drawingReveal {
+ from { clip-path: inset(0 100% 0 0); opacity: .3; }
+ to { clip-path: inset(0); opacity: 1; }
+}
