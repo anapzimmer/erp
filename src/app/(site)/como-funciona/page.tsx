@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SiteMotion from "@/components/SiteMotion";
 import Image from "next/image";
 import styles from "./como-funciona.module.css";
 
@@ -150,7 +151,7 @@ function FlowVisual() {
 
 export default function ComoFuncionaPage() {
     return (
-        <main className={styles.page}>
+        <SiteMotion className={styles.page}>
             <header className={styles.header}>
                 <div className={styles.headerInner}>
                     <Link href="/" className={styles.brand}>
@@ -372,6 +373,6 @@ export default function ComoFuncionaPage() {
                     </div>
                 </div>
             </section>
-        </main>
+        </SiteMotion>
     );
 }

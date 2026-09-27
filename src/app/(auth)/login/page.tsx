@@ -60,8 +60,9 @@ const LoginPage = () => {
         return;
       }
 
+      // Um login válido inicia uma nova contagem de inatividade antes de abrir o ERP.
+      localStorage.setItem("glasscode:last-activity-at", String(Date.now()));
       router.replace("/dashboard");
-      router.refresh(); // Garante atualização da sessão
 
    } catch (err: unknown) {
   const message = err instanceof Error ? err.message : "Erro ao conectar com o servidor.";
@@ -193,12 +194,16 @@ const LoginPage = () => {
   return (
     <main className={styles.page}>
       <section className={styles.story} aria-label="GlassCode — software para setor de vidro">
+        <div className={styles.brandBackdrop} aria-hidden="true">
+          <Image src="/glasscode-icon.png" alt="" fill sizes="420px" unoptimized style={{ objectFit: 'contain' }} />
+        </div>
         <div className={styles.brand}><Image src="/glasscode-icon.png" alt="" width={35} height={48} unoptimized priority style={{ objectFit: 'contain', flexShrink: 0 }} /><span>glass<span className={styles.brandLight}>code</span><small>SOFTWARE PARA SETOR DE VIDRO</small></span></div>
         <div className={styles.storyContent}>
           <span className={styles.eyebrow}><span /> DA IDEIA À INSTALAÇÃO</span>
           <h1>Precisão em cada corte.<br /><em>Controle em cada projeto.</em></h1>
           <p>Sua vidraçaria conectada, do primeiro orçamento ao último detalhe.</p>
           <div className={styles.blueprint}>
+            <span className={styles.glassReflection} aria-hidden="true" />
             <div className={styles.drawingTitle}><span>ESTUDO DE PROJETO</span><span>01 / JANELA DE CORRER</span></div>
             <svg viewBox="0 0 560 320" role="img" aria-label="Desenho animado de uma janela de correr com duas folhas">
               <defs><linearGradient id="login-glass" x1="0" y1="0" x2="1" y2="1"><stop stopColor={DRAWING_COLORS.frame} stopOpacity=".2"/><stop offset="1" stopColor={DRAWING_COLORS.frame} stopOpacity=".02"/></linearGradient></defs>

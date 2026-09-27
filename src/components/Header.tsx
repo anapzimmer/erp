@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {Building2,ChevronDown,Settings,Palette,LogOut, TableProperties,Headphones,} from "lucide-react";
 import ThemeSelect from "@/components/ThemeSelect";
@@ -166,78 +167,7 @@ const { theme } = useTheme();
   aria-label="Glass Code - Dashboard"
   className="group flex shrink-0 items-center gap-[9px]"
 >
-  {/* =====================================================
-      SÍMBOLO GLASS CODE
-      Recriado em CSS na proporção da marca oficial
-     ===================================================== */}
-  {/* SÍMBOLO GLASS CODE — PROPORÇÃO RETANGULAR */}
-<div
-  className="relative h-[38px] w-[44px] shrink-0"
-  aria-hidden="true"
->
-{/* LÂMINA TRASEIRA — CINZA */}
-<span
-  className="
-    absolute
-    left-0
-    top-[2px]
-    h-[27px]
-    w-[30px]
-    overflow-hidden
-    rounded-[2px]
-    border
-    border-[#B9C1C6]/80
-    [transform:skewY(-28deg)]
-  "
-style={{
-  background:
-    "linear-gradient(to top right, rgba(143,154,161,.42) 0%, rgba(143,154,161,.60) 52%, rgba(143,154,161,.78) 100%)",
-}}
->
-  <span
-    className="
-      absolute inset-[1px]
-      rounded-[3px]
-      bg-gradient-to-tr
-      from-white/[0.12]
-      via-white/[0.04]
-      to-transparent
-    "
-  />
-</span>
-
- 
- {/* LÂMINA FRONTAL — LIMA */}
-<span
-  className="
-    absolute
-    right-0
-    bottom-[1px]
-    h-[27px]
-    w-[30px]
-    overflow-hidden
-    rounded-[2px]
-    border
-    border-[#E4E39A]/90
-    [transform:skewY(-28deg)]
-  "
-style={{
-  background:
-    "linear-gradient(to top, rgba(200,212,99,.42) 0%, rgba(200,212,99,.60) 52%, rgba(200,212,99,.78) 100%)",
-}}
->
-  <span
-    className="
-      absolute inset-[1px]
-      rounded-[3px]
-      bg-gradient-to-br
-      from-white/[0.18]
-      via-white/[0.06]
-      to-transparent
-    "
-  />
-</span>
-</div>
+  <Image src="/glasscode-icon.svg" alt="" width={30} height={44} unoptimized className="shrink-0 object-contain" />
 
   {/* =====================================================
       GLASS CODE

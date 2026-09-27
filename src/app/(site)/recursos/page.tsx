@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteMotion from "@/components/SiteMotion";
 import Image from "next/image";
 import styles from "./recursos.module.css";
 import type { Metadata } from "next";
@@ -822,7 +823,7 @@ function FeatureVisual({ tipo }: { tipo: string }) {
 
 export default function RecursosPage() {
   return (
-    <main className={styles.page}>
+    <SiteMotion className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}>
@@ -998,6 +999,6 @@ export default function RecursosPage() {
           </div>
         </div>
       </section>
-    </main>
+    </SiteMotion>
   );
 }

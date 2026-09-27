@@ -31,3 +31,86 @@
 .submit{background:var(--primary);color:var(--on-primary)}
 .submit:hover{background:var(--primary-hover)}
 .fields input:-webkit-autofill{-webkit-text-fill-color:var(--text-primary);box-shadow:0 0 0 1000px var(--surface-secondary) inset}
+
+
+/* Abertura Glass Code: luz, vidro e desenho técnico, sem movimento contínuo. */
+.story { isolation: isolate; }
+.story::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 75% 35%, color-mix(in srgb, var(--gc-lime) 8%, transparent), transparent 65%);
+}
+.brandBackdrop {
+  position: absolute;
+  right: -85px;
+  top: 8%;
+  width: min(420px, 65%);
+  height: 480px;
+  opacity: .055;
+  pointer-events: none;
+  z-index: -1;
+  transform: rotate(-8deg);
+}
+.blueprint { position: relative; }
+.glassReflection {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.075) 49%, transparent 63%);
+  opacity: 0;
+}
+.eyebrow > span, .drawingFooter .dot { background: var(--gc-lime); }
+.features svg { color: var(--gc-lime); }
+.fields input:focus {
+  border-color: var(--gc-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gc-lime) 14%, transparent);
+}
+.submit svg { transition: transform 200ms ease; }
+.submit:hover svg { transform: translateX(3px); }
+.inputWrap:focus-within > svg { color: var(--text-primary); }
+.formCard { animation: none; }
+.slidingGlass { animation: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .brand { animation: cinemaEntry 650ms ease-out backwards; }
+  .storyContent > .eyebrow { animation: cinemaEntry 650ms 80ms ease-out backwards; }
+  .story h1 { animation: cinemaEntry 850ms 160ms cubic-bezier(.2,.7,.2,1) backwards; }
+  .storyContent > p { animation: cinemaEntry 700ms 250ms ease-out backwards; }
+  .blueprint { animation: cinemaEntry 900ms 320ms ease-out backwards; }
+  .features { animation: cinemaEntry 750ms 500ms ease-out backwards; }
+  .brandBackdrop { animation: brandArrival 1800ms ease-out backwards; }
+  .glassReflection { animation: reflectionPass 2600ms 650ms ease-in-out; }
+  .slidingGlass { animation: slide 3800ms 500ms ease-in-out both; }
+  .frame { animation-duration: 2200ms; }
+  .formCard { animation: formArrival 600ms ease-out; }
+}
+
+@keyframes cinemaEntry {
+  from { opacity: 0; translate: 0 14px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes brandArrival {
+  from { opacity: 0; translate: 25px 12px; }
+  to { opacity: .055; translate: 0 0; }
+}
+@keyframes reflectionPass {
+  0% { opacity: 0; translate: -65% 0; }
+  25%, 60% { opacity: 1; }
+  100% { opacity: 0; translate: 65% 0; }
+}
+@keyframes formArrival {
+  from { translate: 10px 0; }
+  to { translate: 0 0; }
+}
+@media (max-width:760px) {
+  .brandBackdrop { top: -65px; right: -15px; height: 270px; width: 200px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .story::before, .story::after { animation: none; }
+  .glassReflection { display: none; }
+  .submit:hover, .submit:hover svg { transform: none; }
+}
