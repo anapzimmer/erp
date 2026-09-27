@@ -992,6 +992,7 @@ if (texto.includes("jc4fcbs") ||texto.includes("janela 4 folhas com peitoril e b
   if (texto.includes("jc2fcs") || texto.includes("janela 2 folhas com sacada inferior") || texto.includes("janela de correr 2 folhas com sacada inferior")) return 3;
   if (texto.includes("pc4fcb") || texto.includes("4 folhas com bandeira")) return 6;
   if (texto.includes("pc2fcb") || texto.includes("2 folhas com bandeira")) return 3;
+  if ((texto.includes("pg - 2") || texto.includes("porta de giro - 2")) && texto.includes("bandeira")) return 3;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -1900,6 +1901,7 @@ export default function CentralImpressaoPage() {
       : projetoTexto.includes("pc2f") || ehPortaCorrer2Folhas(item.projeto) ? "/pc2f-kit"
       : projetoTexto.includes("jc2f") || projetoTexto.includes("janela de correr 2") ? "/jc2f-kit"
       : projetoTexto.includes("jc4f") || projetoTexto.includes("janela de correr 4") ? "/jc4f-kit"
+      : projetoTexto.includes("giro - 2 folhas com bandeira") || projetoTexto.includes("pg - 2 folhas com bandeira") ? "/pg2f-bandeira"
       : projetoTexto.includes("pg - 2") || projetoTexto.includes("porta de giro - 2") ? "/pg2f"
       : projetoTexto.includes("pg") || projetoTexto.includes("porta de giro") ? "/pg"
       : projetoTexto.includes("deslizante2f") || projetoTexto.includes("deslizante 2") ? "/deslizante2f"
@@ -2341,11 +2343,12 @@ router.push(
                   const janelaComPeitorilBandeira = ehJc4fcbs(item.projeto);
                   const desenhoCentral = item.desenhoUrl || (projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item));
                   const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+                  const portaGiroDuasFolhas = /^(\/pg2f)(?:-bandeira)?$/.test(item.origemRota || "") || /(?:pg|porta de giro) - 2/i.test(item.projeto || "");
                   const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
                     : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
                     : ehBox2Fls(item.projeto) ? "Altura"
                     : ehPma(item.projeto) || ehDeslizante2f(item.projeto) || ehDeslizante3f(item.projeto) || ehDeslizante4f(item.projeto) || ehDeslizante5f(item.projeto) || ehDeslizante6f(item.projeto) ? "Projeto"
-                    : ehPortaGiroFixo(item.projeto) ? "Fechadura"
+                    : portaGiroDuasFolhas || ehPortaGiroFixo(item.projeto) ? "Fechadura"
                     : "Trilho";
                   const labelCampoSecundario = ehPeleDeVidro(item.projeto) ? "Lajes"
                     : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Tipo"
@@ -2893,7 +2896,7 @@ router.push(
                               </Field>
                             </>
                           ) : null}
-                          {!(vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || ehSacadaGrapa(item.projeto) || fechamentoSacada || peleDeVidro || pinazio) ? (
+                          {!(portaGiroDuasFolhas || vidroAvulso || espelhoComDesenho || ehSacadaFrontal(item.projeto) || ehSacadaGrapa(item.projeto) || fechamentoSacada || peleDeVidro || pinazio) ? (
                             <Field label="Modo">
                               <select
                                 value={item.modo}

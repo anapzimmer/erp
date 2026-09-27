@@ -727,6 +727,7 @@ export default function RelatorioOrcamento() {
             jc4fcs: `/jc4fcs?edit=${orc.id}&returnTo=${returnTo}`,
             jc4fcs_kit: `/jc4fcs-kit?edit=${orc.id}&returnTo=${returnTo}`,
             pg_1f: `/pg?edit=${orc.id}&returnTo=${returnTo}`,
+            pg_2f_bandeira: `/pg2f-bandeira?edit=${orc.id}&returnTo=${returnTo}`,
             pg_2f: `/pg2f?edit=${orc.id}&returnTo=${returnTo}`,
             pgf: `/pgf?edit=${orc.id}&returnTo=${returnTo}`,
             pg2fva: `/pg2fva?edit=${orc.id}&returnTo=${returnTo}`,
@@ -1368,7 +1369,7 @@ export default function RelatorioOrcamento() {
                                             );
                                         }
 
-                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "jc4fcb" || tipo === "jc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc4fcs" || tipo === "jc4fcs_kit" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "jc2fcs" || tipo === "jc2fcs_kit" || tipo === "pg_1f" || tipo === "pg_2f" || tipo === "pgf" || tipo === "pg2fva" || tipo === "max" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "boxcanto3f" || tipo === "boxcanto" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
+                                        if (tipo === "pfv1f_kit" || tipo === "pfv1f_barra" || tipo === "pfv2f_kit" || tipo === "pfv2f_barra" || tipo === "pc2f_kit" || tipo === "pc2f_barra" || tipo === "pc2fcb" || tipo === "pc2fcb_kit" || tipo === "pc4fcb" || tipo === "pc4fcb_kit" || tipo === "jc4fcb" || tipo === "jc4fcb_kit" || tipo === "pc4f_kit" || tipo === "pc4f_barra" || tipo === "jc4f_kit" || tipo === "jc4f_barra" || tipo === "jc4fcs" || tipo === "jc4fcs_kit" || tipo === "jc2f_kit" || tipo === "jc2f_barra" || tipo === "jc2fcs" || tipo === "jc2fcs_kit" || tipo === "pg_1f" || tipo === "pg_2f_bandeira" || tipo === "pg_2f" || tipo === "pgf" || tipo === "pg2fva" || tipo === "max" || tipo === "fixos" || tipo === "pma2f" || tipo === "pma3f" || tipo === "pma4f" || tipo === "pma5f" || tipo === "pma6f" || tipo === "pma2f4m" || tipo === "box2fls" || tipo === "boxcanto3f" || tipo === "boxcanto" || tipo === "deslizante2f" || tipo === "deslizante3f" || tipo === "deslizante4f" || tipo === "deslizante5f" || tipo === "deslizante6f") {
                                             const dadosPdf = itensRaw.dados && typeof itensRaw.dados === "object" ? itensRaw.dados as Partial<ProjetoIndividualDados>
                                                 : {};
                                             const materiaisPdf = Array.isArray(itensRaw.materiais) ? itensRaw.materiais as ProjetoIndividualDados["materiais"]

@@ -90,7 +90,7 @@ export function OptionInput({
           onChange={(e) => onChange(e.target.value)}
           className="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-text-primary outline-none disabled:cursor-not-allowed"
         >
-          {options.map((opcao) => (
+          {Array.from(new Set(options)).map((opcao) => (
             <option key={opcao} value={opcao}>
               {opcao}
             </option>

@@ -1694,6 +1694,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("jc2fcs") || texto.includes("janela 2 folhas com sacada inferior") || texto.includes("janela de correr 2 folhas com sacada inferior")) return 3;
   if (texto.includes("pc4fcb") || texto.includes("4 folhas com bandeira")) return 6;
   if (texto.includes("pc2fcb") || texto.includes("2 folhas com bandeira")) return 3;
+  if ((texto.includes("pg - 2") || texto.includes("porta de giro - 2")) && texto.includes("bandeira")) return 3;
   if (texto.includes("pg - 2") || texto.includes("porta de giro - 2")) return 2;
   if (texto.includes("jc4f") || texto.includes("janela de correr 4")) return 4;
   if (texto.includes("jc2f") || texto.includes("janela de correr 2")) return 2;
@@ -1971,11 +1972,12 @@ const possuiRelacaoObra =
             const desenhoCentral = item.desenhoUrl || (projetoTecnico ? desenhoTecnicoUrl(item.projeto, item) : desenhoTecnicoUrl(item.projeto, item));
             const vidroPrincipal = sacadaFrontal || sacadaGrapa ? descricaoVidroItem(item) : item.vidro;
             const labelVidroPrincipal = espelhoComDesenho ? "Espelho" : sacadaFrontal || sacadaGrapa ? "Cor do vidro" : ehFechamentoSacada(item.projeto) ? "Vidro inferior" : "Vidro";
+            const portaGiroDuasFolhas = /^\/pg2f(?:-bandeira)?$/.test(item.origemRota || "") || /(?:pg|porta de giro) - 2/i.test(item.projeto || "");
             const labelCampoPrincipal = ehPeleDeVidro(item.projeto) ? "Quadros"
               : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Divisões"
               : ehBox2Fls ? "Altura"
               : ehPma || ehDeslizante2f || ehDeslizante3f || ehDeslizante4f || ehDeslizante5f || ehDeslizante6f ? "Projeto"
-              : ehPortaGiro ? "Fechadura"
+              : portaGiroDuasFolhas || ehPortaGiro ? "Fechadura"
               : "Trilho";
             const labelCampoSecundario = ehPeleDeVidro(item.projeto) ? "Lajes"
               : ehSacadaFrontal(item.projeto) || ehFechamentoSacada(item.projeto) ? "Tipo"
@@ -2257,7 +2259,7 @@ const possuiRelacaoObra =
                         <Text style={styles.infoLabel}>Peças por vão na largura</Text>
                         <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
                       </View>
-                    ) : sacadaGrapa ? null : ehBoxProjeto || pinazio || espelhoComDesenho ? null : (
+                    ) : sacadaGrapa ? null : portaGiroDuasFolhas || ehBoxProjeto || pinazio || espelhoComDesenho ? null : (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Modo</Text>
                         <Text style={styles.infoValue}>{item.modo}</Text>

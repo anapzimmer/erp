@@ -1,4 +1,6 @@
 ﻿"use client";
+import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
+import { corCatalogoCompativel } from "@/utils/catalogo-cor";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
 import PreviaCalculoProjeto from "@/components/PreviaCalculoProjeto";
 import RodapeCalculoProjeto from "@/components/RodapeCalculoProjeto";
@@ -134,6 +136,9 @@ type CentralImpressaoProjetoItem = {
   medidas?: string;
   largura?: number;
   altura?: number;
+  alturaAteTubo?: number;
+  vidroBandeira?: string;
+  tuboPerfil?: string;
   quantidade?: number;
   modo?: string;
   desenhoUrl?: string;
@@ -222,7 +227,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
   descricao: descricaoOriginal,
   unidade: unidadeOriginal,
 });
-const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pg2f:rascunho";
+const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pg2f-bandeira:rascunho";
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
@@ -273,7 +278,7 @@ export default function PG2FPage() {
     aoFechar?: () => void;
   } | null>(null);
   const [dados, setDados] = useState<Omit<ProjetoIndividualDados, "materiais">>({
-    projeto: "PG - 2 folhas",
+    projeto: "PG - 2 folhas com bandeira",
     numero: "005412",
     data: hojePtBr(),
     cliente: "",
@@ -281,6 +286,9 @@ export default function PG2FPage() {
     obra: "",
     largura: 0,
     altura: 0,
+    alturaAteTubo: 0,
+    vidroBandeira: "Escolher",
+    tuboPerfil: "Escolher",
     quantidade: 1,
     trilho: "Escolher",
     vidro: "Escolher",
@@ -345,7 +353,7 @@ export default function PG2FPage() {
 
   useEffect(() => {
     if (dados.trinco !== "Dobradiça") return;
-    setDados(atual => ({ ...atual, trinco: "Padrão", projeto: "PG - 2 folhas" }));
+    setDados(atual => ({ ...atual, trinco: "Padrão", projeto: "PG - 2 folhas com bandeira" }));
   }, [dados.trinco]);
 
   useEffect(() => {
@@ -374,6 +382,9 @@ export default function PG2FPage() {
         obra: item.obra || "",
         largura: Number(item.largura || 0),
         altura: Number(item.altura || 0),
+        alturaAteTubo: Number(item.alturaAteTubo || 0),
+        vidroBandeira: item.vidroBandeira || "Escolher",
+        tuboPerfil: item.tuboPerfil || "Escolher",
         quantidade: Number(item.quantidade || 1),
         trilho: item.trilho || "Escolher",
         vidro: item.vidro || "Escolher",
@@ -400,7 +411,7 @@ export default function PG2FPage() {
     () => materiais.reduce((soma, item) => soma + Number(item.qtd || 0) * Number(item.valorUnitario || 0), 0),
     [materiais]
   );
-  const totalVidros = Number(dados.quantidade || 0) * 2;
+  const totalVidros = Number(dados.quantidade || 0) * 3;
   const valorVidros = useMemo(
     () => materiais
       .filter((item) => !item.perfilExtra && item.descricao.toLowerCase().includes("vidro"))
@@ -463,22 +474,22 @@ export default function PG2FPage() {
 
     return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
+  const vidroBandeiraSelecionado = useMemo(() => localizarVidroPorDescricao(vidros, dados.vidroBandeira || "", formatarVidroCadastro), [vidros, dados.vidroBandeira]);
+  const precoVidroBandeiraM2 = useMemo(() => {
+    if (!vidroBandeiraSelecionado) return 0;
+    const precoGrupo = precosVidroGrupos.find(p => String(p.vidro_id) === String(vidroBandeiraSelecionado.id) && p.grupo_preco_id === clienteSelecionado?.grupo_preco_id);
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroBandeiraSelecionado.preco ?? 0);
+  }, [vidroBandeiraSelecionado, clienteSelecionado, precosVidroGrupos]);
   const calculoVidro = useMemo(() => {
-    const larguraMedida = Math.max(0, (Number(dados.largura || 0) / 2) - 12);
-    const alturaMedida = Math.max(0, Number(dados.altura || 0) - 12);
-    const larguraCalculo = arredondar5cm(larguraMedida);
-    const alturaCalculo = arredondar5cm(alturaMedida);
-    const areaUnit = (larguraCalculo * alturaCalculo) / 1_000_000;
-    const areaTotalCobrada = areaUnit * 2 * Number(dados.quantidade || 0);
-
-    return {
-      larguraCalculo,
-      alturaCalculo,
-      larguraMedida,
-      alturaMedida,
-      areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
-    };
-  }, [dados.altura, dados.largura, dados.quantidade]);
+    const alturaPorta = Math.max(0, Number(dados.alturaAteTubo || 0));
+    const larguraMedida = Math.max(0, Number(dados.largura || 0) / 2 - 12);
+    const alturaMedida = Math.max(0, alturaPorta - 12);
+    const larguraBandeiraMedida = Math.max(0, Number(dados.largura || 0) - 25);
+    const alturaBandeiraMedida = Math.max(0, Number(dados.altura || 0) - alturaPorta - 25);
+    const areaPortas = arredondar5cm(larguraMedida) * arredondar5cm(alturaMedida) / 1e6 * 2 * dados.quantidade;
+    const areaBandeira = arredondar5cm(larguraBandeiraMedida) * arredondar5cm(alturaBandeiraMedida) / 1e6 * dados.quantidade;
+    return { larguraMedida, alturaMedida, larguraBandeiraMedida, alturaBandeiraMedida, areaPortas, areaBandeira, areaTotalCobrada: Number((areaPortas + areaBandeira).toFixed(3)) };
+  }, [dados.largura, dados.altura, dados.alturaAteTubo, dados.quantidade]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -807,49 +818,45 @@ export default function PG2FPage() {
     return Array.from(materiaisAgrupados.values());
   }, [buscarFerragemPorCodigo, dados.corKit, dados.puxador, dados.quantidade, dados.tamanhoPuxador, dados.trilho, dados.trinco]);
 
+  const tubosDisponiveis = useMemo(() => perfis.filter(p =>
+    (/tubo/i.test(p.codigo + " " + p.nome + " " + (p.nome_completo || "") + " " + p.categoria) || /^tr\d/i.test(p.codigo))
+  ), [perfis]);
+  const descricaoTubo = (p: PerfilCadastro) => p.codigo + " - " + (p.nome_completo || p.nome);
+  const modeloTubo = (codigo: string) => codigo.replace(/-(PT|BC|BR|BZ|FOS|FOSCO|BRILHANTE)$/i, "").trim().toUpperCase();
+  const tuboEscolhido = tubosDisponiveis.find(p => descricaoTubo(p) === dados.tuboPerfil || p.codigo === dados.tuboPerfil);
+  const tuboSelecionado = tuboEscolhido && dados.corKit !== "Escolher"
+    ? tubosDisponiveis.find(p => modeloTubo(p.codigo) === modeloTubo(tuboEscolhido.codigo) && corCatalogoCompativel(p.cores, dados.corKit))
+    : undefined;
+  const espessuraBandeira = Number(String(vidroBandeiraSelecionado?.espessura || "").replace(/mm/ig, "").trim().replace(",", "."));
+  const codigoPerfilBandeira = espessuraBandeira === 10 ? "VT10" : espessuraBandeira > 0 && espessuraBandeira <= 8 ? "VT66" : "";
+  const perfilBandeira = perfis.find(p => codigoPerfilBandeira && codigoFerragemCompativel(normalizarTexto(p.codigo), normalizarTexto(codigoPerfilBandeira)) && dados.corKit !== "Escolher" && corCatalogoCompativel(p.cores, dados.corKit));
   useEffect(() => {
-    if (!dados.vidro || dados.vidro === "Escolher") return;
+    const novos: ProjetoIndividualMaterial[] = [...ferragensAutomaticas];
+    if (dados.vidro && dados.vidro !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaPortas, unidade: "m2", descricao: "VIDRO 2 PORTAS " + calculoVidro.larguraMedida + "x" + calculoVidro.alturaMedida + " " + dados.vidro, valorUnitario: precoVidroM2}));
+    if (dados.vidroBandeira && dados.vidroBandeira !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaBandeira, unidade: "m2", descricao: "VIDRO BANDEIRA ÚNICA " + calculoVidro.larguraBandeiraMedida + "x" + calculoVidro.alturaBandeiraMedida + " " + dados.vidroBandeira, valorUnitario: precoVidroBandeiraM2}));
+    if (tuboSelecionado && dados.largura > 0) {
+      const cortes = prepararCortesPorBarra(Array.from({length: Math.max(0, Math.floor(dados.quantidade))}, () => dados.largura), 6000);
+      novos.push({...criarMaterial({qtd: calcularBarrasPorCortes(cortes,6000), unidade: "barra", descricao: tuboSelecionado.codigo + " - " + (tuboSelecionado.nome_completo || tuboSelecionado.nome) + " | " + tuboSelecionado.cores, valorUnitario: Number(tuboSelecionado.preco || 0)}), codigoPerfil: tuboSelecionado.codigo, comprimentoBarra: 6000, cortes, origemCalculo: "pg2f-bandeira:tubo"});
+    }
+    if (perfilBandeira && dados.largura > 0 && dados.altura > Number(dados.alturaAteTubo || 0)) {
+      const alturaBandeira = dados.altura - Number(dados.alturaAteTubo || 0);
+      const cortes = prepararCortesPorBarra(Array.from({length: Math.max(0, Math.floor(dados.quantidade))}, () => [alturaBandeira, alturaBandeira, dados.largura]).flat(), 6000);
+      novos.push({...criarMaterial({qtd: calcularBarrasPorCortes(cortes,6000), unidade: "barra", descricao: perfilBandeira.codigo + " - " + (perfilBandeira.nome_completo || perfilBandeira.nome) + " | " + perfilBandeira.cores, valorUnitario: Number(perfilBandeira.preco || 0)}), codigoPerfil: perfilBandeira.codigo, comprimentoBarra: 6000, cortes, origemCalculo: "pg2f-bandeira:perfil"});
+    }
+    setMateriais(lista => mesclarMateriaisAutomaticos(lista.filter(i => i.perfilExtra || (!i.descricao.startsWith("VIDRO ") && i.origemCalculo !== "pg2f-bandeira:tubo" && i.origemCalculo !== "pg2f-bandeira:perfil")), novos, codigosItensAutomaticos));
+  }, [perfilBandeira, dados.altura, dados.alturaAteTubo, ferragensAutomaticas, calculoVidro, dados.vidro, dados.vidroBandeira, dados.largura, dados.quantidade, tuboSelecionado, precoVidroM2, precoVidroBandeiraM2, codigosItensAutomaticos]);
 
-    const vidroNome = dados.vidro
-      .replace(/^vidro\s+/i, "")
-      .trim();
-
-    const medidaVidro = `${calculoVidro.larguraMedida}x${calculoVidro.alturaMedida}`;
-    const descricaoVidro = `VIDRO 2 PECAS ${medidaVidro} ${vidroNome.toUpperCase()}`;
-
-    setMateriais((lista) => {
-      const indiceVidro = lista.findIndex?.((item) =>
-        !item.perfilExtra && item.descricao.toLowerCase().includes("vidro")
-      );
-
-      const itemAtual = lista[indiceVidro] || criarMaterial();
-
-      const itemAtualizado: ProjetoIndividualMaterial = {
-        ...itemAtual,
-        qtd: calculoVidro.areaTotalCobrada,
-        unidade: "m2",
-        descricao: descricaoVidro,
-        valorUnitario: precoVidroM2,
-      };
-
-      if (indiceVidro < 0) return [itemAtualizado, ...lista];
-
-      return lista.map((item, index) =>
-        index === indiceVidro ? itemAtualizado : item
-      );
-    });
-  }, [calculoVidro.alturaMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMedida, dados.vidro, precoVidroM2]);
-
-  useEffect(() => {
-    setMateriais((lista) => {
-      return mesclarMateriaisAutomaticos(lista, ferragensAutomaticas, codigosItensAutomaticos);
-    });
-  }, [codigosItensAutomaticos, ferragensAutomaticas]);
-
-
+  const avisoConfiguracao = Number(dados.alturaAteTubo || 0) <= 12 || Number(dados.alturaAteTubo || 0) >= dados.altura - 25
+    ? "Informe uma altura das portas menor que a altura total, deixando espaço para a bandeira."
+    : !tuboSelecionado ? "Selecione o tubo horizontal na cor do material." : "";
+  const validarConfiguracao = () => {
+    if (!avisoConfiguracao) return true;
+    setMensagemSistema({tipo: "aviso", titulo: "Confira as medidas e o tubo", mensagem: avisoConfiguracao});
+    return false;
+  };
   const novoProjeto = () => {
     if (editId) {
-      router.push("/pg2f");
+      router.push("/pg2f-bandeira");
       return;
     }
 
@@ -862,6 +869,9 @@ export default function PG2FPage() {
       obra: "",
       largura: 0,
       altura: 0,
+    alturaAteTubo: 0,
+    vidroBandeira: "Escolher",
+    tuboPerfil: "Escolher",
       quantidade: 1,
       trilho: "Escolher",
       vidro: "Escolher",
@@ -880,12 +890,15 @@ export default function PG2FPage() {
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: "Porta de giro - 2 folhas",
+      projeto: "Porta de giro - 2 folhas com bandeira",
       cliente: dados.cliente || "",
       obra: dados.obra?.trim() || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
       largura: Number(dados.largura || 0),
       altura: Number(dados.altura || 0),
+      alturaAteTubo: Number(dados.alturaAteTubo || 0),
+      vidroBandeira: dados.vidroBandeira,
+      tuboPerfil: dados.tuboPerfil,
       quantidade: Number(dados.quantidade || 0),
       modo: "Projeto",
       desenhoUrl,
@@ -898,11 +911,12 @@ export default function PG2FPage() {
       trinco: dados.trinco || "",
       valorTotal: Number(totalMateriais || 0),
       materiais,
-      origemRota: "/pg2f",
+      origemRota: "/pg2f-bandeira",
     };
   };
 
   const enviarParaCentralImpressao = async () => {
+    if (!validarConfiguracao()) return;
     const itemCentral = montarItemCentral(centralItemId || undefined);
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
@@ -947,11 +961,11 @@ export default function PG2FPage() {
     }
 
     const itens = orcamento?.itens as PG2FOrcamentoPersistido | null;
-    if (itens?.tipo !== "pg_2f") {
+    if (itens?.tipo !== "pg_2f_bandeira") {
       setMensagemSistema({
         tipo: "aviso",
         titulo: "Orçamento incompatível",
-        mensagem: "Este Orçamento não pertence ao PG - 2 folhas.",
+        mensagem: "Este Orçamento não pertence ao PG - 2 folhas com bandeira.",
         aoFechar: () => router.push(returnTo),
       });
       return;
@@ -963,7 +977,7 @@ export default function PG2FPage() {
       numero: orcamento.numero_formatado || atual.numero,
       cliente: orcamento.cliente_nome || itens.dados?.cliente || atual.cliente,
       obra: itens.dados?.obra || "",
-      projeto: "PG - 2 folhas",
+      projeto: "PG - 2 folhas com bandeira",
     }));
     setMateriais(Array.isArray(itens.materiais) ? itens.materiais : []);
     setPerfilTuboId(itens.perfilTuboId || null);
@@ -985,6 +999,7 @@ export default function PG2FPage() {
   });
 
   const salvarOrcamento = async () => {
+    if (!validarConfiguracao()) return;
     if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {
@@ -1040,7 +1055,7 @@ export default function PG2FPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: "PG - 2 folhas",
+        projeto: "PG - 2 folhas com bandeira",
       };
       const itensPersistidos: PG2FOrcamentoPersistido & {
         resumo: {
@@ -1052,7 +1067,7 @@ export default function PG2FPage() {
           valorTotal: number;
         };
       } = {
-        tipo: "pg_2f",
+        tipo: "pg_2f_bandeira",
         modo: "projeto",
         dados: dadosAtualizados,
         materiais,
@@ -1266,34 +1281,27 @@ export default function PG2FPage() {
                 <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,0.85fr)]"><div className="min-w-0"><section className="h-full rounded-xl border border-border bg-surface p-5">
                       <SectionTitle>Configuração do projeto</SectionTitle>
                       <div className="mt-4 grid gap-3 overflow-visible md:grid-cols-3">
-                        <DataInput
+<DataInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Largura"
                           value={dados.largura}
                           suffix="mm"
                           onChange={(v) => atualizarCampo("largura", v)}
                         />
-
-                        <DataInput
+<DataInput
                           icon={<MoveVertical size={24} strokeWidth={1.6} />}
-                          label="Altura"
+                          label="Altura total"
                           value={dados.altura}
                           suffix="mm"
                           onChange={(v) => atualizarCampo("altura", v)}
                         />
-
-                        <DataInput
-                          icon={<Copy size={24} strokeWidth={1.6} />}
-                          label="Quantidade"
-                          value={dados.quantidade}
-                          onChange={(v) => atualizarCampo("quantidade", v)}
-                        />
-                        <label data-campo-legado className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
+<DataInput icon={<MoveVertical size={24}/>} label="Altura porta até o tubo" value={dados.alturaAteTubo || 0} suffix="mm" onChange={v => atualizarCampo("alturaAteTubo", v)} />
+<label data-campo-legado className="relative flex min-h-[76px] items-center gap-3 rounded-2xl border border-border/80 bg-surface px-4 py-3 transition-colors focus-within:border-success-soft focus-within:bg-surface focus-within:ring-4 focus-within:ring-success/10">
                           <span className="flex w-7 shrink-0 justify-start text-text-primary/65">
                             <Layers size={24} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Cor do vidro</span>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-secondary">Vidro das portas</span>
                             {listaVidrosAberta ? (
                               <input
                                 ref={vidroInputRef}
@@ -1366,23 +1374,29 @@ export default function PG2FPage() {
                             </div>
                           )}
                         </label>
-                        <OptionInput
+<OptionInput icon={<Layers size={24}/>} label="Vidro da bandeira" value={dados.vidroBandeira || "Escolher"} options={["Escolher", ...vidros.map(formatarVidroCadastro)]} onChange={v => atualizarCampo("vidroBandeira", v)} />
+<DataInput
+                          icon={<Copy size={24} strokeWidth={1.6} />}
+                          label="Quantidade"
+                          value={dados.quantidade}
+                          onChange={(v) => atualizarCampo("quantidade", v)}
+                        />
+<OptionInput icon={<RailSymbol size={24}/>} label="Tubo horizontal" value={dados.tuboPerfil || "Escolher"} options={["Escolher", ...tubosDisponiveis.map(p => p.codigo + " - " + (p.nome_completo || p.nome))]} onChange={v => atualizarCampo("tuboPerfil", v)} />
+<OptionInput
                           icon={<Settings size={24} strokeWidth={1.6} />}
                           label="Tipo de fechadura"
                           value={dados.trilho}
                           options={fechaduraOpcoes}
                           onChange={(v) => atualizarCampo("trilho", v)}
                         />
-
-                        <OptionInput
+<OptionInput
                           icon={<Palette size={24} strokeWidth={1.6} />}
                           label="Cor do material"
                           value={dados.corKit}
                           options={corMaterialOpcoes}
                           onChange={(v) => atualizarCampo("corKit", v)}
                         />
-
-                        <OptionInput
+<OptionInput
                           icon={<Wrench size={24} strokeWidth={1.6} />}
                           label="Puxador"
                           value={dados.puxador || "Sem puxador"}
@@ -1402,8 +1416,7 @@ export default function PG2FPage() {
                             }
                           }}
                         />
-
-                        <OptionInput
+<OptionInput
                           icon={<MoveHorizontal size={24} strokeWidth={1.6} />}
                           label="Furação do puxador"
                           value={dados.tamanhoPuxador || "Escolher"}
@@ -1411,16 +1424,15 @@ export default function PG2FPage() {
                           disabled={dados.puxador !== "Com puxador"}
                           onChange={(v) => atualizarCampo("tamanhoPuxador", v)}
                         />
-
-                        <OptionInput
+<OptionInput
                           icon={<Settings size={24} strokeWidth={1.6} />}
                           label="Ferragens"
                           value={dados.trinco || "Padrão"}
                           options={ferragemTipoOpcoes}
                           onChange={(v) => atualizarCampo("trinco", v)}
                         />
-                      </div>
-                    <ResumoConfiguracaoProjeto materiais={materiais} ocultarKitPerfis /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}><ProjetoDrawing comPuxador={dados.puxador === "Com puxador"} /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
+</div>
+                    {avisoConfiguracao && <p role="status" className="mt-4 text-sm text-text-secondary">{avisoConfiguracao}</p>}<ResumoConfiguracaoProjeto materiais={materiais} ocultarKitPerfis /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}><ProjetoDrawing comPuxador={dados.puxador === "Com puxador"} /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
 <LoteRapidoProjetos
                       aberto={loteRapido.aberto}
                       editando={loteRapido.editando}
@@ -1586,7 +1598,7 @@ export default function PG2FPage() {
           </section>
         </div>
       )}
-    <RodapeCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} documento={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />} arquivo={`pg2f_2f_${dados.numero || "novo"}.pdf`} onEnviar={enviarParaCentralImpressao} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} /></main>
+    <RodapeCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} documento={<ProjetoIndividualPDF nomeEmpresa={nomeEmpresa} dados={projetoPdf} logoUrl={logoUsuario} />} arquivo={`pg2f_bandeira_${dados.numero || "novo"}.pdf`} onEnviar={enviarParaCentralImpressao} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} /></main>
   );
 }
 
@@ -1681,7 +1693,7 @@ function DescricaoMaterialInput({
 const obterDesenhoPortaGiro = (puxador?: string) => {
   const comPuxador = puxador === "Com puxador";
 
-  return comPuxador ? "/desenhos/portagiro-2flscompleto.png" : "/desenhos/portagiro-2fls.png";
+  return comPuxador ? "/desenhos/portagiro-2fls-bandeira-completo.png" : "/desenhos/portagiro-2fls-bandeira.png";
 };
 
 function ProjetoDrawing({ comPuxador }: { comPuxador: boolean }) {

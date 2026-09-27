@@ -233,6 +233,17 @@ const projetos = [
     descricao: "Duas portas de giro, fechadura 1520 com contra 1531 ou 1520TA com contra 1504TA, com ou sem puxador.",
   },
   {
+    id: "pg2f-bandeira",
+    nome: "Porta de giro com bandeira",
+    titulo: "2 folhas móveis e bandeira superior única",
+    categoria: "Portas giro",
+    status: "Disponível",
+    imagem: "/desenhos/portagiro-2fls-bandeira.png",
+    kitHref: "/pg2f-bandeira",
+    kitLabel: "Calcular",
+    descricao: "Duas portas de giro, tubo horizontal e vidros separados para portas e bandeira.",
+  },
+  {
     id: "pg-dobradica",
     nome: "Porta de giro dobradiça",
     titulo: "Projeto único com dobradiça",

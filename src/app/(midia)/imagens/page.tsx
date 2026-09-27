@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { lerListaMedidas, type UnidadeImagem } from "@/utils/medidasImagem";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, FilePlus2, FileText, Image as ImageIcon, Loader2, PencilLine, Plus, ScanText, Sparkles, Trash2, UploadCloud } from "lucide-react";
 import Header from "@/components/Header";
@@ -33,6 +34,7 @@ type ProjetoCentralImagem = {
   medidasDetalhadas?: string;
   pecasDivisao?: number;
   materiais?: unknown[];
+  vidrosAvulsos?: {id: string; quantidade: number; medida: string; vidro: string; valorTotal: number}[];
 };
 
 const CENTRAL_KEY = "glasscode:central-impressao:composicao";
@@ -57,6 +59,7 @@ type ProjetoOpcao = {
 };
 
 const PROJETOS_OPCOES: ProjetoOpcao[] = [
+  { valor: "Vidros avulsos", nome: "Vidros avulsos", rota: "/calculo/calculovidro", desenho: "", pecas: 1 },
   { valor: "Janela 2 folhas", nome: "Janela de correr - 2 folhas (Kit)", rota: "/jc2f-kit", desenho: "/desenhos/projeto2f-simples.png", pecas: 2 },
   { valor: "Janela de correr - 2 folhas (Barra)", nome: "Janela de correr - 2 folhas (Barra)", rota: "/jc2f-barra", desenho: "/desenhos/projeto2f-simples.png", pecas: 2 },
   { valor: "Janela 4 folhas", nome: "Janela de correr - 4 folhas (Kit)", rota: "/jc4f-kit", desenho: "/desenhos/janela4fls-semtrinco.png", pecas: 4 },
@@ -273,6 +276,9 @@ export default function ImagensPage() {
 
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [sidebarExpandido, setSidebarExpandido] = useState(true);
+  const [modoLeitura, setModoLeitura] = useState<"vidros" | "projetos">("vidros");
+  const [unidadeImagem, setUnidadeImagem] = useState<UnidadeImagem>("cm");
+  const [revisado, setRevisado] = useState(false);
   const [upload, setUpload] = useState<UploadState>(INITIAL_UPLOAD_STATE);
   const [dragActive, setDragActive] = useState(false);
   const [itens, setItens] = useState<ItemOrcamentoImagem[]>([]);
@@ -283,6 +289,7 @@ export default function ImagensPage() {
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
+  useEffect(() => { setRevisado(false); }, [itens, upload.file]);
 
   const hasImage = Boolean(upload.file && upload.previewUrl);
   const isPdf = upload.file?.type === "application/pdf" || upload.file?.name.toLowerCase().endsWith(".pdf");
@@ -364,7 +371,10 @@ export default function ImagensPage() {
       const resultado = await extrairOrcamentoDaImagem({
         mimeType: upload.mimeType,
         base64Data: upload.base64Data,
+        modo: modoLeitura,
+        unidade: unidadeImagem,
       });
+      setRevisado(false);
       setItens(resultado.itens);
       setObservacoesGerais(resultado.observacoesGerais);
       setMensagem(resultado.itens.length ? `${resultado.itens.length} medida(s) encontrada(s). Confira antes de enviar para a Central.` : "Nenhum vão foi encontrado na imagem.");
@@ -453,7 +463,12 @@ export default function ImagensPage() {
       });
 
       const texto = resultado.data.text || "";
-      const interpretado = interpretarTextoLocal(texto);
+      const lista = lerListaMedidas(texto, unidadeImagem);
+      const interpretado = modoLeitura === "vidros" ? {
+        itens: lista.itens.map((i, index): ItemOrcamentoImagem => ({...i, id: criarId() + index, projeto: "Vidros avulsos", observacao: i.original, confianca: "media"})),
+        observacao: "Medidas convertidas de " + unidadeImagem + " para mm. " + (lista.ignoradas.length ? lista.ignoradas.length + " linha(s) não reconhecida(s): " + lista.ignoradas.join("; ") : "Confira cada peça com a foto.")
+      } : interpretarTextoLocal(texto);
+      setRevisado(false);
       setItens(interpretado.itens);
       setObservacoesGerais(interpretado.observacao);
       setMensagem(
@@ -471,6 +486,7 @@ export default function ImagensPage() {
   };
 
   const enviarParaCentral = () => {
+    if (!revisado) { setError("Confira as medidas em milímetros e marque a revisão antes de enviar."); return; }
     const itensValidos = itens.filter((item) => item.largura > 0 && item.altura > 0 && item.quantidade > 0);
     if (!itensValidos.length) {
       setError("Confira a tabela: precisa ter ao menos um item com largura, altura e quantidade.");
@@ -492,7 +508,8 @@ export default function ImagensPage() {
         projeto: projeto.nome,
         largura: item.largura,
         altura: item.altura,
-        quantidade: item.quantidade,
+        quantidade: item.projeto === "Vidros avulsos" ? 1 : item.quantidade,
+        ...(item.projeto === "Vidros avulsos" ? {vidrosAvulsos: [{id: criarId(), quantidade: item.quantidade, medida: `${item.largura} x ${item.altura}`, vidro: "Vidro a definir", valorTotal: 0}]} : {}),
         vidro: "Vidro a definir",
         corKit: "A definir",
         corPerfil: "A definir",
@@ -557,6 +574,11 @@ export default function ImagensPage() {
                     </p>
                   </div>
 
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="text-sm">Tipo de leitura<select disabled={loading || loadingLocal} value={modoLeitura} onChange={e=>{setModoLeitura(e.target.value as "vidros" | "projetos");setRevisado(false);}} className="mt-1 block rounded-lg border border-border bg-surface p-2"><option value="vidros">Lista de vidros avulsos</option><option value="projetos">Desenho de projetos</option></select></label>
+                    {modoLeitura === "vidros" && <label className="text-sm">Unidade escrita na foto<select disabled={loading || loadingLocal} value={unidadeImagem} onChange={e=>{setUnidadeImagem(e.target.value as UnidadeImagem);setRevisado(false);setMensagem("A unidade vale para a próxima leitura. Leia a imagem novamente para aplicar.");}} className="mt-1 block rounded-lg border border-border bg-surface p-2"><option value="cm">Centímetros (cm)</option><option value="mm">Milímetros (mm)</option></select></label>}
+                    <p className="text-xs text-text-secondary">A tabela para revisão sempre mostra milímetros. Linhas repetidas são mantidas.</p>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -600,7 +622,7 @@ export default function ImagensPage() {
                     <button
                       type="button"
                       onClick={enviarParaCentral}
-                      disabled={!itens.length}
+                      disabled={!itens.length || !revisado}
                       className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
                     >
@@ -779,6 +801,7 @@ export default function ImagensPage() {
                     </table>
                   </div>
 
+                  <label className="flex items-center gap-2 border-t border-border p-4 text-sm"><input type="checkbox" checked={revisado} onChange={e=>setRevisado(e.target.checked)}/>Conferi a foto, as quantidades e todas as medidas em milímetros.</label>
                   <div className="flex flex-col gap-3 border-t border-border p-4 md:flex-row md:items-center md:justify-between">
                     <p className="text-xs text-text-secondary">
                       {observacoesGerais || "Dica: depois de enviar ao PDF+, confira vidro, cor e modo de cada projeto na Central."}
@@ -786,7 +809,7 @@ export default function ImagensPage() {
                     <button
                       type="button"
                       onClick={enviarParaCentral}
-                      disabled={!itens.length}
+                      disabled={!itens.length || !revisado}
                       className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-on-primary shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: theme.menuIconColor }}
                     >

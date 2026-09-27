@@ -382,6 +382,7 @@ export function ProjetoIndividualPDF({
   const ehPc4fComBandeira = projetoNormalizado.includes("pc4fcb") || projetoNormalizado.includes("4 folhas com bandeira");
   const ehPc4f = projetoNormalizado.includes("pc4f") || projetoNormalizado.includes("porta de correr 4 folhas");
   const ehPortaGiro2Folhas = projetoNormalizado.includes("pg - 2") || projetoNormalizado.includes("pg dobradica - 2") || projetoNormalizado.includes("pg dobradiça - 2") || projetoNormalizado.includes("porta de giro - 2") || projetoNormalizado.includes("porta de giro dobradica - 2") || projetoNormalizado.includes("porta de giro dobradiça - 2");
+  const ehGiroBandeira = ehPortaGiro2Folhas && projetoNormalizado.includes("bandeira");
   const ehPortaGiroFixo = projetoNormalizado.includes("pgf") || projetoNormalizado.includes("porta de giro com fixo lateral");
   const ehMax = projetoNormalizado === "max" || projetoNormalizado.includes("max");
   const ehPortaGiro = projetoNormalizado.includes("pg") || projetoNormalizado.includes("porta de giro");
@@ -475,7 +476,7 @@ export function ProjetoIndividualPDF({
   const alturaDeslizante5f = arredondar5cm(Number(dados.altura || 0));
   const larguraDeslizante6f = arredondar5cm((Number(dados.largura || 0) + 50) / 6);
   const alturaDeslizante6f = arredondar5cm(Number(dados.altura || 0));
-  const quantidadePecasVidro = ehDeslizante6f ? quantidadeVaos * 6 : ehDeslizante5f ? quantidadeVaos * 5 : ehDeslizante4f ? quantidadeVaos * 4 : ehDeslizante3f ? quantidadeVaos * 3 : ehDeslizante2f ? quantidadeVaos * 2 : ehBoxCanto3f ? quantidadeVaos * 3 : ehBoxCanto ? quantidadeVaos * 4 : ehBox2Fls ? quantidadeVaos * 2 : ehPma2f4m ? quantidadeVaos * 6 : ehPma6f ? quantidadeVaos * 6 : ehPma5f ? quantidadeVaos * 5 : ehPma4f ? quantidadeVaos * 4 : ehPma3f ? quantidadeVaos * 3 : ehPma2f ? quantidadeVaos * 2 : ehMax ? quantidadeVaos * (dados.trinco === "Max Único" ? 1 : 2) : ehFixos ? quantidadeVaos * pecasFixos : ehJc4fComSacada || ehPc4fComBandeira ? quantidadeVaos * 6 : ehPc2fComBandeira || ehJc2fComSacada ? quantidadeVaos * 3 : ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f || ehPortaGiro2Folhas || ehPortaGiroFixo ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
+  const quantidadePecasVidro = ehGiroBandeira ? quantidadeVaos * 3 : ehDeslizante6f ? quantidadeVaos * 6 : ehDeslizante5f ? quantidadeVaos * 5 : ehDeslizante4f ? quantidadeVaos * 4 : ehDeslizante3f ? quantidadeVaos * 3 : ehDeslizante2f ? quantidadeVaos * 2 : ehBoxCanto3f ? quantidadeVaos * 3 : ehBoxCanto ? quantidadeVaos * 4 : ehBox2Fls ? quantidadeVaos * 2 : ehPma2f4m ? quantidadeVaos * 6 : ehPma6f ? quantidadeVaos * 6 : ehPma5f ? quantidadeVaos * 5 : ehPma4f ? quantidadeVaos * 4 : ehPma3f ? quantidadeVaos * 3 : ehPma2f ? quantidadeVaos * 2 : ehMax ? quantidadeVaos * (dados.trinco === "Max Único" ? 1 : 2) : ehFixos ? quantidadeVaos * pecasFixos : ehJc4fComSacada || ehPc4fComBandeira ? quantidadeVaos * 6 : ehPc2fComBandeira || ehJc2fComSacada ? quantidadeVaos * 3 : ehJanelaCorrer4Folhas || ehPc4f ? quantidadeVaos * 4 : ehJanelaCorrer2Folhas || ehPc2f || ehPortaGiro2Folhas || ehPortaGiroFixo ? quantidadeVaos * 2 : ehDuasFolhas ? quantidadeVaos * 2 : quantidadeVaos;
   const maxUnico = dados.trinco === "Max Único";
   const alturaBaseMax = maxUnico ? Number(dados.altura || 0) : Number(dados.altura || 0) / 2;
   const larguraVidroMax = arredondar5cm(Math.max(0, Number(dados.largura || 0) - 12));
@@ -510,6 +511,7 @@ export function ProjetoIndividualPDF({
     : ehPc4f ? Number((((larguraFixaPc4f * alturaFixaPc4f * 2 * quantidadeVaos) + (larguraMovelPc4f * alturaMovelPc4f * 2 * quantidadeVaos)) / 1_000_000).toFixed(3))
     : ehMax ? Number((((larguraVidroMax * alturaVidroMax * quantidadeVaos) + (maxUnico ? 0 : larguraVidroFixoMax * alturaVidroFixoMax * quantidadeVaos)) / 1_000_000).toFixed(3))
     : ehPortaGiroFixo ? Number((((larguraPortaGiroFixo * alturaPortaGiroFixo * quantidadeVaos) + (larguraFixoPortaGiro * alturaPortaGiroFixo * quantidadeVaos)) / 1_000_000).toFixed(3))
+    : ehGiroBandeira ? dados.materiais.filter(m => /m2|m²/i.test(m.unidade)).reduce((s,m) => s + Number(m.qtd || 0), 0)
     : ehPortaGiro2Folhas ? Number(((larguraPortaGiro2Folhas * alturaPortaGiro2Folhas * quantidadeVaos * 2) / 1_000_000).toFixed(3))
     : ehPortaGiro ? Number(((larguraPortaGiro * alturaPortaGiro * quantidadeVaos) / 1_000_000).toFixed(3))
     : Number(((larguraVidro * alturaVidro * quantidadePecasVidro) / 1_000_000).toFixed(3));
@@ -542,6 +544,7 @@ export function ProjetoIndividualPDF({
     : ehPc4fComBandeira ? "Porta de correr 4 folhas com bandeira"
     : ehPc4f ? "Porta de correr 4 folhas"
     : ehPortaGiroFixo ? "Porta de giro com fixo lateral"
+    : ehGiroBandeira ? "Porta de giro - 2 folhas com bandeira"
     : ehPortaGiro2Folhas ? "Porta de giro - 2 folhas"
     : ehPortaGiro ? "Porta de giro - 1 folha"
     : ehFixos ? "Fixos"
@@ -678,6 +681,7 @@ export function ProjetoIndividualPDF({
             : "/desenhos/pg-mac.png"
           : dados.puxador === "Com puxador" ? "/desenhos/pg-simplespuxador.png"
             : "/desenhos/pg-simples.png"
+    : ehGiroBandeira ? dados.puxador === "Com puxador" ? "/desenhos/portagiro-2fls-bandeira-completo.png" : "/desenhos/portagiro-2fls-bandeira.png"
     : ehPortaGiro2Folhas ? dados.puxador === "Com puxador" ? "/desenhos/portagiro-2flscompleto.png"
         : "/desenhos/portagiro-2fls.png"
     : ehPortaGiro ? String(dados.trinco || "").toLowerCase().includes("dobradi") ? dados.trilho === "Sem fechadura" ? "/desenhos/portagirodob-1flssimples.png"
@@ -994,6 +998,10 @@ export function ProjetoIndividualPDF({
                 <Text style={styles.dataLabel}>Quantidade</Text>
                 <Text style={styles.dataValue}>{dados.quantidade || 0}</Text>
               </View>
+              {ehGiroBandeira && <>
+                <View style={styles.dataItem}><Text style={styles.dataLabel}>Vidro da bandeira</Text><Text style={styles.dataValue}>{dados.vidroBandeira || "—"}</Text></View>
+                <View style={styles.dataItem}><Text style={styles.dataLabel}>Tubo horizontal</Text><Text style={styles.dataValue}>{dados.tuboPerfil || "—"}</Text></View>
+              </>}
               {ehPortaGiroFixo ? (
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>Largura da porta</Text>
@@ -1006,7 +1014,7 @@ export function ProjetoIndividualPDF({
                   <Text style={styles.dataValue}>{Math.max(0, Number(dados.largura || 0) - Number(dados.alturaAteTubo || 0))} mm</Text>
                 </View>
               ) : null}
-              {ehPc2fComBandeira || ehPc4fComBandeira || ehJanelaComSacada ? (
+              {ehGiroBandeira || ehPc2fComBandeira || ehPc4fComBandeira || ehJanelaComSacada ? (
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>{ehJanelaComSacada ? "Altura da sacada" : "Altura até o tubo"}</Text>
                   <Text style={styles.dataValue}>{dados.alturaAteTubo || 0} mm</Text>
