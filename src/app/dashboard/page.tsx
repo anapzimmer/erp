@@ -581,56 +581,12 @@ const projetos = [
           </Link>
         </section>
 
-        {/* NOVO PROJETO */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeading}>
-            <div>
-              <span className={styles.eyebrow}>
-                NOVO PROJETO
-              </span>
-
-              <h2>
-                Escolha uma categoria
-              </h2>
-
-              <p>
-                Selecione o tipo de projeto
-                para começar o cálculo.
-              </p>
-            </div>
-
-            <Link
-              href="/matriz-projetos"
-              className={styles.textLink}
-            >
-              Ver matriz completa
-              <ArrowUpRight size={15} />
-            </Link>
-          </div>
-
-        <div className={styles.projectGrid}>
-  {projetos.map((projeto) => (
-    <Link
-      key={projeto.titulo}
-      href={projeto.href}
-      className={styles.projectCard}
-    >
-      <div className={styles.projectVisual}>
-        <ProjectDrawing tipo={projeto.tipo} />
-      </div>
-
-      <div className={styles.projectInfo}>
-        <div>
-          <strong>{projeto.titulo}</strong>
-          <span>{projeto.descricao}</span>
-        </div>
-
-        <ArrowUpRight size={16} />
-      </div>
-    </Link>
-  ))}
-</div>
-        </section>
+        <nav className={styles.quickActions} aria-label="Atalhos do dashboard">
+          <span>Seu dia a dia</span>
+          <Link href="/central-impressao"><Layers3 size={16} /> Central de orçamentos <ArrowUpRight size={14} /></Link>
+          <Link href="/cadastros/clientes"><UsersRound size={16} /> Clientes <ArrowUpRight size={14} /></Link>
+          <Link href="/admin/relatorio.orcamento"><FileText size={16} /> Consultar orçamentos <ArrowUpRight size={14} /></Link>
+        </nav>
 
         {/* INDICADORES */}
         <section className={styles.section}>
@@ -708,6 +664,57 @@ const projetos = [
               </small>
             </article>
           </div>
+        </section>
+
+        {/* NOVO PROJETO */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <div>
+              <span className={styles.eyebrow}>
+                NOVO PROJETO
+              </span>
+
+              <h2>
+                Escolha uma categoria
+              </h2>
+
+              <p>
+                Selecione o tipo de projeto
+                para começar o cálculo.
+              </p>
+            </div>
+
+            <Link
+              href="/matriz-projetos"
+              className={styles.textLink}
+            >
+              Ver matriz completa
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+
+        <div className={styles.projectGrid}>
+  {projetos.map((projeto) => (
+    <Link
+      key={projeto.titulo}
+      href={projeto.href}
+      className={styles.projectCard}
+    >
+      <div className={styles.projectVisual}>
+        <ProjectDrawing tipo={projeto.tipo} />
+      </div>
+
+      <div className={styles.projectInfo}>
+        <div>
+          <strong>{projeto.titulo}</strong>
+          <span>{projeto.descricao}</span>
+        </div>
+
+        <ArrowUpRight size={16} />
+      </div>
+    </Link>
+  ))}
+</div>
         </section>
 
         {/* CONTINUAR TRABALHANDO */}

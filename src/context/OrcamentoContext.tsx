@@ -361,7 +361,13 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
       <div className="flex shrink-0 items-center gap-4">
         <Link href="/matriz-projetos" className="hover:underline">Adicionar item</Link>
         <Link href={destino} className="hover:underline">Ver orçamento{quantidade ? ` (${quantidade})` : ""}</Link>
-        <Link href={destino} className="hover:underline">Encerrar e revisar</Link>
+        {pathname === "/central-impressao" ? (
+          <button type="button" className="hover:underline" onClick={encerrarOrcamentoAtivo} title="Encerrar o atendimento deste cliente, mantendo os itens na central. Não salva o orçamento.">
+            Encerrar orçamento
+          </button>
+        ) : (
+          <Link href={destino} className="hover:underline">Encerrar e revisar</Link>
+        )}
       </div>
     </div>}
     {children}

@@ -977,3 +977,58 @@
     min-height: 92px;
   }
 }
+/* Dashboard: indicadores primeiro, atalhos compactos e hierarquia leve. */
+.main { width: 100%; max-width: none; margin-inline: 0; }
+.hero { min-height: 160px; margin-bottom: 16px; box-shadow: none; }
+.hero::before { display: none; }
+.hero::after {
+ width: 230px; height: 310px; right: 23%; top: -75px;
+ border: 0; border-radius: 0; transform: rotate(-8deg);
+ background: url('/glasscode-icon.svg') center / contain no-repeat;
+ opacity: .09;
+}
+.quickActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 28px; }
+.quickActions > span { margin-right: auto; font-size: 12px; color: var(--text-secondary); }
+.quickActions a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 9px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 12px; color: var(--text-primary); transition: border-color 180ms ease; }
+.quickActions a:hover { border-color: var(--gc-lime); }
+.metrics { border: 0; background: transparent; overflow: visible; gap: 14px; }
+.metric, .metric:last-child { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 24px; }
+.metric:nth-child(2), .metric:nth-child(3) { background: color-mix(in srgb, var(--gc-lime) 7%, var(--surface)); }
+.metric::before { width: 28px; height: 2px; }
+.metric strong { font-size: clamp(22px, 2.1vw, 34px); overflow-wrap: anywhere; }
+.projectCard { display: grid; grid-template-columns: 90px minmax(0,1fr); align-items: center; }
+.projectVisual { height: 100px; border: 0; background: var(--surface); }
+.projectDrawing { width: 88px; height: 80px; }
+.projectInfo { min-width: 0; padding: 12px 12px 12px 4px; }
+.projectInfo span { font-size: 10px; }
+.panel { box-shadow: none; }
+.page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--gc-lime); outline-offset: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+ .hero { animation: dashboardEnter 550ms ease-out backwards; }
+ .metric { animation: dashboardEnter 500ms 80ms ease-out backwards; }
+ .metric:nth-child(2) { animation-delay: 140ms; }
+ .metric:nth-child(3) { animation-delay: 200ms; }
+ .metric:nth-child(4) { animation-delay: 260ms; }
+ .projectCard { animation: dashboardEnter 600ms 200ms ease-out backwards; }
+ .projectCard:nth-child(2n) { animation-delay: 280ms; }
+ .panel { animation: dashboardEnter 650ms 300ms ease-out backwards; }
+}
+@keyframes dashboardEnter {
+ from { opacity: 0; translate: 0 10px; }
+ to { opacity: 1; translate: 0 0; }
+}
+@media (max-width:1100px) { .projectGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) {
+ .hero { align-items: flex-start; flex-direction: column; gap: 20px; padding: 24px; }
+ .hero h1 { font-size: 27px; overflow-wrap: anywhere; }
+ .quickActions > span { width: 100%; }
+ .quickActions a { flex: 1 1 auto; justify-content: center; }
+ .metric, .metric:last-child { padding: 18px 14px; }
+ .projectGrid { grid-template-columns: 1fr; }
+ .projectVisual { height: 84px; }
+ .sectionHeading, .panelHeading { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .page *, .page *::before, .page *::after { animation: none !important; transition: none !important; }
+ .projectCard:hover, .projectCard:hover .projectDrawing, .primary:hover { transform: none; }
+}
