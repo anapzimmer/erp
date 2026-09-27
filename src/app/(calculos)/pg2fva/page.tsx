@@ -20,7 +20,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { ordemMaterialRelacao } from "@/utils/ordemMateriais";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
-import { escolherItemPorCor } from "@/utils/catalogo-cor";
+import { escolherItemPorCor, corCatalogoCompativel } from "@/utils/catalogo-cor";
 import { prepararCortesPorBarra } from "@/utils/barras";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
 import {
@@ -218,7 +218,7 @@ const fechaduraOpcoes = ["Escolher", "1520", "1520TA"];
 const corMaterialOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
 const puxadorOpcoes = ["Sem puxador", "Com puxador"];
 const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
-const encontroOpcoes = ["Vidro / vidro"];
+const encontroOpcoes = ["Vidro / vidro", "Vidro / alvenaria"];
 const ferragemTipoOpcoes = ["Padrão", "Grande"];
 
 const normalizarTexto = (texto?: string | number | null) =>
@@ -263,7 +263,7 @@ export default function PG2FVAPage() {
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
   const centralLoteId = searchParams.get("loteId");
-  const encontroInicial: string = "vidro";
+  const encontroInicial = searchParams.get("encontro");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId, nomeEmpresa } = useAuth();
   const { theme } = useTheme();
@@ -407,7 +407,7 @@ export default function PG2FVAPage() {
         corKit: item.corPerfil || item.corKit || "Escolher",
         puxador: item.puxador || "Sem puxador",
         tamanhoPuxador: item.tamanhoPuxador || (item.puxador === "Com puxador" ? "300mm" : "Escolher"),
-        trinco: item.trinco || "Padrão",
+        trinco: item.trinco || "Vidro / vidro",
         observacao: item.observacao || "Padrão",
       }));
 
@@ -773,11 +773,12 @@ export default function PG2FVAPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
+    if (!corFerragemSelecionada || corFerragemSelecionada === "escolher") return null;
     return perfis.find((perfil) => {
       const codigoOk = codigoFerragemCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk;
+      return codigoOk && corCatalogoCompativel(perfil.cores, dados.corKit);
     }) || null;
-  }, [corFerragemSelecionada, perfis]);
+  }, [corFerragemSelecionada, dados.corKit, perfis]);
 
   const codigosItensAutomaticos = useMemo(
     () => ["VT66", "VT10", "VT17", "VT47", "CT004", "1101A", "1201A", "1103A", "1013A", "1101G", "1201G", "1102G", "1013G", "1520AROU-CIL", "1520P", "1531", "1504A", "1520TAROU-CIL", "1520TAP", "MFLY", "1504TA", "1504ATA", "PUXBC30", "PUXBC60", "PUXBC80"].map(normalizarTexto),
@@ -811,13 +812,13 @@ export default function PG2FVAPage() {
         { codigo: "1520TAROU-CIL", multiplicador: 1, ignorarCor: true },
         { codigo: "1520TAP", multiplicador: 1 },
         { codigo: "MFLY", multiplicador: 1 },
-        { codigo: "1504TA", multiplicador: 1 }
+        { codigo: dados.trinco === "Vidro / alvenaria" ? "1504ATA" : "1504TA", multiplicador: 1 }
       );
     } else if (dados.trilho === "1520") {
       regras.push(
         { codigo: "1520AROU-CIL", multiplicador: 1, ignorarCor: true },
         { codigo: "1520P", multiplicador: 1 },
-        { codigo: "1531", multiplicador: 1 }
+        { codigo: dados.trinco === "Vidro / alvenaria" ? "1504A" : "1531", multiplicador: 1 }
       );
     }
 
@@ -1780,8 +1781,7 @@ const obterDesenhoPortaGiroFixo = (tipoFechadura?: string, puxador?: string, enc
 
   if (vidroVidro && eh1520TA) return comPuxador ? "/desenhos/pgf-macpuxador.png" : "/desenhos/pgf-mac.png";
   if (vidroVidro) return comPuxador ? "/desenhos/pgf-simplespuxador.png" : "/desenhos/pgf-simples.png";
-  if (eh1520TA) return comPuxador ? "/desenhos/pg-macpuxador.png" : "/desenhos/pg-mac.png";
-  return comPuxador ? "/desenhos/pg-simplespuxador.png" : "/desenhos/pg-simples.png";
+  return comPuxador ? "/desenhos/portagiro-1flscompletova.png" : "/desenhos/portagiro-1flsva.png";
 };
 
 function ProjetoDrawing({ tipoFechadura, encontro, comPuxador }: { tipoFechadura: string; encontro?: string; comPuxador: boolean }) {
