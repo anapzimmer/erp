@@ -1009,7 +1009,7 @@ const pecasPorVaoProjeto = (
   const origemRota = normalizarTexto(item.origemRota);
 
   if (projeto.includes("fixo com bandeira") || origemRota.includes("fixo-bandeira")) {
-    const divisao = Math.min(6, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
+    const divisao = Math.min(12, Math.max(1, Number(item.pecasDivisao || item.tamanhoPuxador || 1)));
     return divisao * 2;
   }
 

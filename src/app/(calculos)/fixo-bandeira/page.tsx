@@ -190,7 +190,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
 });
 
 const corKitOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
-const divisaoPecasOpcoes = ["1", "2", "3", "4", "5", "6"];
+const divisaoPecasOpcoes = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const tuboUsoOpcoes = ["Somente largura", "Largura + altura da bandeira"];
 
 const normalizarTexto = (texto?: string | number | null) =>
@@ -216,7 +216,7 @@ const formatarDescricaoTubo = (perfil: Pick<PerfilCadastro, "codigo" | "nome" | 
   return `${codigo}${nome ? ` - ${nome}` : ""}${cor ? ` | ${cor}` : ""}`;
 };
 
-const limitarDivisaoPecas = (valor: number) => Math.min(6, Math.max(1, Number(valor || 1)));
+const limitarDivisaoPecas = (valor: number) => Math.min(12, Math.max(1, Math.floor(Number(valor) || 1)));
 
 const desenhoFixoBandeiraPorPecas = (pecas: number) => {
   const folhas = limitarDivisaoPecas(pecas);
@@ -479,7 +479,7 @@ export default function FixoBandeiraPage() {
     {
       titulo: "Como funciona a divisão das folhas",
       categoria: "Projeto",
-      texto: "No campo Projeto escolha de 1 a 6 folhas. A largura do vidro inferior e a largura do vidro da bandeira são divididas pela mesma quantidade de folhas.",
+      texto: "No campo Projeto escolha de 1 a 12 folhas. A largura do vidro inferior e a largura do vidro da bandeira são divididas pela mesma quantidade de folhas.",
     },
     {
       titulo: "Cálculo do vidro inferior",
