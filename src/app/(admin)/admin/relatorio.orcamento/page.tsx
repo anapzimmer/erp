@@ -438,15 +438,14 @@ export default function RelatorioOrcamento() {
                 return;
             }
 
-            const { error } = await supabase
-                .from('orcamentos')
-                .delete()
-                .eq('empresa_id', empresaIdAtual)
-                .in('id', idsParaDeletar);
-
-            if (error) throw error;
-
-            setOrcamentos(prev => prev.filter(o => !idsParaDeletar.includes(o.id)));
+            const { data: resultado, error } = await supabase.rpc("gc_armazenamento", {
+                p_acao: "limpar", p_antes: new Date().toISOString(), p_ids: idsParaDeletar,
+            });
+            if (error) throw new Error(error.message);
+            if (!resultado?.quantidade) throw new Error("Os orçamentos selecionados estão protegidos ou foram alterados. Revise em Configurações → Armazenamento.");
+            const { data: restantes, error: erroConsulta } = await supabase.from('orcamentos').select('*').eq('empresa_id', empresaIdAtual).order('created_at', { ascending: false });
+            if (erroConsulta) throw new Error(erroConsulta.message);
+            setOrcamentos(restantes || []);
             setSelecionados([]);
             setModalConfirmacao(null);
             setItemParaExcluir(null);
@@ -988,7 +987,7 @@ export default function RelatorioOrcamento() {
                                         setItemParaExcluir(null);
                                         setModalConfirmacao({
                                             titulo: "Confirmar exclusão",
-                                            mensagem: `Você está prestes a excluir ${selecionados.length} registros selecionados.\nEsta ação não pode ser desfeita.`,
+                                            mensagem: `Você está prestes a excluir ${selecionados.length} registros selecionados.\nItens elegíveis irão para a lixeira por 30 dias. Aprovados ou vinculados a obras/pedidos serão preservados.`,
                                             confirmar: () => handleDelete([...selecionados]),
                                             labelConfirmar: "Excluir",
                                             labelCancelar: "Cancelar",
@@ -1021,7 +1020,7 @@ export default function RelatorioOrcamento() {
                         ) : (
                             <div className={styles.cards}>
                                 {orcamentosFiltrados.map((orc) => {
-                                    const dias = calcularDiasRestantes(orc.excluir_em);
+                                    const dias = Number.POSITIVE_INFINITY;
                                     const expiraHoje = dias === 0;
                                     const urgente = dias > 0 && dias <= 15;
                                     const selecionado = selecionados.includes(orc.id);
@@ -1086,7 +1085,7 @@ export default function RelatorioOrcamento() {
 
                                             <div className={`mt-4 flex items-center gap-2 text-xs font-bold ${expiraHoje ? "text-danger" : urgente ? "text-warning" : "text-text-secondary"}`}>
                                                 <Clock3 size={15} />
-                                                {expiraHoje ? "Este orçamento expira hoje" : `Expira em ${dias} ${dias === 1 ? "dia" : "dias"}`}
+                                                Armazenamento definido nas configurações
                                             </div>
 
                                             <div className="mt-5 flex items-center border-t border-border pt-4">
@@ -1118,7 +1117,7 @@ export default function RelatorioOrcamento() {
                                                         setItemParaExcluir(orc);
                                                         setModalConfirmacao({
                                                             titulo: "Confirmar exclusão",
-                                                            mensagem: `Você está prestes a excluir o Orçamento ${orc.numero_formatado}.\nEsta ação não pode ser desfeita.`,
+                                                            mensagem: `Você está prestes a excluir o Orçamento ${orc.numero_formatado}.\nItens elegíveis irão para a lixeira por 30 dias. Aprovados ou vinculados a obras/pedidos serão preservados.`,
                                                             confirmar: () => handleDelete([orc.id]),
                                                             labelConfirmar: "Excluir",
                                                             labelCancelar: "Cancelar",

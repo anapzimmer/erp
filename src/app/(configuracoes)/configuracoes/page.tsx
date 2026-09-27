@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Brush, Database, Settings, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useTheme } from "@/context/ThemeContext"
+import ArmazenamentoOrcamentos from "@/components/ArmazenamentoOrcamentos"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { MODO_CORTE_BARRA_STORAGE_KEY, type ModoCorteBarra } from "@/utils/barras"
@@ -301,6 +302,7 @@ export default function ConfiguracoesPage() {
               </p>
             </div>
           </div>
+          <ArmazenamentoOrcamentos />
         </main>
       </div>
     </div>

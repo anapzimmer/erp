@@ -666,181 +666,7 @@ const projetos = [
           </div>
         </section>
 
-        {/* NOVO PROJETO */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeading}>
-            <div>
-              <span className={styles.eyebrow}>
-                NOVO PROJETO
-              </span>
-
-              <h2>
-                Escolha uma categoria
-              </h2>
-
-              <p>
-                Selecione o tipo de projeto
-                para começar o cálculo.
-              </p>
-            </div>
-
-            <Link
-              href="/matriz-projetos"
-              className={styles.textLink}
-            >
-              Ver matriz completa
-              <ArrowUpRight size={15} />
-            </Link>
-          </div>
-
-        <div className={styles.projectGrid}>
-  {projetos.map((projeto) => (
-    <Link
-      key={projeto.titulo}
-      href={projeto.href}
-      className={styles.projectCard}
-    >
-      <div className={styles.projectVisual}>
-        <ProjectDrawing tipo={projeto.tipo} />
-      </div>
-
-      <div className={styles.projectInfo}>
-        <div>
-          <strong>{projeto.titulo}</strong>
-          <span>{projeto.descricao}</span>
-        </div>
-
-        <ArrowUpRight size={16} />
-      </div>
-    </Link>
-  ))}
-</div>
-        </section>
-
-        {/* CONTINUAR TRABALHANDO */}
-        <section className={styles.panel}>
-          <div className={styles.panelHeading}>
-            <div>
-              <span className={styles.eyebrow}>
-                ÚLTIMOS REGISTROS
-              </span>
-
-              <h2>
-                Continuar trabalhando
-              </h2>
-
-              <p>
-                Acesse rapidamente os
-                orçamentos mais recentes.
-              </p>
-            </div>
-
-            <Link
-              href="/admin/relatorio.orcamento"
-              className={styles.textLink}
-            >
-              Ver todos
-              <ArrowUpRight size={15} />
-            </Link>
-          </div>
-
-          {carregandoResumo ? (
-            <div className={styles.empty}>
-              Carregando orçamentos…
-            </div>
-          ) : resumo.recentes.length ? (
-            <div className={styles.records}>
-              {resumo.recentes.map(
-                (item) => (
-                  <Link
-                    key={item.id}
-                    href="/admin/relatorio.orcamento"
-                    className={
-                      styles.recordRow
-                    }
-                  >
-                    <div
-                      className={
-                        styles.recordMain
-                      }
-                    >
-                      <span
-                        className={
-                          styles.recordIcon
-                        }
-                      >
-                        <FileText
-                          size={17}
-                        />
-                      </span>
-
-                      <div>
-                        <strong>
-                          {item.numero_formatado ||
-                            "Sem número"}
-                        </strong>
-
-                        <span>
-                          {item.cliente_nome ||
-                            "Cliente não informado"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span
-                      className={
-                        styles.recordDate
-                      }
-                    >
-                      {formatarRelativo(
-                        item.created_at
-                      )}
-                    </span>
-
-                    <strong
-                      className={
-                        styles.recordValue
-                      }
-                    >
-                      {formatarMoeda(
-                        Number(
-                          item.valor_total
-                        ) || 0
-                      )}
-                    </strong>
-
-                    <ArrowRight
-                      size={17}
-                      className={
-                        styles.recordArrow
-                      }
-                    />
-                  </Link>
-                )
-              )}
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <FileText size={28} />
-
-              <strong>
-                Nenhum orçamento
-                cadastrado.
-              </strong>
-
-              <p>
-                Seus trabalhos mais
-                recentes aparecerão aqui.
-              </p>
-
-              <Link href="/matriz-projetos">
-                Criar primeiro orçamento
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          )}
-        </section>
-
+        <div className={styles.analysisGrid}>
         {/* DESEMPENHO */}
         <section className={styles.panel}>
           <div className={styles.panelHeading}>
@@ -1034,11 +860,194 @@ const projetos = [
             )}
           </div>
 
+
+          <div className={styles.insights} aria-label="Indicadores do período selecionado" aria-busy={carregandoResumo}>
+            <article><span>Valor médio por orçamento</span><strong>{carregandoResumo ? "—" : quantidadePeriodo ? formatarMoeda(totalPeriodo / quantidadePeriodo) : "—"}</strong><small>Nos últimos {periodo} dias</small></article>
+            <article><span>Dias com atividade</span><strong>{carregandoResumo ? "—" : seriePeriodo.filter(dia => dia.quantidade > 0).length}<small> / {periodo} dias</small></strong><small>Dias com orçamentos criados</small></article>
+            <article><span>Maior valor orçado em um dia</span><strong>{carregandoResumo ? "—" : quantidadePeriodo ? formatarMoeda(Math.max(...seriePeriodo.map(dia => dia.total), 0)) : "—"}</strong><small>{!carregandoResumo && quantidadePeriodo ? new Date(seriePeriodo.reduce((melhor, dia) => dia.total > melhor.total ? dia : melhor).dia + "T12:00:00").toLocaleDateString("pt-BR") : "Aguardando orçamentos no período"}</small></article>
+          </div>
           <p className={styles.chartNote}>
             Valores de orçamentos criados no
             período; não representam pagamentos
             recebidos.
           </p>
+        </section>
+
+        {/* CONTINUAR TRABALHANDO */}
+        <section className={styles.panel}>
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.eyebrow}>
+                ÚLTIMOS REGISTROS
+              </span>
+
+              <h2>
+                Retome seus orçamentos
+              </h2>
+
+              <p>
+                Acesse rapidamente os
+                orçamentos mais recentes.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/relatorio.orcamento"
+              className={styles.textLink}
+            >
+              Ver todos
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+
+          {carregandoResumo ? (
+            <div className={styles.empty}>
+              Carregando orçamentos…
+            </div>
+          ) : resumo.recentes.length ? (
+            <div className={styles.records}>
+              {resumo.recentes.map(
+                (item) => (
+                  <Link
+                    key={item.id}
+                    href="/admin/relatorio.orcamento"
+                    className={
+                      styles.recordRow
+                    }
+                  >
+                    <div
+                      className={
+                        styles.recordMain
+                      }
+                    >
+                      <span
+                        className={
+                          styles.recordIcon
+                        }
+                      >
+                        <FileText
+                          size={17}
+                        />
+                      </span>
+
+                      <div>
+                        <strong>
+                          {item.numero_formatado ||
+                            "Sem número"}
+                        </strong>
+
+                        <span>
+                          {item.cliente_nome ||
+                            "Cliente não informado"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      className={
+                        styles.recordDate
+                      }
+                    >
+                      {formatarRelativo(
+                        item.created_at
+                      )}
+                    </span>
+
+                    <strong
+                      className={
+                        styles.recordValue
+                      }
+                    >
+                      {formatarMoeda(
+                        Number(
+                          item.valor_total
+                        ) || 0
+                      )}
+                    </strong>
+
+                    <ArrowRight
+                      size={17}
+                      className={
+                        styles.recordArrow
+                      }
+                    />
+                  </Link>
+                )
+              )}
+            </div>
+          ) : (
+            <div className={styles.empty}>
+              <FileText size={28} />
+
+              <strong>
+                Nenhum orçamento
+                cadastrado.
+              </strong>
+
+              <p>
+                Seus trabalhos mais
+                recentes aparecerão aqui.
+              </p>
+
+              <Link href="/matriz-projetos">
+                Criar primeiro orçamento
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
+        </section>
+
+        </div>
+
+        {/* NOVO PROJETO */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <div>
+              <span className={styles.eyebrow}>
+                NOVO PROJETO
+              </span>
+
+              <h2>
+                Escolha uma categoria
+              </h2>
+
+              <p>
+                Selecione o tipo de projeto
+                para começar o cálculo.
+              </p>
+            </div>
+
+            <Link
+              href="/matriz-projetos"
+              className={styles.textLink}
+            >
+              Ver matriz completa
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+
+        <div className={styles.projectGrid}>
+  {projetos.map((projeto) => (
+    <Link
+      key={projeto.titulo}
+      href={projeto.href}
+      className={styles.projectCard}
+    >
+      <div className={styles.projectVisual}>
+        <ProjectDrawing tipo={projeto.tipo} />
+      </div>
+
+      <div className={styles.projectInfo}>
+        <div>
+          <strong>{projeto.titulo}</strong>
+          <span>{projeto.descricao}</span>
+        </div>
+
+        <ArrowUpRight size={16} />
+      </div>
+    </Link>
+  ))}
+</div>
         </section>
 
         <footer className={styles.footer}>
