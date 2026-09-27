@@ -347,7 +347,7 @@ const casasQtd =
 
 export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVao, grapasLateraisPorVao, grapasInferioresPorVao, grapas1305PorUniao, tuboDescricao, width = 450, height = 210 }: Pick<SacadaGrapaPDFProps, "larguraVaoMm" | "alturaVaoMm" | "divisoesPorVao" | "grapasLateraisPorVao" | "grapasInferioresPorVao" | "grapas1305PorUniao" | "tuboDescricao"> & { width?: number; height?: number }) {
   const perfilCor = { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.softMuted };
-  const tuboCor = { fill: PDF_COLORS.ink, stroke: PDF_COLORS.ink };
+  const tuboCor = { fill: PDF_COLORS.border, stroke: PDF_COLORS.softMuted };
   const svgW = 430;
   const pad = 16;
   const drawW = svgW - pad * 2;
@@ -356,8 +356,8 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
   const svgH = drawH + pad * 2 + 18;
   const x0 = pad;
   const y0 = pad;
-  const rail = 8;
-  const side = 6;
+  const rail = 0;
+  const side = 0;
   const divs = Math.max(Math.floor(divisoesPorVao || 1), 1);
   const laterais = Math.max(Math.floor(grapasLateraisPorVao || 0), 0);
   const inferiores = Math.max(Math.floor(grapasInferioresPorVao || 0), 0);
@@ -376,7 +376,6 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
   };
 
   return (<Svg viewBox={`0 0 ${svgW} ${svgH}`} width={width} height={height} preserveAspectRatio="xMidYMid meet">
-              <Rect x={x0} y={y0} width={drawW} height={drawH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
 
               {Array.from({ length: divs }).map((_, index) => {
                 const x = x0 + side + panelW * index;
@@ -389,15 +388,6 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                 );
               })}
 
-              <Rect x={x0} y={y0} width={drawW} height={rail} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0} y={y0 + drawH - rail} width={drawW} height={rail} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0} y={y0} width={side} height={drawH} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0 + drawW - side} y={y0} width={side} height={drawH} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-
-              {Array.from({ length: Math.max(divs - 1, 0) }).map((_, index) => {
-                const x = x0 + side + panelW * (index + 1);
-                return <Line key={`div-${index}`} x1={x} y1={y0 + rail} x2={x} y2={y0 + drawH - rail} stroke={PDF_COLORS.ink} strokeWidth={0.8} />;
-              })}
 
               {temTuboEmCima ? (
                 <Rect x={x0 - 2} y={y0 - 10} width={drawW + 4} height={11} fill={tuboCor.fill} stroke={tuboCor.stroke} strokeWidth={0.7} />
@@ -413,8 +403,8 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                       const y = posicaoY(grapaIndex, laterais, 14);
                       return (
                         <G key={`grapa-tubo-${index}-${grapaIndex}`}>
-                          <Rect x={x - 14} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                          <Rect x={x + tuboW + 4} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                          <Rect x={x - 10} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                          <Rect x={x + tuboW} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
                         </G>
                       );
                     })}

@@ -149,6 +149,27 @@ export const ordemFerragemMaterial = (material: MaterialOrdenavel): number => {
 };
 
 export const ordemMaterialRelacao = (material: MaterialOrdenavel): number => {
+  // Ferragens de giro seguem a sequência de montagem também nos PDFs.
+  const codigoGiroOriginal = normalizarTextoMaterial(
+    material.codigo || material.codigoPerfil || String(material.descricao || "").split(/\s+-\s+/)[0]
+  );
+  const compactarCodigo = (codigo: string) => codigo.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const codigoGiro = compactarCodigo(codigoGiroOriginal);
+  const codigosGiro = [
+    "1101A", "1201A", "1103A", "1013A",
+    "1101G", "1201G", "1102G", "1013G", "1133",
+    "1520AROUCIL", "1520TAROUCIL", "1520P", "1520TAP", "MFLY",
+    "1531", "1504A", "1504ATA", "1504TA",
+    "1038B", "1038C", "1335", "1629B",
+  ];
+  // Primeiro identifica o código completo (incluindo o hífen de AROU-CIL).
+  // Só depois desconsidera o sufixo de acabamento, como -PT ou -BC.
+  const indiceExato = codigosGiro.indexOf(codigoGiro);
+  const ordemGiro = indiceExato >= 0 ? indiceExato : codigosGiro.indexOf(
+    compactarCodigo(codigoGiroOriginal.replace(/-[a-z0-9]+$/i, ""))
+  );
+  if (ordemGiro >= 0) return 3_010 + ordemGiro;
+
   const grupo = ordemGrupoMaterial(material);
   if (grupo === 2) return 2_000 + ordemPerfilMaterial(material);
   if (grupo === 3) return 3_000 + ordemFerragemMaterial(material);

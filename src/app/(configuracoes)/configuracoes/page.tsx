@@ -3,15 +3,17 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Brush, Database, Settings, ShieldCheck, SlidersHorizontal } from "lucide-react"
+import { ArrowUpRight, SlidersHorizontal } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useTheme } from "@/context/ThemeContext"
 import ArmazenamentoOrcamentos from "@/components/ArmazenamentoOrcamentos"
+import ConfiguracaoModal from "@/components/ConfiguracaoModal"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
 import { MODO_CORTE_BARRA_STORAGE_KEY, type ModoCorteBarra } from "@/utils/barras"
 
 export default function ConfiguracoesPage() {
+  const [calculoAberto, setCalculoAberto] = useState(false);
   const router = useRouter()
   const { theme } = useTheme();
 
@@ -77,21 +79,6 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  const preferenciasSistema = [
-    {
-      titulo: "Padrões de cálculo",
-      descricao: "Espaço para definir regras gerais de arredondamento, tolerâncias, medidas mínimas e padrões por categoria.",
-    },
-    {
-      titulo: "Impressão e PDF",
-      descricao: "Área para centralizar preferências de relatórios, relação da obra, otimização e exibição de valores.",
-    },
-    {
-      titulo: "Comportamento do sistema",
-      descricao: "Preferências futuras para numeração, salvamento, edição, atalhos e confirmações do ERP.",
-    },
-  ];
-
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-surface-secondary">
@@ -125,134 +112,15 @@ export default function ConfiguracoesPage() {
         />
 
         <main className="p-4 md:p-8 flex-1">
-          <div
-            className="mb-6 rounded-[24px] border p-6 md:p-8 shadow-sm"
-            style={{
-              backgroundColor: theme.contentTextDarkBg,
-              borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)`,
-            }}
-          >
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-start gap-4">
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
-                  style={{
-                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`,
-                    borderColor: `color-mix(in srgb, ${theme.menuIconColor} 18%, transparent)`,
-                    color: theme.menuIconColor,
-                  }}
-                >
-                  <Settings size={22} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 54%, transparent)` }}>
-                    Administração
-                  </p>
-                  <h1 className="mt-1 text-2xl font-semibold md:text-3xl" style={{ color: theme.contentTextLightBg }}>
-                    Configurações
-                  </h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-                    Centralize aqui as preferências gerais que mudam o comportamento do sistema. Tabelas e identidade visual ficam no menu da empresa.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:w-[430px]">
-                {[
-                  { label: "Tabelas", icon: Database },
-                  { label: "Visual", icon: Brush },
-                  { label: "Segurança", icon: ShieldCheck },
-                ].map(({ label, icon: Icon }) => (
-                  <div
-                    key={label}
-                    className="rounded-2xl border px-4 py-3"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
-                      borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
-                    }}
-                  >
-                    <Icon size={16} style={{ color: theme.menuIconColor }} />
-                    <p className="mt-2 text-xs font-medium" style={{ color: theme.contentTextLightBg }}>
-                      {label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="mb-7"><h1 className="text-2xl font-medium">Configurações</h1><p className="mt-2 text-sm text-text-secondary">Escolha uma opção para ajustar as preferências do sistema.</p></div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <button type="button" onClick={() => setCalculoAberto(true)} className="rounded-2xl border border-border bg-surface p-6 text-left transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary">
+              <SlidersHorizontal size={24} className="mb-5 text-text-secondary"/><span className="block text-base font-medium">Preferências de cálculo</span><span className="mt-2 block text-sm text-text-secondary">Defina como dividir medidas maiores que uma barra.</span><span className="mt-5 flex items-center justify-between text-xs text-text-secondary">{modoCorteBarra === "dividir" ? "Dividir ao meio" : "Barra inteira + complemento"}<ArrowUpRight size={16}/></span>
+            </button>
+            <ArmazenamentoOrcamentos />
           </div>
-
-          <div
-            className="rounded-[24px] border p-5 md:p-6 shadow-sm"
-            style={{
-              backgroundColor: theme.contentTextDarkBg,
-              borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)`,
-            }}
-          >
-            <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-center md:justify-between" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
-              <div className="flex items-start gap-4">
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-                  style={{
-                    backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
-                    borderColor: `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`,
-                    color: theme.menuIconColor,
-                  }}
-                >
-                  <SlidersHorizontal size={20} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.contentTextLightBg }}>
-                    Preferências do Sistema
-                  </h2>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-                    Esta área fica preparada para os padrões globais do ERP. Por enquanto, deixei os grupos organizados para recebermos cada ajuste sem misturar com cadastros.
-                  </p>
-                </div>
-              </div>
-              <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-text-secondary">
-                Em planejamento
-              </span>
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {preferenciasSistema.map((item) => (
-                <div
-                  key={item.titulo}
-                  className="rounded-2xl border p-4"
-                  style={{
-                    backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
-                    borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
-                  }}
-                >
-                  <h3 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
-                    {item.titulo}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-text-secondary">{item.descricao}</p>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="mt-5 rounded-2xl border p-4 md:p-5"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${theme.screenBackgroundColor} 72%, transparent)`,
-                borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`,
-              }}
-            >
-              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
-                    Corte de barras longas
-                  </h3>
-                  <p className="mt-1 max-w-3xl text-sm leading-6 text-text-secondary">
-                    Escolha como o sistema deve tratar medidas maiores que o tamanho da barra. A regra vale para os novos cálculos e recálculos dos projetos.
-                  </p>
-                </div>
-                <span className="w-fit rounded-full border px-3 py-1 text-[11px] font-medium text-text-secondary">
-                  Preferência ativa
-                </span>
-              </div>
-
+          <ConfiguracaoModal aberto={calculoAberto} fechar={() => setCalculoAberto(false)} titulo="Preferências de cálculo">
+            <h3 className="text-sm font-medium">Corte de barras longas</h3><p className="mt-2 text-sm text-text-secondary">A escolha é salva automaticamente neste dispositivo e vale para novos cálculos e recálculos.</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {[
                   {
@@ -272,7 +140,7 @@ export default function ConfiguracoesPage() {
                     <button
                       key={opcao.modo}
                       type="button"
-                      onClick={() => alterarModoCorteBarra(opcao.modo)}
+                      aria-pressed={ativo} onClick={() => alterarModoCorteBarra(opcao.modo)}
                       className="rounded-2xl border p-4 text-left transition"
                       style={{
                         backgroundColor: ativo ? `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)` : theme.contentTextDarkBg,
@@ -300,11 +168,8 @@ export default function ConfiguracoesPage() {
               <p className="mt-3 text-xs leading-5 text-text-secondary">
                 Nas deslizantes, os trilhos continuam respeitando barras de 7000 mm antes de aplicar esta regra.
               </p>
-            </div>
-          </div>
-          <ArmazenamentoOrcamentos />
-        </main>
-      </div>
+          </ConfiguracaoModal>
+        </main>    </div>
     </div>
   )
 }

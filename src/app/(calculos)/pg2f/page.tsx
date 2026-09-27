@@ -199,7 +199,7 @@ const fechaduraOpcoes = ["Escolher", "Sem fechadura", "1520", "1520TA"];
 const corMaterialOpcoes = ["Escolher", "Preto", "Branco", "Fosco"];
 const puxadorOpcoes = ["Sem puxador", "Com puxador"];
 const tamanhoPuxadorOpcoes = ["Escolher", "300mm", "600mm", "800mm"];
-const ferragemTipoOpcoes = ["Padrão", "Grande", "Dobradiça"];
+const ferragemTipoOpcoes = ["Padrão", "Grande"];
 
 const normalizarTexto = (texto?: string | number | null) =>
   String(texto || "")
@@ -243,7 +243,7 @@ export default function PG2FPage() {
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
   const centralLoteId = searchParams.get("loteId");
-  const modeloInicial = searchParams.get("modelo");
+
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId, nomeEmpresa } = useAuth();
   const { theme } = useTheme();
@@ -344,15 +344,9 @@ export default function PG2FPage() {
   }, [centralItemId, dados, editId, materiais, perfilTuboId, rascunhoRestaurado]);
 
   useEffect(() => {
-    if (editId || centralItemId || modeloInicial !== "dobradica") return;
-
-    setDados((atual) => ({
-      ...atual,
-      projeto: "PG Dobradiça - 2 folhas",
-      trilho: atual.trilho === "Escolher" ? "Sem fechadura" : atual.trilho,
-      trinco: "Dobradiça",
-    }));
-  }, [centralItemId, editId, modeloInicial]);
+    if (dados.trinco !== "Dobradiça") return;
+    setDados(atual => ({ ...atual, trinco: "Padrão", projeto: "PG - 2 folhas" }));
+  }, [dados.trinco]);
 
   useEffect(() => {
     if (!centralItemId) return;
@@ -374,7 +368,7 @@ export default function PG2FPage() {
 
       setDados((atual) => ({
         ...atual,
-        projeto: "PG - 2 folhas",
+        projeto: "Porta de Giro 2 folhas",
         numero: item.numero || atual.numero,
         cliente: item.cliente || atual.cliente,
         obra: item.obra || "",
@@ -723,7 +717,7 @@ export default function PG2FPage() {
   }, [buscarFerragem]);
 
   const codigosItensAutomaticos = useMemo(
-    () => ["1101A", "1201A", "1103A", "1013A", "1101G", "1201G", "1102G", "1013G", "1133", "1629B", "1520AROU-CIL", "1520P", "1531", "1520TAROU-CIL", "1520TAP", "MFLY", "1504TA", "1335", "1038B", "1038.C", "PUXBC30", "PUXBC60", "PUXBC80"].map(normalizarTexto),
+    () => ["1101A", "1201A", "1103A", "1013A", "1101G", "1201G", "1102G", "1013G", "1133", "1629B", "1520AROU-CIL", "1520P", "1531", "1520TAROU-CIL", "1520TAP", "MFLY", "1504TA", "1504A", "1504ATA", "1335", "1038B", "1038.C", "PUXBC30", "PUXBC60", "PUXBC80"].map(normalizarTexto),
     []
   );
 
@@ -736,10 +730,7 @@ export default function PG2FPage() {
           : "PUXBC30";
 
     const regras: Array<{ codigo: string; multiplicador: number; ignorarCor?: boolean }> =
-      dados.trinco === "Dobradiça" ? [
-          { codigo: "1133", multiplicador: 6 },
-        ]
-      : dados.trinco === "Grande" ? [
+      dados.trinco === "Grande" ? [
           { codigo: "1101G", multiplicador: 2 },
           { codigo: "1201G", multiplicador: 2 },
           { codigo: "1102G", multiplicador: 2 },
@@ -752,6 +743,7 @@ export default function PG2FPage() {
           { codigo: "1013A", multiplicador: 2 },
         ];
 
+    // Fechadura principal e contra específica do modelo selecionado.
     if (dados.trilho === "Sem fechadura") {
       regras.push({ codigo: "1629B", multiplicador: 2 });
     } else if (dados.trilho === "1520TA") {
@@ -769,15 +761,14 @@ export default function PG2FPage() {
       );
     }
 
-    if (dados.trilho === "1520" || dados.trilho === "1520TA") {
-      regras.push(
-        { codigo: "1335", multiplicador: 2 },
-        { codigo: "1038B", multiplicador: 2 },
-        { codigo: "1038.C", multiplicador: 1 },
-        { codigo: "1520AROU-CIL", multiplicador: 1, ignorarCor: true },
-        { codigo: "1520P", multiplicador: 1 }
-      );
-    }
+    // Complementos padrão por projeto, independentemente da fechadura.
+    regras.push(
+      { codigo: "1520AROU-CIL", multiplicador: 1, ignorarCor: true },
+      { codigo: "1520P", multiplicador: 1 },
+      { codigo: "1038B", multiplicador: 1 },
+      { codigo: "1038.C", multiplicador: 1 },
+      { codigo: "1335", multiplicador: 1 }
+    );
 
     if (dados.puxador === "Com puxador") {
       regras.push({ codigo: codigoPuxador, multiplicador: 2 });
@@ -888,7 +879,7 @@ export default function PG2FPage() {
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: dados.numero || "novo",
-      projeto: dados.trinco === "Dobradiça" ? "Porta de giro dobradiça - 2 folhas" : "Porta de giro - 2 folhas",
+      projeto: "Porta de giro - 2 folhas",
       cliente: dados.cliente || "",
       obra: dados.obra?.trim() || "",
       medidas: `${Number(dados.largura || 0)} x ${Number(dados.altura || 0)} mm`,
@@ -1048,7 +1039,7 @@ export default function PG2FPage() {
         ...dados,
         numero: numeroFinal,
         data: dados.data || hojePtBr(),
-        projeto: dados.trinco === "Dobradiça" ? "PG Dobradiça - 2 folhas" : "PG - 2 folhas",
+        projeto: "PG - 2 folhas",
       };
       const itensPersistidos: PG2FOrcamentoPersistido & {
         resumo: {
@@ -1428,7 +1419,7 @@ export default function PG2FPage() {
                           onChange={(v) => atualizarCampo("trinco", v)}
                         />
                       </div>
-                    <ResumoConfiguracaoProjeto materiais={materiais} /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}><ProjetoDrawing comPuxador={dados.puxador === "Com puxador"} /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
+                    <ResumoConfiguracaoProjeto materiais={materiais} ocultarKitPerfis /></section></div><div className="min-w-0"><PreviaCalculoProjeto area={numero(calculoVidro.areaTotalCobrada)} pecas={numero(totalVidros, 0)} total={moeda(totalMateriais)} modelo={dados.trinco}><ProjetoDrawing comPuxador={dados.puxador === "Com puxador"} /></PreviaCalculoProjeto></div></div><div className="mt-4 space-y-4"><PerfisExtrasProjeto perfis={perfis} materiais={materiais} setMateriais={setMateriais} altura={dados.altura} largura={dados.largura} quantidade={dados.quantidade} />
 <LoteRapidoProjetos
                       aberto={loteRapido.aberto}
                       editando={loteRapido.editando}
