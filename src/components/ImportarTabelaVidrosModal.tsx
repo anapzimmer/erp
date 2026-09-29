@@ -1,5 +1,6 @@
 ﻿"use client"
 
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import { useMemo, useRef, useState } from "react"
 import { DRAWING_COLORS } from "@/design/drawing";
 import {
@@ -468,7 +469,7 @@ export default function ImportarTabelaVidrosModal({
           const { error } = await supabase.from("vidros").insert({
             empresa_id: empresaId,
             codigo: item.codigo,
-            nome: item.nome,
+            nome: formatarNomePadrao(item.nome),
             espessura: item.espessura,
             tipo: formatarTipoImportado(item.tipo),
             preco: item.preco,

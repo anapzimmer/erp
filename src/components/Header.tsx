@@ -57,7 +57,6 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     group: "Projetos",
     items: [
       { label: "Central de Impressão", href: "/central-impressao" },
-      { label: "Imagens", href: "/imagens" },
     ],
   },
   {

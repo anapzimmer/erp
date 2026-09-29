@@ -1281,7 +1281,7 @@ useEffect(() => {
           totalOriginal: undefined,
           totalRateado: false,
           observacaoRateio: undefined,
-          observacaoPreco: manterPrecoAtual ? item.observacaoPreco : contextoPreco.observacaoPreco
+          observacaoPreco: manterPrecoAtual ? item.observacaoPreco : anexarObservacao(contextoPreco.observacaoPreco, item.observacaoPreco?.split(" | ").filter(t => /v[aã]o original|pe[cç]a dividida/i.test(t)).join(" | "))
         };
       }
       return item;
@@ -1852,6 +1852,7 @@ useEffect(() => {
       id: criarId(),
       quantidade: Number(item.qtd || 0),
       medida: item.medidaReal,
+      observacaoMedida: item.observacaoPreco,
       vidro: String(item.descricao || "Vidro").replace(/^vidro\s+/i, "").trim(),
       precoVidroM2: item.precoVidroM2,
       valorTotal: Number(item.total || 0),

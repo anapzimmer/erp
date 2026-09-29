@@ -1,4 +1,5 @@
 ﻿"use client"
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import React, { useEffect, useState, useRef } from "react"
 
 import { supabase } from "@/lib/supabaseClient"
@@ -157,6 +158,7 @@ if (branding) {
 
     const dadosParaSalvar = {
       ...novoServico,
+      nome: formatarNomePadrao(novoServico.nome),
       empresa_id: empresaIdUsuario
     };
 

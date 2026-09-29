@@ -1,5 +1,6 @@
 "use client"
 
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import { useMemo, useRef, useState } from "react"
 import {
   AlertCircle,
@@ -54,11 +55,7 @@ const normalizar = (valor: string | number | null | undefined) =>
     .replace(/[^A-Z0-9]+/g, " ")
     .trim()
 
-const formatarTexto = (valor: string) => {
-  const limpo = (valor || "").trim().toLowerCase().replace(/\s+/g, " ")
-  if (!limpo) return ""
-  return limpo.charAt(0).toUpperCase() + limpo.slice(1)
-}
+const formatarTexto = formatarNomePadrao;
 
 const converterPreco = (valor: string) => {
   const numero = Number(valor.replace(/\./g, "").replace(",", "."))

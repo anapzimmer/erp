@@ -7,7 +7,8 @@ export function lerListaMedidas(texto: string, unidade: UnidadeImagem) {
   const itens: { largura: number; altura: number; quantidade: number; original: string }[] = [];
   const ignoradas: string[] = [];
   for (const linha of texto.split(/\r?\n/).filter(l => l.trim())) {
-    const m = linha.match(/(?:^|\s)(\d+(?:[.,]\d+)?)\s*[xX×*]\s*(\d+(?:[.,]\d+)?)(?![\d.,])/);
+    const medida = linha.trim().replace(/^(?:\(\d+\)|\d+[)\]:])\s*/, "");
+    const m = medida.match(/^(\d+(?:[.,]\d+)?)\s*[xX×*]\s*(\d+(?:[.,]\d+)?)\s*(?:cm|mm)?\s*$/i);
     if (!m) { ignoradas.push(linha); continue; }
     const largura = converterMedidaImagem(m[1], unidade), altura = converterMedidaImagem(m[2], unidade);
     if (!largura || !altura) { ignoradas.push(linha); continue; }

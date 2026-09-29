@@ -145,7 +145,7 @@ const formatarTelefone = (valor = "") => {
 const formatarCep = (valor = "") =>
   somenteNumeros(valor).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
 
-const padronizarNome = (texto = "") => formatarNomePadrao(texto);
+const padronizarNome = formatarNomePadrao;
 
 const formatarRota = (valor = "") => {
   const limpo = valor.trim();
@@ -353,8 +353,8 @@ export default function CadastroClientes({ somenteNovo = false, onClose, onCreat
       tipo_pessoa: form.tipo_pessoa,
       cpf_cnpj: documento || null,
       nome: padronizarNome(form.nome),
-      razao_social: form.razao_social?.trim() || null,
-      nome_fantasia: form.nome_fantasia?.trim() || null,
+      razao_social: padronizarNome(form.razao_social) || null,
+      nome_fantasia: padronizarNome(form.nome_fantasia) || null,
       situacao_cadastral: form.situacao_cadastral?.trim() || null,
       telefone: form.telefone?.trim() || null,
       email: form.email?.trim().toLowerCase() || null,

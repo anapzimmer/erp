@@ -1,6 +1,7 @@
 ﻿//src/app/admin/tabelas/page.tsx
 "use client"
 
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { DRAWING_COLORS } from "@/design/drawing";
 import { supabase } from "@/lib/supabaseClient"
@@ -308,7 +309,7 @@ export default function GestaoPrecosPage() {
       if (!tabelaImportada) {
         const { data: novaTabela, error: erroNovaTabela } = await supabase
           .from("tabelas")
-          .insert({ nome: dados.nomeTabela, empresa_id: empresaIdAtual })
+          .insert({ nome: formatarNomePadrao(dados.nomeTabela), empresa_id: empresaIdAtual })
           .select("id, nome")
           .single();
         if (erroNovaTabela) throw erroNovaTabela;
@@ -341,7 +342,7 @@ export default function GestaoPrecosPage() {
             .from("vidros")
             .insert({
               codigo: item.codigo.toUpperCase(),
-              nome: item.novoNome.trim(),
+              nome: formatarNomePadrao(item.novoNome),
               espessura: item.novaEspessura.trim(),
               tipo: item.novoTipo.trim(),
               preco: item.precoAtual,
@@ -654,7 +655,7 @@ console.log("Enviando empresa_id:", empresaIdAtual);
     const { error } = await supabase
       .from("tabelas")
       .insert({
-        nome: nomeNovaTabela,
+        nome: formatarNomePadrao(nomeNovaTabela),
         empresa_id: empresaIdAtual
       });
 
@@ -697,7 +698,7 @@ console.log("Enviando empresa_id:", empresaIdAtual);
     try {
       const { data, error } = await supabase
         .from("tabelas")
-        .update({ nome: nomeLimpo })
+        .update({ nome: formatarNomePadrao(nomeLimpo) })
         .eq("id", tabela.id)
         .eq("empresa_id", empresaIdAtual)
         .select("id, nome")

@@ -47,7 +47,7 @@ export async function analyzeImageWithGemini(input: AnalyzeImageInput): Promise<
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY nao configurada no servidor.");
+    throw new Error("A leitura com IA ainda não está ativada. A responsável pelo sistema precisa configurar GEMINI_API_KEY no servidor. Para continuar, use a opção de colar medidas e confira os valores com a foto.");
   }
 
   if (!input.base64Data || !input.mimeType) {
@@ -55,7 +55,7 @@ export async function analyzeImageWithGemini(input: AnalyzeImageInput): Promise<
   }
 
   const endpoint =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash")}:generateContent`;
 
   const response = await fetch(`${endpoint}?key=${apiKey}`, {
     method: "POST",

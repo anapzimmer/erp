@@ -4,6 +4,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { DRAWING_COLORS } from "@/design/drawing";
+import { observacaoMedidaVidro } from "@/utils/observacaoMedidaVidro";
 import React from "react";
 import type { ItemEspelhoSalvo } from "@/utils/calculoEspelhos";
 import { DesenhoSacadaGrapaPDF } from "../sacadagrapa/SacadaGrapaPDF";
@@ -35,7 +36,7 @@ export type CentralImpressaoItem = {
   modo: string;
   desenhoUrl: string;
   vidro?: string;
-  itensOriginais?: Array<{ descricao?: string; medidaReal?: string; precoVidroM2?: number }>;
+  itensOriginais?: Array<{ descricao?: string; medidaReal?: string; precoVidroM2?: number; observacaoPreco?: string }>;
   espelhoItens?: ItemEspelhoSalvo[];
   precoVidroM2?: number;
   vidroBandeira?: string;
@@ -63,6 +64,7 @@ export type CentralImpressaoItem = {
     id: string;
     quantidade: number;
     medida: string;
+    observacaoMedida?: string;
     vidro: string;
     areaCobradaM2?: number;
     precoVidroM2?: number;
@@ -2034,7 +2036,7 @@ const possuiRelacaoObra =
                       {item.vidrosAvulsos.map((vidro) => (
                         <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                           <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
-                          <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
+                          <Text style={styles.vidroCellMedida}>{vidro.medida}{observacaoMedidaVidro(vidro.observacaoMedida) ? <Text style={{fontSize: 6}}>{"\n" + observacaoMedidaVidro(vidro.observacaoMedida)}</Text> : null}</Text>
                           <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                           <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                         </View>
@@ -2379,7 +2381,7 @@ const possuiRelacaoObra =
                         {item.vidrosAvulsos.map((vidro) => (
                           <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                             <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
-                            <Text style={styles.vidroCellMedida}>{vidro.medida}</Text>
+                            <Text style={styles.vidroCellMedida}>{vidro.medida}{observacaoMedidaVidro(vidro.observacaoMedida) ? <Text style={{fontSize: 6}}>{"\n" + observacaoMedidaVidro(vidro.observacaoMedida)}</Text> : null}</Text>
                             <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                             <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                           </View>

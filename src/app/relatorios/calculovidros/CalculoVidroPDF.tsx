@@ -1,5 +1,6 @@
 ﻿//app/relatorios/calculovidros/CalculoVidroPDF.tsx
 "use client";
+import { observacaoMedidaVidro } from "@/utils/observacaoMedidaVidro";
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { PDF_COLORS, PDF_HEADER_LAYOUT, PDF_TABLE_LAYOUT, buildPdfFooterText, getPdfZebraRowBackground } from "../shared/pdfLayout";
@@ -391,6 +392,7 @@ export function CalculoVidroPDF({
                                     </Text>
                                     <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}>
                                         {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
+                                        {observacaoMedidaVidro(item.observacaoPreco) ? <Text style={{fontSize: 7}}>{'\n' + observacaoMedidaVidro(item.observacaoPreco)}</Text> : null}
                                     </Text>
                                 </>
                             ) : null}
@@ -481,6 +483,7 @@ export function CalculoVidroPDF({
                                     </Text>
                                     <Text style={[styles.tableCol, styles.colVao, colVaoOverride, { color: contentColor }]}>
                                         {ehItemAvulso(item) ? '-' : formatarMedidaExibicao(item.vao || item.medidaReal)}
+                                        {observacaoMedidaVidro(item.observacaoPreco) ? <Text style={{fontSize: 7}}>{'\n' + observacaoMedidaVidro(item.observacaoPreco)}</Text> : null}
                                     </Text>
                                 </>
                             ) : null}

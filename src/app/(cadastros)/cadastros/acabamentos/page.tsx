@@ -1,4 +1,5 @@
 "use client"
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import React, { useEffect, useState, useRef } from "react"
 
 import { supabase } from "@/lib/supabaseClient"
@@ -180,7 +181,7 @@ export default function AcabamentosPage() {
             // --- CORREÇÃO: Mapeamento de Porcentagem ---
             const dadosParaBanco = {
                 empresa_id: empresaIdUsuario,
-                nome: nomeFinal,
+                nome: formatarNomePadrao(nomeFinal),
                 tipo_calculo: novoAcabamento.tipo_calculo,
 
                 // Se for porcentagem, preço é 0, senão é o valor digitado
@@ -215,7 +216,7 @@ export default function AcabamentosPage() {
 
                     return supabase.from('acabamentos').insert({
                         ...dadosParaBanco,
-                        nome: `${nomeLimpo} (${bordaIndFormatada})`,
+                        nome: formatarNomePadrao(`${nomeLimpo} (${bordaIndFormatada})`),
                         tipo_visual: tipoVisualIndividual
                     })
                 })

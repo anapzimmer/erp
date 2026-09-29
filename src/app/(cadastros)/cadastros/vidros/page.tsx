@@ -2,6 +2,7 @@
 
 "use client"
 
+import { formatarNomePadrao } from "@/utils/formatarNome";
 import { useEffect, useState, useCallback, useRef } from "react"
 import { DRAWING_COLORS } from "@/design/drawing";
 import { supabase } from "@/lib/supabaseClient"
@@ -28,7 +29,7 @@ type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: stri
 
 
 // --- Utils ---
-const formatarParaBanco = (texto: string) => { if (!texto) return ""; return texto.trim().charAt(0).toUpperCase() + texto.trim().slice(1) }
+const formatarParaBanco = formatarNomePadrao;
 const formatarTipoVidro = (texto: string) => {
   const limpo = (texto || "").trim().toLowerCase().replace(/\s+/g, " ");
   if (!limpo) return "";
@@ -208,12 +209,6 @@ useEffect(() => {
     URL.revokeObjectURL(encodedUri);
   }
 
-  const capitalizarFrase = (texto: string) => {
-    if (!texto) return "";
-    const limpo = texto.trim().toLowerCase();
-    return limpo.charAt(0).toUpperCase() + limpo.slice(1);
-  };
-
   const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -249,7 +244,7 @@ useEffect(() => {
 
         if (nome && espessura && tipo && preco) {
           try {
-            const nomeFormatado = capitalizarFrase(formatarParaBanco(nome));
+            const nomeFormatado = formatarNomePadrao(nome);
             const espessuraFormatada = padronizarEspessura(espessura);
             const tipoFormatado = formatarTipoVidro(tipo);
             const precoFormatado = Number(preco.toString().replace(",", "."));
