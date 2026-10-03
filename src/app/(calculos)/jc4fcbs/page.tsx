@@ -1,5 +1,6 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
 import PreviaCalculoProjeto from "@/components/PreviaCalculoProjeto";
 import RodapeCalculoProjeto from "@/components/RodapeCalculoProjeto";
@@ -2377,87 +2378,7 @@ function DropdownButton({
   );
 }
 
-function DescricaoMaterialInput({
-  item,
-  itensCatalogo,
-  atualizarMaterial,
-  selecionarItemCatalogo,
-}: {
-  item: ProjetoIndividualMaterial;
-  itensCatalogo: ItemCatalogo[];
-  atualizarMaterial: <K extends keyof ProjetoIndividualMaterial>(
-    id: string,
-    campo: K,
-    valor: ProjetoIndividualMaterial[K]
-  ) => void;
-  selecionarItemCatalogo: (idMaterial: string, item: ItemCatalogo) => void;
-}) {
-  const [aberto, setAberto] = useState(false);
 
-  const termo = item.descricao.trim().toLowerCase();
-
-  const itensFiltrados = useMemo(() => {
-    if (!termo || termo === "novo item") return itensCatalogo.slice(0, 10);
-
-    return itensCatalogo
-      .filter((catalogo) => catalogo.descricao.toLowerCase().includes(termo))
-      .slice(0, 10);
-  }, [itensCatalogo, termo]);
-
-  return (
-    <div className="relative w-full">
-      <input
-        value={item.descricao}
-        onFocus={() => {
-          if (item.descricao.toLowerCase() === "novo item") {
-            atualizarMaterial(item.id, "descricao", "");
-          }
-
-          setAberto(true);
-        }}
-        onChange={(e) => {
-          atualizarMaterial(item.id, "descricao", e.target.value.toUpperCase());
-          setAberto(true);
-        }}
-        onBlur={() => window.setTimeout(() => setAberto(false), 250)}
-        className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-surface-secondary"
-      />
-
-      {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-130 overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
-          {itensFiltrados.map((catalogo) => (
-            <button
-              key={catalogo.id}
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              onClick={() => {
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-xs font-semibold text-text-primary hover:bg-navigation/10"
-            >
-              <span>{catalogo.descricao}</span>
-              <span className="ml-2 text-[10px] text-text-secondary">
-                {catalogo.tipo}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SummaryCard({
   icon,

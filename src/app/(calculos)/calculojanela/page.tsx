@@ -1,4 +1,5 @@
 ﻿    "use client"
+import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
     import { useState, useEffect, useRef } from 'react'
     import { supabase } from "@/lib/supabaseClient"
@@ -247,7 +248,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
             {mostrarClientes && buscaCliente && (
                 <div className="absolute top-full w-full bg-surface border rounded-xl shadow-xl z-50 max-h-60 overflow-auto py-2">
                 {clientesFiltrados.map((c, i) => (
-                    <div key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`} onClick={() => { setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
+                    <div ref={el => revelarOpcaoAtiva(el, i === clienteIndex)} key={c.id} className={`px-4 py-2 text-xs cursor-pointer ${i === clienteIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`} onClick={() => { setBuscaCliente(c.nome); setMostrarClientes(false); modeloRef.current?.focus(); }}>{c.nome}</div>
                 ))}
                 </div>
             )}
@@ -374,7 +375,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
             {mostrarVidros && buscaVidro && (
               <div className="absolute top-full w-full bg-surface border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                 {vidrosFiltrados.map((v, i) => (
-                  <div
+                  <div ref={el => revelarOpcaoAtiva(el, i === vidroIndex)}
                     key={v.id}
                     className={`px-4 py-2 text-xs cursor-pointer ${
                       i === vidroIndex ? "bg-selection" : "hover:bg-surface-secondary"
@@ -474,7 +475,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
                         {mostrarAdicionais && buscaAdicional && (
                         <div className="absolute top-full w-full bg-surface border z-50 max-h-56 overflow-auto shadow-xl rounded-xl py-2">
                             {adicionaisFiltrados.map((a, i) => (
-                            <div key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`}
+                            <div ref={el => revelarOpcaoAtiva(el, i === adicionalIndex)} key={a.id} className={`px-4 py-2 text-xs cursor-pointer flex justify-between ${i === adicionalIndex ? "bg-selection text-text-primary font-bold" : "hover:bg-surface-secondary"}`}
                                 onClick={() => { setBuscaAdicional(`${a.codigo} - ${a.nome} ${a.cores ? `(${a.cores})` : ''}`); setValorUnitAdicional(String(a.preco)); setMostrarAdicionais(false); }}>
                                 <span>{a.codigo} - {a.nome} <span className="text-text-secondary font-normal">{a.cores ? `(${a.cores})` : ''}</span></span>
                                 <span className="text-selection-text font-bold">R$ {a.preco}</span>

@@ -1,4 +1,6 @@
 "use client";
+import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
+import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import { DataInput, OptionInput } from "@/components/CamposCalculoProjeto";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import Header from "@/components/Header";
@@ -906,14 +908,7 @@ export default function Box2FlsPage() {
     });
   }, [codigosAutomaticos, ferragensAutomaticas, kitAutomatico, perfisAutomaticos]);
 
-  useEffect(() => {
-    setMateriais((lista) => {
-      const filtrada = lista.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).includes("tubo"));
-      return filtrada.length === lista.length ? lista : filtrada;
-    });
-  }, [materiais]);
-
-  const novoProjeto = () => {
+const novoProjeto = () => {
     if (editId) {
       router.push("/box2fls");
       return;
@@ -1373,7 +1368,7 @@ export default function Box2FlsPage() {
                         </div>
                       ) : clientesFiltrados.length > 0 ? (
                         clientesFiltrados.map((cliente, index) => (
-                          <button
+                          <button ref={el => revelarOpcaoAtiva(el, index === clienteAtivoIndex)}
                             key={cliente.id}
                             type="button"
                             onMouseDown={(e) => {
@@ -1560,7 +1555,7 @@ export default function Box2FlsPage() {
                   {listaVidrosAberta && (
                     <div className="absolute left-0 top-full z-40 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
                       {vidrosFiltrados.map((vidro, index) => (
-                        <button
+                        <button ref={el => revelarOpcaoAtiva(el, index === vidroAtivoIndex)}
                           key={vidro.id}
                           type="button"
                           onMouseDown={(e) => {
@@ -2225,87 +2220,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 
 
-function DescricaoMaterialInput({
-  item,
-  itensCatalogo,
-  atualizarMaterial,
-  selecionarItemCatalogo,
-}: {
-  item: ProjetoIndividualMaterial;
-  itensCatalogo: ItemCatalogo[];
-  atualizarMaterial: <K extends keyof ProjetoIndividualMaterial>(
-    id: string,
-    campo: K,
-    valor: ProjetoIndividualMaterial[K]
-  ) => void;
-  selecionarItemCatalogo: (idMaterial: string, item: ItemCatalogo) => void;
-}) {
-  const [aberto, setAberto] = useState(false);
 
-  const termo = item.descricao.trim().toLowerCase();
-
-  const itensFiltrados = useMemo(() => {
-    if (!termo || termo === "novo item") return itensCatalogo.slice(0, 10);
-
-    return itensCatalogo
-      .filter((catalogo) => catalogo.descricao.toLowerCase().includes(termo))
-      .slice(0, 10);
-  }, [itensCatalogo, termo]);
-
-  return (
-    <div className="relative w-full">
-      <input
-        value={item.descricao}
-        onFocus={() => {
-          if (item.descricao.toLowerCase() === "novo item") {
-            atualizarMaterial(item.id, "descricao", "");
-          }
-
-          setAberto(true);
-        }}
-        onChange={(e) => {
-          atualizarMaterial(item.id, "descricao", e.target.value.toUpperCase());
-          setAberto(true);
-        }}
-        onBlur={() => window.setTimeout(() => setAberto(false), 250)}
-        className="w-full bg-transparent text-xs font-medium uppercase outline-none focus:rounded-md focus:bg-surface-secondary"
-      />
-
-      {aberto && itensFiltrados.length > 0 && (
-        <div className="absolute left-0 top-7 z-40 max-h-64 w-[520px] overflow-auto rounded-lg border border-border bg-surface py-1 shadow-xl">
-          {itensFiltrados.map((catalogo) => (
-            <button
-              key={catalogo.id}
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              onClick={() => {
-                selecionarItemCatalogo(item.id, catalogo);
-                setAberto(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-xs font-semibold text-text-primary hover:bg-navigation/10"
-            >
-              <span>{catalogo.descricao}</span>
-              <span className="ml-2 text-[10px] text-text-secondary">
-                {catalogo.tipo}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ProjetoDrawing({ modelo, puxador }: { modelo: string; puxador?: string }) {
   const desenhoSrc = desenhoBox2Fls(modelo, puxador);

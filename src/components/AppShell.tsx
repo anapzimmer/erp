@@ -6,6 +6,7 @@ import SuporteNotificacoes from "@/components/SuporteNotificacoes";
 import { usePathname } from "next/navigation";
 import { OrcamentoProvider } from "@/context/OrcamentoContext";
 import ProjetoAssistenteGlobal from "@/components/ProjetoAssistenteGlobal";
+import FocoTecladoVisivel from "@/components/FocoTecladoVisivel";
 
 export default function AppShell({
   children,
@@ -26,6 +27,7 @@ export default function AppShell({
   // Mantém exatamente a estrutura que já existia.
   return (
     <OrcamentoProvider>
+      <FocoTecladoVisivel />
       {children}
       <ProjetoAssistenteGlobal />
       <SuporteNotificacoes />
