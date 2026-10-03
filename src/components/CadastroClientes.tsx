@@ -220,7 +220,7 @@ export default function CadastroClientes({ somenteNovo = false, onClose, onCreat
     if (gruposRes.error) {
       console.error("Erro ao carregar tabelas:", gruposRes.error.message);
     } else {
-      setGrupos((gruposRes.data as GrupoPreco[]) || []);
+      setGrupos(((gruposRes.data as GrupoPreco[]) || []).map(grupo => ({ ...grupo, nome: formatarNomePadrao(grupo.nome) })));
     }
 
     setCarregando(false);

@@ -581,7 +581,7 @@ export default function GestaoPrecosPage() {
       .select("*")
       .eq("empresa_id", empresaId) // 🔥 Agora empresaId é conhecido
       .order("nome", { ascending: true });
-    setTabelas(data || []);
+    setTabelas((data || []).map(tabela => ({ ...tabela, nome: formatarNomePadrao(tabela.nome) })));
   }, []);
 
   const carregarTodosVidros = useCallback(async (empresaId: string) => {

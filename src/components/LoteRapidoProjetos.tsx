@@ -2,6 +2,7 @@
 
 import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Send, Trash2 } from "lucide-react";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 
 export type LinhaLoteProjeto = {
   id: string;
@@ -13,6 +14,8 @@ export type LinhaLoteProjeto = {
 
 type ItemCentralLote = {
   id: string;
+  cliente?: string;
+  obra?: string;
   largura?: number;
   altura?: number;
   quantidade?: number;
@@ -235,6 +238,8 @@ export function useLoteRapidoProjetos<
       });
     }
 
+    if (!centralLoteId && !await confirmarEnvioOrcamento(itensLote)) return;
+
     try {
       const atual = window.localStorage.getItem(centralStorageKey);
       const lista = atual ? JSON.parse(atual) as TItem[] : [];
@@ -250,6 +255,12 @@ export function useLoteRapidoProjetos<
       }
     } catch (erro) {
       console.warn("Não foi possível enviar o lote para a central de impressão:", erro);
+      setMensagemSistema?.({
+        tipo: "erro",
+        titulo: "Lote não enviado",
+        mensagem: "Não foi possível guardar o lote na central. Tente novamente.",
+      });
+      return;
     }
 
     onNavigate(centralLoteId ? returnTo : "/central-impressao");
