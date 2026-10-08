@@ -1,5 +1,6 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
+import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -28,6 +29,7 @@ import { registrarRevisaoOrcamento, projetosPdfDaRevisao, type RevisaoOrcamento 
 type ProjetoComposicao = CentralImpressaoItem & {
   largura: number;
   altura: number;
+  molde?: boolean;
   alturaInicial?: number;
   alturaFinal?: number;
   corPerfil?: string;
@@ -598,9 +600,7 @@ function ForaEsquadroPreview({
   const drawH = svgH - padTop - padBottom;
   const x0 = padX;
   const yBase = padTop + drawH;
-  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
-  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
-  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
   const panelW = drawW / divisoes;
   const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
   const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / divisoes);
@@ -1641,6 +1641,7 @@ export default function CentralImpressaoPage() {
         : item.medidas,
       largura: Number(item.largura || 0),
       altura: Number(item.altura || 0),
+      molde: item.molde,
       alturaInicial: item.alturaInicial,
       alturaFinal: item.alturaFinal,
       quantidade: /fora de esquadro/i.test(item.projeto || "") ? numeroSeguro(item.quantidade)
@@ -1813,7 +1814,7 @@ export default function CentralImpressaoPage() {
     const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number], item: ProjetoComposicao, index: number) => {
 
       const area = obterAreaCobradaVidro(vidro, item, index);
-      return area * precoVidroSelecionado;
+      return area * precoVidroSelecionado * (item.molde ? 1.3 : 1);
     };
 
     let itensNovoVidro: ProjetoComposicao[];

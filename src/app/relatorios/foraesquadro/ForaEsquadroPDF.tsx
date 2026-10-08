@@ -1,5 +1,6 @@
 "use client";
 
+import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import React from "react";
 import { Document, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
@@ -16,6 +17,7 @@ export type ForaEsquadroPecaPDF = {
 };
 
 type ForaEsquadroPDFProps = {
+  molde?: boolean;
   nomeEmpresa: string;
   logoUrl?: string | null;
   largura: number;
@@ -157,12 +159,10 @@ function DesenhoPDF({
   const padTop = 34;
   const padBottom = 54;
   const drawW = svgW - padX * 2;
-  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
   const drawH = svgH - padTop - padBottom;
   const x0 = padX;
   const yBase = padTop + drawH;
-  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
-  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
   const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
   const panelW = drawW / totalDivisoes;
   const pathVidro = `M ${x0} ${yBase} L ${x0 + drawW} ${yBase} L ${x0 + drawW} ${yFinal} L ${x0} ${yInicial} Z`;
@@ -170,10 +170,8 @@ function DesenhoPDF({
 
   return (
     <Svg width="100%" height={250} viewBox={`0 0 ${svgW} ${svgH}`}>
-      <Rect x={0} y={0} width={svgW} height={svgH} rx={12} fill={PDF_COLORS.panelBg} />
-      <Path d={pathVidro} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={1.4} />
-      <Path d={pathVidro} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={6.8} opacity={0.95} />
-      <Path d={pathVidro} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={0.9} opacity={0.78} />
+      <Rect x={0} y={0} width={svgW} height={svgH} rx={12} fill={PDF_COLORS.white} />
+      <Path d={pathVidro} fill={PDF_COLORS.white} stroke={PDF_COLORS.softMuted} strokeWidth={1.4} />
       <Line x1={x0 + 22} y1={yInicial + 22} x2={x0 + drawW * 0.68} y2={yTopoEm(totalDivisoes * 0.68) + 28} stroke={PDF_COLORS.white} strokeWidth={5.2} opacity={0.22} />
       <Line x1={x0 + drawW * 0.38} y1={yTopoEm(totalDivisoes * 0.38) + 32} x2={x0 + drawW - 34} y2={yFinal + 42} stroke={PDF_COLORS.white} strokeWidth={4} opacity={0.24} />
 
@@ -226,6 +224,7 @@ export function ForaEsquadroPDF({
   vidro,
   precoM2,
   valorTotal,
+  molde,
 }: ForaEsquadroPDFProps) {
   const data = new Date().toLocaleDateString("pt-BR");
   const quedaTotal = alturaInicial - alturaFinal;
@@ -316,6 +315,7 @@ export function ForaEsquadroPDF({
         <View style={styles.drawingBox} wrap={false}>
           <Text style={styles.sectionTitle}>Desenho ilustrativo</Text>
           <View style={styles.drawing}>
+            {molde && <Text style={styles.subtitle}>Vidro com molde: +100 mm na largura e na maior altura de cada peça. Acréscimo de 30% sobre o valor do vidro.</Text>}
             <DesenhoPDF largura={largura} alturaInicial={alturaInicial} alturaFinal={alturaFinal} divisoes={divisoes} pecas={pecas} />
           </View>
         </View>

@@ -2,6 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
+import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { observacaoMedidaVidro } from "@/utils/observacaoMedidaVidro";
@@ -862,9 +863,7 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const drawH = svgH - padTop - padBottom;
   const x0 = padX;
   const yBase = padTop + drawH;
-  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
-  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
-  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
   const panelW = drawW / divisoes;
   const path = `M ${x0} ${yBase} L ${x0 + drawW} ${yBase} L ${x0 + drawW} ${yFinal} L ${x0} ${yInicial} Z`;
   const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / divisoes);

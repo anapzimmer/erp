@@ -1,5 +1,6 @@
 export type ForaEsquadroSalvo = {
   id: string;
+  molde?: boolean;
   cliente?: string;
   vidro?: string;
   largura?: number;

@@ -1,4 +1,5 @@
 "use client";
+import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -84,11 +85,13 @@ const calcularPecas = ({
   alturaInicial,
   alturaFinal,
   divisoes,
+  molde = false,
 }: {
   largura: number;
   alturaInicial: number;
   alturaFinal: number;
   divisoes: number;
+  molde?: boolean;
 }): PecaForaEsquadro[] => {
   const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
   const larguraPeca = largura / totalDivisoes;
@@ -97,8 +100,8 @@ const calcularPecas = ({
   return Array.from({ length: totalDivisoes }, (_, index) => {
     const alturaEsquerda = alturaInicial - quedaPorDivisao * index;
     const alturaDireita = alturaInicial - quedaPorDivisao * (index + 1);
-    const larguraCalculo = arredondarVidro50(larguraPeca);
-    const alturaCalculo = arredondarVidro50(Math.max(alturaEsquerda, alturaDireita) + 50);
+    const larguraCalculo = molde ? larguraPeca + 100 : arredondarVidro50(larguraPeca);
+    const alturaCalculo = molde ? Math.max(alturaEsquerda, alturaDireita) + 100 : arredondarVidro50(Math.max(alturaEsquerda, alturaDireita) + 50);
     const area = (larguraCalculo * alturaCalculo) / 1_000_000;
 
     return {
@@ -133,13 +136,11 @@ const gerarDesenhoForaEsquadroUrl = ({
   const padTop = 62;
   const padBottom = 92;
   const drawW = svgW - padX * 2;
-  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
   const minAltura = Math.min(alturaInicial, alturaFinal);
   const drawH = svgH - padTop - padBottom;
   const x0 = padX;
   const yBase = padTop + drawH;
-  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
-  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
   const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
   const panelW = drawW / totalDivisoes;
   const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
@@ -325,13 +326,11 @@ function DesenhoForaEsquadro({
   const padTop = 62;
   const padBottom = 92;
   const drawW = svgW - padX * 2;
-  const maxAltura = Math.max(alturaInicial, alturaFinal, 1);
   const minAltura = Math.min(alturaInicial, alturaFinal);
   const drawH = svgH - padTop - padBottom;
   const x0 = padX;
   const yBase = padTop + drawH;
-  const yInicial = yBase - (alturaInicial / maxAltura) * drawH;
-  const yFinal = yBase - (alturaFinal / maxAltura) * drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
   const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
   const panelW = drawW / totalDivisoes;
   const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
@@ -346,7 +345,7 @@ function DesenhoForaEsquadro({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Vista frontal</p>
-          <h2 className="mt-1 text-lg font-medium text-text-primary">Desenho fora de esquadro</h2>
+          <h2 className="mt-1 text-lg font-medium text-text-primary">Desenho fora de esquadro</h2><p className="text-xs text-text-secondary">Ilustrativo, sem escala. Confira as medidas indicadas.</p>
         </div>
         <TriangleRight className="text-text-secondary" size={25} strokeWidth={1.8} />
       </div>
@@ -425,6 +424,7 @@ function ForaEsquadroConteudo() {
   const [alturaFinal, setAlturaFinal] = useState(200);
   const [quantidade, setQuantidade] = useState(1);
   const [divisoes, setDivisoes] = useState(3);
+  const [molde, setMolde] = useState(false);
   const [mostrarPreco, setMostrarPreco] = useState(false);
   const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
   const [vidros, setVidros] = useState<VidroCadastro[]>([]);
@@ -448,6 +448,7 @@ function ForaEsquadroConteudo() {
       setAlturaFinal(dados.alturaFinal);
       setQuantidade(dados.quantidade);
       setDivisoes(dados.divisoes);
+      setMolde(Boolean(item.molde));
       setClienteBusca(dados.cliente);
       setVidroBusca(dados.vidro);
       setMostrarPreco(true);
@@ -459,8 +460,8 @@ function ForaEsquadroConteudo() {
   }, [centralItemId]);
 
   const pecas = useMemo(
-    () => calcularPecas({ largura, alturaInicial, alturaFinal, divisoes }),
-    [alturaFinal, alturaInicial, divisoes, largura]
+    () => calcularPecas({ largura, alturaInicial, alturaFinal, divisoes, molde }),
+    [alturaFinal, alturaInicial, divisoes, largura, molde]
   );
   const desenhoAtualUrl = useMemo(
     () =>
@@ -479,7 +480,11 @@ function ForaEsquadroConteudo() {
   const quedaTotal = alturaInicial - alturaFinal;
   const quedaPorDivisao = quedaTotal / Math.max(1, divisoes || 1);
   const clienteSelecionado = useMemo(
-    () => clientes.find((cliente) => cliente.nome === clienteBusca) || null,
+    () => {
+ const normalizar = (nome: string) => nome.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+ const encontrados = clientes.filter(cliente => normalizar(cliente.nome) === normalizar(clienteBusca));
+ return encontrados.length === 1 ? encontrados[0] : null;
+},
     [clienteBusca, clientes]
   );
   const vidroSelecionado = useMemo(
@@ -487,7 +492,7 @@ function ForaEsquadroConteudo() {
     [vidroBusca, vidros]
   );
   const precoVidroM2 = useMemo(() => {
-    if (!vidroSelecionado) return 0;
+    if (!vidroSelecionado || (clienteBusca.trim() && !clienteSelecionado)) return 0;
 
     const precoGrupo = clienteSelecionado?.grupo_preco_id
       ? precosVidroGrupos.find(
@@ -497,9 +502,10 @@ function ForaEsquadroConteudo() {
         )
       : null;
 
-    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
-  }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
-  const valorTotal = areaTotal * precoVidroM2;
+    return normalizarPrecoCatalogo(clienteSelecionado?.grupo_preco_id ? (precoGrupo?.preco ?? 0) : (vidroSelecionado.preco ?? 0));
+  }, [clienteBusca, clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
+  const fatorMolde = molde ? 1.3 : 1;
+  const valorTotal = areaTotal * precoVidroM2 * fatorMolde;
 
   const clientesFiltrados = useMemo(() => {
     const termo = clienteBusca.trim().toLowerCase();
@@ -587,13 +593,13 @@ function ForaEsquadroConteudo() {
     const quantidadeVaos = Math.max(1, quantidade || 1);
     const vidroDescricao = formatarVidroCadastro(vidroSelecionado);
     const vidrosAvulsos = pecas.map((peca) => {
-      const valorPeca = peca.area * precoVidroM2 * quantidadeVaos;
+      const valorPeca = peca.area * precoVidroM2 * quantidadeVaos * fatorMolde;
       const larguraReal = Math.round(peca.largura);
       const alturaMaiorReal = Math.round(Math.max(peca.alturaEsquerda, peca.alturaDireita));
       return {
         id: criarId(),
         quantidade: quantidadeVaos,
-        medida: `${larguraReal} x ${alturaMaiorReal} mm`,
+        medida: `${larguraReal} x ${alturaMaiorReal} mm${molde ? ` | Molde: ${Math.round(peca.larguraCalculo)} x ${Math.round(peca.alturaCalculo)} mm (+30%)` : ""}`,
         vidro: vidroDescricao,
         precoVidroM2,
         areaCobradaM2: peca.area * quantidadeVaos,
@@ -620,7 +626,10 @@ function ForaEsquadroConteudo() {
       },
     ];
 
+    if (molde) materiais.push({ id: criarId(), qtd: 1, unidade: "und", descricao: "Acréscimo de molde (30%)", valorUnitario: areaTotal * precoVidroM2 * 0.3 });
+
     const itemCentral = {
+      molde,
       id: centralItemId || criarId(),
       ...(!centralItemId ? { numero: "novo" } : {}),
       projeto: "Vidros avulsos - fora de esquadro",
@@ -670,6 +679,7 @@ function ForaEsquadroConteudo() {
     setAlturaFinal(0);
     setQuantidade(1);
     setDivisoes(1);
+    setMolde(false);
     setVidroBusca("");
   };
 
@@ -739,6 +749,7 @@ function ForaEsquadroConteudo() {
                       quantidade={quantidade}
                       divisoes={divisoes}
                       pecas={pecas}
+                      molde={molde}
                       areaPorVao={areaPorVao}
                       areaTotal={areaTotal}
                       cliente={clienteSelecionado?.nome || ""}
@@ -804,6 +815,8 @@ function ForaEsquadroConteudo() {
               </label>
             </div>
 
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-white p-3 text-sm"><input type="checkbox" checked={molde} onChange={e => setMolde(e.target.checked)} />Vidro com molde com acréscimo de 30%.</label>
+
             {mostrarPreco ? (
               <div className="grid gap-2.5 rounded-3xl border border-border bg-surface/80 p-3 md:grid-cols-[1.1fr_1.1fr_0.7fr_0.7fr]">
                 <CampoBusca
@@ -829,7 +842,7 @@ function ForaEsquadroConteudo() {
                 <ResumoCard
                   titulo="Preço do m²"
                   valor={precoVidroM2 ? moeda(precoVidroM2) : "R$ 0,00"}
-                  detalhe={clienteSelecionado?.grupo_preco_id ? "Tabela do cliente" : "Preço base do vidro"}
+                  detalhe={clienteBusca.trim() && !clienteSelecionado ? "Selecione um cliente cadastrado na lista" : clienteSelecionado?.grupo_preco_id ? (precoVidroM2 ? "Tabela do cliente" : "Vidro sem preço na tabela do cliente") : "Preço base do vidro"}
                 />
                 <ResumoCard
                   titulo="Valor total"
