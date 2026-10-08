@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
@@ -835,7 +836,7 @@ export default function JC2FKitPage() {
     const descricaoKit = kitSelecionado.nome.toUpperCase();
     const precoKit = Number(kitSelecionado.preco || 0);
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const indiceKit = lista.findIndex?.((item) =>
         item.descricao.toLowerCase().includes("kit")
       );
@@ -855,7 +856,7 @@ export default function JC2FKitPage() {
       return lista.map((item, index) =>
         index === indiceKit ? itemAtualizado : item
       );
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [dados.quantidade, kitSelecionado]);
 
   useEffect(() => {
@@ -870,7 +871,7 @@ export default function JC2FKitPage() {
     const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
     const descricaoVidroMovel = `VIDRO MOVEL ${medidaVidroMovel} ${vidroNome.toUpperCase()}`;
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const semVidrosAutomaticos = lista.filter((item) => {
         if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
@@ -892,13 +893,13 @@ export default function JC2FKitPage() {
       });
 
       return [vidroFixo, vidroMovel, ...semVidrosAutomaticos];
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       return mesclarMateriaisAutomaticos(lista, ferragensAutomaticas, codigosFerragensAutomaticas);
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [codigosFerragensAutomaticas, ferragensAutomaticas]);
 
 const novoProjeto = () => {

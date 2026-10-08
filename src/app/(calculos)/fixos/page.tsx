@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
@@ -699,7 +700,7 @@ export default function FixosPage() {
     const medidaVidro = `${calculoVidro.larguraMedida}x${calculoVidro.alturaMedida}`;
     const descricaoVidro = `VIDRO ${medidaVidro} ${vidroNome.toUpperCase()}`;
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const indiceVidro = lista.findIndex?.((item) =>
         !item.perfilExtra && item.descricao.toLowerCase().includes("vidro")
       );
@@ -719,13 +720,13 @@ export default function FixosPage() {
       return lista.map((item, index) =>
         index === indiceVidro ? itemAtualizado : item
       );
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [calculoVidro.alturaMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       return mesclarMateriaisAutomaticos(lista, perfisAutomaticos);
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [perfisAutomaticos]);
 
   const novoProjeto = () => {

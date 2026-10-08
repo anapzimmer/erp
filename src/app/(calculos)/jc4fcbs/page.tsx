@@ -1,5 +1,6 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
 import PreviaCalculoProjeto from "@/components/PreviaCalculoProjeto";
@@ -1142,12 +1143,12 @@ useEffect(() => {
       }),
     ];
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const manuais = lista.filter(
         (item) => item.perfilExtra || !normalizarTexto(item.descricao).startsWith("vidro")
       );
       return [...novosVidros, ...manuais];
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [
     calculoVidro.alturaBandeiraMedida,
     calculoVidro.alturaFixaMedida,
@@ -1191,7 +1192,7 @@ useEffect(() => {
       "1038c",
     ];
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const manuais = lista.filter((item) => {
         if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
@@ -1214,7 +1215,7 @@ useEffect(() => {
         ...perfisAutomaticos,
         ...ferragensAutomaticas,
       ];
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [ferragensAutomaticas, perfisAutomaticos]);
 
   const materiaisOrdenados = useMemo(

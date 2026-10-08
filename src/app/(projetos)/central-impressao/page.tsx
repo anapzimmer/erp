@@ -21,6 +21,9 @@ import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { trocarVidroComposicaoEspelhos } from "@/utils/espelhosCentral";
 import { obterAreaCobradaVidro } from "@/utils/precoVidroRelatorio";
 import { descricaoVidroCompativel } from "@/utils/vidros";
+import AtualizarPrecosOrcamento from "@/components/AtualizarPrecosOrcamento";
+import ConfiguracaoModal from "@/components/ConfiguracaoModal";
+import { registrarRevisaoOrcamento, projetosPdfDaRevisao, type RevisaoOrcamento } from "@/utils/revisoesOrcamento";
 
 type ProjetoComposicao = CentralImpressaoItem & {
   largura: number;
@@ -1233,6 +1236,7 @@ export default function CentralImpressaoPage() {
   const [usarOtimizacao, setUsarOtimizacao] = useState(false);
   const [imprimirOtimizacao, setImprimirOtimizacao] = useState(false);
   const [modalVidroAberto, setModalVidroAberto] = useState(false);
+  const [mensagemTrocaVidro, setMensagemTrocaVidro] = useState("");
   const [vidroOrigemOrcamento, setVidroOrigemOrcamento] = useState("");
   const [buscaVidroOrcamento, setBuscaVidroOrcamento] = useState("");
   const [vidroSelecionadoOrcamento, setVidroSelecionadoOrcamento] = useState<VidroCadastro | null>(null);
@@ -1788,15 +1792,15 @@ export default function CentralImpressaoPage() {
 
   const duplicarOrcamentoComVidro = () => {
     if (itens.length === 0) {
-      setMensagem("Adicione pelo menos um projeto antes de duplicar com outro vidro.");
+      setMensagemTrocaVidro("Adicione pelo menos um projeto antes de duplicar com outro vidro.");
       return;
     }
     if (!vidroOrigemOrcamento) {
-      setMensagem("Escolha qual vidro do orçamento deseja trocar.");
+      setMensagemTrocaVidro("Escolha qual vidro do orçamento deseja trocar.");
       return;
     }
     if (!vidroSelecionadoOrcamento) {
-      setMensagem("Selecione um vidro cadastrado antes de criar a cópia.");
+      setMensagemTrocaVidro("Selecione um vidro cadastrado antes de criar a cópia.");
       return;
     }
 
@@ -1859,7 +1863,7 @@ export default function CentralImpressaoPage() {
       });
 
     } catch (erro) {
-      setMensagem(erro instanceof Error ? erro.message : "Não foi possível recalcular os espelhos.");
+      setMensagemTrocaVidro(erro instanceof Error ? erro.message : "Não foi possível recalcular os espelhos.");
       return;
     }
     setItens(itensNovoVidro);
@@ -1990,7 +1994,16 @@ router.push(
     };
   }, [editId, empresaId, gerarNumeroOrcamento, numeroOrcamento, rascunhoCarregado]);
 
+  const [historicoPrecos, setHistoricoPrecos] = useState<RevisaoOrcamento[] | null>(null);
+  const consultarHistoricoPrecos = async () => {
+    if (!editId || !empresaId) return;
+    const { data, error } = await supabase.from("orcamentos").select("itens").eq("id", editId).eq("empresa_id", empresaId).single();
+    if (error) { setMensagem("Não foi possível consultar as revisões."); return; }
+    setHistoricoPrecos(Array.isArray(data?.itens?.revisoesPrecos) ? data.itens.revisoesPrecos : []);
+  };
+
   const salvarOrcamento = async () => {
+    if (salvando) return;
     if (!empresaId) {
       setMensagem("Empresa não encontrada para salvar o Orçamento.");
       return;
@@ -2003,6 +2016,14 @@ router.push(
     try {
       setSalvando(true);
       setMensagem("");
+      let revisao = { revisaoAtual: 1, revisoesPrecos: [] as RevisaoOrcamento[] };
+      let revisaoAnterior: number | null = null;
+      if (editId) {
+        const { data: anterior, error: erroAnterior } = await supabase.from("orcamentos").select("numero_formatado, cliente_nome, obra_referencia, valor_total, itens").eq("id", editId).eq("empresa_id", empresaId).single();
+        if (erroAnterior || !anterior) throw new Error("Não foi possível preservar a revisão anterior. O orçamento não foi alterado.");
+        revisao = registrarRevisaoOrcamento(anterior);
+        revisaoAnterior = typeof anterior.itens?.revisaoAtual === "number" ? anterior.itens.revisaoAtual : null;
+      }
       let numeroFinal = editId && numeroOrcamento && numeroOrcamento !== "Novo Orçamento" ? numeroOrcamento
         : await gerarNumeroOrcamento();
 
@@ -2012,12 +2033,14 @@ router.push(
         obra_referencia: obra || "Projetos",
         itens: {
           tipo: "orcamento_projetos",
+          ...revisao,
           cliente,
           obra,
           projetos: itens,
           // Mantém uma cópia já normalizada para que o histórico reproduza
           // exatamente o mesmo documento emitido pela Central de Impressão.
           projetosPdf: itensPdf.filter((item) => !/materiais avulsos/i.test(item.projeto || "")),
+          documentoPdfCompleto: itensPdf,
           materiaisAvulsos: materiaisAvulsosValidos,
           projetosOtimizados: otimizacaoAplicada
             ? itensPdf.filter((item) => !/materiais avulsos/i.test(item.projeto || ""))
@@ -2035,8 +2058,14 @@ router.push(
 
       let payload = montarPayload(numeroFinal);
 
-      let { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
-        : await supabase.from("orcamentos").insert([payload]);
+      const gravar = async () => {
+        if (!editId) return supabase.from("orcamentos").insert([payload]);
+        const consulta = supabase.from("orcamentos").update(payload).eq("id", editId).eq("empresa_id", empresaId);
+        const resultado = await (revisaoAnterior === null ? consulta.is("itens->>revisaoAtual", null) : consulta.eq("itens->>revisaoAtual", String(revisaoAnterior))).select("id").maybeSingle();
+        if (!resultado.error && !resultado.data) throw new Error("O orçamento foi alterado por outra sessão. Reabra a versão salva antes de tentar novamente.");
+        return resultado;
+      };
+      let { error } = await gravar();
 
       // Em um orçamento novo, uma sequência antiga pode ter ficado salva no
       // navegador ou dois usuários podem salvar ao mesmo tempo. Nessa situação,
@@ -2159,6 +2188,16 @@ router.push(
               </Field>
 
               <div className="flex flex-wrap gap-2">
+                {empresaId && <AtualizarPrecosOrcamento empresaId={empresaId} cliente={cliente} projetos={itens} avulsos={materiaisAvulsos} calcularTotal={(projetos, avulsos) => {
+                  const otimizados = usarOtimizacao ? calcularOtimizacaoPerfis(projetos) : [];
+                  return projetos.reduce((s, p) => s + Number(p.valorTotal || 0), 0)
+                    + avulsos.reduce((s, m) => s + Number(m.qtd || 0) * Number(m.valorUnitario || 0), 0)
+                    + otimizados.reduce((s, p) => s + p.valorOtimizado - p.valorOriginal, 0);
+                }} aplicar={(projetos, avulsos) => {
+                  setItens(projetos); setMateriaisAvulsos(avulsos);
+                  setMensagem("Preços selecionados aplicados. Confira o total e salve para registrar a nova revisão.");
+                }} />}
+                {editId && <button type="button" onClick={consultarHistoricoPrecos} className="rounded-xl border border-border px-4 py-3 text-sm text-text-secondary hover:bg-surface-secondary">Revisões anteriores</button>}
                 {itensPdf.length > 0 ? (
                   <>
                     <BotaoImprimirPDF documento={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
@@ -2188,7 +2227,8 @@ router.push(
                 <button
                   type="button"
                   onClick={() => {
-                    setVidroOrigemOrcamento("");
+                    setVidroOrigemOrcamento(vidrosOrigemOrcamento.length === 1 ? vidrosOrigemOrcamento[0].chave : "");
+                    setMensagemTrocaVidro("");
                     setBuscaVidroOrcamento("");
                     setVidroSelecionadoOrcamento(null);
                     setModalVidroAberto(true);
@@ -3170,33 +3210,19 @@ router.push(
         </main>
       </div>
 
-      {modalVidroAberto ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
-          <section className="w-full max-w-2xl overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_var(--shadow)]">
-            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-secondary">
-                  Nova versão
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-text-primary">Duplicar com outro vidro</h2>
-                <p className="mt-1 text-sm leading-6 text-text-secondary">
-                  Escolha primeiro qual vidro do orçamento será substituído. A central criará uma nova cópia mantendo o restante igual.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalVidroAberto(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-secondary transition hover:bg-surface-secondary hover:text-text-secondary"
-                title="Fechar"
-              >
-                <X size={17} />
-              </button>
-            </div>
-
-            <div className="px-5 py-4">
+      <ConfiguracaoModal aberto={historicoPrecos !== null} fechar={() => setHistoricoPrecos(null)} titulo="Revisões anteriores">
+        {!historicoPrecos?.length && <p className="text-sm text-text-secondary">Ainda não há revisões anteriores. Elas serão preservadas nos próximos salvamentos pela central.</p>}
+        {historicoPrecos?.map(r => <div key={r.revisao} className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-3">
+          <div><p>Revisão {r.revisao} · {moeda(r.valorTotal)}</p><p className="text-xs text-text-secondary">Preservada em {new Date(r.registradaEm).toLocaleString("pt-BR")}</p></div>
+          {projetosPdfDaRevisao(r).length > 0 && <BotaoImprimirPDF documento={<CentralImpressaoPDF itens={projetosPdfDaRevisao(r)} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={r.numero} cliente={r.cliente} obra={r.obra} otimizacaoPerfis={r.itens.imprimirOtimizacao !== false && Array.isArray(r.itens.otimizacaoPerfis) ? r.itens.otimizacaoPerfis as OtimizacaoPerfil[] : []} />} arquivo={`Orcamento-${r.numero}-revisao-${r.revisao}.pdf`} rotulo="PDF desta revisão" className="rounded-lg border border-border px-3 py-2 text-sm" />}
+        </div>)}
+      </ConfiguracaoModal>
+      <ConfiguracaoModal aberto={modalVidroAberto} fechar={() => setModalVidroAberto(false)} titulo="Trocar vidro do orçamento">
+        <p className="mb-4 text-sm text-text-secondary">Escolha o vidro de origem e o novo vidro. A troca cria uma cópia para conferir e salvar, mantendo o orçamento já salvo.</p>
+        {mensagemTrocaVidro && <p role="alert" className="mb-4 rounded-lg border border-border p-3 text-sm">{mensagemTrocaVidro}</p>}
             <div className="mb-4 rounded-2xl border border-border bg-surface-secondary p-3">
               <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Qual vidro deseja trocar</label>
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 max-h-40 overflow-y-auto space-y-2">
                 {vidrosOrigemOrcamento.length > 0 ? (
                   vidrosOrigemOrcamento.map((vidro) => {
                     const selecionado = vidroOrigemOrcamento === vidro.chave;
@@ -3267,7 +3293,12 @@ router.push(
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
+            {(!vidroOrigemOrcamento || !vidroSelecionadoOrcamento) && (
+              <p className="mt-3 text-sm text-text-secondary">
+                {!vidroOrigemOrcamento ? "Selecione acima o vidro do orçamento que deseja substituir." : "Selecione o novo vidro na lista para liberar o recálculo."}
+              </p>
+            )}
+            <div className="sticky bottom-0 mt-4 flex justify-end gap-2 border-t border-border bg-surface py-3">
               <button
                 type="button"
                 onClick={() => setModalVidroAberto(false)}
@@ -3282,13 +3313,10 @@ router.push(
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: theme.buttonDarkBg }}
               >
-                Criar cópia
+                Recalcular e criar cópia
               </button>
             </div>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      </ConfiguracaoModal>
     </div>
   );
 }

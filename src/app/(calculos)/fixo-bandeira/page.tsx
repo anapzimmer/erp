@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
@@ -1008,16 +1009,16 @@ export default function FixoBandeiraPage() {
       })
       : null;
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || (!normalizarTexto(item.descricao).includes("vidro inferior") && !normalizarTexto(item.descricao).includes("vidro bandeira")));
       return [vidroInferior, vidroBandeira, ...semVidrosAutomaticos].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2]);
 
   useEffect(() => {
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       return mesclarMateriaisAutomaticos(lista, perfisAutomaticos);
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [perfisAutomaticos]);
 
   const novoProjeto = () => {

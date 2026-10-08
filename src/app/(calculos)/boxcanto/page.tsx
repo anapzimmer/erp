@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
@@ -897,7 +898,7 @@ export default function BoxCantoPage() {
     const descricaoVidroFixoB = `VIDRO FIXO B ${medidaVidroFixoB} ${vidroNome.toUpperCase()}`;
     const descricaoVidroMovelB = `VIDRO MOVEL B ${medidaVidroMovelB} ${vidroNome.toUpperCase()}`;
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const semVidrosAutomaticos = lista.filter((item) => {
         if (item.perfilExtra) return true;
         const descricao = normalizarTexto(item.descricao);
@@ -933,13 +934,13 @@ export default function BoxCantoPage() {
       });
 
       return [vidroFixoA, vidroMovelA, vidroFixoB, vidroMovelB, ...semVidrosAutomaticos];
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixaA, calculoVidro.areaFixaB, calculoVidro.areaMovelA, calculoVidro.areaMovelB, calculoVidro.larguraFixaBMedida, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelBMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       return mesclarMateriaisAutomaticos(lista, [...kitAutomatico, ...perfisAutomaticos, ...ferragensAutomaticas], codigosAutomaticos);
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [codigosAutomaticos, ferragensAutomaticas, kitAutomatico, perfisAutomaticos]);
 
 const novoProjeto = () => {

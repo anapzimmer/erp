@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import ResumoConfiguracaoProjeto from "@/components/ResumoConfiguracaoProjeto";
@@ -890,7 +891,7 @@ export default function PGFPage() {
     const descricaoVidroPg = `VIDRO PG ${medidaVidroPg} ${vidroNome.toUpperCase()}`;
     const descricaoVidroFixo = `VIDRO FIXO ${medidaVidroFixo} ${vidroNome.toUpperCase()}`;
 
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || !normalizarTexto(item.descricao).startsWith("vidro"));
       const vidroPg = criarMaterial({
         qtd: calculoVidro.areaPorta,
@@ -906,13 +907,13 @@ export default function PGFPage() {
       });
 
       return [vidroPg, vidroFixo, ...semVidrosAutomaticos];
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [calculoVidro.alturaMedida, calculoVidro.areaFixo, calculoVidro.areaPorta, calculoVidro.larguraFixoMedida, calculoVidro.larguraPortaMedida, dados.vidro, precoVidroM2]);
 
   useEffect(() => {
-    setMateriais((lista) => {
+    setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
       return mesclarMateriaisAutomaticos(lista, [...perfisAutomaticos, ...ferragensAutomaticas], codigosItensAutomaticos);
-    });
+    })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [codigosItensAutomaticos, ferragensAutomaticas, perfisAutomaticos]);
 
 

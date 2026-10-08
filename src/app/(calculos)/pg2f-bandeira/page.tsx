@@ -1,4 +1,5 @@
 ﻿"use client";
+import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
@@ -845,7 +846,7 @@ export default function PG2FPage() {
       const cortes = prepararCortesPorBarra(Array.from({length: Math.max(0, Math.floor(dados.quantidade))}, () => [alturaBandeira, alturaBandeira, dados.largura]).flat(), 6000);
       novos.push({...criarMaterial({qtd: calcularBarrasPorCortes(cortes,6000), unidade: "barra", descricao: perfilBandeira.codigo + " - " + (perfilBandeira.nome_completo || perfilBandeira.nome) + " | " + perfilBandeira.cores, valorUnitario: Number(perfilBandeira.preco || 0)}), codigoPerfil: perfilBandeira.codigo, comprimentoBarra: 6000, cortes, origemCalculo: "pg2f-bandeira:perfil"});
     }
-    setMateriais(lista => mesclarMateriaisAutomaticos(lista.filter(i => i.perfilExtra || (!i.descricao.startsWith("VIDRO ") && i.origemCalculo !== "pg2f-bandeira:tubo" && i.origemCalculo !== "pg2f-bandeira:perfil")), novos, codigosItensAutomaticos));
+    setMateriais(lista => preservarPrecosOrcamento(lista, (() => mesclarMateriaisAutomaticos(lista.filter(i => i.perfilExtra || (!i.descricao.startsWith("VIDRO ") && i.origemCalculo !== "pg2f-bandeira:tubo" && i.origemCalculo !== "pg2f-bandeira:perfil")), novos, codigosItensAutomaticos))(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
   }, [perfilBandeira, dados.altura, dados.alturaAteTubo, ferragensAutomaticas, calculoVidro, dados.vidro, dados.vidroBandeira, dados.largura, dados.quantidade, tuboSelecionado, precoVidroM2, precoVidroBandeiraM2, codigosItensAutomaticos]);
 
   const avisoConfiguracao = Number(dados.alturaAteTubo || 0) <= 12 || Number(dados.alturaAteTubo || 0) >= dados.altura - 25
