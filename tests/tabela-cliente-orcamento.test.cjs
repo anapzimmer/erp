@@ -5,3 +5,6 @@ test('cliente sem tabela identifica padrão explicitamente',()=>assert.equal(api
 test('nome desconhecido exige escolha sem atribuir padrão',()=>assert.equal(api.identificarTabelaCliente([{nome:'Ana',grupo_preco_id:'A'}],'Outro'),undefined));
 test('homônimos não escolhem uma tabela arbitrariamente',()=>assert.equal(api.identificarTabelaCliente([{nome:'Ana',grupo_preco_id:'A'},{nome:'ANA',grupo_preco_id:'B'}],'Ana'),undefined));
 test('cliente vazio não corresponde a registro vazio',()=>assert.equal(api.identificarTabelaCliente([{nome:'',grupo_preco_id:'A'}],' '),undefined));
+
+test('localiza cadastro preservando tabela com caixa e acentos diferentes',()=>assert.equal(api.localizarClientePorNome([{nome:'CLIENTE Á',grupo_preco_id:'A'}],' Cliente a ').grupo_preco_id,'A'));
+test('não escolhe tabela arbitrária de cliente homônimo',()=>assert.equal(api.localizarClientePorNome([{nome:'Ana'},{nome:'ANA'}],'Ana'),null));

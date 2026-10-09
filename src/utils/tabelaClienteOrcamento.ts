@@ -9,3 +9,10 @@ export function identificarTabelaCliente(clientes: ClienteTabela[], nome: string
   if (encontrados.length !== 1) return undefined;
   return encontrados[0].grupo_preco_id || null;
 }
+
+export function localizarClientePorNome<T extends { nome: string }>(clientes: T[], nome: string | undefined): T | null {
+ const busca = nomeNormalizado(nome || "");
+ if (!busca) return null;
+ const encontrados = clientes.filter(c => nomeNormalizado(c.nome) === busca);
+ return encontrados.length === 1 ? encontrados[0] : null;
+}

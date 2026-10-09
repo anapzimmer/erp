@@ -502,7 +502,7 @@ function ForaEsquadroConteudo() {
         )
       : null;
 
-    return normalizarPrecoCatalogo(clienteSelecionado?.grupo_preco_id ? (precoGrupo?.preco ?? 0) : (vidroSelecionado.preco ?? 0));
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteBusca, clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const fatorMolde = molde ? 1.3 : 1;
   const valorTotal = areaTotal * precoVidroM2 * fatorMolde;
@@ -842,7 +842,7 @@ function ForaEsquadroConteudo() {
                 <ResumoCard
                   titulo="Preço do m²"
                   valor={precoVidroM2 ? moeda(precoVidroM2) : "R$ 0,00"}
-                  detalhe={clienteBusca.trim() && !clienteSelecionado ? "Selecione um cliente cadastrado na lista" : clienteSelecionado?.grupo_preco_id ? (precoVidroM2 ? "Tabela do cliente" : "Vidro sem preço na tabela do cliente") : "Preço base do vidro"}
+                  detalhe={clienteBusca.trim() && !clienteSelecionado ? "Selecione um cliente cadastrado na lista" : clienteSelecionado?.grupo_preco_id ? (precosVidroGrupos.some(p => String(p.vidro_id) === String(vidroSelecionado?.id) && String(p.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id) && p.preco != null) ? "Tabela do cliente" : "Preço padrão (vidro sem preço na tabela)") : "Preço base do vidro"}
                 />
                 <ResumoCard
                   titulo="Valor total"

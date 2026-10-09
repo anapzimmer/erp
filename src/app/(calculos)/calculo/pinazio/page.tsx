@@ -1,4 +1,5 @@
 "use client"
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -237,7 +238,7 @@ export default function CalculoPinazioPage() {
 
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, telefone, email, cidade")
+        .select("id, nome, telefone, email, cidade, grupo_preco_id")
         .eq("empresa_id", empresaId)
         .order("nome");
 
@@ -254,40 +255,26 @@ export default function CalculoPinazioPage() {
     carregarClientes();
   }, [empresaId]);
 
-  const carregarPrecosDoCliente = async (clienteId: string) => {
-    if (!clienteId) {
-      setPrecosCliente({});
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("vidro_precos_clientes")
-      .select("vidro_id, preco")
-      .eq("cliente_id", clienteId);
-
-    if (error) {
-      console.error("Erro ao carregar preços personalizados do cliente:", error);
-      setPrecosCliente({});
-      return;
-    }
-
-    const mapa = (data || []).reduce<Record<string, number>>((acc, item) => {
-      const preco = Number(item.preco);
-      if (item.vidro_id && Number.isFinite(preco)) {
-        acc[String(item.vidro_id)] = preco;
-      }
-      return acc;
-    }, {});
-
-    setPrecosCliente(mapa);
-  };
+  useEffect(() => {
+    let cancelado = false;
+    setPrecosCliente({});
+    const cliente = localizarClientePorNome(clientesDB, nomeCliente);
+    if (!cliente?.grupo_preco_id || !empresaId) return;
+    void (async () => {
+      const { data, error } = await supabase.from("vidro_precos_grupos").select("vidro_id, preco").eq("grupo_preco_id", cliente.grupo_preco_id).eq("empresa_id", empresaId);
+      if (cancelado || error) return;
+      const mapa: Record<string, number> = {};
+      for (const item of data || []) if (item.preco != null && Number.isFinite(Number(item.preco))) mapa[String(item.vidro_id)] = Number(item.preco);
+      setPrecosCliente(mapa);
+    })();
+    return () => { cancelado = true; };
+  }, [nomeCliente, clientesDB, empresaId]);
 
   const selecionarCliente = async (cliente: any) => {
     setClienteSelecionadoId(String(cliente.id));
     setNomeCliente(cliente.nome || "");
     setBuscaCliente("");
     setShowModalCliente(false);
-    await carregarPrecosDoCliente(String(cliente.id));
   };
 
   const limparClienteSelecionado = () => {
@@ -425,9 +412,7 @@ export default function CalculoPinazioPage() {
       const draft = JSON.parse(raw);
       setNomeCliente(draft.nomeCliente || "");
       setClienteSelecionadoId(draft.clienteSelecionadoId || "");
-      if (draft.clienteSelecionadoId) {
-        carregarPrecosDoCliente(String(draft.clienteSelecionadoId));
-      }
+
       setNomeObra(draft.nomeObra || "");
       setLargura(draft.largura || "");
       setAltura(draft.altura || "");

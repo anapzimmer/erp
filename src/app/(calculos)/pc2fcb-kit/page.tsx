@@ -1,4 +1,5 @@
 ﻿"use client";
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
@@ -456,7 +457,7 @@ export default function PC2FCBKitPage() {
     return vidros.filter((vidro) => formatarVidroCadastro(vidro).toLowerCase().includes(termo)).slice(0, 8);
   }, [dados.vidroBandeira, vidros]);
   const clienteSelecionado = useMemo(
-    () => clientes.find((cliente) => cliente.nome === dados.cliente) || null,
+    () => localizarClientePorNome(clientes, dados.cliente) || null,
     [clientes, dados.cliente]
   );
   const tabelaPrecoSelecionada = useMemo(

@@ -1,4 +1,5 @@
 "use client";
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -423,8 +424,10 @@ export default function CalculoSacadaTorrePage() {
   }, [buscaCliente, clientes]);
 
   const clienteSelecionado = useMemo(
-    () => clientes.find((cliente) => String(cliente.id) === String(clienteId)) || null,
-    [clienteId, clientes]
+    () => buscaCliente.trim()
+      ? localizarClientePorNome(clientes, buscaCliente)
+      : clientes.find((cliente) => String(cliente.id) === String(clienteId)) || null,
+    [clienteId, clientes, buscaCliente]
   );
 
   const vidrosFiltrados = useMemo(() => {
@@ -734,7 +737,7 @@ export default function CalculoSacadaTorrePage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" size={14} style={{ color: theme.contentTextLightBg }} />
                     <input
                       value={buscaCliente}
-                      onChange={(e) => { setBuscaCliente(e.target.value); setMostrarClientes(true); }}
+                      onChange={(e) => { setBuscaCliente(e.target.value); setClienteId(""); setMostrarClientes(true); }}
                       onFocus={() => setMostrarClientes(true)}
                       placeholder="Pesquisar cliente..."
                       className="w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none bg-transparent"
@@ -930,10 +933,14 @@ export default function CalculoSacadaTorrePage() {
                         <option value="" className="text-text-primary">Selecione o vidro</option>
                         {vidrosFiltrados.map((vidro) => (
                           <option key={vidro.id} value={vidro.id} className="text-text-primary">
-                            {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo(vidro.preco))}/m2
+                            {montarDescricaoVidro(vidro)} - {formatarPreco(normalizarPrecoCatalogo((clienteSelecionado?.grupo_preco_id ? precosEspeciais.find(preco => String(preco.vidro_id) === String(vidro.id) && String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id))?.preco : null) ?? vidro.preco ?? 0))}/m2
                           </option>
                         ))}
                       </select>
+                      {vidroSelecionado && <span className="mt-2 block text-xs text-text-secondary">
+                        Valor aplicado: {formatarPreco(precoVidroM2Efetivo)}/m² · {clienteSelecionado?.grupo_preco_id && precosEspeciais.some(p => String(p.vidro_id) === String(vidroSelecionado.id) && String(p.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id) && p.preco != null) ? "Tabela do cliente" : "Preço padrão cadastrado"}
+                      </span>}
+
                     </label>
 
                     <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>

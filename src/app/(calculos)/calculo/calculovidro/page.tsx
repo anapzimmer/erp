@@ -1,5 +1,6 @@
 //app/calculovidro/page.tsx
 "use client"
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -419,7 +420,7 @@ export default function RelatorioOrcamento() {
       String(p.grupo_preco_id || p.tabela_id) === String(grupoIdDoCliente)
     );
 
-    const precoBaseM2 = precoEspecial
+    const precoBaseM2 = precoEspecial?.preco != null
       ? normalizarPrecoCatalogo(precoEspecial.preco)
       : normalizarPrecoCatalogo(vidro.preco);
     const excedeuLimiteMedida = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
@@ -727,7 +728,7 @@ export default function RelatorioOrcamento() {
 
       if (orcamento) {
         // 1. Vincula o cliente
-        const clienteEncontrado = listaClientes.find(c => c.nome === orcamento.cliente_nome);
+        const clienteEncontrado = localizarClientePorNome(listaClientes, orcamento.cliente_nome);
         if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
 
         // 2. Preenche os campos básicos
@@ -816,7 +817,7 @@ useEffect(() => {
 
       setItens(itensParaEdicao);
       setUltimoNumeroGerado(itemCentral.numero || "");
-      const clienteEncontrado = listaClientes.find((cliente) => cliente.nome === itemCentral.cliente);
+      const clienteEncontrado = localizarClientePorNome(listaClientes, itemCentral.cliente);
       if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
       setObra(window.localStorage.getItem(CENTRAL_IMPRESSAO_OBRA_KEY) || "");
       draftRestauradoRef.current = true;

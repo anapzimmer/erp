@@ -1,4 +1,5 @@
 "use client";
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -806,7 +807,7 @@ export default function CalculoFechamentoSacadaPage() {
       if (itensData.vidroIdSuperior) setVidroIdSuperior(String(itensData.vidroIdSuperior));
 
       // Vincular cliente pelo nome
-      const clienteEncontrado = listaClientes.find((c) => c.nome === orc.cliente_nome);
+      const clienteEncontrado = localizarClientePorNome(listaClientes, orc.cliente_nome);
       if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
     } catch (err) {
       console.error("Erro ao carregar Orçamento para edição:", err);
@@ -925,7 +926,7 @@ export default function CalculoFechamentoSacadaPage() {
       const especial = precosEspeciais.find(
         (p) => String(p.vidro_id) === String(vidro.id) && String(p.grupo_preco_id) === String(grupoId)
       );
-      if (especial) return normalizarPrecoCatalogo(especial.preco);
+      if (especial?.preco != null) return normalizarPrecoCatalogo(especial.preco);
     }
     return normalizarPrecoCatalogo(vidro.preco);
   }, [clienteId, listaClientes, precosEspeciais]);

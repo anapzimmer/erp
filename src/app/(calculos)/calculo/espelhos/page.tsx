@@ -1,4 +1,5 @@
 "use client"
+import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -238,6 +239,13 @@ export default function CalculoEspelhosPage() {
   const [showModalPDF, setShowModalPDF] = useState(false);
   const [showModalCentral, setShowModalCentral] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
+  const [clientesTabela, setClientesTabela] = useState<any[]>([]);
+  const [precosTabela, setPrecosTabela] = useState<any[]>([]);
+  const precoDoVidro = (vidro: any) => {
+    const grupo = localizarClientePorNome(clientesTabela, nomeCliente)?.grupo_preco_id;
+    const especial = grupo ? precosTabela.find(p => String(p.vidro_id) === String(vidro?.id) && String(p.grupo_preco_id) === String(grupo)) : null;
+    return normalizarPrecoCatalogo(especial?.preco ?? vidro?.preco ?? 0);
+  };
   const [nomeObra, setNomeObra] = useState("");
   const [ultimoNumeroGerado, setUltimoNumeroGerado] = useState("");
   const orcamentoAtivo = useClienteOrcamento({ cliente: nomeCliente, onCliente: setNomeCliente, obra: nomeObra, onObra: setNomeObra });
@@ -260,13 +268,20 @@ export default function CalculoEspelhosPage() {
       setCatalogosCarregados(false);
       setErroCatalogo("");
       try {
-        const [vidros, acabamentos] = await Promise.all([
+        const [vidros, acabamentos, clientes, precos] = await Promise.all([
+
           supabase.from("vidros").select("*").eq("empresa_id", empresaId).ilike("nome", "%espelho%").order("nome"),
           supabase.from("acabamentos").select("*").eq("empresa_id", empresaId).order("nome"),
+          supabase.from("clientes").select("nome, grupo_preco_id").eq("empresa_id", empresaId),
+          supabase.from("vidro_precos_grupos").select("vidro_id, grupo_preco_id, preco").eq("empresa_id", empresaId),
         ]);
+        if (clientes.error) throw clientes.error;
+        if (precos.error) throw precos.error;
         if (vidros.error) throw vidros.error;
         if (acabamentos.error) throw acabamentos.error;
         if (cancelado) return;
+        setClientesTabela(clientes.data || []);
+        setPrecosTabela(precos.data || []);
         setVidrosDB(vidros.data || []);
         setAcabamentosDB(acabamentos.data || []);
         setVidroId(atual => atual || String(vidros.data?.[0]?.id || ""));
@@ -431,13 +446,13 @@ export default function CalculoEspelhosPage() {
     try {
       return { ...calcularEspelho({
         largura: Number(largura), altura: Number(altura), quantidade,
-        precoVidroM2: vidro.preco, acabamento: acabamento ?? null,
+        precoVidroM2: precoDoVidro(vidro), acabamento: acabamento ?? null,
         divisoesLargura, divisoesAltura,
       }), erro: "" };
     } catch (erro) {
       return { ...vazio, erro: erro instanceof Error ? erro.message : "Confira os dados do acabamento." };
     }
-  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura, catalogosCarregados, erroCatalogo]);
+  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura, catalogosCarregados, erroCatalogo, nomeCliente, clientesTabela, precosTabela]);
 
 
   const restaurarCamposItem = (item: any) => {
@@ -507,7 +522,7 @@ export default function CalculoEspelhosPage() {
       descricao: descricaoFinal,
       medidas: `${largura}x${altura}`,
       quantidade: quantidade,
-      precoVidroM2: normalizarPrecoCatalogo(vSel?.preco),
+      precoVidroM2: precoDoVidro(vSel),
       m2: calculoAtual.m2,
       total: calculoAtual.total,
       memoriaCalculo: calculoAtual.memoriaCalculo,
