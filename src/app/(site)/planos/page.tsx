@@ -6,6 +6,15 @@ import { Check, ArrowUpRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import styles from "./planos.module.css";
 
+const whatsappComercial = "5546988271599";
+
+function contatoWhatsApp(plano?: { nome: string; valor: number }) {
+  const mensagem = plano
+    ? `Olá! Tenho interesse no plano ${plano.nome} do Glass Code (${plano.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês por empresa). Gostaria de saber como contratar.`
+    : "Olá! Tenho interesse nos planos do Glass Code. Pode me ajudar a escolher o melhor plano para minha empresa?";
+  return `https://wa.me/${whatsappComercial}?text=${encodeURIComponent(mensagem)}`;
+}
+
 const planos = [
   {
     numero: "01",
@@ -124,12 +133,14 @@ export default function PlanosPage() {
               Planos
             </Link>
 
-            <Link
-              href="/login"
+            <a
+              href={contatoWhatsApp()}
+              target="_blank"
+              rel="noopener noreferrer"
               className={styles.ctaSmall}
             >
-              Começar agora
-            </Link>
+              Falar pelo WhatsApp
+            </a>
           </nav>
         </div>
       </header>
@@ -207,8 +218,10 @@ export default function PlanosPage() {
               </span>
             </div>
 
-            <Link
-              href="/login"
+            <a
+              href={contatoWhatsApp(plano)}
+              target="_blank"
+              rel="noopener noreferrer"
               className={
                 plano.destaque
                   ? styles.primary
@@ -216,11 +229,11 @@ export default function PlanosPage() {
               }
             >
               <span>
-                Começar com {plano.nome}
+                Tenho interesse no {plano.nome}
               </span>
 
               <ArrowUpRight size={16} />
-            </Link>
+            </a>
 
             <div className={styles.includesTitle}>
               O QUE ESTÁ INCLUÍDO
@@ -285,9 +298,10 @@ export default function PlanosPage() {
           </summary>
 
           <p>
-            Escolha o plano que melhor representa a sua operação.
-            A contratação e a liberação da empresa são realizadas
-            pela Glass Code.
+            Escolha o plano e clique em “Tenho interesse”. O WhatsApp abrirá
+            com uma mensagem pronta indicando o plano escolhido. Envie a
+            mensagem para falar com a Glass Code sobre a contratação e a
+            liberação da sua empresa.
           </p>
         </details>
 
@@ -353,13 +367,15 @@ export default function PlanosPage() {
           </h2>
         </div>
 
-        <Link
-          href="/login"
+        <a
+          href={contatoWhatsApp()}
+          target="_blank"
+          rel="noopener noreferrer"
           className={styles.finalCtaButton}
         >
-          <span>Começar agora</span>
+          <span>Falar pelo WhatsApp</span>
           <ArrowUpRight size={17} />
-        </Link>
+        </a>
       </section>
 
 
