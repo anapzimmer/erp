@@ -392,9 +392,12 @@ export const extrairProdutosTabelaTextoComDiagnostico = (
   for (const linha of linhas) {
     if (pareceCabecalho(linha)) continue
 
-    const produto = delimitador
+    // Relatório: preço atual seguido do mínimo; não usar o mínimo como preço.
+    const relatorio = linha.match(/^([A-Z0-9._/-]{3,24})\s+(.+?)\s+(\d{1,5}(?:\.\d{3})*,\d{2})\s+(\d{1,5}(?:\.\d{3})*,\d{2})(?:\s+|$)/i)
+    const produtoRelatorio = relatorio ? { codigo: relatorio[1].toUpperCase(), descricao: relatorio[2], preco: converterPreco(relatorio[3]), precoTexto: relatorio[3] } : null
+    const produto = produtoRelatorio || (delimitador
       ? interpretarLinhaDelimitada(linha, delimitador) || interpretarLinha(linha)
-      : interpretarLinha(linha)
+      : interpretarLinha(linha))
 
     if (!produto) {
       if (/\d{1,5}(?:\.\d{3})*,\d{2}\s*$/.test(linha)) {

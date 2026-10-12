@@ -746,10 +746,10 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                   onClick={() => setMostrarImportador(true)}
                   className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-on-primary shadow-sm transition hover:brightness-105 active:scale-[0.98]"
                   style={{ backgroundColor: theme.menuIconColor }}
-                  title="Importar tabela PDF, TXT ou CSV"
+                  title="Importar cadastro e preços-base. Para atualizar uma tabela de preços, use Gestão de Tabelas."
                 >
                   <Upload size={17} />
-                  Importar tabela
+                  Importar cadastro
                 </button>
 
                 {typeof window !== "undefined" && (

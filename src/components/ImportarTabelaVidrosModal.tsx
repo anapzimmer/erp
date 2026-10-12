@@ -334,14 +334,8 @@ export default function ImportarTabelaVidrosModal({
 
   const prepararRevisao = (produtos: ProdutoImportado[]) => {
     const revisao = produtos.map<ItemRevisao>((produto, index) => {
-      const porCodigo = vidros.find(
-        (vidro) =>
-          normalizar(vidro.codigo || "") === normalizar(produto.codigo) &&
-          descricaoVidroCompativel(
-            `${produto.descricao} ${produto.nome} ${produto.espessura} ${produto.tipo}`,
-            `${vidro.nome} ${vidro.espessura} ${vidro.tipo}`,
-          ),
-      )
+      const candidatos = vidros.filter(vidro => (vidro.codigo || "").trim().toUpperCase() === produto.codigo.trim().toUpperCase())
+      const porCodigo = candidatos.length === 1 ? candidatos[0] : null
 
       if (porCodigo) {
         return {
@@ -374,7 +368,7 @@ export default function ImportarTabelaVidrosModal({
         sugestaoId: temSugestaoBoa ? melhor.vidro.id : "",
         confianca: temSugestaoBoa ? melhor.nota : 0,
         precoAnterior: temSugestaoBoa ? Number(melhor.vidro.preco) : null,
-        selecionado: true,
+        selecionado: false,
       }
     })
 
@@ -462,6 +456,8 @@ export default function ImportarTabelaVidrosModal({
     try {
       const selecionados = itens.filter((i) => i.selecionado && i.acao !== "ignorar")
 
+      const destinos = selecionados.filter(i => i.acao !== "criar").map(i => i.vidroId)
+      if (new Set(destinos).size !== destinos.length) throw new Error("Dois produtos estão vinculados ao mesmo vidro. Revise antes de salvar.")
       for (const item of selecionados) {
         if (item.acao === "ignorar") continue
 
@@ -481,7 +477,7 @@ export default function ImportarTabelaVidrosModal({
         if (item.vidroId) {
           const { error } = await supabase
             .from("vidros")
-            .update({ codigo: item.codigo, preco: item.preco })
+            .update({ preco: item.preco })
             .eq("id", item.vidroId)
             .eq("empresa_id", empresaId)
 
@@ -545,7 +541,7 @@ export default function ImportarTabelaVidrosModal({
                 Catálogo de vidros
               </p>
               <h2 className="mt-1 text-base font-medium text-text-primary">
-                Importar tabela de vidros
+                Importar cadastro e preços-base de vidros
               </h2>
               <p className="text-xs text-text-secondary">
                 Revise os itens identificados e escolha como deseja importar.

@@ -87,8 +87,33 @@ export default function GestaoPrecosPage() {
 
   type ImportacaoPendente = {
     nomeTabela: string;
+    tabelaId: string;
+    precosAnteriores: Record<string, number>;
     reconhecidos: Array<{ item: LinhaImportada; vidro: Vidro }>;
     pendentes: ItemPendente[];
+  };
+
+  const [historico, setHistorico] = useState<Array<{ id: number; descricao: string; preco_anterior: number | null; preco_novo: number | null; criado_em: string; usuario_id: string | null }>>([]);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [historicoErro, setHistoricoErro] = useState("");
+  const [historicoCarregando, setHistoricoCarregando] = useState(false);
+  const [historicoTitulo, setHistoricoTitulo] = useState("");
+  const abrirHistorico = async () => {
+    if (!empresaIdAtual) return;
+    setHistoricoAberto(true);
+    setHistoricoCarregando(true);
+    setHistorico([]);
+    setHistoricoErro("");
+    setHistoricoTitulo(tabelaSelecionada?.nome || "Cadastro de vidros");
+    try {
+      let consulta = supabase.from("vidros_historico_precos").select("id, descricao, preco_anterior, preco_novo, criado_em, usuario_id").eq("empresa_id", empresaIdAtual);
+      consulta = tabelaSelecionada ? consulta.eq("tabela_id", tabelaSelecionada.id) : consulta.is("tabela_id", null);
+      const { data, error } = await consulta.order("criado_em", { ascending: false }).order("id", { ascending: false }).limit(200);
+      if (error) throw error;
+      setHistorico(data || []);
+    } catch {
+      setHistoricoErro("Não foi possível consultar o histórico. Verifique a conexão e se a atualização do histórico foi instalada no banco.");
+    } finally { setHistoricoCarregando(false); }
   };
 
   const [importacaoPendente, setImportacaoPendente] = useState<ImportacaoPendente | null>(null);
@@ -192,6 +217,10 @@ export default function GestaoPrecosPage() {
   };
 
   const importarTabelaTxt = async (arquivo: File) => {
+    if (!tabelaSelecionada) {
+      setModalAvisoAberto({ aberto: true, mensagem: "Selecione a tabela que deseja atualizar." });
+      return;
+    }
     if (!empresaIdAtual) {
       setModalAvisoAberto({ aberto: true, mensagem: "Não foi possível identificar a empresa." });
       return;
@@ -205,7 +234,12 @@ export default function GestaoPrecosPage() {
     setCarregando(true);
     try {
       const conteudo = await decodeCsvFile(arquivo);
-      const { nomeTabela, itens } = interpretarArquivoTabela(conteudo);
+      const { itens } = interpretarArquivoTabela(conteudo);
+      const destino = tabelaSelecionada;
+      const { data: precos, error: erroPrecos } = await supabase.from("vidro_precos_grupos").select("vidro_id, preco").eq("grupo_preco_id", destino.id).eq("empresa_id", empresaIdAtual);
+      if (erroPrecos) throw erroPrecos;
+      const precosAnteriores = Object.fromEntries((precos || []).map(p => [p.vidro_id, Number(p.preco)]));
+      if (new Set(itens.map(i => i.codigo.trim().toUpperCase())).size !== itens.length) throw new Error("O arquivo contém códigos repetidos.");
       if (!itens.length) throw new Error("Nenhum produto foi reconhecido no arquivo.");
 
       const { data: vidrosBanco, error: erroVidros } = await supabase
@@ -216,24 +250,12 @@ export default function GestaoPrecosPage() {
       if (erroVidros) throw erroVidros;
 
       const catalogo = (vidrosBanco || []) as Vidro[];
-      const porCodigo = new Map(
-        catalogo.filter((v) => v.codigo).map((v) => [normalizarTexto(v.codigo || ""), v])
-      );
-      const porNome = new Map(catalogo.map((v) => [normalizarTexto(`${v.nome} ${v.espessura} ${v.tipo}`), v]));
-
       const reconhecidos: Array<{ item: LinhaImportada; vidro: Vidro }> = [];
       const pendentes: ItemPendente[] = [];
 
       for (const item of itens) {
-        const candidatoPorCodigo = porCodigo.get(normalizarTexto(item.codigo));
-        const encontradoPorCodigo =
-          candidatoPorCodigo && descricaoVidroCompativel(
-            item.descricao,
-            `${candidatoPorCodigo.nome} ${candidatoPorCodigo.espessura} ${candidatoPorCodigo.tipo}`,
-          )
-            ? candidatoPorCodigo
-            : null;
-        const encontrado = encontradoPorCodigo || porNome.get(normalizarTexto(item.descricao));
+        const candidatos = catalogo.filter(v => (v.codigo || "").trim().toUpperCase() === item.codigo.trim().toUpperCase());
+        const encontrado = candidatos.length === 1 ? candidatos[0] : null;
         if (encontrado) {
           reconhecidos.push({ item, vidro: encontrado });
           continue;
@@ -247,7 +269,7 @@ export default function GestaoPrecosPage() {
 
         pendentes.push({
           ...item,
-          acao: usarSugestao ? "vincular" : "criar",
+          acao: "ignorar",
           vidroSelecionadoId: usarSugestao ? sugestao.vidro.id : "",
           sugestaoVidroId: usarSugestao ? sugestao.vidro.id : undefined,
           novoNome: dados.nome,
@@ -256,13 +278,7 @@ export default function GestaoPrecosPage() {
         });
       }
 
-      if (!pendentes.length) {
-        setImportacaoPendente({ nomeTabela, reconhecidos, pendentes: [] });
-        await confirmarImportacao({ nomeTabela, reconhecidos, pendentes: [] });
-        return;
-      }
-
-      setImportacaoPendente({ nomeTabela, reconhecidos, pendentes });
+      setImportacaoPendente({ nomeTabela: destino.nome, tabelaId: destino.id, precosAnteriores, reconhecidos, pendentes });
     } catch (error: any) {
       console.error("Erro ao analisar tabela:", error);
       setModalAvisoAberto({ aberto: true, mensagem: error?.message || "Não foi possível analisar a tabela." });
@@ -297,25 +313,7 @@ export default function GestaoPrecosPage() {
 
     setCarregando(true);
     try {
-      const { data: tabelaExistente, error: erroTabelaExistente } = await supabase
-        .from("tabelas")
-        .select("id, nome")
-        .eq("empresa_id", empresaIdAtual)
-        .ilike("nome", dados.nomeTabela)
-        .maybeSingle();
-      if (erroTabelaExistente) throw erroTabelaExistente;
-
-      let tabelaImportada = tabelaExistente;
-      if (!tabelaImportada) {
-        const { data: novaTabela, error: erroNovaTabela } = await supabase
-          .from("tabelas")
-          .insert({ nome: formatarNomePadrao(dados.nomeTabela), empresa_id: empresaIdAtual })
-          .select("id, nome")
-          .single();
-        if (erroNovaTabela) throw erroNovaTabela;
-        tabelaImportada = novaTabela;
-      }
-
+      const tabelaImportada = { id: dados.tabelaId, nome: dados.nomeTabela };
       const registros: Array<{ grupo_preco_id: string; vidro_id: string; preco: number; empresa_id: string }> =
         dados.reconhecidos.map(({ item, vidro }) => ({
           grupo_preco_id: tabelaImportada!.id,
@@ -325,7 +323,7 @@ export default function GestaoPrecosPage() {
         }));
 
       let vinculados = 0;
-      let criados = 0;
+      const criados = 0;
       let ignorados = 0;
 
       for (const item of dados.pendentes) {
@@ -334,25 +332,11 @@ export default function GestaoPrecosPage() {
           continue;
         }
 
-        let vidroId = item.vidroSelecionadoId;
+        const vidroId = item.vidroSelecionadoId;
         if (item.acao === "vincular") {
           vinculados++;
         } else {
-          const { data: novoVidro, error: erroNovoVidro } = await supabase
-            .from("vidros")
-            .insert({
-              codigo: item.codigo.toUpperCase(),
-              nome: formatarNomePadrao(item.novoNome),
-              espessura: item.novaEspessura.trim(),
-              tipo: item.novoTipo.trim(),
-              preco: item.precoAtual,
-              empresa_id: empresaIdAtual,
-            })
-            .select("id")
-            .single();
-          if (erroNovoVidro) throw new Error(`Não foi possível criar ${item.codigo}: ${erroNovoVidro.message}`);
-          vidroId = novoVidro.id;
-          criados++;
+          throw new Error("Cadastre novos vidros na tela de Vidros antes de vinculá-los.");
         }
 
         registros.push({
@@ -363,6 +347,7 @@ export default function GestaoPrecosPage() {
         });
       }
 
+      if (new Set(registros.map(r => r.vidro_id)).size !== registros.length) throw new Error("Dois produtos foram vinculados ao mesmo vidro. Revise os vínculos.");
       if (registros.length) {
         const { error: erroImportacao } = await supabase
           .from("vidro_precos_grupos")
@@ -912,7 +897,7 @@ const { error } = await supabase
               </div>
               <div>
                 <h2 className="text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>Importar tabela pelo relatório TXT</h2>
-                <p className="mt-1 text-sm text-text-secondary">O sistema identifica a tabela, procura os produtos pelo código e salva os preços automaticamente.</p>
+                <p className="mt-1 text-sm text-text-secondary">Selecione a tabela abaixo e confira os preços antes de atualizar. Produtos não encontrados ficam para revisão.</p>
               </div>
             </div>
 
@@ -930,15 +915,16 @@ const { error } = await supabase
             <button
               type="button"
               onClick={() => arquivoTabelaRef.current?.click()}
-              disabled={carregando}
+              disabled={carregando || !tabelaSelecionada}
               className="flex shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold shadow-sm transition hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: theme.buttonDarkBg, color: theme.contentTextDarkBg, boxShadow: `0 12px 28px color-mix(in srgb, ${theme.menuBackgroundColor} 14%, transparent)` }}
             >
               <Upload size={18} />
-              {carregando ? "Importando..." : "Enviar tabela TXT"}
+              {carregando ? "Importando..." : "Atualizar tabela com TXT"}
             </button>
           </div>
 
+          <button type="button" onClick={abrirHistorico} disabled={historicoCarregando} className="mb-4 rounded-xl border border-border px-4 py-2 text-sm">Histórico de preços — {tabelaSelecionada?.nome || "Cadastro de vidros"}</button>
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
 
             <div className="h-fit rounded-[22px] border p-5 shadow-sm xl:col-span-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
@@ -1211,6 +1197,20 @@ const { error } = await supabase
       </div>
 
 
+      {historicoAberto && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
+          <div role="dialog" aria-modal="true" aria-label="Histórico de preços" className="max-h-[85vh] w-full max-w-4xl overflow-auto rounded-2xl bg-surface p-6 text-text">
+            <div className="flex justify-between gap-4"><h2 className="font-bold">Histórico de preços — {historicoTitulo}</h2><button onClick={() => setHistoricoAberto(false)}>Fechar</button></div>
+            <p className="my-3 text-sm">Últimos 200 registros. O histórico começa após sua ativação no banco.</p>
+            {historicoCarregando ? <p>Carregando...</p> : historicoErro ? <p role="alert">{historicoErro}</p> : historico.length === 0 ? <p>Nenhuma alteração registrada.</p> : (
+              <table className="w-full text-left text-sm"><thead><tr><th>Data</th><th>Vidro</th><th>Anterior</th><th>Novo</th></tr></thead>
+                <tbody>{historico.map(h => <tr key={h.id} className="border-t border-border"><td className="py-3">{new Date(h.criado_em).toLocaleString("pt-BR")}</td><td>{h.descricao}</td><td>{h.preco_anterior === null ? "—" : Number(h.preco_anterior).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td><td>{h.preco_novo === null ? "Removido" : Number(h.preco_novo).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr>)}</tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
       {importacaoPendente && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 md:p-6">
           <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl border border-border flex flex-col" style={{ backgroundColor: theme.modalBackgroundColor }}>
@@ -1224,10 +1224,17 @@ const { error } = await supabase
                   Tabela <strong>{importacaoPendente.nomeTabela}</strong>: {importacaoPendente.reconhecidos.length} reconhecido(s) e {importacaoPendente.pendentes.length} aguardando decisão.
                 </p>
               </div>
-              <button onClick={() => setImportacaoPendente(null)} className="p-2 rounded-xl hover:bg-surface-secondary text-text-secondary"><X size={22} /></button>
+              <button disabled={carregando} onClick={() => setImportacaoPendente(null)} className="p-2 rounded-xl hover:bg-surface-secondary text-text-secondary"><X size={22} /></button>
             </div>
 
             <div className="overflow-y-auto p-4 md:p-6 space-y-4">
+              <p className="text-sm text-text-secondary">Atualiza somente os preços desta tabela. Cadastros e preços-base são preservados.</p>
+              {importacaoPendente.reconhecidos.map(({ item, vidro }) => (
+                <div key={item.codigo} className="rounded-xl border border-border p-3 text-sm">
+                  <strong>{item.codigo} — {vidro.nome} {vidro.espessura} {vidro.tipo}</strong>
+                  <p>{importacaoPendente.precosAnteriores[vidro.id] === undefined ? "Sem preço nesta tabela" : "R$ " + importacaoPendente.precosAnteriores[vidro.id].toFixed(2)} → R$ {item.precoAtual.toFixed(2)}</p>
+                </div>
+              ))}
               {importacaoPendente.pendentes.map((item, indice) => {
                 const selecionado = vidros.find((v) => v.id === item.vidroSelecionadoId);
                 const incompleto = item.acao === "vincular" ? !item.vidroSelecionadoId
@@ -1246,7 +1253,6 @@ const { error } = await supabase
 
                       <div className="flex flex-wrap gap-2">
                         <button onClick={() => atualizarItemPendente(indice, { acao: "vincular" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "vincular" ? theme.menuBackgroundColor : "#FFF", color: item.acao === "vincular" ? "#FFF" : theme.modalTextColor }}><Link2 size={15} /> Vincular</button>
-                        <button onClick={() => atualizarItemPendente(indice, { acao: "criar" })} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style={{ backgroundColor: item.acao === "criar" ? theme.menuIconColor : "#FFF", color: item.acao === "criar" ? "#FFF" : theme.modalTextColor }}><PlusCircle size={15} /> Criar novo</button>
                         <button onClick={() => atualizarItemPendente(indice, { acao: "ignorar" })} className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${item.acao === "ignorar" ? "bg-primary text-on-primary" : "bg-surface text-text-secondary"}`}><AlertTriangle size={15} /> Ignorar</button>
                       </div>
                     </div>
@@ -1260,7 +1266,7 @@ const { error } = await supabase
                           <option value="">Selecione um vidro cadastrado</option>
                           {vidros.map((vidro) => <option key={vidro.id} value={vidro.id}>{vidro.codigo ? `${vidro.codigo} — ` : ""}{vidro.nome} | {vidro.espessura} | {vidro.tipo}</option>)}
                         </select>
-                        {selecionado && <p className="text-xs text-text-secondary mt-2">O código <strong>{item.codigo}</strong> será gravado em “{selecionado.nome}”.</p>}
+                        {selecionado && <p className="text-xs text-text-secondary mt-2">Preço nesta tabela: {importacaoPendente.precosAnteriores[selecionado.id] === undefined ? "não cadastrado" : "R$ " + importacaoPendente.precosAnteriores[selecionado.id].toFixed(2)} → R$ {item.precoAtual.toFixed(2)}. O cadastro será preservado.</p>}
                       </div>
                     )}
 
