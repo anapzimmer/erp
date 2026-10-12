@@ -65,4 +65,4 @@ for each row execute function public.registrar_historico_preco_vidro();
 drop trigger if exists historico_preco on public.vidro_precos_grupos;
 create trigger historico_preco after insert or update or delete on public.vidro_precos_grupos
 for each row execute function public.registrar_historico_preco_vidro();
-commit;
+commit;Ch
