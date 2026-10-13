@@ -1,4 +1,5 @@
 ﻿"use client";
+import ModoTemperaJanela4 from "@/components/ModoTemperaJanela4";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
@@ -246,6 +247,7 @@ const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null
 };
 
 export default function JC4FKitPage() {
+  const [somenteTempera, setSomenteTempera] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -1509,11 +1511,17 @@ const novoProjeto = () => {
     return [...itensPerfis, ...itensKits, ...itensFerragens];
   }, [perfis, kits, ferragens]);
 
+  if (somenteTempera) return <ModoTemperaJanela4 dados={dados} medidas={calculoVidro} nomeEmpresa={nomeEmpresa} vidros={vidros.map(formatarVidroCadastro)} onVoltar={() => setSomenteTempera(false)} onChange={(campo, valor) => {
+    if (campo === "largura" || campo === "altura" || campo === "quantidade") atualizarCampo(campo, Number(valor));
+    else atualizarCampo(campo, String(valor));
+  }} />;
+
   return (
     <main className={`${layoutProjeto.pagina} min-h-screen w-full bg-background text-text-primary`}>
       <div className="flex min-h-screen w-full">
         <div className="flex min-h-screen w-full flex-col bg-transparent">
           <CabecalhoCalculoProjeto titulo={dados.projeto} numero={dados.numero} data={dados.data} onNovo={novoProjeto} onSalvar={salvarOrcamento} salvando={salvandoOrcamento} />
+          <label className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-border bg-surface p-4 sm:mx-6 lg:mx-8"><input type="checkbox" checked={somenteTempera} onChange={e => setSomenteTempera(e.target.checked)} /><span>Somente desenho para têmpera</span></label>
 
           <section className="relative z-20 mx-4 mt-4 rounded-xl border border-border bg-surface p-5 sm:mx-6 lg:mx-8 2xl:mx-10"><h2 className="mb-4 border-b border-border pb-3 text-sm font-semibold">Cliente e obra</h2>
             <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
