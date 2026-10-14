@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),ts=require('typescript');
-const source=fs.readFileSync('src/app/(calculos)/calculo/fora-esquadro/page.tsx','utf8'),ast=ts.createSourceFile('page.tsx',source,99,true,4),fns={};
+const source=fs.readFileSync('src/app/(calculos)/calculo/fora-esquadro/ForaEsquadroTela.tsx','utf8'),ast=ts.createSourceFile('page.tsx',source,99,true,4),fns={};
 function visit(n){if(ts.isVariableDeclaration(n)&&['clienteSelecionado','precoVidroM2'].includes(n.name.getText(ast))) fns[n.name.getText(ast)]=n.initializer.arguments[0].getText(ast);ts.forEachChild(n,visit)}visit(ast);
 const call=(name,ctx)=>vm.runInNewContext(ts.transpileModule('('+fns[name]+')()',{compilerOptions:{target:7}}).outputText,ctx);
 const clientes=[{nome:'CLIENTE Á',grupo_preco_id:'A'}];

@@ -1,4 +1,5 @@
 export type ForaEsquadroSalvo = {
+  foraEsquadroLateral?: import("./foraEsquadroLateral").ForaEsquadroLateral;
   id: string;
   molde?: boolean;
   cliente?: string;

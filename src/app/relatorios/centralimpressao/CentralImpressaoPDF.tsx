@@ -2,6 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
+import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -17,6 +18,7 @@ import { compararMateriaisRelacao, ehKitBatenteMaterial, ordemPerfilMaterial } f
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type CentralImpressaoItem = {
+  foraEsquadroLateral?: import("@/utils/foraEsquadroLateral").ForaEsquadroLateral;
   centralDados?: {
     quantidadeDivisoesLargura?: string;
     grapasLateraisPorVao?: string;
@@ -843,6 +845,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 }
 
 function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
+  if (item.foraEsquadroLateral) return <DesenhoForaEsquadroLateral dados={item.foraEsquadroLateral} pdf />;
   const { largura, alturaInicial, alturaFinal, divisoes } = medidasDesenhoForaEsquadro(item);
   const svgW = 920;
   const svgH = 520;
@@ -861,9 +864,9 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   return (
     <Svg width={190} height={130} viewBox={`0 0 ${svgW} ${svgH}`}>
       <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill={PDF_COLORS.white} />
-      <Path d={path} fill={PDF_COLORS.white} stroke={PDF_COLORS.ink} strokeWidth={1.8} />
-      <Line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke={PDF_COLORS.white} strokeWidth={8} opacity={0.22} />
-      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke={PDF_COLORS.white} strokeWidth={6} opacity={0.24} />
+      <Path d={path} fill={DRAWING_COLORS.glass} stroke={DRAWING_COLORS.frame} strokeWidth={2.4} />
+      <Path d={path} fill="none" stroke={DRAWING_COLORS.edge} strokeWidth={13} opacity={0.95} />
+      <Path d={path} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth={1.4} opacity={0.78} />
       {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
         const posicao = index + 1;
         const x = x0 + panelW * posicao;

@@ -312,6 +312,17 @@ const projetos = [
     descricao: "Cálculo dinâmico para vidros inclinados, triangulares ou fora de esquadro.",
   },
   {
+    id: "fora-esquadro-lateral",
+    nome: "Fora de esquadro lateral",
+    titulo: "Altura fixa e larguras diferentes",
+    categoria: "Fixos",
+    status: "Disponível",
+    imagem: "/desenhos/fora-esquadro-lateral.svg",
+    kitHref: "/calculo/fora-esquadro-lateral",
+    kitLabel: "Calcular",
+    descricao: "Peças retangulares e uma ponta inclinada à esquerda ou à direita, com altura fixa.",
+  },
+  {
     id: "pma2f",
     nome: "Mão Amiga - 2 folhas",
     titulo: "Janela, porta ou kit pia",

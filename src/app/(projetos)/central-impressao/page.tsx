@@ -1,5 +1,6 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
+import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -577,8 +578,9 @@ function EspelhoDesenhoPreview({ item }: { item: Pick<ProjetoComposicao, "largur
 function ForaEsquadroPreview({
   item,
 }: {
-  item: Pick<ProjetoComposicao, "largura" | "altura" | "alturaInicial" | "alturaFinal" | "quantidade" | "pecasDivisao" | "medidasDetalhadas" | "foraEsquadroPecas">;
+  item: Pick<ProjetoComposicao, "largura" | "altura" | "alturaInicial" | "alturaFinal" | "quantidade" | "pecasDivisao" | "medidasDetalhadas" | "foraEsquadroPecas" | "foraEsquadroLateral">;
 }) {
+  if (item.foraEsquadroLateral) return <DesenhoForaEsquadroLateral dados={item.foraEsquadroLateral} semCartao />;
   const { largura, alturaInicial, alturaFinal, divisoes } = medidasDesenhoForaEsquadro(item);
   const svgW = 920;
   const svgH = 520;
@@ -596,18 +598,10 @@ function ForaEsquadroPreview({
 
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="h-full w-full" role="img" aria-label="Desenho fora de esquadro">
-      <defs>
-        <linearGradient id={`vidroForaEsquadroCentral-${item.largura}-${item.altura}`} x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#dff1f8" />
-          <stop offset="100%" stopColor="#eef8fc" />
-        </linearGradient>
-      </defs>
       <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#ffffff" />
-      <polygon points={pontos} fill={`url(#vidroForaEsquadroCentral-${item.largura}-${item.altura})`} stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
-      <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.glass} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
+      <polygon points={pontos} fill={DRAWING_COLORS.glass} stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
+      <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.edge} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
       <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
-      <line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke="#ffffff" strokeWidth="8" opacity="0.22" />
-      <line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke="#ffffff" strokeWidth="6" opacity="0.24" />
       {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
         const posicao = index + 1;
         const x = x0 + panelW * posicao;
@@ -1652,6 +1646,7 @@ export default function CentralImpressaoPage() {
       pecasDivisao: item.pecasDivisao || (ehFixos(item.projeto) ? Number(item.tamanhoPuxador || 1) : undefined),
       medidasDetalhadas: item.medidasDetalhadas,
       foraEsquadroPecas: item.foraEsquadroPecas,
+      foraEsquadroLateral: item.foraEsquadroLateral,
       itensOriginais: item.itensOriginais,
       espelhoItens: item.espelhoItens,
       vidrosAvulsos: item.vidrosAvulsos?.map((vidro, index) => ({

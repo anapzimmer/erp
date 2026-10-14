@@ -1,11 +1,15 @@
 "use client";
 
+import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
+import { DRAWING_COLORS } from "@/design/drawing";
 import React from "react";
 import { Document, Image, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ForaEsquadroPecaPDF = {
+  larguraSuperior?: number;
+  larguraInferior?: number;
   indice: number;
   largura: number;
   alturaEsquerda: number;
@@ -17,6 +21,7 @@ export type ForaEsquadroPecaPDF = {
 };
 
 type ForaEsquadroPDFProps = {
+  lateral?: import("@/utils/foraEsquadroLateral").ForaEsquadroLateral;
   molde?: boolean;
   nomeEmpresa: string;
   logoUrl?: string | null;
@@ -171,9 +176,9 @@ function DesenhoPDF({
   return (
     <Svg width="100%" height={250} viewBox={`0 0 ${svgW} ${svgH}`}>
       <Rect x={0} y={0} width={svgW} height={svgH} rx={12} fill={PDF_COLORS.white} />
-      <Path d={pathVidro} fill={PDF_COLORS.white} stroke={PDF_COLORS.softMuted} strokeWidth={1.4} />
-      <Line x1={x0 + 22} y1={yInicial + 22} x2={x0 + drawW * 0.68} y2={yTopoEm(totalDivisoes * 0.68) + 28} stroke={PDF_COLORS.white} strokeWidth={5.2} opacity={0.22} />
-      <Line x1={x0 + drawW * 0.38} y1={yTopoEm(totalDivisoes * 0.38) + 32} x2={x0 + drawW - 34} y2={yFinal + 42} stroke={PDF_COLORS.white} strokeWidth={4} opacity={0.24} />
+      <Path d={pathVidro} fill={DRAWING_COLORS.glass} stroke={DRAWING_COLORS.frame} strokeWidth={1.4} />
+      <Path d={pathVidro} fill="none" stroke={DRAWING_COLORS.edge} strokeWidth={7} opacity={0.95} />
+      <Path d={pathVidro} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth={0.8} opacity={0.78} />
 
       {Array.from({ length: Math.max(totalDivisoes - 1, 0) }, (_, index) => {
         const posicao = index + 1;
@@ -210,6 +215,7 @@ function DesenhoPDF({
 }
 
 export function ForaEsquadroPDF({
+  lateral,
   nomeEmpresa,
   logoUrl,
   largura,
@@ -247,8 +253,8 @@ export function ForaEsquadroPDF({
             )}
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.title}>Calculo de vidro fora de esquadro</Text>
-            <Text style={styles.subtitle}>Alturas por divisao, area das pecas e desenho tecnico do vao</Text>
+            <Text style={styles.title}>{lateral ? "Fora de esquadro lateral" : "Calculo de vidro fora de esquadro"}</Text>
+            <Text style={styles.subtitle}>{lateral ? "Altura fixa, larguras superior e inferior e ponta inclinada" : "Alturas por divisao, area das pecas e desenho tecnico do vao"}</Text>
           </View>
         </View>
 
@@ -258,15 +264,15 @@ export function ForaEsquadroPDF({
             <Text style={styles.value}>{data}</Text>
           </View>
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Largura</Text>
+            <Text style={styles.label}>{lateral ? "Altura fixa" : "Largura"}</Text>
             <Text style={styles.value}>{fmtMm(largura)}</Text>
           </View>
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Altura inicial</Text>
+            <Text style={styles.label}>{lateral ? "Largura superior" : "Altura inicial"}</Text>
             <Text style={styles.value}>{fmtMm(alturaInicial)}</Text>
           </View>
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Altura final</Text>
+            <Text style={styles.label}>{lateral ? "Largura inferior" : "Altura final"}</Text>
             <Text style={styles.value}>{fmtMm(alturaFinal)}</Text>
           </View>
           <View style={styles.infoBox}>
@@ -278,12 +284,12 @@ export function ForaEsquadroPDF({
             <Text style={styles.value}>{divisoes || 1} peca(s)</Text>
           </View>
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Queda total</Text>
+            <Text style={styles.label}>{lateral ? "Diferença das larguras" : "Queda total"}</Text>
             <Text style={styles.value}>{fmtMm(Math.abs(quedaTotal))}</Text>
           </View>
           <View style={styles.infoBox}>
-            <Text style={styles.label}>Queda por divisao</Text>
-            <Text style={styles.value}>{fmtMm(Math.abs(quedaPorDivisao))}</Text>
+            <Text style={styles.label}>{lateral ? "Largura base por peça" : "Queda por divisao"}</Text>
+            <Text style={styles.value}>{fmtMm(lateral ? Math.min(alturaInicial, alturaFinal) / divisoes : Math.abs(quedaPorDivisao))}</Text>
           </View>
         </View>
 
@@ -316,7 +322,7 @@ export function ForaEsquadroPDF({
           <Text style={styles.sectionTitle}>Desenho ilustrativo</Text>
           <View style={styles.drawing}>
             {molde && <Text style={styles.subtitle}>Vidro com molde: +100 mm na largura e na maior altura de cada peça. Acréscimo de 30% sobre o valor do vidro.</Text>}
-            <DesenhoPDF largura={largura} alturaInicial={alturaInicial} alturaFinal={alturaFinal} divisoes={divisoes} pecas={pecas} />
+            {lateral ? <DesenhoForaEsquadroLateral dados={lateral} pdf width={500} height={250} /> : <DesenhoPDF largura={largura} alturaInicial={alturaInicial} alturaFinal={alturaFinal} divisoes={divisoes} pecas={pecas} />}
           </View>
         </View>
 
@@ -324,19 +330,19 @@ export function ForaEsquadroPDF({
         <View style={styles.table}>
           <View style={styles.headerRow}>
             <Text style={[styles.th, styles.colPeca]}>Peca</Text>
-            <Text style={[styles.th, styles.colMedida]}>Largura</Text>
-            <Text style={[styles.th, styles.colAltura]}>Alt. esq.</Text>
-            <Text style={[styles.th, styles.colAltura]}>Alt. dir.</Text>
-            <Text style={[styles.th, styles.colQueda]}>Queda</Text>
+            <Text style={[styles.th, styles.colMedida]}>{lateral ? "Altura fixa" : "Largura"}</Text>
+            <Text style={[styles.th, styles.colAltura]}>{lateral ? "Larg. sup." : "Alt. esq."}</Text>
+            <Text style={[styles.th, styles.colAltura]}>{lateral ? "Larg. inf." : "Alt. dir."}</Text>
+            <Text style={[styles.th, styles.colQueda]}>{lateral ? "Diferença" : "Queda"}</Text>
             <Text style={[styles.th, styles.colArea]}>Area</Text>
           </View>
 
           {pecas.map((peca) => (
             <View key={peca.indice} style={styles.row} wrap={false}>
               <Text style={[styles.td, styles.colPeca]}>Peca {peca.indice}</Text>
-              <Text style={[styles.td, styles.colMedida]}>{fmtMm(peca.largura)}</Text>
-              <Text style={[styles.td, styles.colAltura]}>{fmtMm(peca.alturaEsquerda)}</Text>
-              <Text style={[styles.td, styles.colAltura]}>{fmtMm(peca.alturaDireita)}</Text>
+              <Text style={[styles.td, styles.colMedida]}>{fmtMm(lateral ? largura : peca.largura)}</Text>
+              <Text style={[styles.td, styles.colAltura]}>{fmtMm(lateral ? peca.larguraSuperior! : peca.alturaEsquerda)}</Text>
+              <Text style={[styles.td, styles.colAltura]}>{fmtMm(lateral ? peca.larguraInferior! : peca.alturaDireita)}</Text>
               <Text style={[styles.td, styles.colQueda]}>{fmtMm(Math.abs(peca.queda))}</Text>
               <Text style={[styles.td, styles.colArea]}>{fmtM2(peca.area)} m²</Text>
             </View>

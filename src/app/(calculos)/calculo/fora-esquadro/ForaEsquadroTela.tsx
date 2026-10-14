@@ -1,0 +1,969 @@
+"use client";
+import Link from "next/link";
+import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
+import { calcularPecasLateral, desenhoLateralUrl, type ForaEsquadroLateral } from "@/utils/foraEsquadroLateral";
+import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
+import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
+import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { DRAWING_COLORS } from "@/design/drawing";
+import styles from "./fora-esquadro.module.css";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { Calculator, Eraser, FilePlus2, Layers3, Printer, Search, TriangleRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { recuperarForaEsquadro, salvarForaEsquadroCentral, type ForaEsquadroSalvo } from "@/utils/foraEsquadroEdicao";
+import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/context/ThemeContext";
+import { ForaEsquadroPDF } from "@/app/relatorios/foraesquadro/ForaEsquadroPDF";
+import { supabase } from "@/lib/supabaseClient";
+import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { normalizarPrecoCatalogo } from "@/utils/precos";
+
+type PecaForaEsquadro = {
+  larguraSuperior?: number;
+  larguraInferior?: number;
+  indice: number;
+  largura: number;
+  alturaEsquerda: number;
+  alturaDireita: number;
+  queda: number;
+  larguraCalculo: number;
+  alturaCalculo: number;
+  area: number;
+};
+
+type ClienteCadastro = {
+  id: string;
+  nome: string;
+  grupo_preco_id?: string | null;
+};
+
+type VidroCadastro = {
+  id: string;
+  nome: string;
+  espessura?: string | number | null;
+  tipo?: string | null;
+  preco?: number | null;
+};
+
+type PrecoVidroGrupo = {
+  vidro_id: string;
+  grupo_preco_id: string | null;
+  preco: number;
+};
+
+const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
+
+const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+const limitarNumero = (valor: string, maxDigitos = 5) =>
+  Number(String(valor || "").replace(/\D/g, "").slice(0, maxDigitos)) || 0;
+
+const formatarMm = (valor: number) =>
+  `${Math.round(Number(valor || 0)).toLocaleString("pt-BR")} mm`;
+
+const formatarM2 = (valor: number) =>
+  Number(valor || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const moeda = (valor: number) =>
+  Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const arredondarVidro50 = (valor: number) => Math.ceil(Math.max(0, Number(valor || 0)) / 50) * 50;
+
+const criarId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now() + Math.random());
+
+const formatarVidroCadastro = (vidro: VidroCadastro) => {
+  const espessura = vidro.espessura ? String(vidro.espessura).replace(/\s*mm$/i, "") : "";
+  const tipo = vidro.tipo ? String(vidro.tipo).trim() : "";
+  return [vidro.nome, espessura ? `${espessura}mm` : "", tipo].filter(Boolean).join(" ");
+};
+
+const calcularPecas = ({
+  largura,
+  alturaInicial,
+  alturaFinal,
+  divisoes,
+  molde = false,
+}: {
+  largura: number;
+  alturaInicial: number;
+  alturaFinal: number;
+  divisoes: number;
+  molde?: boolean;
+}): PecaForaEsquadro[] => {
+  const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
+  const larguraPeca = largura / totalDivisoes;
+  const quedaPorDivisao = (alturaInicial - alturaFinal) / totalDivisoes;
+
+  return Array.from({ length: totalDivisoes }, (_, index) => {
+    const alturaEsquerda = alturaInicial - quedaPorDivisao * index;
+    const alturaDireita = alturaInicial - quedaPorDivisao * (index + 1);
+    const larguraCalculo = molde ? larguraPeca + 100 : arredondarVidro50(larguraPeca);
+    const alturaMaior = Math.max(alturaEsquerda, alturaDireita);
+    // Os 50 mm extras entram apenas no cálculo da ponta fora de esquadro, não na altura do vidro.
+    const acrescimoPonta = Math.abs(alturaEsquerda - alturaDireita) > 0.001 ? 50 : 0;
+    const alturaCalculo = molde ? alturaMaior + 100 : arredondarVidro50(alturaMaior + acrescimoPonta);
+    const area = (larguraCalculo * alturaCalculo) / 1_000_000;
+
+    return {
+      indice: index + 1,
+      largura: larguraPeca,
+      alturaEsquerda,
+      alturaDireita,
+      queda: quedaPorDivisao,
+      larguraCalculo,
+      alturaCalculo,
+      area,
+    };
+  });
+};
+
+const gerarDesenhoForaEsquadroUrl = ({
+  largura,
+  alturaInicial,
+  alturaFinal,
+  divisoes,
+  pecas,
+}: {
+  largura: number;
+  alturaInicial: number;
+  alturaFinal: number;
+  divisoes: number;
+  pecas: PecaForaEsquadro[];
+}) => {
+  const svgW = 920;
+  const svgH = 520;
+  const padX = 92;
+  const padTop = 62;
+  const padBottom = 92;
+  const drawW = svgW - padX * 2;
+  const minAltura = Math.min(alturaInicial, alturaFinal);
+  const drawH = svgH - padTop - padBottom;
+  const x0 = padX;
+  const yBase = padTop + drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
+  const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
+  const panelW = drawW / totalDivisoes;
+  const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
+  const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / totalDivisoes);
+  const linhasDivisao = Array.from({ length: Math.max(totalDivisoes - 1, 0) }, (_, index) => {
+    const posicao = index + 1;
+    const x = x0 + panelW * posicao;
+    const yTop = yTopoEm(posicao);
+    const altura = pecas[index]?.alturaDireita ?? 0;
+
+    return `
+      <g>
+        <line x1="${x}" y1="${yTop}" x2="${x}" y2="${yBase}" stroke="${DRAWING_COLORS.frame}" stroke-width="1.8" opacity="0.82"/>
+        <text x="${x + 8}" y="${yTop - 10}" font-size="18" font-family="Inter, Arial, sans-serif" fill="${DRAWING_COLORS.ink}">${Math.round(altura)}</text>
+      </g>
+    `;
+  }).join("");
+
+  return svgDataUrl(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+      <defs>
+        <linearGradient id="vidroForaEsquadro" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="${DRAWING_COLORS.glass}"/>
+          <stop offset="100%" stop-color="${DRAWING_COLORS.glass}"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="28" fill="#ffffff"/>
+      <polygon points="${pontos}" fill="${DRAWING_COLORS.glass}" stroke="${DRAWING_COLORS.frame}" stroke-width="2.4" stroke-linejoin="round"/>
+      <polygon points="${pontos}" fill="none" stroke="${DRAWING_COLORS.edge}" stroke-width="13" stroke-linejoin="round" opacity="0.95"/>
+      <polygon points="${pontos}" fill="none" stroke="${DRAWING_COLORS.frame}" stroke-width="1.4" stroke-linejoin="round" opacity="0.78"/>
+      ${linhasDivisao}
+      <line x1="${x0}" y1="${yBase + 32}" x2="${x0 + drawW}" y2="${yBase + 32}" stroke="${DRAWING_COLORS.frame}" stroke-width="1.6"/>
+      <line x1="${x0}" y1="${yBase + 22}" x2="${x0}" y2="${yBase + 42}" stroke="${DRAWING_COLORS.frame}" stroke-width="1.6"/>
+      <line x1="${x0 + drawW}" y1="${yBase + 22}" x2="${x0 + drawW}" y2="${yBase + 42}" stroke="${DRAWING_COLORS.frame}" stroke-width="1.6"/>
+      <text x="${x0 + drawW / 2}" y="${yBase + 62}" text-anchor="middle" font-size="21" font-family="Inter, Arial, sans-serif" font-weight="500" fill="${DRAWING_COLORS.ink}">${formatarMm(largura)}</text>
+      <text x="${x0 + 14}" y="${(yInicial + yBase) / 2}" text-anchor="start" font-size="19" font-family="Inter, Arial, sans-serif" fill="${DRAWING_COLORS.ink}">${formatarMm(alturaInicial)}</text>
+      <text x="${x0 + drawW - 14}" y="${(yFinal + yBase) / 2}" text-anchor="end" font-size="19" font-family="Inter, Arial, sans-serif" fill="${DRAWING_COLORS.ink}">${formatarMm(alturaFinal)}</text>
+      ${
+        minAltura === 0
+          ? `<text x="${x0 + drawW - 8}" y="${yBase - 10}" text-anchor="end" font-size="15" font-family="Inter, Arial, sans-serif" fill="${DRAWING_COLORS.frame}">termina em zero</text>`
+          : ""
+      }
+    </svg>
+  `);
+};
+
+function CampoMedida({
+  label,
+  value,
+  suffix = "mm",
+  maxDigitos = 5,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+  maxDigitos?: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+      <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
+      <span className="mt-1.5 flex items-end gap-2">
+        <input
+          type="number"
+          min={0}
+          value={value}
+          inputMode="numeric"
+          onKeyDown={(event) => {
+            if (["e", "E", "+", "-", ".", ","].includes(event.key)) event.preventDefault();
+          }}
+          onChange={(event) => onChange(limitarNumero(event.target.value, maxDigitos))}
+          className="w-full min-w-0 bg-transparent text-lg font-medium leading-tight text-text-primary outline-none"
+        />
+        <span className="pb-0.5 text-xs font-medium text-text-secondary">{suffix}</span>
+      </span>
+    </label>
+  );
+}
+
+function ResumoCard({
+  titulo,
+  valor,
+  detalhe,
+}: {
+  titulo: string;
+  valor: string;
+  detalhe: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">{titulo}</p>
+      <p className="mt-2 text-xl font-medium leading-tight text-text-primary">{valor}</p>
+      <p className="mt-1 text-xs leading-5 text-text-secondary">{detalhe}</p>
+    </article>
+  );
+}
+
+function CampoBusca<T extends { id: string }>({
+  label,
+  value,
+  placeholder,
+  itens,
+  carregando,
+  formatar,
+  onChange,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  itens: T[];
+  carregando?: boolean;
+  formatar: (item: T) => string;
+  onChange: (value: string) => void;
+  onSelect: (item: T) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+
+  return (
+    <label className={`${styles.superficieBranca} relative rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+      <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
+      <span className="mt-1.5 flex items-center gap-2">
+        <Search size={15} className="text-text-secondary" />
+        <input
+          value={value}
+          placeholder={placeholder}
+          onFocus={() => setAberto(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setAberto(true);
+          }}
+          className="w-full min-w-0 bg-transparent text-sm font-medium leading-tight text-text-primary outline-none placeholder:text-text-secondary"
+        />
+      </span>
+
+      {aberto ? (
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+          {carregando ? (
+            <div className="px-3 py-2.5 text-xs text-text-secondary">Carregando...</div>
+          ) : itens.length > 0 ? (
+            itens.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(item);
+                  setAberto(false);
+                }}
+                className="block w-full px-3 py-2.5 text-left text-xs font-medium text-text-primary transition hover:bg-info-soft"
+              >
+                {formatar(item)}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2.5 text-xs text-text-secondary">Nenhum resultado encontrado.</div>
+          )}
+        </div>
+      ) : null}
+    </label>
+  );
+}
+
+function DesenhoForaEsquadro({
+  largura,
+  alturaInicial,
+  alturaFinal,
+  divisoes,
+  pecas,
+}: {
+  largura: number;
+  alturaInicial: number;
+  alturaFinal: number;
+  divisoes: number;
+  pecas: PecaForaEsquadro[];
+}) {
+  const svgW = 920;
+  const svgH = 520;
+  const padX = 92;
+  const padTop = 62;
+  const padBottom = 92;
+  const drawW = svgW - padX * 2;
+  const minAltura = Math.min(alturaInicial, alturaFinal);
+  const drawH = svgH - padTop - padBottom;
+  const x0 = padX;
+  const yBase = padTop + drawH;
+  const { yInicial, yFinal } = topoForaEsquadro(alturaInicial, alturaFinal, yBase, drawH);
+  const totalDivisoes = Math.max(1, Math.min(12, Math.floor(divisoes || 1)));
+  const panelW = drawW / totalDivisoes;
+  const pontos = `${x0},${yBase} ${x0 + drawW},${yBase} ${x0 + drawW},${yFinal} ${x0},${yInicial}`;
+
+  const yTopoEm = (index: number) => {
+    const proporcao = index / totalDivisoes;
+    return yInicial + (yFinal - yInicial) * proporcao;
+  };
+
+  return (
+    <article className="rounded-3xl border border-border bg-surface p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Vista frontal</p>
+          <h2 className="mt-1 text-lg font-medium text-text-primary">Desenho fora de esquadro</h2><p className="text-xs text-text-secondary">Ilustrativo, sem escala. Confira as medidas indicadas.</p>
+        </div>
+        <TriangleRight className="text-text-secondary" size={25} strokeWidth={1.8} />
+      </div>
+
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="h-auto w-full" role="img" aria-label="Desenho do vidro fora de esquadro">
+        <rect x="0" y="0" width={svgW} height={svgH} rx="28" fill="#ffffff" />
+        <polygon points={pontos} fill={DRAWING_COLORS.glass} stroke={DRAWING_COLORS.frame} strokeWidth="2.4" strokeLinejoin="round" />
+        <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.edge} strokeWidth="13" strokeLinejoin="round" opacity="0.95" />
+        <polygon points={pontos} fill="none" stroke={DRAWING_COLORS.frame} strokeWidth="1.4" strokeLinejoin="round" opacity="0.78" />
+
+        {Array.from({ length: Math.max(totalDivisoes - 1, 0) }, (_, index) => {
+          const posicao = index + 1;
+          const x = x0 + panelW * posicao;
+          const yTop = yTopoEm(posicao);
+          const altura = pecas[index]?.alturaDireita ?? 0;
+
+          return (
+            <g key={posicao}>
+              <line x1={x} y1={yTop} x2={x} y2={yBase} stroke={DRAWING_COLORS.frame} strokeWidth="1.8" opacity="0.82" />
+              <text x={x + 8} y={yTop - 10} fontSize="18" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
+                {Math.round(altura)}
+              </text>
+            </g>
+          );
+        })}
+
+        <line x1={x0} y1={yBase + 32} x2={x0 + drawW} y2={yBase + 32} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+        <line x1={x0} y1={yBase + 22} x2={x0} y2={yBase + 42} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+        <line x1={x0 + drawW} y1={yBase + 22} x2={x0 + drawW} y2={yBase + 42} stroke={DRAWING_COLORS.ink} strokeWidth="1.6" />
+        <text x={x0 + drawW / 2} y={yBase + 62} textAnchor="middle" fontSize="21" fontFamily="Segoe UI, Arial" fontWeight="500" fill={DRAWING_COLORS.ink}>
+          {formatarMm(largura)}
+        </text>
+
+        <text x={x0 + 14} y={(yInicial + yBase) / 2} textAnchor="start" fontSize="19" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
+          {formatarMm(alturaInicial)}
+        </text>
+        <text x={x0 + drawW - 14} y={(yFinal + yBase) / 2} textAnchor="end" fontSize="19" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
+          {formatarMm(alturaFinal)}
+        </text>
+
+        {minAltura === 0 ? (
+          <text x={x0 + drawW - 8} y={yBase - 10} textAnchor="end" fontSize="15" fontFamily="Segoe UI, Arial" fill={DRAWING_COLORS.ink}>
+            termina em zero
+          </text>
+        ) : null}
+      </svg>
+    </article>
+  );
+}
+
+export default function ForaEsquadroTela({ lateral = false }: { lateral?: boolean }) {
+  return <Suspense fallback={<p>Carregando projeto...</p>}><ForaEsquadroConteudo lateral={lateral} /></Suspense>;
+}
+
+function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
+  const [lado, setLado] = useState<"direito" | "esquerdo">("direito");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const centralItemId = searchParams.get("centralItem");
+  const retornoInformado = searchParams.get("returnTo") || "";
+  const returnTo = /^\/central-impressao(?:\?|$)/.test(retornoInformado) ? retornoInformado : "/central-impressao";
+  const [erroEdicao, setErroEdicao] = useState("");
+  const [itemCarregado, setItemCarregado] = useState<string | null>(null);
+  const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
+  const { theme } = useTheme();
+  const [largura, setLargura] = useState(lateral ? 1200 : 2000);
+  const [alturaInicial, setAlturaInicial] = useState(lateral ? 3600 : 1000);
+  const [alturaFinal, setAlturaFinal] = useState(lateral ? 3000 : 200);
+  const [quantidade, setQuantidade] = useState(1);
+  const [divisoes, setDivisoes] = useState(3);
+  const [molde, setMolde] = useState(false);
+  const [mostrarPreco, setMostrarPreco] = useState(false);
+  const [clientes, setClientes] = useState<ClienteCadastro[]>([]);
+  const [vidros, setVidros] = useState<VidroCadastro[]>([]);
+  const [precosVidroGrupos, setPrecosVidroGrupos] = useState<PrecoVidroGrupo[]>([]);
+  const [clienteBusca, setClienteBusca] = useState("");
+  const orcamentoAtivo = useClienteOrcamento({ cliente: clienteBusca, onCliente: setClienteBusca });
+
+  const [vidroBusca, setVidroBusca] = useState("");
+  const [carregandoClientes, setCarregandoClientes] = useState(false);
+  const [carregandoVidros, setCarregandoVidros] = useState(false);
+
+  useEffect(() => {
+    if (!centralItemId) return;
+    try {
+      const lista: ForaEsquadroSalvo[] = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]");
+      const item = lista.find(registro => registro.id === centralItemId);
+      if (!item) throw new Error("O item não foi encontrado na central. Volte ao orçamento e abra a edição novamente.");
+      const dados = recuperarForaEsquadro(item);
+      setLargura(lateral && item.foraEsquadroLateral ? item.foraEsquadroLateral.altura : dados.largura);
+      setAlturaInicial(lateral && item.foraEsquadroLateral ? item.foraEsquadroLateral.larguraSuperior : dados.alturaInicial);
+      setAlturaFinal(lateral && item.foraEsquadroLateral ? item.foraEsquadroLateral.larguraInferior : dados.alturaFinal);
+      if (item.foraEsquadroLateral) setLado(item.foraEsquadroLateral.lado);
+      setQuantidade(dados.quantidade);
+      setDivisoes(dados.divisoes);
+      setMolde(Boolean(item.molde));
+      setClienteBusca(dados.cliente);
+      setVidroBusca(dados.vidro);
+      setMostrarPreco(true);
+      setItemCarregado(centralItemId);
+      setErroEdicao("");
+    } catch (erro) {
+      setErroEdicao(erro instanceof Error ? erro.message : "Não foi possível recuperar o projeto.");
+    }
+  }, [centralItemId, lateral]);
+
+  const chaveRascunho = `glasscode:fora-esquadro${lateral ? "-lateral" : ""}:rascunho`;
+  const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+
+  useEffect(() => {
+    if (centralItemId) {
+      setRascunhoRestaurado(true);
+      return;
+    }
+    try {
+      const salvo = JSON.parse(window.localStorage.getItem(chaveRascunho) || "null");
+      if (salvo) {
+        const numero = (v: unknown, padrao: number) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : padrao);
+        setLargura(prev => numero(salvo.largura, prev));
+        setAlturaInicial(prev => numero(salvo.alturaInicial, prev));
+        setAlturaFinal(prev => numero(salvo.alturaFinal, prev));
+        setQuantidade(prev => numero(salvo.quantidade, prev));
+        setDivisoes(prev => numero(salvo.divisoes, prev));
+        setMolde(Boolean(salvo.molde));
+        if (salvo.lado === "direito" || salvo.lado === "esquerdo") setLado(salvo.lado);
+        if (typeof salvo.vidroBusca === "string") setVidroBusca(salvo.vidroBusca);
+      }
+    } catch {}
+    setRascunhoRestaurado(true);
+  }, [centralItemId, chaveRascunho]);
+
+  useEffect(() => {
+    if (!rascunhoRestaurado || centralItemId) return;
+    try {
+      window.localStorage.setItem(chaveRascunho, JSON.stringify({ largura, alturaInicial, alturaFinal, quantidade, divisoes, molde, lado, vidroBusca }));
+    } catch {}
+  }, [rascunhoRestaurado, centralItemId, chaveRascunho, largura, alturaInicial, alturaFinal, quantidade, divisoes, molde, lado, vidroBusca]);
+
+  const dadosLateral: ForaEsquadroLateral = useMemo(() => ({ larguraSuperior: alturaInicial, larguraInferior: alturaFinal, altura: largura, divisoes, lado }), [alturaInicial, alturaFinal, largura, divisoes, lado]);
+  const medidasValidas = !lateral || (largura > 0 && alturaInicial > 0 && alturaFinal > 0);
+  const pecas: PecaForaEsquadro[] = useMemo(
+    () => lateral ? calcularPecasLateral(dadosLateral, molde) : calcularPecas({ largura, alturaInicial, alturaFinal, divisoes, molde }),
+    [alturaFinal, alturaInicial, divisoes, largura, molde, lateral, dadosLateral]
+  );
+  const desenhoAtualUrl = useMemo(
+    () =>
+      lateral ? desenhoLateralUrl(dadosLateral) : gerarDesenhoForaEsquadroUrl({
+        largura,
+        alturaInicial,
+        alturaFinal,
+        divisoes,
+        pecas,
+      }),
+    [alturaFinal, alturaInicial, divisoes, largura, pecas, lateral, dadosLateral]
+  );
+
+  const areaPorVao = useMemo(() => pecas.reduce((total, peca) => total + peca.area, 0), [pecas]);
+  const areaTotal = areaPorVao * Math.max(1, quantidade || 1);
+  const quedaTotal = alturaInicial - alturaFinal;
+  const quedaPorDivisao = quedaTotal / Math.max(1, divisoes || 1);
+  const clienteSelecionado = useMemo(
+    () => {
+ const normalizar = (nome: string) => nome.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+ const encontrados = clientes.filter(cliente => normalizar(cliente.nome) === normalizar(clienteBusca));
+ return encontrados.length === 1 ? encontrados[0] : null;
+},
+    [clienteBusca, clientes]
+  );
+  const vidroSelecionado = useMemo(
+    () => localizarVidroPorDescricao(vidros, vidroBusca, formatarVidroCadastro),
+    [vidroBusca, vidros]
+  );
+  const precoVidroM2 = useMemo(() => {
+    if (!vidroSelecionado || (clienteBusca.trim() && !clienteSelecionado)) return 0;
+
+    const precoGrupo = clienteSelecionado?.grupo_preco_id
+      ? precosVidroGrupos.find(
+          (preco) =>
+            String(preco.vidro_id) === String(vidroSelecionado.id) &&
+            String(preco.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id)
+        )
+      : null;
+
+    return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
+  }, [clienteBusca, clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
+  const fatorMolde = molde ? 1.3 : 1;
+  const valorTotal = areaTotal * precoVidroM2 * fatorMolde;
+
+  const clientesFiltrados = useMemo(() => {
+    const termo = clienteBusca.trim().toLowerCase();
+    if (!termo) return clientes.slice(0, 8);
+    return clientes.filter((cliente) => cliente.nome.toLowerCase().includes(termo)).slice(0, 8);
+  }, [clienteBusca, clientes]);
+
+  const vidrosFiltrados = useMemo(() => {
+    const termo = vidroBusca.trim().toLowerCase();
+    if (!termo) return vidros.slice(0, 8);
+    return vidros.filter((vidro) => formatarVidroCadastro(vidro).toLowerCase().includes(termo)).slice(0, 8);
+  }, [vidroBusca, vidros]);
+
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarCadastros = async () => {
+      if (!empresaId) return;
+
+      setCarregandoClientes(true);
+      setCarregandoVidros(true);
+
+      const [
+        { data: clientesData, error: clientesError },
+        { data: vidrosData, error: vidrosError },
+        { data: precosData, error: precosError },
+      ] = await Promise.all([
+        supabase
+          .from("clientes")
+          .select("id, nome, grupo_preco_id")
+          .eq("empresa_id", empresaId)
+          .order("nome", { ascending: true }),
+        supabase
+          .from("vidros")
+          .select("id, nome, espessura, tipo, preco")
+          .eq("empresa_id", empresaId)
+          .order("nome", { ascending: true }),
+        supabase
+          .from("vidro_precos_grupos")
+          .select("vidro_id, grupo_preco_id, preco")
+          .eq("empresa_id", empresaId),
+      ]);
+
+      if (!ativo) return;
+
+      if (clientesError) {
+        console.error("Erro ao carregar clientes:", clientesError);
+        setClientes([]);
+      } else {
+        setClientes((clientesData || []) as ClienteCadastro[]);
+      }
+
+      if (vidrosError) {
+        console.error("Erro ao carregar vidros:", vidrosError);
+        setVidros([]);
+      } else {
+        setVidros((vidrosData || []) as VidroCadastro[]);
+      }
+
+      if (precosError) {
+        console.error("Erro ao carregar preços por tabela:", precosError);
+        setPrecosVidroGrupos([]);
+      } else {
+        setPrecosVidroGrupos((precosData || []) as PrecoVidroGrupo[]);
+      }
+
+      setCarregandoClientes(false);
+      setCarregandoVidros(false);
+    };
+
+    carregarCadastros();
+
+    return () => {
+      ativo = false;
+    };
+  }, [empresaId]);
+
+  const enviarParaCentral = async () => {
+    if (!medidasValidas) { setErroEdicao("Informe altura e larguras maiores que zero."); return; }
+    if (centralItemId && itemCarregado !== centralItemId) return;
+    if (!vidroSelecionado || !precoVidroM2) {
+      setMostrarPreco(true);
+      return;
+    }
+
+    const quantidadeVaos = Math.max(1, quantidade || 1);
+    const vidroDescricao = formatarVidroCadastro(vidroSelecionado);
+    const vidrosAvulsos = pecas.map((peca) => {
+      const valorPeca = peca.area * precoVidroM2 * quantidadeVaos * fatorMolde;
+      const larguraReal = Math.round(peca.largura);
+      const alturaMaiorReal = Math.round(Math.max(peca.alturaEsquerda, peca.alturaDireita));
+      return {
+        id: criarId(),
+        quantidade: quantidadeVaos,
+        medida: `${lateral ? "Sup. " + peca.larguraSuperior + " / Inf. " + peca.larguraInferior + " x " + largura : larguraReal + " x " + alturaMaiorReal} mm${molde ? ` | Molde: ${Math.round(peca.larguraCalculo)} x ${Math.round(peca.alturaCalculo)} mm (+30%)` : ""}`,
+        vidro: vidroDescricao,
+        precoVidroM2,
+        areaCobradaM2: peca.area * quantidadeVaos,
+        valorTotal: Number(valorPeca.toFixed(2)),
+      };
+    });
+
+    const medidasDetalhadas = pecas
+      .map(
+        (peca) =>
+          lateral ? `Peça ${peca.indice}: superior ${peca.larguraSuperior} mm / inferior ${peca.larguraInferior} mm | altura ${largura} mm - cálculo ${peca.larguraCalculo} x ${peca.alturaCalculo} mm` : `Peça ${peca.indice}: real ${formatarMm(peca.largura)} | ${formatarMm(peca.alturaEsquerda)} / ${formatarMm(
+            peca.alturaDireita
+          )} - cálculo ${Math.round(peca.larguraCalculo)} x ${Math.round(peca.alturaCalculo)} mm`
+      )
+      .join("\n");
+
+    const materiais = [
+      {
+        id: criarId(),
+        qtd: Number(areaTotal.toFixed(3)),
+        unidade: "m2",
+        descricao: `VIDRO FORA DE ESQUADRO ${vidroDescricao}`.toUpperCase(),
+        valorUnitario: precoVidroM2,
+      },
+    ];
+
+    if (molde) materiais.push({ id: criarId(), qtd: 1, unidade: "und", descricao: "Acréscimo de molde (30%)", valorUnitario: areaTotal * precoVidroM2 * 0.3 });
+
+    const itemCentral = {
+      molde,
+      id: centralItemId || criarId(),
+      ...(!centralItemId ? { numero: "novo" } : {}),
+      projeto: lateral ? "Vidros avulsos - fora de esquadro lateral" : "Vidros avulsos - fora de esquadro",
+      foraEsquadroLateral: lateral ? dadosLateral : undefined,
+      cliente: clienteSelecionado?.nome || "",
+      medidas: `${pecas.length * quantidadeVaos} peça(s) | ${formatarM2(areaTotal)} m²`,
+      largura: lateral ? Math.max(alturaInicial, alturaFinal) : largura,
+      altura: lateral ? largura : Math.max(alturaInicial, alturaFinal),
+      alturaInicial: lateral ? largura : alturaInicial,
+      alturaFinal: lateral ? largura : alturaFinal,
+      quantidade: quantidadeVaos,
+      modo: "Vidro",
+      desenhoUrl: desenhoAtualUrl,
+      vidro: vidroDescricao,
+      corKit: "",
+      corPerfil: "",
+      trilho: "",
+      puxador: "",
+      tamanhoPuxador: "",
+      trinco: "",
+      pecasDivisao: pecas.length,
+      medidasDetalhadas,
+      foraEsquadroPecas: pecas,
+      vidrosAvulsos,
+      valorTotal: Number(valorTotal.toFixed(2)),
+      materiais,
+      origemRota: lateral ? "/calculo/fora-esquadro-lateral" : "/calculo/fora-esquadro",
+      origemTipo: "fora-esquadro",
+    };
+    if (!await confirmarEnvioOrcamento([itemCentral])) return;
+
+    try {
+      const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
+      const lista = salvo ? JSON.parse(salvo) : [];
+      const atualizada = salvarForaEsquadroCentral(lista, itemCentral, centralItemId);
+      window.localStorage.setItem(CENTRAL_IMPRESSAO_KEY, JSON.stringify(atualizada));
+      if (clienteSelecionado?.nome) window.localStorage.setItem(CENTRAL_IMPRESSAO_CLIENTE_KEY, clienteSelecionado.nome);
+      router.push(centralItemId ? returnTo : "/central-impressao");
+    } catch (erro) {
+      console.warn("Não foi possível enviar o fora de esquadro para a central:", erro);
+      setErroEdicao(erro instanceof Error ? erro.message : "Não foi possível salvar na central.");
+    }
+  };
+
+  const limpar = () => {
+    setLargura(0);
+    setAlturaInicial(0);
+    setAlturaFinal(0);
+    setQuantidade(1);
+    setDivisoes(1);
+    setMolde(false);
+    setVidroBusca("");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-4"
+          style={{
+            borderTopColor: "transparent",
+            borderRightColor: theme.menuBackgroundColor,
+            borderBottomColor: theme.menuBackgroundColor,
+            borderLeftColor: theme.menuBackgroundColor,
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen text-text-primary" style={{ backgroundColor: theme.screenBackgroundColor }}>
+      <Header
+        nomeEmpresa={nomeEmpresa}
+        usuarioEmail={user?.email || ""}
+        handleSignOut={signOut}
+        logoUrl={theme.logoLightUrl}
+      />
+
+      <section className="mx-auto flex w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6 print:px-0">
+        <section
+          className="rounded-3xl border p-4 shadow-sm md:p-5"
+          style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}
+        >
+          <div className="flex flex-col gap-4">
+            {erroEdicao && <p role="alert" className="text-sm text-danger">{erroEdicao}</p>}
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div
+                  className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}
+                >
+                  <Calculator size={14} />
+                  Fora de esquadro
+                </div>
+                <h1 className="mt-2 text-xl font-medium leading-tight md:text-2xl" style={{ color: theme.contentTextLightBg }}>
+                  {lateral ? "Fora de esquadro lateral · altura fixa" : "Cálculo de vidro fora de esquadro"}
+                </h1>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMostrarPreco((atual) => !atual)}
+                  className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
+                >
+                  <Calculator size={17} /> Calcular preço
+                </button>
+                {medidasValidas && <PDFDownloadLink
+                  document={
+                    <ForaEsquadroPDF
+                      lateral={lateral ? dadosLateral : undefined}
+                      nomeEmpresa={nomeEmpresa}
+                      logoUrl={theme.logoLightUrl}
+                      largura={largura}
+                      alturaInicial={alturaInicial}
+                      alturaFinal={alturaFinal}
+                      quantidade={quantidade}
+                      divisoes={divisoes}
+                      pecas={pecas}
+                      molde={molde}
+                      areaPorVao={areaPorVao}
+                      areaTotal={areaTotal}
+                      cliente={clienteSelecionado?.nome || ""}
+                      vidro={vidroSelecionado ? formatarVidroCadastro(vidroSelecionado) : ""}
+                      precoM2={vidroSelecionado && precoVidroM2 ? precoVidroM2 : 0}
+                      valorTotal={vidroSelecionado && precoVidroM2 ? valorTotal : 0}
+                    />
+                  }
+                  fileName={`Fora de esquadro ${largura}x${alturaInicial}-${alturaFinal}.pdf`}
+                  className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
+                >
+                  {({ loading: pdfLoading }) => (
+                    <>
+                      {pdfLoading ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-border-strong border-t-border-strong" />
+                      ) : (
+                        <Printer size={17} />
+                      )}
+                      Imprimir
+                    </>
+                  )}
+                </PDFDownloadLink>}
+                <button
+                  type="button"
+                  onClick={enviarParaCentral}
+                  disabled={Boolean(centralItemId && itemCarregado !== centralItemId)}
+                  className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
+                >
+                  <FilePlus2 size={17} /> {centralItemId ? "Salvar na central" : "PDF+"}
+                </button>
+                <button
+                  type="button"
+                  onClick={limpar}
+                  className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
+                  style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
+                >
+                  <Eraser size={17} /> Limpar
+                </button>
+              </div>
+            </div>
+
+            <nav className="flex gap-4"><Link href="/calculo/fora-esquadro">Alturas diferentes</Link><Link href="/calculo/fora-esquadro-lateral">Larguras diferentes · altura fixa</Link></nav>
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-5">
+              <CampoMedida label={lateral ? "Altura fixa" : "Largura"} value={largura} onChange={setLargura} />
+              <CampoMedida label={lateral ? "Largura superior" : "Altura inicial"} value={alturaInicial} onChange={setAlturaInicial} />
+              <CampoMedida label={lateral ? "Largura inferior" : "Altura final"} value={alturaFinal} onChange={setAlturaFinal} />
+              <CampoMedida label="Quantidade" value={quantidade} suffix="und" maxDigitos={3} onChange={(valor) => setQuantidade(Math.max(1, valor))} />
+
+              <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+                <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">Divisões</span>
+                <select
+                  value={divisoes}
+                  onChange={(event) => setDivisoes(Number(event.target.value))}
+                  className="mt-1.5 w-full bg-transparent text-lg font-medium leading-tight text-text-primary outline-none"
+                >
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((opcao) => (
+                    <option key={opcao} value={opcao}>
+                      {opcao} {opcao === 1 ? "peça" : "peças"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {lateral && <label>Lado inclinado<select value={lado} onChange={e => setLado(e.target.value as "direito" | "esquerdo")} className="ml-3 rounded border p-2"><option value="direito">Direito</option><option value="esquerdo">Esquerdo</option></select></label>}
+            {!medidasValidas && <p role="alert">Informe altura e larguras maiores que zero.</p>}
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-white p-3 text-sm"><input type="checkbox" checked={molde} onChange={e => setMolde(e.target.checked)} />Vidro com molde com acréscimo de 30%.</label>
+
+            {mostrarPreco ? (
+              <div className="grid gap-2.5 rounded-3xl border border-border bg-surface/80 p-3 md:grid-cols-[1.1fr_1.1fr_0.7fr_0.7fr]">
+                <CampoBusca
+                  label="Cliente"
+                  value={clienteBusca}
+                  placeholder="Digite para buscar cliente..."
+                  itens={clientesFiltrados}
+                  carregando={carregandoClientes}
+                  formatar={(cliente) => cliente.nome}
+                  onChange={setClienteBusca}
+                  onSelect={(cliente) => setClienteBusca(cliente.nome)}
+                />
+                <CampoBusca
+                  label="Vidro"
+                  value={vidroBusca}
+                  placeholder="Digite o vidro..."
+                  itens={vidrosFiltrados}
+                  carregando={carregandoVidros}
+                  formatar={formatarVidroCadastro}
+                  onChange={setVidroBusca}
+                  onSelect={(vidro) => setVidroBusca(formatarVidroCadastro(vidro))}
+                />
+                <ResumoCard
+                  titulo="Preço do m²"
+                  valor={precoVidroM2 ? moeda(precoVidroM2) : "R$ 0,00"}
+                  detalhe={clienteBusca.trim() && !clienteSelecionado ? "Selecione um cliente cadastrado na lista" : clienteSelecionado?.grupo_preco_id ? (precosVidroGrupos.some(p => String(p.vidro_id) === String(vidroSelecionado?.id) && String(p.grupo_preco_id) === String(clienteSelecionado.grupo_preco_id) && p.preco != null) ? "Tabela do cliente" : "Preço padrão (vidro sem preço na tabela)") : "Preço base do vidro"}
+                />
+                <ResumoCard
+                  titulo="Valor total"
+                  valor={moeda(valorTotal)}
+                  detalhe={`${formatarM2(areaTotal)} m² cobrados`}
+                />
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ResumoCard
+                titulo={lateral ? "Diferença das larguras" : "Queda total"}
+                valor={formatarMm(Math.abs(quedaTotal))}
+                detalhe={lateral ? "Diferença aplicada somente à peça da ponta" : quedaTotal >= 0 ? "Descendo da inicial para a final" : "Subindo da inicial para a final"}
+              />
+              <ResumoCard
+                titulo={lateral ? "Largura base por peça" : "Queda por divisão"}
+                valor={formatarMm(lateral ? Math.min(alturaInicial, alturaFinal) / divisoes : Math.abs(quedaPorDivisao))}
+                detalhe={lateral ? "Menor largura dividida pela quantidade de peças" : "Diferença proporcional entre cada corte"}
+              />
+              <ResumoCard
+                titulo="Área por vão"
+                valor={`${formatarM2(areaPorVao)} m²`}
+                detalhe="Soma das peças de um vão"
+              />
+              <ResumoCard
+                titulo="Área total"
+                valor={`${formatarM2(areaTotal)} m²`}
+                detalhe={`Considerando ${quantidade || 1} vão(s)`}
+              />
+            </div>
+
+            <article className={`${styles.superficieBranca} rounded-3xl border border-border bg-white p-4 shadow-sm md:p-5`}>
+              <div className="mb-4 flex items-center gap-2">
+                <Layers3 size={18} className="text-success" />
+                <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-text-primary">Relação das peças</h2>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full min-w-[900px] border-collapse text-sm">
+                  <thead className="bg-white text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Peça</th>
+                      <th className="px-4 py-3 text-left font-medium">{lateral ? "Altura fixa" : "Largura"}</th>
+                      <th className="px-4 py-3 text-left font-medium">{lateral ? "Larg. superior" : "Alt. esquerda"}</th>
+                      <th className="px-4 py-3 text-left font-medium">{lateral ? "Larg. inferior" : "Alt. direita"}</th>
+                      <th className="px-4 py-3 text-left font-medium">{lateral ? "Diferença" : "Queda"}</th>
+                      <th className="px-4 py-3 text-left font-medium">Medida cálculo</th>
+                      <th className="px-4 py-3 text-right font-medium">Área</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pecas.map((peca, index) => (
+                      <tr key={peca.indice} className="border-t border-border bg-white text-text-primary">
+                        <td className="px-4 py-3">Peça {peca.indice}</td>
+                        <td className="px-4 py-3">{formatarMm(lateral ? largura : peca.largura)}</td>
+                        <td className="px-4 py-3">{formatarMm(lateral ? peca.larguraSuperior! : peca.alturaEsquerda)}</td>
+                        <td className="px-4 py-3">{formatarMm(lateral ? peca.larguraInferior! : peca.alturaDireita)}</td>
+                        <td className="px-4 py-3">{formatarMm(Math.abs(peca.queda))}</td>
+                        <td className="px-4 py-3">{Math.round(peca.larguraCalculo)} x {Math.round(peca.alturaCalculo)} mm</td>
+                        <td className="px-4 py-3 text-right">{formatarM2(peca.area)} m²</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          {lateral ? <DesenhoForaEsquadroLateral dados={dadosLateral} /> : <DesenhoForaEsquadro
+            largura={largura}
+            alturaInicial={alturaInicial}
+            alturaFinal={alturaFinal}
+            divisoes={divisoes}
+            pecas={pecas}
+          />}
+        </section>
+      </section>
+    </main>
+  );
+}
