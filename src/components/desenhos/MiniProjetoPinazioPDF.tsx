@@ -54,7 +54,7 @@ export default function MiniProjetoPinazioPDF({
         width={desenhoWidth}
         height={desenhoHeight}
         rx="2"
-        fill={DRAWING_COLORS.glass}
+        fill="#FFFFFF"
         stroke={DRAWING_COLORS.frame}
         strokeWidth="1.8"
       />

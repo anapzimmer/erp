@@ -381,7 +381,7 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                 const x = x0 + side + panelW * index;
                 return (
                   <G key={`vidro-${index}`}>
-                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.5} />
+                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill={PDF_COLORS.white} stroke={PDF_COLORS.softMuted} strokeWidth={0.5} />
                     <Line x1={x + panelW * 0.14} y1={glassY + glassH * 0.9} x2={x + panelW * 0.72} y2={glassY + glassH * 0.1} stroke={PDF_COLORS.white} strokeWidth={3} />
                     <Line x1={x + panelW * 0.34} y1={glassY + glassH * 0.86} x2={x + panelW * 0.92} y2={glassY + glassH * 0.15} stroke={PDF_COLORS.white} strokeWidth={1.6} />
                   </G>
@@ -403,8 +403,8 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                       const y = posicaoY(grapaIndex, laterais, 14);
                       return (
                         <G key={`grapa-tubo-${index}-${grapaIndex}`}>
-                          <Rect x={x - 10} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                          <Rect x={x + tuboW} y={y} width={10} height={14} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                          <Rect x={x - 10} y={y} width={10} height={14} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                          <Rect x={x + tuboW} y={y} width={10} height={14} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
                         </G>
                       );
                     })}
@@ -416,8 +416,8 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                 const y = posicaoY(index, laterais, 17);
                 return (
                   <G key={`grapa-lateral-${index}`}>
-                    <Rect x={x0 + 1} y={y} width={12} height={17} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                    <Rect x={x0 + drawW - 13} y={y} width={12} height={17} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                    <Rect x={x0 + 1} y={y} width={12} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                    <Rect x={x0 + drawW - 13} y={y} width={12} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
                   </G>
                 );
               })}
@@ -428,7 +428,7 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                   <G key={`grapas-inf-painel-${painelIndex}`}>
                     {Array.from({ length: inferiores }).map((__, index) => {
                       const x = painelX + ((index + 1) / (inferiores + 1)) * panelW - 7;
-                      return <Rect key={`grapa-inf-${painelIndex}-${index}`} x={x} y={y0 + drawH - 10} width={14} height={17} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
+                      return <Rect key={`grapa-inf-${painelIndex}-${index}`} x={x} y={y0 + drawH - 10} width={14} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
                     })}
                   </G>
                 );
@@ -440,7 +440,7 @@ export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVa
                   <G key={`grapas-1305-${uniaoIndex}`}>
                     {Array.from({ length: grapasPorUniao }).map((__, index) => {
                       const y = posicaoY(index, grapasPorUniao, 17);
-                      return <Rect key={`1305-${uniaoIndex}-${index}`} x={x} y={y} width={22} height={17} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
+                      return <Rect key={`1305-${uniaoIndex}-${index}`} x={x} y={y} width={22} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
                     })}
                   </G>
                 );

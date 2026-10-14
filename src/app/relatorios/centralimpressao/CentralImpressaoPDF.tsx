@@ -2,7 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
-import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
+import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { DRAWING_COLORS } from "@/design/drawing";
 import { observacaoMedidaVidro } from "@/utils/observacaoMedidaVidro";
@@ -187,10 +187,11 @@ const styles = StyleSheet.create({
   },
   vidroHeader: { flexDirection: "row", backgroundColor: PDF_COLORS.panelBg, color: PDF_COLORS.ink },
   vidroRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: PDF_COLORS.border },
-  vidroCellQtd: { width: "16%", padding: 4, fontSize: 7, textAlign: "center" },
-  vidroCellMedida: { width: "24%", padding: 4, fontSize: 7 },
-  vidroCellDesc: { width: "40%", padding: 4, fontSize: 7 },
-  vidroCellTotal: { width: "20%", padding: 4, fontSize: 7, textAlign: "right" },
+  vidroCellQtd: { width: "10%", padding: 4, fontSize: 7, textAlign: "center" },
+  vidroCellMedida: { width: "28%", padding: 4, fontSize: 7 },
+  vidroCellDesc: { width: "26%", padding: 4, fontSize: 7 },
+  vidroCellPreco: { width: "18%", padding: 4, fontSize: 7, textAlign: "right" },
+  vidroCellTotal: { width: "18%", padding: 4, fontSize: 7, textAlign: "right" },
   materialAvulsoTable: {
     borderWidth: 1,
     borderColor: PDF_COLORS.border,
@@ -483,7 +484,7 @@ function SacadaFrontalDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
         return (
           <G key={`sacada-painel-${index}`}>
             <Rect x={pX} y={y0} width={postW} height={drawH} fill={cor.fill} stroke={cor.stroke} strokeWidth={0.55} />
-            <Rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={0.7} />
+            <Rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill={PDF_COLORS.white} stroke={PDF_COLORS.softMuted} strokeWidth={0.7} />
             <Line x1={gX + glassW * 0.2} y1={y0 + railH + 4} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.42} stroke={PDF_COLORS.white} strokeWidth={1.2} />
             <Line x1={gX + glassW * 0.34} y1={y0 + railH + 5} x2={gX + glassW * 0.2} y2={y0 + railH + glassH * 0.42} stroke={PDF_COLORS.white} strokeWidth={0.7} />
           </G>
@@ -656,7 +657,7 @@ function PinazioDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
           width={w}
           height={h}
           rx={3}
-          fill={PDF_COLORS.panelBg}
+          fill={PDF_COLORS.white}
           stroke={PDF_COLORS.muted}
           strokeWidth={1.2}
         />
@@ -798,7 +799,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
                 width={cellW}
                 height={cellH}
                 rx={0}
-                fill={PDF_COLORS.panelBg}
+                fill={PDF_COLORS.white}
                 stroke={PDF_COLORS.muted}
                 strokeWidth={1.2}
               />
@@ -842,18 +843,7 @@ function EspelhoDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 }
 
 function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
-  const largura = Math.max(1, Number(item.largura || 2000));
-  const alturaInicial = Math.max(1, Number(item.alturaInicial || item.altura || 1000));
-  const alturasDireitas = Array.from(String(item.medidasDetalhadas || "").matchAll(/\/\s*(\d+(?:[.,]\d+)?)\s*mm/gi));
-  const alturaFinalTexto = alturasDireitas.at(-1)?.[1] || "";
-  const alturaFinal = Math.max(
-    0,
-    Number(item.alturaFinal ?? "") ||
-      Number(String(alturaFinalTexto).replace(",", ".")) ||
-      Math.round(alturaInicial * 0.35)
-  );
-  const quantidade = Math.max(1, Number(item.quantidade || 1));
-  const divisoes = Math.max(1, Math.min(12, Math.round(Number(item.pecasDivisao || quantidade) / quantidade)));
+  const { largura, alturaInicial, alturaFinal, divisoes } = medidasDesenhoForaEsquadro(item);
   const svgW = 920;
   const svgH = 520;
   const padX = 92;
@@ -869,11 +859,9 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
   const yTopoEm = (index: number) => yInicial + (yFinal - yInicial) * (index / divisoes);
 
   return (
-    <Svg width={112} height={104} viewBox={`0 0 ${svgW} ${svgH}`}>
-      <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill={PDF_COLORS.panelBg} />
-      <Path d={path} fill={PDF_COLORS.panelBg} stroke={PDF_COLORS.softMuted} strokeWidth={2.4} />
-      <Path d={path} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={13} opacity={0.95} />
-      <Path d={path} fill="none" stroke={PDF_COLORS.softMuted} strokeWidth={1.4} opacity={0.78} />
+    <Svg width={190} height={130} viewBox={`0 0 ${svgW} ${svgH}`}>
+      <Rect x={0} y={0} width={svgW} height={svgH} rx={28} fill={PDF_COLORS.white} />
+      <Path d={path} fill={PDF_COLORS.white} stroke={PDF_COLORS.ink} strokeWidth={1.8} />
       <Line x1={x0 + 44} y1={yInicial + 44} x2={x0 + drawW * 0.68} y2={yTopoEm(divisoes * 0.68) + 54} stroke={PDF_COLORS.white} strokeWidth={8} opacity={0.22} />
       <Line x1={x0 + drawW * 0.38} y1={yTopoEm(divisoes * 0.38) + 58} x2={x0 + drawW - 64} y2={yFinal + 72} stroke={PDF_COLORS.white} strokeWidth={6} opacity={0.24} />
       {Array.from({ length: Math.max(0, divisoes - 1) }).map((_, index) => {
@@ -884,7 +872,7 @@ function ForaEsquadroDesenhoPDF({ item }: { item: CentralImpressaoItem }) {
 
         return (
           <G key={`fora-esquadro-div-${posicao}`}>
-            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke={PDF_COLORS.softMuted} strokeWidth={1.8} opacity={0.82} />
+            <Line x1={x} y1={yTop} x2={x} y2={yBase} stroke={PDF_COLORS.ink} strokeWidth={1.8} opacity={0.82} />
             <Text x={x + 8} y={yTop - 10} style={{ fontSize: 18, fill: PDF_COLORS.ink }}>
               {Math.round(altura)}
             </Text>
@@ -1994,14 +1982,26 @@ const possuiRelacaoObra =
                 <View key={item.id} style={[styles.card, styles.avulsoCard]} break={index > 0}>
                   <View style={{ flexDirection: "row", gap: 9 }}>
                     {foraEsquadro ? (
-                      <View style={styles.imageWrap}>
+                      <View style={[styles.imageWrap, { width: 194, height: 134 }]}>
                         <ForaEsquadroDesenhoPDF item={item} />
                       </View>
                     ) : null}
                     <View style={styles.infoArea}>
                       <Text style={styles.projectLabel}>Projeto {index + 1}</Text>
                       <Text style={styles.projectName}>{nomeProjeto}</Text>
-                      <View style={styles.infoGrid}>
+                      {foraEsquadro ? (
+                        <View>
+                          <View style={{ flexDirection: "row", gap: 6, marginBottom: 8 }}>
+                            <View style={styles.info}><Text style={styles.infoLabel}>Largura total do vão</Text><Text style={styles.infoValue}>{numero(medidasDesenhoForaEsquadro(item).largura, 0)} mm</Text></View>
+                            <View style={styles.info}><Text style={styles.infoLabel}>Altura total do vão</Text><Text style={styles.infoValue}>{numero(Math.max(medidasDesenhoForaEsquadro(item).alturaInicial, medidasDesenhoForaEsquadro(item).alturaFinal), 0)} mm</Text></View>
+                            <View style={styles.info}><Text style={styles.infoLabel}>Quantidade</Text><Text style={styles.infoValue}>{item.quantidade || 1} vão(s)</Text></View>
+                          </View>
+                          <View style={{ flexDirection: "row", gap: 6 }}>
+                            <View style={[styles.info, { width: "65%" }]}><Text style={styles.infoLabel}>Vidro</Text><Text style={styles.infoValue}>{item.vidro || "Conforme relação"}</Text></View>
+                            <View style={styles.info}><Text style={styles.infoLabel}>Valor</Text><Text style={styles.infoValueStrong}>{moeda(resumoAvulso?.valor || 0)}</Text></View>
+                          </View>
+                        </View>
+                      ) : (<View style={styles.infoGrid}>
                         <View style={styles.infoAvulso}>
                           <Text style={styles.infoLabel}>{foraEsquadro ? "Quantidade de vão" : "Quantidade"}</Text>
                           <Text style={styles.infoValue}>{foraEsquadro ? `${item.quantidade || 1} vão(s)` : `${resumoAvulso?.pecas || 0} peça(s)`}</Text>
@@ -2020,7 +2020,7 @@ const possuiRelacaoObra =
                           <Text style={styles.infoLabel}>Valor total</Text>
                           <Text style={styles.infoValueStrong}>{moeda(resumoAvulso?.valor || 0)}</Text>
                         </View>
-                      </View>
+                      </View>)}
                     </View>
                   </View>
 
@@ -2030,13 +2030,15 @@ const possuiRelacaoObra =
                         <Text style={styles.vidroCellQtd}>PEÇAS</Text>
                         <Text style={styles.vidroCellMedida}>MEDIDAS</Text>
                         <Text style={styles.vidroCellDesc}>VIDRO</Text>
+                        <Text style={styles.vidroCellPreco}>PREÇO / m²</Text>
                         <Text style={styles.vidroCellTotal}>TOTAL</Text>
                       </View>
                       {item.vidrosAvulsos.map((vidro) => (
                         <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                           <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
                           <Text style={styles.vidroCellMedida}>{vidro.medida}{observacaoMedidaVidro(vidro.observacaoMedida) ? <Text style={{fontSize: 6}}>{"\n" + observacaoMedidaVidro(vidro.observacaoMedida)}</Text> : null}</Text>
-                          <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
+                          <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                          <Text style={styles.vidroCellPreco}>{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                           <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                         </View>
                       ))}
@@ -2375,13 +2377,15 @@ const possuiRelacaoObra =
                           <Text style={styles.vidroCellQtd}>PEÇAS</Text>
                           <Text style={styles.vidroCellMedida}>MEDIDAS</Text>
                           <Text style={styles.vidroCellDesc}>VIDRO</Text>
-                          <Text style={styles.vidroCellTotal}>TOTAL</Text>
+                          <Text style={styles.vidroCellPreco}>PREÇO / m²</Text>
+                        <Text style={styles.vidroCellTotal}>TOTAL</Text>
                         </View>
                         {item.vidrosAvulsos.map((vidro) => (
                           <View key={vidro.id} style={styles.vidroRow} wrap={false}>
                             <Text style={styles.vidroCellQtd}>{numero(vidro.quantidade, 0)}</Text>
                             <Text style={styles.vidroCellMedida}>{vidro.medida}{observacaoMedidaVidro(vidro.observacaoMedida) ? <Text style={{fontSize: 6}}>{"\n" + observacaoMedidaVidro(vidro.observacaoMedida)}</Text> : null}</Text>
-                            <Text style={styles.vidroCellDesc}>{vidro.vidro}{"\n"}{formatarPrecoVidroRelatorio(vidro, item)}</Text>
+                            <Text style={styles.vidroCellDesc}>{vidro.vidro}</Text>
+                          <Text style={styles.vidroCellPreco}>{formatarPrecoVidroRelatorio(vidro, item)}</Text>
                             <Text style={styles.vidroCellTotal}>{moeda(vidro.valorTotal)}</Text>
                           </View>
                         ))}

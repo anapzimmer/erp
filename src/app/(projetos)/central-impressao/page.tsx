@@ -1,6 +1,6 @@
 //app/(projetos)/central-impressao/page.tsx
 "use client";
-import { topoForaEsquadro } from "@/utils/foraEsquadroVisual";
+import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
@@ -579,18 +579,7 @@ function ForaEsquadroPreview({
 }: {
   item: Pick<ProjetoComposicao, "largura" | "altura" | "alturaInicial" | "alturaFinal" | "quantidade" | "pecasDivisao" | "medidasDetalhadas" | "foraEsquadroPecas">;
 }) {
-  const largura = Math.max(1, Number(item.largura || 2000));
-  const alturaInicial = Math.max(1, Number(item.alturaInicial || item.altura || 1000));
-  const alturasDireitas = Array.from(String(item.medidasDetalhadas || "").matchAll(/\/\s*(\d+(?:[.,]\d+)?)\s*mm/gi));
-  const alturaFinalTexto = alturasDireitas.at(-1)?.[1] || "";
-  const alturaFinal = Math.max(
-    0,
-    Number(item.alturaFinal ?? "") ||
-      Number(String(alturaFinalTexto).replace(",", ".")) ||
-      Math.round(alturaInicial * 0.35)
-  );
-  const quantidade = Math.max(1, Number(item.quantidade || 1));
-  const divisoes = Math.max(1, Math.min(12, Math.round(Number(item.pecasDivisao || quantidade) / quantidade)));
+  const { largura, alturaInicial, alturaFinal, divisoes } = medidasDesenhoForaEsquadro(item);
   const svgW = 920;
   const svgH = 520;
   const padX = 92;
