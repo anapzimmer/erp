@@ -50,7 +50,8 @@ export async function GET(request: Request) {
       p_busca: (url.searchParams.get("busca") || "").slice(0, 100),
       p_pagina: Number.isInteger(pagina) && pagina >= 0 ? Math.min(pagina, 100000) : 0,
     };
-    let { data, error } = await acesso.db!.rpc(historico ? "gc_historico_acessos" : financeiro ? "gc_financeiro" : "gc_painel_situacoes", parametros);
+    let { data, error } = await acesso.db!.rpc(historico ? "gc_historico_acessos" : financeiro ? "gc_financeiro" : "gc_painel_testes", parametros);
+    if (!historico && !financeiro && error?.code === 'PGRST202') ({ data, error } = await acesso.db!.rpc('gc_painel_situacoes', parametros));
     if (!historico && !financeiro && error?.code === 'PGRST202') ({ data, error } = await acesso.db!.rpc('gc_painel', parametros));
     if (error) return responder({ erro: historico && error.code === "PGRST202" ? "Ative a atualização painel_historico_acessos.sql no Supabase para consultar os logins." : financeiro && error.code === "PGRST202" ? "O financeiro ainda precisa ser ativado no Supabase. Execute a atualização painel_financeiro.sql." : "Não foi possível carregar o painel." }, 503);
     if (historico) {
@@ -68,6 +69,45 @@ export async function POST(request: Request) {
     if (acesso.erro) return acesso.erro;
     let body;
     try { body = await request.json(); } catch { return responder({ erro: "Solicitação inválida." }, 400); }
+    if (body?.acao === "senha_usuario" || body?.acao === "teste_usuario") {
+      if (typeof body.alvo !== "string" || !/^[0-9a-f-]{36}$/i.test(body.alvo) ||
+          typeof body.email !== "string" || body.email.length > 254) {
+        return responder({ erro: "Usuário inválido." }, 400);
+      }
+      if (body.acao === "teste_usuario" && (!Number.isInteger(body.dias) || body.dias < 1 || body.dias > 365)) {
+        return responder({ erro: "Informe de 1 a 365 dias de teste." }, 400);
+      }
+      if (body.acao === "senha_usuario" && (typeof body.senha !== "string" || body.senha.length < 8 || body.senha.length > 128)) {
+        return responder({ erro: "Informe uma senha entre 8 e 128 caracteres." }, 400);
+      }
+      // A autorização e a proteção da proprietária usam a sessão verificada.
+      const { data: painel, error } = await acesso.db!.rpc(
+        body.acao === "teste_usuario" ? "gc_painel_testes" : "gc_painel",
+        { p_busca: body.email, p_pagina: 0 }
+      );
+      if (error) return responder({ erro: "Não foi possível verificar o cadastro. Para testes, ative database/painel_testes.sql no Supabase." }, 503);
+      const usuario = painel?.usuarios?.find((u: { id: string; email: string }) => u.id === body.alvo && u.email === body.email);
+      if (!usuario) return responder({ erro: "Usuário não encontrado." }, 404);
+      if (usuario.protegida) return responder({ erro: "A conta da proprietária é protegida." }, 403);
+      const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!chave) return responder({ erro: "Administração de usuários indisponível no servidor." }, 503);
+      const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chave, { auth: { persistSession: false, autoRefreshToken: false } });
+      if (body.acao === "senha_usuario") {
+        const resultado = await admin.auth.admin.updateUserById(body.alvo, { password: body.senha });
+        if (resultado.error) return responder({ erro: "Não foi possível alterar a senha. Confira os requisitos de senha." }, 400);
+        return responder({ sucesso: true });
+      }
+      const atual = await admin.auth.admin.getUserById(body.alvo);
+      if (atual.error || !atual.data.user) return responder({ erro: "Não foi possível consultar o usuário." }, 503);
+      const inicio = new Date();
+      const teste = { inicio_em: inicio.toISOString(), expira_em: new Date(inicio.getTime() + body.dias * 86400000).toISOString(), dias: body.dias };
+      const resultado = await admin.auth.admin.updateUserById(body.alvo, {
+        app_metadata: { ...atual.data.user.app_metadata, gc_teste: teste },
+        ...(atual.data.user.app_metadata?.gc_teste?.pendente === true ? { ban_duration: "none" } : {}),
+      });
+      if (resultado.error) return responder({ erro: "Não foi possível atualizar o teste." }, 503);
+      return responder({ sucesso: true, teste });
+    }
 if (body?.acao === "suporte_anexo") {
   if (
     typeof body.caminho !== "string" ||

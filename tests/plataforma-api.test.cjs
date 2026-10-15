@@ -5,25 +5,65 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const path = require('node:path');
 
-function route({ owner = false, invalid = false, missing = false, usuarios = [], resendError = null } = {}) {
+function route({ owner = false, invalid = false, missing = false, usuarios = [], resendError = null, serviceKey = false, trialMissing = false, metadata = {} } = {}) {
   const chamadas = [];
   const db = {
-    auth: { resend: async args => { chamadas.push({name:'resend',args}); return {error:resendError}; }, getUser: async () => ({ data: { user: invalid ? null : { id: 'verified-user' } }, error: invalid ? { message: 'invalid' } : null }) },
+    auth: {
+      admin: {
+        getUserById: async id => ({data:{user:{id,app_metadata:metadata}},error:null}),
+        updateUserById: async (id,args) => { chamadas.push({name:'updateUserById',id,args}); return {error:null}; },
+      },
+      resend: async args => { chamadas.push({name:'resend',args}); return {error:resendError}; }, getUser: async () => ({ data: { user: invalid ? null : { id: 'verified-user' } }, error: invalid ? { message: 'invalid' } : null }) },
     rpc: async (name, args) => {
       chamadas.push({ name, args });
       if (name === 'gc_proprietaria') return { data: owner, error: missing ? { code: 'PGRST202' } : null };
       if (name === 'gc_painel') return { data: { usuarios }, error: null };
+      if (name === 'gc_painel_testes') return { data: { usuarios }, error: trialMissing ? {code:'PGRST202'} : null };
       return { data: { success: true }, error: null };
     },
   };
   const exports = {};
   const code = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/app/api/plataforma/route.ts'), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS } }).outputText;
-  vm.runInNewContext(code, { exports, require: () => ({ createClient: () => db }), Response, URL, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-test-key' } } });
+  vm.runInNewContext(code, { exports, require: () => ({ createClient: () => db }), Response, URL, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-test-key', ...(serviceKey ? { SUPABASE_SERVICE_ROLE_KEY: 'test-only' } : {}) } } });
   return { ...exports, chamadas };
 }
 const req = (body, token = true) => new Request('http://localhost/api/plataforma', {
   method: body === undefined ? 'GET' : 'POST', headers: token ? { Authorization: 'Bearer test' } : {},
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+});
+
+test('teste e senha exigem proprietária, alvo correto e proteção ativa no banco', async () => {
+  const usuario={id:'10000000-0000-4000-8000-000000000002',email:'teste@example.com',protegida:false};
+  const body={acao:'teste_usuario',alvo:usuario.id,email:usuario.email,dias:5};
+  const options={owner:true,usuarios:[usuario],serviceKey:true};
+  for (const acao of ['teste_usuario','senha_usuario']) {
+    const tenant=route({...options,owner:false});
+    assert.equal((await tenant.POST(req({...body,acao,senha:'Teste2026!'}))).status,403);
+    assert.ok(!tenant.chamadas.some(c=>c.name==='updateUserById'));
+    const protectedUser=route({...options,usuarios:[{...usuario,protegida:true}]});
+    assert.equal((await protectedUser.POST(req({...body,acao,senha:'Teste2026!'}))).status,403);
+    assert.ok(!protectedUser.chamadas.some(c=>c.name==='updateUserById'));
+  }
+  assert.equal((await route(options).POST(req({...body,alvo:'10000000-0000-4000-8000-000000000003'}))).status,404);
+  const unavailable=route({...options,trialMissing:true});
+  assert.equal((await unavailable.POST(req(body))).status,503);
+  assert.ok(!unavailable.chamadas.some(c=>c.name==='updateUserById'));
+  assert.equal((await route({...options,serviceKey:false}).POST(req(body))).status,503);
+  for(const dias of [0,-1,366,1.5,'5',null]) assert.equal((await route(options).POST(req({...body,dias}))).status,400);
+  const active=route({...options,metadata:{outro:'preservar',gc_teste:{pendente:true}}});
+  const before=Date.now();
+  const response=await active.POST(req(body));
+  assert.equal(response.status,200);
+  const result=await response.json();
+  assert.equal(Date.parse(result.teste.expira_em)-Date.parse(result.teste.inicio_em),5*86400000);
+  assert.ok(Date.parse(result.teste.inicio_em)>=before);
+  const mutation=active.chamadas.find(c=>c.name==='updateUserById');
+  assert.equal(mutation.args.app_metadata.outro,'preservar');
+  assert.equal(mutation.args.ban_duration,'none');
+  assert.equal(mutation.args.app_metadata.gc_teste.pendente,undefined);
+  const password=route(options);
+  assert.equal((await password.POST(req({...body,acao:'senha_usuario',senha:'Teste2026!'}))).status,200);
+  assert.deepEqual(Object.keys(password.chamadas.find(c=>c.name==='updateUserById').args),['password']);
 });
 
 test('API exige sessão verificada e permissão do banco', async () => {
