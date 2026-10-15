@@ -1,0 +1,88 @@
+-- Roteiro de teste de concorrência real (duas sessões PostgreSQL)
+-- Founders: débito/resgate/ajuste simultâneos por empresa
+--
+-- Objetivo:
+-- Validar concorrência de verdade com duas sessões independentes (A e B),
+-- em vez de inferir segurança apenas por leitura de código.
+--
+-- Recomendação:
+-- Executar em HOMOLOGAÇÃO com dados fictícios.
+-- Em produção, execute somente com janela controlada e empresa de teste dedicada.
+
+-- =========================
+-- Pré-requisitos (sessão única)
+-- =========================
+-- 1) Escolher uma empresa de teste já participante do Founders.
+-- 2) Identificar um admin Founders ativo.
+-- 3) Conceder saldo inicial de teste por RPC admin.
+--
+-- Exemplo (ajuste os UUIDs):
+-- select public.gc_founders_admin_ajustar_pontos(
+--   'EMPRESA_UUID',
+--   'credito',
+--   300,
+--   'Saldo para teste de concorrência',
+--   'conc-prep-credito-001',
+--   null
+-- );
+
+-- =========================
+-- Sessão A (conexão 1)
+-- =========================
+-- begin;
+-- select set_config('request.jwt.claim.role','authenticated', true);
+-- select set_config('request.jwt.claim.sub','ADMIN_OU_USER_TESTE_A', true);
+--
+-- -- Operação 1: resgate
+-- select public.gc_founders_resgatar_beneficio(
+--   'BENEFICIO_UUID',
+--   1,
+--   'conc-resgate-001',
+--   'Teste concorrência A'
+-- );
+--
+-- -- Segure a transação aberta por alguns segundos para forçar disputa
+-- select pg_sleep(8);
+-- commit;
+
+-- =========================
+-- Sessão B (conexão 2, iniciar durante o sleep da sessão A)
+-- =========================
+-- begin;
+-- select set_config('request.jwt.claim.role','authenticated', true);
+-- select set_config('request.jwt.claim.sub','ADMIN_OU_USER_TESTE_B', true);
+--
+-- -- Operação 2: ajuste de débito concorrente na mesma empresa
+-- -- (alternativa: outro resgate com benefício/pontos que pressionem o saldo)
+-- select public.gc_founders_admin_ajustar_pontos(
+--   'EMPRESA_UUID',
+--   'debito',
+--   280,
+--   'Teste concorrência B',
+--   'conc-debito-001',
+--   null
+-- );
+-- commit;
+
+-- =========================
+-- Validação esperada
+-- =========================
+-- 1) Uma das operações deve aguardar lock e respeitar saldo final.
+-- 2) Não pode haver saldo negativo ao final.
+-- 3) Não pode haver duplicidade para a mesma idempotency_key.
+--
+-- Consultas de verificação:
+-- select public.gc_founders_saldo_pontos('EMPRESA_UUID') as saldo_final;
+--
+-- select id, tipo, origem, pontos, idempotency_key, criado_em
+-- from public.founders_pontos_ledger
+-- where empresa_id = 'EMPRESA_UUID'
+--   and idempotency_key in ('conc-resgate-001', 'conc-debito-001', 'conc-prep-credito-001')
+-- order by criado_em;
+
+-- =========================
+-- Critérios de aprovação
+-- =========================
+-- - saldo_final >= 0
+-- - cada idempotency_key com no máximo 1 lançamento
+-- - nenhuma inconsistência em founders_resgates/lancamento_debito_id

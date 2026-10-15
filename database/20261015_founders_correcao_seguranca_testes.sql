@@ -3,8 +3,16 @@
 -- 1) 20261015_founders_fundacao.sql
 -- 2) 20261015_founders_correcao_seguranca.sql
 --
--- O script roda em transação e finaliza com ROLLBACK.
--- Não mantém dados persistidos.
+-- Regras deste script:
+-- - roda em transação;
+-- - cria parceiros Founders temporários para duas empresas que ainda não participam do Founders;
+-- - não usa COMMIT;
+-- - termina com ROLLBACK (sem efeitos persistentes).
+--
+-- Observação importante:
+-- Para não alterar dados reais de autenticação nem parceiros já existentes,
+-- o script reutiliza usuários já existentes em auth.users/perfis_usuarios
+-- e só seleciona empresas sem registro prévio em public.founders_parceiros.
 
 begin;
 
@@ -17,11 +25,16 @@ declare
   v_empresa_b uuid;
   v_beneficio_id uuid;
   v_contribuicao_id uuid;
+  v_contribuicao_bloqueio_id uuid;
+  v_credito_contribuicao_id uuid;
+  v_estorno_contribuicao_id uuid;
   v_credito_id uuid;
   v_debito_id uuid;
   v_saldo integer;
+  v_pontos_concedidos integer;
   v_count integer;
   v_key_base text := 'founders-teste-' || replace(gen_random_uuid()::text, '-', '');
+  v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
 begin
   if to_regprocedure('public.gc_founders_admin_ajustar_pontos(uuid,text,integer,text,text,uuid)') is null then
     raise exception 'Pré-requisito ausente: função gc_founders_admin_ajustar_pontos.';
@@ -29,8 +42,11 @@ begin
   if to_regprocedure('public.gc_founders_admin_atualizar_contribuicao(uuid,text,integer,text)') is null then
     raise exception 'Pré-requisito ausente: função gc_founders_admin_atualizar_contribuicao.';
   end if;
+  if to_regclass('public.perfis_usuarios') is null then
+    raise exception 'Pré-requisito ausente: tabela public.perfis_usuarios.';
+  end if;
 
-  select fa.user_id
+  select fa.usuario_id
   into v_admin_user
   from glasscode_private.founders_admins fa
   where fa.ativo is true
@@ -41,42 +57,69 @@ begin
     raise exception 'Teste bloqueado: nenhum usuário ativo em founders_admins.';
   end if;
 
+  -- Usuária A (não-admin, quando possível)
   select pu.id, pu.empresa_id
   into v_user_a, v_empresa_a
   from public.perfis_usuarios pu
-  join public.founders_parceiros fp on fp.empresa_id = pu.empresa_id
-  left join glasscode_private.founders_admins fa on fa.user_id = pu.id and fa.ativo is true
-  where fp.status = 'ativo'
-    and fa.user_id is null
+  where pu.empresa_id is not null
+    and not exists (
+      select 1
+      from public.founders_parceiros fp
+      where fp.empresa_id = pu.empresa_id
+    )
+    and pu.id <> v_admin_user
+    and not exists (
+      select 1
+      from glasscode_private.founders_admins fa
+      where fa.usuario_id = pu.id
+        and fa.ativo is true
+    )
   order by pu.id
   limit 1;
 
   if v_user_a is null then
-    select pu.id, pu.empresa_id
-    into v_user_a, v_empresa_a
-    from public.perfis_usuarios pu
-    join public.founders_parceiros fp on fp.empresa_id = pu.empresa_id
-    where fp.status = 'ativo'
-    order by pu.id
-    limit 1;
+    raise exception 'Teste bloqueado: não foi possível encontrar usuária A em empresa sem parceiro Founders. Use homologação com dados fictícios.';
   end if;
 
-  if v_user_a is null then
-    raise exception 'Teste bloqueado: nenhuma usuária vinculada a empresa Founders ativa.';
-  end if;
-
+  -- Usuária B de empresa diferente
   select pu.id, pu.empresa_id
   into v_user_b, v_empresa_b
   from public.perfis_usuarios pu
-  join public.founders_parceiros fp on fp.empresa_id = pu.empresa_id
-  where fp.status = 'ativo'
+  where pu.empresa_id is not null
+    and not exists (
+      select 1
+      from public.founders_parceiros fp
+      where fp.empresa_id = pu.empresa_id
+    )
+    and pu.id <> v_admin_user
+    and pu.id <> v_user_a
     and pu.empresa_id <> v_empresa_a
   order by pu.id
   limit 1;
 
   if v_user_b is null then
-    raise exception 'Teste bloqueado: é necessário ao menos 2 empresas ativas para validar isolamento.';
+    raise exception 'Teste bloqueado: é necessário ao menos 2 empresas distintas sem parceiro Founders. Use homologação com dados fictícios.';
   end if;
+
+  -- Parceiros Founders temporários (somente para empresas sem parceiro prévio).
+  insert into public.founders_parceiros(
+    empresa_id,
+    status,
+    data_adesao,
+    ciclo_avaliacao_inicio,
+    ciclo_avaliacao_fim,
+    participacao_inicio,
+    participacao_fim,
+    valor_mensal_acordado,
+    quantidade_usuarios_inclusos
+  )
+  values
+    (
+      v_empresa_a, 'ativo', v_hoje, v_hoje, v_hoje + 90, v_hoje, null, 39.90, 3
+    ),
+    (
+      v_empresa_b, 'ativo', v_hoje, v_hoje, v_hoje + 90, v_hoje, null, 39.90, 3
+    );
 
   insert into public.founders_beneficios(
     codigo, nome, descricao, pontos_necessarios, limite_por_empresa, estoque_total, ativo
@@ -92,7 +135,7 @@ begin
   )
   returning id into v_beneficio_id;
 
-  -- TESTE 1: gc_founders_empresa_ativa não permite consultar empresa arbitrária
+  -- TESTE 1: gc_founders_empresa_ativa não permite consultar empresa arbitrária (não-admin)
   perform set_config('request.jwt.claim.role', 'authenticated', true);
   perform set_config('request.jwt.claim.sub', v_user_a::text, true);
   begin
@@ -103,7 +146,7 @@ begin
       null;
   end;
 
-  -- TESTE 2: crédito, débito e estorno com validações fortes
+  -- TESTE 2: crédito, débito e estorno com validações fortes (admin)
   perform set_config('request.jwt.claim.sub', v_admin_user::text, true);
 
   select public.gc_founders_admin_ajustar_pontos(
@@ -190,11 +233,27 @@ begin
   );
 
   select c.pontos_concedidos
-  into v_count
+  into v_pontos_concedidos
   from public.founders_contribuicoes c
   where c.id = v_contribuicao_id;
-  if coalesce(v_count, 0) <> 15 then
-    raise exception 'Falha: contribuição aprovada sem pontos esperados (esperado 15, atual %).', coalesce(v_count, 0);
+
+  if coalesce(v_pontos_concedidos, 0) <> 15 then
+    raise exception 'Falha: contribuição aprovada sem pontos esperados (esperado 15, atual %).', coalesce(v_pontos_concedidos, 0);
+  end if;
+
+  select l.id
+  into v_credito_contribuicao_id
+  from public.founders_pontos_ledger l
+  where l.empresa_id = v_empresa_a
+    and l.idempotency_key = 'contribuicao_credito:' || v_contribuicao_id::text
+    and l.tipo = 'credito'
+    and l.origem = 'contribuicao'
+    and l.referencia_id = v_contribuicao_id
+  order by l.criado_em desc
+  limit 1;
+
+  if v_credito_contribuicao_id is null then
+    raise exception 'Falha: crédito de contribuição deve usar origem=contribuicao e referencia_id da contribuição.';
   end if;
 
   perform public.gc_founders_admin_atualizar_contribuicao(
@@ -204,13 +263,38 @@ begin
     'Rejeição de teste'
   );
 
+  -- Regra efetiva atual: pontos_concedidos permanece histórico na contribuição;
+  -- neutralização ocorre no ledger com estorno.
   select c.pontos_concedidos
-  into v_count
+  into v_pontos_concedidos
   from public.founders_contribuicoes c
   where c.id = v_contribuicao_id;
-  if coalesce(v_count, -1) <> 0 then
-    raise exception 'Falha: contribuição rejeitada deveria ficar com pontos_concedidos = 0.';
+
+  if coalesce(v_pontos_concedidos, 0) <> 15 then
+    raise exception 'Falha: pontos_concedidos deveria permanecer 15 após rejeição estornada (valor histórico). Atual: %.', coalesce(v_pontos_concedidos, 0);
   end if;
+
+  if not exists (
+    select 1
+    from public.founders_pontos_ledger l
+    where l.empresa_id = v_empresa_a
+      and l.idempotency_key = 'contribuicao_estorno:' || v_contribuicao_id::text
+      and l.tipo = 'estorno_credito'
+      and l.origem = 'estorno'
+      and l.referencia_id = v_credito_contribuicao_id
+      and l.lancamento_relacionado_id = v_credito_contribuicao_id
+      and l.pontos = 15
+  ) then
+    raise exception 'Falha: estorno da contribuição rejeitada deve referenciar o lançamento de crédito original.';
+  end if;
+
+  select l.id
+  into v_estorno_contribuicao_id
+  from public.founders_pontos_ledger l
+  where l.empresa_id = v_empresa_a
+    and l.idempotency_key = 'contribuicao_estorno:' || v_contribuicao_id::text
+  order by l.criado_em desc
+  limit 1;
 
   begin
     perform public.gc_founders_admin_atualizar_contribuicao(
@@ -256,26 +340,76 @@ begin
       null;
   end;
 
-  if not exists (
-    select 1
-    from pg_proc p
-    where p.proname = 'gc_founders_admin_ajustar_pontos'
-      and pg_get_functiondef(p.oid) ilike '%founders_sync_empresa_%'
-  ) then
-    raise exception 'Falha: lock por empresa não encontrado em gc_founders_admin_ajustar_pontos.';
+  -- TESTE 4.1: rejeição deve ser bloqueada quando os pontos já foram utilizados
+  perform set_config('request.jwt.claim.sub', v_user_a::text, true);
+  select public.gc_founders_criar_contribuicao(
+    'Contribuição para bloqueio de rejeição',
+    'Fluxo de teste para rejeição bloqueada por saldo insuficiente.',
+    'Produto',
+    v_key_base || '-contribuicao-bloqueio'
+  ) into v_contribuicao_bloqueio_id;
+
+  perform set_config('request.jwt.claim.sub', v_admin_user::text, true);
+  perform public.gc_founders_admin_atualizar_contribuicao(
+    v_contribuicao_bloqueio_id,
+    'aprovada',
+    200,
+    'Aprovação para teste de bloqueio'
+  );
+
+  perform set_config('request.jwt.claim.sub', v_user_a::text, true);
+  perform public.gc_founders_resgatar_beneficio(
+    v_beneficio_id,
+    10,
+    v_key_base || '-resgate-consumo',
+    'Consumo de saldo para bloquear rejeição'
+  );
+
+  perform set_config('request.jwt.claim.sub', v_admin_user::text, true);
+  begin
+    perform public.gc_founders_admin_atualizar_contribuicao(
+      v_contribuicao_bloqueio_id,
+      'rejeitada',
+      null,
+      'Tentativa de rejeição com saldo consumido'
+    );
+    raise exception 'Falha: rejeição deveria ser bloqueada com saldo já utilizado.';
+  exception
+    when sqlstate '22023' then
+      if position('Regularize o saldo por ajuste administrativo antes de rejeitar' in sqlerrm) = 0 then
+        raise;
+      end if;
+  end;
+
+  -- Concorrência real (duas sessões independentes) é validada no roteiro separado:
+  -- database/20261015_founders_correcao_seguranca_teste_concorrencia_roteiro.sql
+
+  select public.gc_founders_saldo_pontos(v_empresa_a) into v_saldo;
+  if v_saldo < 0 then
+    raise exception 'Falha: saldo da empresa A ficou negativo (%).', v_saldo;
   end if;
 
-  if not exists (
-    select 1
-    from pg_proc p
-    where p.proname = 'gc_founders_resgatar_beneficio'
-      and pg_get_functiondef(p.oid) ilike '%founders_sync_empresa_%'
-  ) then
-    raise exception 'Falha: lock por empresa não encontrado em gc_founders_resgatar_beneficio.';
-  end if;
+  perform set_config('founders_test.admin_user_id', v_admin_user::text, true);
+  perform set_config('founders_test.user_a_id', v_user_a::text, true);
+  perform set_config('founders_test.user_b_id', v_user_b::text, true);
+  perform set_config('founders_test.empresa_a_id', v_empresa_a::text, true);
+  perform set_config('founders_test.empresa_b_id', v_empresa_b::text, true);
+  perform set_config('founders_test.contribuicao_id', v_contribuicao_id::text, true);
+  perform set_config('founders_test.beneficio_id', v_beneficio_id::text, true);
+end $$;
 
-  -- TESTE 5: isolamento entre empresas (RLS e função)
-  perform set_config('request.jwt.claim.sub', v_user_b::text, true);
+-- TESTE 5: isolamento real com papel authenticated + claims (RLS)
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', current_setting('founders_test.user_b_id', true), true);
+
+do $$
+declare
+  v_contribuicao_id uuid;
+  v_empresa_a uuid;
+begin
+  v_contribuicao_id := current_setting('founders_test.contribuicao_id', true)::uuid;
+  v_empresa_a := current_setting('founders_test.empresa_a_id', true)::uuid;
 
   if exists (
     select 1
@@ -292,8 +426,37 @@ begin
     when sqlstate '42501' then
       null;
   end;
+end $$;
 
-  -- TESTE 6: privilégios de EXECUTE e escrita direta
+reset role;
+
+-- Sanidade: usuário A deve enxergar a própria contribuição
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', current_setting('founders_test.user_a_id', true), true);
+
+do $$
+declare
+  v_contribuicao_id uuid;
+begin
+  v_contribuicao_id := current_setting('founders_test.contribuicao_id', true)::uuid;
+
+  if not exists (
+    select 1
+    from public.founders_contribuicoes c
+    where c.id = v_contribuicao_id
+  ) then
+    raise exception 'Falha: usuária A deveria enxergar a própria contribuição.';
+  end if;
+end $$;
+
+reset role;
+
+-- TESTE 6: privilégios de EXECUTE e escrita direta
+do $$
+declare
+  v_has_write_privilege boolean;
+begin
   if has_function_privilege(
     'authenticated',
     'public.gc_founders_registrar_auditoria(text,text,uuid,uuid,jsonb)',
@@ -310,27 +473,58 @@ begin
     raise exception 'Falha: authenticated não deve ter EXECUTE em gc_founders_bloquear_alteracao_ledger.';
   end if;
 
-  select count(*)
-  into v_count
-  from information_schema.role_table_grants g
-  where g.grantee = 'authenticated'
-    and g.table_schema = 'public'
-    and g.table_name in (
-      'founders_contribuicoes',
-      'founders_contribuicao_anexos',
-      'founders_votos',
-      'founders_resgates',
-      'founders_pontos_ledger'
-    )
-    and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE');
+  v_has_write_privilege :=
+    has_table_privilege('authenticated', 'public.founders_parceiros', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_parceiros', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_parceiros', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_votacoes', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_votacoes', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_votacoes', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_votos', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_votos', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_votos', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_beneficios', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_beneficios', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_beneficios', 'DELETE')
+    or has_table_privilege('authenticated', 'public.founders_resgates', 'INSERT')
+    or has_table_privilege('authenticated', 'public.founders_resgates', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.founders_resgates', 'DELETE');
 
-  if v_count > 0 then
-    raise exception 'Falha: authenticated ainda possui privilégios diretos de escrita em tabelas Founders.';
+  if v_has_write_privilege then
+    raise exception 'Falha: authenticated possui privilégios efetivos de escrita em tabelas Founders.';
   end if;
 
-  select public.gc_founders_saldo_pontos(v_empresa_a) into v_saldo;
-  if v_saldo < 0 then
-    raise exception 'Falha: saldo da empresa A ficou negativo (%).', v_saldo;
+  if not has_function_privilege(
+    'authenticated',
+    'public.gc_founders_empresa_ativa(uuid)',
+    'EXECUTE'
+  ) then
+    raise exception 'Falha: authenticated deve manter EXECUTE em gc_founders_empresa_ativa(uuid).';
+  end if;
+
+  if not has_function_privilege(
+    'authenticated',
+    'public.gc_founders_anexar_contribuicao(uuid,text,text,text,text,bigint,text)',
+    'EXECUTE'
+  ) then
+    raise exception 'Falha: authenticated deve manter EXECUTE em gc_founders_anexar_contribuicao(...).';
+  end if;
+
+  if not has_function_privilege(
+    'authenticated',
+    'public.gc_founders_resgatar_beneficio(uuid,integer,text,text)',
+    'EXECUTE'
+  ) then
+    raise exception 'Falha: authenticated deve manter EXECUTE em gc_founders_resgatar_beneficio(...).';
   end if;
 end $$;
 

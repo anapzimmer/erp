@@ -535,11 +535,15 @@ security definer
 set search_path=''
 as $$
 declare c public.founders_contribuicoes;
+declare parceiro public.founders_parceiros;
 declare conceder integer;
 declare idempotencia_credito text;
 declare idempotencia_estorno text;
 declare lancamento_credito_id uuid;
+declare lancamento_credito public.founders_pontos_ledger;
+declare lancamento_estorno_id uuid;
 declare estorno_credito_existe boolean := false;
+declare saldo_disponivel integer;
 begin
   if not public.gc_founders_admin() then
     raise exception 'Acesso administrativo Founders necessário.' using errcode='42501';
@@ -557,38 +561,64 @@ begin
     raise exception 'Contribuição não encontrada.' using errcode='22023';
   end if;
 
-  update public.founders_contribuicoes
-  set
-    status = p_status,
-    nota_administrativa = left(coalesce(p_nota_administrativa, ''), 4000),
-    validada_em = case when p_status in ('aprovada', 'rejeitada', 'implementada') then now() else validada_em end,
-    validada_por = case when p_status in ('aprovada', 'rejeitada', 'implementada') then auth.uid() else validada_por end
-  where id = p_contribuicao_id;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('founders_sync_empresa_' || c.empresa_id::text, 0));
+
+  select * into parceiro
+  from public.founders_parceiros
+  where empresa_id = c.empresa_id
+  for update;
+
+  if parceiro.id is null then
+    raise exception 'Parceiro Founders não encontrado para a empresa da contribuição.' using errcode='22023';
+  end if;
+
+  idempotencia_credito := 'contribuicao_credito:' || c.id::text;
+  idempotencia_estorno := 'contribuicao_estorno:' || c.id::text;
+
+  select *
+  into lancamento_credito
+  from public.founders_pontos_ledger l
+  where l.empresa_id = c.empresa_id
+    and l.tipo = 'credito'
+    and l.idempotency_key = idempotencia_credito
+  order by l.criado_em desc
+  limit 1;
+  lancamento_credito_id := lancamento_credito.id;
+
+  estorno_credito_existe := exists (
+    select 1
+    from public.founders_pontos_ledger l
+    where l.empresa_id = c.empresa_id
+      and l.idempotency_key = idempotencia_estorno
+  );
 
   if p_status in ('aprovada', 'implementada') then
-    idempotencia_credito := 'contribuicao_credito:' || c.id::text;
-    idempotencia_estorno := 'contribuicao_estorno:' || c.id::text;
-    estorno_credito_existe := exists (
-      select 1
-      from public.founders_pontos_ledger l
-      where l.empresa_id = c.empresa_id
-        and l.idempotency_key = idempotencia_estorno
-    );
-
     if estorno_credito_existe then
       raise exception 'Contribuição já estornada após rejeição. Para novo crédito, use ajuste administrativo com auditoria.' using errcode='22023';
     end if;
 
     conceder := coalesce(p_pontos_concedidos, c.pontos_previstos, 0);
     if conceder > 0 and c.pontos_concedidos = 0 then
-      perform public.gc_founders_admin_ajustar_pontos(
-        c.empresa_id,
-        'credito',
-        conceder,
-        'Crédito por contribuição validada',
-        idempotencia_credito,
-        c.id
-      );
+      if lancamento_credito_id is null then
+        insert into public.founders_pontos_ledger(
+          empresa_id, parceiro_id, tipo, origem, referencia_id, pontos, descricao, idempotency_key, lancado_por
+        )
+        values (
+          c.empresa_id,
+          parceiro.id,
+          'credito',
+          'contribuicao',
+          c.id,
+          conceder,
+          'Crédito por contribuição validada',
+          idempotencia_credito,
+          auth.uid()
+        )
+        returning id into lancamento_credito_id;
+      else
+        conceder := lancamento_credito.pontos;
+      end if;
+
       update public.founders_contribuicoes
       set pontos_concedidos = conceder
       where id = c.id;
@@ -596,37 +626,45 @@ begin
   end if;
 
   if p_status = 'rejeitada' and c.pontos_concedidos > 0 then
-    idempotencia_credito := 'contribuicao_credito:' || c.id::text;
-    idempotencia_estorno := 'contribuicao_estorno:' || c.id::text;
-    select l.id
-      into lancamento_credito_id
-    from public.founders_pontos_ledger l
-    where l.empresa_id = c.empresa_id
-      and l.tipo = 'credito'
-      and l.idempotency_key = idempotencia_credito
-    order by l.criado_em desc
-    limit 1;
-
     if lancamento_credito_id is null then
       raise exception 'Não foi possível localizar o lançamento de crédito para estorno da contribuição.' using errcode='22023';
     end if;
+    if lancamento_credito.referencia_id is distinct from c.id then
+      raise exception 'Crédito da contribuição inconsistente: referência do ledger não corresponde à contribuição.' using errcode='22023';
+    end if;
 
-    if not exists (
-      select 1
-      from public.founders_pontos_ledger l
-      where l.empresa_id = c.empresa_id
-        and l.idempotency_key = idempotencia_estorno
-    ) then
-      perform public.gc_founders_admin_ajustar_pontos(
+    if not estorno_credito_existe then
+      saldo_disponivel := public.gc_founders_saldo_pontos(c.empresa_id);
+      if saldo_disponivel < c.pontos_concedidos then
+        raise exception 'Rejeição bloqueada: os pontos da contribuição já foram utilizados. Regularize o saldo por ajuste administrativo antes de rejeitar.' using errcode='22023';
+      end if;
+
+      insert into public.founders_pontos_ledger(
+        empresa_id, parceiro_id, tipo, origem, referencia_id, pontos, descricao, idempotency_key, lancado_por, lancamento_relacionado_id
+      )
+      values (
         c.empresa_id,
+        parceiro.id,
         'estorno_credito',
+        'estorno',
+        lancamento_credito_id,
         c.pontos_concedidos,
         'Estorno por rejeição da contribuição',
         idempotencia_estorno,
+        auth.uid(),
         lancamento_credito_id
-      );
+      )
+      returning id into lancamento_estorno_id;
     end if;
   end if;
+
+  update public.founders_contribuicoes
+  set
+    status = p_status,
+    nota_administrativa = left(coalesce(p_nota_administrativa, ''), 4000),
+    validada_em = case when p_status in ('aprovada', 'rejeitada', 'implementada') then now() else validada_em end,
+    validada_por = case when p_status in ('aprovada', 'rejeitada', 'implementada') then auth.uid() else validada_por end
+  where id = p_contribuicao_id;
 
   perform public.gc_founders_registrar_auditoria(
     'founders_admin_atualizar_contribuicao',
@@ -636,7 +674,9 @@ begin
     jsonb_build_object(
       'status_anterior', c.status,
       'status_novo', p_status,
-      'pontos_concedidos', coalesce(p_pontos_concedidos, c.pontos_concedidos)
+      'pontos_concedidos', coalesce(p_pontos_concedidos, c.pontos_concedidos),
+      'lancamento_credito_id', lancamento_credito_id,
+      'lancamento_estorno_id', lancamento_estorno_id
     )
   );
 end $$;
