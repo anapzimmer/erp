@@ -1272,18 +1272,22 @@ const extrairVidroRelacao = (descricao: string) => {
   return { medida, vidroDescricao };
 };
 
+const detalhesVidroAtualizados = (material: { descricao?: string; medida?: string; vidroDescricao?: string }) => {
+  const extraido = extrairVidroRelacao(material.descricao || "");
+  // A troca de vidro atualiza a descrição; snapshots antigos podem manter o nome anterior.
+  const descricaoAtualCompleta = /\d+(?:[.,]\d+)?\s*mm\b/i.test(extraido.vidroDescricao) && /vidro|espelho/i.test(material.descricao || "");
+  return {
+    medida: material.medida || extraido.medida,
+    vidroDescricao: descricaoAtualCompleta ? extraido.vidroDescricao : material.vidroDescricao || extraido.vidroDescricao,
+  };
+};
+
 const inferirPecasVidroMaterial = (
   material: ProjetoIndividualMaterial,
   item: CentralImpressaoItem,
   totalVidrosDoItem: number
 ) => {
-  const detalhesVidroMaterial =
-    material.medida || material.vidroDescricao
-      ? {
-          medida: String(material.medida || "").trim(),
-          vidroDescricao: String(material.vidroDescricao || "").trim(),
-        }
-      : extrairVidroRelacao(material.descricao);
+  const detalhesVidroMaterial = detalhesVidroAtualizados(material);
 
   const medidaMaterial = normalizarTexto(detalhesVidroMaterial.medida).replace(/\s+/g, "");
   const descricaoMaterial = normalizarTexto(detalhesVidroMaterial.vidroDescricao);
@@ -1368,13 +1372,9 @@ const adicionarMaterialConsolidado = (
     valorTotalInformado > 0 ? valorTotalInformado
       : qtd * valorUnitario;
 
-  const detalhesVidro =
-    material.medida || material.vidroDescricao ? {
-          medida: material.medida,
-          vidroDescricao: material.vidroDescricao,
-        }
-      : unidade === "m²" ? extrairVidroRelacao(descricao)
-        : {};
+  const detalhesVidro: { medida?: string; vidroDescricao?: string } = unidade === "m²" || material.medida || material.vidroDescricao
+    ? detalhesVidroAtualizados(material)
+    : {};
 
   const chave = material.chaveGrupo || criarChaveMaterial(codigo, descricao, unidade);
 
@@ -1431,14 +1431,7 @@ const consolidarMateriais = (
       }
 
       const qtd = numeroSeguro(material.qtd);
-      const detalhesVidro =
-        tipo === "vidros"
-          ? material.medida || material.vidroDescricao ? {
-              medida: material.medida,
-              vidroDescricao: material.vidroDescricao,
-            }
-            : extrairVidroRelacao(material.descricao)
-          : {};
+      const detalhesVidro: { medida?: string; vidroDescricao?: string } = tipo === "vidros" ? detalhesVidroAtualizados(material) : {};
       const chaveGrupoVidro =
         tipo === "vidros"
           ? [

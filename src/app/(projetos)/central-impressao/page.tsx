@@ -1814,6 +1814,8 @@ export default function CentralImpressaoPage() {
           id: criarId(),
           descricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? trocarVidroDescricaoMaterial(material.descricao, novoVidro)
             : material.descricao,
+          vidroDescricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? novoVidro
+            : material.vidroDescricao,
           valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
             : material.valorUnitario,
         }));
