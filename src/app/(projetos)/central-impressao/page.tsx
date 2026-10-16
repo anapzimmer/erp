@@ -136,6 +136,20 @@ export type OtimizacaoPerfil = {
   valorOtimizado: number;
 };
 
+type OtimizacaoAcessorioPacote = {
+  chave: string;
+  codigo: string;
+  descricao: string;
+  pacote: number;
+  precoPorPacote: boolean;
+  valorUnitario: number;
+  quantidadeBaseTotal: number;
+  quantidadeCobradaOriginal: number;
+  quantidadeCobradaOtimizada: number;
+  valorOriginal: number;
+  valorOtimizado: number;
+};
+
 const CENTRAL_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 const CENTRAL_OBRA_KEY = "glasscode:central-impressao:obra";
@@ -178,6 +192,12 @@ const normalizarTexto = (texto?: string | number | null) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+
+const normalizarCodigo = (codigo?: string | null) =>
+  String(codigo || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
 
 const temLarguraComposta = (medidas?: string) =>
   /^\s*\d+(?:[.,]\d+)?\s*\+\s*\d+(?:[.,]\d+)?\s*[xX×]/.test(String(medidas || ""));
@@ -1062,6 +1082,27 @@ const itemTemCortesDeBarra = (item: Pick<ProjetoComposicao, "materiais">) =>
 const itemParticipaOtimizacaoBarras = (item: Pick<ProjetoComposicao, "materiais">) =>
   itemTemCortesDeBarra(item);
 
+const itemParticipaOtimizacaoAcessorioPacote = (item: Pick<ProjetoComposicao, "projeto" | "origemRota">) =>
+  (ehSacadaFrontal(item.projeto) || String(item.origemRota || "").includes("/calculo/sacadafrontal")) &&
+  !/tubo/i.test(String(item.projeto || ""));
+
+const materialParticipaOtimizacaoPacote = (material: ProjetoIndividualMaterial) =>
+  String(material.origemCalculo || "").startsWith("sacada-panoramica:pacote:") &&
+  Number(material.tamanhoPacote || 0) > 0 &&
+  Number(material.quantidadeBasePacote || 0) > 0;
+
+const chaveOtimizacaoAcessorioPacote = (
+  item: Pick<ProjetoComposicao, "corPerfil" | "corKit">,
+  material: ProjetoIndividualMaterial
+) => {
+  const codigo = normalizarCodigo(material.codigoOriginalCalculo || material.codigoPerfil || material.descricao.split("-")[0]);
+  const pacote = Math.max(1, Math.ceil(Number(material.tamanhoPacote || 0)));
+  const porPacote = material.precoPorPacote ? "pacote" : "quantidade";
+  const valorUnitario = Number(material.valorUnitario || 0).toFixed(6);
+  const cor = normalizarTexto(item.corPerfil || item.corKit || "");
+  return `${codigo}|${pacote}|${porPacote}|${valorUnitario}|${cor}`;
+};
+
 const origemOtimizacaoItem = (
   item: Pick<ProjetoComposicao, "projeto">
 ): OtimizacaoPerfil["origem"] => {
@@ -1200,6 +1241,66 @@ const calcularOtimizacaoPerfis = (itens: ProjetoComposicao[]): OtimizacaoPerfil[
       const ordemB = ordemPerfilOtimizado(b);
       return ordemA === ordemB ? a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }) : ordemA - ordemB;
     });
+};
+
+const calcularOtimizacaoAcessoriosPacote = (itens: ProjetoComposicao[]): OtimizacaoAcessorioPacote[] => {
+  const grupos = new Map<string, {
+    codigo: string;
+    descricao: string;
+    pacote: number;
+    precoPorPacote: boolean;
+    valorUnitario: number;
+    quantidadeBaseTotal: number;
+    quantidadeCobradaOriginal: number;
+  }>();
+
+  itens.forEach((item) => {
+    if (!itemParticipaOtimizacaoAcessorioPacote(item)) return;
+
+    item.materiais?.forEach((material) => {
+      if (!materialParticipaOtimizacaoPacote(material)) return;
+
+      const chave = chaveOtimizacaoAcessorioPacote(item, material);
+      const codigo = normalizarCodigo(material.codigoOriginalCalculo || material.codigoPerfil || material.descricao.split("-")[0]);
+      const pacote = Math.max(1, Math.ceil(Number(material.tamanhoPacote || 0)));
+      const quantidadeBase = Math.max(0, Number(material.quantidadeBasePacote || 0));
+      const quantidadeCobradaOriginal = Math.max(0, Number(material.qtd || 0));
+      const grupo = grupos.get(chave) || {
+        codigo,
+        descricao: String(material.descricao || codigo).toUpperCase(),
+        pacote,
+        precoPorPacote: Boolean(material.precoPorPacote),
+        valorUnitario: Number(material.valorUnitario || 0),
+        quantidadeBaseTotal: 0,
+        quantidadeCobradaOriginal: 0,
+      };
+
+      grupo.quantidadeBaseTotal += quantidadeBase;
+      grupo.quantidadeCobradaOriginal += quantidadeCobradaOriginal;
+      if (!grupo.valorUnitario && material.valorUnitario) grupo.valorUnitario = Number(material.valorUnitario || 0);
+      grupos.set(chave, grupo);
+    });
+  });
+
+  return Array.from(grupos.entries())
+    .map(([chave, grupo]) => {
+      const pacotesNecessarios = Math.ceil(grupo.quantidadeBaseTotal / grupo.pacote);
+      const quantidadeCobradaOtimizada = grupo.precoPorPacote ? pacotesNecessarios : pacotesNecessarios * grupo.pacote;
+      return {
+        chave,
+        codigo: grupo.codigo,
+        descricao: grupo.descricao,
+        pacote: grupo.pacote,
+        precoPorPacote: grupo.precoPorPacote,
+        valorUnitario: grupo.valorUnitario,
+        quantidadeBaseTotal: Number(grupo.quantidadeBaseTotal.toFixed(3)),
+        quantidadeCobradaOriginal: Number(grupo.quantidadeCobradaOriginal.toFixed(3)),
+        quantidadeCobradaOtimizada,
+        valorOriginal: Number((grupo.quantidadeCobradaOriginal * grupo.valorUnitario).toFixed(2)),
+        valorOtimizado: Number((quantidadeCobradaOtimizada * grupo.valorUnitario).toFixed(2)),
+      };
+    })
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }));
 };
 
 export default function CentralImpressaoPage() {
@@ -1394,7 +1495,8 @@ export default function CentralImpressaoPage() {
   }, [cliente, editId, imprimirOtimizacao, itens, materiaisAvulsos, numeroOrcamento, obra, rascunhoCarregado, usarOtimizacao]);
 
   const otimizacaoPerfis = useMemo(() => calcularOtimizacaoPerfis(itens), [itens]);
-  const otimizacaoAplicada = usarOtimizacao && otimizacaoPerfis.length > 0;
+  const otimizacaoAcessoriosPacote = useMemo(() => calcularOtimizacaoAcessoriosPacote(itens), [itens]);
+  const otimizacaoAplicada = usarOtimizacao && (otimizacaoPerfis.length > 0 || otimizacaoAcessoriosPacote.length > 0);
   const otimizacaoPerfisPdf = otimizacaoAplicada && imprimirOtimizacao ? otimizacaoPerfis : [];
   const vidrosFiltrados = useMemo(() => {
     const termo = normalizarTexto(buscaVidroOrcamento);
@@ -1497,8 +1599,12 @@ export default function CentralImpressaoPage() {
 
     const valorPerfisOriginais = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOriginal || 0), 0);
     const valorPerfisOtimizados = otimizacaoPerfis.reduce((total, perfil) => total + Number(perfil.valorOtimizado || 0), 0);
+    const valorAcessoriosOriginais = otimizacaoAcessoriosPacote.reduce((total, acessorio) => total + Number(acessorio.valorOriginal || 0), 0);
+    const valorAcessoriosOtimizados = otimizacaoAcessoriosPacote.reduce((total, acessorio) => total + Number(acessorio.valorOtimizado || 0), 0);
     const economiaPerfis = Math.max(0, valorPerfisOriginais - valorPerfisOtimizados);
-    const valorProjetos = otimizacaoAplicada ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados
+    const economiaAcessoriosPacote = Math.max(0, valorAcessoriosOriginais - valorAcessoriosOtimizados);
+    const valorProjetos = otimizacaoAplicada
+      ? base.valorOriginal - valorPerfisOriginais + valorPerfisOtimizados - valorAcessoriosOriginais + valorAcessoriosOtimizados
       : base.valorOriginal;
     const valor = valorProjetos + totalMateriaisAvulsos;
 
@@ -1509,14 +1615,16 @@ export default function CentralImpressaoPage() {
       valorPerfisOriginais,
       valorPerfisOtimizados,
       economiaPerfis,
+      economiaAcessoriosPacote,
+      economiaOtimizacao: economiaPerfis + economiaAcessoriosPacote,
       otimizacaoAplicada,
     };
-  }, [itens, otimizacaoAplicada, otimizacaoPerfis, totalMateriaisAvulsos]);
+  }, [itens, otimizacaoAcessoriosPacote, otimizacaoAplicada, otimizacaoPerfis, totalMateriaisAvulsos]);
 
   const valoresRateadosPorItem = useMemo(() => {
     const mapa = new Map<string, number>();
 
-    if (!otimizacaoAplicada || otimizacaoPerfis.length === 0) {
+    if (!otimizacaoAplicada || (otimizacaoPerfis.length === 0 && otimizacaoAcessoriosPacote.length === 0)) {
       itens.forEach((item) => mapa.set(item.id, Number(item.valorTotal || 0)));
       return mapa;
     }
@@ -1591,26 +1699,82 @@ export default function CentralImpressaoPage() {
       });
     });
 
+    const gruposAcessoriosOtimizados = new Map<string, OtimizacaoAcessorioPacote>();
+    otimizacaoAcessoriosPacote.forEach((acessorio) => {
+      gruposAcessoriosOtimizados.set(acessorio.chave, acessorio);
+    });
+
+    const consumoAcessoriosPorGrupo = new Map<
+      string,
+      {
+        totalBase: number;
+        totalOriginal: number;
+        itens: Map<string, { quantidadeBase: number; valorOriginal: number }>;
+      }
+    >();
+    const valorAcessorioOriginalPorItem = new Map<string, number>();
+
+    itens.forEach((item) => {
+      if (!itemParticipaOtimizacaoAcessorioPacote(item)) return;
+
+      item.materiais?.forEach((material) => {
+        if (!materialParticipaOtimizacaoPacote(material)) return;
+
+        const chave = chaveOtimizacaoAcessorioPacote(item, material);
+        if (!gruposAcessoriosOtimizados.has(chave)) return;
+
+        const quantidadeBaseItem = Math.max(0, Number(material.quantidadeBasePacote || 0));
+        const valorOriginalItem = Math.max(0, Number(material.qtd || 0) * Number(material.valorUnitario || 0));
+        const grupo = consumoAcessoriosPorGrupo.get(chave) || { totalBase: 0, totalOriginal: 0, itens: new Map<string, { quantidadeBase: number; valorOriginal: number }>() };
+        const atualItem = grupo.itens.get(item.id) || { quantidadeBase: 0, valorOriginal: 0 };
+
+        atualItem.quantidadeBase += quantidadeBaseItem;
+        atualItem.valorOriginal += valorOriginalItem;
+        grupo.totalBase += quantidadeBaseItem;
+        grupo.totalOriginal += valorOriginalItem;
+        grupo.itens.set(item.id, atualItem);
+        consumoAcessoriosPorGrupo.set(chave, grupo);
+        valorAcessorioOriginalPorItem.set(item.id, (valorAcessorioOriginalPorItem.get(item.id) || 0) + valorOriginalItem);
+      });
+    });
+
+    const valorAcessorioOtimizadoPorItem = new Map<string, number>();
+
+    consumoAcessoriosPorGrupo.forEach((grupo, chave) => {
+      const acessorioOtimizado = gruposAcessoriosOtimizados.get(chave);
+      if (!acessorioOtimizado) return;
+
+      grupo.itens.forEach((consumo, itemId) => {
+        const baseRateio = grupo.totalBase > 0
+          ? consumo.quantidadeBase / grupo.totalBase
+          : grupo.totalOriginal > 0
+            ? consumo.valorOriginal / grupo.totalOriginal
+            : 0;
+
+        valorAcessorioOtimizadoPorItem.set(
+          itemId,
+          (valorAcessorioOtimizadoPorItem.get(itemId) || 0) + (Number(acessorioOtimizado.valorOtimizado || 0) * baseRateio)
+        );
+      });
+    });
+
     itens.forEach((item) => {
       const valorOriginal = Number(item.valorTotal || 0);
-      if (!itemParticipaOtimizacaoBarras(item)) {
-        mapa.set(item.id, valorOriginal);
-        return;
-      }
+      const valorPerfilOriginal = itemParticipaOtimizacaoBarras(item)
+        ? (valorPerfilOriginalPorItem.get(item.id) || calcularValorPerfisOriginaisItem(item))
+        : 0;
+      const valorPerfilOtimizado = valorPerfilOtimizadoPorItem.get(item.id) ?? valorPerfilOriginal;
+      const valorAcessorioOriginal = valorAcessorioOriginalPorItem.get(item.id) || 0;
+      const valorAcessorioOtimizado = valorAcessorioOtimizadoPorItem.get(item.id) ?? valorAcessorioOriginal;
 
-      const valorPerfilOriginal = valorPerfilOriginalPorItem.get(item.id) || calcularValorPerfisOriginaisItem(item);
-      const valorPerfilOtimizado = valorPerfilOtimizadoPorItem.get(item.id);
-
-      if (valorPerfilOtimizado === undefined) {
-        mapa.set(item.id, valorOriginal);
-        return;
-      }
-
-      mapa.set(item.id, Math.max(0, valorOriginal - valorPerfilOriginal + valorPerfilOtimizado));
+      mapa.set(
+        item.id,
+        Math.max(0, valorOriginal - valorPerfilOriginal + valorPerfilOtimizado - valorAcessorioOriginal + valorAcessorioOtimizado)
+      );
     });
 
     return mapa;
-  }, [itens, otimizacaoAplicada, otimizacaoPerfis]);
+  }, [itens, otimizacaoAcessoriosPacote, otimizacaoAplicada, otimizacaoPerfis]);
 
   const itensPdf = useMemo<CentralImpressaoItem[]>(
     () => {
@@ -3119,12 +3283,12 @@ router.push(
               </div>
             ) : null}
 
-            {otimizacaoPerfis.length > 0 ? (
+            {otimizacaoPerfis.length > 0 || otimizacaoAcessoriosPacote.length > 0 ? (
               <section className="mt-5 rounded-2xl border border-border bg-white p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-lg font-black tracking-tight text-text-primary">Relação de materiais otimizada</h2>
-                    <p className="text-sm text-text-secondary">Cortes agrupados por perfil para aproveitamento em barras. Marque para aplicar a otimização no valor.</p>
+                    <p className="text-sm text-text-secondary">Cortes de perfis e acessórios em pacote agrupados para aproveitamento. Marque para aplicar a otimização no valor.</p>
                   </div>
                   <div className="flex flex-col gap-2 sm:items-end">
                     <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-text-primary shadow-sm">
@@ -3152,10 +3316,12 @@ router.push(
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-5">
                   <TotalResumo label="Barras sem otimização" value={String(otimizacaoPerfis.reduce((total, perfil) => total + perfil.barrasOriginais, 0))} />
                   <TotalResumo label="Barras otimizadas" value={String(otimizacaoPerfis.reduce((total, perfil) => total + perfil.barras.length, 0))} />
-                  <TotalResumo label="Economia estimada" value={moeda(totais.economiaPerfis)} strong={otimizacaoAplicada} />
+                  <TotalResumo label="Qtd cobrada sem otimização" value={String(otimizacaoAcessoriosPacote.reduce((total, acessorio) => total + acessorio.quantidadeCobradaOriginal, 0))} />
+                  <TotalResumo label="Qtd cobrada otimizada" value={String(otimizacaoAcessoriosPacote.reduce((total, acessorio) => total + acessorio.quantidadeCobradaOtimizada, 0))} />
+                  <TotalResumo label="Economia estimada" value={moeda(totais.economiaOtimizacao)} strong={otimizacaoAplicada} />
                 </div>
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -3188,6 +3354,30 @@ router.push(
                         })}
                       </div>
                     </article>
+                    );
+                  })}
+                  {otimizacaoAcessoriosPacote.map((acessorio, acessorioIndex) => {
+                    const chaveAcessorio = `acessorio-${acessorio.codigo}-${acessorio.pacote}-${acessorioIndex}`;
+                    const descricaoAcessorio = removerCodigoDuplicadoDescricao(acessorio.codigo, acessorio.descricao);
+
+                    return (
+                      <article key={chaveAcessorio} className="rounded-2xl border border-border bg-surface p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-wide text-text-secondary">{acessorio.codigo}</p>
+                            <h3 className="mt-1 text-sm font-black text-text-primary">{descricaoAcessorio}</h3>
+                          </div>
+                          <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-black text-success">
+                            {acessorio.quantidadeCobradaOriginal} → {acessorio.quantidadeCobradaOtimizada}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-text-secondary">
+                          Pacote: {acessorio.pacote} {acessorio.precoPorPacote ? "(preço por pacote)" : "(preço por unidade do pacote)"}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-text-secondary">
+                          Valor: {moeda(acessorio.valorOriginal)} → {moeda(acessorio.valorOtimizado)}
+                        </p>
+                      </article>
                     );
                   })}
                 </div>

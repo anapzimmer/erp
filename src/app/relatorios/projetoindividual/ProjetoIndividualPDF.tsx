@@ -21,6 +21,9 @@ export type ProjetoIndividualMaterial = {
   vidroDescricao?: string;
   origemCalculo?: string;
   codigoOriginalCalculo?: string;
+  quantidadeBasePacote?: number;
+  tamanhoPacote?: number;
+  precoPorPacote?: boolean;
   personalizadoCatalogo?: boolean;
   perfilExtra?: import("@/utils/perfisExtras").PerfilExtra;
 };

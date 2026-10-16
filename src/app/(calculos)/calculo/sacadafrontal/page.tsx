@@ -88,9 +88,11 @@ const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 const CENTRAL_IMPRESSAO_OBRA_KEY = "glasscode:central-impressao:obra";
 const CODIGOS_COR_PERFIL = new Set(["CAN625", "SUP626", "NYL314", "NYL042"]);
-const CODIGOS_SEMPRE_PRETO = new Set(["GUA033"]);
+const CODIGOS_SEMPRE_PRETO = new Set(["GUA033", "GUA33"]);
 const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
   NYL314: ["NYL314", "NYL342"],
+  GUA033: ["GUA033", "GUA33"],
+  GUA33: ["GUA33", "GUA033"],
 };
 
 const normalizarTextoComparacao = (texto?: string | null) =>
@@ -663,7 +665,8 @@ export default function CalculoSacadaFrontalPage() {
 
 const acessoriosComPrecoTabela = useMemo(() => {
   const pontoDivisao = (quantidadeDivisoesNumero + 1) * quantidadeNumero;
-  const guarnicaoMm = (resultado.larguraVidroMm * 2 + 50) * resultado.quantidadeTotalVidros;
+  const quantidadeFixadores = pontoDivisao * 2;
+  const guarnicaoM = Number(((resultado.larguraVidroMm * 2 * resultado.quantidadeTotalVidros) / 1000).toFixed(2));
 
   const regras = tipoSacada === "tubo"
     ? [
@@ -674,11 +677,11 @@ const acessoriosComPrecoTabela = useMemo(() => {
       { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
       { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
       { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
-      { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
-      { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
-      { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
+      { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Porca 1/4", codigo: "POR517", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesNumero * 3, pacote: 100, precoPorPacote: true },
+      { nome: "Guarnicao", codigo: "GUA33", quantidade: guarnicaoM, pacote: 50 },
     ];
 
   return regras.map(({ nome, codigo, quantidade, pacote, precoPorPacote }) => {
@@ -723,6 +726,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       quantidade: quantidadeNecessaria,
       quantidadePacote: pacote ? quantidadePacote : undefined,
       pacote,
+      precoPorPacote: Boolean(precoPorPacote),
       precoUnitario,
       valorTotal: Number((quantidadeParaPreco * precoUnitario).toFixed(2)),
     };
@@ -822,6 +826,13 @@ const acessoriosComPrecoTabela = useMemo(() => {
       unidade: acessorio.pacote ? "pacote" : "und",
       descricao: `${acessorio.codigo} - ${acessorio.nome}`.toUpperCase(),
       valorUnitario: Number(acessorio.precoUnitario || 0),
+      origemCalculo: tipoSacada === "panoramica" && acessorio.pacote
+        ? `sacada-panoramica:pacote:${acessorio.codigo}`
+        : undefined,
+      codigoOriginalCalculo: acessorio.codigo,
+      quantidadeBasePacote: acessorio.pacote ? Number(acessorio.quantidade || 0) : undefined,
+      tamanhoPacote: acessorio.pacote,
+      precoPorPacote: acessorio.pacote ? Boolean(acessorio.precoPorPacote) : undefined,
     })),
   ];
 
@@ -1597,4 +1608,3 @@ const acessoriosComPrecoTabela = useMemo(() => {
     </div>
   );
 }
-
