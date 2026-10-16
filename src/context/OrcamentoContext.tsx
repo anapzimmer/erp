@@ -67,6 +67,7 @@ export function OrcamentoProvider({ children }: { children: ReactNode }) {
  const rotaPublica =
   pathname === "/" ||
   pathname === "/planos" ||
+  pathname === "/fundadores" ||
   pathname === "/recursos" ||
   pathname === "/glasscode" ||
   pathname.startsWith("/glasscode/") ||

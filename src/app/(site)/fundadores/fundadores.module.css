@@ -1,0 +1,103 @@
+/* Complementa planos.module.css (cabeçalho, rodapé e tokens do tema). */
+.page { overflow-x: hidden; }
+.page :is(a, summary):focus-visible { outline: 3px solid var(--gc-graphite); outline-offset: 4px; border-radius: 6px; box-shadow: 0 0 0 6px var(--gc-lime); }
+
+.eyebrow { display: block; color: var(--text-secondary); font-size: 11px; font-weight: 600; letter-spacing: 2px; }
+
+/* HERO */
+.hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 80px; align-items: center; padding: 96px 0 72px; }
+.hero h1 { margin: 22px 0; max-width: 680px; font-size: clamp(36px, 4.6vw, 62px); font-weight: 500; line-height: 1.08; letter-spacing: -0.045em; }
+.hero h1 em { font-style: normal; color: var(--text-secondary); }
+.lead { max-width: 520px; margin: 0 0 36px; color: var(--text-secondary); font-size: 17px; line-height: 1.75; }
+.fine { max-width: 420px; margin: 16px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+
+.cta { display: inline-flex; align-items: center; gap: 12px; padding: 15px 22px; border-radius: 10px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 700; text-decoration: none; transition: background 160ms ease, transform 160ms ease; }
+.cta:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+/* OFERTA — única área grafite do hero */
+.offer { padding: 40px; border-radius: 24px; background: var(--gc-graphite); color: var(--gc-ice); box-shadow: 0 24px 60px var(--shadow); }
+.offerLabel { color: var(--gc-mist); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.price { margin-top: 20px; color: var(--gc-lime); font-size: clamp(52px, 6vw, 72px); font-weight: 600; letter-spacing: -0.05em; line-height: 1; }
+.price small { margin-left: 4px; color: var(--gc-mist); font-size: 18px; font-weight: 400; letter-spacing: 0; }
+.offerNote { margin: 10px 0 0; color: var(--gc-mist); font-size: 14px; }
+.then { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 28px 0; padding: 18px 0; border-block: 1px solid #ffffff26; color: var(--gc-mist); font-size: 13px; }
+.then strong { color: var(--gc-ice); font-size: 20px; font-weight: 600; white-space: nowrap; }
+.offer ul { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.offer li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.offer li svg { flex-shrink: 0; margin-top: 3px; color: var(--gc-lime); }
+
+/* FAIXA */
+.strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px 56px; margin: 0; padding: 24px 0; list-style: none; border-block: 1px solid var(--border); color: var(--text-secondary); font-size: 14px; }
+.strip li { display: flex; align-items: center; gap: 10px; }
+.strip svg { color: var(--text-primary); }
+.strip b { color: var(--text-primary); font-weight: 600; }
+
+/* SECOES */
+.section { padding-top: 112px; }
+.section h2, .final h2 { margin: 16px 0 44px; max-width: 720px; font-size: clamp(28px, 3.2vw, 42px); font-weight: 500; line-height: 1.15; letter-spacing: -0.04em; }
+
+.benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; }
+.benefits article { padding-top: 24px; border-top: 1px solid var(--border-strong); }
+.num { color: var(--text-secondary); font-size: 12px; letter-spacing: 2px; }
+.benefits h3 { margin: 14px 0 10px; font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+.benefits p, .steps p, .points p, .faq details p { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.75; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px 48px; margin: 0; padding: 0; list-style: none; counter-reset: etapa; }
+.steps li { counter-increment: etapa; }
+.steps li::before { content: counter(etapa); display: grid; place-items: center; width: 30px; height: 30px; margin-bottom: 16px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 700; }
+.steps h3 { margin: 0 0 6px; font-size: 16px; font-weight: 500; }
+
+/* PONTOS */
+.points { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.points h2 { margin-bottom: 16px; }
+.points ul { margin: 0; padding: 0; list-style: none; }
+.points li { padding: 18px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 14px; line-height: 1.7; }
+.points li:first-child { padding-top: 0; }
+
+/* FAQ */
+.faq { max-width: 800px; margin-inline: auto; }
+.faq details { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.faq summary { cursor: pointer; display: flex; justify-content: space-between; gap: 16px; color: var(--text-primary); font-size: 15px; font-weight: 500; list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; color: var(--text-secondary); font-size: 20px; line-height: 1; }
+.faq details[open] summary::after { content: '\2212'; }
+.faq details p { max-width: 700px; margin-top: 12px; }
+
+/* CTA FINAL */
+.final { display: flex; flex-direction: column; align-items: center; margin: 112px 0 72px; padding: 72px 32px 64px; border-radius: 24px; background: var(--surface-secondary); text-align: center; }
+.final h2 { margin: 0 0 32px; }
+
+/* BLOCO FOUNDERS EM /planos — área grafite controlada */
+.headerInner { gap: 24px; }
+.banner { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 40px; margin: 72px 0; padding: 44px; border-radius: 24px; background: var(--gc-graphite); color: var(--gc-ice); }
+.banner .eyebrow { color: var(--gc-lime); }
+.banner h2 { margin: 14px 0; font-size: clamp(26px, 3vw, 36px); font-weight: 500; letter-spacing: -0.03em; }
+.banner p { max-width: 640px; margin: 0 0 10px; color: var(--gc-mist); font-size: 14px; line-height: 1.7; }
+.bannerPrice { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 8px 0 14px; color: var(--gc-mist); font-size: 14px; }
+.bannerPrice strong { color: var(--gc-lime); font-size: 30px; letter-spacing: -0.03em; }
+.banner a:focus-visible { outline: 3px solid var(--gc-lime); box-shadow: none; }
+.banner .cta { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cta { transition: none; }
+  .cta:hover { transform: none; }
+}
+
+@media (max-width: 1020px) {
+  .hero { grid-template-columns: 1fr; gap: 48px; padding: 64px 0 56px; }
+  .benefits, .steps { grid-template-columns: repeat(2, 1fr); }
+  .points { grid-template-columns: 1fr; gap: 32px; }
+  .banner { grid-template-columns: 1fr; padding: 36px; }
+}
+
+@media (max-width: 640px) {
+  .section { padding-top: 80px; }
+  .section h2 { margin-bottom: 32px; }
+  .benefits, .steps { grid-template-columns: 1fr; gap: 32px; }
+  .offer { padding: 28px 22px; }
+  .strip { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .cta { width: 100%; justify-content: center; }
+  .final { margin: 80px 0 48px; padding: 48px 22px; }
+  .banner { padding: 28px 22px; }
+  .banner .cta { white-space: normal; }
+}
