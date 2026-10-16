@@ -80,10 +80,6 @@ begin
 end $$;
 
 -- 2) Reforçar proteção contra insert direto (contorno de RPC)
-revoke insert on public.founders_contribuicoes from authenticated;
-revoke insert on public.founders_contribuicao_anexos from authenticated;
-revoke insert on public.founders_votos from authenticated;
-revoke insert on public.founders_resgates from authenticated;
 revoke usage, select on sequence public.founders_numero_fundador_seq from authenticated;
 
 drop policy if exists founders_contribuicoes_insert on public.founders_contribuicoes;
@@ -217,14 +213,32 @@ begin
       and c.column_name = 'owner_id'
   ) into storage_tem_owner_id;
 
+  if not storage_tem_owner and not storage_tem_owner_id then
+    raise exception 'Não é possível validar o proprietário do arquivo: storage.objects não possui coluna owner nem owner_id.' using errcode='42501';
+  end if;
+
   begin
-    if storage_tem_owner then
+    if storage_tem_owner and storage_tem_owner_id then
       execute $q$
         select o.id, o.metadata
         from storage.objects o
         where o.bucket_id = 'founders-anexos'
           and o.name = $1
-          and coalesce(o.owner, auth.uid()) = auth.uid()
+          and (
+            o.owner = auth.uid()
+            or (o.owner_id)::text = auth.uid()::text
+          )
+        limit 1
+      $q$
+      into objeto_storage
+      using trim(p_storage_path);
+    elsif storage_tem_owner then
+      execute $q$
+        select o.id, o.metadata
+        from storage.objects o
+        where o.bucket_id = 'founders-anexos'
+          and o.name = $1
+          and o.owner = auth.uid()
         limit 1
       $q$
       into objeto_storage
@@ -235,17 +249,7 @@ begin
         from storage.objects o
         where o.bucket_id = 'founders-anexos'
           and o.name = $1
-          and coalesce((o.owner_id)::text, auth.uid()::text) = auth.uid()::text
-        limit 1
-      $q$
-      into objeto_storage
-      using trim(p_storage_path);
-    else
-      execute $q$
-        select o.id, o.metadata
-        from storage.objects o
-        where o.bucket_id = 'founders-anexos'
-          and o.name = $1
+          and (o.owner_id)::text = auth.uid()::text
         limit 1
       $q$
       into objeto_storage
@@ -385,10 +389,20 @@ begin
   end if;
 
   insert into public.founders_pontos_ledger(
-    empresa_id, parceiro_id, tipo, origem, referencia_id, pontos, descricao, idempotency_key, lancado_por
+    empresa_id, parceiro_id, tipo, origem, referencia_id, pontos, descricao, idempotency_key, lancado_por,
+    lancamento_relacionado_id
   )
   values (
-    p_empresa_id, parceiro.id, p_tipo, 'ajuste', p_referencia_id, p_pontos, trim(p_motivo), trim(p_idempotency_key), auth.uid()
+    p_empresa_id,
+    parceiro.id,
+    p_tipo,
+    case when p_tipo in ('estorno_credito', 'estorno_debito') then 'estorno' else 'ajuste' end,
+    p_referencia_id,
+    p_pontos,
+    trim(p_motivo),
+    trim(p_idempotency_key),
+    auth.uid(),
+    case when p_tipo in ('estorno_credito', 'estorno_debito') then p_referencia_id else null end
   )
   returning id into lancamento_id;
 
@@ -544,12 +558,33 @@ declare lancamento_credito public.founders_pontos_ledger;
 declare lancamento_estorno_id uuid;
 declare estorno_credito_existe boolean := false;
 declare saldo_disponivel integer;
+declare empresa_contribuicao uuid;
 begin
   if not public.gc_founders_admin() then
     raise exception 'Acesso administrativo Founders necessário.' using errcode='42501';
   end if;
   if p_status not in ('em_triagem', 'em_votacao', 'aprovada', 'rejeitada', 'implementada') then
     raise exception 'Status administrativo inválido.' using errcode='22023';
+  end if;
+
+  select contribuicao.empresa_id
+  into empresa_contribuicao
+  from public.founders_contribuicoes contribuicao
+  where contribuicao.id = p_contribuicao_id;
+
+  if empresa_contribuicao is null then
+    raise exception 'Contribuição não encontrada.' using errcode='22023';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('founders_sync_empresa_' || empresa_contribuicao::text, 0));
+
+  select * into parceiro
+  from public.founders_parceiros
+  where empresa_id = empresa_contribuicao
+  for update;
+
+  if parceiro.id is null then
+    raise exception 'Parceiro Founders não encontrado para a empresa da contribuição.' using errcode='22023';
   end if;
 
   select * into c
@@ -561,15 +596,8 @@ begin
     raise exception 'Contribuição não encontrada.' using errcode='22023';
   end if;
 
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('founders_sync_empresa_' || c.empresa_id::text, 0));
-
-  select * into parceiro
-  from public.founders_parceiros
-  where empresa_id = c.empresa_id
-  for update;
-
-  if parceiro.id is null then
-    raise exception 'Parceiro Founders não encontrado para a empresa da contribuição.' using errcode='22023';
+  if c.empresa_id is distinct from empresa_contribuicao then
+    raise exception 'A empresa da contribuição mudou durante a operação. Tente novamente.' using errcode='40001';
   end if;
 
   idempotencia_credito := 'contribuicao_credito:' || c.id::text;
@@ -682,7 +710,8 @@ begin
 end $$;
 
 -- 6) Revisão de privilégios (SECURITY DEFINER e escrita direta)
-revoke update, delete on public.founders_parceiros,
+revoke insert, update, delete on table
+  public.founders_parceiros,
   public.founders_contribuicoes,
   public.founders_contribuicao_anexos,
   public.founders_votacoes,
@@ -690,7 +719,90 @@ revoke update, delete on public.founders_parceiros,
   public.founders_pontos_ledger,
   public.founders_beneficios,
   public.founders_resgates
-from authenticated;
+from authenticated, anon;
+
+revoke insert, update, delete on table
+  public.founders_parceiros,
+  public.founders_contribuicoes,
+  public.founders_contribuicao_anexos,
+  public.founders_votacoes,
+  public.founders_votos,
+  public.founders_pontos_ledger,
+  public.founders_beneficios,
+  public.founders_resgates
+from public;
+
+revoke insert (
+  id, empresa_id, numero_fundador, data_adesao, valor_mensal_acordado,
+  quantidade_usuarios_inclusos, status, ciclo_avaliacao_inicio,
+  ciclo_avaliacao_fim, criado_em, atualizado_em,
+  participacao_inicio, participacao_fim
+), update (
+  id, empresa_id, numero_fundador, data_adesao, valor_mensal_acordado,
+  quantidade_usuarios_inclusos, status, ciclo_avaliacao_inicio,
+  ciclo_avaliacao_fim, criado_em, atualizado_em,
+  participacao_inicio, participacao_fim
+) on table public.founders_parceiros from authenticated, anon, public;
+
+revoke insert (
+  id, empresa_id, parceiro_id, autor_id, titulo, descricao, categoria,
+  status, pontos_previstos, pontos_concedidos, validada_em, validada_por,
+  nota_administrativa, idempotency_key, criado_em, atualizado_em
+), update (
+  id, empresa_id, parceiro_id, autor_id, titulo, descricao, categoria,
+  status, pontos_previstos, pontos_concedidos, validada_em, validada_por,
+  nota_administrativa, idempotency_key, criado_em, atualizado_em
+) on table public.founders_contribuicoes from authenticated, anon, public;
+
+revoke insert (
+  id, contribuicao_id, empresa_id, autor_id, storage_bucket, storage_path,
+  nome_arquivo, mime_type, tamanho_bytes, hash_arquivo, criado_em
+), update (
+  id, contribuicao_id, empresa_id, autor_id, storage_bucket, storage_path,
+  nome_arquivo, mime_type, tamanho_bytes, hash_arquivo, criado_em
+) on table public.founders_contribuicao_anexos from authenticated, anon, public;
+
+revoke insert (
+  id, contribuicao_id, titulo, descricao, status, abre_em, encerra_em,
+  criada_por, criado_em, atualizado_em
+), update (
+  id, contribuicao_id, titulo, descricao, status, abre_em, encerra_em,
+  criada_por, criado_em, atualizado_em
+) on table public.founders_votacoes from authenticated, anon, public;
+
+revoke insert (
+  id, votacao_id, empresa_id, usuario_id, voto, observacao, criado_em
+), update (
+  id, votacao_id, empresa_id, usuario_id, voto, observacao, criado_em
+) on table public.founders_votos from authenticated, anon, public;
+
+revoke insert (
+  id, empresa_id, parceiro_id, tipo, origem, referencia_id, pontos,
+  descricao, idempotency_key, lancado_por, lancamento_relacionado_id,
+  criado_em
+), update (
+  id, empresa_id, parceiro_id, tipo, origem, referencia_id, pontos,
+  descricao, idempotency_key, lancado_por, lancamento_relacionado_id,
+  criado_em
+) on table public.founders_pontos_ledger from authenticated, anon, public;
+
+revoke insert (
+  id, codigo, nome, descricao, pontos_necessarios, limite_por_empresa,
+  estoque_total, ativo, criado_em, atualizado_em
+), update (
+  id, codigo, nome, descricao, pontos_necessarios, limite_por_empresa,
+  estoque_total, ativo, criado_em, atualizado_em
+) on table public.founders_beneficios from authenticated, anon, public;
+
+revoke insert (
+  id, empresa_id, parceiro_id, beneficio_id, solicitado_por, quantidade,
+  pontos_total, status, observacao, idempotency_key, lancamento_debito_id,
+  criado_em, atualizado_em
+), update (
+  id, empresa_id, parceiro_id, beneficio_id, solicitado_por, quantidade,
+  pontos_total, status, observacao, idempotency_key, lancamento_debito_id,
+  criado_em, atualizado_em
+) on table public.founders_resgates from authenticated, anon, public;
 
 revoke execute on function public.gc_founders_registrar_auditoria(text,text,uuid,uuid,jsonb) from authenticated;
 revoke execute on function public.gc_founders_bloquear_alteracao_ledger() from authenticated;

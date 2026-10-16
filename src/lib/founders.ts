@@ -1,12 +1,30 @@
 import { supabase } from "@/lib/supabaseClient";
 import type {
+  FoundersAdminPainelResponse,
+  FoundersApiActionResponse,
+  FoundersApiError,
+  FoundersEmpresaBusca,
   FoundersPainelVisao,
+  FoundersMinhaAreaResponse,
+  FoundersParticipantesVotacaoResponse,
   FoundersPostPayload,
+  FoundersResultadoVotacao,
+  FoundersVotacaoAdmin,
 } from "@/types/founders";
 
-export async function consultarFoundersPlataforma(
+export class FoundersApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = "FoundersApiRequestError";
+  }
+}
+
+export async function consultarFoundersPlataforma<T = unknown>(
   query = ""
-) {
+): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -31,19 +49,23 @@ export async function consultarFoundersPlataforma(
   const resultado = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      resultado.erro ||
-        "Não foi possível consultar o Founders."
+    throw new FoundersApiRequestError(
+      typeof resultado?.erro === "string"
+        ? resultado.erro
+        : "Não foi possível consultar o Founders.",
+      response.status
     );
   }
 
-  return resultado;
+  return resultado as T;
 }
 
 export async function carregarPainelFounders(
   visao: FoundersPainelVisao,
   params?: { busca?: string; pagina?: number }
-) {
+): Promise<
+  FoundersAdminPainelResponse | FoundersMinhaAreaResponse
+> {
   const busca = (params?.busca || "").slice(0, 100);
   const pagina = Math.max(
     0,
@@ -59,9 +81,35 @@ export async function carregarPainelFounders(
   return consultarFoundersPlataforma(query);
 }
 
+export async function buscarEmpresasFounders(busca: string) {
+  return consultarFoundersPlataforma<FoundersEmpresaBusca[]>(
+    `?visao=empresas-busca&busca=${encodeURIComponent(busca.trim().slice(0, 100))}`
+  );
+}
+
+export async function carregarVotacoesAdminFounders() {
+  return consultarFoundersPlataforma<FoundersVotacaoAdmin[]>(
+    "?visao=votacoes-admin"
+  );
+}
+
+export async function carregarParticipantesVotacaoFounders(
+  votacaoId: string
+) {
+  return consultarFoundersPlataforma<FoundersParticipantesVotacaoResponse>(
+    `?visao=votacoes-participantes&votacao_id=${encodeURIComponent(votacaoId)}`
+  );
+}
+
+export async function carregarResultadosVotacoesFounders() {
+  return consultarFoundersPlataforma<FoundersResultadoVotacao[]>(
+    "?visao=votacoes-resultados"
+  );
+}
+
 export async function executarAcaoFounders(
   payload: FoundersPostPayload
-) {
+): Promise<FoundersApiActionResponse> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -85,14 +133,18 @@ export async function executarAcaoFounders(
     }
   );
 
-  const resultado = await response.json();
+  const resultado = (await response.json()) as
+    | FoundersApiActionResponse
+    | FoundersApiError;
 
   if (!response.ok) {
-    throw new Error(
-      resultado.erro ||
-        "Não foi possível executar a ação do Founders."
+    throw new FoundersApiRequestError(
+      "erro" in resultado
+        ? resultado.erro
+        : "Não foi possível executar a ação do Founders.",
+      response.status
     );
   }
 
-  return resultado;
+  return resultado as FoundersApiActionResponse;
 }

@@ -31,7 +31,13 @@ declare
   v_credito_id uuid;
   v_debito_id uuid;
   v_saldo integer;
+  v_pontos_bloqueio integer;
+  v_saldo_antes_rejeicao integer;
+  v_saldo_depois_rejeicao integer;
   v_pontos_concedidos integer;
+  v_status_antes_rejeicao text;
+  v_ledger_antes_rejeicao jsonb;
+  v_ledger_depois_rejeicao jsonb;
   v_count integer;
   v_key_base text := 'founders-teste-' || replace(gen_random_uuid()::text, '-', '');
   v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
@@ -350,20 +356,50 @@ begin
   ) into v_contribuicao_bloqueio_id;
 
   perform set_config('request.jwt.claim.sub', v_admin_user::text, true);
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('founders_sync_empresa_' || v_empresa_a::text, 0)
+  );
+  select public.gc_founders_saldo_pontos(v_empresa_a) into v_saldo;
+  if v_saldo < 0 or v_saldo > 1073741823 then
+    raise exception 'Teste bloqueado: saldo inicial fora do intervalo para montar o cenário determinístico (%).', v_saldo;
+  end if;
+  v_pontos_bloqueio := v_saldo + 1;
+
   perform public.gc_founders_admin_atualizar_contribuicao(
     v_contribuicao_bloqueio_id,
     'aprovada',
-    200,
+    v_pontos_bloqueio,
     'Aprovação para teste de bloqueio'
   );
 
-  perform set_config('request.jwt.claim.sub', v_user_a::text, true);
-  perform public.gc_founders_resgatar_beneficio(
-    v_beneficio_id,
-    10,
-    v_key_base || '-resgate-consumo',
-    'Consumo de saldo para bloquear rejeição'
+  perform public.gc_founders_admin_ajustar_pontos(
+    v_empresa_a,
+    'debito',
+    v_pontos_bloqueio,
+    'Consumo controlado para teste de rejeição',
+    v_key_base || '-debito-bloqueio',
+    null
   );
+
+  select public.gc_founders_saldo_pontos(v_empresa_a)
+  into v_saldo_antes_rejeicao;
+  select c.status
+  into v_status_antes_rejeicao
+  from public.founders_contribuicoes c
+  where c.id = v_contribuicao_bloqueio_id;
+  select jsonb_agg(to_jsonb(l) order by l.id)
+  into v_ledger_antes_rejeicao
+  from public.founders_pontos_ledger l
+  where l.empresa_id = v_empresa_a;
+
+  if v_saldo_antes_rejeicao >= v_pontos_bloqueio then
+    raise exception 'Falha: cenário de rejeição não deixou saldo inferior aos pontos da contribuição (saldo %, pontos %).',
+      v_saldo_antes_rejeicao, v_pontos_bloqueio;
+  end if;
+  if v_status_antes_rejeicao <> 'aprovada' then
+    raise exception 'Falha: contribuição deveria estar aprovada antes da tentativa de rejeição (status %).',
+      v_status_antes_rejeicao;
+  end if;
 
   perform set_config('request.jwt.claim.sub', v_admin_user::text, true);
   begin
@@ -380,6 +416,26 @@ begin
         raise;
       end if;
   end;
+
+  select c.status
+  into v_status_antes_rejeicao
+  from public.founders_contribuicoes c
+  where c.id = v_contribuicao_bloqueio_id;
+  select public.gc_founders_saldo_pontos(v_empresa_a)
+  into v_saldo_depois_rejeicao;
+  select jsonb_agg(to_jsonb(l) order by l.id)
+  into v_ledger_depois_rejeicao
+  from public.founders_pontos_ledger l
+  where l.empresa_id = v_empresa_a;
+  if v_status_antes_rejeicao <> 'aprovada' then
+    raise exception 'Falha: rejeição bloqueada alterou o status da contribuição (status %).',
+      v_status_antes_rejeicao;
+  end if;
+  if v_saldo_depois_rejeicao <> v_saldo_antes_rejeicao
+    or v_ledger_depois_rejeicao is distinct from v_ledger_antes_rejeicao then
+    raise exception 'Falha: rejeição bloqueada alterou o saldo ou o ledger (saldo antes %, depois %).',
+      v_saldo_antes_rejeicao, v_saldo_depois_rejeicao;
+  end if;
 
   -- Concorrência real (duas sessões independentes) é validada no roteiro separado:
   -- database/20261015_founders_correcao_seguranca_teste_concorrencia_roteiro.sql
@@ -456,6 +512,9 @@ reset role;
 do $$
 declare
   v_has_write_privilege boolean;
+  v_role text;
+  v_table text;
+  v_privilege text;
 begin
   if has_function_privilege(
     'authenticated',
@@ -473,34 +532,33 @@ begin
     raise exception 'Falha: authenticated não deve ter EXECUTE em gc_founders_bloquear_alteracao_ledger.';
   end if;
 
-  v_has_write_privilege :=
-    has_table_privilege('authenticated', 'public.founders_parceiros', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_parceiros', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_parceiros', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_contribuicoes', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_contribuicao_anexos', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_votacoes', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_votacoes', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_votacoes', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_votos', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_votos', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_votos', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_pontos_ledger', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_beneficios', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_beneficios', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_beneficios', 'DELETE')
-    or has_table_privilege('authenticated', 'public.founders_resgates', 'INSERT')
-    or has_table_privilege('authenticated', 'public.founders_resgates', 'UPDATE')
-    or has_table_privilege('authenticated', 'public.founders_resgates', 'DELETE');
+  v_has_write_privilege := false;
+  foreach v_role in array array['anon', 'authenticated'] loop
+    foreach v_table in array array[
+      'founders_parceiros',
+      'founders_contribuicoes',
+      'founders_contribuicao_anexos',
+      'founders_votacoes',
+      'founders_votos',
+      'founders_pontos_ledger',
+      'founders_beneficios',
+      'founders_resgates'
+    ] loop
+      foreach v_privilege in array array['INSERT', 'UPDATE', 'DELETE'] loop
+        if has_table_privilege(v_role, 'public.' || v_table, v_privilege) then
+          v_has_write_privilege := true;
+        end if;
+      end loop;
+
+      if has_any_column_privilege(v_role, 'public.' || v_table, 'INSERT')
+        or has_any_column_privilege(v_role, 'public.' || v_table, 'UPDATE') then
+        v_has_write_privilege := true;
+      end if;
+    end loop;
+  end loop;
 
   if v_has_write_privilege then
-    raise exception 'Falha: authenticated possui privilégios efetivos de escrita em tabelas Founders.';
+    raise exception 'Falha: anon/authenticated possui privilégios efetivos de escrita em tabelas Founders.';
   end if;
 
   if not has_function_privilege(

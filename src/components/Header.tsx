@@ -9,6 +9,7 @@ import {Building2,ChevronDown,Settings,Palette,LogOut, TableProperties,Headphone
 import ThemeSelect from "@/components/ThemeSelect";
 import { useTheme } from "@/context/ThemeContext";
 import { consultarPlataforma } from "@/lib/plataforma";
+import { supabase } from "@/lib/supabaseClient";
 
 type MenuSubItem = {
   label: string;
@@ -93,6 +94,29 @@ const { theme } = useTheme();
     consultarPlataforma("?verificar=1").then(() => { if (ativo) setProprietaria(true); }).catch(() => {});
     return () => { ativo = false; };
   }, [usuarioEmail]);
+  const [foundersVisivel, setFoundersVisivel] = useState(false);
+  useEffect(() => {
+    let ativo = true;
+    // A visibilidade é apenas conveniência; a página e a API validam o acesso.
+    async function verificarFounders() {
+      try {
+        const admin = await supabase.rpc("gc_founders_admin");
+        if (admin.data === true) {
+          if (ativo) setFoundersVisivel(true);
+          return;
+        }
+        const ativa = await supabase.rpc("gc_founders_empresa_ativa");
+        if (ativo && !ativa.error && ativa.data === true) setFoundersVisivel(true);
+      } catch {
+        // Sem acesso confirmado, o item permanece oculto.
+      }
+    }
+    void verificarFounders();
+    return () => { ativo = false; };
+  }, [usuarioEmail]);
+  const menuGroups: MenuGroup[] = foundersVisivel
+    ? [...HEADER_MENU_GROUPS, { group: "Founders", href: "/founders", items: [] }]
+    : HEADER_MENU_GROUPS;
   const [openDesktopGroup, setOpenDesktopGroup] = useState<string | null>(null);
 
   const closeMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,7 +226,7 @@ const { theme } = useTheme();
 </Link>
           <div className="gc-header-nav" onMouseEnter={cancelCloseMenu} onMouseLeave={scheduleCloseMenu} ref={desktopNavRef}>
             <nav className="flex flex-wrap items-center gap-2">
-              {HEADER_MENU_GROUPS.map((group) => {
+              {menuGroups.map((group) => {
                 const open = openDesktopGroup === group.group;
                 const routeActive = isGroupRouteActive(group);
 

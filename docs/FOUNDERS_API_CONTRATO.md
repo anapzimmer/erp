@@ -134,6 +134,23 @@ Backend: `rpc(gc_founders_admin_ajustar_pontos)`
 
 Backend: `rpc(gc_founders_admin_atualizar_contribuicao)`
 
+### Votações (exigem a migração `20261016_founders_votacoes_admin.sql`)
+
+Sem a migração, as ações/visões abaixo respondem `503` com mensagem clara; o restante do Founders não é afetado.
+
+- `admin_criar_votacao` — `{ contribuicao_id, titulo, descricao, abre_em?, encerra_em }` → `gc_founders_admin_criar_votacao`. Cria em rascunho.
+- `admin_atualizar_votacao` — `{ votacao_id, titulo, descricao, abre_em?, encerra_em }` → `gc_founders_admin_atualizar_votacao` (somente rascunho).
+- `admin_abrir_votacao` — `{ votacao_id }` → `gc_founders_admin_abrir_votacao`.
+- `admin_encerrar_votacao` — `{ votacao_id, cancelar: boolean, motivo? }` → `gc_founders_admin_encerrar_votacao`.
+
+- `admin_definir_parceiro` — o limite de empresas **ativas** é aplicado no banco (gatilho `founders_parceiros_capacidade_trg`, capacidade em `founders_config`, migração `20261017_founders_cadastro_parceiros.sql`); ao exceder, a API responde `400` com a mensagem do banco. Sem a migração, não há limite no banco.
+
+GET (admin): `?visao=empresas-busca&busca=` (3 a 100 caracteres) → `gc_founders_admin_buscar_empresas`; retorna até 10 `{ id, nome, cnpj|null, participante }`. `cnpj` só existe se a coluna `public.empresas.cnpj` existir. Sem a migração: `503` com mensagem clara.
+
+GET (admin): `?visao=votacoes-admin` (`gc_founders_admin_resultado_votacao`, com `descricao` lida por SELECT) e `?visao=votacoes-participantes&votacao_id=` (`gc_founders_admin_participantes_votacao`, sem a escolha de cada empresa).
+
+GET (parceiro): `?visao=votacoes-resultados` (`gc_founders_resultados_votacoes`, somente votações finalizadas, resultado agregado).
+
 ## Regras de erro
 
 - `401`: sessão ausente/expirada.

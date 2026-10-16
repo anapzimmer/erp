@@ -49,6 +49,43 @@ const isTipoPontos = (
   value === "estorno_credito" ||
   value === "estorno_debito";
 
+const isDateTime = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length <= 40 &&
+  !Number.isNaN(Date.parse(value));
+
+const MIGRACAO_VOTACOES_AUSENTE =
+  "As funções de votação ainda não estão ativas no banco. Aplique a migração 20261016_founders_votacoes_admin.sql.";
+
+const MIGRACAO_CADASTRO_AUSENTE =
+  "A pesquisa de empresas ainda não está ativa no banco. Aplique a migração 20261017_founders_cadastro_parceiros.sql ou informe o UUID manualmente.";
+
+function erroVotacao(
+  error: { code?: string; message?: string },
+  fallback: string
+) {
+  const code = error.code ?? "";
+  if (code === "PGRST202" || code === "42883") {
+    return responder({ erro: MIGRACAO_VOTACOES_AUSENTE }, 503);
+  }
+  if (code === "42501") {
+    return responder(
+      { erro: error.message || "Acesso negado ao Founders." },
+      403
+    );
+  }
+  if (code.startsWith("22")) {
+    return responder({ erro: error.message || fallback }, 400);
+  }
+  if (code === "40001") {
+    return responder(
+      { erro: "A votação foi alterada por outra operação. Tente novamente." },
+      409
+    );
+  }
+  return responder({ erro: fallback }, 503);
+}
+
 async function autorizar(request: Request) {
   const token = request.headers.get("authorization");
 
@@ -175,6 +212,106 @@ export async function GET(request: Request) {
       return responder(data);
     }
 
+    if (visao === "votacoes-admin") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      const { data, error } = await acesso.db.rpc(
+        "gc_founders_admin_resultado_votacao",
+        { p_votacao_id: null, p_pagina: 0 }
+      );
+      if (error) {
+        return erroVotacao(error, "Não foi possível carregar as votações.");
+      }
+
+      const votacoes: Array<Record<string, unknown>> = Array.isArray(data)
+        ? data
+        : [];
+      const ids = votacoes
+        .map((item) => item.votacao_id)
+        .filter((id): id is string => isUuid(id));
+
+      if (ids.length > 0) {
+        // Leitura permitida pela RLS administrativa; falha aqui apenas omite a descrição.
+        const { data: descricoes } = await acesso.db
+          .from("founders_votacoes")
+          .select("id, descricao")
+          .in("id", ids);
+        const mapa = new Map<string, string>(
+          (descricoes ?? []).map((row: { id: string; descricao: string }) => [
+            row.id,
+            row.descricao,
+          ])
+        );
+        for (const item of votacoes) {
+          const descricao = mapa.get(String(item.votacao_id));
+          if (descricao !== undefined) item.descricao = descricao;
+        }
+      }
+
+      return responder(votacoes);
+    }
+
+    if (visao === "votacoes-participantes") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      const votacaoId = url.searchParams.get("votacao_id");
+      if (!isUuid(votacaoId)) {
+        return responder({ erro: "Votação inválida." }, 400);
+      }
+
+      const { data, error } = await acesso.db.rpc(
+        "gc_founders_admin_participantes_votacao",
+        { p_votacao_id: votacaoId }
+      );
+      if (error) {
+        return erroVotacao(
+          error,
+          "Não foi possível carregar os participantes da votação."
+        );
+      }
+      return responder(data);
+    }
+
+    if (visao === "empresas-busca") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      const busca = (url.searchParams.get("busca") ?? "").trim();
+      if (busca.length < 3 || busca.length > 100) {
+        return responder(
+          { erro: "Informe entre 3 e 100 caracteres para pesquisar." },
+          400
+        );
+      }
+
+      const { data, error } = await acesso.db.rpc(
+        "gc_founders_admin_buscar_empresas",
+        { p_busca: busca, p_limite: 10 }
+      );
+      if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+          return responder({ erro: MIGRACAO_CADASTRO_AUSENTE }, 503);
+        }
+        return erroVotacao(error, "Não foi possível pesquisar empresas.");
+      }
+      return responder(data ?? []);
+    }
+
+    if (visao === "votacoes-resultados") {
+      const { data, error } = await acesso.db.rpc(
+        "gc_founders_resultados_votacoes"
+      );
+      if (error) {
+        return erroVotacao(
+          error,
+          "Não foi possível carregar os resultados das votações."
+        );
+      }
+      return responder(data ?? []);
+    }
+
     if (visao !== "minha-area") {
       return responder({ erro: "Visão inválida." }, 400);
     }
@@ -248,14 +385,17 @@ export async function POST(request: Request) {
       );
 
       if (error) {
+        const erroDeValidacao = error.code?.startsWith("22") ?? false;
         return responder(
           {
             erro:
               error.code === "42501"
                 ? "Sua empresa não está ativa no programa Founders."
-                : "Não foi possível enviar a contribuição.",
+                : erroDeValidacao
+                  ? error.message
+                  : "Não foi possível enviar a contribuição.",
           },
-          error.code === "42501" ? 403 : 503
+          error.code === "42501" ? 403 : erroDeValidacao ? 400 : 503
         );
       }
 
@@ -323,14 +463,18 @@ export async function POST(request: Request) {
       );
 
       if (error) {
+        const erroDeAcesso = error.code === "42501";
+        const erroDeValidacao = error.code?.startsWith("22") ?? false;
         return responder(
           {
             erro:
-              error.code === "22023"
+              erroDeAcesso
+                ? "Sua empresa não está ativa no programa Founders."
+                : erroDeValidacao
                 ? error.message
                 : "Não foi possível registrar o voto.",
           },
-          error.code?.startsWith("22") ? 400 : 503
+          erroDeAcesso ? 403 : erroDeValidacao ? 400 : 503
         );
       }
 
@@ -361,14 +505,18 @@ export async function POST(request: Request) {
       );
 
       if (error) {
+        const erroDeAcesso = error.code === "42501";
+        const erroDeValidacao = error.code?.startsWith("22") ?? false;
         return responder(
           {
             erro:
-              error.code === "22023"
+              erroDeAcesso
+                ? "Sua empresa não está ativa no programa Founders."
+                : erroDeValidacao
                 ? error.message
                 : "Não foi possível solicitar o resgate.",
           },
-          error.code?.startsWith("22") ? 400 : 503
+          erroDeAcesso ? 403 : erroDeValidacao ? 400 : 503
         );
       }
 
@@ -393,6 +541,7 @@ export async function POST(request: Request) {
         );
       }
 
+      // O limite de empresas ativas é validado atomicamente no banco (gatilho de capacidade).
       const { data, error } = await acesso.db.rpc(
         "gc_founders_admin_definir_parceiro",
         {
@@ -532,6 +681,118 @@ export async function POST(request: Request) {
       return responder({
         sucesso: true,
         mensagem: "Contribuição atualizada.",
+      });
+    }
+
+    if (body.acao === "admin_criar_votacao") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      if (
+        !isUuid(body.contribuicao_id) ||
+        typeof body.titulo !== "string" ||
+        typeof body.descricao !== "string" ||
+        !isDateTime(body.encerra_em) ||
+        (body.abre_em != null && !isDateTime(body.abre_em))
+      ) {
+        return responder({ erro: "Dados da votação inválidos." }, 400);
+      }
+
+      const { data, error } = await acesso.db.rpc(
+        "gc_founders_admin_criar_votacao",
+        {
+          p_contribuicao_id: body.contribuicao_id,
+          p_titulo: body.titulo,
+          p_descricao: body.descricao,
+          p_abre_em: body.abre_em || null,
+          p_encerra_em: body.encerra_em,
+        }
+      );
+      if (error) return erroVotacao(error, "Não foi possível criar a votação.");
+
+      return responder({ sucesso: true, data: { id: data } });
+    }
+
+    if (body.acao === "admin_atualizar_votacao") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      if (
+        !isUuid(body.votacao_id) ||
+        typeof body.titulo !== "string" ||
+        typeof body.descricao !== "string" ||
+        !isDateTime(body.encerra_em) ||
+        (body.abre_em != null && !isDateTime(body.abre_em))
+      ) {
+        return responder({ erro: "Dados da votação inválidos." }, 400);
+      }
+
+      const { error } = await acesso.db.rpc(
+        "gc_founders_admin_atualizar_votacao",
+        {
+          p_votacao_id: body.votacao_id,
+          p_titulo: body.titulo,
+          p_descricao: body.descricao,
+          p_abre_em: body.abre_em || null,
+          p_encerra_em: body.encerra_em,
+        }
+      );
+      if (error) {
+        return erroVotacao(error, "Não foi possível atualizar a votação.");
+      }
+
+      return responder({ sucesso: true, mensagem: "Votação atualizada." });
+    }
+
+    if (body.acao === "admin_abrir_votacao") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      if (!isUuid(body.votacao_id)) {
+        return responder({ erro: "Votação inválida." }, 400);
+      }
+
+      const { error } = await acesso.db.rpc(
+        "gc_founders_admin_abrir_votacao",
+        { p_votacao_id: body.votacao_id }
+      );
+      if (error) return erroVotacao(error, "Não foi possível abrir a votação.");
+
+      return responder({ sucesso: true, mensagem: "Votação aberta." });
+    }
+
+    if (body.acao === "admin_encerrar_votacao") {
+      const erroAdmin = await exigirAdmin(acesso.db);
+      if (erroAdmin) return erroAdmin;
+
+      if (
+        !isUuid(body.votacao_id) ||
+        typeof body.cancelar !== "boolean" ||
+        (body.motivo !== undefined && typeof body.motivo !== "string")
+      ) {
+        return responder({ erro: "Dados da votação inválidos." }, 400);
+      }
+
+      const { error } = await acesso.db.rpc(
+        "gc_founders_admin_encerrar_votacao",
+        {
+          p_votacao_id: body.votacao_id,
+          p_cancelar: body.cancelar,
+          p_motivo: (body.motivo || "").slice(0, 1000),
+        }
+      );
+      if (error) {
+        return erroVotacao(
+          error,
+          body.cancelar
+            ? "Não foi possível cancelar a votação."
+            : "Não foi possível encerrar a votação."
+        );
+      }
+
+      return responder({
+        sucesso: true,
+        mensagem: body.cancelar ? "Votação cancelada." : "Votação encerrada.",
       });
     }
 
