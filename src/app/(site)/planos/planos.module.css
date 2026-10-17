@@ -11,9 +11,10 @@
 .page {
   min-height: 100vh;
 
+  /* Mesma largura útil da landing e de /recursos: min(1450px, 100% - 80px) */
   padding:
     0
-    max(24px, calc((100vw - 1200px) / 2));
+    max(40px, calc((100% - 1450px) / 2));
 
   background: var(--background);
   color: var(--text-primary);
@@ -1036,6 +1037,25 @@
 
 @media (max-width: 900px) {
 
+  /* Mesma largura das demais páginas públicas: min(100% - 36px, 700px) */
+  .page {
+    padding-left: max(18px, calc((100% - 700px) / 2));
+    padding-right: max(18px, calc((100% - 700px) / 2));
+  }
+
+  .headerInner {
+    flex-wrap: wrap;
+
+    padding: 16px 0;
+    gap: 12px 24px;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+
+    gap: 10px 20px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
 
@@ -1075,8 +1095,8 @@
 @media (max-width: 520px) {
 
   .page {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .header {

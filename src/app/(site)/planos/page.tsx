@@ -6,7 +6,7 @@ import { Check, ArrowUpRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import styles from "./planos.module.css";
 import foundersStyles from "../fundadores/fundadores.module.css";
-import { whatsappComercial, precosPlanosCentavos } from "@/config/comercial";
+import { whatsappComercial, precosPlanosCentavos, recursosCompleto } from "@/config/comercial";
 import { foundersComercial, moedaComercial } from "@/config/foundersComercial";
 
 
@@ -62,16 +62,7 @@ const planos = [
     resumo: "Projetos especiais + operação completa",
     descricao:
       "A solução mais avançada do Glass Code: toda a operação e os recursos para projetos especiais.",
-    itens: [
-      "Tudo do plano Profissional",
-      "Sacada frontal",
-      "Sacada na torre e com grapas",
-      "Fechamento de sacada",
-      "Pele de vidro",
-      "Projetos com pinázio",
-      "Cálculos fora do esquadro",
-      "Documentos técnicos com desenhos",
-    ],
+    itens: recursosCompleto,
   },
 ];
 

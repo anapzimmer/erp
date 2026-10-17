@@ -9,3 +9,15 @@ export const precosPlanosCentavos = {
 
 export const moedaComercial = (centavos: number) =>
   (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+// Recursos do plano Completo, compartilhados por /planos e /fundadores.
+export const recursosCompleto = [
+  "Tudo do plano Profissional",
+  "Sacada frontal",
+  "Sacada na torre e com grapas",
+  "Fechamento de sacada",
+  "Pele de vidro",
+  "Projetos com pinázio",
+  "Cálculos fora do esquadro",
+  "Documentos técnicos com desenhos",
+] as const;
