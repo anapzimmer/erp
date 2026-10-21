@@ -248,10 +248,10 @@ const gerarSvgSacadaTorre = ({
     </defs>
     <rect x="${x0}" y="${y0}" width="${drawW}" height="${drawH}" fill="#ffffff" stroke="#d8e0e8" stroke-width="1"/>
     ${panels}
-    <rect x="${x0}" y="${y0}" width="${drawW}" height="${rail}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0}" y="${y0 + drawH - rail}" width="${drawW}" height="${rail}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0 + drawW - side}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
+    <rect x="${x0}" y="${y0}" width="${drawW}" height="${rail}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
+    <rect x="${x0}" y="${y0 + drawH - rail}" width="${drawW}" height="${rail}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
+    <rect x="${x0}" y="${y0}" width="${side}" height="${drawH}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
+    <rect x="${x0 + drawW - side}" y="${y0}" width="${side}" height="${drawH}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
     ${divisionLines}
     <g filter="url(#softShadow)">${grapas}${torres}</g>
     <line x1="${x0}" y1="${y0 + drawH + 18}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#1d7ed6" stroke-width="1"/>
