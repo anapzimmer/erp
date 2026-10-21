@@ -239,12 +239,12 @@ export default function RelatorioOrcamento() {
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
   const carregadoRef = useRef(false);
   const router = useRouter();
-  const searchParams = useSearchParams(); // Adicione esta linha
-  const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
   const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
-  // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
+  // Estados do Layout
   const [isMounted, setIsMounted] = useState(false);
   const draftRestauradoRef = useRef(false);
   const itemCentralCarregadoRef = useRef(false);
@@ -312,6 +312,22 @@ export default function RelatorioOrcamento() {
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
   const [valorRateioLote, setValorRateioLote] = useState("");
+
+  // Função para gerar número antecipadamente se não estiver em edição
+  const gerarNumeroAntecipado = useCallback(async () => {
+    if (!editId && !ultimoNumeroGerado) {
+      try {
+        const num = await gerarNumeroOrcamentoPadrao(supabase);
+        setUltimoNumeroGerado(num);
+      } catch (err) {
+        console.error("Erro ao gerar número antecipado do orçamento:", err);
+      }
+    }
+  }, [editId, ultimoNumeroGerado]);
+
+  useEffect(() => {
+    gerarNumeroAntecipado();
+  }, [gerarNumeroAntecipado]);
 
   // Função para marcar/desmarcar todos
   const toggleTodos = () => {
@@ -401,7 +417,6 @@ export default function RelatorioOrcamento() {
 
   const obterGrupoPrecoIdCliente = () => {
     const clienteObjeto = listaClientes.find(c => String(c.id) === String(clienteId));
-    // Prioriza o campo atualmente usado no cadastro de clientes.
     return clienteObjeto?.grupo_preco_id || clienteObjeto?.tabela_id || null;
   };
 
@@ -713,6 +728,7 @@ export default function RelatorioOrcamento() {
     }
 
     limparFormularioOrcamento();
+    gerarNumeroAntecipado();
   };
 
   const buscarOrcamentoParaEdicao = useCallback(async (id: string) => {
@@ -727,21 +743,15 @@ export default function RelatorioOrcamento() {
       if (error) throw error;
 
       if (orcamento) {
-        // 1. Vincula o cliente
         const clienteEncontrado = localizarClientePorNome(listaClientes, orcamento.cliente_nome);
         if (clienteEncontrado) setClienteId(String(clienteEncontrado.id));
 
-        // 2. Preenche os campos básicos
         setObra(orcamento.obra_referencia || "");
         setUltimoNumeroGerado(orcamento.numero_formatado || "");
 
-        // 3. Carrega os itens
         if (orcamento.itens && Array.isArray(orcamento.itens)) {
           setItens(orcamento.itens);
         }
-
-        // REMOVIDO: O router.push('/admin/relatorio.orcamento'); 
-        // Não queremos sair da página, queremos editar nela.
       }
     } catch (err) {
       console.error("Erro ao carregar Orçamento para edição:", err);
@@ -752,7 +762,7 @@ export default function RelatorioOrcamento() {
     setIsMounted(true);
   }, []);
 
- useEffect(() => {
+  useEffect(() => {
     async function carregarDados() {
       if (checkingAuth || !empresaId) return;
 
@@ -762,7 +772,6 @@ export default function RelatorioOrcamento() {
           supabase.from('tabelas').select('id, nome').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
-          // Busca a tabela de vínculos de preços especiais
           supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId),
           supabase.from('kits').select('id, nome, preco, preco_por_cor').eq('empresa_id', empresaId).order('nome'),
           supabase.from('perfis').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome'),
@@ -776,7 +785,7 @@ export default function RelatorioOrcamento() {
           if (resV.data.length > 0) setVidroSelecionado(resV.data[0]);
         }
         if (resS.data) setListaServicos(resS.data);
-        if (resP.data) setPrecosEspeciais(resP.data); // Salva os preços especiais aqui
+        if (resP.data) setPrecosEspeciais(resP.data);
         if (resK.data) setListaKits(resK.data);
         if (resPerfis.data) setListaPerfis(resPerfis.data);
         if (resFerragens.data) setListaFerragens(resFerragens.data);
@@ -788,12 +797,12 @@ export default function RelatorioOrcamento() {
     carregarDados();
   }, [empresaId, checkingAuth]);
   
-useEffect(() => {
-  if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
-    buscarOrcamentoParaEdicao(editId);
-    carregadoRef.current = true;
-  }
-}, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
+  useEffect(() => {
+    if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
+      buscarOrcamentoParaEdicao(editId);
+      carregadoRef.current = true;
+    }
+  }, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
   useEffect(() => {
     if (!centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
@@ -1169,13 +1178,10 @@ useEffect(() => {
         detalheServico = `${servicoSelecionado.nome} (m²)`;
       }
       else if (unidade === 'ml' || unidade === 'm') {
-        // Se for ml, usamos a quantidadeServico que o usuário digitou ou o perímetro
-        // Como você pediu para "pedir", usaremos a quantidadeServico
         valorServicoTotal = quantidadeServico * precoUnitarioServico;
         detalheServico = `${servicoSelecionado.nome} (${quantidadeServico}ml)`;
       }
       else {
-        // UNITÁRIO / CNC
         valorServicoTotal = precoUnitarioServico * quantidadeServico;
         detalheServico = `${servicoSelecionado.nome} (${quantidadeServico}un)`;
       }
@@ -1185,17 +1191,17 @@ useEffect(() => {
     const novoItem = {
       id: editandoId || Date.now(),
       descricao: `${vidroSelecionado.nome} ${vidroSelecionado.espessura || ''} ${vidroSelecionado.tipo || ''}`.trim(),
-      tipo: vidroSelecionado.tipo || "", // Garante que o tipo vá para o PDF
+      tipo: vidroSelecionado.tipo || "",
       vidro_id: vidroSelecionado.id,
       medidaReal: `${l} x ${a} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: quantidade,
       precoVidroM2,
       valorUnitario: totalPorPeca,
-      acabamento: "", // Se você tiver um estado de acabamento, coloque aqui
-      servicos: detalheServico, // Passa o detalhe do serviço (Furos, CNC, etc)
+      acabamento: "",
+      servicos: detalheServico,
 
-      servico: detalheServico, // Mantém por compatibilidade com sua tabela na tela
+      servico: detalheServico,
       valorServicoUn: valorServicoTotal,
       total: totalPorPeca * quantidade,
       totalOriginal: undefined,
@@ -1214,7 +1220,7 @@ useEffect(() => {
     setLargura("");
     setAltura("");
     setQuantidade(1);
-    setQuantidadeServico(1); // Reseta o CNC
+    setQuantidadeServico(1);
     setTimeout(() => larguraRef.current?.focus(), 50);
   };
 
@@ -1229,7 +1235,6 @@ useEffect(() => {
     const novoVidro = listaVidros.find((v: Vidro) => String(v.id) === String(novoVidroId));
     if (!novoVidro) return;
 
-    // Pegamos o grupo do cliente para garantir o preço especial na troca
     setItens(prev => prev.map(item => {
       if (selecionados.includes(item.id)) {
         const [lReal, aReal] = item.medidaReal.split('x').map((v: string) => parseInt(v.replace(/\D/g, '')) || 0);
@@ -1244,11 +1249,9 @@ useEffect(() => {
         const precoVidroM2 = manterPrecoAtual ? Number(item.precoVidroM2) : contextoPreco.precoM2;
         const [lCalc, aCalc] = item.medidaCalc.replace(" mm", "").split('x').map(Number);
 
-        // 3. Refazer o cálculo de área
         const areaM2 = (lCalc / 1000) * (aCalc / 1000);
         const areaCobrada = areaM2;
 
-        // 4. Calcular novos valores
         const novoValorVidroTotal = areaCobrada * precoVidroM2;
         const novoTotalUnitario = novoValorVidroTotal + (item.valorServicoUn || 0);
 
@@ -1288,7 +1291,7 @@ useEffect(() => {
       return item;
     }));
 
-    setSelecionados([]); // Limpa seleção após a troca
+    setSelecionados([]);
   };
 
   const handleEditarItem = (item: ItemOrcamento) => {
@@ -1335,7 +1338,6 @@ useEffect(() => {
       setValorUnitarioAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
       setValorEdicaoRapidaAdicional(valorUnitario > 0 ? valorUnitario.toFixed(2).replace(".", ",") : "");
 
-      // Limpa o formulário de vidro para evitar edição no bloco errado.
       setLargura("");
       setAltura("");
       setQuantidade(1);
@@ -1344,10 +1346,10 @@ useEffect(() => {
       return;
     }
 
-    setEditandoId(item.id); // Salva o ID para sabermos que é uma edição
+    setEditandoId(item.id);
 
     const [l, a] = item.medidaReal.split('x');
-    setLargura(l.replace(/\D/g, '')); // Pega só os números
+    setLargura(l.replace(/\D/g, ''));
     setAltura(a.replace(/\D/g, ''));
     setQuantidade(item.qtd);
 
@@ -1438,7 +1440,9 @@ useEffect(() => {
       // 1. Gerar ou recuperar número
       if (editId) {
         const { data: orcAtual } = await supabase.from('orcamentos').select('numero_formatado').eq('id', editId).single();
-        numeroFinal = orcAtual?.numero_formatado || "OR-EDIT";
+        numeroFinal = orcAtual?.numero_formatado || ultimoNumeroGerado || "OR-EDIT";
+      } else if (ultimoNumeroGerado) {
+        numeroFinal = ultimoNumeroGerado;
       } else {
         numeroFinal = await gerarNumeroOrcamentoPadrao(supabase);
       }
@@ -1453,35 +1457,31 @@ useEffect(() => {
         return acc + ((partes[0] / 1000) * (partes[1] / 1000) * item.qtd);
       }, 0);
 
-      // No seu handleSalvarOrcamento:
       const dadosParaSalvar = {
         numero_formatado: numeroFinal,
         cliente_nome: listaClientes.find(c => String(c.id) === String(clienteId))?.nome || "Consumidor",
         obra_referencia: obra || "Geral",
-        itens: itens, // Supabase entende array como JSONB automaticamente
-        valor_total: Number(vTotal), // Garante que é número
+        itens: itens,
+        valor_total: Number(vTotal),
         empresa_id: empresaId,
-        metragem_total: Number(mTotal) || 0, // Garante que é número
-        peso_total: Number(pesoTotal) || 0,  // <--- FORÇANDO O NÚMERO AQUI
+        metragem_total: Number(mTotal) || 0,
+        peso_total: Number(pesoTotal) || 0,
         theme_color: DRAWING_COLORS.ink
       };
 
-      let error;
+      let idRetornado = editId;
+
       if (editId) {
         const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId);
-        error = err;
+        if (err) throw err;
       } else {
-        const { error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]);
-        error = err;
-      }
-
-      if (error) throw error;
-
-      if (editId) {
-        sessionStorage.removeItem(draftKey);
-        encerrarOrcamentoAtivo();
-        router.push('/admin/relatorio.orcamento');
-        return;
+        const { data: insertedData, error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]).select("id").single();
+        if (err) throw err;
+        if (insertedData?.id) {
+          idRetornado = insertedData.id;
+          // Atualiza a URL para modo edição sem recarregar a página
+          router.replace(`/calculo/calculovidro?edit=${insertedData.id}`);
+        }
       }
 
       setUltimoNumeroGerado(numeroFinal);
@@ -1501,7 +1501,6 @@ useEffect(() => {
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      // Lógica de "pulo" de campo
       if (document.activeElement === larguraRef.current) {
         alturaRef.current?.focus();
       } else if (document.activeElement === alturaRef.current) {
@@ -1571,7 +1570,6 @@ useEffect(() => {
     }
 
     if (nomeArquivo.endsWith(".csv")) {
-      // Arquivos CSV gerados no Excel frequentemente vêm em Windows-1252.
       const texto = (await decodeCsvFile(file)).replace(/^\uFEFF/, "");
       const linhas = texto.split(/\r?\n/).filter((linha) => linha.trim());
       if (linhas.length < 2) return [];
@@ -1641,14 +1639,11 @@ useEffect(() => {
     let quantidadePecasAcimaLimiteDivisao = 0;
 
     data.forEach((linha) => {
-      // MAPEAMENTO INTELIGENTE (Ajustado para o seu arquivo)
       const nomeExcel = String(extrairValor(linha, ["vidro", "descrição", "descriçao", "material", "cor", "item", "produto", "descricao"]) || "").trim();
       const nomeExcelNormalizado = normalizarTextoComparacao(nomeExcel);
 
-      // Captura de medidas - aceita largura/altura em colunas separadas ou medida unica (ex: 802x602)
       const { l, a } = extrairMedidasDaLinha(linha);
 
-      // CAPTURA DA QUANTIDADE (Aqui estava o erro: seu arquivo usa "Qtde.")
       const rawQtd = extrairValor(linha, ["qtde.", "qtde", "quantidade", "qtd"]);
       const qtdNumero = normalizarNumeroPlanilha(rawQtd);
       const qtd = qtdNumero > 0 ? Math.round(qtdNumero) : 1;
@@ -1722,13 +1717,11 @@ useEffect(() => {
 
     aplicarImportacaoLinhas(linhasImportacao, false);
 
-    // Reset do input para permitir importar o mesmo arquivo de novo
     if (e.target) e.target.value = "";
   };
 
 
   const extrairValor = (linha: Record<string, unknown>, variacoes: string[]) => {
-    // Pega todas as chaves da linha (ex: "Vidro", "Qtde.")
     const chaves = Object.keys(linha);
 
     const chaveEncontrada = chaves.find(chave => {
@@ -1738,7 +1731,6 @@ useEffect(() => {
 
         if (chaveLimpa === variacaoLimpa) return true;
 
-        // Evita colisao de abreviacoes curtas (ex: "a" casar com "largura").
         if (variacaoLimpa.length <= 2) return false;
 
         return chaveLimpa.includes(variacaoLimpa);
@@ -1759,7 +1751,6 @@ useEffect(() => {
     const medidaBruta = extrairValor(linha, ["medida", "medidas", "dimensao", "dimensão", "tamanho"]);
     const textoMedida = String(medidaBruta || "").trim();
 
-    // Exemplos aceitos: 802x602, 802 x 602, 802*602
     const match = textoMedida.match(/([\d.,]+)\s*[xX*]\s*([\d.,]+)/);
     if (match) {
       const lMedida = normalizarNumeroPlanilha(match[1]);
@@ -1770,13 +1761,10 @@ useEffect(() => {
     return { l: largura, a: altura };
   };
 
-  // Função auxiliar para criar o item com seus cálculos (Arredondamento 5cm)
   const gerarObjetoItem = (vidro: Vidro, l: number, a: number, qtd: number): ItemOrcamento => {
-    // Medida de Cálculo (Arredondada 5cm) -> Ex: 408 vira 450
     const lCalc = arredondar5cm(l);
     const aCalc = arredondar5cm(a);
 
-    // Medida Real (Física) -> Ex: 408
     const lReal = l;
     const aReal = a;
 
@@ -1791,7 +1779,6 @@ useEffect(() => {
       descricao: `${vidro.nome} ${vidro.espessura || ''} ${vidro.tipo || ''}`.trim(),
       tipo: vidro.tipo || "",
       vidro_id: vidro.id,
-      // Guardamos as duas separadas para não haver confusão
       medidaReal: `${lReal} x ${aReal} mm`,
       medidaCalc: `${lCalc} x ${aCalc} mm`,
       qtd: Number(qtd),
@@ -1806,16 +1793,13 @@ useEffect(() => {
   };
 
   const calcularPesoItem = (item: ItemOrcamento) => {
-    // Extrai a espessura da descrição (ex: "4+4" = 8)
     const numeros = item.descricao.match(/\d+/g);
     const espessura = numeros ? numeros.reduce((acc: number, curr: string) => acc + parseInt(curr), 0) : 0;
 
-    // Pega a medida física (408x500)
     const partes = item.medidaReal.split('x').map((v: string) => parseInt(v));
     const largReal = partes[0];
     const altReal = partes[1];
 
-    // Cálculo: Área Real * 2.5 * Espessura * Qtd
     const areaRealM2 = (largReal / 1000) * (altReal / 1000);
     const pesoFinal = areaRealM2 * 2.5 * espessura * item.qtd;
 
@@ -1838,16 +1822,16 @@ useEffect(() => {
       return acc + ((largura / 1000) * (altura / 1000) * Number(item.qtd || 0));
     }, 0);
 
- const medidasDetalhadas = itens
-  .map((item, index) => {
-    const servico =
-      item.servicos || item.servico
-        ? ` | ${item.servicos || item.servico}`
-        : "";
+    const medidasDetalhadas = itens
+      .map((item, index) => {
+        const servico =
+          item.servicos || item.servico
+            ? ` | ${item.servicos || item.servico}`
+            : "";
 
-    return `${index + 1}. ${item.qtd} peça(s) - ${item.descricao} - ${item.medidaReal}${servico}`;
-  })
-  .join("\n");
+        return `${index + 1}. ${item.qtd} peça(s) - ${item.descricao} - ${item.medidaReal}${servico}`;
+      })
+      .join("\n");
 
     const vidrosAvulsos = itens.map((item) => ({
       id: criarId(),
@@ -1871,9 +1855,9 @@ useEffect(() => {
         id: criarId(),
         qtd: ehVidro ? Number(area.toFixed(3)) : Number(item.qtd || 0),
         unidade: ehVidro ? "m2" : "und",
-      descricao: ehVidro
-  ? `VIDRO ${item.medidaReal} ${item.descricao}`.toUpperCase()
-  : String(item.descricao || "ITEM").toUpperCase(),
+        descricao: ehVidro
+          ? `VIDRO ${item.medidaReal} ${item.descricao}`.toUpperCase()
+          : String(item.descricao || "ITEM").toUpperCase(),
         valorUnitario: Number(valorUnitario || 0),
       };
     });
@@ -1927,13 +1911,12 @@ useEffect(() => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      router.push("/login"); // Força o redirecionamento
-      router.refresh();      // Garante que o estado do Next.js seja limpo
+      router.push("/login");
+      router.refresh();
     } catch (error) {
       console.error("Erro ao sair:", error);
     }
   };
-
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
@@ -1951,7 +1934,7 @@ useEffect(() => {
     </span>
 
     <span className="text-xs text-text-primary font-bold">
-      # {ultimoNumeroGerado || "NOVO"}
+      # {ultimoNumeroGerado || "GERANDO..."}
     </span>
   </div>
 </Header>
@@ -2102,10 +2085,10 @@ useEffect(() => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
-              {/* CARD DIMENSÕES (MANTIDO) */}
+              {/* CARD DIMENSÕES */}
               <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-4 relative overflow-hidden">
 
-                {/* AVISO DE EDIÇÃO SOFISTICADO */}
+                {/* AVISO DE EDIÇÃO */}
                 {editandoId && (
                   <div className="absolute top-0 left-0 w-full bg-warning-soft border-b border-warning-soft px-4 py-2 flex items-center justify-between animate-fade-in">
                     <div className="flex items-center gap-2">
@@ -2179,7 +2162,6 @@ useEffect(() => {
                        style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
                     />
                   </div>
-                  {/* CAMPO QUANTIDADE */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Qtd</label>
                     <input
@@ -2210,13 +2192,11 @@ useEffect(() => {
                     ))}
                   </select>
                   {isMounted && vidroSelecionado && clienteId && (() => {
-                    // 1. Localizamos o grupo do cliente
                     const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
                     const grupoId = clienteAtual?.grupo_preco_id || clienteAtual?.tabela_id;
                     const larguraNumero = Number(largura) || 0;
                     const alturaNumero = Number(altura) || 0;
 
-                    // 2. Procuramos o preço especial
                     const especial = precosEspeciais.find(p =>
                       String(p.vidro_id) === String(vidroSelecionado.id) &&
                       String(p.grupo_preco_id || p.tabela_id) === String(grupoId)
@@ -2249,10 +2229,8 @@ useEffect(() => {
               </div>
 
               <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-5">
-                {/* TÍTULO DA SEÇÃO: ACABAMENTOS */}
                 <div className="flex items-center gap-3 pb-2 border-b border-border">
                   <div className="p-2 bg-navigation/5 rounded-xl text-text-primary">
-                    {/* Ajustado: removido 'weight' e adicionado 'strokeWidth' para o Lucide */}
                     <Wrench size={20} strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
@@ -2265,7 +2243,6 @@ useEffect(() => {
                   </div>
                 </div>
                 <div className="space-y-2 max-h-28.75 overflow-y-auto pr-2 custom-scrollbar">
-                  {/* Opção Padrão (Nenhum) */}
                   <div
                     onClick={() => setServicoSelecionado(null)}
                     className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-surface-secondary border-border' : 'bg-surface-secondary border-border hover:border-border'
@@ -2290,7 +2267,6 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Lista de outros serviços */}
                   {listaServicos.map((s) => {
                     const isSelected = servicoSelecionado?.id === s.id;
                     return (
@@ -2322,7 +2298,6 @@ useEffect(() => {
                   })}
                 </div>
 
-                {/* O campo aparece se houver serviço e a unidade NÃO for m² */}
                 {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'm²' && (
                   <div className="mt-4 p-4 bg-navigation/5 rounded-2xl border border-border-strong/10 animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
@@ -2461,7 +2436,6 @@ useEffect(() => {
                     <h3 className="font-bold text-text-primary text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
                   </div>
                   <div className="flex items-center gap-4">
-                    {/* Input de arquivo escondido */}
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -2518,7 +2492,6 @@ useEffect(() => {
                             }}
                             className={`hover:bg-surface-secondary/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-info-soft/30' : ''} ${editandoId === item.id ? 'bg-warning-soft/70 outline-2 outline-warning-soft' : ''}`}
                           >
-                            {/* 1. CHECKBOX */}
                             <td className="px-4 py-4">
                               <input
                                 type="checkbox"
@@ -2528,14 +2501,11 @@ useEffect(() => {
                               />
                             </td>
 
-                            {/* 2. DESCRIÇÃO (Faltava este no seu snippet) */}
                             <td className="px-6 py-4">
-                              {/* Nome do Vidro e Espessura */}
                               <div className="text-text-primary leading-tight">
                                 {item.descricao}
                               </div>
 
-                              {/* Tipo do Vidro (Subtítulo discreto) */}
                               {item.tipo && (
                                 <div className="text-[10px] text-text-secondary font-medium uppercase tracking-tight">
                                   {item.tipo}
@@ -2566,7 +2536,6 @@ useEffect(() => {
                                 </div>
                               )}
 
-                              {/* Serviço / Acabamento */}
                               {item.servico && (
                                 <div className="flex items-center gap-1 mt-1">
                                   <Sparkles size={10} className="text-warning" />
@@ -2658,29 +2627,24 @@ useEffect(() => {
                               )}
                             </td>
 
-                            {/* 3. MEDIDAS */}
                             <td className="px-6 py-4 text-center">
                               <div className=" text-text-primary">{item.medidaReal}</div>
                             </td>
 
-                            {/* 4. QTD */}
                             <td className="px-6 py-4 text-center">
                               <span className="bg-surface-secondary px-2.5 py-1 rounded-lg text-xs font-bold text-text-secondary">
                                 {item.qtd}
                               </span>
                             </td>
 
-                            {/* 5. UNITÁRIO */}
                             <td className="px-6 py-4 text-right font-medium text-text-secondary">
                               {formatarMoeda(item.total / item.qtd)}
                             </td>
 
-                            {/* 6. SUBTOTAL */}
                             <td className="px-6 py-4 text-right font-bold text-text-primary">
                               {formatarMoeda(item.total)}
                             </td>
 
-                            {/* 7. AÇÕES */}
                             <td className="px-6 py-4">
                               <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -2710,11 +2674,11 @@ useEffect(() => {
                     </div>
                   )}
                 </div>
+
                 {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
                 <div className="p-6 bg-surface border-t border-border flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                   <div className="flex items-center gap-8">
 
-                    {/* 1. Qtd Total EM EVIDÊNCIA (Destaque colorido) */}
                     <div className="bg-navigation/5 px-5 py-2 rounded-2xl border border-border-strong/10 flex flex-col">
                       <span className="text-[9px] font-black text-text-primary/60 uppercase tracking-widest">Total de Peças</span>
                       <div className="flex items-baseline gap-1">
@@ -2727,7 +2691,6 @@ useEffect(() => {
 
                     <div className="h-8 w-px bg-surface-secondary" />
 
-                    {/* 2. Metragem de Cobrança: Sem destaque colorido */}
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">M² de Cobrança</span>
                       <span className="text-lg font-medium text-text-secondary">
@@ -2740,7 +2703,6 @@ useEffect(() => {
 
                     <div className="h-8 w-px bg-surface-secondary" />
 
-                    {/* 3. Peso da Carga: Sem destaque colorido */}
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Peso Logístico</span>
                       <span className="text-lg font-medium text-text-secondary">
@@ -2750,7 +2712,6 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* 4. Valor Total do Pedido */}
                   <div className="min-w-[320px] text-right">
                     <p className="text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1">Total do Orçamento</p>
                     <p className="text-3xl font-light text-text-primary tracking-tighter">
@@ -2863,7 +2824,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* 2. Adicione este Modal no final do componente (perto do outro modal) */}
+        {/* MODAL LIMPAR */}
         {mostrarModalLimpar && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-surface rounded-3xl shadow-2xl border border-border w-full max-w-sm overflow-hidden animate-scale-up">
@@ -2898,7 +2859,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* MODAL DE AVISO: CAMPOS VAZIOS */}
+        {/* MODAL DE AVISO */}
         {mostrarModalAviso && (
           <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
             <div className="bg-surface rounded-3xl shadow-2xl border border-border w-full max-w-xs overflow-hidden animate-scale-up">
@@ -2950,7 +2911,6 @@ useEffect(() => {
           <div className="fixed inset-0 z-150 flex items-center justify-center p-4 bg-navigation/40 backdrop-blur-sm animate-fade-in">
             <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up border border-border">
 
-              {/* Cabeçalho */}
               <div className="p-6 bg-surface-secondary/50 border-b border-border flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center">
                   <ClipboardList size={24} className="text-text-primary" />
@@ -2966,9 +2926,8 @@ useEffect(() => {
               </div>
 
               <div className="p-8 space-y-6">
-                {/* Nome vindo do Excel */}
                 <div className="space-y-2">
-                  <label className="text-[12px] text-text-secondary  tracking-widest">
+                  <label className="text-[12px] text-text-secondary tracking-widest">
                     Nome na Planilha:
                   </label>
                   <div className="p-4 bg-warning-soft rounded-2xl border border-warning-soft text-warning font-sans text-sm">
@@ -2976,9 +2935,8 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Seletor de Material do Sistema */}
                 <div className="space-y-2">
-                  <label className="text-[12px] text-text-primary  tracking-widest">
+                  <label className="text-[12px] text-text-primary tracking-widest">
                     Corresponder para:
                   </label>
                   <input
@@ -3037,7 +2995,6 @@ useEffect(() => {
                   )}
                 </div>
 
-                {/* Botão Pular (Agora na cor do tema) */}
                 <button
                   onClick={() => {
                     const nomeAtual = itensNaoEncontrados[0].nomeExcelNormalizado;
@@ -3049,7 +3006,7 @@ useEffect(() => {
                       setFiltroVidroAssociacao("");
                     }
                   }}
-                  className="w-full py-4 text-[10px] font-black text-text-primary/60 hover:text-text-primary hover:bg-surface-secondary rounded-2xl transition-all uppercase  border border-transparent hover:border-border"
+                  className="w-full py-4 text-[10px] font-black text-text-primary/60 hover:text-text-primary hover:bg-surface-secondary rounded-2xl transition-all uppercase border border-transparent hover:border-border"
                 >
                   Descartar este material
                 </button>
@@ -3058,7 +3015,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* MODAL DISCRETO E AUTOMÁTICO - POSIÇÃO SUPERIOR */}
+        {/* MODAL DE SUCESSO */}
         {mostrarModalSucesso && (
           <div className="fixed top-6 right-6 z-100 animate-in slide-in-from-top-5 fade-in duration-500">
             <div
@@ -3066,7 +3023,6 @@ useEffect(() => {
               style={{ borderRight: `4px solid ${theme.menuIconColor}` }}
             >
 
-              {/* Ícone com a cor do tema */}
               <div
                 className="p-2 rounded-xl shrink-0"
                 style={{ color: theme.menuIconColor }}
@@ -3092,7 +3048,6 @@ useEffect(() => {
                 <button
                   onClick={() => {
                     setMostrarModalSucesso(false);
-                    // Caminho corrigido:
                     router.push('/admin/relatorio.orcamento');
                   }}
                   className="text-[10px] font-bold text-text-secondary hover:text-text-secondary uppercase tracking-wider mt-2 flex items-center gap-1 transition-colors"
@@ -3108,4 +3063,3 @@ useEffect(() => {
     </div>
   )
 }
-

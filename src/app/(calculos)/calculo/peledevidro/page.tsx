@@ -6,7 +6,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Calculator, Grid3X3, Ruler, SquareStack, Package2, Printer, Save, Search, FilePlus2 } from "lucide-react";
+import { Calculator, Grid3X3, Ruler, SquareStack, Package2, Save, Search, FilePlus2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -23,14 +23,6 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF";
 import type { CentralImpressaoItem } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
-
-// Função utilitária para normalizar textos para comparação (remove acentos, deixa minúsculo, trim)
-const normalizarTextoComparacao = (texto?: string | null) =>
-  (texto || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
 
 type ClientePV = {
   id: string;
@@ -62,7 +54,6 @@ type PeleDeVidroDraft = {
   quadrosVertical: string;
   quantidadeLajes: string;
   quantidadeFachadas: string;
-  quadrosFixos: string;
   quadrosMoveis: string;
   buscaVidro: string;
   vidroId: string;
@@ -123,7 +114,6 @@ export default function CalculoPeleDeVidroPage() {
   const [quadrosVertical, setQuadrosVertical] = useState("");
   const [quantidadeLajes, setQuantidadeLajes] = useState("");
   const [quantidadeFachadas, setQuantidadeFachadas] = useState("");
-  const [quadrosFixos, setQuadrosFixos] = useState("");
   const [quadrosMoveis, setQuadrosMoveis] = useState("");
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [buscaVidro, setBuscaVidro] = useState("");
@@ -136,8 +126,6 @@ export default function CalculoPeleDeVidroPage() {
     () => `${PV_DRAFT_KEY}:${empresaId || "global"}`,
     [empresaId]
   );
-
-
 
   // Hidratar draft do localStorage
   useEffect(() => {
@@ -159,7 +147,6 @@ export default function CalculoPeleDeVidroPage() {
       if (typeof draft.quadrosVertical === "string") setQuadrosVertical(draft.quadrosVertical);
       if (typeof draft.quantidadeLajes === "string") setQuantidadeLajes(draft.quantidadeLajes);
       if (typeof draft.quantidadeFachadas === "string") setQuantidadeFachadas(draft.quantidadeFachadas);
-      if (typeof draft.quadrosFixos === "string") setQuadrosFixos(draft.quadrosFixos);
       if (typeof draft.quadrosMoveis === "string") setQuadrosMoveis(draft.quadrosMoveis);
       if (typeof draft.buscaVidro === "string") setBuscaVidro(draft.buscaVidro);
       if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
@@ -176,10 +163,10 @@ export default function CalculoPeleDeVidroPage() {
     const draft: PeleDeVidroDraft = {
       clienteId, buscaCliente, obra, larguraVaoMm, alturaVaoMm,
       quadrosHorizontal, quadrosVertical, quantidadeLajes, quantidadeFachadas,
-      quadrosFixos, quadrosMoveis, buscaVidro, vidroId,
+      quadrosMoveis, buscaVidro, vidroId,
     };
     window.localStorage.setItem(chaveDraft, JSON.stringify(draft));
-  }, [clienteId, buscaCliente, obra, larguraVaoMm, alturaVaoMm, quadrosHorizontal, quadrosVertical, quantidadeLajes, quantidadeFachadas, quadrosFixos, quadrosMoveis, buscaVidro, vidroId, chaveDraft, draftHidratado, editId, centralItemId]);
+  }, [clienteId, buscaCliente, obra, larguraVaoMm, alturaVaoMm, quadrosHorizontal, quadrosVertical, quantidadeLajes, quantidadeFachadas, quadrosMoveis, buscaVidro, vidroId, chaveDraft, draftHidratado, editId, centralItemId]);
 
   // Carregar insumos
   useEffect(() => {
@@ -222,7 +209,6 @@ export default function CalculoPeleDeVidroPage() {
       if (itens.quadrosVertical != null) setQuadrosVertical(String(itens.quadrosVertical));
       if (itens.quantidadeLajes != null) setQuantidadeLajes(String(itens.quantidadeLajes));
       if (itens.quantidadeFachadas != null) setQuantidadeFachadas(String(itens.quantidadeFachadas));
-      if (itens.quadrosFixos != null) setQuadrosFixos(String(itens.quadrosFixos));
       if (itens.quadrosMoveis != null) setQuadrosMoveis(String(itens.quadrosMoveis));
       if (itens.vidroId) setVidroId(String(itens.vidroId));
       const clienteEncontrado = localizarClientePorNome(listaClientes, orc.cliente_nome);
@@ -262,7 +248,6 @@ export default function CalculoPeleDeVidroPage() {
       setQuadrosVertical(dados.quadrosVertical || "");
       setQuantidadeLajes(dados.quantidadeLajes || "");
       setQuantidadeFachadas(dados.quantidadeFachadas || "");
-      setQuadrosFixos(dados.quadrosFixos || "");
       setQuadrosMoveis(dados.quadrosMoveis || "");
       setBuscaVidro(dados.buscaVidro || item?.vidro || "");
       setVidroId(dados.vidroId || "");
@@ -296,9 +281,14 @@ export default function CalculoPeleDeVidroPage() {
   const qH = Math.max(Math.floor(Number(quadrosHorizontal) || 0), 0);
   const qV = Math.max(Math.floor(Number(quadrosVertical) || 0), 0);
   const lajes = Math.max(Math.floor(Number(quantidadeLajes) || 0), 0);
-  const fachadas = Math.max(Math.floor(Number(quantidadeFachadas) || 0), 0);
-  const fixos = Math.max(Math.floor(Number(quadrosFixos) || 0), 0);
+  const fachadas = Math.max(Math.floor(Number(quantidadeFachadas) || 1), 1);
   const moveis = Math.max(Math.floor(Number(quadrosMoveis) || 0), 0);
+
+  // Cálculos Automáticos solicitados
+  const totalQuadrosAuto = qH * qV * fachadas;
+  const fixosAuto = Math.max(totalQuadrosAuto - moveis, 0);
+  const meiasColunasAuto = fachadas * 2;
+  const colunasCentroAuto = Math.max((qH - 1), 0) * fachadas;
 
   const precoVidroM2Efetivo = useMemo(() => {
     if (!vidroSelecionado) return 0;
@@ -318,7 +308,6 @@ export default function CalculoPeleDeVidroPage() {
   const [acessoriosDb, setAcessoriosDb] = useState<any[]>([]);
 
   const nomeArquivoPDF = `Orçamento ${editNumeroFormatado || "PV"} ${(buscaCliente || "Cliente").replace(/[\\/:*?"<>|]/g, "")}.pdf`;
-
 
   useEffect(() => {
     if (!empresaId) return;
@@ -341,14 +330,31 @@ export default function CalculoPeleDeVidroPage() {
       quadrosVertical: qV,
       quantidadeLajes: lajes,
       quantidadeFachadas: fachadas,
-      quadrosFixos: fixos,
+      quadrosFixos: fixosAuto,
       quadrosMoveis: moveis,
       precoVidroM2: precoVidroM2Efetivo,
       perfisDb,
       acessoriosDb,
     });
 
-    // Perfis: buscar dados completos do cadastro
+    res.meiaColuna = meiasColunasAuto;
+    res.colunaCentro = colunasCentroAuto;
+
+    const metroGua161 = meiasColunasAuto * 2 * fachadas;
+    const somaPerimetroQuadros = 2 * (res.larguraQuadroMm + res.alturaQuadroMm) / 1000;
+    const metroGua162 = somaPerimetroQuadros * totalQuadrosAuto * fachadas;
+
+    const acessoriosAjustados = res.acessorios.map((a) => {
+      const nome = (a.nome || "").toLowerCase();
+      if (nome.includes("gua161")) {
+        return { ...a, quantidade: metroGua161 };
+      }
+      if (nome.includes("gua162")) {
+        return { ...a, quantidade: metroGua162 };
+      }
+      return a;
+    });
+
     const perfisCompletos = res.perfis.map((p) => {
       const cadastro = perfisDb.find((db) => db.codigo === p.codigo || db.nome === p.nome);
       return {
@@ -358,7 +364,6 @@ export default function CalculoPeleDeVidroPage() {
         kgmt: cadastro?.kgmt ?? p.kgmt ?? "-",
         precoBarra: cadastro?.preco_barra ?? p.precoBarra ?? 0,
         unidade: (() => {
-          // Corrige unidade dos CL para 3MT
           const nome = (cadastro?.nome || p.nome || "").toLowerCase();
           if (nome.includes("cantoneira") || nome.includes("cunha")) return "3MT";
           return cadastro?.unidade ?? p.unidade ?? "6MT";
@@ -366,9 +371,8 @@ export default function CalculoPeleDeVidroPage() {
         cadastroEncontrado: !!cadastro,
       };
     });
-    // Acessórios: buscar dados completos do cadastro
-    const acessoriosCompletos = res.acessorios.map((a) => {
-      // Busca na tabela ferragens (acessoriosDb) pelo código ou nome
+
+    const acessoriosCompletos = acessoriosAjustados.map((a) => {
       const cadastro = acessoriosDb.find((db) =>
         db.codigo?.toLowerCase() === a.codigo?.toLowerCase() ||
         db.nome?.toLowerCase() === a.nome?.toLowerCase()
@@ -385,12 +389,14 @@ export default function CalculoPeleDeVidroPage() {
         cadastroEncontrado: !!cadastro,
       };
     });
+
     return {
       ...res,
+      totalQuadros: totalQuadrosAuto,
       perfis: perfisCompletos,
       acessorios: acessoriosCompletos,
     };
-  }, [larguraNum, alturaNum, qH, qV, lajes, fachadas, fixos, moveis, precoVidroM2Efetivo, perfisDb, acessoriosDb]);
+  }, [larguraNum, alturaNum, qH, qV, lajes, fachadas, fixosAuto, moveis, precoVidroM2Efetivo, perfisDb, acessoriosDb, meiasColunasAuto, colunasCentroAuto, totalQuadrosAuto]);
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
@@ -431,14 +437,14 @@ export default function CalculoPeleDeVidroPage() {
           quadrosVertical: qV,
           quantidadeLajes: lajes,
           quantidadeFachadas: fachadas,
-          quadrosFixos: fixos,
+          quadrosFixos: fixosAuto,
           quadrosMoveis: moveis,
           vidroId,
           vidroDescricao: montarDescricaoVidro(vidroSelecionado),
           perfis: resultado.perfis,
           acessorios: resultado.acessorios,
         },
-        valor_total: totalGeral, // Usa o total corrigido da tela
+        valor_total: totalGeral,
         empresa_id: empresaId,
         metragem_total: resultado.areaVidro,
         peso_total: 0,
@@ -466,44 +472,35 @@ export default function CalculoPeleDeVidroPage() {
     }
   };
 
- const handleNovo = () => {
-  router.replace("/calculo/peledevidro");
+  const handleNovo = () => {
+    router.replace("/calculo/peledevidro");
 
-  // Resetar edição
-  setEditNumeroFormatado("");
-  editCarregadoRef.current = false;
+    setEditNumeroFormatado("");
+    editCarregadoRef.current = false;
 
-  // Cliente e obra
-  setClienteId("");
-  setBuscaCliente("");
-  setObra("");
+    setClienteId("");
+    setBuscaCliente("");
+    setObra("");
 
-  // Medidas
-  setLarguraVaoMm("");
-  setAlturaVaoMm("");
+    setLarguraVaoMm("");
+    setAlturaVaoMm("");
 
-  // Quadros
-  setQuadrosHorizontal("");
-  setQuadrosVertical("");
+    setQuadrosHorizontal("");
+    setQuadrosVertical("");
 
-  // Quantidades
-  setQuantidadeLajes("");
-  setQuantidadeFachadas("");
-  setQuadrosFixos("");
-  setQuadrosMoveis("");
+    setQuantidadeLajes("");
+    setQuantidadeFachadas("");
+    setQuadrosMoveis("");
 
-  // Vidro
-  setBuscaVidro("");
-  setVidroId("");
+    setBuscaVidro("");
+    setVidroId("");
 
-  // Mensagem
-  setMensagemSalvo("");
+    setMensagemSalvo("");
 
-  // Limpar rascunho
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(chaveDraft);
-  }
-};
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(chaveDraft);
+    }
+  };
 
   const conteudoCarregando = loading || carregandoInsumos;
 
@@ -526,7 +523,6 @@ export default function CalculoPeleDeVidroPage() {
 
   const totalAcessorios = useMemo(() => {
     return resultado.acessorios.reduce((acc, acessorio) => {
-
       const nome = acessorio.nome?.toLowerCase() || "";
       let codigo = acessorio.codigo || "-";
       let quantidade = acessorio.quantidade;
@@ -560,7 +556,6 @@ export default function CalculoPeleDeVidroPage() {
       const preco = cadastro?.preco ?? acessorio.precoUnitario ?? 0;
 
       return acc + quantidade * preco;
-
     }, 0);
   }, [resultado.acessorios, acessoriosDb]);
 
@@ -584,7 +579,6 @@ export default function CalculoPeleDeVidroPage() {
     const precoBarra = cadastro?.preco ?? perfil.precoBarra ?? 0;
     const valorTotal = precoBarra * perfil.barras;
 
-    // Corrigir kgTotal: recalcular sempre
     const unidadeStr = cadastro?.unidade ?? perfil.unidade ?? "6MT";
     let comprimentoBarra = 6;
     const match = unidadeStr.match(/(\d+)/);
@@ -601,80 +595,62 @@ export default function CalculoPeleDeVidroPage() {
     };
   });
 
-const acessoriosPDF = resultado.acessorios.map((a) => {
-  const nome = a.nome?.toLowerCase() || ""
+  const acessoriosPDF = resultado.acessorios.map((a) => {
+    const nome = a.nome?.toLowerCase() || "";
 
-  let codigo = a.codigo || "-"
-  let unidade = a.unidade || "UN"
-  let quantidade = a.quantidade || 0
+    let codigo = a.codigo || "-";
+    let unidade = a.unidade || "UN";
+    let quantidade = a.quantidade || 0;
 
-  if (nome.includes("presilha painel")) {
-    codigo = "PRE950"
-    unidade = "Peça"
-  }
+    if (nome.includes("presilha painel")) {
+      codigo = "PRE950";
+      unidade = "Peça";
+    } else if (nome.includes("presilha coluna")) {
+      codigo = "PRE951";
+      unidade = "Peça";
+    } else if (nome.includes("fecho max-ar")) {
+      codigo = "FEC152D";
+      unidade = "Unidade";
+    } else if (nome.includes("braço max")) {
+      codigo = "BRA589";
+      unidade = "Unidade";
+    } else if (nome.includes("ancoragem h")) {
+      codigo = "ANC951";
+      unidade = "Peça";
+    } else if (nome.includes("ancoragem inferior")) {
+      codigo = "ANC964";
+      unidade = "Peça";
+    } else if (nome.includes("gua160")) {
+      codigo = "GUA160";
+      unidade = "Rolo 50mt";
+      quantidade = Math.ceil(quantidade / 50);
+    } else if (nome.includes("gua161")) {
+      codigo = "GUA161";
+      unidade = "Rolo 50mt";
+      quantidade = Math.ceil(quantidade / 50);
+    } else if (nome.includes("gua162")) {
+      codigo = "GUA162";
+      unidade = "Rolo 50mt";
+      quantidade = Math.ceil(quantidade / 50);
+    } else if (nome.includes("fita vhb")) {
+      codigo = "FITA4970";
+      unidade = "Rolo 33mt";
+    }
 
-  else if (nome.includes("presilha coluna")) {
-    codigo = "PRE951"
-    unidade = "Peça"
-  }
+    const cadastro = acessoriosDb.find((db) => db.codigo === codigo);
 
-  else if (nome.includes("fecho max-ar")) {
-    codigo = "FEC152D"
-    unidade = "Unidade"
-  }
+    const precoUnitario = cadastro?.preco ?? a.precoUnitario ?? 0;
+    const valorTotal = quantidade * precoUnitario;
 
-  else if (nome.includes("braço max")) {
-    codigo = "BRA589"
-    unidade = "Unidade"
-  }
-
-  else if (nome.includes("ancoragem h")) {
-    codigo = "ANC951"
-    unidade = "Peça"
-  }
-
-  else if (nome.includes("ancoragem inferior")) {
-    codigo = "ANC964"
-    unidade = "Peça"
-  }
-
-  else if (nome.includes("gua160")) {
-    codigo = "GUA160"
-    unidade = "Rolo 50mt"
-    quantidade = Math.ceil(quantidade / 50)
-  }
-
-  else if (nome.includes("gua161")) {
-    codigo = "GUA161"
-    unidade = "Rolo 50mt"
-    quantidade = Math.ceil(quantidade / 50)
-  }
-
-  else if (nome.includes("gua162")) {
-    codigo = "GUA162"
-    unidade = "Rolo 50mt"
-    quantidade = Math.ceil(quantidade / 50)
-  }
-
-  else if (nome.includes("fita vhb")) {
-    codigo = "FITA4970"
-    unidade = "Rolo 33mt"
-  }
-
-  const cadastro = acessoriosDb.find((db) => db.codigo === codigo)
-
-  const precoUnitario = cadastro?.preco ?? a.precoUnitario ?? 0
-  const valorTotal = quantidade * precoUnitario
-
-  return {
-    ...a,
-    codigo,
-    unidade,
-    quantidade,
-    precoUnitario,
-    valorTotal
-  }
-})
+    return {
+      ...a,
+      codigo,
+      unidade,
+      quantidade,
+      precoUnitario,
+      valorTotal,
+    };
+  });
 
   const montarMateriaisCentral = (): ProjetoIndividualMaterial[] => [
     {
@@ -688,15 +664,15 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
       const cortes = prepararCortesPorBarra(perfil.metroLinear ? [Number(perfil.metroLinear)] : [], 6000);
 
       return {
-      id: `perfil-${perfil.codigo}`,
-      qtd: calcularBarrasPorCortes(cortes, 6000),
-      unidade: "barra",
-      descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
-      valorUnitario: Number(perfil.precoBarra || 0),
-      codigoPerfil: perfil.codigo,
-      comprimentoBarra: 6000,
-      cortes,
-    };
+        id: `perfil-${perfil.codigo}`,
+        qtd: calcularBarrasPorCortes(cortes, 6000),
+        unidade: "barra",
+        descricao: `${perfil.codigo} - ${perfil.nome}`.toUpperCase(),
+        valorUnitario: Number(perfil.precoBarra || 0),
+        codigoPerfil: perfil.codigo,
+        comprimentoBarra: 6000,
+        cortes,
+      };
     }),
     ...acessoriosPDF.map((acessorio) => ({
       id: `acessorio-${acessorio.codigo}`,
@@ -718,7 +694,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
       quadrosVertical,
       quantidadeLajes,
       quantidadeFachadas,
-      quadrosFixos,
       quadrosMoveis,
       buscaVidro,
       vidroId,
@@ -740,10 +715,10 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
       trilho: String(qH),
       trinco: String(qV),
       alturaAteTubo: lajes,
-      puxador: String(fixos),
+      puxador: String(fixosAuto),
       tamanhoPuxador: String(moveis),
       pecasDivisao: Math.max(qH * qV, 1),
-      medidasDetalhadas: `Quadro: ${formatarNumero(resultado.larguraQuadroMm, 0)} x ${formatarNumero(resultado.alturaQuadroMm, 0)} mm\nTotal de quadros: ${resultado.totalQuadros}\nFixos: ${fixos} | Móveis: ${moveis}`,
+      medidasDetalhadas: `Quadro: ${formatarNumero(resultado.larguraQuadroMm, 0)} x ${formatarNumero(resultado.alturaQuadroMm, 0)} mm\nTotal de quadros: ${resultado.totalQuadros}\nFixos: ${fixosAuto} | Móveis: ${moveis}`,
       valorTotal: totalGeral,
       materiais: montarMateriaisCentral(),
       origemRota: "/calculo/peledevidro",
@@ -754,7 +729,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
   const enviarParaCentralImpressao = async () => {
     try {
       const itemCentral = montarItemCentral(centralItemId || undefined);
-    if (!await confirmarEnvioOrcamento([itemCentral])) return;
+      if (!await confirmarEnvioOrcamento([itemCentral])) return;
       const salvo = window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY);
       const lista = salvo ? (JSON.parse(salvo) as PeleDeVidroCentralItem[]) : [];
       const proximaLista = centralItemId && lista.some((item) => item.id === centralItemId)
@@ -902,7 +877,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       quadrosVertical={qV}
                       quantidadeLajes={lajes}
                       quantidadeFachadas={fachadas}
-                      quadrosFixos={fixos}
+                      quadrosFixos={fixosAuto}
                       quadrosMoveis={moveis}
                       vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
                       areaVidro={resultado.areaVidro}
@@ -945,7 +920,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
+                {/* GRID DE INPUTS: 4 COLUNAS PADRONIZADAS (2 LINHAS DE 4) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 w-full">
                   <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Largura do vão (mm)
@@ -974,13 +950,13 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                   <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
-                      Qtd. de fachadas
+                      Qtd. de vãos / fachadas
                     </span>
                     <input
                       value={quantidadeFachadas}
                       onChange={(e) => setQuantidadeFachadas(e.target.value)}
                       inputMode="numeric"
-                      placeholder="0"
+                      placeholder="1"
                       className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none placeholder:text-sm placeholder:font-normal placeholder:opacity-40"
                       style={{ color: theme.contentTextLightBg }}
                     />
@@ -1028,20 +1004,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
 
                   <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
-                      Quadros fixos
-                    </span>
-                    <input
-                      type="number"
-                      value={quadrosFixos}
-                      onChange={(e) => setQuadrosFixos(e.target.value)}
-                      inputMode="numeric"
-                      className="mt-1.5 w-full bg-transparent text-lg font-medium outline-none"
-                      style={{ color: theme.contentTextLightBg }}
-                    />
-                  </label>
-
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros móveis
                     </span>
                     <input
@@ -1054,36 +1016,69 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Vidro da fachada
                     </span>
-                    <input
-                      value={buscaVidro}
-                      onChange={(e) => setBuscaVidro(e.target.value)}
-                      placeholder="Digite para filtrar o vidro"
-                      className="mt-1.5 w-full rounded-xl border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none"
-                      style={{ color: theme.contentTextLightBg }}
-                    />
-                    <select
-                      value={vidroId}
-                      onChange={(e) => setVidroId(e.target.value)}
-                      className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
-                      style={{ color: theme.contentTextLightBg }}
-                    >
-                      <option value="" className="text-text-primary">Selecione o vidro</option>
-                      {vidrosFiltrados.length === 0 ? (
-                        <option value="" className="text-text-primary">Nenhum vidro encontrado</option>
-                      ) : (
-                        vidrosFiltrados.map((v) => (
-                          <option key={v.id} value={v.id} className="text-text-primary">
-                            {montarDescricaoVidro(v)} - {formatarPreco(Number(v.preco) || 0)}/m²
-                          </option>
-                        ))
-                      )}
-                    </select>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <input
+                        value={buscaVidro}
+                        onChange={(e) => setBuscaVidro(e.target.value)}
+                        placeholder="Filtrar..."
+                        className="w-full rounded-lg border border-border bg-transparent px-2 py-0.5 text-xs outline-none"
+                        style={{ color: theme.contentTextLightBg }}
+                      />
+                      <select
+                        value={vidroId}
+                        onChange={(e) => setVidroId(e.target.value)}
+                        className="w-full bg-transparent text-xs font-medium outline-none"
+                        style={{ color: theme.contentTextLightBg }}
+                      >
+                        <option value="" className="text-text-primary">Selecione o vidro</option>
+                        {vidrosFiltrados.length === 0 ? (
+                          <option value="" className="text-text-primary">Nenhum vidro</option>
+                        ) : (
+                          vidrosFiltrados.map((v) => (
+                            <option key={v.id} value={v.id} className="text-text-primary">
+                              {montarDescricaoVidro(v)} - {formatarPreco(Number(v.preco) || 0)}/m²
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
                   </label>
                 </div>
+
+                {/* PAINEL DE VALORES PADRONIZADOS / AUTOMÁTICOS VISÍVEIS */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                      Qtd. de Quadros (Automático)
+                    </span>
+                    <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                      {totalQuadrosAuto} <span className="text-[11px] font-normal opacity-70">({qH} horiz. × {qV} vert. × {fachadas} vão)</span>
+                    </span>
+                  </div>
+
+                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                      Qtd. de Meia Coluna (Automático)
+                    </span>
+                    <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                      {meiasColunasAuto} <span className="text-[11px] font-normal opacity-70">({fachadas} vão × 2)</span>
+                    </span>
+                  </div>
+
+                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                      Qtd. de Coluna Centro (Automático)
+                    </span>
+                    <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
+                      {colunasCentroAuto} <span className="text-[11px] font-normal opacity-70">({qH > 0 ? qH - 1 : 0} horiz. - 1 × {fachadas} vão)</span>
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </section>
 
@@ -1157,9 +1152,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       {resultado.perfis.map((perfil, index) => {
                         const nome = perfil.nome?.toLowerCase() || "";
                         let codigo = perfil.codigo || "-";
-                        let kgmtStr = "0"; // Usaremos uma string para exibir e converter
+                        let kgmtStr = "0";
 
-                        // Definindo códigos e pesos fixos (ajustado para converter vírgula em ponto)
                         if (nome.includes("meia")) { codigo = "FC243"; kgmtStr = "1.009"; }
                         else if (nome.includes("coluna de centro")) { codigo = "FC202"; kgmtStr = "1.729"; }
                         else if (nome.includes("cadeirinha")) { codigo = "FC225"; kgmtStr = "0.603"; }
@@ -1174,12 +1168,9 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                         const precoBarraDisplay = precoBarra > 0 ? formatarPreco(precoBarra) : "-";
                         const valorTotal = precoBarra > 0 ? precoBarra * perfil.barras : 0;
 
-                        // CÁLCULO DO KG TOTAL PARA EXIBIÇÃO
-                        // Pegamos o número de metros da unidade (ex: "6MT" -> 6)
                         const match = perfil.unidade?.match(/(\d+)/);
                         const unidadeNum = match ? Number(match[1]) : 6;
 
-                        // Calculamos na hora para garantir que reflita as correções de kgmt acima
                         const kgTotalCalculado = (Number(kgmtStr) * unidadeNum * perfil.barras);
                         const kgTotalDisplay = kgTotalCalculado > 0 ? kgTotalCalculado.toFixed(2) : "-";
 
@@ -1189,18 +1180,15 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                             <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.nome}</td>
                             <td className="px-5 py-3 text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.unidade}</td>
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
-                              {kgmtStr.replace('.', ',')} {/* Exibe com vírgula para o usuário */}
+                              {kgmtStr.replace('.', ',')}
                             </td>
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {formatarNumero(perfil.metroLinear, 0)} mm
                             </td>
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{perfil.barras}</td>
-
-                            {/* COLUNA KG TOTAL CORRIGIDA */}
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {kgTotalDisplay}
                             </td>
-
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>{precoBarraDisplay}</td>
                             <td className="px-5 py-3 text-right text-xs" style={{ color: theme.contentTextLightBg }}>
                               {valorTotal > 0 ? formatarPreco(valorTotal) : "-"}
@@ -1210,7 +1198,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       })}
                     </tbody>
                     <tfoot>
-                      {/* TOTAL VALOR EM DINHEIRO */}
                       <tr style={{ borderTop: `1px solid color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
                         <td colSpan={8} className="px-5 py-3 text-right text-sm font-medium" style={{ color: theme.contentTextLightBg }}>
                           Total dos perfis
@@ -1219,7 +1206,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           {formatarPreco(totalPerfis)}
                         </td>
                       </tr>
-                      {/* TOTAL PESO EM KG */}
                       <tr>
                         <td colSpan={8} className="px-5 py-3 text-right text-sm " style={{ color: theme.contentTextLightBg }}>
                           Total KG dos perfis
@@ -1271,7 +1257,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           let unidade = acessorio.unidade || "UN";
                           let quantidade = acessorio.quantidade;
 
-                          // Mapeamento de Códigos e Unidades conforme sua lista
                           if (nome.includes("presilha painel")) {
                             codigo = "PRE950"; unidade = "Peça";
                           } else if (nome.includes("presilha coluna")) {
@@ -1286,7 +1271,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                             codigo = "ANC964"; unidade = "Peça";
                           } else if (nome.includes("gua160")) {
                             codigo = "GUA160"; unidade = "Rolo 50mt";
-                            quantidade = Math.ceil(quantidade / 50); // Converte metros para rolos
+                            quantidade = Math.ceil(quantidade / 50);
                           } else if (nome.includes("gua161")) {
                             codigo = "GUA161"; unidade = "Rolo 50mt";
                             quantidade = Math.ceil(quantidade / 50);
@@ -1295,13 +1280,11 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                             quantidade = Math.ceil(quantidade / 50);
                           } else if (nome.includes("fita vhb")) {
                             codigo = "FITA4970"; unidade = "Rolo 33mt";
-                            // quantidade já está arredondada no cálculo, não arredondar novamente
                           }
 
-                          // Buscar preço atualizado no banco de dados pelo código
                           const cadastroCorrigido = acessoriosDb.find((db) => db.codigo === codigo);
                           const precoUnitario = cadastroCorrigido?.preco ?? acessorio.precoUnitario ?? 0;
-                          const valorTotalLinha = (quantidade || 0) * (precoUnitario || 0);// O valor correto da linha
+                          const valorTotalLinha = (quantidade || 0) * (precoUnitario || 0);
 
                           return (
                             <tr key={acessorio.nome} style={{ backgroundColor: index % 2 === 0 ? "transparent" : `color-mix(in srgb, ${theme.screenBackgroundColor} 65%, transparent)` }}>
@@ -1327,7 +1310,6 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                           <td className="px-5 py-3 text-right text-base font-medium" style={{ color: theme.contentTextLightBg }}>
                             {formatarPreco(totalAcessorios)}
                           </td>
-
                         </tr>
                       </tfoot>
                     </table>
@@ -1365,17 +1347,12 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       const x0 = padL;
                       const y0 = padTop;
 
-                      // Cor do perfil branco
-                      const corPerfil = "#e8e8e8";
-                      // Padronizar cor do perfil igual Sacada Frontal: sempre branco
                       const corAluminio = "#e8e8e8";
                       const corAluminioBorda = "#e8e8e8";
 
                       const corVidroFill = DRAWING_COLORS.glass;
                       const corVidroBorda = DRAWING_COLORS.frame;
                       const corVidroReflexo = "#ffffff";
-
-                      // Remover duplicidade: garantir que não haja outras declarações dessas variáveis neste bloco
 
                       return (
                         <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
@@ -1392,7 +1369,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                             </linearGradient>
                           </defs>
 
-                          {/* Background frame — perfil alumínio */}
+                          {/* Background frame */}
                           <rect x={x0} y={y0} width={drawW} height={drawH} fill="url(#pvRailGrad)" rx={2} />
                           <rect x={x0} y={y0} width={drawW} height={drawH} fill="none" stroke={typeof corAluminioBorda === "string" ? corAluminioBorda : "#787878"} strokeWidth={0.7} rx={2} />
 
@@ -1403,11 +1380,8 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                               const gY = y0 + mullionW + row * (glassH + mullionW);
                               return (
                                 <g key={`${col}-${row}`}>
-                                  {/* Vidro */}
                                   <rect x={gX} y={gY} width={glassW} height={glassH} fill="url(#pvGlassGrad)" rx={0.5} />
                                   <rect x={gX} y={gY} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={0.5} />
-
-                                  {/* Reflexo diagonal */}
                                   <line x1={gX + glassW * 0.18} y1={gY + glassH * 0.06} x2={gX + glassW * 0.08} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
                                   <line x1={gX + glassW * 0.24} y1={gY + glassH * 0.06} x2={gX + glassW * 0.14} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
                                 </g>
@@ -1439,7 +1413,7 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                       Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} x {formatarNumero(resultado.alturaQuadroMm, 0)} mm
                     </span>
                     <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                      {qH}x{qV} = {qH * qV} quadros{lajes > 0 ? ` x ${lajes} lajes` : ""}
+                      {qH}x{qV} = {qH * qV} quadros{fachadas > 1 ? ` x ${fachadas} vãos` : ""}{lajes > 0 ? ` x ${lajes} lajes` : ""}
                     </span>
                   </div>
                 </article>
@@ -1449,14 +1423,14 @@ const acessoriosPDF = resultado.acessorios.map((a) => {
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Resumo técnico</h2>
                   <div className="mt-5 space-y-4">
                     {[
-                      ["Total de quadros", String(resultado.totalQuadros)],
-                      ["Quadros fixos", String(fixos)],
+                      ["Total de quadros (auto)", String(totalQuadrosAuto)],
+                      ["Quadros fixos (auto)", String(fixosAuto)],
                       ["Quadros móveis", String(moveis)],
-                      ["Meias colunas", String(resultado.meiaColuna)],
-                      ["Colunas de centro", String(resultado.colunaCentro)],
+                      ["Meias colunas (auto)", String(resultado.meiaColuna)],
+                      ["Colunas de centro (auto)", String(resultado.colunaCentro)],
                       ["Área de vidro", `${formatarNumero(resultado.areaVidro)} m²`],
                       ["Quantidade de lajes", lajes === 0 ? "Térreo" : String(lajes)],
-                      ["Quantidade de Fachadas", fachadas === 0 ? "0" : String(fachadas)],
+                      ["Quantidade de Vãos / Fachadas", String(fachadas)],
                       ["Vidro especificado", montarDescricaoVidro(vidroSelecionado)],
                       ["Total dos perfis", formatarPreco(totalPerfis)],
                       ["Total dos acessórios", formatarPreco(totalAcessorios)],
