@@ -5,12 +5,14 @@ import Image from "next/image";
 import { Check, ArrowUpRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import styles from "./planos.module.css";
+import foundersStyles from "../fundadores/fundadores.module.css";
+import { whatsappComercial, precosPlanosCentavos, recursosCompleto } from "@/config/comercial";
+import { foundersComercial, moedaComercial } from "@/config/foundersComercial";
 
-const whatsappComercial = "5546988271599";
 
-function contatoWhatsApp(plano?: { nome: string; valor: number }) {
+function contatoWhatsApp(plano?: { nome: string; valorCentavos: number }) {
   const mensagem = plano
-    ? `Olá! Tenho interesse no plano ${plano.nome} do Glass Code (${plano.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês por empresa). Gostaria de saber como contratar.`
+    ? `Olá! Tenho interesse no plano ${plano.nome} do Glass Code (${moedaComercial(plano.valorCentavos)}/mês por empresa). Gostaria de saber como contratar.`
     : "Olá! Tenho interesse nos planos do Glass Code. Pode me ajudar a escolher o melhor plano para minha empresa?";
   return `https://wa.me/${whatsappComercial}?text=${encodeURIComponent(mensagem)}`;
 }
@@ -19,7 +21,7 @@ const planos = [
   {
     numero: "01",
     nome: "Essencial",
-    valor: 99,
+    valorCentavos: precosPlanosCentavos.essencial,
     foco: "ORÇAMENTOS ESSENCIAIS",
     resumo: "Vidros e espelhos",
     descricao:
@@ -36,12 +38,11 @@ const planos = [
   {
     numero: "02",
     nome: "Profissional",
-    valor: 179,
+    valorCentavos: precosPlanosCentavos.profissional,
     foco: "OPERAÇÃO COMPLETA",
     resumo: "Projetos + materiais",
     descricao:
       "Para vidraçarias que precisam calcular projetos, materiais e orçamentos no mesmo fluxo.",
-    destaque: true,
     itens: [
       "Tudo do plano Essencial",
       "Matriz de portas, janelas e boxes",
@@ -55,21 +56,13 @@ const planos = [
   {
     numero: "03",
     nome: "Completo",
-    valor: 249,
+    valorCentavos: precosPlanosCentavos.completo,
+    destaque: true,
     foco: "PROJETOS AVANÇADOS",
     resumo: "Projetos especiais + operação completa",
     descricao:
-      "Para empresas que trabalham com soluções especiais e precisam ampliar as possibilidades de projeto.",
-    itens: [
-      "Tudo do plano Profissional",
-      "Sacada frontal",
-      "Sacada na torre e com grapas",
-      "Fechamento de sacada",
-      "Pele de vidro",
-      "Projetos com pinázio",
-      "Cálculos fora do esquadro",
-      "Documentos técnicos com desenhos",
-    ],
+      "A solução mais avançada do Glass Code: toda a operação e os recursos para projetos especiais.",
+    itens: recursosCompleto,
   },
 ];
 
@@ -83,7 +76,7 @@ export default function PlanosPage() {
           HEADER
       ===================================================== */}
       <header className={styles.header}>
-        <div className={styles.headerInner}>
+        <div className={`${styles.headerInner} ${foundersStyles.headerInner}`}>
           <Link href="/" className={styles.brand}>
             <Image
               src="/glasscode-icon.png"
@@ -183,7 +176,7 @@ export default function PlanosPage() {
           >
             {plano.destaque && (
               <div className={styles.recommended}>
-                MAIS ESCOLHIDO
+                SOLUÇÃO MAIS AVANÇADA
               </div>
             )}
 
@@ -203,9 +196,7 @@ export default function PlanosPage() {
 
             <div className={styles.priceArea}>
               <div className={styles.price}>
-                <span>R$</span>
-
-                <strong>{plano.valor}</strong>
+                <strong>{moedaComercial(plano.valorCentavos)}</strong>
 
                 <div>
                   <small>por mês</small>
@@ -259,8 +250,22 @@ export default function PlanosPage() {
 
 
       {/* =====================================================
-          IDENTIDADE
+          PROGRAMA DE PARCEIROS FUNDADORES
       ===================================================== */}
+      <section className={foundersStyles.banner} aria-labelledby="programa-fundadores">
+        <div>
+          <span className={foundersStyles.eyebrow}>PROGRAMA EXCLUSIVO · ATÉ {foundersComercial.limiteEmpresas} EMPRESAS</span>
+          <h2 id="programa-fundadores">Parceiros Fundadores</h2>
+          <p>Programa à parte dos planos: recursos equivalentes ao {foundersComercial.planoIncluido}, {foundersComercial.usuariosIncluidos} usuários e benefícios por contribuições reconhecidas.</p>
+          <div className={foundersStyles.bannerPrice}>
+            <strong>{moedaComercial(foundersComercial.precoPromocionalCentavos)}/mês</strong>
+            <span>nas primeiras {foundersComercial.mensalidadesPagasPromocionais} mensalidades pagas · depois {moedaComercial(foundersComercial.precoRegularCentavos)}/mês, por empresa</span>
+          </div>
+          <p>Vagas sujeitas à confirmação de elegibilidade e disponibilidade.</p>
+        </div>
+        <Link href="/fundadores" className={foundersStyles.cta}>Conhecer o programa <ArrowUpRight size={18} aria-hidden="true" /></Link>
+      </section>
+
       <section className={styles.included}>
         <div>
           <span className={styles.eyebrow}>

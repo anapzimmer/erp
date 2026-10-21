@@ -450,7 +450,7 @@ const ehJc2fComSacada = (projeto?: string) => /jc2fcs|sacada inferior/i.test(Str
 const ehJc4fComSacada = (projeto?: string) => /jc4fcs|janela 4 folhas com sacada inferior|janela de correr 4 folhas com sacada inferior/i.test(String(projeto || ""));
 const ehJc4fcbs = (projeto?: string) => /jc4fcbs|janela.*4.*folhas.*peitoril.*bandeira|janela.*peitoril.*sacada/i.test(String(projeto || ""));
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
-const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
+const ehSacadaComTorre = (projeto?: string) => /sacada (?:com|na) torre/i.test(String(projeto || ""));
 const ehSacadaGrapa = (projeto?: string) => /sacada grapa|sacada com grapa/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
@@ -970,7 +970,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<ProjetoComposic
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
   }
-  if (texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
+  if (ehSacadaComTorre(projeto) || texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto === "max" || texto.includes("max")) return variacao.includes("único") || variacao.includes("unico") ? 1 : 2;
@@ -2312,7 +2312,8 @@ router.push(
           </section>
 
           <section className="mt-6 rounded-3xl border bg-surface p-5 shadow-sm" style={{ borderColor: `color-mix(in srgb, ${theme.menuBackgroundColor} 9%, transparent)` }}>
-            <div className="grid gap-4 xl:grid-cols-[0.75fr_1fr_1fr_auto] xl:items-end">
+            <div className="grid gap-4">
+              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(160px,0.65fr)_minmax(0,1.3fr)_minmax(0,1.3fr)] [&>label]:min-w-0">
               <Field label="Nº Orçamento">
                 <input
                   value={numeroOrcamento}
@@ -2338,17 +2339,8 @@ router.push(
                 />
               </Field>
 
-              <div className="flex flex-wrap gap-2">
-                {empresaId && <AtualizarPrecosOrcamento empresaId={empresaId} cliente={cliente} projetos={itens} avulsos={materiaisAvulsos} calcularTotal={(projetos, avulsos) => {
-                  const otimizados = usarOtimizacao ? calcularOtimizacaoPerfis(projetos) : [];
-                  return projetos.reduce((s, p) => s + Number(p.valorTotal || 0), 0)
-                    + avulsos.reduce((s, m) => s + Number(m.qtd || 0) * Number(m.valorUnitario || 0), 0)
-                    + otimizados.reduce((s, p) => s + p.valorOtimizado - p.valorOriginal, 0);
-                }} aplicar={(projetos, avulsos) => {
-                  setItens(projetos); setMateriaisAvulsos(avulsos);
-                  setMensagem("Preços selecionados aplicados. Confira o total e salve para registrar a nova revisão.");
-                }} />}
-                {editId && <button type="button" onClick={consultarHistoricoPrecos} className="rounded-xl border border-border px-4 py-3 text-sm text-text-secondary hover:bg-surface-secondary">Revisões anteriores</button>}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3 [&>button]:min-h-12 [&>button]:justify-center [&>span]:w-full [&>span>button]:min-h-12 [&>span>button]:w-full [&>span>button]:justify-center">
                 {itensPdf.length > 0 ? (
                   <>
                     <BotaoImprimirPDF documento={<CentralImpressaoPDF itens={itensPdf} nomeEmpresa={nomeEmpresa} logoUrl={theme.logoLightUrl || theme.logoUrl || theme.logoDarkUrl} numeroOrcamento={numeroOrcamento} cliente={cliente} obra={obra} otimizacaoPerfis={otimizacaoPerfisPdf} />}
@@ -2360,10 +2352,10 @@ router.push(
                       className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-secondary" rotulo="Relação da obra" icone={<FileDown size={16} />} />
                   </>
                 ) : (
-                  <button disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-border px-4 py-3 text-sm font-semibold text-text-secondary">
-                    <FileDown size={16} />
-                    Gerar PDF
-                  </button>
+                  <>
+                    <button disabled className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-border px-4 py-3 text-sm font-semibold text-text-secondary"><FileDown size={16} />Gerar PDF</button>
+                    <button disabled className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary opacity-50"><FileDown size={16} />Relação da obra</button>
+                  </>
                 )}
                 <button
                   type="button"
@@ -2375,6 +2367,8 @@ router.push(
                   <Save size={16} />
                   {salvando ? "Salvando..." : "Salvar Orçamento"}
                 </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3 [&>button]:min-h-12 [&>button]:w-full [&>button]:justify-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -2399,8 +2393,19 @@ router.push(
                   <X size={16} />
                   Limpar
                 </button>
+                {empresaId && <AtualizarPrecosOrcamento empresaId={empresaId} cliente={cliente} projetos={itens} avulsos={materiaisAvulsos} calcularTotal={(projetos, avulsos) => {
+                  const otimizados = usarOtimizacao ? calcularOtimizacaoPerfis(projetos) : [];
+                  return projetos.reduce((s, p) => s + Number(p.valorTotal || 0), 0)
+                    + avulsos.reduce((s, m) => s + Number(m.qtd || 0) * Number(m.valorUnitario || 0), 0)
+                    + otimizados.reduce((s, p) => s + p.valorOtimizado - p.valorOriginal, 0);
+                }} aplicar={(projetos, avulsos) => {
+                  setItens(projetos); setMateriaisAvulsos(avulsos);
+                  setMensagem("Preços selecionados aplicados. Confira o total e salve para registrar a nova revisão.");
+                }} />}
               </div>
             </div>
+
+            {editId && <button type="button" onClick={consultarHistoricoPrecos} className="rounded-xl border border-border px-4 py-3 text-sm text-text-secondary hover:bg-surface-secondary">Revisões anteriores</button>}
 
             {mensagem ? (
               <p className="mt-4 rounded-2xl bg-surface-secondary px-4 py-3 text-sm font-bold text-text-secondary">{mensagem}</p>

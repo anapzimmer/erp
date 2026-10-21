@@ -5,6 +5,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
+      url: `${baseUrl}/fundadores`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: "weekly",

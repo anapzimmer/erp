@@ -2,6 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
+import { DesenhoSacadaTorrePDF } from "../sacadatorre/DesenhoSacadaTorrePDF";
 import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
@@ -21,6 +22,7 @@ export type CentralImpressaoItem = {
   foraEsquadroLateral?: import("@/utils/foraEsquadroLateral").ForaEsquadroLateral;
   centralDados?: {
     quantidadeDivisoesLargura?: string;
+    quantidadeTorresPorVidro?: string;
     grapasLateraisPorVao?: string;
     grapasInferioresPorVao?: string;
     grapas1305PorUniao?: string;
@@ -354,7 +356,7 @@ const calcularResumoVidrosAvulsos = (item: Pick<CentralImpressaoItem, "vidrosAvu
 };
 
 const ehSacadaFrontal = (projeto?: string) => /sacada frontal/i.test(String(projeto || ""));
-const ehSacadaComTorre = (projeto?: string) => /sacada com torre/i.test(String(projeto || ""));
+const ehSacadaComTorre = (projeto?: string) => /sacada (?:com|na) torre/i.test(String(projeto || ""));
 const ehSacadaGrapa = (projeto?: string) => /sacada grapa|sacada com grapa/i.test(String(projeto || ""));
 const ehFechamentoSacada = (projeto?: string) => /fechamento de sacada/i.test(String(projeto || ""));
 const ehPeleDeVidro = (projeto?: string) => /pele de vidro/i.test(String(projeto || ""));
@@ -1654,7 +1656,7 @@ const multiplicadorPecasProjeto = (projeto?: string, item?: Pick<CentralImpressa
   if (texto.includes("pele de vidro")) {
     return totalQuadrosPeleDeVidro(item);
   }
-  if (texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
+  if (ehSacadaComTorre(projeto) || texto.includes("sacada frontal") || texto.includes("sacada grapa") || texto.includes("sacada com grapa") || texto.includes("fechamento de sacada")) {
     return Math.max(1, Number(item?.pecasDivisao || 1));
   }
   if (texto.includes("pg2fva") || texto.includes("pgf") || texto.includes("porta de giro com fixo lateral")) return 2;
@@ -2078,7 +2080,7 @@ const possuiRelacaoObra =
 
             return (
               <View key={item.id} style={styles.card} wrap={false}>
-                <View style={styles.imageWrap}>
+                <View style={ehSacadaComTorre(item.projeto) ? [styles.imageWrap, { width: 150, height: 120 }] : styles.imageWrap}>
                   {pinazio ? (
                     <MiniProjetoPinazioPDF
                       largura={Number(item.largura || 100)}
@@ -2103,6 +2105,12 @@ const possuiRelacaoObra =
                       grapasInferioresPorVao={Number(item.centralDados?.grapasInferioresPorVao ?? item.medidasDetalhadas?.match(/Grapas embaixo por vidro:\s*(\d+)/i)?.[1] ?? 0)}
                       grapas1305PorUniao={Number(item.centralDados?.grapas1305PorUniao ?? item.medidasDetalhadas?.match(/1305 por uniao:\s*(\d+)/i)?.[1] ?? 1)}
                       tuboDescricao={(item.centralDados?.tuboPosicao || item.medidasDetalhadas?.match(/Tubo:\s*(.*)/i)?.[1] || "sem").replace(/-/g, " ")}
+                    />
+                  ) : ehSacadaComTorre(item.projeto) ? (
+                    <DesenhoSacadaTorrePDF desenhoUrl={item.desenhoUrl} width={142} height={112}
+                      larguraVaoMm={Number(item.largura || 2000)} alturaVaoMm={Number(item.altura || 1000)}
+                      divisoesPorVao={Number(item.pecasDivisao || item.centralDados?.quantidadeDivisoesLargura || 1)}
+                      torresPorVidro={Number(item.centralDados?.quantidadeTorresPorVidro ?? item.trinco?.match(/(\d+)\s*torre/i)?.[1] ?? 1)}
                     />
                   ) : sacadaFrontal ? (
                     <SacadaFrontalDesenhoPDF item={item} />
@@ -2253,7 +2261,7 @@ const possuiRelacaoObra =
                           {(resumoAvulso?.area || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
                         </Text>
                       </View>
-                    ) : sacadaFrontal ? (
+                    ) : sacadaFrontal || ehSacadaComTorre(item.projeto) ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>Peças por vão na largura</Text>
                         <Text style={styles.infoValue}>{item.pecasDivisao || 1}</Text>
@@ -2337,7 +2345,7 @@ const possuiRelacaoObra =
                         <Text style={styles.infoValue}>{pecasFixos} peça(s)</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho ? (
+                    {!ehVidroAvulso && !ehBoxProjeto && !sacadaFrontal && !ehSacadaComTorre(item.projeto) && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehJanela && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoPrincipal}</Text>
                         <Text style={styles.infoValue}>{item.trilho || "-"}</Text>
@@ -2349,7 +2357,7 @@ const possuiRelacaoObra =
                         <Text style={styles.infoValue}>{item.puxador || "-"}</Text>
                       </View>
                     ) : null}
-                    {!ehVidroAvulso && !sacadaFrontal && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio && !espelhoComDesenho ? (
+                    {!ehVidroAvulso && !sacadaFrontal && !ehSacadaComTorre(item.projeto) && !sacadaGrapa && !fechamentoSacada && !peleDeVidro && !ehFixos && !pinazio && !espelhoComDesenho ? (
                       <View style={styles.info}>
                         <Text style={styles.infoLabel}>{labelCampoSecundario}</Text>
                         <Text style={styles.infoValue}>{item.trinco || "-"}</Text>

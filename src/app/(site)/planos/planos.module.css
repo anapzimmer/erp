@@ -11,9 +11,10 @@
 .page {
   min-height: 100vh;
 
+  /* Mesma largura útil da landing e de /recursos: min(1450px, 100% - 80px) */
   padding:
     0
-    max(24px, calc((100vw - 1200px) / 2));
+    max(40px, calc((100% - 1450px) / 2));
 
   background: var(--background);
   color: var(--text-primary);
@@ -263,7 +264,7 @@
 
 
 /* =========================================================
-   PLANO PROFISSIONAL — DESTAQUE
+   PLANO COMPLETO — DESTAQUE
 ========================================================= */
 
 .featured {
@@ -1036,6 +1037,25 @@
 
 @media (max-width: 900px) {
 
+  /* Mesma largura das demais páginas públicas: min(100% - 36px, 700px) */
+  .page {
+    padding-left: max(18px, calc((100% - 700px) / 2));
+    padding-right: max(18px, calc((100% - 700px) / 2));
+  }
+
+  .headerInner {
+    flex-wrap: wrap;
+
+    padding: 16px 0;
+    gap: 12px 24px;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+
+    gap: 10px 20px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
 
@@ -1075,8 +1095,8 @@
 @media (max-width: 520px) {
 
   .page {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .header {
@@ -1284,3 +1304,19 @@
     transform: none;
   }
 }
+
+/* Public pricing: readable in either ERP theme, with the Complete tier emphasized. */
+.card { background: var(--surface); }
+.featured {
+  --text-primary: var(--gc-ice);
+  --text-secondary: var(--gc-mist);
+  --border: color-mix(in srgb, var(--gc-silver) 40%, transparent);
+  --surface: var(--gc-graphite);
+  color: var(--text-primary);
+  background: radial-gradient(ellipse at 100% 0%, #c8d46320, transparent 70%), linear-gradient(145deg, var(--gc-graphite), #14222d);
+}
+.featured .primary { background: var(--gc-lime); color: var(--gc-graphite); border-color: var(--gc-lime); }
+.price { flex-wrap: wrap; gap: 12px; }
+.price > strong { font-size: clamp(30px, 3vw, 42px); white-space: nowrap; letter-spacing: -.045em; line-height: 1.1; }
+.price > div { margin-left: 0; }
+.page :is(a, summary):focus-visible { outline: 3px solid var(--gc-lime); outline-offset: 5px; }

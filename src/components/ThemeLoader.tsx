@@ -15,6 +15,7 @@ export default function ThemeLoader({
     pathname === "/como-funciona" ||
     pathname === "/recursos" ||
     pathname === "/planos" ||
+    pathname === "/fundadores" ||
     pathname === "/login" ||
     pathname === "/recuperar-senha" ||
     pathname === "/reset-password";
