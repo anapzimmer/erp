@@ -6,7 +6,6 @@ import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/Orcamento
 import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import type { CSSProperties } from "react"
 import { useTheme } from "@/context/ThemeContext"
 import { useRouter } from 'next/navigation';
 import { normalizarPrecoCatalogo } from "@/utils/precos";
@@ -16,6 +15,10 @@ import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero"
 import { decodeCsvFile } from "@/utils/csvEncoding"
 import Header from "@/components/Header"
 import {
+  Layers,
+  PackageCheck,
+  ArrowRightLeft,
+  DollarSign,
   Wrench,
   X,
   Printer,
@@ -30,7 +33,7 @@ import {
   FileText,
   Save,
 } from "lucide-react";
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
 
@@ -246,6 +249,9 @@ export default function RelatorioOrcamento() {
 
   // Estados do Layout
   const [isMounted, setIsMounted] = useState(false);
+  const [gerandoPDF, setGerandoPDF] = useState(false);
+  const gerandoPDFRef = useRef(false);
+  const [abaFormulario, setAbaFormulario] = useState<"vidro" | "servicos" | "adicionais">("vidro");
   const draftRestauradoRef = useRef(false);
   const itemCentralCarregadoRef = useRef(false);
 
@@ -796,7 +802,7 @@ export default function RelatorioOrcamento() {
     }
     carregarDados();
   }, [empresaId, checkingAuth]);
-  
+
   useEffect(() => {
     if (editId && isMounted && listaClientes.length > 0 && !carregadoRef.current) {
       buscarOrcamentoParaEdicao(editId);
@@ -1304,6 +1310,7 @@ export default function RelatorioOrcamento() {
             ? "ferragem"
             : null);
     const ehAdicional = item.tipo === "adicional" || tipoAdicional !== null;
+    setAbaFormulario(ehAdicional ? "adicionais" : "vidro");
 
     if (ehAdicional) {
       setEditandoId(item.id);
@@ -1908,83 +1915,12 @@ export default function RelatorioOrcamento() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleImprimirPDF = async () => {
+    if (gerandoPDFRef.current || itens.length === 0) return;
+    gerandoPDFRef.current = true;
+    setGerandoPDF(true);
     try {
-      await supabase.auth.signOut();
-      router.push("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Erro ao sair:", error);
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
-
-      <div className="flex-1 flex flex-col w-full min-w-0">
-
-       <Header
-  nomeEmpresa={nomeEmpresa}
-  usuarioEmail={user?.email || ""}
-  handleSignOut={handleLogout}
->
-  <div className="hidden md:flex flex-col border-l border-border pl-6">
-    <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none">
-      Orçamento
-    </span>
-
-    <span className="text-xs text-text-primary font-bold">
-      # {ultimoNumeroGerado || "GERANDO..."}
-    </span>
-  </div>
-</Header>
-
-<div className="relative z-10 w-full border-b border-border bg-surface shadow-sm">
-  <div className="flex min-h-16.5 items-center gap-2 overflow-x-auto px-4 py-2 md:px-8">
-
-    <button
-      type="button"
-      onClick={handleNovoOrcamento}
-      className="flex shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:border-border-strong hover:bg-surface-secondary"
-    >
-      <Plus size={18} />
-      Orçamento
-    </button>
-
-    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm font-semibold text-text-primary">
-      <UserRound size={18} />
-      <span className="sr-only">Cliente</span>
-      <select
-        id="cliente-orcamento"
-        className="w-44 bg-transparent text-sm font-semibold text-text-primary outline-none md:w-56"
-        value={clienteId}
-        onChange={(e) => setClienteId(e.target.value)}
-        aria-label="Cliente do orçamento"
-      >
-        <option value="">Selecione o cliente</option>
-        {listaClientes.map((cliente) => (
-          <option key={cliente.id} value={cliente.id}>
-            {cliente.nome}
-          </option>
-        ))}
-      </select>
-    </label>
-
-    <label className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm font-semibold text-text-primary">
-      <FolderOpen size={18} />
-      <span className="sr-only">Obra</span>
-      <input
-        type="text"
-        placeholder="Identificação da obra"
-        className="w-44 bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:font-normal placeholder:text-text-secondary md:w-56"
-        value={obra}
-        onChange={(e) => setObra(e.target.value)}
-        aria-label="Obra do orçamento"
-      />
-    </label>
-
-    <PDFDownloadLink
-      document={
+      const blob = await pdf(
         <CalculoVidroPDF
           itens={itens.map((item) => ({
             ...item,
@@ -2030,73 +1966,192 @@ export default function RelatorioOrcamento() {
             0
           )}
         />
-      }
-      fileName={`Orçamento ${
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Orçamento ${
         listaClientes.find(
           (cliente) => String(cliente.id) === String(clienteId)
         )?.nome || "Geral"
-      }.pdf`}
-    >
-      {({ loading }) => (
-        <button
-          type="button"
-          disabled={loading || itens.length === 0}
-          className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Printer size={18} />
-          {loading ? "Gerando..." : "Imprimir"}
-        </button>
-      )}
-    </PDFDownloadLink>
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      setModalAvisoTitulo("Erro ao gerar PDF");
+      setModalAvisoMensagem("Não foi possível gerar o PDF. Tente novamente.");
+      setMostrarModalAviso(true);
+    } finally {
+      gerandoPDFRef.current = false;
+      setGerandoPDF(false);
+    }
+  };
 
-    <button
-  type="button"
-  onClick={() => router.push("/matriz-projetos")}
-  className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary"
-  title="Abrir matriz de orçamentos"
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
+
+      <div className="flex-1 flex flex-col w-full min-w-0">
+
+       <Header
+  nomeEmpresa={nomeEmpresa}
+  usuarioEmail={user?.email || ""}
+  handleSignOut={handleLogout}
 >
-  <FolderOpen size={18} />
-  Projetos
-</button>
+  <div className="hidden md:flex flex-col border-l border-border pl-6">
+    <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none">
+      Orçamento
+    </span>
 
-    <button
-      type="button"
-      onClick={enviarParaCentralImpressao}
-      disabled={itens.length === 0}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <FileText size={18} />
-      PDF+
-    </button>
-
-    <button
-      type="button"
-      onClick={handleSalvarOrcamento}
-      disabled={itens.length === 0}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <Save size={18} />
-      Salvar
-    </button>
-
+    <span className="text-xs text-text-primary font-bold">
+      # {ultimoNumeroGerado || "GERANDO..."}
+    </span>
   </div>
-</div>
-        <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
+</Header>
+
+        <div className="relative z-10 w-full border-b border-border bg-surface shadow-xs">
+          <div className="flex min-h-16 items-center justify-between gap-3 overflow-x-auto px-4 py-2 md:px-8">
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleNovoOrcamento}
+                className="flex shrink-0 items-center gap-2 rounded-xl border border-border-strong bg-surface px-3.5 py-2 text-xs font-bold text-text-primary transition hover:bg-surface-secondary"
+              >
+                <Plus size={16} />
+                Novo
+              </button>
+
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-1.5">
+                <UserRound size={16} className="text-text-secondary" />
+                <select
+                  className="w-40 md:w-52 bg-transparent text-xs font-semibold text-text-primary outline-none"
+                  value={clienteId}
+                  onChange={(e) => setClienteId(e.target.value)}
+                >
+                  <option value="">Selecione o cliente...</option>
+                  {listaClientes.map((cliente) => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-1.5">
+                <FolderOpen size={16} className="text-text-secondary" />
+                <input
+                  type="text"
+                  placeholder="Nome / Ref. da Obra"
+                  className="w-36 md:w-48 bg-transparent text-xs font-semibold text-text-primary outline-none placeholder:text-text-secondary/60"
+                  value={obra}
+                  onChange={(e) => setObra(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => router.push("/matriz-projetos")}
+                className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-text-primary transition hover:bg-surface-secondary"
+              >
+                <FolderOpen size={16} />
+                Projetos
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="inline-flex shrink-0 h-9 items-center justify-center">
+                {isMounted && (
+                  <button
+                    type="button"
+                    onClick={handleImprimirPDF}
+                    disabled={gerandoPDF || itens.length === 0}
+                    aria-busy={gerandoPDF}
+                    title={gerandoPDF ? "Preparando PDF" : "Imprimir orçamento"}
+                    className="flex h-9 w-28 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-bold text-text-primary hover:bg-surface-secondary disabled:cursor-default"
+                  >
+                    <Printer size={16} />
+                    <span>Imprimir</span>
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={enviarParaCentralImpressao}
+                disabled={itens.length === 0}
+                className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-text-primary transition hover:bg-surface-secondary disabled:opacity-40"
+              >
+                <FileText size={16} />
+                PDF+
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSalvarOrcamento}
+                disabled={itens.length === 0}
+                className="flex shrink-0 items-center gap-2 rounded-xl bg-primary text-on-primary px-4 py-2 text-xs font-bold transition hover:opacity-90 disabled:opacity-40"
+              >
+                <Save size={16} />
+                Salvar Orçamento
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <main className="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
 
-              {/* CARD DIMENSÕES */}
-              <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-4 relative overflow-hidden">
+            <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-6 lg:self-start">
+              <div className="flex rounded-2xl bg-surface-secondary p-1 border border-border">
+                <button
+                  type="button"
+                  onClick={() => setAbaFormulario("vidro")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    abaFormulario === "vidro" ? "bg-surface text-text-primary shadow-xs" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  <Calculator size={14} />
+                  1. Vidro
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAbaFormulario("servicos")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    abaFormulario === "servicos" ? "bg-surface text-text-primary shadow-xs" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  <Wrench size={14} />
+                  2. Serviços
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAbaFormulario("adicionais")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    abaFormulario === "adicionais" ? "bg-surface text-text-primary shadow-xs" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  <Layers size={14} />
+                  3. Kits/Perfis
+                </button>
+              </div>
 
-                {/* AVISO DE EDIÇÃO */}
+              <div className="bg-surface p-5 rounded-2xl border border-border shadow-xs space-y-4 relative">
                 {editandoId && (
-                  <div className="absolute top-0 left-0 w-full bg-warning-soft border-b border-warning-soft px-4 py-2 flex items-center justify-between animate-fade-in">
-                    <div className="flex items-center gap-2">
-                      <Edit2 size={14} className="text-warning" />
-                      <span className="text-[10px] font-bold text-warning uppercase tracking-wider">
-                        {editandoAdicional ? "Editando adicional" : "Modo Edição Ativo"}
-                      </span>
-                    </div>
+                  <div className="absolute -top-3 left-4 bg-warning-soft text-warning border border-warning-soft px-3 py-0.5 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1 shadow-xs">
+                    <Edit2 size={12} /> Editando Item
                     <button
                       onClick={() => {
                         setEditandoId(null);
@@ -2114,83 +2169,29 @@ export default function RelatorioOrcamento() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 pb-2 border-b border-border">
-                  <div className="p-2 bg-navigation/5 rounded-xl text-text-primary">
-                    <Calculator size={20} strokeWidth={2.5} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] leading-none">
-                      Especificações
-                    </span>
-                    <h3 className="text-sm font-bold text-text-primary">
-                      Dimensões
-                    </h3>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Largura</label>
-                    <input
-                      ref={larguraRef}
-                      type="text"
-                      placeholder="0"
-                      value={largura}
-                      onChange={(e) => {
-                        const valorNumerico = e.target.value.replace(/\D/g, '').slice(0, 4);
-                        setLargura(valorNumerico);
-                      }}
-                      onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
-                     focus:border-(--menu-icon-color) focus:ring-2 focus:ring-(--menu-icon-color)/10"
-                       style={{ '--menu-icon-color': theme.menuIconColor } as CSSProperties}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Altura</label>
-                    <input
-                      ref={alturaRef}
-                      type="text"
-                      placeholder="0"
-                      value={altura}
-                      onChange={(e) => {
-                        const valorNumerico = e.target.value.replace(/\D/g, '').slice(0, 4);
-                        setAltura(valorNumerico);
-                      }}
-                      onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
-                     focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
-                       style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-text-secondary uppercase ml-1">Qtd</label>
-                    <input
-                      ref={qtdRef}
-                      type="number"
-                      min="1"
-                      value={quantidade}
-                      onChange={(e) => setQuantidade(Number(e.target.value))}
-                      onKeyDown={handleKeyDown}
-                       className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm transition-all
-                     focus:border-(--focus-color) focus:ring-2 focus:ring-(--focus-color)/10"
-                       style={{ '--focus-color': theme.menuIconColor } as CSSProperties}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-text-secondary uppercase">Material</label>
-                  <select
-                    className="w-full p-3 bg-surface-secondary rounded-xl border border-border outline-none text-sm text-text-primary"
-                    value={vidroSelecionado?.id}
-                    onChange={(e) => setVidroSelecionado(listaVidros.find((v: Vidro) => String(v.id) === String(e.target.value)) || null)}
-                  >
-                    <option value="">Selecione o material...</option>
-                    {listaVidros.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {montarRotuloVidro(v)}
-                      </option>
-                    ))}
-                  </select>
+                {abaFormulario === "vidro" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                      <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                        Especificações da Peça
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-text-secondary uppercase">Tipo de Vidro</label>
+                      <select
+                        className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-xs font-semibold text-text-primary outline-none"
+                        value={vidroSelecionado?.id || ""}
+                        onChange={(e) => setVidroSelecionado(listaVidros.find((v) => String(v.id) === String(e.target.value)) || null)}
+                      >
+                        <option value="">Selecione o vidro...</option>
+                        {listaVidros.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {montarRotuloVidro(v)}
+                          </option>
+                        ))}
+                      </select>
+
                   {isMounted && vidroSelecionado && clienteId && (() => {
                     const clienteAtual = listaClientes.find(c => String(c.id) === String(clienteId));
                     const grupoId = clienteAtual?.grupo_preco_id || clienteAtual?.tabela_id;
@@ -2211,7 +2212,7 @@ export default function RelatorioOrcamento() {
                       : null;
 
                     return (
-                      <div className="mt-1 space-y-1">
+                      <div className="p-2.5 bg-surface-secondary/70 rounded-xl border border-border/60 text-xs space-y-0.5">
                         <p className={`text-[10px] font-bold uppercase tracking-tighter ${especial ? 'text-text-secondary' : 'text-text-secondary'}`}>
                           {especial
                             ? `⭐ Preço Diferenciado: ${formatarMoeda(precoBase)} /m²`
@@ -2225,152 +2226,164 @@ export default function RelatorioOrcamento() {
                       </div>
                     );
                   })()}
-                </div>
-              </div>
+                    </div>
 
-              <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-5">
-                <div className="flex items-center gap-3 pb-2 border-b border-border">
-                  <div className="p-2 bg-navigation/5 rounded-xl text-text-primary">
-                    <Wrench size={20} strokeWidth={2.5} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] leading-none">
-                      Personalização
-                    </span>
-                    <h3 className="text-sm font-bold text-text-primary">
-                      Acabamentos e Serviços
-                    </h3>
-                  </div>
-                </div>
-                <div className="space-y-2 max-h-28.75 overflow-y-auto pr-2 custom-scrollbar">
-                  <div
-                    onClick={() => setServicoSelecionado(null)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${!servicoSelecionado ? 'bg-surface-secondary border-border' : 'bg-surface-secondary border-border hover:border-border'
-                      }`}
-                  >
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: !servicoSelecionado ? theme.menuIconColor : '#6b7280' }}
-                    >
-                      Nenhum
-                    </span>
-                    <div
-                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                      style={{ borderColor: !servicoSelecionado ? theme.menuIconColor : '#d1d5db' }}
-                    >
-                      {!servicoSelecionado && (
-                        <div
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: theme.menuIconColor }}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-text-secondary uppercase">Largura (mm)</label>
+                        <input
+                          ref={larguraRef}
+                          type="text"
+                          placeholder="0"
+                          value={largura}
+                          onChange={(e) => setLargura(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          onKeyDown={handleKeyDown}
+                          className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-sm font-bold text-text-primary outline-none text-center"
                         />
-                      )}
-                    </div>
-                  </div>
-
-                  {listaServicos.map((s) => {
-                    const isSelected = servicoSelecionado?.id === s.id;
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => setServicoSelecionado(s)}
-                        className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${isSelected ? 'bg-surface-secondary border-border' : 'bg-surface-secondary border-border hover:border-border'
-                          }`}
-                      >
-                        <span
-                          className="text-sm font-medium"
-                          style={{ color: isSelected ? theme.menuIconColor : '#6b7280' }}
-                        >
-                          {s.nome}
-                        </span>
-                        <div
-                          className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                          style={{ borderColor: isSelected ? theme.menuIconColor : '#d1d5db' }}
-                        >
-                          {isSelected && (
-                            <div
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{ backgroundColor: theme.menuIconColor }}
-                            />
-                          )}
-                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-text-secondary uppercase">Altura (mm)</label>
+                        <input
+                          ref={alturaRef}
+                          type="text"
+                          placeholder="0"
+                          value={altura}
+                          onChange={(e) => setAltura(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          onKeyDown={handleKeyDown}
+                          className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-sm font-bold text-text-primary outline-none text-center"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-text-secondary uppercase">Qtd</label>
+                        <input
+                          ref={qtdRef}
+                          type="number"
+                          min="1"
+                          value={quantidade}
+                          onChange={(e) => setQuantidade(Number(e.target.value))}
+                          onKeyDown={handleKeyDown}
+                          className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-sm font-bold text-text-primary outline-none text-center"
+                        />
+                      </div>
+                    </div>
 
-                {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'm²' && (
-                  <div className="mt-4 p-4 bg-navigation/5 rounded-2xl border border-border-strong/10 animate-fade-in">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Wrench size={14} className="text-text-primary" />
-                      <label className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
-                        {servicoSelecionado.unidade?.toLowerCase().includes('ml')
-                          ? "Metragem (ML)"
-                          : "Quantidade (Furos / Recortes / CNC)"}
-                      </label>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="1"
-                        step="0.01"
-                        value={quantidadeServico}
-                        onChange={(e) => setQuantidadeServico(parseFloat(e.target.value) || 0)}
-                        className="w-full p-3 bg-surface rounded-xl border border-border outline-none text-sm font-bold text-text-primary focus:ring-2 focus:ring-border-strong/10"
-                        placeholder="Quanto?"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary uppercase">
-                        {servicoSelecionado.unidade}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={adicionarItem}
+                      className="w-fit max-w-full mx-auto px-4 py-2 bg-primary text-on-primary rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition hover:opacity-90"
+                    >
+                      {editandoVidro ? <Sparkles size={16} /> : <Plus size={16} />}
+                      <span>{editandoVidro ? "Atualizar Vidro" : "Adicionar Vidro ao Pedido"}</span>
+                    </button>
                   </div>
                 )}
 
-                <div className="mt-3 rounded-2xl border border-border bg-surface-secondary p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Plus size={14} className="text-text-primary" />
-                    <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
-                      Adicionar kit, perfil ou ferragem
-                    </span>
+                {abaFormulario === "servicos" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                      <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                        Serviços / Lapidação
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                      <div
+                        onClick={() => setServicoSelecionado(null)}
+                        className={`p-2.5 rounded-xl border text-xs cursor-pointer flex justify-between items-center transition ${
+                          !servicoSelecionado ? 'bg-surface-secondary border-border font-bold' : 'border-border/60 hover:bg-surface-secondary/50'
+                        }`}
+                      >
+                        <span>Sem Serviço Adicional</span>
+                        {!servicoSelecionado && <PackageCheck size={14} className="text-primary" />}
+                      </div>
+
+                      {listaServicos.map((s) => {
+                        const isSelected = servicoSelecionado?.id === s.id;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => setServicoSelecionado(s)}
+                            className={`p-2.5 rounded-xl border text-xs cursor-pointer flex justify-between items-center transition ${
+                              isSelected ? 'bg-surface-secondary border-border font-bold text-text-primary' : 'border-border/60 hover:bg-surface-secondary/50 text-text-secondary'
+                            }`}
+                          >
+                            <span>{s.nome}</span>
+                            <span className="font-mono text-[11px]">{formatarMoeda(Number(s.preco))}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {servicoSelecionado && servicoSelecionado.unidade?.toLowerCase().trim() !== 'm²' && (
+                      <div className="p-3 bg-surface-secondary rounded-xl border border-border space-y-1.5">
+                        <label className="text-[10px] font-bold text-text-secondary uppercase">
+                          Quantidade do serviço ({servicoSelecionado.unidade})
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={quantidadeServico}
+                          onChange={(e) => setQuantidadeServico(parseFloat(e.target.value) || 0)}
+                          className="w-full p-2 bg-surface rounded-lg border border-border text-xs font-bold text-text-primary outline-none"
+                        />
+                      </div>
+                    )}
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <select
-                      value={tipoAdicionalSelecionado}
-                      onChange={(e) => {
-                        setTipoAdicionalSelecionado(e.target.value as "kit" | "perfil" | "ferragem");
-                        setAdicionalSelecionadoId("");
-                      }}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm text-text-primary"
-                    >
-                      <option value="kit">Kits</option>
-                      <option value="perfil">Perfis</option>
-                      <option value="ferragem">Ferragens</option>
-                    </select>
+                {abaFormulario === "servicos" && (
+                  <button type="button" onClick={adicionarItem} className="w-fit max-w-full mx-auto px-4 py-2 bg-primary text-on-primary rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition hover:opacity-90">
+                    <Plus size={16} />
+                    {editandoVidro ? "Atualizar Vidro" : "Adicionar Vidro ao Pedido"}
+                  </button>
+                )}
 
-                    <input
-                      type="text"
-                      value={filtroCorAdicional}
-                      onChange={(e) => setFiltroCorAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
-                      placeholder="Cor (perfil/ferragem)"
-                    />
-                  </div>
+                {abaFormulario === "adicionais" && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                      <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                        Itens Complementares
+                      </span>
+                    </div>
 
-                  <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={tipoAdicionalSelecionado}
+                        onChange={(e) => {
+                          setTipoAdicionalSelecionado(e.target.value as "kit" | "perfil" | "ferragem");
+                          setAdicionalSelecionadoId("");
+                        }}
+                        className="p-2 bg-surface-secondary rounded-xl border border-border text-xs text-text-primary outline-none"
+                      >
+                        <option value="kit">Kits</option>
+                        <option value="perfil">Perfis</option>
+                        <option value="ferragem">Ferragens</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        value={filtroCorAdicional}
+                        onChange={(e) => setFiltroCorAdicional(e.target.value)}
+                        className="p-2 bg-surface-secondary rounded-xl border border-border text-xs outline-none"
+                        placeholder="Filtrar por cor"
+                      />
+                    </div>
+
                     <input
                       type="text"
                       value={buscaAdicional}
                       onChange={(e) => setBuscaAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
-                      placeholder="Buscar por código ou nome"
+                      className="w-full p-2 bg-surface-secondary rounded-xl border border-border text-xs outline-none"
+                      placeholder="Buscar por nome ou código..."
                     />
 
                     <select
                       value={adicionalSelecionadoId}
                       onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm text-text-primary"
+                      className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-xs text-text-primary outline-none"
                     >
-                      <option value="">Selecione para adicionar...</option>
+                      <option value="">Selecione o item...</option>
                       {adicionaisFiltrados.map((item) => {
                         const codigo = "codigo" in item ? String(item.codigo || "").trim() : "";
                         const corItem = "cores" in item ? String(item.cores || "").trim() : "";
@@ -2387,55 +2400,51 @@ export default function RelatorioOrcamento() {
                         </option>
                       )}
                     </select>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={quantidadeAdicional}
+                        onChange={(e) => setQuantidadeAdicional(Math.max(1, Number(e.target.value) || 1))}
+                        className="p-2 bg-surface-secondary rounded-xl border border-border text-xs outline-none"
+                        placeholder="Qtd"
+                      />
+                      <input
+                        type="text"
+                        value={valorUnitarioAdicional}
+                        onChange={(e) => setValorUnitarioAdicional(e.target.value)}
+                        className="p-2 bg-surface-secondary rounded-xl border border-border text-xs outline-none"
+                        placeholder="Valor un."
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={adicionarAdicional}
+                      className="w-full py-2.5 bg-surface-secondary border border-border rounded-xl font-bold text-xs text-text-primary hover:bg-border/20 transition flex items-center justify-center gap-1.5"
+                    >
+                      <Plus size={14} />
+                      {editandoAdicional ? "Atualizar adicional" : "Adicionar Item Avulso"}
+                    </button>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      value={quantidadeAdicional}
-                      onChange={(e) => setQuantidadeAdicional(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
-                      placeholder="Qtd"
-                    />
-                    <input
-                      type="text"
-                      value={valorUnitarioAdicional}
-                      onChange={(e) => setValorUnitarioAdicional(e.target.value)}
-                      className="w-full p-2.5 bg-surface rounded-xl border border-border outline-none text-sm"
-                      placeholder="Valor unitário"
-                    />
-                  </div>
-
-                  <button
-                    onClick={adicionarAdicional}
-                    className="w-full py-2.5 bg-surface text-text-primary border border-border-strong/30 rounded-xl font-bold hover:bg-navigation/5 hover:border-border-strong transition-all flex items-center justify-center gap-2"
-                  >
-                    {editandoAdicional ? <Sparkles size={16} /> : <Plus size={16} />}
-                    <span>{editandoAdicional ? "Atualizar adicional" : "Adicionar adicional"}</span>
-                  </button>
-                </div>
-
-                <div className="flex justify-center w-full pt-4">
-                  <button
-                    onClick={adicionarItem}
-                    className="w-1/2 py-2.5 bg-surface text-text-primary border border-border-strong/30 rounded-xl font-bold hover:bg-navigation/5 hover:border-border-strong transition-all flex items-center justify-center gap-2"
-                  >
-                    {editandoVidro ? <Sparkles size={18} /> : <Plus size={18} />}
-                    <span>{editandoVidro ? "Atualizar Item" : "Adicionar Item"}</span>
-                  </button>
-                </div>
               </div>
             </div>
 
-            <div className="lg:col-span-8 space-y-6">
-              <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col h-full">
-                <div className="p-5 border-b border-border flex items-center justify-between">
+            <div className="lg:col-span-8 space-y-4">
+              <div className="bg-surface rounded-2xl border border-border shadow-xs overflow-hidden flex flex-col min-h-[480px]">
+
+                <div className="p-4 border-b border-border flex items-center justify-between bg-surface-secondary/30">
                   <div className="flex items-center gap-2">
                     <ClipboardList size={18} className="text-text-primary" />
-                    <h3 className="font-bold text-text-primary text-sm tracking-wide uppercase">Resumo do Orçamento</h3>
+                    <h3 className="font-bold text-text-primary text-xs tracking-wider uppercase">
+                      Itens do Orçamento ({itens.length})
+                    </h3>
                   </div>
-                  <div className="flex items-center gap-4">
+
+                  <div className="flex items-center gap-3">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -2443,20 +2452,21 @@ export default function RelatorioOrcamento() {
                       className="hidden"
                       accept=".xlsx,.csv"
                     />
-
                     <button
+                      type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 text-[10px] font-bold text-text-secondary hover:text-text-primary transition-colors uppercase tracking-tighter"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-surface-secondary hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info"
                     >
-                      <Plus size={14} /> Importar Excel
+                      <Plus size={12} strokeWidth={1.5} aria-hidden="true" /> Importar Excel
                     </button>
 
                     {itens.length > 0 && (
                       <button
+                        type="button"
                         onClick={() => setMostrarModalLimpar(true)}
-                        className="text-[10px] font-bold text-text-secondary hover:text-danger transition-colors uppercase tracking-tighter"
+                        className="text-[11px] font-bold text-danger hover:underline uppercase"
                       >
-                        Limpar Tudo
+                        Limpar
                       </button>
                     )}
                   </div>
@@ -2467,7 +2477,7 @@ export default function RelatorioOrcamento() {
                     <table className="w-full text-left">
                       <thead className="bg-surface-secondary text-text-secondary text-[10px] uppercase font-bold tracking-wider">
                         <tr>
-                          <th className="px-4 py-4 w-10">
+                          <th className="px-4 py-3 w-10">
                             <input
                               type="checkbox"
                               checked={selecionados.length === itens.length && itens.length > 0}
@@ -2475,15 +2485,15 @@ export default function RelatorioOrcamento() {
                               className="rounded border-border-strong text-text-primary focus:ring-border-strong"
                             />
                           </th>
-                          <th className="px-6 py-4">Descrição / Acabamento</th>
-                          <th className="px-6 py-4 text-center">Medidas</th>
-                          <th className="px-6 py-4 text-center">Qtd</th>
-                          <th className="px-6 py-4 text-right">Unitário</th>
-                          <th className="px-6 py-4 text-right">Total</th>
-                          <th className="px-6 py-4 text-center">Ações</th>
+                          <th className="px-4 py-3">Descrição / Acabamento</th>
+                          <th className="px-4 py-3 text-center">Medidas</th>
+                          <th className="px-4 py-3 text-center">Qtd</th>
+                          <th className="px-4 py-3 text-right">Unitário</th>
+                          <th className="px-4 py-3 text-right">Total</th>
+                          <th className="px-4 py-3 text-center">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="text-sm divide-y divide-border">
+                      <tbody className="text-xs divide-y divide-border">
                         {itens.map((item) => (
                           <tr
                             key={item.id}
@@ -2492,7 +2502,7 @@ export default function RelatorioOrcamento() {
                             }}
                             className={`hover:bg-surface-secondary/50 transition-colors group ${selecionados.includes(item.id) ? 'bg-info-soft/30' : ''} ${editandoId === item.id ? 'bg-warning-soft/70 outline-2 outline-warning-soft' : ''}`}
                           >
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-3">
                               <input
                                 type="checkbox"
                                 checked={selecionados.includes(item.id)}
@@ -2501,7 +2511,7 @@ export default function RelatorioOrcamento() {
                               />
                             </td>
 
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-3">
                               <div className="text-text-primary leading-tight">
                                 {item.descricao}
                               </div>
@@ -2519,7 +2529,7 @@ export default function RelatorioOrcamento() {
                               )}
 
                               {item.observacaoPreco && (
-                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-success">
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-tight text-info">
                                   {item.observacaoPreco}
                                 </div>
                               )}
@@ -2627,37 +2637,37 @@ export default function RelatorioOrcamento() {
                               )}
                             </td>
 
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 py-3 text-center">
                               <div className=" text-text-primary">{item.medidaReal}</div>
                             </td>
 
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 py-3 text-center">
                               <span className="bg-surface-secondary px-2.5 py-1 rounded-lg text-xs font-bold text-text-secondary">
                                 {item.qtd}
                               </span>
                             </td>
 
-                            <td className="px-6 py-4 text-right font-medium text-text-secondary">
+                            <td className="px-4 py-3 text-right font-medium text-text-secondary">
                               {formatarMoeda(item.total / item.qtd)}
                             </td>
 
-                            <td className="px-6 py-4 text-right font-bold text-text-primary">
+                            <td className="px-4 py-3 text-right font-bold text-text-primary">
                               {formatarMoeda(item.total)}
                             </td>
 
-                            <td className="px-6 py-4">
-                              <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center gap-2">
                                 <button
                                   onClick={() => handleEditarItem(item)}
-                                  className="p-2 text-info hover:bg-info-soft rounded-lg transition-colors"
+                                  className="p-1 text-text-secondary hover:text-text-primary rounded transition"
                                 >
-                                  <Edit2 size={16} />
+                                  <Edit2 size={14} />
                                 </button>
                                 <button
                                   onClick={() => setItemParaExcluir(item.id)}
                                   className="p-2 text-text-secondary hover:text-danger hover:bg-danger-soft rounded-lg transition-all"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             </td>
@@ -2666,126 +2676,100 @@ export default function RelatorioOrcamento() {
                       </tbody>
                     </table>
                   ) : (
-                    <div className="py-20 flex flex-col items-center justify-center text-text-secondary space-y-3">
-                      <div className="p-4 bg-surface-secondary rounded-full">
-                        <Calculator size={40} className="opacity-20" />
-                      </div>
-                      <p className="text-sm font-medium">Nenhum item adicionado ao Orçamento</p>
+                    <div className="py-20 flex flex-col items-center justify-center text-text-secondary space-y-2">
+                      <Calculator size={36} className="opacity-20" />
+                      <p className="text-xs font-medium">Nenhum vidro ou item adicionado ao orçamento.</p>
                     </div>
                   )}
                 </div>
 
-                {/* RODAPÉ TÉCNICO E LOGÍSTICO */}
-                <div className="p-6 bg-surface border-t border-border flex items-end justify-between gap-8 px-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-                  <div className="flex items-center gap-8">
-
-                    <div className="bg-navigation/5 px-5 py-2 rounded-2xl border border-border-strong/10 flex flex-col">
-                      <span className="text-[9px] font-black text-text-primary/60 uppercase tracking-widest">Total de Peças</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black text-text-primary">
-                          {itens.reduce((acc: number, i) => acc + Number(i.qtd), 0).toString().padStart(2, '0')}
-                        </span>
-                        <span className="text-xs font-bold text-text-primary">un</span>
-                      </div>
+                {itens.length > 0 && (
+                  <div className="p-3 bg-surface-secondary/40 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <ArrowRightLeft size={14} className="text-text-secondary" />
+                      {selecionados.length > 0 && <button type="button" onClick={() => setSelecionados([])} title="Limpar seleção" className="p-1 text-text-secondary"><X size={14} /></button>}
+                      <select
+                        onChange={(e) => trocarMaterialSelecionados(e.target.value)}
+                        className="bg-surface border border-border rounded-lg p-1.5 text-xs text-text-primary outline-none font-semibold"
+                      >
+                        <option value="">Trocar material {selecionados.length > 0 ? `(${selecionados.length})` : 'geral'}...</option>
+                        {listaVidros.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {montarRotuloVidro(v)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    <div className="h-8 w-px bg-surface-secondary" />
+                    <div className="flex items-center gap-2">
+                      <DollarSign size={14} className="text-text-secondary" />
+                      <input
+                        type="text"
+                        placeholder="Valor total rateio"
+                        value={valorRateioLote}
+                        onChange={(e) => setValorRateioLote(e.target.value)}
+                        className="w-28 p-1.5 bg-surface border border-border rounded-lg text-xs outline-none text-text-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={aplicarRateioValorSelecionados}
+                        className="px-2.5 py-1.5 bg-surface border border-border rounded-lg font-bold text-[11px] text-text-primary hover:bg-surface-secondary"
+                      >
+                        Aplicar Rateio
+                      </button>
+                      <button
+                        type="button"
+                        onClick={removerRateioSelecionados}
+                        className="px-2 py-1.5 text-[11px] text-text-secondary hover:underline"
+                      >
+                        Restaurar
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">M² de Cobrança</span>
-                      <span className="text-lg font-medium text-text-secondary">
-                        {itens.reduce((acc: number, item) => {
-                          const [l, a] = item.medidaCalc.split('x').map((v: string) => parseInt(v));
+                <div className="p-4 bg-surface border-t border-border flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-6 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-text-secondary block">Peças</span>
+                      <span className="text-sm font-bold text-text-primary">
+                        {itens.reduce((acc, i) => acc + Number(i.qtd), 0)} un
+                      </span>
+                    </div>
+
+                    <div className="h-6 w-px bg-border" />
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-text-secondary block">Metragem</span>
+                      <span className="text-sm font-bold text-text-primary">
+                        {itens.reduce((acc, item) => {
+                          const [l, a] = item.medidaCalc.split('x').map((v) => parseInt(v) || 0);
                           return acc + ((l / 1000) * (a / 1000) * item.qtd);
                         }, 0).toFixed(3)} m²
                       </span>
                     </div>
 
-                    <div className="h-8 w-px bg-surface-secondary" />
+                    <div className="h-6 w-px bg-border" />
 
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Peso Logístico</span>
-                      <span className="text-lg font-medium text-text-secondary">
-                        {itens.reduce((acc: number, item) => acc + calcularPesoItem(item), 0)
-                          .toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-text-secondary block">Peso Est.</span>
+                      <span className="text-sm font-bold text-text-primary">
+                        {itens.reduce((acc, item) => acc + calcularPesoItem(item), 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg
                       </span>
                     </div>
                   </div>
 
-                  <div className="min-w-[320px] text-right">
-                    <p className="text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-1">Total do Orçamento</p>
-                    <p className="text-3xl font-light text-text-primary tracking-tighter">
-                      {formatarMoeda(itens.reduce((acc: number, i) => acc + i.total, 0))}
-                    </p>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-text-secondary uppercase block">Valor Total</span>
+                    <span className="text-2xl font-bold text-text-primary">
+                      {formatarMoeda(itens.reduce((acc, i) => acc + i.total, 0))}
+                    </span>
                   </div>
                 </div>
 
-                {itens.length > 0 && (
-                  <div className="border-t border-border bg-surface-secondary px-10 py-5">
-                    <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-text-secondary">Resumo do Orçamento</p>
-                          <h4 className="mt-1 text-sm font-bold text-text-primary">Troca de vidro e rateio</h4>
-                          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
-                            <span>{selecionados.length > 0 ? `${selecionados.length} selecionados` : `${itens.length} itens`}</span>
-                            {selecionados.length > 0 && (
-                              <button
-                                onClick={() => setSelecionados([])}
-                                className="rounded-full p-1 text-text-secondary transition-all hover:bg-danger-soft hover:text-danger"
-                                title="Limpar seleção"
-                              >
-                                <X size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                          <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 shadow-sm">
-                            <Edit2 size={13} style={{ color: theme.menuIconColor }} />
-                            <select
-                              onChange={(e) => trocarMaterialSelecionados(e.target.value)}
-                              className="bg-transparent border-none text-[12px] uppercase outline-none cursor-pointer font-semibold text-text-primary hover:text-text-primary transition-colors"
-                            >
-                              <option value="" className="text-text-secondary">Trocar vidro...</option>
-                              {listaVidros.map(v => (
-                                <option key={v.id} value={v.id} className="text-text-primary">
-                                  {montarRotuloVidro(v)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface-secondary px-3 py-3 shadow-sm">
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder={selecionados.length > 0 ? "Valor rateio seleção" : "Valor rateio geral"}
-                              value={valorRateioLote}
-                              onChange={(e) => setValorRateioLote(e.target.value)}
-                              className="w-36 rounded-full border border-border bg-surface px-3 py-2 text-[12px] font-medium text-text-primary outline-none focus:border-border-strong"
-                            />
-                            <button
-                              onClick={aplicarRateioValorSelecionados}
-                              className="rounded-full bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-on-primary transition-colors hover:bg-navigation"
-                            >
-                              {selecionados.length > 0 ? "Ratear seleção" : "Ratear todos"}
-                            </button>
-                            <button
-                              onClick={removerRateioSelecionados}
-                              className="rounded-full border border-border bg-surface px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
-                            >
-                              {selecionados.length > 0 ? "Restaurar seleção" : "Restaurar todos"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
           </div>
         </main>
 

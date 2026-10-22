@@ -12,7 +12,7 @@ import { foundersComercial, moedaComercial } from "@/config/foundersComercial";
 
 function contatoWhatsApp(plano?: { nome: string; valorCentavos: number }) {
   const mensagem = plano
-    ? `Olá! Tenho interesse no plano ${plano.nome} do Glass Code (${moedaComercial(plano.valorCentavos)}/mês por empresa). Gostaria de saber como contratar.`
+    ? `Olá! Tenho interesse no plano ${plano.nome} do Glass Code (${moedaComercial(plano.valorCentavos)}/mês por empresa). Gostaria de conhecer os recursos, o atendimento incluído e as condições de contratação.`
     : "Olá! Tenho interesse nos planos do Glass Code. Pode me ajudar a escolher o melhor plano para minha empresa?";
   return `https://wa.me/${whatsappComercial}?text=${encodeURIComponent(mensagem)}`;
 }
@@ -25,7 +25,7 @@ const planos = [
     foco: "ORÇAMENTOS ESSENCIAIS",
     resumo: "Vidros e espelhos",
     descricao:
-      "Para quem quer deixar planilhas para trás e começar a orçar com mais organização.",
+      "Organize os cálculos e orçamentos do dia a dia, com apoio da equipe para utilizar o sistema.",
     itens: [
       "Cadastro de clientes e obras",
       "Cálculo de vidros e espelhos",
@@ -42,7 +42,7 @@ const planos = [
     foco: "OPERAÇÃO COMPLETA",
     resumo: "Projetos + materiais",
     descricao:
-      "Para vidraçarias que precisam calcular projetos, materiais e orçamentos no mesmo fluxo.",
+      "Conecte projetos, materiais e orçamentos, com orientação para aproveitar os recursos na rotina da vidraçaria.",
     itens: [
       "Tudo do plano Essencial",
       "Matriz de portas, janelas e boxes",
@@ -61,7 +61,7 @@ const planos = [
     foco: "PROJETOS AVANÇADOS",
     resumo: "Projetos especiais + operação completa",
     descricao:
-      "A solução mais avançada do Glass Code: toda a operação e os recursos para projetos especiais.",
+      "Trabalhe com todos os recursos dos planos e projetos especiais, com uma equipe próxima para esclarecer dúvidas de uso.",
     itens: recursosCompleto,
   },
 ];
@@ -148,15 +148,13 @@ export default function PlanosPage() {
         </span>
 
         <h1>
-          Escolha o Glass Code
+          Escolha os recursos.
           <br />
-          para o seu <em>momento.</em>
+          Conte com uma <em>equipe próxima.</em>
         </h1>
 
         <p>
-          Comece pelo essencial ou leve toda a operação de projetos
-          para dentro do Glass Code. Você escolhe a estrutura que
-          acompanha a rotina da sua empresa.
+          Mais que acesso ao sistema: atendimento personalizado para esclarecer dúvidas, orientar o uso e entender as necessidades da sua vidraçaria. Escolha o plano pelos recursos que sua operação precisa.
         </p>
       </section>
 
@@ -220,11 +218,16 @@ export default function PlanosPage() {
               }
             >
               <span>
-                Tenho interesse no {plano.nome}
+                Conversar sobre o {plano.nome}
               </span>
 
               <ArrowUpRight size={16} />
             </a>
+
+            <div className={styles.supportNote}>
+              <strong>Atendimento personalizado em todos os planos</strong>
+              <span>Orientação de uso e espaço para compartilhar as necessidades da sua operação.</span>
+            </div>
 
             <div className={styles.includesTitle}>
               O QUE ESTÁ INCLUÍDO
@@ -256,7 +259,7 @@ export default function PlanosPage() {
         <div>
           <span className={foundersStyles.eyebrow}>PROGRAMA EXCLUSIVO · ATÉ {foundersComercial.limiteEmpresas} EMPRESAS</span>
           <h2 id="programa-fundadores">Parceiros Fundadores</h2>
-          <p>Programa à parte dos planos: recursos equivalentes ao {foundersComercial.planoIncluido}, {foundersComercial.usuariosIncluidos} usuários e benefícios por contribuições reconhecidas.</p>
+          <p>Os recursos do {foundersComercial.planoIncluido}, {foundersComercial.usuariosIncluidos} usuários e diálogo com a equipe para contribuir com experiências reais. Condições próprias e benefícios por contribuições reconhecidas, conforme as regras do programa.</p>
           <div className={foundersStyles.bannerPrice}>
             <strong>{moedaComercial(foundersComercial.precoPromocionalCentavos)}/mês</strong>
             <span>nas primeiras {foundersComercial.mensalidadesPagasPromocionais} mensalidades pagas · depois {moedaComercial(foundersComercial.precoRegularCentavos)}/mês, por empresa</span>
@@ -264,6 +267,18 @@ export default function PlanosPage() {
           <p>Vagas sujeitas à confirmação de elegibilidade e disponibilidade.</p>
         </div>
         <Link href="/fundadores" className={foundersStyles.cta}>Conhecer o programa <ArrowUpRight size={18} aria-hidden="true" /></Link>
+      </section>
+
+      <section className={styles.supportSection} aria-labelledby="atendimento-planos">
+        <span className={styles.eyebrow}>SISTEMA + ATENDIMENTO + EVOLUÇÃO</span>
+        <h2 id="atendimento-planos">Tecnologia para sua operação. Pessoas para conversar.</h2>
+        <div className={styles.supportGrid}>
+          <article><h3>Escolher com clareza</h3><p>Conte como sua empresa trabalha. A equipe ajuda a entender os recursos e a escolher o plano para o seu momento.</p></article>
+          <article><h3>Apoio no uso</h3><p>Tenha um canal para esclarecer dúvidas sobre o sistema e receber orientação sobre os recursos contratados.</p></article>
+          <article><h3>Uma evolução próxima</h3><p>Compartilhe necessidades e sugestões. Elas ajudam a orientar melhorias, sujeitas a análise e priorização.</p></article>
+        </div>
+        <p className={styles.supportScope}>O atendimento personalizado está presente em todos os planos. Confirme com a equipe os canais, horários e o escopo antes de contratar. Treinamentos individuais, acompanhamento periódico e desenvolvimento sob medida dependem de avaliação e acordo específico.</p>
+        <a href={contatoWhatsApp()} target="_blank" rel="noopener noreferrer" className={styles.button}>Falar sobre minha vidraçaria <ArrowUpRight size={16} /></a>
       </section>
 
       <section className={styles.included}>
@@ -296,6 +311,8 @@ export default function PlanosPage() {
         </span>
 
         <h2>Antes de começar.</h2>
+        <details><summary>O que está por trás do valor do plano?</summary><p>Além dos recursos de cálculo e orçamento, a proposta do Glass Code inclui proximidade com a equipe e evolução contínua do produto. Confirme antes da contratação os canais, horários e o escopo de atendimento. Melhorias específicas e prazos de desenvolvimento dependem de avaliação.</p></details>
+        <details><summary>Os recursos em desenvolvimento já estão incluídos?</summary><p>Considere na sua decisão os recursos disponíveis e descritos no plano. Novidades em preparação não têm entrega garantida; a equipe pode esclarecer o que já está disponível para sua operação.</p></details>
 
         <details>
           <summary>

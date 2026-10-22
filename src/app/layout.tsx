@@ -21,12 +21,12 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.glasscode.com.br"),
 
   title: {
-    default: "Glass Code | Software para Indústrias de Vidro Temperado",
+    default: "Glass Code | Software para Vidraçarias",
     template: "%s | Glass Code",
   },
 
   description:
-    "Software para indústrias de vidro temperado. Crie orçamentos, calcule vidros e materiais, gerencie clientes, tabelas de preços e projetos em um só sistema.",
+    "Software para vidraçarias: cálculos de vidros e espelhos, projetos e orçamentos em PDF, com atendimento personalizado e evolução contínua.",
 
   keywords: [
     "software para indústria de vidro",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "https://www.glasscode.com.br",
     siteName: "Glass Code",
-    title: "Glass Code | Software para Indústrias de Vidro Temperado",
+    title: "Glass Code | Software para Vidraçarias",
     description:
       "Orçamentos, cálculos de vidros e materiais, clientes, tabelas de preços e projetos em um só sistema.",
   },
