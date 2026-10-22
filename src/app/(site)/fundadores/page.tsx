@@ -69,6 +69,7 @@ const etapas = [
 ];
 
 const perguntas = [
+  ["O sistema está em desenvolvimento?", "Sim. O Glass Code evolui continuamente. Os recursos disponíveis e os que estão em preparação aparecem separados nesta página. A participação permite compartilhar necessidades, mas não garante implementação de sugestões ou prazos de entrega."],
   ["O período promocional é um teste gratuito?", `Não. As ${oferta.mensalidadesPagasPromocionais} primeiras mensalidades são pagas, com valor promocional.`],
   ["O valor de fundador é vitalício?", `Não há promessa de preço vitalício. As condições são as descritas nesta página: ${moedaComercial(oferta.precoPromocionalCentavos)}/mês nas ${oferta.mensalidadesPagasPromocionais} primeiras mensalidades pagas e ${moedaComercial(oferta.precoRegularCentavos)}/mês a partir da ${oferta.mensalidadesPagasPromocionais + 1}ª mensalidade. Preços de tabela podem ser revistos no futuro.`],
   ["Qual é a diferença para o plano Completo?", "Os recursos do sistema são os mesmos previstos no Completo. O programa acrescenta condições comerciais próprias, participação consultiva, identificação de fundador e benefícios por contribuições reconhecidas, com limite de empresas."],
@@ -100,7 +101,7 @@ export default function FundadoresPage() {
         <div className={styles.heroText}>
           <span className={`${styles.eyebrow} ${styles.rise}`} style={{ "--i": 0 } as React.CSSProperties}>PROGRAMA PARCEIROS FUNDADORES</span>
           <h1 className={styles.rise} style={{ "--i": 1 } as React.CSSProperties}>O futuro do Glass Code também pode ter <em>a sua assinatura.</em></h1>
-          <p className={`${styles.lead} ${styles.rise}`} style={{ "--i": 2 } as React.CSSProperties}>Faça parte das primeiras {oferta.limiteEmpresas} empresas que vão contribuir para a evolução de uma nova geração de software para o setor vidreiro.</p>
+          <p className={`${styles.lead} ${styles.rise}`} style={{ "--i": 2 } as React.CSSProperties}>Use os recursos do plano Completo e participe da evolução do Glass Code com a experiência da sua vidraçaria. São até {oferta.limiteEmpresas} empresas, com condições comerciais próprias e diálogo próximo com a equipe.</p>
           <div className={`${styles.actions} ${styles.rise}`} style={{ "--i": 3 } as React.CSSProperties}>
             <a className={styles.cta} href="#programa">Conhecer o programa <ArrowDown size={16} aria-hidden="true" /></a>
             <a className={styles.link} href="#condicoes">Ver condições de participação</a>

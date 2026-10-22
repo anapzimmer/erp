@@ -5,10 +5,10 @@ import styles from "./recursos.module.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Recursos do Software para Indústria de Vidro",
+  title: "Cálculos e Orçamentos para Vidraçarias",
 
   description:
-    "Conheça os recursos do Glass Code para indústrias de vidro temperado: orçamentos, cálculos de vidros e materiais, projetos, preços por cliente, propostas em PDF e gestão comercial.",
+    "Conheça os recursos do Glass Code para vidraçarias: orçamentos, cálculos de vidros e materiais, projetos, preços por cliente, propostas em PDF e gestão comercial.",
 
   alternates: {
     canonical: "/recursos",

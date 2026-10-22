@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Planos do Software para Indústria de Vidro",
+  title: "Planos do Software para Vidraçarias",
 
   description:
     "Conheça os planos do Glass Code para empresas do setor de vidro. Tenha orçamentos, cálculos de vidros, projetos, materiais, propostas em PDF e gestão comercial em um único sistema.",

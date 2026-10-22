@@ -1320,3 +1320,15 @@
 .price > strong { font-size: clamp(30px, 3vw, 42px); white-space: nowrap; letter-spacing: -.045em; line-height: 1.1; }
 .price > div { margin-left: 0; }
 .page :is(a, summary):focus-visible { outline: 3px solid var(--gc-lime); outline-offset: 5px; }
+
+.supportNote { display: grid; gap: 6px; margin-top: 20px; padding: 14px 0; border-block: 1px solid rgba(130,150,160,.22); font-size: 12px; line-height: 1.65; }
+.supportNote strong { font-weight: 600; }
+.supportNote span { opacity: .8; }
+.supportSection { width: min(1180px, calc(100% - 48px)); margin: 64px auto; }
+.supportSection h2 { font-size: clamp(26px, 3vw, 38px); line-height: 1.25; margin: 16px 0 28px; }
+.supportGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px; }
+.supportGrid h3 { font-size: 18px; margin-bottom: 12px; }
+.supportGrid p, .supportScope { font-size: 14px; line-height: 1.8; opacity: .8; }
+.supportScope { margin: 28px 0 20px; max-width: 900px; }
+.supportSection > a { display: inline-flex; align-items: center; gap: 12px; }
+@media (max-width: 760px) { .supportGrid { grid-template-columns: 1fr; gap: 20px; } .supportSection { margin-block: 40px; } }
