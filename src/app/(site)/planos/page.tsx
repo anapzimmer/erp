@@ -148,13 +148,13 @@ export default function PlanosPage() {
         </span>
 
         <h1>
-          Escolha os recursos.
+          Soluções para sua vidraçaria.
           <br />
-          Conte com uma <em>equipe próxima.</em>
+          Uma equipe <em>ao seu lado.</em>
         </h1>
 
         <p>
-          Mais que acesso ao sistema: atendimento personalizado para esclarecer dúvidas, orientar o uso e entender as necessidades da sua vidraçaria. Escolha o plano pelos recursos que sua operação precisa.
+          O Glass Code reúne sistema, atendimento personalizado e evolução contínua para ajudar sua vidraçaria a calcular, organizar projetos e apresentar orçamentos. Escolha as soluções para sua rotina e conte com uma equipe para orientar o uso.
         </p>
       </section>
 
@@ -271,11 +271,11 @@ export default function PlanosPage() {
 
       <section className={styles.supportSection} aria-labelledby="atendimento-planos">
         <span className={styles.eyebrow}>SISTEMA + ATENDIMENTO + EVOLUÇÃO</span>
-        <h2 id="atendimento-planos">Tecnologia para sua operação. Pessoas para conversar.</h2>
+        <h2 id="atendimento-planos">Mais que um sistema: soluções para o seu dia a dia.</h2>
         <div className={styles.supportGrid}>
-          <article><h3>Escolher com clareza</h3><p>Conte como sua empresa trabalha. A equipe ajuda a entender os recursos e a escolher o plano para o seu momento.</p></article>
-          <article><h3>Apoio no uso</h3><p>Tenha um canal para esclarecer dúvidas sobre o sistema e receber orientação sobre os recursos contratados.</p></article>
-          <article><h3>Uma evolução próxima</h3><p>Compartilhe necessidades e sugestões. Elas ajudam a orientar melhorias, sujeitas a análise e priorização.</p></article>
+          <article><h3>Do cálculo à proposta</h3><p>Calcule vidros e espelhos com os materiais e acabamentos cadastrados. Organize os itens e apresente orçamentos em PDF com a identidade da sua empresa, conforme os recursos do plano.</p></article>
+          <article><h3>Atendimento que entende sua rotina</h3><p>Converse com a equipe sobre sua operação, esclareça dúvidas e receba orientação para aproveitar os recursos contratados. O atendimento personalizado faz parte da proposta em todos os planos.</p></article>
+          <article><h3>Evolução com quem usa</h3><p>O Glass Code está em desenvolvimento contínuo. Compartilhe experiências e necessidades para ajudar a orientar melhorias. Sugestões passam por análise técnica e priorização, sem garantia de implementação ou prazo.</p></article>
         </div>
         <p className={styles.supportScope}>O atendimento personalizado está presente em todos os planos. Confirme com a equipe os canais, horários e o escopo antes de contratar. Treinamentos individuais, acompanhamento periódico e desenvolvimento sob medida dependem de avaliação e acordo específico.</p>
         <a href={contatoWhatsApp()} target="_blank" rel="noopener noreferrer" className={styles.button}>Falar sobre minha vidraçaria <ArrowUpRight size={16} /></a>
@@ -311,6 +311,7 @@ export default function PlanosPage() {
         </span>
 
         <h2>Antes de começar.</h2>
+        <details><summary>Para quem são as soluções do Glass Code?</summary><p>Para vidraçarias e empresas do setor vidreiro que precisam organizar cálculos, materiais, projetos e orçamentos. A equipe ajuda a entender quais recursos atendem à sua rotina antes da contratação.</p></details>
         <details><summary>O que está por trás do valor do plano?</summary><p>Além dos recursos de cálculo e orçamento, a proposta do Glass Code inclui proximidade com a equipe e evolução contínua do produto. Confirme antes da contratação os canais, horários e o escopo de atendimento. Melhorias específicas e prazos de desenvolvimento dependem de avaliação.</p></details>
         <details><summary>Os recursos em desenvolvimento já estão incluídos?</summary><p>Considere na sua decisão os recursos disponíveis e descritos no plano. Novidades em preparação não têm entrega garantida; a equipe pode esclarecer o que já está disponível para sua operação.</p></details>
 
@@ -320,7 +321,7 @@ export default function PlanosPage() {
           </summary>
 
           <p>
-            Escolha o plano e clique em “Tenho interesse”. O WhatsApp abrirá
+            Escolha o plano e clique em “Conversar sobre”. O WhatsApp abrirá
             com uma mensagem pronta indicando o plano escolhido. Envie a
             mensagem para falar com a Glass Code sobre a contratação e a
             liberação da sua empresa.
