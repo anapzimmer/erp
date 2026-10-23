@@ -81,12 +81,19 @@ test('teste vence no banco, preserva isolamento e suspensões e permite renovaç
     assert.equal(Date.parse(ativado.teste.expira_em)-Date.parse(ativado.teste.inicio_em),5*86400000);
     await db.exec(ativar);
     assert.deepEqual((await db.query("select raw_app_meta_data->'gc_teste' teste from auth.users where email='testeessencial@glasscode.com.br'")).rows[0].teste,ativado.teste,'reexecutar não estende o prazo');
+    const migrationTresDias=fs.readFileSync(path.join(__dirname,'../database/20261022_teste_gratuito_3_dias.sql'),'utf8');
+    await db.exec(migrationTresDias);
+    // Mesmo cenário informado de produção: validador presente, iniciador ausente.
+    await db.exec('drop trigger gc_teste_novo_cadastro on auth.users; drop function gc_iniciar_teste_cadastro();');
+    await db.exec(migrationTresDias);
+    await db.exec(migrationTresDias);
+    assert.deepEqual((await db.query("select raw_app_meta_data->'gc_teste' teste from auth.users where email='testeessencial@glasscode.com.br'")).rows[0].teste,ativado.teste,'novo padrão preserva prazo anterior');
     const novo='10000000-0000-4000-8000-000000000003';
     await db.query(`insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) values ($1,'novo@example.com','{"provider":"email"}','{"gc_teste":{"expira_em":"2099-01-01","dias":99999}}')`,[novo]);
     const metadata=(await db.query('select raw_app_meta_data m from auth.users where id=$1',[novo])).rows[0].m;
     assert.equal(metadata.provider,'email');
-    assert.equal(metadata.gc_teste.dias,5,'cadastro não escolhe prazo via user_metadata');
-    assert.equal(Date.parse(metadata.gc_teste.expira_em)-Date.parse(metadata.gc_teste.inicio_em),120*3600000);
+    assert.equal(metadata.gc_teste.dias,3,'cadastro não escolhe prazo via user_metadata');
+    assert.equal(Date.parse(metadata.gc_teste.expira_em)-Date.parse(metadata.gc_teste.inicio_em),72*3600000);
     await identity(novo);
     assert.equal(await allowed(),true,'novo cadastro entra automaticamente');
     await db.exec('reset role');
@@ -98,6 +105,6 @@ test('teste vence no banco, preserva isolamento e suspensões e permite renovaç
     assert.match(vencido.mensagem,/prazo de teste expirou/);
     await db.exec('reset role');
     await db.query("insert into auth.users(id,email,raw_app_meta_data) values ('10000000-0000-4000-8000-000000000004','nulo@example.com',null)");
-    assert.equal((await db.query("select raw_app_meta_data->'gc_teste'->>'dias' dias from auth.users where email='nulo@example.com'")).rows[0].dias,'5');
+    assert.equal((await db.query("select raw_app_meta_data->'gc_teste'->>'dias' dias from auth.users where email='nulo@example.com'")).rows[0].dias,'3');
   } finally { await db.close(); }
 });

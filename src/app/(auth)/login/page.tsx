@@ -72,6 +72,9 @@ const LoginPage = () => {
     }
   };
   const [showSignup, setShowSignup] = useState(false);
+  useEffect(() => {
+    setShowSignup(new URLSearchParams(window.location.search).get("cadastro") === "1");
+  }, []);
 
   useEffect(() => {
    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -109,6 +112,9 @@ const LoginPage = () => {
             nome: signupEmail.split('@')[0],
             company_name: signupCompanyName, // <--- Mudar de 'nome_empresa' para 'company_name'
             cnpj: signupCnpj,
+            // Interesse comercial; não concede privilégios.
+            plano_interesse: ["essencial", "profissional", "completo"].includes(new URLSearchParams(window.location.search).get("plano") || "")
+              ? new URLSearchParams(window.location.search).get("plano") : undefined,
           },
         },
       });
@@ -224,7 +230,7 @@ const LoginPage = () => {
         <div className={styles.formCard}>
           <div className="mb-4 flex justify-end"><ThemeSelect /></div>
           <Image src={resolvedMode === "dark" ? "/glasscode-dark.png" : "/glasscode-light.png"} alt="GlassCode" width={160} height={80} priority unoptimized className={styles.logo}/>
-          <div className={styles.heading}><span className={styles.kicker}>SEU ESPAÇO DE TRABALHO</span><h2>{showSignup ? 'Crie sua conta' : 'Bom ter você aqui.'}</h2><p>{showSignup ? 'Comece uma nova etapa na gestão da sua vidraçaria.' : 'Acesse sua conta e dê vida aos seus projetos.'}</p></div>
+          <div className={styles.heading}><span className={styles.kicker}>SEU ESPAÇO DE TRABALHO</span><h2>{showSignup ? 'Crie sua conta' : 'Bom ter você aqui.'}</h2><p>{showSignup ? 'Teste grátis por 3 dias a partir do cadastro. Sem cobrança automática. Após o prazo, entre em contato para solicitar a liberação.' : 'Acesse sua conta e dê vida aos seus projetos.'}</p></div>
           {modalConfig.show && <div role={modalConfig.type === 'error' ? 'alert' : 'status'} className={`${styles.notice} ${modalConfig.type === 'success' ? styles.success : ''}`}><strong>{modalConfig.title}</strong><p>{modalConfig.message}</p><button type="button" aria-label="Fechar mensagem" onClick={() => setModalConfig(prev => ({...prev, show:false}))}>×</button></div>}
           <form onSubmit={showSignup ? handleSignup : handleLogin} className={styles.form}>
             <fieldset disabled={loading} className={styles.fields}>

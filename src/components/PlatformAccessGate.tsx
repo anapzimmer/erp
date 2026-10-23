@@ -13,7 +13,7 @@ export default function PlatformAccessGate({ children }: { children: React.React
   const pathname = usePathname();
   const router = useRouter();
   const [estado, setEstado] = useState<"verificando" | "liberado" | "bloqueado" | "erro">("verificando");
-  const [detalhe, setDetalhe] = useState<{situacao:Situacao;mensagem?:string;contato?:string;prazo?:string;prazo_vencido?:boolean;inicio_em?:string;motivo_bloqueio?:string}|null>(null);
+  const [detalhe, setDetalhe] = useState<{situacao:Situacao;mensagem?:string;contato?:string;prazo?:string;prazo_vencido?:boolean;inicio_em?:string;motivo_bloqueio?:string;teste?:{expira_em?:string;pendente?:boolean}}|null>(null);
   const [identificador, setIdentificador] = useState("");
   const [tentativa, setTentativa] = useState(0);
   const primeiraVerificacao = useRef(true);
@@ -72,12 +72,15 @@ const publica = ehRotaPublica(pathname);
   if (publica) return children;
   if (estado === "verificando" || (estado === "liberado" && mostrarSucesso)) return <CarregamentoAcesso sucesso={estado === "liberado"} />;
   const texto = detalhe?.mensagem || mensagens[detalhe?.situacao || "suspensa_outro"];
-  const testeExpirado = estado === "bloqueado" && detalhe?.motivo_bloqueio === "teste_expirado";
+  const testeExpirado = estado === "bloqueado" && (detalhe?.motivo_bloqueio === "teste_expirado" ||
+    (detalhe?.teste?.pendente !== true && !!detalhe?.teste?.expira_em && Date.parse(detalhe.teste.expira_em) <= Date.now()));
   const atendimento = detalhe?.contato ? <p className="mt-3 text-sm break-words">Atendimento: {detalhe.contato}</p> : null;
   const diasRestantes = detalhe?.prazo ? diasParaRegularizar(detalhe.prazo) : null;
   const prazo = detalhe?.prazo ? <p className="mt-2 text-sm">{detalhe.prazo_vencido ? "Prazo de regularização encerrado em" : "Prazo para regularização"}: {detalhe.prazo.split('-').reverse().join('/')}. {detalhe.prazo_vencido && "Entre em contato para atualizar sua situação."}</p> : null;
   const aviso = JSON.stringify([detalhe?.situacao, texto, detalhe?.prazo, detalhe?.prazo_vencido, detalhe?.contato, detalhe?.inicio_em]);
-  if (estado === "liberado") return <>{children}{detalhe && detalhe.situacao !== "ativa" && identificador && <AvisoConta identificador={identificador} aviso={aviso} titulo={situacoes[detalhe.situacao]}><p>{texto}</p>{prazo}{diasRestantes !== null && Number.isFinite(diasRestantes) && diasRestantes >= 0 && <p className="mt-2 font-medium">{diasRestantes === 0 ? "O prazo de regularização termina hoje." : `Você tem ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} para regularizar.`}</p>}{atendimento}</AvisoConta>}</>;
+  const fimTeste = detalhe?.teste?.expira_em ? Date.parse(detalhe.teste.expira_em) : NaN;
+  const diasTeste = Number.isFinite(fimTeste) ? Math.max(0, Math.ceil((fimTeste - Date.now()) / 86400000)) : null;
+  if (estado === "liberado") return <>{diasTeste !== null && <div role="status" className="border-b border-border bg-surface-secondary px-4 py-1.5 text-center text-xs text-text-secondary">Teste gratuito · {diasTeste <= 1 ? "menos de 1 dia restante" : `${diasTeste} dias restantes`} · <a className="underline underline-offset-2" href="https://wa.me/5546988271599?text=Ol%C3%A1!%20Quero%20continuar%20usando%20o%20Glass%20Code." target="_blank" rel="noopener noreferrer">Falar com a equipe</a></div>}{children}{detalhe && detalhe.situacao !== "ativa" && identificador && <AvisoConta identificador={identificador} aviso={aviso} titulo={situacoes[detalhe.situacao]}><p>{texto}</p>{prazo}{diasRestantes !== null && Number.isFinite(diasRestantes) && diasRestantes >= 0 && <p className="mt-2 font-medium">{diasRestantes === 0 ? "O prazo de regularização termina hoje." : `Você tem ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} para regularizar.`}</p>}{atendimento}</AvisoConta>}</>;
   return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-lg rounded-2xl border border-border bg-surface p-8 text-text-primary">
     <p className="mb-5 text-xs uppercase tracking-widest text-text-secondary">Glass Code · Atendimento da conta</p>
     <h1 className="text-xl font-medium">{testeExpirado ? "Seu prazo de teste expirou" : estado === "bloqueado" ? detalhe?.situacao === "cancelada" ? "Conta cancelada" : "Acesso temporariamente suspenso" : "Não foi possível verificar seu acesso"}</h1>

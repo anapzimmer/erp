@@ -156,6 +156,7 @@ export default function PlanosPage() {
         <p>
           O Glass Code reúne sistema, atendimento personalizado e evolução contínua para ajudar sua vidraçaria a calcular, organizar projetos e apresentar orçamentos. Escolha as soluções para sua rotina e conte com uma equipe para orientar o uso.
         </p>
+        <p>Cadastre-se gratuitamente e teste por 3 dias a partir do cadastro. Após esse prazo, o acesso fica bloqueado até a liberação pela equipe. Não há cobrança automática.</p>
       </section>
 
 
@@ -208,9 +209,7 @@ export default function PlanosPage() {
             </div>
 
             <a
-              href={contatoWhatsApp(plano)}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={`/login?cadastro=1&plano=${encodeURIComponent(plano.nome.toLowerCase())}`}
               className={
                 plano.destaque
                   ? styles.primary
@@ -218,7 +217,7 @@ export default function PlanosPage() {
               }
             >
               <span>
-                Conversar sobre o {plano.nome}
+                Testar grátis por 3 dias
               </span>
 
               <ArrowUpRight size={16} />
@@ -321,10 +320,7 @@ export default function PlanosPage() {
           </summary>
 
           <p>
-            Escolha o plano e clique em “Conversar sobre”. O WhatsApp abrirá
-            com uma mensagem pronta indicando o plano escolhido. Envie a
-            mensagem para falar com a Glass Code sobre a contratação e a
-            liberação da sua empresa.
+            Escolha um plano e clique em “Testar grátis por 3 dias”. Crie sua conta para iniciar o período gratuito. Ao terminar, entre em contato pelo WhatsApp para conhecer as condições e solicitar a liberação. O cadastro não gera cobrança automática.
           </p>
         </details>
 
