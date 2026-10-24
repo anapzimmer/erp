@@ -1,4 +1,5 @@
 ﻿    "use client"
+import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
     import { useState, useEffect, useRef } from 'react'
@@ -18,7 +19,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
     const [adicionaisDB, setAdicionaisDB] = useState<AdicionalDB[]>([])
     const [itens, setItens] = useState<ItemOrcamento[]>([])
     
-    const [adicionaisPendentes, setAdicionaisPendentes] = useState<AdicionalPendente[]>([])
+    const [adicionaisCompletos, setAdicionaisPendentes] = useState<AdicionalPendente[]>([])
     
     const [buscaCliente, setBuscaCliente] = useState("")
   const orcamentoAtivo = useClienteOrcamento({ cliente: buscaCliente, onCliente: setBuscaCliente });
@@ -41,6 +42,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
     const [folhas, setFolhas] = useState("Escolher Folhas")
     const [trinco, setTrinco] = useState("Escolher trinco")
     const [corKit, setCorKit] = useState("Escolher cor perfil")
+    const adicionaisPendentes = corMaterialSelecionada(corKit) ? adicionaisCompletos : [];
     const [tipoOrcamento, setTipoOrcamento] = useState("Escolher Kit ou Barra") 
     const [anguloCanto, setAnguloCanto] = useState("Padrão")
     
@@ -71,7 +73,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         String(valor || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "")
     const adicionalAtendeCor = (item: AdicionalDB) => {
         const cor = normalizarCor(corKit === "Escolher cor perfil" ? "" : corKit)
-        if (!cor) return true
+        if (!cor) return false
         const cores = String(item.cores || "").split(/[;,/|]/).map(normalizarCor).filter(Boolean)
         return cores.includes(cor) || normalizarCor(item.nome).includes(cor)
     }

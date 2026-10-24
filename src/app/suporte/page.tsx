@@ -113,7 +113,7 @@ const [erroResposta, setErroResposta] = useState("");
           className="h-9 w-9 animate-spin rounded-full border-4"
           style={{
             borderColor: "#DCE2E4",
-            borderTopColor: "#C8D463",
+            borderTopColor: "#CDCC7C",
           }}
         />
       </div>
@@ -410,7 +410,7 @@ const enviarRespostaChamado = async () => {
               <div className="mb-2 flex items-center gap-2">
                 <Headphones
                   size={18}
-                  color="#C8D463"
+                  color="#CDCC7C"
                 />
 
                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8F9AA1]">
@@ -433,7 +433,7 @@ const enviarRespostaChamado = async () => {
               onClick={() => setNovoChamadoAberto(true)}
               className="
     flex h-11 items-center justify-center gap-2
-    rounded-xl bg-[#C8D463]
+    rounded-xl bg-[#CDCC7C]
     px-5 text-sm font-semibold text-[#38444B]
     transition hover:brightness-95
   "
@@ -491,7 +491,7 @@ const enviarRespostaChamado = async () => {
                     className="
             h-11 w-full rounded-xl border border-[#DCE2E4]
             bg-white px-3 text-sm text-[#38444B]
-            outline-none focus:border-[#C8D463]
+            outline-none focus:border-[#CDCC7C]
           "
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
@@ -522,7 +522,7 @@ const enviarRespostaChamado = async () => {
             h-11 w-full rounded-xl border border-[#DCE2E4]
             bg-white px-3 text-sm text-[#38444B]
             outline-none placeholder:text-[#8F9AA1]
-            focus:border-[#C8D463]
+            focus:border-[#CDCC7C]
           "
                   />
                 </div>
@@ -545,7 +545,7 @@ const enviarRespostaChamado = async () => {
             w-full resize-none rounded-xl border border-[#DCE2E4]
             bg-white p-3 text-sm text-[#38444B]
             outline-none placeholder:text-[#8F9AA1]
-            focus:border-[#C8D463]
+            focus:border-[#CDCC7C]
           "
                   />
                 </div>
@@ -562,8 +562,8 @@ const enviarRespostaChamado = async () => {
       bg-[#F6F8F8] px-4 py-5
       text-sm font-medium text-[#38444B]
       transition
-      hover:border-[#C8D463]
-      hover:bg-[#C8D463]/5
+      hover:border-[#CDCC7C]
+      hover:bg-[#CDCC7C]/5
     "
                   >
                     <Paperclip size={18} />
@@ -607,7 +607,7 @@ const enviarRespostaChamado = async () => {
                             >
                               <Paperclip
                                 size={16}
-                                color="#C8D463"
+                                color="#CDCC7C"
                               />
                             </div>
 
@@ -666,7 +666,7 @@ const enviarRespostaChamado = async () => {
             transition hover:brightness-110
           "
                   >
-                    <MessageSquare size={17} color="#C8D463" />
+                    <MessageSquare size={17} color="#CDCC7C" />
                     {enviando ? "Enviando..." : "Enviar chamado"}
                   </button>
                 </div>
@@ -682,7 +682,7 @@ const enviarRespostaChamado = async () => {
                 className="mx-auto h-8 w-8 animate-spin rounded-full border-4"
                 style={{
                   borderColor: "#DCE2E4",
-                  borderTopColor: "#C8D463",
+                  borderTopColor: "#CDCC7C",
                 }}
               />
               <p className="mt-3 text-sm text-[#8F9AA1]">
@@ -745,7 +745,7 @@ const enviarRespostaChamado = async () => {
                               {categoriaLabel[chamado.categoria] ?? chamado.categoria}
                             </span>
 
-                            <span className="rounded-full bg-[#C8D463]/20 px-2.5 py-1 text-xs font-semibold text-[#38444B]">
+                            <span className="rounded-full bg-[#CDCC7C]/20 px-2.5 py-1 text-xs font-semibold text-[#38444B]">
                               {statusLabel[chamado.status] ?? chamado.status}
                             </span>
                           </div>
@@ -761,7 +761,7 @@ const enviarRespostaChamado = async () => {
     {chamado.mensagens.length > 0 && (
   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#DCE2E4] pt-4">
     <div className="flex items-center gap-2">
-      <span className="h-2 w-2 rounded-full bg-[#C8D463]" />
+      <span className="h-2 w-2 rounded-full bg-[#CDCC7C]" />
 
       <span className="text-sm font-medium text-[#38444B]">
         {chamado.mensagens.length === 1
@@ -836,7 +836,7 @@ const enviarRespostaChamado = async () => {
                                       key={anexo.id}
                                       type="button"
                                       onClick={() => void abrirAnexo(anexo.caminho_storage)}
-                                      className="flex max-w-full items-center gap-2 rounded-xl border border-[#DCE2E4] bg-[#F6F8F8] px-3 py-2 text-left text-xs font-medium text-[#38444B] transition hover:border-[#C8D463] hover:bg-[#C8D463]/10"
+                                      className="flex max-w-full items-center gap-2 rounded-xl border border-[#DCE2E4] bg-[#F6F8F8] px-3 py-2 text-left text-xs font-medium text-[#38444B] transition hover:border-[#CDCC7C] hover:bg-[#CDCC7C]/10"
                                       title={`Abrir ${anexo.nome_arquivo}`}
                                     >
                                       {ehImagem ? <ImageIcon size={15} color="#8F9AA1" /> : <FileText size={15} color="#8F9AA1" />}
@@ -891,8 +891,8 @@ const enviarRespostaChamado = async () => {
                     absolute -right-[110px] top-[15px]
                     h-[230px] w-[230px]
                     rounded-[10px]
-                    border border-[#C8D463]/20
-                    bg-[#C8D463]/[0.025]
+                    border border-[#CDCC7C]/20
+                    bg-[#CDCC7C]/[0.025]
                     [transform:skewY(-28deg)]
                   "
                 />
@@ -906,7 +906,7 @@ const enviarRespostaChamado = async () => {
                     rounded-xl bg-[#38444B]
                   "
                 >
-                  <MessageSquare size={21} color="#C8D463" />
+                  <MessageSquare size={21} color="#CDCC7C" />
                 </div>
 
                 <h2 className="text-lg font-semibold text-[#38444B]">
@@ -964,7 +964,7 @@ const enviarRespostaChamado = async () => {
                 text-xs font-semibold
                 ${
                   chamadoAberto.status === "novo"
-                    ? "bg-[#C8D463]/20 text-[#38444B]"
+                    ? "bg-[#CDCC7C]/20 text-[#38444B]"
                     : chamadoAberto.status === "em_analise"
                       ? "bg-amber-100 text-amber-800"
                       : chamadoAberto.status === "em_atendimento"
@@ -1145,7 +1145,7 @@ const enviarRespostaChamado = async () => {
             text-sm text-[#38444B]
             outline-none transition
             placeholder:text-[#8F9AA1]
-            focus:border-[#C8D463]
+            focus:border-[#CDCC7C]
             focus:bg-white
           "
         />
@@ -1159,7 +1159,7 @@ const enviarRespostaChamado = async () => {
           }
           className="
             h-12 shrink-0 rounded-xl
-            bg-[#C8D463] px-5
+            bg-[#CDCC7C] px-5
             text-sm font-semibold text-[#38444B]
             transition hover:brightness-95
             disabled:cursor-not-allowed

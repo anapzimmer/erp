@@ -3,7 +3,7 @@
   --graphite-dark: #2f3d44;
   --metal: #8f9aa1;
   --ice: #dce2e4;
-  --lime: #c8d463;
+  --lime: #CDCC7C;
   --white: #ffffff;
 
   min-height: 100vh;
@@ -69,7 +69,7 @@
 .glassTwo {
   right: 1px;
   bottom: 1px;
-  background: rgba(200, 212, 99, 0.88);
+  background: rgba(205, 204, 124, 0.88);
 }
 
 .nav {
@@ -183,7 +183,7 @@
   width: 420px;
   height: 420px;
   border-radius: 50%;
-  background: rgba(200, 212, 99, 0.08);
+  background: rgba(205, 204, 124, 0.08);
   filter: blur(20px);
   left: 50%;
   top: 50%;
@@ -369,7 +369,7 @@
 .processBar i {
   width: 35px;
   height: 1px;
-  background: rgba(200, 212, 99, 0.4);
+  background: rgba(205, 204, 124, 0.4);
 }
 
 .container {
@@ -563,7 +563,7 @@
   top: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(200, 212, 99, 0.16);
+  background: rgba(205, 204, 124, 0.16);
   filter: blur(70px);
 }
 

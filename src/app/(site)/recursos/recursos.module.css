@@ -3,7 +3,7 @@
   --dark-deep: #253138;
   --metal: #8f9aa1;
   --ice: #dce2e4;
-  --lime: #c8d463;
+  --lime: #CDCC7C;
   --white: #f7f9f9;
   --ink: #253138;
 
@@ -83,7 +83,7 @@
 
   border: 1px solid rgba(230, 238, 154, 0.8);
 
-  background: rgba(200, 212, 99, 0.82);
+  background: rgba(205, 204, 124, 0.82);
 }
 
 .brandName {
@@ -261,7 +261,7 @@
   width: 22px;
   height: 1px;
 
-  background: rgba(200, 212, 99, 0.45);
+  background: rgba(205, 204, 124, 0.45);
 }
 
 /* =========================================================
@@ -439,7 +439,7 @@
 
   border-radius: 50%;
 
-  background: rgba(200, 212, 99, 0.12);
+  background: rgba(205, 204, 124, 0.12);
 
   filter: blur(85px);
 }
@@ -1923,7 +1923,7 @@
   background: var(--lime);
 
   box-shadow:
-    0 0 0 4px rgba(200, 212, 99, 0.13);
+    0 0 0 4px rgba(205, 204, 124, 0.13);
 }
 
 
@@ -2228,7 +2228,7 @@
 
   border-radius: 50%;
 
-  background: rgba(200, 212, 99, 0.14);
+  background: rgba(205, 204, 124, 0.14);
 
   color: #99a72c;
 
@@ -2271,10 +2271,10 @@
   margin-top: 12px;
   padding: 9px;
 
-  border: 1px solid rgba(200, 212, 99, 0.27);
+  border: 1px solid rgba(205, 204, 124, 0.27);
   border-radius: 6px;
 
-  background: rgba(200, 212, 99, 0.07);
+  background: rgba(205, 204, 124, 0.07);
 }
 
 .readyBox > small {
@@ -2436,7 +2436,7 @@
   background: var(--lime);
 
   box-shadow:
-    0 0 0 4px rgba(200, 212, 99, 0.14);
+    0 0 0 4px rgba(205, 204, 124, 0.14);
 }
 
 
@@ -2713,7 +2713,7 @@
   border: none;
   border-radius: 5px;
 
-  background: #c8d463;
+  background: #CDCC7C;
 
   color: #38444b;
 
@@ -2743,7 +2743,7 @@
   width: 82px;
   height: 120px;
 
-  border: 1px solid rgba(200, 212, 99, 0.17);
+  border: 1px solid rgba(205, 204, 124, 0.17);
   border-radius: 10px;
 
   transform: skewY(-32deg);
@@ -2810,11 +2810,11 @@
 }
 
 .dashStatAccent {
-  background: rgba(200, 212, 99, 0.13);
+  background: rgba(205, 204, 124, 0.13);
 }
 
 .dashStatAccent::before {
-  background: #c8d463;
+  background: #CDCC7C;
 }
 
 .dashStatTop {
@@ -3159,7 +3159,7 @@
 }
 
 .dashToday > div b {
-  color: #c8d463;
+  color: #CDCC7C;
 
   font-size: 7px;
 }
@@ -3197,7 +3197,7 @@
 
   border-radius: 50%;
 
-  background: rgba(200, 212, 99, 0.07);
+  background: rgba(205, 204, 124, 0.07);
 
   filter: blur(100px);
 }

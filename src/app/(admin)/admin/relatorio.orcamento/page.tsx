@@ -38,7 +38,7 @@ import { PeleDeVidroPDF } from "@/app/relatorios/peledevidro/PeleDeVidroPDF"
 import { ProjetoIndividualPDF, type ProjetoIndividualDados, type ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF"
 import { CentralImpressaoPDF, type CentralImpressaoItem, type CentralOtimizacaoPerfil } from "@/app/relatorios/centralimpressao/CentralImpressaoPDF"
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc"
-import { PDFViewer } from '@react-pdf/renderer';
+import OrcamentoPdfPreview from "@/components/OrcamentoPdfPreview";
 
 type OrcamentoItem = {
     id: string | number;
@@ -1221,9 +1221,9 @@ export default function RelatorioOrcamento() {
                             )}
                         </div>
 
-                        <div className="flex-1 w-full h-full bg-border">
-                            <div className="flex-1 w-full h-full bg-border">
-                                <PDFViewer style={{ width: "100%", height: "100%" }}>
+                        <div className="flex-1 min-h-0 w-full h-full bg-border">
+                            <div className="flex-1 min-h-0 w-full h-full bg-border">
+                                <OrcamentoPdfPreview nomeArquivo={`Orçamento ${orcamentoParaVisualizar?.numero_formatado || "sem-numero"} - ${orcamentoParaVisualizar?.cliente_nome || "cliente"} - ${tipoPreviewCalculoprojeto}.pdf`}>
                                     {/* PDF da Pele de Vidro */}
                                     {(() => {
                                         const itensRaw = (orcamentoParaVisualizar?.itens && !Array.isArray(orcamentoParaVisualizar.itens)) ? orcamentoParaVisualizar.itens as Record<string, unknown>
@@ -1769,7 +1769,7 @@ export default function RelatorioOrcamento() {
                                             />
                                         );
                                     })()}
-                                </PDFViewer>
+                                </OrcamentoPdfPreview>
                             </div>
                         </div>
                     </div>

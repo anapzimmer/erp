@@ -108,7 +108,7 @@
 
   border-radius: 999px;
 
-  background: #c8d463;
+  background: #CDCC7C;
 }
 
 /* COMEÇAR AGORA */
@@ -124,7 +124,7 @@
 
   border-radius: 8px;
 
-  background: #c8d463;
+  background: #CDCC7C;
   color: #38444b;
 
   font-size: 12px;
@@ -273,7 +273,7 @@
   background:
     linear-gradient(
       155deg,
-      rgba(200, 212, 99, 0.13),
+      rgba(205, 204, 124, 0.13),
       var(--surface) 29%
     );
 
@@ -544,12 +544,12 @@
 
   border:
     1px solid
-    rgba(200, 212, 99, 0.75);
+    rgba(205, 204, 124, 0.75);
 
   border-radius: 50%;
 
   background:
-    rgba(200, 212, 99, 0.13);
+    rgba(205, 204, 124, 0.13);
 
   color: var(--gc-graphite);
 }
@@ -839,14 +839,14 @@
   width: 112px;
   height: 150px;
 
-  border: 1px solid rgba(200, 212, 99, 0.24);
+  border: 1px solid rgba(205, 204, 124, 0.24);
   border-radius: 14px;
 
   background:
     linear-gradient(
       145deg,
-      rgba(200, 212, 99, 0.035),
-      rgba(200, 212, 99, 0.008)
+      rgba(205, 204, 124, 0.035),
+      rgba(205, 204, 124, 0.008)
     );
 
   transform:
@@ -946,15 +946,15 @@
 
   border:
     1px solid
-    rgba(200, 212, 99, 0.38);
+    rgba(205, 204, 124, 0.38);
 
   border-radius: 15px;
 
   background:
     linear-gradient(
       145deg,
-      rgba(200, 212, 99, 0.055),
-      rgba(200, 212, 99, 0.015)
+      rgba(205, 204, 124, 0.055),
+      rgba(205, 204, 124, 0.015)
     );
 
   transform:
@@ -1313,7 +1313,7 @@
   --border: color-mix(in srgb, var(--gc-silver) 40%, transparent);
   --surface: var(--gc-graphite);
   color: var(--text-primary);
-  background: radial-gradient(ellipse at 100% 0%, #c8d46320, transparent 70%), linear-gradient(145deg, var(--gc-graphite), #14222d);
+  background: radial-gradient(ellipse at 100% 0%, #CDCC7C20, transparent 70%), linear-gradient(145deg, var(--gc-graphite), #14222d);
 }
 .featured .primary { background: var(--gc-lime); color: var(--gc-graphite); border-color: var(--gc-lime); }
 .price { flex-wrap: wrap; gap: 12px; }

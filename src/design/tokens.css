@@ -3,7 +3,7 @@
   --gc-graphite: #38444B;
   --gc-silver: #8F9AA1;
   --gc-mist: #DCE2E4;
-  --gc-lime: #C8D463;
+  --gc-lime: #CDCC7C;
   --gc-ice: #F6F8F8;
   --background: #F6F8F8;
   --surface: #FFFFFF;
@@ -12,9 +12,9 @@
   --text-secondary: #5C6A72;
   --border: #DCE2E4;
   --border-strong: #8F9AA1;
-  --primary: #C8D463;
-  --primary-hover: #B8C451;
-  --primary-active: #A7B343;
+  --primary: #CDCC7C;
+  --primary-hover: #BCBB68;
+  --primary-active: #ABA958;
   --on-primary: #303A40;
   --selection: #EEF1D9;
   --selection-text: #465021;
@@ -70,9 +70,9 @@
   --text-secondary: #B9C4C9;
   --border: #4B5B64;
   --border-strong: #8F9AA1;
-  --primary: #C8D463;
-  --primary-hover: #D6DF89;
-  --primary-active: #B8C451;
+  --primary: #CDCC7C;
+  --primary-hover: #DDDC9D;
+  --primary-active: #BCBB68;
   --on-primary: #303A40;
   --selection: #46503B;
   --selection-text: #E0E8AA;
@@ -141,9 +141,9 @@
   --text-secondary: #5C6A72;
   --border: #DCE2E4;
   --border-strong: #8F9AA1;
-  --primary: #C8D463;
-  --primary-hover: #B8C451;
-  --primary-active: #A7B343;
+  --primary: #CDCC7C;
+  --primary-hover: #BCBB68;
+  --primary-active: #ABA958;
   --on-primary: #303A40;
   --selection: #EEF1D9;
   --selection-text: #465021;

@@ -1,5 +1,6 @@
 ﻿//app/(calculos)/pc4fcb/page.tsx
 "use client";
+import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
@@ -319,7 +320,8 @@ export default function PC4FCBPage() {
   });
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
-  const [materiais, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
+  const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
+  const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
   useEffect(() => {
     if (editId || centralItemId) {

@@ -1,4 +1,5 @@
 "use client";
+import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -973,6 +974,7 @@ export default function CalculoFechamentoSacadaPage() {
   }, [resultadoInferior.alturaVidroMm, resultadoInferior.larguraVidroMm, resultadoSuperior.alturaVidroMm, resultadoSuperior.larguraVidroMm]);
 
   const perfisComPrecoTabela = useMemo(() => {
+    if (!corMaterialSelecionada(corPerfil)) return [];
     return resultadoInferior.perfis.map((perfilResultado) => {
       const perfilDaTabela = resolverPerfilPorCodigoECor(perfisTabela, perfilResultado.codigo, corPerfil);
       const precoBarra = perfilDaTabela.preco || perfilResultado.precoBarra;
@@ -988,6 +990,7 @@ export default function CalculoFechamentoSacadaPage() {
   }, [corPerfil, perfisTabela, resultadoInferior.perfis]);
 
 const acessoriosComPrecoTabela = useMemo(() => {
+    if (!corMaterialSelecionada(corPerfil)) return [];
   const pontoDivisao = (quantidadeDivisoesInferiorNumero + 1) * quantidadeNumero;
   const guarnicaoMm = (resultadoInferior.larguraVidroMm * 2 + 50) * resultadoInferior.quantidadeTotalVidros;
 
@@ -1061,6 +1064,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
 ]);
 
 const acessoriosFechamentoSacadaTabela = useMemo(() => {
+    if (!corMaterialSelecionada(corPerfil)) return [];
   const faixaKit = obterFaixaKitSacada(larguraNumero);
   const corPerfilNormalizada = normalizarTextoComparacao(corPerfil);
   const sufixoCorKit = corPerfilNormalizada === "branco"

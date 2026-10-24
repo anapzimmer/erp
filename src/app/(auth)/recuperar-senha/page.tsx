@@ -200,7 +200,7 @@ export default function RecuperarSenhaPage() {
           />
 
           <div className="mt-8 flex justify-center">
-            <span className="block h-6 w-6 rounded-full border-2 border-white/20 border-t-[#C8D463] animate-spin" />
+            <span className="block h-6 w-6 rounded-full border-2 border-white/20 border-t-[#CDCC7C] animate-spin" />
           </div>
 
           <p className="mt-4 text-sm text-white/55">
@@ -238,7 +238,7 @@ export default function RecuperarSenhaPage() {
         </div>
 
         <div className="relative z-10 max-w-md">
-          <span className="text-[11px] tracking-[0.24em] font-semibold text-[#C8D463]">
+          <span className="text-[11px] tracking-[0.24em] font-semibold text-[#CDCC7C]">
             SEGURANÇA DE ACESSO
           </span>
 
@@ -284,7 +284,7 @@ export default function RecuperarSenhaPage() {
             <div className="w-12 h-12 rounded-2xl bg-[#38444B] flex items-center justify-center mb-6">
               <LockKeyhole
                 size={21}
-                className="text-[#C8D463]"
+                className="text-[#CDCC7C]"
               />
             </div>
 
@@ -322,7 +322,7 @@ export default function RecuperarSenhaPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite sua nova senha"
-                  className="w-full h-12 rounded-xl border border-[#DCE2E4] bg-white px-4 pr-12 text-sm text-[#38444B] outline-none transition focus:border-[#8F9AA1] focus:ring-2 focus:ring-[#C8D463]/25"
+                  className="w-full h-12 rounded-xl border border-[#DCE2E4] bg-white px-4 pr-12 text-sm text-[#38444B] outline-none transition focus:border-[#8F9AA1] focus:ring-2 focus:ring-[#CDCC7C]/25"
                   required
                 />
 
@@ -367,7 +367,7 @@ export default function RecuperarSenhaPage() {
                     setConfirmPassword(e.target.value)
                   }
                   placeholder="Digite novamente"
-                  className="w-full h-12 rounded-xl border border-[#DCE2E4] bg-white px-4 pr-12 text-sm text-[#38444B] outline-none transition focus:border-[#8F9AA1] focus:ring-2 focus:ring-[#C8D463]/25"
+                  className="w-full h-12 rounded-xl border border-[#DCE2E4] bg-white px-4 pr-12 text-sm text-[#38444B] outline-none transition focus:border-[#8F9AA1] focus:ring-2 focus:ring-[#CDCC7C]/25"
                   required
                 />
 
@@ -514,8 +514,8 @@ export default function RecuperarSenhaPage() {
             top-[22px]
             rounded-[8px]
             border
-            border-[#C8D463]/[0.23]
-            bg-[#C8D463]/[0.03]
+            border-[#CDCC7C]/[0.23]
+            bg-[#CDCC7C]/[0.03]
             [transform:skewY(-28deg)]
           "
         />
@@ -533,14 +533,14 @@ export default function RecuperarSenhaPage() {
             flex h-16 w-16
             items-center justify-center
             rounded-2xl
-            border border-[#C8D463]/20
-            bg-[#C8D463]/10
+            border border-[#CDCC7C]/20
+            bg-[#CDCC7C]/10
           "
         >
           <CheckCircle
             size={30}
             strokeWidth={2}
-            className="text-[#C8D463]"
+            className="text-[#CDCC7C]"
           />
         </div>
 
@@ -551,7 +551,7 @@ export default function RecuperarSenhaPage() {
             text-[10px]
             font-bold
             tracking-[0.24em]
-            text-[#C8D463]
+            text-[#CDCC7C]
           "
         >
           ACESSO ATUALIZADO
@@ -590,7 +590,7 @@ export default function RecuperarSenhaPage() {
             items-center justify-center
             gap-2
             rounded-xl
-            bg-[#C8D463]
+            bg-[#CDCC7C]
             text-sm font-bold
             text-[#38444B]
             transition-all
@@ -640,7 +640,7 @@ function Requirement({
       <span
         className={`w-4 h-4 rounded-full flex items-center justify-center ${
           ok
-            ? "bg-[#C8D463] text-[#38444B]"
+            ? "bg-[#CDCC7C] text-[#38444B]"
             : "bg-[#DCE2E4] text-[#8F9AA1]"
         }`}
       >

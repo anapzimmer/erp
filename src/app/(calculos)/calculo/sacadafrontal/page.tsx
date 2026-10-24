@@ -1,5 +1,6 @@
 //app/(calculos)/sacadafrontal/page.tsx
 "use client";
+import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -630,6 +631,7 @@ export default function CalculoSacadaFrontalPage() {
   const corPerfilSelecionada = Boolean(normalizarTextoComparacao(corPerfil));
 
   const perfisComPrecoTabela = useMemo(() => {
+    if (!corMaterialSelecionada(corPerfil)) return [];
     return resultado.perfis.map((perfilResultado) => {
       if (!corPerfilSelecionada) {
         return {
@@ -664,6 +666,7 @@ export default function CalculoSacadaFrontalPage() {
   }, [corPerfil, corPerfilSelecionada, perfisTabela, resultado.perfis]);
 
 const acessoriosComPrecoTabela = useMemo(() => {
+    if (!corMaterialSelecionada(corPerfil)) return [];
   const pontoDivisao = (quantidadeDivisoesNumero + 1) * quantidadeNumero;
   const quantidadeFixadores = pontoDivisao * 2;
   const guarnicaoM = Number(((resultado.larguraVidroMm * 2 * resultado.quantidadeTotalVidros) / 1000).toFixed(2));

@@ -64,7 +64,7 @@ const statusLabel: Record<string, string> = {
 
 const statusStyle: Record<string, string> = {
     novo:
-        "bg-[#C8D463]/20 text-[#38444B]",
+        "bg-[#CDCC7C]/20 text-[#38444B]",
 
     em_analise:
         "bg-amber-100 text-amber-800",
@@ -584,7 +584,7 @@ export default function SuportePanel() {
       bg-surface px-3
       text-sm outline-none
       transition
-      focus:border-[#C8D463]
+      focus:border-[#CDCC7C]
     "
                                 >
                                     <option value="novo">Novo</option>
@@ -641,7 +641,7 @@ export default function SuportePanel() {
                                             <div
                                                 className={
                                                     mensagem.autor_tipo === "glass_code"
-                                                        ? "max-w-[85%] rounded-2xl rounded-tr-md bg-[#C8D463]/20 px-4 py-3"
+                                                        ? "max-w-[85%] rounded-2xl rounded-tr-md bg-[#CDCC7C]/20 px-4 py-3"
                                                         : "max-w-[85%] rounded-2xl rounded-tl-md bg-surface-secondary px-4 py-3"
                                                 }
                                             >
@@ -687,7 +687,7 @@ export default function SuportePanel() {
       text-sm text-text-primary
       outline-none transition
       placeholder:text-text-secondary
-      focus:border-[#C8D463]
+      focus:border-[#CDCC7C]
     "
                                 />
 
@@ -697,7 +697,7 @@ export default function SuportePanel() {
                                         onClick={() => void enviarResposta()}
                                         disabled={enviandoResposta || !resposta.trim()}
                                         className="
-        rounded-xl bg-[#C8D463]
+        rounded-xl bg-[#CDCC7C]
         px-5 py-2.5
         text-sm font-semibold text-[#38444B]
         transition

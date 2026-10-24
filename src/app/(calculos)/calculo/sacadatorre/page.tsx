@@ -1,4 +1,5 @@
 "use client";
+import { resultadoConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -289,7 +290,7 @@ export default function CalculoSacadaTorrePage() {
   const [quantidadeTorresPorVidro, setQuantidadeTorresPorVidro] = useState("1");
   const [buscaVidro, setBuscaVidro] = useState("");
   const [vidroId, setVidroId] = useState("");
-  const [corPerfil, setCorPerfil] = useState("Branco");
+  const [corPerfil, setCorPerfil] = useState("");
   const [torreCodigo, setTorreCodigo] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -404,7 +405,7 @@ export default function CalculoSacadaTorrePage() {
       setQuantidadeTorresPorVidro(dados.quantidadeTorresPorVidro || "1");
       setBuscaVidro(dados.buscaVidro || item?.vidro || "");
       setVidroId(dados.vidroId || "");
-      setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "Branco");
+      setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "");
       setTorreCodigo(dados.torreCodigo || "");
     } catch (error) {
       console.warn("Nao foi possivel restaurar a sacada com torre da central:", error);
@@ -486,7 +487,7 @@ export default function CalculoSacadaTorrePage() {
     return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
-  const resultado = useMemo(
+  const resultadoCompleto = useMemo(
     () =>
       calcularSacadaTorre({
         larguraVaoMm: larguraNumero,
@@ -518,6 +519,8 @@ export default function CalculoSacadaTorrePage() {
       vidroSelecionado,
     ]
   );
+
+  const resultado = useMemo(() => resultadoConformeCor(resultadoCompleto, corPerfil), [resultadoCompleto, corPerfil]);
 
   const svgSacada = useMemo(
     () =>
@@ -907,6 +910,7 @@ export default function CalculoSacadaTorrePage() {
                         className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       >
+                        <option value="">Escolher cor</option>
                         {CORES_PERFIL.map((cor) => (
                           <option key={cor} value={cor} className="text-text-primary">{cor}</option>
                         ))}

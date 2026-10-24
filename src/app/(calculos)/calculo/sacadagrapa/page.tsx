@@ -1,4 +1,5 @@
 "use client";
+import { resultadoConformeCor } from "@/utils/materiaisConformeCor";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -340,7 +341,7 @@ export default function CalculosacadagrapaPage() {
   const [tuboCodigo, setTuboCodigo] = useState("");
   const [buscaVidro, setBuscaVidro] = useState("");
   const [vidroId, setVidroId] = useState("");
-  const [corPerfil, setCorPerfil] = useState("Branco");
+  const [corPerfil, setCorPerfil] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -467,7 +468,7 @@ export default function CalculosacadagrapaPage() {
       setTuboCodigo(dados.tuboCodigo || "");
       setBuscaVidro(dados.buscaVidro || item?.vidro || "");
       setVidroId(dados.vidroId || "");
-      setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "Branco");
+      setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "");
     } catch (error) {
       console.warn("Nao foi possivel restaurar a Sacada com Grapa da central:", error);
     }
@@ -548,7 +549,7 @@ export default function CalculosacadagrapaPage() {
     return escolherItemPorCor(candidatos, corPerfil, (ferragem) => ferragem.cores) || null;
   }, [corPerfil, ferragens]);
 
-  const resultado = useMemo(
+  const resultadoCompleto = useMemo(
     () =>
       calcularSacadaGrapa({
         larguraVaoMm: larguraNumero,
@@ -586,6 +587,8 @@ export default function CalculosacadagrapaPage() {
       vidroSelecionado,
     ]
   );
+
+  const resultado = useMemo(() => resultadoConformeCor(resultadoCompleto, corPerfil), [resultadoCompleto, corPerfil]);
 
   const svgSacada = useMemo(
     () =>
@@ -996,6 +999,7 @@ export default function CalculosacadagrapaPage() {
                         className="mt-1.5 w-full bg-transparent text-sm font-medium outline-none"
                         style={{ color: theme.contentTextLightBg }}
                       >
+                        <option value="">Escolher cor</option>
                         {CORES_PERFIL.map((cor) => (
                           <option key={cor} value={cor} className="text-text-primary">{cor}</option>
                         ))}
