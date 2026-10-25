@@ -1,4 +1,7 @@
 ﻿"use client";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
@@ -188,6 +191,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  acrescimoMedida: parcial?.acrescimoMedida,
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
@@ -336,6 +340,7 @@ export default function FixoBandeiraPage() {
   });
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
   const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
@@ -998,7 +1003,7 @@ export default function FixoBandeiraPage() {
         descricao: descricaoVidro,
         medida: `${calculoVidro.larguraMedida} x ${calculoVidro.alturaMedida} mm`,
         vidroDescricao: `VIDRO INFERIOR ${vidroNome.toUpperCase()}`,
-        valorUnitario: precoVidroM2,
+        ...precoMaterialVidro(precoVidroM2, descricaoVidro, regraMedidaVidro),
       })
       : null;
 
@@ -1008,7 +1013,7 @@ export default function FixoBandeiraPage() {
         descricao: descricaoVidroBandeira,
         medida: `${calculoVidro.larguraBandeiraMedida} x ${calculoVidro.alturaBandeiraMedida} mm`,
         vidroDescricao: `VIDRO BANDEIRA ${vidroBandeiraNome.toUpperCase()}`,
-        valorUnitario: precoVidroBandeiraM2,
+        ...precoMaterialVidro(precoVidroBandeiraM2, descricaoVidroBandeira, regraMedidaVidro),
       })
       : null;
 
@@ -1016,7 +1021,7 @@ export default function FixoBandeiraPage() {
       const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || (!normalizarTexto(item.descricao).includes("vidro inferior") && !normalizarTexto(item.descricao).includes("vidro bandeira")));
       return [vidroInferior, vidroBandeira, ...semVidrosAutomaticos].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
     })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2]);
+  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2, regraMedidaVidro]);
 
   useEffect(() => {
     setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
@@ -1714,7 +1719,8 @@ export default function FixoBandeiraPage() {
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
-                        {materiaisOrdenados.map((item) => (
+                        <AvisoAcrescimoVidro materiais={materiais} />
+                  {materiaisOrdenados.map((item) => (
                           <div key={item.id} className="group relative grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
                             <div className="px-3 py-2.5">
                               <input

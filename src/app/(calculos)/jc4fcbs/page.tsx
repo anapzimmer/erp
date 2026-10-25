@@ -1,5 +1,8 @@
 //app/src/app/(calculos)/jc4fcbs/page.tsx
 "use client";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
@@ -236,6 +239,7 @@ const criarMaterial = (
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  acrescimoMedida: parcial?.acrescimoMedida,
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
@@ -418,6 +422,7 @@ export default function PC4FCBSPage() {
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
 
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
   const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
@@ -1124,25 +1129,25 @@ useEffect(() => {
         qtd: calculoVidro.areaPeitoril,
         unidade: "m2",
         descricao: `VIDRO PEITORIL 4 PEÇAS ${calculoVidro.larguraPeitorilMedida}X${calculoVidro.alturaPeitorilMedida} ${dados.vidroPeitoril}`.toUpperCase(),
-        valorUnitario: precoVidroPeitoril,
+        ...precoMaterialVidro(precoVidroPeitoril, `VIDRO PEITORIL 4 PEÇAS ${calculoVidro.larguraPeitorilMedida}X${calculoVidro.alturaPeitorilMedida} ${dados.vidroPeitoril}`.toUpperCase(), regraMedidaVidro),
       }),
       criarMaterial({
         qtd: calculoVidro.areaJanelaFixa,
         unidade: "m2",
         descricao: `VIDRO FIXO 2 PEÇAS ${calculoVidro.larguraFixaMedida}X${calculoVidro.alturaFixaMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(),
-        valorUnitario: precoVidroJanela,
+        ...precoMaterialVidro(precoVidroJanela, `VIDRO FIXO 2 PEÇAS ${calculoVidro.larguraFixaMedida}X${calculoVidro.alturaFixaMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(), regraMedidaVidro),
       }),
       criarMaterial({
         qtd: calculoVidro.areaJanelaMovel,
         unidade: "m2",
         descricao: `VIDRO MÓVEL 2 PEÇAS ${calculoVidro.larguraMovelMedida}X${calculoVidro.alturaMovelMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(),
-        valorUnitario: precoVidroJanela,
+        ...precoMaterialVidro(precoVidroJanela, `VIDRO MÓVEL 2 PEÇAS ${calculoVidro.larguraMovelMedida}X${calculoVidro.alturaMovelMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(), regraMedidaVidro),
       }),
       criarMaterial({
         qtd: calculoVidro.areaBandeira,
         unidade: "m2",
         descricao: `VIDRO BANDEIRA 4 PEÇAS ${calculoVidro.larguraBandeiraMedida}X${calculoVidro.alturaBandeiraMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(),
-        valorUnitario: precoVidroJanela,
+        ...precoMaterialVidro(precoVidroJanela, `VIDRO BANDEIRA 4 PEÇAS ${calculoVidro.larguraBandeiraMedida}X${calculoVidro.alturaBandeiraMedida} ${dados.vidroJanelaBandeira}`.toUpperCase(), regraMedidaVidro),
       }),
     ];
 
@@ -1169,6 +1174,7 @@ useEffect(() => {
     dados.vidroPeitoril,
     precoVidroJanela,
     precoVidroPeitoril,
+    regraMedidaVidro,
   ]);
 
   useEffect(() => {
@@ -1902,7 +1908,8 @@ useEffect(() => {
                                         <div className="px-3 py-3 text-center" />
                                         <div className="px-3 py-3 text-right">Valor total</div>
                                       </div>
-                                      {materiaisOrdenados.map((item) => (
+                                      <AvisoAcrescimoVidro materiais={materiais} />
+                  {materiaisOrdenados.map((item) => (
                                         <div key={item.id} className="group relative grid min-h-9.25 min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs leading-none text-text-primary">
                                           <div className="px-3 py-2">
                                             <input

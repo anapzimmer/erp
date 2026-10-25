@@ -1,3 +1,4 @@
+import { aplicarAcrescimoPorMedida, type RegraMedidaVidro } from "./regraMedidaVidro";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 
 export type SacadaFrontalInput = {
@@ -6,6 +7,7 @@ export type SacadaFrontalInput = {
   quantidadeVaos: number;
   quantidadeDivisoesLargura: number;
   precoVidroM2?: number;
+  regraMedidaVidro?: RegraMedidaVidro;
   vidroDescricao?: string;
   isSacadaSuperior?: boolean;
   tipoSacada?: "panoramica" | "tubo";
@@ -80,7 +82,8 @@ export const calcularSacadaFrontal = ({
   alturaVaoMm,
   quantidadeVaos,
   quantidadeDivisoesLargura,
-  precoVidroM2 = 0,
+  precoVidroM2: precoVidroBaseM2 = 0,
+  regraMedidaVidro,
   vidroDescricao,
   isSacadaSuperior = false,
   tipoSacada = "panoramica",
@@ -108,6 +111,7 @@ export const calcularSacadaFrontal = ({
   const quantidadeTotalVidros = divisaoNormalizada * quantidadeNormalizada;
   const areaVidroPorPeca = (larguraVidroCalculoMm * alturaVidroCalculoMm) / 1_000_000;
   const areaTotalVidro = areaVidroPorPeca * quantidadeTotalVidros;
+  const precoVidroM2 = aplicarAcrescimoPorMedida(precoVidroBaseM2, larguraVidroMm, alturaVidroMm, regraMedidaVidro);
   const totalVidro = areaTotalVidro * precoVidroM2;
 
   const perfis: SacadaFrontalPerfil[] = tipoSacada === "tubo"

@@ -1,5 +1,7 @@
 //app/calculovidro/page.tsx
 "use client"
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { aplicarAcrescimoPorMedida as calcularAcrescimoMedida } from "@/utils/regraMedidaVidro";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -101,9 +103,9 @@ interface ModalAvisoAcao {
 // Funções de apoio
 const formatarMoeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const arredondar5cm = (valor: number) => Math.ceil(valor / 50) * 50;
-const LIMITE_MEDIDA_ACRESCIMO_MM = 3210;
+
 const LIMITE_MEDIDA_ALERTA_DIVISAO_MM = 3600;
-const PERCENTUAL_ACRESCIMO_MEDIDA = 0.07;
+
 const DEBUG_PRECO_VIDRO = true;
 const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
@@ -134,10 +136,6 @@ const distribuirValorIgual = (valorTotal: number, quantidadeItens: number) => {
   });
 };
 
-const aplicarAcrescimoPorMedida = (precoBaseM2: number, larguraMm: number, alturaMm: number) => {
-  const excedeuLimite = larguraMm > LIMITE_MEDIDA_ACRESCIMO_MM || alturaMm > LIMITE_MEDIDA_ACRESCIMO_MM;
-  return excedeuLimite ? precoBaseM2 * (1 + PERCENTUAL_ACRESCIMO_MEDIDA) : precoBaseM2;
-};
 
 const normalizarTextoComparacao = (valor: unknown) => {
   return String(valor || "")
@@ -238,6 +236,10 @@ const extrairMedida = (medida: string) => {
 };
 
 export default function RelatorioOrcamento() {
+  const { regra } = useRegraMedidaVidro();
+  const LIMITE_MEDIDA_ACRESCIMO_MM = regra.limite_mm;
+  const PERCENTUAL_ACRESCIMO_MEDIDA = regra.percentual / 100;
+  const aplicarAcrescimoPorMedida = (preco: number, largura: number, altura: number) => calcularAcrescimoMedida(preco, largura, altura, regra);
   const { theme } = useTheme();
   const { nomeEmpresa, user, empresaId, loading: checkingAuth } = useAuth()
   const carregadoRef = useRef(false);
@@ -452,7 +454,7 @@ export default function RelatorioOrcamento() {
       observacoesPreco.push(`Preco especial aplicado: ${obterNomeTabelaDoCliente(grupoIdDoCliente)}`);
     }
     if (excedeuLimiteMedida) {
-      observacoesPreco.push(`Acrescimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida acima de ${LIMITE_MEDIDA_ACRESCIMO_MM}mm`);
+      observacoesPreco.push(`Acrescimo de ${regra.percentual}% por medida acima de ${LIMITE_MEDIDA_ACRESCIMO_MM}mm`);
     }
 
     const observacaoPreco = observacoesPreco.length > 0 ? observacoesPreco.join(" | ") : undefined;
@@ -2220,7 +2222,7 @@ export default function RelatorioOrcamento() {
                         </p>
                         {precoComAcrescimo !== null && (
                           <p className="text-[10px] font-bold uppercase tracking-tighter text-warning">
-                            {`Com acréscimo de ${Math.round(PERCENTUAL_ACRESCIMO_MEDIDA * 100)}% por medida: ${formatarMoeda(precoComAcrescimo)} /m²`}
+                            {`Com acréscimo de ${regra.percentual}% por medida: ${formatarMoeda(precoComAcrescimo)} /m²`}
                           </p>
                         )}
                       </div>

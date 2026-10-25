@@ -1,4 +1,5 @@
 "use client"
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -204,6 +205,7 @@ const gerarDesenhoEspelhosUrl = (itens: any[]) => {
 };
 
 export default function CalculoEspelhosPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");  const centralItemId = searchParams.get("centralItem");
@@ -445,6 +447,7 @@ export default function CalculoEspelhosPage() {
     if (!largura || !altura) return vazio;
     try {
       return { ...calcularEspelho({
+        regraMedidaVidro,
         largura: Number(largura), altura: Number(altura), quantidade,
         precoVidroM2: precoDoVidro(vidro), acabamento: acabamento ?? null,
         divisoesLargura, divisoesAltura,
@@ -452,7 +455,7 @@ export default function CalculoEspelhosPage() {
     } catch (erro) {
       return { ...vazio, erro: erro instanceof Error ? erro.message : "Confira os dados do acabamento." };
     }
-  }, [largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura, catalogosCarregados, erroCatalogo, nomeCliente, clientesTabela, precosTabela]);
+  }, [regraMedidaVidro, largura, altura, quantidade, vidroId, acabamentoId, vidrosDB, acabamentosDB, divisoesLargura, divisoesAltura, catalogosCarregados, erroCatalogo, nomeCliente, clientesTabela, precosTabela]);
 
 
   const restaurarCamposItem = (item: any) => {

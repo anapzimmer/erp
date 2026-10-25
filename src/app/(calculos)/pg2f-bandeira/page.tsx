@@ -1,4 +1,7 @@
 ﻿"use client";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
@@ -199,6 +202,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  acrescimoMedida: parcial?.acrescimoMedida,
   perfilExtra: parcial?.perfilExtra,
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
@@ -305,6 +309,7 @@ export default function PG2FPage() {
   });
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
   const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
@@ -838,8 +843,8 @@ export default function PG2FPage() {
   const perfilBandeira = perfis.find(p => codigoPerfilBandeira && codigoFerragemCompativel(normalizarTexto(p.codigo), normalizarTexto(codigoPerfilBandeira)) && dados.corKit !== "Escolher" && corCatalogoCompativel(p.cores, dados.corKit));
   useEffect(() => {
     const novos: ProjetoIndividualMaterial[] = [...ferragensAutomaticas];
-    if (dados.vidro && dados.vidro !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaPortas, unidade: "m2", descricao: "VIDRO 2 PORTAS " + calculoVidro.larguraMedida + "x" + calculoVidro.alturaMedida + " " + dados.vidro, valorUnitario: precoVidroM2}));
-    if (dados.vidroBandeira && dados.vidroBandeira !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaBandeira, unidade: "m2", descricao: "VIDRO BANDEIRA ÚNICA " + calculoVidro.larguraBandeiraMedida + "x" + calculoVidro.alturaBandeiraMedida + " " + dados.vidroBandeira, valorUnitario: precoVidroBandeiraM2}));
+    if (dados.vidro && dados.vidro !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaPortas, unidade: "m2", descricao: "VIDRO 2 PORTAS " + calculoVidro.larguraMedida + "x" + calculoVidro.alturaMedida + " " + dados.vidro, ...precoMaterialVidro(precoVidroM2, "VIDRO 2 PORTAS " + calculoVidro.larguraMedida + "x" + calculoVidro.alturaMedida + " " + dados.vidro, regraMedidaVidro)}));
+    if (dados.vidroBandeira && dados.vidroBandeira !== "Escolher") novos.push(criarMaterial({qtd: calculoVidro.areaBandeira, unidade: "m2", descricao: "VIDRO BANDEIRA ÚNICA " + calculoVidro.larguraBandeiraMedida + "x" + calculoVidro.alturaBandeiraMedida + " " + dados.vidroBandeira, ...precoMaterialVidro(precoVidroBandeiraM2, "VIDRO BANDEIRA ÚNICA " + calculoVidro.larguraBandeiraMedida + "x" + calculoVidro.alturaBandeiraMedida + " " + dados.vidroBandeira, regraMedidaVidro)}));
     if (tuboSelecionado && dados.largura > 0) {
       const cortes = prepararCortesPorBarra(Array.from({length: Math.max(0, Math.floor(dados.quantidade))}, () => dados.largura), 6000);
       novos.push({...criarMaterial({qtd: calcularBarrasPorCortes(cortes,6000), unidade: "barra", descricao: tuboSelecionado.codigo + " - " + (tuboSelecionado.nome_completo || tuboSelecionado.nome) + " | " + tuboSelecionado.cores, valorUnitario: Number(tuboSelecionado.preco || 0)}), codigoPerfil: tuboSelecionado.codigo, comprimentoBarra: 6000, cortes, origemCalculo: "pg2f-bandeira:tubo"});
@@ -850,7 +855,7 @@ export default function PG2FPage() {
       novos.push({...criarMaterial({qtd: calcularBarrasPorCortes(cortes,6000), unidade: "barra", descricao: perfilBandeira.codigo + " - " + (perfilBandeira.nome_completo || perfilBandeira.nome) + " | " + perfilBandeira.cores, valorUnitario: Number(perfilBandeira.preco || 0)}), codigoPerfil: perfilBandeira.codigo, comprimentoBarra: 6000, cortes, origemCalculo: "pg2f-bandeira:perfil"});
     }
     setMateriais(lista => preservarPrecosOrcamento(lista, (() => mesclarMateriaisAutomaticos(lista.filter(i => i.perfilExtra || (!i.descricao.startsWith("VIDRO ") && i.origemCalculo !== "pg2f-bandeira:tubo" && i.origemCalculo !== "pg2f-bandeira:perfil")), novos, codigosItensAutomaticos))(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [perfilBandeira, dados.altura, dados.alturaAteTubo, ferragensAutomaticas, calculoVidro, dados.vidro, dados.vidroBandeira, dados.largura, dados.quantidade, tuboSelecionado, precoVidroM2, precoVidroBandeiraM2, codigosItensAutomaticos]);
+  }, [perfilBandeira, dados.altura, dados.alturaAteTubo, ferragensAutomaticas, calculoVidro, dados.vidro, dados.vidroBandeira, dados.largura, dados.quantidade, tuboSelecionado, precoVidroM2, precoVidroBandeiraM2, codigosItensAutomaticos, regraMedidaVidro]);
 
   const avisoConfiguracao = Number(dados.alturaAteTubo || 0) <= 12 || Number(dados.alturaAteTubo || 0) >= dados.altura - 25
     ? "Informe uma altura das portas menor que a altura total, deixando espaço para a bandeira."
@@ -1481,7 +1486,8 @@ export default function PG2FPage() {
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
-                        {materiaisOrdenados.map((item) => (
+                        <AvisoAcrescimoVidro materiais={materiais} />
+                  {materiaisOrdenados.map((item) => (
                           <div key={item.id} className="group relative grid min-w-[720px] grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
                             <div className="px-3 py-2.5">
                               <input

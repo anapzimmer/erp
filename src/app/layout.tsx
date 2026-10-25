@@ -9,6 +9,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ThemeLoader from "@/components/ThemeLoader";
 import SecurityProvider from "@/components/SecurityProvider";
 import PlatformAccessGate from "@/components/PlatformAccessGate";
+import { RegraMedidaVidroProvider } from "@/context/RegraMedidaVidroContext";
 import AppShell from "@/components/AppShell";
 
 const inter = localFont({
@@ -84,7 +85,7 @@ export default function RootLayout({
             <SecurityProvider>
               <AuthProvider>
                 <PlatformAccessGate>
-                  <AppShell>{children}</AppShell>
+                  <RegraMedidaVidroProvider><AppShell>{children}</AppShell></RegraMedidaVidroProvider>
                 </PlatformAccessGate>
               </AuthProvider>
             </SecurityProvider>

@@ -1,7 +1,7 @@
 import { descricaoVidroCompativel } from "./vidros";
 import { calcularEspelho, type ItemEspelhoSalvo } from "./calculoEspelhos";
 
-export type MaterialPreco = { id: string; descricao: string; qtd: number; valorUnitario: number; unidade: string; personalizadoCatalogo?: boolean };
+export type MaterialPreco = { acrescimoMedida?: import("./regraMedidaVidro").AcrescimoMedida; id: string; descricao: string; qtd: number; valorUnitario: number; unidade: string; personalizadoCatalogo?: boolean };
 type VidroOriginal = { descricao?: string; vidro_id?: string | number; medidaCalc?: string; precoVidroM2?: number; qtd?: number; total?: number; valorUnitario?: number; totalOriginal?: number; observacaoPreco?: string };
 export type ProjetoPreco = { id: string; projeto?: string; vidro?: string; precoVidroM2?: number; valorTotal?: number; materiais?: MaterialPreco[]; vidrosAvulsos?: Array<{ precoVidroM2?: number; valorTotal: number; areaCobradaM2?: number }>; itensOriginais?: VidroOriginal[]; espelhoItens?: ItemEspelhoSalvo[] };
 export type PrecoAtual = { id?: string; descricao: string; preco: number | null; vidro?: boolean; alternativas?: string[] };
@@ -24,7 +24,7 @@ export function compararPrecosOrcamento(projetos: ProjetoPreco[], avulsos: Mater
       ? /^(m2|m²)$/i.test(material.unidade) && descricaoVidroCompativel(separarMm(c.descricao), separarMm(material.descricao))
       : [c.descricao, ...(c.alternativas || [])].some(d => normalizar(d) === normalizar(material.descricao)));
     const encontrado = candidatos.length === 1 ? candidatos[0] : null;
-    const atual = !composto && encontrado?.preco != null && Number.isFinite(encontrado.preco) && encontrado.preco >= 0 ? encontrado.preco : null;
+    const atual = !composto && encontrado?.preco != null && Number.isFinite(encontrado.preco) && encontrado.preco >= 0 ? encontrado.preco * (encontrado.vidro ? (material.acrescimoMedida?.fator ?? 1) : 1) : null;
     linhas.push({ chave: `${projeto?.id || "avulsos"}:${material.id}`, projetoId: projeto?.id, materialId: material.id,
       descricao: material.descricao, anterior: material.valorUnitario, atual, quantidade: material.qtd,
       motivo: composto ? "Item composto: manter preço e revisar no cálculo de origem."

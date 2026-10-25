@@ -43,6 +43,7 @@ export interface ItemPinazioPDF {
 }
 
 interface PinazioPDFProps {
+  avisosMedida?: string[];
   itens: ItemPinazioPDF[];
   nomeEmpresa: string;
   numeroOrcamento?: string;
@@ -275,6 +276,7 @@ const styles = StyleSheet.create({
 });
 
 export function PinazioPDF({
+  avisosMedida = [],
   itens,
   nomeEmpresa,
   logoUrl,
@@ -490,6 +492,7 @@ export function PinazioPDF({
           </View>
         </View>
 
+        {(avisosMedida).map(aviso => <Text key={aviso} style={{ fontSize: 7, color: "#416F88", marginTop: 5 }}>{aviso}</Text>)}
         <Text
           style={styles.footer}
           render={({ pageNumber, totalPages }) =>

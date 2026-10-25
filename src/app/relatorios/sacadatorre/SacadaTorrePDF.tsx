@@ -8,6 +8,7 @@ import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividu
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 type SacadaTorrePDFProps = {
+  avisosMedida?: string[];
   nomeEmpresa: string;
   logoUrl?: string | null;
   tituloDocumento?: string;
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
 });
 
 export function SacadaTorrePDF({
+  avisosMedida = [],
   nomeEmpresa,
   logoUrl,
   tituloDocumento = "Orçamento Sacada com Torre",
@@ -322,6 +324,7 @@ const casasQtd =
           </View>
         </View>
 
+        {(avisosMedida).map(aviso => <Text key={aviso} style={{ fontSize: 7, color: "#416F88", marginTop: 5 }}>{aviso}</Text>)}
         <Text
           style={styles.footer}
           fixed

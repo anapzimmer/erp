@@ -1,4 +1,8 @@
 "use client";
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
@@ -538,6 +542,7 @@ const obterFaixaKitSacada = (larguraVaoMm: number) => {
 };
 
 export default function CalculoFechamentoSacadaPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const searchParams = useSearchParams();
@@ -944,6 +949,7 @@ export default function CalculoFechamentoSacadaPage() {
 
   const resultadoInferior = useMemo(
     () => calcularSacadaFrontal({
+        regraMedidaVidro,
       larguraVaoMm: larguraNumero,
       alturaVaoMm: alturaInferiorNumero,
       quantidadeVaos: quantidadeNumero,
@@ -951,11 +957,12 @@ export default function CalculoFechamentoSacadaPage() {
       precoVidroM2: precoVidroM2Inferior,
       vidroDescricao: montarDescricaoVidro(vidroSelecionadoInferior),
     }),
-    [alturaInferiorNumero, larguraNumero, quantidadeDivisoesInferiorNumero, quantidadeNumero, precoVidroM2Inferior, vidroSelecionadoInferior]
+    [regraMedidaVidro, alturaInferiorNumero, larguraNumero, quantidadeDivisoesInferiorNumero, quantidadeNumero, precoVidroM2Inferior, vidroSelecionadoInferior]
   );
 
   const resultadoSuperior = useMemo(
     () => calcularSacadaFrontal({
+        regraMedidaVidro,
       larguraVaoMm: larguraNumero,
       alturaVaoMm: alturaSuperiorNumero,
       quantidadeVaos: quantidadeNumero,
@@ -964,7 +971,7 @@ export default function CalculoFechamentoSacadaPage() {
       vidroDescricao: montarDescricaoVidro(vidroSelecionadoSuperior),
       isSacadaSuperior: true,
     }),
-    [alturaSuperiorNumero, larguraNumero, quantidadeDivisoesSuperiorNumero, quantidadeNumero, precoVidroM2Superior, vidroSelecionadoSuperior]
+    [regraMedidaVidro, alturaSuperiorNumero, larguraNumero, quantidadeDivisoesSuperiorNumero, quantidadeNumero, precoVidroM2Superior, vidroSelecionadoSuperior]
   );
 
   const resultado = resultadoInferior;
@@ -1305,14 +1312,14 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       qtd: resultadoInferior.areaTotalVidro,
       unidade: "m2",
       descricao: `VIDRO INFERIOR ${resultadoInferior.larguraVidroMm}x${resultadoInferior.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionadoInferior)}`.toUpperCase(),
-      valorUnitario: precoVidroM2Inferior,
+      ...precoMaterialVidro(precoVidroM2Inferior, `${resultadoInferior.larguraVidroMm}x${resultadoInferior.alturaVidroMm}`, regraMedidaVidro),
     },
     {
       id: "vidro-fechamento-superior",
       qtd: resultadoSuperior.areaTotalVidro,
       unidade: "m2",
       descricao: `VIDRO SUPERIOR ${resultadoSuperior.larguraVidroMm}x${resultadoSuperior.alturaVidroMm} ${montarDescricaoVidro(vidroSelecionadoSuperior)}`.toUpperCase(),
-      valorUnitario: precoVidroM2Superior,
+      ...precoMaterialVidro(precoVidroM2Superior, `${resultadoSuperior.larguraVidroMm}x${resultadoSuperior.alturaVidroMm}`, regraMedidaVidro),
     },
     ...perfisComPrecoTabela.map((perfil) => {
       const cortes = prepararCortesPorBarra(perfil.cortes || (perfil.comprimentoTotal ? [Number(perfil.comprimentoTotal)] : []), 6000);
@@ -1619,6 +1626,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               <PDFDownloadLink
                 document={
                   <SacadaFrontalPDF
+                      avisosMedida={avisosAcrescimoVidro({ materiais: montarMateriaisCentral() })}
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
@@ -1919,7 +1927,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-190 text-sm">
+                <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={[resultadoInferior, resultadoSuperior].filter(r => r.totalVidro > 0).map(r => ({ largura: r.larguraVidroMm, altura: r.alturaVidroMm }))} />
+                  <table className="w-full min-w-190 text-sm">
                   <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                     <tr>
                       <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>

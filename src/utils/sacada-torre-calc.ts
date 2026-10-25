@@ -1,3 +1,4 @@
+import { aplicarAcrescimoPorMedida, type RegraMedidaVidro } from "./regraMedidaVidro";
 export type SacadaTorreInput = {
   larguraVaoMm: number;
   alturaVaoMm: number;
@@ -5,6 +6,7 @@ export type SacadaTorreInput = {
   quantidadeDivisoesLargura: number;
   quantidadeTorresPorVidro: number;
   precoVidroM2?: number;
+  regraMedidaVidro?: RegraMedidaVidro;
   vidroDescricao?: string;
   torreCodigo?: string;
   torreNome?: string;
@@ -67,7 +69,8 @@ export const calcularSacadaTorre = ({
   quantidadeVaos,
   quantidadeDivisoesLargura,
   quantidadeTorresPorVidro,
-  precoVidroM2 = 0,
+  precoVidroM2: precoVidroBaseM2 = 0,
+  regraMedidaVidro,
   vidroDescricao,
   torreCodigo = "",
   torreNome = "Torre",
@@ -92,6 +95,7 @@ export const calcularSacadaTorre = ({
   const quantidadeGrapas = quantidadeGrapas3019 + quantidadeGrapas1305;
   const areaVidroPorPeca = (larguraVidroCalculoMm * alturaVidroCalculoMm) / 1_000_000;
   const areaTotalVidro = areaVidroPorPeca * quantidadeTotalVidros;
+  const precoVidroM2 = aplicarAcrescimoPorMedida(precoVidroBaseM2, larguraVidroMm, alturaVidroMm, regraMedidaVidro);
   const totalVidro = areaTotalVidro * precoVidroM2;
 
   const acessorios: SacadaTorreAcessorio[] = [

@@ -1,5 +1,9 @@
 //app/(calculos)/sacadafrontal/page.tsx
 "use client";
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
@@ -293,6 +297,7 @@ const resolverFerragemPorCodigoECor = (
 };
 
 export default function CalculoSacadaFrontalPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const searchParams = useSearchParams();
@@ -617,6 +622,7 @@ export default function CalculoSacadaFrontalPage() {
 
   const resultado = useMemo(
     () => calcularSacadaFrontal({
+        regraMedidaVidro,
       larguraVaoMm: larguraNumero,
       alturaVaoMm: alturaNumero,
       quantidadeVaos: quantidadeNumero,
@@ -625,7 +631,7 @@ export default function CalculoSacadaFrontalPage() {
       vidroDescricao: montarDescricaoVidro(vidroSelecionado),
       tipoSacada,
     }),
-    [alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, tipoSacada, vidroSelecionado]
+    [regraMedidaVidro, alturaNumero, larguraNumero, quantidadeDivisoesNumero, quantidadeNumero, precoVidroM2Efetivo, tipoSacada, vidroSelecionado]
   );
 
   const corPerfilSelecionada = Boolean(normalizarTextoComparacao(corPerfil));
@@ -808,7 +814,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
       qtd: resultado.areaTotalVidro,
       unidade: "m2",
       descricao: `VIDRO ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
-      valorUnitario: precoVidroM2Efetivo,
+      ...precoMaterialVidro(precoVidroM2Efetivo, `${resultado.larguraVidroMm}x${resultado.alturaVidroMm}`, regraMedidaVidro),
       medida: `${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`,
       vidroDescricao: montarDescricaoVidro(vidroSelecionado).toUpperCase(),
     },
@@ -1099,6 +1105,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
               <PDFDownloadLink
                 document={
                   <SacadaFrontalPDF
+                      avisosMedida={avisosAcrescimoVidro({ materiais: montarMateriaisCentral() })}
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
@@ -1349,7 +1356,8 @@ const acessoriosComPrecoTabela = useMemo(() => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-190 text-sm">
+                {resultado.totalVidro > 0 && <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={[{ largura: resultado.larguraVidroMm, altura: resultado.alturaVidroMm }]} />}
+                  <table className="w-full min-w-190 text-sm">
                   <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                     <tr>
                       <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Perfil</th>

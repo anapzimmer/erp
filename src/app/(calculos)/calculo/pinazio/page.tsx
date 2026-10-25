@@ -1,4 +1,8 @@
 "use client"
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { aplicarAcrescimoPorMedida, precoMaterialVidro } from "@/utils/regraMedidaVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -165,6 +169,7 @@ const calcularMetroLinearPinazio = (
 };
 
 export default function CalculoPinazioPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
@@ -555,7 +560,7 @@ export default function CalculoPinazioPage() {
     const lCalc = Math.ceil(lOriginal / 50) * 50;
     const aCalc = Math.ceil(aOriginal / 50) * 50;
     const areaVidroM2 = (lCalc * aCalc) / 1_000_000;
-    const precoVidroAplicado = obterPrecoVidro(vidro);
+    const precoVidroAplicado = aplicarAcrescimoPorMedida(obterPrecoVidro(vidro), lOriginal, aOriginal, regraMedidaVidro);
     const valorVidroUnitario = areaVidroM2 * precoVidroAplicado;
 
     // As divisões são usadas apenas para calcular as linhas internas do Pinázio.
@@ -589,13 +594,14 @@ export default function CalculoPinazioPage() {
       metroLinearPinazioUnitario: metroLinearUnitario,
       precoMetroPinazio: precoMetroInformado,
       precoVidroAplicado,
+      acrescimoMedida: precoMaterialVidro(obterPrecoVidro(vidro), `${lOriginal}x${aOriginal}`, regraMedidaVidro).acrescimoMedida,
       valorVidroUnitario,
       valorPinazioUnitario,
       valorVidro: valorVidroTotal,
       valorPinazio: valorPinazioTotal,
       total: valorItemTotal,
     };
-  }, [
+  }, [regraMedidaVidro,
     largura,
     altura,
     quantidade,
@@ -662,6 +668,7 @@ export default function CalculoPinazioPage() {
       designUrl: desenhoUrl,
       desenhoUrl,
       precoVidroAplicado: calculoAtual.precoVidroAplicado,
+      acrescimoMedida: calculoAtual.acrescimoMedida,
       clienteId: clienteSelecionadoId || null,
       clienteNome: nomeCliente || "",
       valorVidro: calculoAtual.valorVidro,
@@ -721,6 +728,7 @@ export default function CalculoPinazioPage() {
           : item.pinazioNome || "Pinázio";
 
       const materialVidro = {
+        acrescimoMedida: item.acrescimoMedida,
         id: criarId(),
         qtd: Number(areaItem.toFixed(3)),
         unidade: "m2",
@@ -1341,6 +1349,7 @@ export default function CalculoPinazioPage() {
                     Composição do item
                   </p>
 
+                  {calculoAtual.valorVidro > 0 && <AvisoAcrescimoVidro regras={[calculoAtual.acrescimoMedida]} />}
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
                     <span>
                       Vidro:{" "}
@@ -1698,6 +1707,7 @@ export default function CalculoPinazioPage() {
                 <PDFDownloadLink
                   document={
                     <PinazioPDF
+                      avisosMedida={avisosAcrescimoVidro({ regras: listaItens.map(item => item.acrescimoMedida) })}
                       itens={listaItens}
                       nomeEmpresa={nomeEmpresa}
                       logoUrl={theme.logoLightUrl || '/glasscode-light.png'}

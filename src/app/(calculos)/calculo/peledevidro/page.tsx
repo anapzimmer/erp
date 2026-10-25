@@ -1,5 +1,9 @@
 //app/calculo/peledevidro/page.tsx
 "use client";
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -84,6 +88,7 @@ const montarDescricaoVidro = (vidro?: Vidro | null) => {
 };
 
 export default function CalculoPeleDeVidroPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const searchParams = useSearchParams();
@@ -324,6 +329,7 @@ export default function CalculoPeleDeVidroPage() {
   const resultado = useMemo(() => {
     
     const res = calcularPeleDeVidro({
+      regraMedidaVidro,
       larguraVaoMm: larguraNum,
       alturaVaoMm: alturaNum,
       quadrosHorizontal: qH,
@@ -396,7 +402,7 @@ export default function CalculoPeleDeVidroPage() {
       perfis: perfisCompletos,
       acessorios: acessoriosCompletos,
     };
-  }, [larguraNum, alturaNum, qH, qV, lajes, fachadas, fixosAuto, moveis, precoVidroM2Efetivo, perfisDb, acessoriosDb, meiasColunasAuto, colunasCentroAuto, totalQuadrosAuto]);
+  }, [regraMedidaVidro, larguraNum, alturaNum, qH, qV, lajes, fachadas, fixosAuto, moveis, precoVidroM2Efetivo, perfisDb, acessoriosDb, meiasColunasAuto, colunasCentroAuto, totalQuadrosAuto]);
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
@@ -658,7 +664,7 @@ export default function CalculoPeleDeVidroPage() {
       qtd: resultado.areaVidro,
       unidade: "m2",
       descricao: `VIDRO ${formatarNumero(resultado.larguraQuadroMm, 0)}x${formatarNumero(resultado.alturaQuadroMm, 0)} ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
-      valorUnitario: precoVidroM2Efetivo,
+      ...precoMaterialVidro(precoVidroM2Efetivo, `${resultado.larguraQuadroMm}x${resultado.alturaQuadroMm}`, regraMedidaVidro),
     },
     ...perfisPDF.map((perfil) => {
       const cortes = prepararCortesPorBarra(perfil.metroLinear ? [Number(perfil.metroLinear)] : [], 6000);
@@ -866,6 +872,7 @@ export default function CalculoPeleDeVidroPage() {
                 <PDFDownloadLink
                   document={
                     <PeleDeVidroPDF
+                      avisosMedida={avisosAcrescimoVidro({ materiais: montarMateriaisCentral() })}
                       nomeEmpresa={nomeEmpresa}
                       logoUrl={theme.logoLightUrl || undefined}
                       themeColor={theme.contentTextLightBg}
@@ -1134,6 +1141,7 @@ export default function CalculoPeleDeVidroPage() {
                   <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Barras de 6000 mm. {lajes > 0 ? `Multiplicado por ${lajes} laje(s).` : "Térreo (sem multiplicador de lajes)."}</p>
                 </div>
                 <div className="overflow-x-auto">
+                  {resultado.valorVidro > 0 && <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={[{ largura: resultado.larguraQuadroMm, altura: resultado.alturaQuadroMm }]} />}
                   <table className="w-full min-w-[600px] text-sm">
                     <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                       <tr>

@@ -38,6 +38,7 @@ interface AcessorioPDF {
 }
 
 interface PeleDeVidroPDFProps {
+  avisosMedida?: string[];
   nomeEmpresa: string;
   logoUrl?: string | null;
   themeColor: string;
@@ -571,6 +572,7 @@ export function PeleDeVidroPDF(props: PeleDeVidroPDFProps) {
             <Text style={styles.totalValueStrong}>{fmtMoeda(props.totalGeral)}</Text>
           </View>
         </View>
+        {(props.avisosMedida || []).map(aviso => <Text key={aviso} style={{ fontSize: 7, color: "#416F88", marginTop: 5 }}>{aviso}</Text>)}
         <Text
           style={styles.footer}
           fixed

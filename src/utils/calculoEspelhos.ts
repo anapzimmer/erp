@@ -1,3 +1,4 @@
+import { REGRA_MEDIDA_PADRAO, aplicarAcrescimoPorMedida, type RegraMedidaVidro } from "./regraMedidaVidro";
 export type RegraAcabamentoEspelho = {
   id: string | number;
   empresa_id?: string;
@@ -13,6 +14,7 @@ export type RegraAcabamentoEspelho = {
 };
 
 export type EntradaEspelho = {
+  regraMedidaVidro?: RegraMedidaVidro;
   largura: number;
   altura: number;
   quantidade: number;
@@ -62,7 +64,8 @@ export function calcularEspelho(entrada: EntradaEspelho) {
   const m2 = larguraCobrada * alturaCobrada * pecas / 1_000_000;
   // Metragem comercial: soma de 2 × (largura + altura) de cada peça, sem sobras.
   const metrosLineares = 2 * (larguraPeca + alturaPeca) * pecas / 1000;
-  const valorVidro = moeda(m2 * precoVidroM2);
+  const precoVidroComMedida = aplicarAcrescimoPorMedida(precoVidroM2, larguraPeca, alturaPeca, entrada.regraMedidaVidro);
+  const valorVidro = moeda(m2 * precoVidroComMedida);
   let baseAcabamento = 0;
   let precoAcabamento = regra?.preco ?? 0;
   if (regra) {
@@ -84,7 +87,7 @@ export function calcularEspelho(entrada: EntradaEspelho) {
     memoriaCalculo: {
       versao: 1 as const,
       arredondamentoMm: 50,
-      entrada: { largura, altura, quantidade, precoVidroM2, acabamento: regra, divisoesLargura: divL, divisoesAltura: divA },
+      entrada: { regraMedidaVidro: entrada.regraMedidaVidro ?? REGRA_MEDIDA_PADRAO, largura, altura, quantidade, precoVidroM2, acabamento: regra, divisoesLargura: divL, divisoesAltura: divA },
       larguraPeca, alturaPeca, larguraCobrada, alturaCobrada,
       m2, metrosLineares, quantidadePecas: pecas, baseAcabamento,
       valorVidro, valorAcabamento, valorJato, valorAdesivo, total,

@@ -39,6 +39,7 @@ interface AcessorioPDF {
 }
 
 interface SacadaFrontalPDFProps {
+  avisosMedida?: string[];
   nomeEmpresa: string;
   logoUrl?: string | null;
   themeColor: string;
@@ -294,6 +295,7 @@ const styles = StyleSheet.create({
 });
 
 export function SacadaFrontalPDF({
+  avisosMedida = [],
   nomeEmpresa,
   logoUrl,
   tituloDocumento = "Orçamento Sacada Panorâmica",
@@ -825,6 +827,7 @@ export function SacadaFrontalPDF({
           </View>
         </View>
 
+        {(avisosMedida).map(aviso => <Text key={aviso} style={{ fontSize: 7, color: "#416F88", marginTop: 5 }}>{aviso}</Text>)}
         <Text
           style={styles.footer}
           fixed

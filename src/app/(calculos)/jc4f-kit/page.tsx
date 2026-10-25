@@ -1,4 +1,7 @@
 ﻿"use client";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
@@ -205,6 +208,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  acrescimoMedida: parcial?.acrescimoMedida,
   perfilExtra: parcial?.perfilExtra,
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
@@ -309,6 +313,7 @@ export default function JC4FKitPage() {
   });
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
   const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
@@ -948,13 +953,13 @@ export default function JC4FKitPage() {
           qtd: calculo.areaFixa,
           unidade: "m2",
           descricao: `VIDRO FIXO ${calculo.larguraFixaMedida}x${calculo.alturaFixaMedida} ${vidroNome.toUpperCase()}`,
-          valorUnitario: precoVidro,
+          ...precoMaterialVidro(precoVidro, `VIDRO FIXO ${calculo.larguraFixaMedida}x${calculo.alturaFixaMedida} ${vidroNome.toUpperCase()}`, regraMedidaVidro),
         }),
         criarMaterial({
           qtd: calculo.areaMovel,
           unidade: "m2",
           descricao: `VIDRO MOVEL ${calculo.larguraMovelMedida}x${calculo.alturaMovelMedida} ${vidroNome.toUpperCase()}`,
-          valorUnitario: precoVidro,
+          ...precoMaterialVidro(precoVidro, `VIDRO MOVEL ${calculo.larguraMovelMedida}x${calculo.alturaMovelMedida} ${vidroNome.toUpperCase()}`, regraMedidaVidro),
         })
       );
     }
@@ -997,7 +1002,7 @@ export default function JC4FKitPage() {
     });
 
     return lista;
-  }, [buscarFerragemPorCodigoECor, calcularVidroProjeto, precoVidroPorNome, selecionarKitParaDados]);
+  }, [buscarFerragemPorCodigoECor, calcularVidroProjeto, precoVidroPorNome, selecionarKitParaDados, regraMedidaVidro]);
 
   const codigosFerragensAutomaticas = useMemo(
     () => [
@@ -1102,19 +1107,19 @@ export default function JC4FKitPage() {
         qtd: calculoVidro.areaFixa,
         unidade: "m2",
         descricao: descricaoVidroFixo,
-        valorUnitario: precoVidroM2,
+        ...precoMaterialVidro(precoVidroM2, descricaoVidroFixo, regraMedidaVidro),
       });
 
       const vidroMovel = criarMaterial({
         qtd: calculoVidro.areaMovel,
         unidade: "m2",
         descricao: descricaoVidroMovel,
-        valorUnitario: precoVidroM2,
+        ...precoMaterialVidro(precoVidroM2, descricaoVidroMovel, regraMedidaVidro),
       });
 
       return [vidroFixo, vidroMovel, ...semVidrosAutomaticos];
     })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2]);
+  }, [calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, precoVidroM2, regraMedidaVidro]);
 
   useEffect(() => {
     setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
@@ -1901,7 +1906,8 @@ const novoProjeto = () => {
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
-                        {materiaisOrdenados.map((item) => (
+                        <AvisoAcrescimoVidro materiais={materiais} />
+                  {materiaisOrdenados.map((item) => (
                           <div key={item.id} className="group relative grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
                             <div className="px-3 py-2.5">
                               <input

@@ -1897,6 +1897,10 @@ export default function CentralImpressaoPage() {
 
   const atualizarItem = <K extends keyof ProjetoComposicao>(id: string, campo: K, valor: ProjetoComposicao[K]) => {
     const atual = itens.find(item => item.id === id);
+    if (atual && ["largura", "altura", "alturaTotal", "quantidade"].includes(String(campo))) {
+      setMensagem("Use Editar para alterar as medidas ou a quantidade e recalcular as peças, incluindo o acréscimo por tamanho do vidro.");
+      return;
+    }
     if (atual && (/^espelhos?/i.test(atual.projeto || "") || atual.espelhoItens?.length)
       && ["valorTotal", "largura", "altura", "quantidade", "vidro", "trilho", "puxador", "tamanhoPuxador", "vidrosAvulsos", "materiais"].includes(String(campo))) {
       setMensagem("Use Editar para alterar as medidas, o vidro ou o acabamento deste espelho e recalcular o valor.");
@@ -1962,7 +1966,7 @@ export default function CentralImpressaoPage() {
     const valorVidroAvulsoAtualizado = (vidro: NonNullable<ProjetoComposicao["vidrosAvulsos"]>[number], item: ProjetoComposicao, index: number) => {
 
       const area = obterAreaCobradaVidro(vidro, item, index);
-      return area * precoVidroSelecionado * (item.molde ? 1.3 : 1);
+      return area * precoVidroSelecionado * (vidro.acrescimoMedida?.fator ?? 1) * (item.molde ? 1.3 : 1);
     };
 
     let itensNovoVidro: ProjetoComposicao[];
@@ -1980,7 +1984,7 @@ export default function CentralImpressaoPage() {
             : material.descricao,
           vidroDescricao: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? novoVidro
             : material.vidroDescricao,
-          valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado
+          valorUnitario: ehMaterialDeVidro(material) && deveTrocarVidro(material.descricao) ? precoVidroSelecionado * (material.acrescimoMedida?.fator ?? 1)
             : material.valorUnitario,
         }));
         const vidrosAvulsosAtualizados = item.vidrosAvulsos?.map((vidro, index) => {
@@ -1990,7 +1994,7 @@ export default function CentralImpressaoPage() {
             ...vidro,
             id: criarId(),
             vidro: novoVidro,
-            precoVidroM2: precoVidroSelecionado,
+            precoVidroM2: precoVidroSelecionado * (vidro.acrescimoMedida?.fator ?? 1),
             areaCobradaM2: obterAreaCobradaVidro(vidro, item, index),
             valorTotal: valorVidroAvulsoAtualizado(vidro, item, index),
           };

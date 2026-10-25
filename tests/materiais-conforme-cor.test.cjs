@@ -9,7 +9,7 @@ function carregar(arquivo) {
   }).outputText;
   const modulo = { exports: {} };
   new Function('require', 'module', 'exports', codigo)(nome => carregar(
-    path.resolve(__dirname, '../src', nome.replace('@/', '') + '.ts')
+    nome.startsWith('@/') ? path.resolve(__dirname, '../src', nome.slice(2) + '.ts') : path.resolve(path.dirname(arquivo), nome + '.ts')
   ), modulo, modulo.exports);
   return modulo.exports;
 }

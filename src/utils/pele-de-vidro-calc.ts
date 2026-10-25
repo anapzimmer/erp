@@ -1,3 +1,4 @@
+import { aplicarAcrescimoPorMedida, type RegraMedidaVidro } from "./regraMedidaVidro";
 //app/utils/pele-de-vidro-calc.ts
 import { processarFormula } from "./formula-parser";
 
@@ -10,6 +11,7 @@ export type PeleDeVidroInput = {
   quantidadeFachadas?: number;
   quadrosFixos?: number;
   quadrosMoveis?: number;
+  regraMedidaVidro?: RegraMedidaVidro;
   precoVidroM2: number;
   perfisDb?: any[];
   acessoriosDb?: any[];
@@ -260,7 +262,8 @@ const kgTotal = Number((kgmtNum * comprimentoBarra * barras).toFixed(3));
   const areaVidro = Number(
     (larguraMCalc * alturaMCalc * totalQuadros).toFixed(3),
   );
-  const valorVidro = Number((areaVidro * precoVidroM2).toFixed(2));
+  const precoVidroEfetivo = aplicarAcrescimoPorMedida(precoVidroM2, larguraQuadroMm, alturaQuadroMm, input.regraMedidaVidro);
+  const valorVidro = Number((areaVidro * precoVidroEfetivo).toFixed(2));
   const totalGeral = Number(
     (totalPerfis + totalAcessorios + valorVidro).toFixed(2),
   );

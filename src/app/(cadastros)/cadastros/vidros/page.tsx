@@ -2,6 +2,7 @@
 
 "use client"
 
+import { chapasDisponiveisVidro, normalizarChapas } from "@/utils/chapasVidro";
 import { formatarNomePadrao } from "@/utils/formatarNome";
 import { useEffect, useState, useCallback, useRef } from "react"
 import { DRAWING_COLORS } from "@/design/drawing";
@@ -22,7 +23,7 @@ import ImportarTabelaVidrosModal from "@/components/ImportarTabelaVidrosModal"
 import CadastrosAvisoModal from "@/components/CadastrosAvisoModal"
 
 // --- Tipagens ---
-type Vidro = { id: string; codigo: string | null; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
+type Vidro = { chapas?: import("@/utils/regraMedidaVidro").ChapaVidro[]; id: string; codigo: string | null; nome: string; espessura: string; tipo: string; preco: number; empresa_id: string; }
 type PrecoGrupo = { id: string; vidro_id: string; grupo_preco_id: string; preco: number; grupo_nome?: string }
 type Grupo = { id: string; nome: string }
 type MenuItem = { nome: string; rota: string; icone: any; submenu?: { nome: string; rota: string }[] }
@@ -93,6 +94,7 @@ export default function VidrosPage() {
   const [vidros, setVidros] = useState<Vidro[]>([])
   const [grupos, setGrupos] = useState<Grupo[]>([])
   const [novoVidro, setNovoVidro] = useState<Omit<Vidro, "id" | "empresa_id">>({ codigo: "", nome: "", espessura: "", tipo: "", preco: 0 })
+  const chapasFormulario = novoVidro.chapas?.length ? novoVidro.chapas : chapasDisponiveisVidro(novoVidro);
   const [editando, setEditando] = useState<Vidro | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -528,6 +530,9 @@ useEffect(() => {
   const salvarVidro = async () => {
     if (!novoVidro.nome.trim() || !novoVidro.espessura.trim() || !novoVidro.tipo.trim()) { setModalAviso({ titulo: "Atenção", mensagem: "Preencha todos os campos obrigatórios." }); return }
     if (!empresaId) return;
+    if ((novoVidro.chapas || []).some(c => !Number.isFinite(c.largura_mm) || !Number.isFinite(c.altura_mm) || c.largura_mm <= 0 || c.altura_mm <= 0)) {
+      setModalAviso({ titulo: "Atenção", mensagem: "Informe largura e altura positivas para cada chapa." }); return;
+    }
     setCarregando(true)
 
     const vidroPadronizado = {
@@ -536,6 +541,7 @@ useEffect(() => {
       tipo: formatarTipoVidro(novoVidro.tipo),
       espessura: padronizarEspessura(novoVidro.espessura),
       preco: Number(novoVidro.preco),
+      chapas: normalizarChapas(chapasFormulario),
       empresa_id: empresaId
     }
 
@@ -588,13 +594,38 @@ useEffect(() => {
 
   const abrirModalParaEdicao = async (vidro: Vidro) => {
     setEditando(vidro);
-    setNovoVidro({ codigo: vidro.codigo || "", nome: vidro.nome, espessura: vidro.espessura, tipo: vidro.tipo, preco: vidro.preco });
+    setNovoVidro({ codigo: vidro.codigo || "", nome: vidro.nome, espessura: vidro.espessura, tipo: vidro.tipo, preco: vidro.preco, chapas: vidro.chapas });
     const { data } = await supabase.from("vidro_precos_grupos").select("*, grupo:tabelas(nome)").eq("vidro_id", vidro.id)
     const precosFormatados = (data || []).map((p: any) => ({ id: p.id, vidro_id: p.vidro_id, grupo_preco_id: p.grupo_preco_id, preco: Number(p.preco) || 0, grupo_nome: p.grupo?.nome || "" }))
     setPrecosGruposModal(precosFormatados);
     setMostrarModal(true);
   }
   const abrirModalParaNovo = () => { setEditando(null); setNovoVidro({ codigo: "", nome: "", espessura: "", tipo: "", preco: 0 }); setPrecosGruposModal([]); setMostrarModal(true); }
+
+  const cadastrarChapasPlanilha = async () => {
+    if (!empresaId || carregando) return;
+    setModalAviso(null);
+    setCarregando(true);
+    let salvos = 0;
+    try {
+      // Consulta atual antes de gravar; ignora chapas já personalizadas.
+      const { data, error } = await supabase.from("vidros").select("id,nome,tipo,espessura,chapas").eq("empresa_id", empresaId);
+      if (error) throw error;
+      for (const vidro of data || []) {
+        if (Array.isArray(vidro.chapas) && vidro.chapas.length) continue;
+        const { data: atualizados, error: erroSalvar } = await supabase.from("vidros")
+          .update({ chapas: chapasDisponiveisVidro(vidro) })
+          .eq("id", vidro.id).eq("empresa_id", empresaId)
+          .or("chapas.is.null,chapas.eq.[]").select("id");
+        if (erroSalvar) throw erroSalvar;
+        salvos += atualizados?.length || 0;
+      }
+      await carregarDados();
+      setModalAviso({ titulo: "Chapas cadastradas", mensagem: `${salvos} vidro(s) preenchido(s). Medidas personalizadas foram preservadas.`, tipo: "sucesso" });
+    } catch {
+      setModalAviso({ titulo: "Cadastro não concluído", mensagem: `${salvos} vidro(s) salvo(s). Confira se a atualização de chapas foi instalada e tente novamente. Os registros já preenchidos serão preservados.`, tipo: "erro" });
+    } finally { setCarregando(false); }
+  };
 
   const calcularPrecoMedio = () => { if (vidros.length === 0) return "R$ 0,00"; const total = vidros.reduce((acc, v) => acc + v.preco, 0); return formatarPreco(total / vidros.length) }
   const getMaisProcurados = () => vidros.slice(0, 1).map(v => v.nome).join(", ") || "-"
@@ -782,6 +813,8 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                     }
                   </PDFDownloadLink>
                 )}
+
+                <button type="button" disabled={carregando} onClick={() => setModalAviso({ titulo: "Cadastrar medidas de chapas", mensagem: "Preencher os vidros desta empresa usando as medidas da planilha e 3210 × 2200 mm nos demais. Chapas já preenchidas serão preservadas. Preços e estoque não serão alterados.", confirmar: () => { void cadastrarChapasPlanilha(); }, tipo: "aviso" })} className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text-primary transition hover:bg-surface-secondary disabled:opacity-50">Cadastrar chapas</button>
 
                 <button
                   onClick={exportarCSV}
@@ -1206,6 +1239,16 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                       </div>
                     </div>
                   </div>
+                </section>
+
+                <section className="rounded-3xl border border-border bg-surface p-5">
+                  <h3 className="font-semibold">Chapas disponíveis</h3>
+                  <p className="my-2 text-xs text-text-secondary">Medidas da planilha de chapas, em milímetros. Largura é a maior medida; altura é a menor. Sem correspondência, usamos 3210 × 2200 mm. Você pode ajustar os tamanhos abaixo.</p>
+                  {chapasFormulario.map((chapa, indice) => <div key={indice} className="my-2 flex flex-wrap items-end gap-3">
+                    {(["largura_mm", "altura_mm"] as const).map(campo => <label key={campo} className="text-sm">{campo === "largura_mm" ? "Largura (mm)" : "Altura (mm)"}<input type="number" min="1" className="block w-36 rounded-lg border border-border bg-surface p-2" value={chapa[campo] || ""} onChange={e => setNovoVidro({ ...novoVidro, chapas: chapasFormulario.map((c, i) => i === indice ? { ...c, [campo]: Number(e.target.value) } : c) })}/></label>)}
+                    <button type="button" className="p-2 text-danger" onClick={() => setNovoVidro({ ...novoVidro, chapas: chapasFormulario.filter((_, i) => i !== indice) })}>Remover</button>
+                  </div>)}
+                  <button type="button" className="mt-2 rounded-lg border border-border px-3 py-2 text-sm" onClick={() => setNovoVidro({ ...novoVidro, chapas: [...chapasFormulario, { largura_mm: 0, altura_mm: 0 }] })}>Adicionar tamanho de chapa</button>
                 </section>
 
                 {/* SEÇÃO DE PREÇOS POR GRUPO */}

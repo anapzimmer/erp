@@ -135,6 +135,7 @@ function funcaoDaTela(nome, contexto) {
   const codigo = ts.transpileModule(`const resultado = ${declaracao.initializer.getText(ast)};`, {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText;
+  contexto = { nomeCliente: "", clientesTabela: [], precosTabela: [], precoDoVidro: v => Number(v.preco), regraMedidaVidro: { limite_mm: 3210, percentual: 7 }, ...contexto };
   return new Function(...Object.keys(contexto), `${codigo}\nreturn resultado;`)(...Object.values(contexto));
 }
 test('tela calcula o acabamento selecionado e grava sua memória junto ao item', () => {

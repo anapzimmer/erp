@@ -1,4 +1,8 @@
 "use client";
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { aplicarAcrescimoPorMedida, precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import Link from "next/link";
 import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { calcularPecasLateral, desenhoLateralUrl, type ForaEsquadroLateral } from "@/utils/foraEsquadroLateral";
@@ -407,6 +411,7 @@ export default function ForaEsquadroTela({ lateral = false }: { lateral?: boolea
 }
 
 function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [lado, setLado] = useState<"direito" | "esquerdo">("direito");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -538,7 +543,9 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
     return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteBusca, clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
   const fatorMolde = molde ? 1.3 : 1;
-  const valorTotal = areaTotal * precoVidroM2 * fatorMolde;
+  const precoDaPeca = (peca: PecaForaEsquadro) => aplicarAcrescimoPorMedida(precoVidroM2, lateral ? Math.max(peca.larguraSuperior || 0, peca.larguraInferior || 0) : peca.largura, lateral ? largura : Math.max(peca.alturaEsquerda, peca.alturaDireita), regraMedidaVidro);
+  const valorVidros = pecas.reduce((soma, peca) => soma + peca.area * precoDaPeca(peca), 0) * Math.max(1, quantidade || 1);
+  const valorTotal = valorVidros * fatorMolde;
 
   const clientesFiltrados = useMemo(() => {
     const termo = clienteBusca.trim().toLowerCase();
@@ -627,7 +634,7 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
     const quantidadeVaos = Math.max(1, quantidade || 1);
     const vidroDescricao = formatarVidroCadastro(vidroSelecionado);
     const vidrosAvulsos = pecas.map((peca) => {
-      const valorPeca = peca.area * precoVidroM2 * quantidadeVaos * fatorMolde;
+      const valorPeca = peca.area * precoDaPeca(peca) * quantidadeVaos * fatorMolde;
       const larguraReal = Math.round(peca.largura);
       const alturaMaiorReal = Math.round(Math.max(peca.alturaEsquerda, peca.alturaDireita));
       return {
@@ -635,7 +642,8 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
         quantidade: quantidadeVaos,
         medida: `${lateral ? "Sup. " + peca.larguraSuperior + " / Inf. " + peca.larguraInferior + " x " + largura : larguraReal + " x " + alturaMaiorReal} mm${molde ? ` | Molde: ${Math.round(peca.larguraCalculo)} x ${Math.round(peca.alturaCalculo)} mm (+30%)` : ""}`,
         vidro: vidroDescricao,
-        precoVidroM2,
+        precoVidroM2: precoDaPeca(peca),
+        acrescimoMedida: precoMaterialVidro(precoVidroM2, `${lateral ? Math.max(peca.larguraSuperior || 0, peca.larguraInferior || 0) : peca.largura}x${lateral ? largura : Math.max(peca.alturaEsquerda, peca.alturaDireita)}`, regraMedidaVidro).acrescimoMedida,
         areaCobradaM2: peca.area * quantidadeVaos,
         valorTotal: Number(valorPeca.toFixed(2)),
       };
@@ -656,11 +664,11 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
         qtd: Number(areaTotal.toFixed(3)),
         unidade: "m2",
         descricao: `VIDRO FORA DE ESQUADRO ${vidroDescricao}`.toUpperCase(),
-        valorUnitario: precoVidroM2,
+        valorUnitario: areaTotal > 0 ? valorVidros / areaTotal : 0,
       },
     ];
 
-    if (molde) materiais.push({ id: criarId(), qtd: 1, unidade: "und", descricao: "Acréscimo de molde (30%)", valorUnitario: areaTotal * precoVidroM2 * 0.3 });
+    if (molde) materiais.push({ id: criarId(), qtd: 1, unidade: "und", descricao: "Acréscimo de molde (30%)", valorUnitario: valorVidros * 0.3 });
 
     const itemCentral = {
       molde,
@@ -776,6 +784,7 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
                 {medidasValidas && <PDFDownloadLink
                   document={
                     <ForaEsquadroPDF
+                      avisosMedida={valorVidros > 0 ? avisosAcrescimoVidro({ regra: regraMedidaVidro, medidas: pecas.map(p => ({ largura: lateral ? Math.max(p.larguraSuperior || 0, p.larguraInferior || 0) : p.largura, altura: lateral ? largura : Math.max(p.alturaEsquerda, p.alturaDireita) })) }) : []}
                       lateral={lateral ? dadosLateral : undefined}
                       nomeEmpresa={nomeEmpresa}
                       logoUrl={theme.logoLightUrl}
@@ -925,7 +934,8 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-border">
-                <table className="w-full min-w-[900px] border-collapse text-sm">
+                {valorVidros > 0 && <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={pecas.map(p => ({ largura: lateral ? Math.max(p.larguraSuperior || 0, p.larguraInferior || 0) : p.largura, altura: lateral ? largura : Math.max(p.alturaEsquerda, p.alturaDireita) }))} />}
+                  <table className="w-full min-w-[900px] border-collapse text-sm">
                   <thead className="bg-white text-[11px] uppercase tracking-[0.12em] text-text-secondary">
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">Peça</th>

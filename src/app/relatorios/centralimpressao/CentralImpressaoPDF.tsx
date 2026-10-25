@@ -2,6 +2,7 @@
 "use client";
 
 /* eslint-disable jsx-a11y/alt-text */
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
 import { DesenhoSacadaTorrePDF } from "../sacadatorre/DesenhoSacadaTorrePDF";
 import DesenhoForaEsquadroLateral from "@/components/DesenhoForaEsquadroLateral";
 import { topoForaEsquadro, medidasDesenhoForaEsquadro } from "@/utils/foraEsquadroVisual";
@@ -66,6 +67,7 @@ export type CentralImpressaoItem = {
     area: number;
   }>;
   vidrosAvulsos?: Array<{
+    acrescimoMedida?: import("@/utils/regraMedidaVidro").AcrescimoMedida;
     id: string;
     quantidade: number;
     medida: string;
@@ -2480,6 +2482,7 @@ const possuiRelacaoObra =
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da sacada", relacaoFerragensSacadaFrontal) : null}
         {somenteRelacaoObra ? renderRelacaoGrupo("Acessórios/ferragens da engenharia", relacaoFerragensProjetos) : null}
 
+        {itens.map(item => avisosAcrescimoVidro({ materiais: item.materiais, regras: item.vidrosAvulsos?.map(v => v.acrescimoMedida) }).map(aviso => <Text key={`${item.id}:${aviso}`} style={{ fontSize: 7, color: "#416F88", marginTop: 4 }}>{item.projeto}: {aviso}</Text>))}
         <Text
           style={styles.footer}
           fixed

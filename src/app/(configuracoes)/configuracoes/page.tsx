@@ -7,6 +7,7 @@ import { ArrowUpRight, SlidersHorizontal } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useTheme } from "@/context/ThemeContext"
 import ArmazenamentoOrcamentos from "@/components/ArmazenamentoOrcamentos"
+import ConfiguracaoMedidaVidro from "@/components/ConfiguracaoMedidaVidro";
 import ConfiguracaoModal from "@/components/ConfiguracaoModal"
 import Sidebar from "@/components/Sidebar"
 import Header from "@/components/Header"
@@ -118,6 +119,7 @@ export default function ConfiguracoesPage() {
               <SlidersHorizontal size={24} className="mb-5 text-text-secondary"/><span className="block text-base font-medium">Preferências de cálculo</span><span className="mt-2 block text-sm text-text-secondary">Defina como dividir medidas maiores que uma barra.</span><span className="mt-5 flex items-center justify-between text-xs text-text-secondary">{modoCorteBarra === "dividir" ? "Dividir ao meio" : "Barra inteira + complemento"}<ArrowUpRight size={16}/></span>
             </button>
             <ArmazenamentoOrcamentos />
+            <ConfiguracaoMedidaVidro />
           </div>
           <ConfiguracaoModal aberto={calculoAberto} fechar={() => setCalculoAberto(false)} titulo="Preferências de cálculo">
             <h3 className="text-sm font-medium">Corte de barras longas</h3><p className="mt-2 text-sm text-text-secondary">A escolha é salva automaticamente neste dispositivo e vale para novos cálculos e recálculos.</p>

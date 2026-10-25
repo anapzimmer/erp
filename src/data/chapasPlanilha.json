@@ -1,0 +1,691 @@
+{
+  "fonte": "CONTROLE DE ESTOQUE DE CHAPAS.xlsx",
+  "aba": "Plan1",
+  "vidros": [
+    {
+      "descricao": "INC 04MM",
+      "linha": 5,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "INC 05MM",
+      "linha": 6,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "INC 06MM",
+      "linha": 7,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2540
+        },
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "INC 08MM",
+      "linha": 8,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 1900
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "INC 10MM",
+      "linha": 9,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2600
+        }
+      ]
+    },
+    {
+      "descricao": "INC 12MM",
+      "linha": 10,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "FUM 04MM",
+      "linha": 11,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "FUM 06MM",
+      "linha": 12,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "FUM 08MM",
+      "linha": 13,
+      "chapas": [
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "FUM 10MM",
+      "linha": 14,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VRD 06MM",
+      "linha": 15,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2540
+        }
+      ]
+    },
+    {
+      "descricao": "VRD 08MM",
+      "linha": 16,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VRD 10MM",
+      "linha": 17,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3600,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ACIDATO INCOLOR 06MM",
+      "linha": 18,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "ACIDATO INCOLOR 08MM",
+      "linha": 19,
+      "chapas": [
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "ACIDATO INCOLOR 10MM",
+      "linha": 20,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ESPELHO BRONZE 04MM",
+      "linha": 21,
+      "chapas": [
+        {
+          "largura_mm": 3300,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ESPELHO FUME 04MM",
+      "linha": 22,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ESPELHO 04MM CEBRACE",
+      "linha": 23,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2540
+        }
+      ]
+    },
+    {
+      "descricao": "ESPELHO 06MM CEBRACE",
+      "linha": 24,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "REFLECTA INC 04MM",
+      "linha": 25,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "REFLECTA INC 06MM T (NOVO)",
+      "linha": 26,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "REFLECTA INC 08MM T (NOVO)",
+      "linha": 27,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "REFLECTA INC 10MM T (NOVO)",
+      "linha": 28,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 120 04MM (CINZA)",
+      "linha": 29,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 120 06MM (CINZA)",
+      "linha": 30,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 120 08MM (CINZA)",
+      "linha": 31,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 120 10MM (CINZA)",
+      "linha": 32,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VERDE STR 428 04MM",
+      "linha": 33,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VERDE STR 428 06MM",
+      "linha": 34,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VERDE STR 428 08MM",
+      "linha": 35,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "VERDE STR 428 10MM",
+      "linha": 36,
+      "chapas": []
+    },
+    {
+      "descricao": "LAMINADO 3+3MM INCOLOR",
+      "linha": 37,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO 4+4MM INCOLOR",
+      "linha": 38,
+      "chapas": [
+        {
+          "largura_mm": 3660,
+          "altura_mm": 2140
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO 5+5MM INCOLOR",
+      "linha": 39,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2000
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        },
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2540
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO 3+3MM FUME",
+      "linha": 40,
+      "chapas": []
+    },
+    {
+      "descricao": "LAMINADO 4+4MM FUME",
+      "linha": 41,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO 4+4MM VERDE",
+      "linha": 42,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO STR 428 VERDE 4+4MM",
+      "linha": 43,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO ST 120 (PRATA) 3+3MM",
+      "linha": 44,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO ST 120 (PRATA) 4+4MM",
+      "linha": 45,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO REFLECTA 3+3MM",
+      "linha": 46,
+      "chapas": []
+    },
+    {
+      "descricao": "LAMINADO REFLECTA 4+4MM",
+      "linha": 47,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO ST 167 4+4MM (neutro incolor)",
+      "linha": 48,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 167 08MM (neutro incolor)",
+      "linha": 49,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "ST 167 10mm (neutro incolor)",
+      "linha": 50,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO BRN 148 4+4mm",
+      "linha": 51,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "PONTILHADO 7/8MM",
+      "linha": 52,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        }
+      ]
+    },
+    {
+      "descricao": "MINI BOREAL 7/8MM",
+      "linha": 53,
+      "chapas": []
+    },
+    {
+      "descricao": "CANELADO",
+      "linha": 54,
+      "chapas": [
+        {
+          "largura_mm": 2440,
+          "altura_mm": 1900
+        }
+      ]
+    },
+    {
+      "descricao": "EXTRA CLEAR 06MM",
+      "linha": 55,
+      "chapas": []
+    },
+    {
+      "descricao": "EXTRA CLEAR 08MM",
+      "linha": 56,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "EXTRA CLEAR 10MM",
+      "linha": 57,
+      "chapas": []
+    },
+    {
+      "descricao": "BRONZE 8MM",
+      "linha": 58,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2200
+        }
+      ]
+    },
+    {
+      "descricao": "BRONZE 10MM",
+      "linha": 59,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "COOL LITE ST 150 6MM",
+      "linha": 60,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "LAMINADO ST 150 4+4MM",
+      "linha": 61,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "SUNLIGHT 6MM",
+      "linha": 62,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "SUNLIGHT 4+4MM",
+      "linha": 63,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "SILVER 32 4+4MM",
+      "linha": 64,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "SILVER 20 4+4MM",
+      "linha": 65,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "COOL LITE STB 120 (AZUL) 4+4MM",
+      "linha": 66,
+      "chapas": []
+    },
+    {
+      "descricao": "INCOLOR 4+4MM ACUSTICO",
+      "linha": 67,
+      "chapas": [
+        {
+          "largura_mm": 3210,
+          "altura_mm": 2400
+        }
+      ]
+    },
+    {
+      "descricao": "MINI BOREAL 3/4MM (METALBEL)",
+      "linha": 68,
+      "chapas": [
+        {
+          "largura_mm": 1900,
+          "altura_mm": 1900
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { aplicarAcrescimoPorMedida, type RegraMedidaVidro } from "./regraMedidaVidro";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 
 export type SacadaGrapaInput = {
@@ -10,6 +11,7 @@ export type SacadaGrapaInput = {
   grapas1305PorUniao: number;
   tuboPosicao: "sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios";
   precoVidroM2?: number;
+  regraMedidaVidro?: RegraMedidaVidro;
   vidroDescricao?: string;
   precoGrapa3019?: number;
   precoGrapa1305?: number;
@@ -99,7 +101,8 @@ export const calcularSacadaGrapa = ({
   grapasInferioresPorVao,
   grapas1305PorUniao,
   tuboPosicao,
-  precoVidroM2 = 0,
+  precoVidroM2: precoVidroBaseM2 = 0,
+  regraMedidaVidro,
   vidroDescricao,
   precoGrapa3019 = 0,
   precoGrapa1305 = 0,
@@ -134,6 +137,7 @@ export const calcularSacadaGrapa = ({
   const quantidadeGrapas = quantidadeGrapas3019 + quantidadeGrapas1305;
   const areaVidroPorPeca = (larguraVidroCalculoMm * alturaVidroCalculoMm) / 1_000_000;
   const areaTotalVidro = areaVidroPorPeca * quantidadeTotalVidros;
+  const precoVidroM2 = aplicarAcrescimoPorMedida(precoVidroBaseM2, larguraVidroMm, alturaVidroMm, regraMedidaVidro);
   const totalVidro = areaTotalVidro * precoVidroM2;
 
   const cortesTubo = temTuboEmCima

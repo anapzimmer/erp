@@ -1,6 +1,7 @@
 //app/src/app/relatorios/projetoindividual/ProjetoIndividualPDF.tsx
 "use client";
 
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
 import { normalizarDivisaoFixos, desenhoFixosUrl } from "@/utils/fixos";
 import { DRAWING_COLORS } from "@/design/drawing";
 import React from "react";
@@ -9,6 +10,7 @@ import { compararMateriaisRelacao } from "@/utils/ordemMateriais";
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
 export type ProjetoIndividualMaterial = {
+  acrescimoMedida?: import("@/utils/regraMedidaVidro").AcrescimoMedida;
   id: string;
   qtd: number;
   unidade: string;
@@ -846,7 +848,7 @@ export function ProjetoIndividualPDF({
               <View key={item.id} style={styles.premiumTr} wrap={false}>
                 <Text style={[styles.premiumTd, styles.premiumColQtd]}>{Number(qtdPecasVidroPremium(item.descricao) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColMedida]}>{medidaVidro(item)}</Text>
-                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item) || dados.vidro || "-"}{"\n"}{moeda(item.valorUnitario)}/m²</Text>
+                <Text style={[styles.premiumTd, styles.premiumColVidro]}>{vidroDescricao(item) || dados.vidro || "-"}{"\n"}{moeda(item.valorUnitario)}/m²{avisosAcrescimoVidro({ materiais: [item] }).map(aviso => <Text key={aviso} style={{ fontSize: 6, color: "#416F88" }}>{"\n"}{aviso}</Text>)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColM2]}>{numero(item.qtd)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
               </View>
@@ -866,7 +868,7 @@ export function ProjetoIndividualPDF({
             {materiaisComplementaresPremium.map((item) => (
               <View key={item.id} style={styles.premiumTr} wrap={false}>
                 <Text style={[styles.premiumTd, styles.premiumColQtd]}>{quantidade(item.qtd, item.unidade)}</Text>
-                <Text style={[styles.premiumTd, styles.premiumColDesc]}>{item.descricao}</Text>
+                <Text style={[styles.premiumTd, styles.premiumColDesc]}>{item.descricao}{avisosAcrescimoVidro({ materiais: [item] }).map(aviso => <Text key={aviso} style={{ fontSize: 6, color: "#416F88" }}>{"\n"}{aviso}</Text>)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColUn]}>{item.unidade}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColUnit]}>{moeda(item.valorUnitario)}</Text>
                 <Text style={[styles.premiumTd, styles.premiumColTotal]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>
@@ -1096,7 +1098,7 @@ export function ProjetoIndividualPDF({
           {materiaisOrdenados.map((item) => (
             <View key={item.id} style={styles.tr} wrap={false}>
               <Text style={[styles.td, styles.colQtd]}>{quantidade(item.qtd, item.unidade)}</Text>
-              <Text style={[styles.td, styles.colDesc]}>{item.descricao}</Text>
+              <Text style={[styles.td, styles.colDesc]}>{item.descricao}{avisosAcrescimoVidro({ materiais: [item] }).map(aviso => <Text key={aviso} style={{ fontSize: 6, color: "#416F88" }}>{"\n"}{aviso}</Text>)}</Text>
               <Text style={[styles.td, styles.colUn]}>{item.unidade}</Text>
               <Text style={[styles.td, styles.colValor]}>{moeda(item.valorUnitario)}</Text>
               <Text style={[styles.td, styles.colValor]}>{moeda(Number(item.qtd || 0) * Number(item.valorUnitario || 0))}</Text>

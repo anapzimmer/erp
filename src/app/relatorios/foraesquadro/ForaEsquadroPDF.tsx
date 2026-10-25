@@ -21,6 +21,7 @@ export type ForaEsquadroPecaPDF = {
 };
 
 type ForaEsquadroPDFProps = {
+  avisosMedida?: string[];
   lateral?: import("@/utils/foraEsquadroLateral").ForaEsquadroLateral;
   molde?: boolean;
   nomeEmpresa: string;
@@ -215,6 +216,7 @@ function DesenhoPDF({
 }
 
 export function ForaEsquadroPDF({
+  avisosMedida = [],
   lateral,
   nomeEmpresa,
   logoUrl,
@@ -364,6 +366,7 @@ export function ForaEsquadroPDF({
           </View>
         </View>
 
+        {(avisosMedida).map(aviso => <Text key={aviso} style={{ fontSize: 7, color: "#416F88", marginTop: 5 }}>{aviso}</Text>)}
         <Text
           style={styles.footer}
           fixed

@@ -1,4 +1,6 @@
 ﻿    "use client"
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { fatorMedidaVidro } from "@/utils/regraMedidaVidro";
 import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { revelarOpcaoAtiva } from "@/utils/opcaoVisivel";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -14,6 +16,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
     type ItemOrcamento = { id: number; descricao: string; vidroInfo: string; adicionais: AdicionalPendente[]; medidaVao: string; quantidade: string; imagem: string; total: number };
 
     export default function CalculoJanelas() {
+    const { regra } = useRegraMedidaVidro();
     const [vidros, setVidros] = useState<Vidro[]>([])
     const [clientes, setClientes] = useState<Cliente[]>([])
     const [adicionaisDB, setAdicionaisDB] = useState<AdicionalDB[]>([])
@@ -97,14 +100,15 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         const precoM2 = typeof vidroSel.preco === 'string' ? parseFloat(vidroSel.preco.replace(',', '.')) : vidroSel.preco;
         
         let areaTotal = 0;
+        const areaComAcrescimo = (l: number, a: number) => arredondar5(l) * arredondar5(a) / 1000000 * fatorMedidaVidro(l, a, regra);
 
         if (folhas === "2 folhas") {
         const fixoL = LTOT / 2;
         const fixoA = A - 65;
         const movelL = fixoL + 50;
         const movelA = A - 25;
-        areaTotal += (arredondar5(fixoL) * arredondar5(fixoA)) / 1000000;
-        areaTotal += (arredondar5(movelL) * arredondar5(movelA)) / 1000000;
+        areaTotal += areaComAcrescimo(fixoL, fixoA);
+        areaTotal += areaComAcrescimo(movelL, movelA);
         } 
         else if (folhas === "4 folhas" || modelo === "Janela Canto") {
         const altJanela = modelo === "Janela Bandeira" ? (A - AB) : A;
@@ -112,12 +116,12 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         const fixoA = altJanela - 65;
         const movelL = fixoL + 50;
         const movelA = altJanela - 25;
-        areaTotal += ((arredondar5(fixoL) * arredondar5(fixoA)) / 1000000) * 2;
-        areaTotal += ((arredondar5(movelL) * arredondar5(movelA)) / 1000000) * 2;
+        areaTotal += (areaComAcrescimo(fixoL, fixoA)) * 2;
+        areaTotal += (areaComAcrescimo(movelL, movelA)) * 2;
 
         if (modelo === "Janela Bandeira" && AB > 0) {
             const bandL = L / 2;
-            areaTotal += ((arredondar5(bandL) * arredondar5(AB)) / 1000000) * 2;
+            areaTotal += (areaComAcrescimo(bandL, AB)) * 2;
         }
         }
         return areaTotal * precoM2;

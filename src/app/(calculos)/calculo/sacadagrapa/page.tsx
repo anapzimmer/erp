@@ -1,4 +1,8 @@
 "use client";
+import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { resultadoConformeCor } from "@/utils/materiaisConformeCor";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
@@ -310,6 +314,7 @@ const gerarSvgsacadagrapa = ({
 };
 
 export default function CalculosacadagrapaPage() {
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const { theme } = useTheme();
   const { user, empresaId, nomeEmpresa, loading, signOut } = useAuth();
   const router = useRouter();
@@ -552,6 +557,7 @@ export default function CalculosacadagrapaPage() {
   const resultadoCompleto = useMemo(
     () =>
       calcularSacadaGrapa({
+        regraMedidaVidro,
         larguraVaoMm: larguraNumero,
         alturaVaoMm: alturaNumero,
         quantidadeVaos: quantidadeNumero,
@@ -569,6 +575,7 @@ export default function CalculosacadagrapaPage() {
         precoGrapa1305: normalizarPreco(grapa1305?.preco),
       }),
     [
+      regraMedidaVidro,
       alturaNumero,
       grapa1305?.preco,
       grapa3019?.preco,
@@ -613,7 +620,7 @@ export default function CalculosacadagrapaPage() {
       qtd: resultado.areaTotalVidro,
       unidade: "m2",
       descricao: `VIDRO ${montarDescricaoVidro(vidroSelecionado)}`.toUpperCase(),
-      valorUnitario: precoVidroM2Efetivo,
+      ...precoMaterialVidro(precoVidroM2Efetivo, `${resultado.larguraVidroMm}x${resultado.alturaVidroMm}`, regraMedidaVidro),
       medida: `${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`,
       vidroDescricao: montarDescricaoVidro(vidroSelecionado).toUpperCase(),
     },
@@ -640,7 +647,7 @@ export default function CalculosacadagrapaPage() {
       }`.toUpperCase(),
       valorUnitario: acessorio.precoUnitario,
     })),
-  ], [grapa1305?.nome, grapa3019?.nome, precoVidroM2Efetivo, resultado, vidroSelecionado]);
+  ], [regraMedidaVidro, grapa1305?.nome, grapa3019?.nome, precoVidroM2Efetivo, resultado, vidroSelecionado]);
 
   const montarItemCentral = useCallback((id?: string): SacadaGrapaCentralItem => {
     const centralDados: SacadaGrapaDraft = {
@@ -898,6 +905,7 @@ export default function CalculosacadagrapaPage() {
                 <PDFDownloadLink
                   document={
                     <SacadaGrapaPDF
+                      avisosMedida={avisosAcrescimoVidro({ materiais: montarMateriaisCentral() })}
                       nomeEmpresa={nomeEmpresa}
                       logoUrl={theme.logoLightUrl || undefined}
                       tituloDocumento="Orcamento Sacada com Grapa"
@@ -1100,7 +1108,8 @@ export default function CalculosacadagrapaPage() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-170 text-sm">
+                    {resultado.totalVidro > 0 && <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={[{ largura: resultado.larguraVidroMm, altura: resultado.alturaVidroMm }]} />}
+                  <table className="w-full min-w-170 text-sm">
                       <thead style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.contentTextLightBg }}>
                         <tr>
                           <th className="text-left px-5 py-3 font-medium uppercase tracking-[0.12em] text-[10px]">Item</th>

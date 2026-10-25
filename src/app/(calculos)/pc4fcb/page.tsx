@@ -1,5 +1,8 @@
 ﻿//app/(calculos)/pc4fcb/page.tsx
 "use client";
+import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
+import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
+import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { materiaisConformeCor } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
@@ -193,6 +196,7 @@ const criarMaterial = (parcial?: Partial<ProjetoIndividualMaterial>): ProjetoInd
   unidade: parcial?.unidade ?? "und",
   descricao: parcial?.descricao ?? "Novo item",
   valorUnitario: parcial?.valorUnitario ?? 0,
+  acrescimoMedida: parcial?.acrescimoMedida,
   codigoPerfil: parcial?.codigoPerfil,
   comprimentoBarra: parcial?.comprimentoBarra,
   cortes: parcial?.cortes,
@@ -320,6 +324,7 @@ export default function PC4FCBPage() {
   });
   const orcamentoAtivo = useClienteOrcamento({ cliente: dados.cliente, onCliente: cliente => setDados(atual => ({ ...atual, cliente })) });
 
+  const { regra: regraMedidaVidro } = useRegraMedidaVidro();
   const [materiaisCompletos, setMateriais] = useState<ProjetoIndividualMaterial[]>([]);
   const materiais = useMemo(() => materiaisConformeCor(materiaisCompletos, dados.corKit), [materiaisCompletos, dados.corKit]);
 
@@ -1065,28 +1070,28 @@ export default function PC4FCBPage() {
         qtd: calculoVidro.areaFixa,
         unidade: "m2",
         descricao: descricaoVidroFixo,
-        valorUnitario: precoVidroM2,
+        ...precoMaterialVidro(precoVidroM2, descricaoVidroFixo, regraMedidaVidro),
       });
 
       const vidroMovel = criarMaterial({
         qtd: calculoVidro.areaMovel,
         unidade: "m2",
         descricao: descricaoVidroMovel,
-        valorUnitario: precoVidroM2,
+        ...precoMaterialVidro(precoVidroM2, descricaoVidroMovel, regraMedidaVidro),
       });
 
       const vidroBandeira = vidroBandeiraNome && calculoVidro.areaBandeira > 0 ? criarMaterial({
           qtd: calculoVidro.areaBandeira,
           unidade: "m2",
           descricao: descricaoVidroBandeira,
-          valorUnitario: precoVidroBandeiraM2,
+          ...precoMaterialVidro(precoVidroBandeiraM2, descricaoVidroBandeira, regraMedidaVidro),
         })
         : null;
 
       return [vidroFixo, vidroMovel, vidroBandeira, ...semVidrosAutomaticos]
         .filter((item): item is ProjetoIndividualMaterial => Boolean(item));
     })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaBandeira, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2]);
+  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaFixaMedida, calculoVidro.alturaMovelMedida, calculoVidro.areaBandeira, calculoVidro.areaFixa, calculoVidro.areaMovel, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraFixaMedida, calculoVidro.larguraMovelMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2, regraMedidaVidro]);
 
   useEffect(() => {
     setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
@@ -1803,7 +1808,8 @@ export default function PC4FCBPage() {
                           <div className="px-3 py-3 text-center" />
                           <div className="px-3 py-3 text-right">Valor total</div>
                         </div>
-                        {materiaisOrdenados.map((item) => (
+                        <AvisoAcrescimoVidro materiais={materiais} />
+                  {materiaisOrdenados.map((item) => (
                           <div key={item.id} className="group relative grid min-w-180 grid-cols-[80px_2fr_70px_36px_115px_36px_105px] items-center border-t border-border bg-surface text-xs text-text-primary transition hover:bg-surface-secondary/70">
                             <div className="px-3 py-2.5">
                               <input
