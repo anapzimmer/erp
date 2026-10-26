@@ -38,6 +38,7 @@ import {
 import { pdf } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
+import { REVISAO_CALCULO_KEY, lerRevisaoCalculo, concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 
 interface ItemOrcamento {
   id: string | number;
@@ -49,6 +50,7 @@ interface ItemOrcamento {
   total: number;
   precoVidroM2?: number;
   acabamento?: string;
+  corSelecionada?: string;
   servico?: string;
   servicos?: string;
   valorServicoUn?: number;
@@ -78,7 +80,7 @@ interface Vidro { id: number | string; nome: string; espessura?: string | number
 interface Cliente { id: string | number; nome: string; tabela_id?: string | number | null; grupo_preco_id?: string | number | null; }
 interface TabelaPreco { id: string | number; nome: string; }
 interface Servico { id: string | number; nome: string; preco: number; unidade?: string | null; }
-interface KitCatalogo { id: string | number; nome: string; preco?: number | string | null; preco_por_cor?: number | string | null; }
+interface KitCatalogo { id: string | number; nome: string; preco?: number | string | null; preco_por_cor?: number | string | null; cores?: string | null; }
 interface PerfilCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
 interface FerragemCatalogo { id: string | number; codigo?: string | null; nome: string; preco?: number | string | null; cores?: string | null; }
 interface PrecoEspecial { vidro_id: string | number; grupo_preco_id?: string | number | null; tabela_id?: string | number | null; preco: number; }
@@ -247,6 +249,7 @@ export default function RelatorioOrcamento() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const revisaoPedidoToken = searchParams.get("revisaoPedido");
   const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
   // Estados do Layout
@@ -284,6 +287,7 @@ export default function RelatorioOrcamento() {
   const [quantidadeAdicional, setQuantidadeAdicional] = useState(1)
   const [valorUnitarioAdicional, setValorUnitarioAdicional] = useState("")
   const [filtroCorAdicional, setFiltroCorAdicional] = useState("")
+  const [corEdicaoRapidaAdicional, setCorEdicaoRapidaAdicional] = useState("")
   const [buscaAdicional, setBuscaAdicional] = useState("")
 
   // Edição de Modal
@@ -315,7 +319,7 @@ export default function RelatorioOrcamento() {
   const [qtdEdicaoRapidaAdicional, setQtdEdicaoRapidaAdicional] = useState("1");
   const [valorEdicaoRapidaAdicional, setValorEdicaoRapidaAdicional] = useState("");
 
-  const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
+  const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${revisaoPedidoToken || editId || "novo"}`;
 
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
@@ -527,26 +531,22 @@ export default function RelatorioOrcamento() {
   const termoCorAdicional = normalizarTextoFiltroAdicional(filtroCorAdicional);
   const termoBuscaAdicional = normalizarTextoFiltroAdicional(buscaAdicional);
 
+  // Filtragem estrita: somente cores declaradas no cadastro.
+  // Kits sem campo `cores` não são exibidos quando há filtro de cor.
+  const coresDisponiveisAdicional = (item: KitCatalogo | PerfilCatalogo | FerragemCatalogo | undefined): string[] => {
+    if (!item) return [];
+    const valor = (item as { cores?: unknown }).cores;
+    return [...new Set(String(valor || "").split(/[;,/|]+/).map(c => c.trim()).filter(Boolean))];
+  };
+
+  const correspondeCor = (item: KitCatalogo | PerfilCatalogo | FerragemCatalogo, cor: string) =>
+    coresDisponiveisAdicional(item).some(c => normalizarTextoFiltroAdicional(c) === normalizarTextoFiltroAdicional(cor));
+
   const adicionaisFiltrados = itensAdicionaisDisponiveis.filter((item) => {
-    const itemComCor = item as { cores?: string | null; codigo?: string | null; nome?: string | null };
-
-    if ((tipoAdicionalSelecionado === "perfil" || tipoAdicionalSelecionado === "ferragem") && termoCorAdicional) {
-      const cores = extrairListaCores(itemComCor.cores);
-      const nomeNormalizado = normalizarTextoFiltroAdicional(itemComCor.nome || "");
-      const corCompativel =
-        cores.some((cor) => cor.includes(termoCorAdicional) || termoCorAdicional.includes(cor)) ||
-        nomeNormalizado.includes(termoCorAdicional);
-
-      if (!corCompativel) return false;
-    }
-
+    if (termoCorAdicional && !correspondeCor(item, filtroCorAdicional)) return false;
     if (!termoBuscaAdicional) return true;
-
-    const codigoNormalizado = normalizarTextoFiltroAdicional(itemComCor.codigo || "");
-    const nomeNormalizado = normalizarTextoFiltroAdicional(itemComCor.nome || "");
-    const buscaComposta = `${codigoNormalizado} ${nomeNormalizado}`.trim();
-
-    return buscaComposta.includes(termoBuscaAdicional);
+    const codigo = "codigo" in item ? String(item.codigo || "") : "";
+    return normalizarTextoFiltroAdicional(`${codigo} ${item.nome}`).includes(termoBuscaAdicional);
   });
 
   const obterPrecoPadraoAdicional = (item: KitCatalogo | PerfilCatalogo | FerragemCatalogo) => {
@@ -558,7 +558,7 @@ export default function RelatorioOrcamento() {
   };
 
   const adicionarAdicional = () => {
-    const itemSelecionado = itensAdicionaisDisponiveis.find((item) => String(item.id) === String(adicionalSelecionadoId));
+    const itemSelecionado = adicionaisFiltrados.find((item) => String(item.id) === String(adicionalSelecionadoId));
     const quantidadeValida = Number(quantidadeAdicional);
     const valorUnitario = parseValorDigitado(valorUnitarioAdicional);
 
@@ -583,6 +583,26 @@ export default function RelatorioOrcamento() {
       return;
     }
 
+    if (termoCorAdicional && !correspondeCor(itemSelecionado, filtroCorAdicional)) {
+      setModalAvisoTitulo("Cor incompatível");
+      setModalAvisoMensagem("Este material não possui a cor filtrada no cadastro. Selecione outro item.");
+      setMostrarModalAviso(true);
+      return;
+    }
+    const coresCadastradas = coresDisponiveisAdicional(itemSelecionado);
+    if (coresCadastradas.length > 0 && !filtroCorAdicional.trim()) {
+      setModalAvisoTitulo("Selecione a cor");
+      setModalAvisoMensagem("Escolha uma das cores cadastradas para este material.");
+      setMostrarModalAviso(true);
+      return;
+    }
+    if (coresCadastradas.length > 0 && !correspondeCor(itemSelecionado, filtroCorAdicional)) {
+      setModalAvisoTitulo("Cor inválida");
+      setModalAvisoMensagem("A cor escolhida não está disponível para este material.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
     const tipoLabel = tipoAdicionalSelecionado === "kit"
       ? "Kit"
       : tipoAdicionalSelecionado === "perfil"
@@ -603,6 +623,7 @@ export default function RelatorioOrcamento() {
       servicos: "Item adicional",
       valorServicoUn: valorUnitario,
       acabamento: tipoLabel,
+      corSelecionada: coresCadastradas.find(c => normalizarTextoFiltroAdicional(c) === termoCorAdicional) || undefined,
     };
 
     const itemAtual = editandoId != null ? itens.find((i) => i.id === editandoId) : undefined;
@@ -781,7 +802,7 @@ export default function RelatorioOrcamento() {
           supabase.from('vidros').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('servicos').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('vidro_precos_grupos').select('*').eq('empresa_id', empresaId),
-          supabase.from('kits').select('id, nome, preco, preco_por_cor').eq('empresa_id', empresaId).order('nome'),
+          supabase.from('kits').select('*').eq('empresa_id', empresaId).order('nome'),
           supabase.from('perfis').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome'),
           supabase.from('ferragens').select('id, codigo, nome, preco, cores').eq('empresa_id', empresaId).order('nome')
         ]);
@@ -812,8 +833,30 @@ export default function RelatorioOrcamento() {
     }
   }, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
+  // Modo de revisão técnica: carrega exclusivamente a cópia do pedido,
+  // nunca o item da Central de Impressão nem o orçamento comercial.
   useEffect(() => {
-    if (!centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
+    if (!revisaoPedidoToken || !isMounted || checkingAuth || !empresaId || itemCentralCarregadoRef.current) return;
+    const sessao = lerRevisaoCalculo(revisaoPedidoToken);
+    if (!sessao || sessao.empresaId !== empresaId || !sessao.pedidoId ||
+        sessao.original.origemRota !== "/calculo/calculovidro") {
+      window.alert("Sessão de revisão inválida ou expirada. Abra novamente pelo pedido.");
+      router.replace("/gestao/pedidos");
+      return;
+    }
+    const originais = sessao.original.itensOriginais;
+    if (!Array.isArray(originais) || originais.length === 0) {
+      window.alert("Este pedido não contém os itens originais necessários para revisar os vidros.");
+      router.replace("/gestao/pedidos");
+      return;
+    }
+    setItens(originais as ItemOrcamento[]);
+    draftRestauradoRef.current = true;
+    itemCentralCarregadoRef.current = true;
+  }, [revisaoPedidoToken, isMounted, checkingAuth, empresaId, router]);
+
+  useEffect(() => {
+    if (revisaoPedidoToken || !centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
 
     try {
       const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as CentralVidroEmEdicao[];
@@ -842,7 +885,7 @@ export default function RelatorioOrcamento() {
     } catch (erro) {
       console.error("Não foi possível carregar o item de vidros da central:", erro);
     }
-  }, [centralItemId, isMounted, listaClientes]);
+  }, [centralItemId, isMounted, listaClientes, revisaoPedidoToken]);
 
   useEffect(() => {
     if (editandoId == null) return;
@@ -854,7 +897,7 @@ export default function RelatorioOrcamento() {
   }, [editandoId]);
 
   useEffect(() => {
-    if (!isMounted || !empresaId || draftRestauradoRef.current || centralItemId) return;
+    if (!isMounted || !empresaId || draftRestauradoRef.current || centralItemId || revisaoPedidoToken) return;
 
     try {
       const raw = sessionStorage.getItem(draftKey);
@@ -889,10 +932,10 @@ export default function RelatorioOrcamento() {
     } finally {
       draftRestauradoRef.current = true;
     }
-  }, [centralItemId, isMounted, empresaId, draftKey, listaVidros, listaServicos]);
+  }, [centralItemId, isMounted, empresaId, draftKey, listaVidros, listaServicos, revisaoPedidoToken]);
 
   useEffect(() => {
-    if (!isMounted || !empresaId) return;
+    if (!isMounted || !empresaId || revisaoPedidoToken) return;
 
     const temDadosNaoSalvos =
       itens.length > 0 ||
@@ -1340,6 +1383,8 @@ export default function RelatorioOrcamento() {
         setAdicionalEdicaoRapidaId(adicionalEncontrado ? String(adicionalEncontrado.id) : "");
       }
 
+      setFiltroCorAdicional(item.corSelecionada || "");
+      setCorEdicaoRapidaAdicional(item.corSelecionada || "");
       setQuantidadeAdicional(Math.max(1, Number(item.qtd) || 1));
       setQtdEdicaoRapidaAdicional(String(Math.max(1, Number(item.qtd) || 1)));
 
@@ -1407,6 +1452,14 @@ export default function RelatorioOrcamento() {
       return;
     }
 
+    const coresEdicao = coresDisponiveisAdicional(itemSelecionado);
+    if (coresEdicao.length > 0 && !correspondeCor(itemSelecionado, corEdicaoRapidaAdicional)) {
+      setModalAvisoTitulo("Selecione uma cor válida");
+      setModalAvisoMensagem("A cor da edição precisa ser uma das cores cadastradas para o material.");
+      setMostrarModalAviso(true);
+      return;
+    }
+
     const codigo = "codigo" in itemSelecionado ? String(itemSelecionado.codigo || "").trim() : "";
     const descricaoBase = `${codigo ? `${codigo} - ` : ""}${itemSelecionado.nome}`.trim();
 
@@ -1416,6 +1469,7 @@ export default function RelatorioOrcamento() {
         ...item,
         descricao: `${tipoLabelEdicaoRapida}: ${descricaoBase}`,
         acabamento: tipoLabelEdicaoRapida,
+        corSelecionada: corEdicaoRapidaAdicional.trim() || undefined,
         servico: "Item adicional",
         servicos: "Item adicional",
         qtd,
@@ -1432,6 +1486,7 @@ export default function RelatorioOrcamento() {
     setAdicionalEdicaoRapidaId("");
     setQtdEdicaoRapidaAdicional("1");
     setValorEdicaoRapidaAdicional("");
+    setCorEdicaoRapidaAdicional("");
   };
 
   const handleSalvarOrcamento = async () => {
@@ -1847,6 +1902,7 @@ export default function RelatorioOrcamento() {
       quantidade: Number(item.qtd || 0),
       medida: item.medidaReal,
       observacaoMedida: item.observacaoPreco,
+      corSelecionada: item.corSelecionada,
       vidro: String(item.descricao || "Vidro").replace(/^vidro\s+/i, "").trim(),
       precoVidroM2: item.precoVidroM2,
       valorTotal: Number(item.total || 0),
@@ -1864,6 +1920,7 @@ export default function RelatorioOrcamento() {
         id: criarId(),
         qtd: ehVidro ? Number(area.toFixed(3)) : Number(item.qtd || 0),
         unidade: ehVidro ? "m2" : "und",
+        corSelecionada: item.corSelecionada,
         descricao: ehVidro
           ? `VIDRO ${item.medidaReal} ${item.descricao}`.toUpperCase()
           : String(item.descricao || "ITEM").toUpperCase(),
@@ -1897,6 +1954,20 @@ export default function RelatorioOrcamento() {
       itensOriginais: itens,
       origemRota: "/calculo/calculovidro",
     };
+    if (revisaoPedidoToken) {
+      const sessao = lerRevisaoCalculo(revisaoPedidoToken);
+      if (!sessao || sessao.empresaId !== empresaId) {
+        window.alert("A sessão de revisão expirou. Volte ao pedido e inicie novamente.");
+        return;
+      }
+      // Mantém a identidade e metadados originais do projeto.
+      // O preço recalculado é técnico; a RPC decide a atualização comercial.
+      const revisado = { ...sessao.original, ...itemCentral, id: sessao.original.id,
+        numero: sessao.original.numero, origemRota: "/calculo/calculovidro" };
+      if (!concluirRevisaoCalculo(revisaoPedidoToken, empresaId, revisado)) return;
+      router.push(`/gestao/pedidos?revisaoPedido=${encodeURIComponent(revisaoPedidoToken)}`);
+      return;
+    }
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {
@@ -2089,7 +2160,7 @@ export default function RelatorioOrcamento() {
                 )}
               </div>
 
-              <button
+              {!revisaoPedidoToken && <button
                 type="button"
                 onClick={enviarParaCentralImpressao}
                 disabled={itens.length === 0}
@@ -2097,16 +2168,16 @@ export default function RelatorioOrcamento() {
               >
                 <FileText size={16} />
                 PDF+
-              </button>
+              </button>}
 
               <button
                 type="button"
-                onClick={handleSalvarOrcamento}
+                onClick={revisaoPedidoToken ? enviarParaCentralImpressao : handleSalvarOrcamento}
                 disabled={itens.length === 0}
                 className="flex shrink-0 items-center gap-2 rounded-xl bg-primary text-on-primary px-4 py-2 text-xs font-bold transition hover:opacity-90 disabled:opacity-40"
               >
                 <Save size={16} />
-                Salvar Orçamento
+                {revisaoPedidoToken ? "Retornar revisão ao pedido" : "Salvar Orçamento"}
               </button>
             </div>
 
@@ -2355,7 +2426,7 @@ export default function RelatorioOrcamento() {
                         onChange={(e) => {
                           setTipoAdicionalSelecionado(e.target.value as "kit" | "perfil" | "ferragem");
                           setAdicionalSelecionadoId("");
-                        }}
+                                              }}
                         className="p-2 bg-surface-secondary rounded-xl border border-border text-xs text-text-primary outline-none"
                       >
                         <option value="kit">Kits</option>
@@ -2366,9 +2437,10 @@ export default function RelatorioOrcamento() {
                       <input
                         type="text"
                         value={filtroCorAdicional}
-                        onChange={(e) => setFiltroCorAdicional(e.target.value)}
+                        onChange={(e) => { setFiltroCorAdicional(e.target.value); setAdicionalSelecionadoId(""); }}
                         className="p-2 bg-surface-secondary rounded-xl border border-border text-xs outline-none"
-                        placeholder="Filtrar por cor"
+                        placeholder="Cor do material (ex.: Branco)"
+                        aria-label="Cor do material: filtra e grava a cor escolhida"
                       />
                     </div>
 
@@ -2382,7 +2454,7 @@ export default function RelatorioOrcamento() {
 
                     <select
                       value={adicionalSelecionadoId}
-                      onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
+                        onChange={(e) => setAdicionalSelecionadoId(e.target.value)}
                       className="w-full p-2.5 bg-surface-secondary rounded-xl border border-border text-xs text-text-primary outline-none"
                     >
                       <option value="">Selecione o item...</option>
@@ -2518,6 +2590,7 @@ export default function RelatorioOrcamento() {
                                 {item.descricao}
                               </div>
 
+                              {item.corSelecionada && <div className="text-xs text-text-secondary">Cor: {item.corSelecionada}</div>}
                               {item.tipo && (
                                 <div className="text-[10px] text-text-secondary font-medium uppercase tracking-tight">
                                   {item.tipo}
@@ -2565,6 +2638,7 @@ export default function RelatorioOrcamento() {
                                       onChange={(e) => {
                                         setTipoEdicaoRapidaAdicional(e.target.value as "kit" | "perfil" | "ferragem");
                                         setAdicionalEdicaoRapidaId("");
+                                        setCorEdicaoRapidaAdicional("");
                                       }}
                                       className="w-full p-2 bg-surface rounded-lg border border-warning-soft outline-none text-xs"
                                     >
@@ -2577,6 +2651,7 @@ export default function RelatorioOrcamento() {
                                       onChange={(e) => {
                                         const novoId = e.target.value;
                                         setAdicionalEdicaoRapidaId(novoId);
+                                        setCorEdicaoRapidaAdicional("");
                                         const itemSelecionado = listaEdicaoRapidaAdicional.find((itemCatalogo) => String(itemCatalogo.id) === String(novoId));
                                         if (itemSelecionado) {
                                           const preco = obterPrecoPadraoAdicional(itemSelecionado);
@@ -2597,6 +2672,21 @@ export default function RelatorioOrcamento() {
                                         );
                                       })}
                                     </select>
+                                  </div>
+                                  <div className="mb-2">
+                                    <label className="block text-xs font-semibold mb-1">Cor do material</label>
+                                    {(() => {
+                                      const selecionado = listaEdicaoRapidaAdicional.find(x => String(x.id) === String(adicionalEdicaoRapidaId));
+                                      const cores = coresDisponiveisAdicional(selecionado);
+                                      return cores.length > 0 ? (
+                                        <select value={corEdicaoRapidaAdicional} onChange={e => setCorEdicaoRapidaAdicional(e.target.value)} className="w-full p-2 bg-surface rounded-lg border border-warning-soft text-xs">
+                                          <option value="">Selecione a cor...</option>
+                                          {cores.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                      ) : (
+                                        <input type="text" value={corEdicaoRapidaAdicional} onChange={e => setCorEdicaoRapidaAdicional(e.target.value)} placeholder="Cor (se aplicável)" className="w-full p-2 bg-surface rounded-lg border border-warning-soft text-xs" />
+                                      );
+                                    })()}
                                   </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     <input
