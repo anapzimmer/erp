@@ -1,3 +1,4 @@
+import ModulosFuturos from "@/components/ModulosFuturos";
 import Link from "next/link";
 import SiteMotion from "@/components/SiteMotion";
 import Image from "next/image";
@@ -83,7 +84,7 @@ const recursos = [
   },
   {
     numero: "05",
-    titulo: "Gestão comercial da indústria",
+    titulo: "Organização comercial da indústria",
     texto:
       "Centralize clientes, preços e orçamentos para acompanhar melhor o movimento comercial da sua indústria e manter o histórico de cada atendimento.",
     itens: [
@@ -964,6 +965,7 @@ export default function RecursosPage() {
       </section>
 
 
+      <div className={styles.container}><ModulosFuturos variante="recursos" /></div>
       <section className={styles.finalCta} id="comecar">
         <div className={styles.finalGlow} />
 

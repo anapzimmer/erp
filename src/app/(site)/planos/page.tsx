@@ -1,5 +1,6 @@
 "use client";
 
+import ModulosFuturos from "@/components/ModulosFuturos";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, ArrowUpRight } from "lucide-react";
@@ -21,6 +22,7 @@ const planos = [
   {
     numero: "01",
     nome: "Essencial",
+    suporte: "Primeiro retorno em até 5 dias úteis",
     valorCentavos: precosPlanosCentavos.essencial,
     foco: "ORÇAMENTOS ESSENCIAIS",
     resumo: "Vidros e espelhos",
@@ -32,15 +34,16 @@ const planos = [
       "Tabelas de vidros e acabamentos",
       "Orçamentos profissionais em PDF",
       "Logo e identidade da sua empresa",
-      "Histórico de orçamentos",
+      "Histórico e relatórios de orçamentos",
     ],
   },
   {
     numero: "02",
     nome: "Profissional",
+    suporte: "Primeiro retorno em até 3 dias úteis",
     valorCentavos: precosPlanosCentavos.profissional,
-    foco: "OPERAÇÃO COMPLETA",
-    resumo: "Projetos + materiais",
+    foco: "PROJETOS E MATERIAIS",
+    resumo: "Projetos + Gestão em desenvolvimento",
     descricao:
       "Conecte projetos, materiais e orçamentos, com orientação para aproveitar os recursos na rotina da vidraçaria.",
     itens: [
@@ -51,18 +54,20 @@ const planos = [
       "Central de impressão",
       "Detalhamento dos projetos",
       "Aproveitamento e perfis adicionais",
+      "Gestão: pedidos e financeiro — em desenvolvimento",
     ],
   },
   {
     numero: "03",
     nome: "Completo",
+    suporte: "Suporte prioritário e personalizado",
     valorCentavos: precosPlanosCentavos.completo,
     destaque: true,
     foco: "PROJETOS AVANÇADOS",
-    resumo: "Projetos especiais + operação completa",
+    resumo: "Projetos especiais + Produção em desenvolvimento",
     descricao:
-      "Trabalhe com todos os recursos dos planos e projetos especiais, com uma equipe próxima para esclarecer dúvidas de uso.",
-    itens: recursosCompleto,
+      "Reúna os cálculos dos planos anteriores e os projetos especiais, com uma equipe próxima para esclarecer dúvidas de uso.",
+    itens: [...recursosCompleto, "Produção: estoque e planos de corte — em desenvolvimento"],
   },
 ];
 
@@ -154,7 +159,7 @@ export default function PlanosPage() {
         </h1>
 
         <p>
-          O Glass Code reúne sistema, atendimento personalizado e evolução contínua para ajudar sua vidraçaria a calcular, organizar projetos e apresentar orçamentos. Escolha as soluções para sua rotina e conte com uma equipe para orientar o uso.
+          O Glass Code reúne sistema, suporte conforme o plano e evolução contínua para ajudar sua vidraçaria a calcular, organizar projetos e apresentar orçamentos. Escolha as soluções para sua rotina e conte com uma equipe para orientar o uso.
         </p>
         <p>Cadastre-se gratuitamente e teste por 3 dias a partir do cadastro. Após esse prazo, o acesso fica bloqueado até a liberação pela equipe. Não há cobrança automática.</p>
       </section>
@@ -224,8 +229,8 @@ export default function PlanosPage() {
             </a>
 
             <div className={styles.supportNote}>
-              <strong>Atendimento personalizado em todos os planos</strong>
-              <span>Orientação de uso e espaço para compartilhar as necessidades da sua operação.</span>
+              <strong>{plano.suporte}</strong>
+              <span>{plano.nome === "Completo" ? "Canais, horários e prazo de primeiro retorno definidos na contratação." : "Prazo de primeiro retorno; a resolução depende da solicitação."}</span>
             </div>
 
             <div className={styles.includesTitle}>
@@ -273,10 +278,10 @@ export default function PlanosPage() {
         <h2 id="atendimento-planos">Mais que um sistema: soluções para o seu dia a dia.</h2>
         <div className={styles.supportGrid}>
           <article><h3>Do cálculo à proposta</h3><p>Calcule vidros e espelhos com os materiais e acabamentos cadastrados. Organize os itens e apresente orçamentos em PDF com a identidade da sua empresa, conforme os recursos do plano.</p></article>
-          <article><h3>Atendimento que entende sua rotina</h3><p>Converse com a equipe sobre sua operação, esclareça dúvidas e receba orientação para aproveitar os recursos contratados. O atendimento personalizado faz parte da proposta em todos os planos.</p></article>
+          <article><h3>Atendimento que entende sua rotina</h3><p>Converse com a equipe sobre sua operação, esclareça dúvidas e receba orientação para aproveitar os recursos contratados. O Essencial tem primeiro retorno em até 5 dias úteis; o Profissional, em até 3 dias úteis. O Completo tem suporte prioritário e personalizado.</p></article>
           <article><h3>Evolução com quem usa</h3><p>O Glass Code está em desenvolvimento contínuo. Compartilhe experiências e necessidades para ajudar a orientar melhorias. Sugestões passam por análise técnica e priorização, sem garantia de implementação ou prazo.</p></article>
         </div>
-        <p className={styles.supportScope}>O atendimento personalizado está presente em todos os planos. Confirme com a equipe os canais, horários e o escopo antes de contratar. Treinamentos individuais, acompanhamento periódico e desenvolvimento sob medida dependem de avaliação e acordo específico.</p>
+        <p className={styles.supportScope}>Atendimento personalizado exclusivo do Completo. Os prazos informados são de primeiro retorno, não de resolução. Confirme com a equipe os canais, horários e o escopo antes de contratar. Treinamentos individuais, acompanhamento periódico e desenvolvimento sob medida dependem de avaliação e acordo específico.</p>
         <a href={contatoWhatsApp()} target="_blank" rel="noopener noreferrer" className={styles.button}>Falar sobre minha vidraçaria <ArrowUpRight size={16} /></a>
       </section>
 
@@ -363,6 +368,7 @@ export default function PlanosPage() {
       {/* =====================================================
           CTA FINAL
       ===================================================== */}
+      <ModulosFuturos />
       <section className={styles.finalCta}>
 
         {/* símbolo Glass Code em marca d'água */}

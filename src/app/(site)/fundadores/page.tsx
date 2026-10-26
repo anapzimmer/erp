@@ -11,7 +11,7 @@ import styles from "./fundadores.module.css";
 
 export const metadata: Metadata = {
   title: "Parceiros Fundadores",
-  description: "Conheça o Programa Parceiros Fundadores do Glass Code: primeira turma de até 30 empresas, recursos do plano Completo, três usuários, votações consultivas e pontos por contribuições reconhecidas.",
+  description: "Conheça o Programa Parceiros Fundadores do Glass Code: primeira turma de até 30 empresas, cálculos e projetos do Completo, três usuários, votações consultivas e pontos por contribuições reconhecidas.",
   alternates: { canonical: "https://www.glasscode.com.br/fundadores" },
   openGraph: {
     title: "Parceiros Fundadores | Glass Code",
@@ -32,7 +32,7 @@ const detalhes = [
 ];
 
 const disponiveis = [
-  "Recursos equivalentes ao plano Completo",
+  "Cálculos e projetos especiais do Completo",
   `${oferta.usuariosIncluidos} usuários incluídos por empresa`,
   "Identificação como parceiro fundador",
   "Painel Founders para parceiros habilitados: contribuições, votações e saldo de pontos",
@@ -72,7 +72,7 @@ const perguntas = [
   ["O sistema está em desenvolvimento?", "Sim. O Glass Code evolui continuamente. Os recursos disponíveis e os que estão em preparação aparecem separados nesta página. A participação permite compartilhar necessidades, mas não garante implementação de sugestões ou prazos de entrega."],
   ["O período promocional é um teste gratuito?", `Não. As ${oferta.mensalidadesPagasPromocionais} primeiras mensalidades são pagas, com valor promocional.`],
   ["O valor de fundador é vitalício?", `Não há promessa de preço vitalício. As condições são as descritas nesta página: ${moedaComercial(oferta.precoPromocionalCentavos)}/mês nas ${oferta.mensalidadesPagasPromocionais} primeiras mensalidades pagas e ${moedaComercial(oferta.precoRegularCentavos)}/mês a partir da ${oferta.mensalidadesPagasPromocionais + 1}ª mensalidade. Preços de tabela podem ser revistos no futuro.`],
-  ["Qual é a diferença para o plano Completo?", "Os recursos do sistema são os mesmos previstos no Completo. O programa acrescenta condições comerciais próprias, participação consultiva, identificação de fundador e benefícios por contribuições reconhecidas, com limite de empresas."],
+  ["Qual é a diferença para o plano Completo?", "O programa inclui os cálculos e projetos especiais do Completo. Os futuros módulos Gestão e Produção não têm inclusão automática no programa; suas condições serão informadas separadamente. O programa acrescenta condições comerciais próprias, participação consultiva, identificação de fundador e benefícios por contribuições reconhecidas, com limite de empresas."],
   ["Como funcionam as votações?", "São consultivas: ajudam a equipe a entender prioridades, mas não garantem que uma sugestão será implementada. Votar não gera pontos automaticamente."],
   ["Minha sugestão será desenvolvida?", "Toda sugestão é analisada, mas a implementação não é garantida. A participação não representa sociedade nem propriedade sobre o software."],
   ["Preciso contratar para participar?", "Sim. Após a confirmação de elegibilidade e vaga, a equipe apresenta as condições para aceite e contratação paga."],
@@ -101,7 +101,7 @@ export default function FundadoresPage() {
         <div className={styles.heroText}>
           <span className={`${styles.eyebrow} ${styles.rise}`} style={{ "--i": 0 } as React.CSSProperties}>PROGRAMA PARCEIROS FUNDADORES</span>
           <h1 className={styles.rise} style={{ "--i": 1 } as React.CSSProperties}>O futuro do Glass Code também pode ter <em>a sua assinatura.</em></h1>
-          <p className={`${styles.lead} ${styles.rise}`} style={{ "--i": 2 } as React.CSSProperties}>Use os recursos do plano Completo e participe da evolução do Glass Code com a experiência da sua vidraçaria. São até {oferta.limiteEmpresas} empresas, com condições comerciais próprias e diálogo próximo com a equipe.</p>
+          <p className={`${styles.lead} ${styles.rise}`} style={{ "--i": 2 } as React.CSSProperties}>Use os cálculos e projetos especiais do Completo e participe da evolução do Glass Code com a experiência da sua vidraçaria. São até {oferta.limiteEmpresas} empresas, com condições comerciais próprias e diálogo próximo com a equipe.</p>
           <div className={`${styles.actions} ${styles.rise}`} style={{ "--i": 3 } as React.CSSProperties}>
             <a className={styles.cta} href="#programa">Conhecer o programa <ArrowDown size={16} aria-hidden="true" /></a>
             <a className={styles.link} href="#condicoes">Ver condições de participação</a>
@@ -148,7 +148,7 @@ export default function FundadoresPage() {
           {detalhes.map((d) => <details key={d.titulo}><summary>{d.titulo}</summary><p>{d.conteudo}</p></details>)}
           <details>
             <summary>Funcionalidades do plano {oferta.planoIncluido}</summary>
-            <p>Inclui os recursos dos planos Essencial e Profissional, além dos exclusivos do Completo:</p>
+            <p>Inclui os recursos atuais de cálculos, orçamentos e projetos especiais do Completo. Gestão e Produção não têm inclusão automática no programa:</p>
             <ul className={styles.list}>{recursosCompleto.map((r) => <li key={r}>{r}</li>)}</ul>
           </details>
           <details>
@@ -270,6 +270,7 @@ export default function FundadoresPage() {
         </div>
       </section>
 
+      <p className={styles.offerNote}>Oferta para novas contratações. Condições já contratadas permanecem conforme o acordo de cada empresa.</p>
       <footer className={shell.footer}>
         <span>Glass Code · Software para o setor de vidro</span>
         <Link href="/planos">Conhecer os planos</Link>

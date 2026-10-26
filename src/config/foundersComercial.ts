@@ -6,9 +6,9 @@ export const foundersComercial = {
   nome: "Programa de Parceiros Fundadores",
   limiteEmpresas: 30,
   usuariosIncluidos: 3,
-  precoPromocionalCentavos: 8990,
-  precoRegularCentavos: 14990,
-  mensalidadesPagasPromocionais: 6,
+  precoPromocionalCentavos: 9990,
+  precoRegularCentavos: 18990,
+  mensalidadesPagasPromocionais: 3,
   planoIncluido: "Completo",
 } as const;
 

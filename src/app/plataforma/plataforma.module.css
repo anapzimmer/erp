@@ -34,3 +34,25 @@
 .success{color:var(--success);background:var(--success-soft)}
 .error{color:var(--danger);background:var(--danger-soft);border-color:var(--danger-soft)}
 .late{color:var(--warning);background:var(--warning-soft)}
+
+/* Painel administrativo: contraste suave e ações legíveis. */
+.root{background:color-mix(in srgb,var(--surface) 94%,var(--text-secondary));}
+.workspace{max-width:none;padding:28px clamp(20px,3vw,48px) 48px;}
+.workspace section[aria-label="Visão geral"]>div{position:relative;min-height:140px;padding:20px 22px;box-shadow:none;border-radius:16px;background:var(--surface);border-top:3px solid color-mix(in srgb,var(--primary) 55%,var(--border));}
+.workspace section[aria-label="Visão geral"]>div:nth-child(2){border-top-color:color-mix(in srgb,var(--info) 45%,var(--border));}
+.workspace section[aria-label="Visão geral"]>div:nth-child(3){border-top-color:var(--border);}
+.workspace section[aria-label="Visão geral"]>div:nth-child(4){border-top-color:color-mix(in srgb,var(--primary) 25%,var(--border));}
+.workspace section[aria-label="Visão geral"] button{font-size:11px;padding:4px 0;border:0;background:transparent;text-align:left;color:var(--text-secondary);}
+.workspace table th{background:color-mix(in srgb,var(--surface) 97%,var(--text-secondary));border-bottom:1px solid var(--border);padding-top:14px;padding-bottom:14px;letter-spacing:1px;}
+.workspace table td{padding-top:18px;padding-bottom:18px;font-size:13px;}
+.workspace table tbody tr{transition:background-color .15s;}
+.workspace table tbody tr:hover{background:color-mix(in srgb,var(--surface) 97%,var(--primary));}
+.companyName{display:flex;align-items:center;gap:12px;min-width:180px;}
+.companyAvatar{display:grid;place-items:center;width:36px;height:36px;flex-shrink:0;border:1px solid var(--border);border-radius:11px;background:var(--surface-secondary);color:var(--text-secondary);font-size:11px;letter-spacing:.5px;}
+.userCount{display:inline-flex;align-items:center;justify-content:center;min-width:30px;padding:4px 9px;border-radius:8px;background:var(--surface-secondary);font-size:12px;}
+.companyActions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-width:235px;color:var(--text-secondary);font-size:12px;}
+.companyActions button{font-size:12px;padding:8px 12px;white-space:nowrap;transition:background-color .15s,border-color .15s;}
+.companyActions button:first-child{background:color-mix(in srgb,var(--surface) 94%,var(--primary));border-color:color-mix(in srgb,var(--border) 75%,var(--primary));}
+.companyActions button:hover{background:var(--surface-secondary);border-color:var(--primary);}
+@media(max-width:760px){.workspace{padding:20px 16px 32px}.workspace section[aria-label="Visão geral"]>div{min-height:120px;padding:16px}.companyActions{gap:8px}}
+@media(prefers-reduced-motion:reduce){.workspace table tbody tr,.companyActions button{transition:none}}

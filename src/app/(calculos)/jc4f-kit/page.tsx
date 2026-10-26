@@ -1,4 +1,5 @@
 ﻿"use client";
+import { concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
@@ -236,7 +237,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
   unidade: unidadeOriginal,
 });
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:jc4f-kit:rascunho";
-const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_PADRAO = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
 const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null) => {
@@ -255,6 +256,8 @@ export default function JC4FKitPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const revisaoPedidoToken = searchParams.get("revisaoPedido") || "";
+  const CENTRAL_IMPRESSAO_KEY = revisaoPedidoToken ? "glasscode:revisao-pedido:itens:" + revisaoPedidoToken : CENTRAL_IMPRESSAO_PADRAO;
   const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId, nomeEmpresa } = useAuth();
@@ -1197,6 +1200,10 @@ const novoProjeto = () => {
   };
 
   const enviarParaCentralImpressao = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     const itemCentral = montarItemCentral(centralItemId || undefined);
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
@@ -1369,6 +1376,10 @@ const novoProjeto = () => {
   }, [carregarOrcamentoParaEdicao]);
 
   const salvarOrcamento = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {

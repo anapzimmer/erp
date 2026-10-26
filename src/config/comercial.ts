@@ -2,9 +2,9 @@ export const whatsappComercial = "5546988271599";
 
 // Preços de divulgação. Não atualizam contratos ou assinaturas existentes.
 export const precosPlanosCentavos = {
-  essencial: 17990,
-  profissional: 24990,
-  completo: 38990,
+  essencial: 27990,
+  profissional: 34990,
+  completo: 46990,
 } as const;
 
 export const moedaComercial = (centavos: number) =>

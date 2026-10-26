@@ -25,6 +25,18 @@ export async function GET(request: Request) {
     if (acesso.erro) return acesso.erro;
     const url = new URL(request.url);
     if (url.searchParams.get("verificar") === "1") return responder({ proprietaria: true });
+    if (url.searchParams.get("modo") === "modulos") {
+      const empresa = url.searchParams.get("empresa") || "";
+      if (!/^[0-9a-f-]{36}$/i.test(empresa)) return responder({erro:"Empresa inválida."},400);
+      const {data,error}=await acesso.db!.rpc("gc_modulos_admin",{p_empresa:empresa});
+      return error ? responder({erro:"Não foi possível consultar os módulos. Confira a instalação da atualização de módulos no Supabase."},503) : responder(data);
+    }
+    if (url.searchParams.get("modo") === "permissao_financeiro") {
+      const usuario=url.searchParams.get("usuario")||"";
+      if(!/^[0-9a-f-]{36}$/i.test(usuario))return responder({erro:"Usuário inválido."},400);
+      const {data,error}=await acesso.db!.rpc("gc_financeiro_usuario_admin",{p_usuario:usuario});
+      return error?responder({erro:"Não foi possível consultar a permissão. Confira a atualização do financeiro no banco."},503):responder({liberado:data});
+    }
     const pagina = Number(url.searchParams.get("pagina") || 0);
     const financeiro = url.searchParams.get("modo") === "financeiro";
     const historico = url.searchParams.get("modo") === "acessos";
@@ -69,6 +81,16 @@ export async function POST(request: Request) {
     if (acesso.erro) return acesso.erro;
     let body;
     try { body = await request.json(); } catch { return responder({ erro: "Solicitação inválida." }, 400); }
+    if(body?.acao==="permissao_financeiro") {
+      if(typeof body.usuario!=="string"||!/^[0-9a-f-]{36}$/i.test(body.usuario)||typeof body.liberado!=="boolean"||typeof body.motivo!=="string"||body.motivo.trim().length<3||body.motivo.length>500)return responder({erro:"Informe usuário, permissão e motivo válidos."},400);
+      const {error}=await acesso.db!.rpc("gc_financeiro_usuario_admin",{p_usuario:body.usuario,p_liberar:body.liberado,p_motivo:body.motivo});
+      return error?responder({erro:"Não foi possível atualizar a permissão financeira."},503):responder({sucesso:true});
+    }
+    if (body?.acao === "modulos") {
+      if (typeof body.empresa!=="string" || !/^[0-9a-f-]{36}$/i.test(body.empresa) || typeof body.gestao!=="boolean" || typeof body.producao!=="boolean" || (body.producao&&!body.gestao) || typeof body.motivo!=="string" || body.motivo.trim().length<3 || body.motivo.length>500) return responder({erro:"Informe empresa, módulos e motivo válidos."},400);
+      const {error}=await acesso.db!.rpc("gc_salvar_modulos",{p_empresa:body.empresa,p_gestao:body.gestao,p_producao:body.producao,p_motivo:body.motivo});
+      return error ? responder({erro:"Não foi possível salvar os módulos. Confira a atualização do banco."},503) : responder({sucesso:true});
+    }
     if (body?.acao === "senha_usuario" || body?.acao === "teste_usuario") {
       if (typeof body.alvo !== "string" || !/^[0-9a-f-]{36}$/i.test(body.alvo) ||
           typeof body.email !== "string" || body.email.length > 254) {

@@ -11,11 +11,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { consultarPlataforma } from "@/lib/plataforma";
 
 type MenuSubItem = {
+  disabled?: boolean;
   label: string;
   href: string;
 };
 
 type MenuItem = {
+  disabled?: boolean;
   label: string;
   href: string;
   submenu?: MenuSubItem[];
@@ -58,6 +60,14 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "Central de Impressão", href: "/central-impressao" },
     ],
+  },
+  {
+    group: "Gestão",
+    items: [{ label: "Pedidos", href: "/gestao/pedidos" }, { label: "Compras · Em construção", href: "/gestao/compras", disabled: true }],
+  },
+  { group: "Produção", items: [{ label: "Plano de corte de perfis · Em construção", href: "/producao/perfis", disabled: true }, { label: "Plano de corte de vidros · Em construção", href: "/producao/vidros", disabled: true }, { label: "Estoque · Em construção", href: "/producao/estoque", disabled: true }],
+  },
+  { group: "Financeiro", items: [{ label: "Contas a receber", href: "/gestao/financeiro" }, { label: "Contas a pagar · Em construção", href: "/gestao/pagar", disabled: true }],
   },
   {
     group: "Relatórios",
@@ -275,6 +285,7 @@ const { theme } = useTheme();
                             const visibleLinks = item.submenu && item.submenu.length > 0 ? item.submenu : [item];
 
                             return visibleLinks.map((linkItem) => {
+                              if (linkItem.disabled) return <span key={linkItem.href} aria-disabled="true" className="rounded-lg px-3 py-2 text-xs opacity-50 cursor-not-allowed">{linkItem.label}</span>;
                               const active = pathname === linkItem.href;
 
                               return (
