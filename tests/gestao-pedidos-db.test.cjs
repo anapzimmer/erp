@@ -22,6 +22,7 @@ test('pedidos: autorização, isolamento, conversão, edição e transições no
  await db.exec(fs.readFileSync('database/20261025_gestao_recebimentos.sql','utf8'));
  await db.exec(fs.readFileSync('database/20261025_pedidos_itens_detalhados.sql','utf8'));
  await db.exec(fs.readFileSync('database/20261025_pedidos_revisoes.sql','utf8'));
+ await db.exec(fs.readFileSync('database/20261026_revisao_medidas_pedido.sql','utf8'));
  const asUser=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated')};
 
  const itens=JSON.stringify([{descricao:'Vidro',quantidade:2,preco:145}]);
@@ -85,6 +86,17 @@ test('pedidos: autorização, isolamento, conversão, edição e transições no
  await assert.rejects(()=>db.query("select gc_revisar_pedido($1,6,$2,'2026-10-25T10:00:00Z','tecnica','Teste',false,'')",[pid,oid]),/Pause/);
  await asUser(ub);assert.equal((await db.query('select * from gc_pedido_revisoes')).rows.length,0);await assert.rejects(()=>db.query("select gc_revisar_pedido($1,6,$2,'2026-10-25T10:00:00Z','tecnica','Teste',false,'')",[pid,oid]),/indisponível/);
  await asUser(ua);
+ await db.exec('reset role');
+ const avulso={id:'avulso',projeto:'Vidros avulsos',quantidade:17,vidrosAvulsos:[{quantidade:17,medida:'500 x 1500 mm'}]};
+ await db.query("update gc_pedidos set origem_snapshot=$2 where id=$1",[id,JSON.stringify({itens:{documentoPdfCompleto:[avulso,{id:'outro',projeto:'Box'}],projetosPdf:[]}})]);
+ await asUser(ua);
+ const revisaoDireta=motivo=>db.query("select gc_revisar_medidas_pedido($1,1,'documentoPdfCompleto',0,$2,$3,'')",[id,JSON.stringify({...avulso,vidrosAvulsos:[{quantidade:17,medida:'510 x 1500 mm'}]}),motivo]);
+ await assert.rejects(()=>revisaoDireta(''),/motivo/);
+ await revisaoDireta('Conferência na obra');
+ const depois=(await db.query('select total,origem_snapshot from gc_pedidos where id=$1',[id])).rows[0];
+ assert.equal(Number(depois.total),290);assert.equal(depois.origem_snapshot.itens.documentoPdfCompleto[0].vidrosAvulsos[0].medida,'510 x 1500 mm');assert.equal(depois.origem_snapshot.itens.documentoPdfCompleto[1].id,'outro');
+ assert.equal((await db.query('select count(*)::int n from gc_parcelas where pedido_id=$1 and not cancelada',[id])).rows[0].n,2);
+ await assert.rejects(()=>revisaoDireta('Repetir'),/Pedido alterado/);
  await asUser(admin);await db.query('select gc_financeiro_usuario_admin($1,false,$2)',[ua,'Revogação']);
  await asUser(ua);assert.equal((await db.query('select * from gc_recebimentos')).rows.length,0);
  await asUser(admin);await db.query('select gc_salvar_modulos($1,false,false,$2)',[a,'Cancelamento do módulo']);

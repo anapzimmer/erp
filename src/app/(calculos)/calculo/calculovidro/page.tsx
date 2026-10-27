@@ -1962,7 +1962,7 @@ export default function RelatorioOrcamento() {
       }
       // Mantém a identidade e metadados originais do projeto.
       // O preço recalculado é técnico; a RPC decide a atualização comercial.
-      const revisado = { ...sessao.original, ...itemCentral, id: sessao.original.id,
+      const revisado = { ...sessao.original, ...itemCentral, quantidade: totalPecas, id: sessao.original.id,
         numero: sessao.original.numero, origemRota: "/calculo/calculovidro" };
       if (!concluirRevisaoCalculo(revisaoPedidoToken, empresaId, revisado)) return;
       router.push(`/gestao/pedidos?revisaoPedido=${encodeURIComponent(revisaoPedidoToken)}`);

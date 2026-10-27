@@ -78,3 +78,5 @@
 .conferenciaDetalhes{border-top:1px solid var(--border);padding-top:12px;display:grid;gap:5px}
 .conferenciaDetalhes p{margin:0}.conferenciaRodape{font-size:12px!important;color:var(--text-secondary)}
 @media(max-width:650px){.conferenciaProjeto{align-items:stretch}.conferenciaAcoes{width:100%}.conferenciaAcoes button{flex:1}.conferenciaImagem{width:66px;height:74px}}
+
+.exitConfirmation p{font-size:13px;line-height:1.7;color:var(--text-secondary);margin:0}.exitActions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:24px}.exitActions button{font-size:12px;padding:8px 12px;border-radius:8px;font-weight:400}.exitActions .exitDiscard{background:color-mix(in srgb,var(--primary) 12%,var(--surface));border-color:color-mix(in srgb,var(--primary) 30%,var(--border));color:var(--text-primary)}.exitActions .exitDiscard:hover{background:color-mix(in srgb,var(--primary) 20%,var(--surface))}

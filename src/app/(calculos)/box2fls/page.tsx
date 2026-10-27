@@ -1,4 +1,5 @@
 "use client";
+import {capacidadeKitCantoBox,modeloKitCantoBox} from "@/utils/kitCantoBox";
 import { concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
@@ -618,10 +619,10 @@ export default function Box2FlsPage() {
     if (largura <= 0) return null;
     const modeloTradicional = normalizarTexto(dados.trinco || "Tradicional").includes("tradicional");
     const candidatosModelo = kits
-      .filter((kit) => kitCorrespondeModeloBox?.(kit, dados.trinco || "Tradicional"))
+      .filter((kit) => largura > 2000 ? modeloKitCantoBox(kit, dados.trinco || "Tradicional") : kitCorrespondeModeloBox(kit, dados.trinco || "Tradicional"))
       .map((kit) => ({
         kit,
-        limiteLargura: limiteLarguraKitBox?.(kit),
+        limiteLargura: largura > 2000 ? capacidadeKitCantoBox(kit) : limiteLarguraKitBox(kit),
         limiteAltura: limiteAlturaKitBox?.(kit),
       }))
       .filter(({ limiteLargura, limiteAltura }) =>

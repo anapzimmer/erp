@@ -8,6 +8,7 @@ import PreviaOrcamento from "./PreviaOrcamento";
 import FinanceiroPedido from "./FinanceiroPedido";
 import RelatorioPedidoFechado from "./RelatorioPedidoFechado";
 import Header from "@/components/Header";
+import ConfiguracaoModal from "@/components/ConfiguracaoModal";
 import type { ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
@@ -74,7 +75,7 @@ export default function PedidosPage(){
         <details className={styles.pedidoMenuMais}>
           <summary>Ações do pedido</summary>
           <div className={styles.pedidoMenuConteudo}>
-            {selecionado.situacao==="conferencia"&&<button type="button" onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");editar()}}>Editar conferência</button>}
+            {selecionado.situacao==="conferencia"&&<button type="button" onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");editar()}}>Editar dados do pedido</button>}
             {proximaSituacao(selecionado.situacao)&&<button type="button" onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");setDestino(proximaSituacao(selecionado.situacao));setMotivo("")}}>Avançar para {situacoesPedido[proximaSituacao(selecionado.situacao)!]}</button>}
             {selecionado.orcamento_id&&<Link href="/admin/relatorio.orcamento" className={styles.pedidoMenuLink}>Consultar orçamentos</Link>}
             {!['entregue','cancelado'].includes(selecionado.situacao)&&<><div className={styles.pedidoMenuSeparador}/><button type="button" className={styles.pedidoMenuPerigo} onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");setDestino("cancelado");setMotivo("")}}>Cancelar pedido</button></>}
@@ -111,13 +112,15 @@ export default function PedidosPage(){
       <div className={styles.pedidoResumo}><div><small>Pedido criado</small><strong>{new Date(selecionado.criado_em).toLocaleDateString("pt-BR")}</strong></div><div><small>Prazo previsto</small><strong>{selecionado.prazo?.split("-").reverse().join("/")||"Não definido"}</strong></div></div>
       <h3>Observações</h3><p className={styles.pedidoObservacoes}>{selecionado.observacoes?.trim()||"Nenhuma observação registrada."}</p>
       <h3>Histórico do pedido</h3>{eventos.length?eventos.map(e=><p className={styles.event} key={e.id}><small>{new Date(e.criado_em).toLocaleString("pt-BR")}</small>{e.detalhe}</p>):<p>Nenhum evento registrado.</p>}
-      <p className={styles.pedidoNota}>Para alterar o prazo e as observações, utilize Editar conferência enquanto o pedido estiver nessa situação. O cadastro de compromissos independentes ainda não está habilitado.</p>
+      <p className={styles.pedidoNota}>Para alterar o prazo e as observações, utilize Editar dados do pedido enquanto o pedido estiver nessa situação. O cadastro de compromissos independentes ainda não está habilitado.</p>
     </div>}
   </>}</div></EditorPedido></div>
 }
 
 function EditorPedido({aberto,ocupado,fechar,titulo,children}:{aberto:boolean;ocupado:boolean;fechar:()=>void;titulo:string;children:ReactNode}) {
+ const [confirmarSaida,setConfirmarSaida]=useState(false);
+ useEffect(()=>{setConfirmarSaida(false)},[aberto,titulo]);
  useEffect(()=>{if(aberto)window.scrollTo({top:0,behavior:"instant"})},[aberto]);
  if(!aberto)return null;
- return <main className={styles.main}><div className={styles.heading}><div><p className={styles.eyebrow}>GESTÃO · PEDIDOS</p><h1>{titulo}</h1></div><button disabled={ocupado} onClick={()=>{if(!window.confirm("Voltar à lista? Alterações não salvas serão descartadas."))return;fechar()}}>Voltar aos pedidos</button></div><section className={styles.editor}>{children}</section></main>;
+ return <main className={styles.main}><div className={styles.heading}><div><p className={styles.eyebrow}>GESTÃO · PEDIDOS</p><h1>{titulo}</h1></div><button disabled={ocupado} onClick={()=>setConfirmarSaida(true)}>Voltar aos pedidos</button></div><section className={styles.editor}>{children}</section><ConfiguracaoModal compacto aberto={confirmarSaida} ocupado={ocupado} fechar={()=>setConfirmarSaida(false)} titulo="Voltar aos pedidos?"><div className={styles.exitConfirmation}><p>Você tem alterações não salvas.<br/>Deseja sair sem salvar?</p><div className={styles.exitActions}><button type="button" autoFocus disabled={ocupado} onClick={()=>setConfirmarSaida(false)}>Continuar editando</button><button type="button" disabled={ocupado} className={styles.exitDiscard} onClick={()=>{setConfirmarSaida(false);fechar()}}>Descartar e voltar</button></div></div></ConfiguracaoModal></main>;
 }

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { rotasRevisaoPedido } from "@/utils/rotasRevisaoPedido";
 import { REVISAO_CALCULO_KEY, lerRevisaoCalculo, type RevisaoCalculo } from "@/utils/revisaoCalculoPedido";
+import {camposRevisao,diferencasItens} from "@/utils/diferencasRevisaoPedido";
+import {quantidadeProjetoPedido} from "@/utils/quantidadeProjetoPedido";
 import styles from "./pedidos.module.css";
 
 type Projeto = Record<string, unknown>;
@@ -105,7 +107,7 @@ function DetalhesProjeto({ projeto }: { projeto: Projeto }) {
         <Campo rotulo="Medidas" valor={projeto.medidas || projeto.medidaReal || projeto.medida} />
         {Number(projeto.largura) > 0 && <Campo rotulo="Largura" valor={`${texto(projeto.largura)} mm`} />}
         {Number(projeto.altura) > 0 && <Campo rotulo="Altura" valor={`${texto(projeto.altura)} mm`} />}
-        <Campo rotulo="Quantidade" valor={projeto.quantidade} />
+        <Campo rotulo="Quantidade" valor={quantidadeProjetoPedido(projeto)} />
       </div>
       <div>
         <Campo rotulo="Vidro" valor={projeto.vidro} />
@@ -128,7 +130,7 @@ function Resumo({ titulo, item }: { titulo: string; item: Projeto }) {
     <Campo rotulo="Projeto" valor={item.projeto} />
     <Campo rotulo="Medidas" valor={item.medidas || item.medidaReal || item.medida} />
     <Campo rotulo="Vidro" valor={item.vidro} />
-    <Campo rotulo="Quantidade" valor={item.quantidade} />
+    <Campo rotulo="Quantidade" valor={quantidadeProjetoPedido(item)} />
     {lista(item.vidrosAvulsos).length > 0 && <TabelaTecnica itens={lista(item.vidrosAvulsos)} titulo={`${titulo}: vidros avulsos`} />}
   </section>;
 }
@@ -179,6 +181,8 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
 
   async function aplicar() {
     if (!rascunho?.resultado) return;
+    if (motivo.trim().length < 3) { setErro("Informe o motivo da alteração com pelo menos 3 caracteres."); document.getElementById("motivo-revisao")?.focus(); return; }
+    if (["producao", "pronto"].includes(pedido.situacao) && conferencia.trim().length < 10) { setErro("Registre a pausa e a conferência da produção (mínimo de 10 caracteres)."); return; }
     setSalvando(true);
     setErro("");
     try {
@@ -195,7 +199,7 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
       limpar();
       concluido();
     } catch (e) {
-      setErro((e as Error).message);
+      setErro(/gc_revisar_medidas_pedido.*schema cache|Could not find the function/i.test((e as Error).message) ? "A atualização de revisão técnica precisa ser instalada no Supabase: 20261026_revisao_medidas_pedido.sql. Sua edição foi mantida." : (e as Error).message);
     } finally {
       setSalvando(false);
     }
@@ -213,10 +217,10 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
       <h4>Revisão de medidas em andamento</h4>
       <p>Confira as informações antes de aplicar a alteração.</p>
       {rascunho.resultado ? <>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 480px), 1fr))", gap: 16, width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}><Resumo titulo="Antes" item={rascunho.original} /><Resumo titulo="Após recalcular" item={rascunho.resultado} /></div>
-        <label>Motivo da alteração<textarea maxLength={500} value={motivo} onChange={e => setMotivo(e.target.value)} /></label>
+        <ComparacaoAlteracoes antes={rascunho.original} depois={rascunho.resultado}/>
+        <label>Motivo da alteração (obrigatório)<textarea id="motivo-revisao" placeholder="Ex.: Medidas ajustadas após conferência na obra" maxLength={500} value={motivo} onChange={e => setMotivo(e.target.value)} /></label>
         {["producao", "pronto"].includes(pedido.situacao) && <label>Registre a pausa e a conferência de peças cortadas e materiais utilizados<textarea maxLength={2000} value={conferencia} onChange={e => setConferencia(e.target.value)} /></label>}
-        <button disabled={salvando || motivo.trim().length < 3 || (["producao", "pronto"].includes(pedido.situacao) && conferencia.trim().length < 10)} onClick={() => void aplicar()}>Confirmar revisão técnica</button>
+        <button disabled={salvando} onClick={() => void aplicar()}>Confirmar revisão técnica</button>
       </> : <p>A edição foi interrompida sem retornar um cálculo.</p>}
       <button disabled={salvando} onClick={limpar}>Descartar revisão</button>
     </section> : <div className={styles.conferenciaLista}>
@@ -248,4 +252,12 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
     </div>}
     <p className={styles.conferenciaRodape}>O registro de “medidas conferidas” por projeto e o bloqueio automático de liberação ainda dependem de persistência e validação no Supabase.</p>
   </section>;
+}
+
+export function ComparacaoAlteracoes({antes,depois}:{antes:Projeto;depois:Projeto}){
+ const avulsosAntes=lista(antes.vidrosAvulsos),avulsosDepois=lista(depois.vidrosAvulsos);
+ const relacao=avulsosAntes.length>0||avulsosDepois.length>0;
+ const diferencas=relacao?diferencasItens(avulsosAntes,avulsosDepois):diferencasItens([{...antes,descricao:antes.projeto,medida:antes.medidas}],[{...depois,descricao:depois.projeto,medida:depois.medidas}]);
+ const materiais=relacao?[]:diferencasItens(lista(antes.materiais),lista(depois.materiais));
+ return <div><p>{diferencas.length+materiais.length?"Somente os itens alterados são apresentados abaixo.":"Nenhuma alteração técnica identificada nos campos comparados."}</p>{[...diferencas,...materiais].map((d,i)=><section key={i} className={styles.notice} style={{marginTop:12}}><h4>{d.tipo} · {texto((d.depois||d.antes)?.vidro||(d.depois||d.antes)?.descricao||(d.depois||d.antes)?.projeto)||"Item"}</h4><div className={styles.scroll}><table><thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead><tbody>{Object.keys(camposRevisao(d.antes||{})).map(chave=>{const a=camposRevisao(d.antes||{}),b=camposRevisao(d.depois||{});const k=chave as keyof typeof a;const va=texto(a[k]),vb=texto(b[k]);if(va===vb||(!va&&!vb))return null;return <tr key={k}><td>{{descricao:"Descrição",quantidade:"Quantidade",medida:"Medida real",calculo:"Medida de cálculo",cor:"Cor",observacao:"Observação"}[k]}</td><td>{va||"—"}</td><td><strong>{vb||"—"}</strong></td></tr>})}</tbody></table></div></section>)}<details className={styles.reportComposition} style={{marginTop:16}}><summary>Ver relação completa do projeto — antes e depois</summary><div className={styles.fields}><Resumo titulo="Antes" item={antes}/><Resumo titulo="Após recalcular" item={depois}/></div></details></div>;
 }
