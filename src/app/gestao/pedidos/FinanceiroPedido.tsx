@@ -29,7 +29,38 @@ export default function FinanceiroPedido({pedido,empresaId,resumo=false}:{resumo
  const totalRecebido=ativas.reduce((s,p)=>s+recebido(p),0),totalAberto=ativas.reduce((s,p)=>s+saldo(p),0),totalVencido=ativas.filter(p=>p.vencimento<hojeFinanceiro()).reduce((s,p)=>s+saldo(p),0);
  async function executar(fn:()=>PromiseLike<{error:unknown}>){setOcupado(true);setErro("");try{const {error}=await fn();if(error)throw error;setReceber(null);setAcao(null);setPrevistas([]);await carregar()}catch(e){setErro(erroTexto(e))}finally{setOcupado(false)}}
  if(loading)return <p>Consultando financeiro…</p>;
- if(resumo)return <section className={styles.financeiro}><h3>Resumo financeiro</h3>{erro?<p role="alert">{erro}</p>:!permitido?<p>Acesso financeiro restrito aos usuários autorizados.</p>:<><div className={styles.financeStats}><div>Total do pedido<strong>{moeda(pedido.total)}</strong></div><div>Recebido<strong>{moeda(totalRecebido)}</strong></div><div>Saldo parcelado<strong>{moeda(totalAberto)}</strong></div></div>{!ativas.length&&<p>Pedido sem parcelamento ativo.</p>}<Link href={`/gestao/financeiro?pedido=${pedido.id}`}>Ver no financeiro →</Link></>}</section>;
+ if(resumo){
+  const total=Number(pedido.total)||0;
+  const recebidoCentavos=Math.round(totalRecebido*100);
+  const totalCentavos=Math.round(total*100);
+  const saldoPedido=Math.max(0,(totalCentavos-recebidoCentavos)/100);
+  const percentual=totalCentavos>0?Math.min(100,Math.max(0,recebidoCentavos/totalCentavos*100)):0;
+  const parcelasOrdenadas=[...ativas].sort((a,b)=>a.numero-b.numero);
+  const totalParceladoCentavos=Math.round(ativas.reduce((s,p)=>s+Number(p.valor),0)*100);
+  const divergencia=ativas.length>0&&totalParceladoCentavos!==totalCentavos;
+  const pago=ativas.length>0&&totalAberto<=0.005&&!divergencia&&saldoPedido<=0.005;
+  const parcial=totalRecebido>0&&!pago;
+  const vencidas=ativas.some(p=>saldo(p)>0.005&&p.vencimento<hojeFinanceiro());
+  const status=!ativas.length?"Sem parcelamento":divergencia?"Revisar valores":pago?"Pago":vencidas?"Em atraso":parcial?"Parcialmente pago":"Pendente";
+  const statusClasse=divergencia||vencidas?styles.finStatusAlerta:pago?styles.finStatusPago:parcial?styles.finStatusParcial:styles.finStatusNeutro;
+  const formatarData=(v:string)=>/^\d{4}-\d{2}-\d{2}$/.test(v)?v.split("-").reverse().join("/"):v||"—";
+  return <section className={styles.finResumo} aria-label="Financeiro do pedido">
+   <div className={styles.finResumoCabecalho}><div><h3>Financeiro do pedido</h3><p>Resumo dos valores e parcelas do pedido</p></div>{permitido&&!erro&&<span className={`${styles.finStatus} ${statusClasse}`}>{status}</span>}</div>
+   {erro?<p role="alert" className={styles.notice}>{erro}</p>:!permitido?<p>Acesso financeiro restrito aos usuários autorizados.</p>:<>
+    <div className={styles.finResumoNumeros}>
+     <div><small>Total do pedido</small><strong>{moeda(total)}</strong></div>
+     <div><small>Recebido</small><strong className={styles.finRecebido}>{moeda(totalRecebido)}</strong></div>
+     <div><small>A receber</small><strong>{moeda(saldoPedido)}</strong></div>
+    </div>
+    <div className={styles.finProgresso}><div><span>Progresso do recebimento</span><strong>{percentual.toLocaleString("pt-BR",{maximumFractionDigits:1})}%</strong></div><div className={styles.finTrilha} role="progressbar" aria-label="Percentual recebido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentual)}><div style={{width:`${percentual}%`}}/></div></div>
+    <div className={styles.finParcelasCabecalho}><h4>Parcelamento</h4><span>{ativas.length} {ativas.length===1?"parcela":"parcelas"}</span></div>
+    {divergencia&&<p role="alert" className={styles.finAviso}>A soma das parcelas ativas ({moeda(totalParceladoCentavos/100)}) é diferente do valor atual do pedido ({moeda(total)}). Confira a conciliação na Gestão Financeira.</p>}
+    {parcelasOrdenadas.length?<div className={styles.finTabelaScroll}><table className={styles.finTabela}><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>{parcelasOrdenadas.map(p=>{const r=recebido(p),restante=saldo(p);const situacao=restante<=0.005?"Pago":p.vencimento<hojeFinanceiro()?"Em atraso":r>0?"Parcial":"Pendente";return <tr key={p.id}><td>{String(p.numero).padStart(2,"0")}/{String(parcelasOrdenadas.length).padStart(2,"0")}</td><td>{formatarData(p.vencimento)}</td><td>{moeda(Number(p.valor))}</td><td><span className={situacao==="Pago"?styles.finSituacaoPaga:situacao==="Em atraso"?styles.finSituacaoAtraso:styles.finSituacao}>{situacao}</span>{situacao==="Parcial"&&<small>Restam {moeda(restante)}</small>}</td></tr>})}</tbody></table></div>:<p className={styles.finSemParcelas}>Este pedido ainda não possui parcelas cadastradas. O saldo do pedido permanece a receber.</p>}
+    <div className={styles.finResumoRodape}><Link href={`/gestao/financeiro?pedido=${encodeURIComponent(pedido.id)}`}>Abrir Gestão Financeira →</Link></div>
+   </>}
+  </section>;
+ }
+
  return <section className={styles.financeiro}><div className={styles.actions}><h3>Financeiro do pedido</h3><button onClick={()=>void carregar()} disabled={ocupado}>Atualizar</button></div>{erro&&<p role="alert" className={styles.notice}>{erro}</p>}{!permitido?<p>Seu usuário precisa de autorização financeira da administração, além do módulo Gestão.</p>:<>
  <p>Recebimentos manuais. Registrar um pagamento não cobra o cliente nem emite nota fiscal.</p>
  <div className={styles.financeStats}><div>Recebido<strong>{moeda(totalRecebido)}</strong></div><div>Em aberto<strong>{moeda(totalAberto)}</strong></div><div>Vencido<strong>{moeda(totalVencido)}</strong></div></div>

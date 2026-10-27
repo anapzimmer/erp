@@ -737,14 +737,22 @@ export default function PGPage() {
     }, opcoes);
   }, [buscarFerragem]);
 
-  const buscarPerfilPorCodigo = useCallback((codigo: string) => {
-    const codigoNormalizado = normalizarTexto(codigo);
+const buscarPerfilPorCodigo = useCallback((codigo: string) => {
+  const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
-      const codigoOk = codigoFerragemCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk;
-    }) || null;
-  }, [corFerragemSelecionada, perfis]);
+  const candidatos = perfis.filter((perfil) =>
+    codigoFerragemCompativel(
+      normalizarTexto(perfil.codigo),
+      codigoNormalizado
+    )
+  );
+
+  return escolherItemPorCor(
+    candidatos,
+    dados.corKit,
+    (perfil) => perfil.cores
+  );
+}, [dados.corKit, perfis]);
 
   const codigosItensAutomaticos = useMemo(
     () => ["CT004", "1101A", "1201A", "1103A", "1013A", "1101G", "1201G", "1102G", "1013G", "1133", "1629B", "1520AROU-CIL", "1520P", "1504A", "1520TAROU-CIL", "1520TAP", "MFLY", "1504ATA", "PUXBC30", "PUXBC60", "PUXBC80"].map(normalizarTexto),
