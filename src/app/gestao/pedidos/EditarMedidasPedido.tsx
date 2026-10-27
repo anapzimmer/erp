@@ -8,6 +8,7 @@ import { REVISAO_CALCULO_KEY, lerRevisaoCalculo, type RevisaoCalculo } from "@/u
 import {camposRevisao,diferencasItens} from "@/utils/diferencasRevisaoPedido";
 import {quantidadeProjetoPedido} from "@/utils/quantidadeProjetoPedido";
 import styles from "./pedidos.module.css";
+import ConferenciaUnidadesAvulsas from "./ConferenciaUnidadesAvulsas";
 
 type Projeto = Record<string, unknown>;
 type PedidoConferencia = { id: string; versao: number; situacao: string; origem_snapshot: Projeto | null };
@@ -228,10 +229,10 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
         const caminho = rota(p);
         const imagem = imagemValida(p.desenhoUrl) ? p.desenhoUrl : null;
         const relacao = lista(p.vidrosAvulsos);
-        return <article className={styles.conferenciaCard} key={i}>
-          <div className={styles.conferenciaProjeto}>
-            <div className={styles.conferenciaInfo}>
-              {imagem && <img className={styles.conferenciaImagem} src={imagem} alt={`Desenho do projeto ${texto(p.projeto) || i + 1}`} />}
+        return <article className={styles.conferenciaCard} key={i} style={{ gap: 0, padding: "16px 20px" }}>
+          <div className={styles.conferenciaProjeto} style={{ gap: 12, alignItems: "center", paddingBottom: 12 }}>
+            <div className={styles.conferenciaInfo} style={{ gap: 20, alignItems: "center" }}>
+              {imagem && <img className={styles.conferenciaImagem} style={{ width: "clamp(130px, 13vw, 175px)", height: "clamp(120px, 13vw, 160px)", objectFit: "contain", padding: 5 }} src={imagem} alt={`Desenho do projeto ${texto(p.projeto) || i + 1}`} />}
               <div>
                 <small>PROJETO {i + 1}</small>
                 <h4>{texto(p.projeto || p.descricao || p.nome) || `Projeto ${i + 1}`}</h4>
@@ -240,17 +241,27 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
                 {relacao.length > 0 && <p>{relacao.length} linha(s) de vidros e materiais</p>}
               </div>
             </div>
-            <div className={styles.conferenciaAcoes}>
-              <button type="button" onClick={() => setExpandido(expandido === i ? null : i)} aria-expanded={expandido === i}>{expandido === i ? "Ocultar detalhes" : "Conferir detalhes"}</button>
-              <button type="button" disabled={!caminho} onClick={() => editar(p, i)}>{caminho ? "Editar no cálculo" : "Edição direta indisponível"}</button>
+            <div className={styles.conferenciaAcoes} style={{ alignSelf: "center" }}>
+              <button type="button" onClick={() => setExpandido(expandido === i ? null : i)} aria-expanded={expandido === i}>{expandido === i ? "Ocultar detalhes" : "Detalhes técnicos"}</button>
             </div>
           </div>
           {expandido === i && <DetalhesProjeto projeto={p} />}
+          <details style={{ marginTop: 0, borderTop: "1px solid #d5e0e4", padding: "8px 0" }}>
+            <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 400, color: "#4d6a70", padding: "3px 0" }}>Conferência de peças (visualizar e conferir medidas)</summary>
+            <div style={{ marginTop: 8 }}>
+              <ConferenciaUnidadesAvulsas key={`${campo}:${texto(p.id) || i}`} pedidoId={pedido.id} empresaId={empresaId} situacaoPedido={pedido.situacao} projetoId={texto(p.id)} origemCampo={campo} integrado />
+            </div>
+          </details>
+          <details style={{ marginTop: 0, borderTop: "1px solid #d5e0e4", padding: "8px 0" }}>
+            <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 400, color: "#4d6a70", padding: "3px 0" }}>Ajustes e revisão técnica (usar somente se necessário)</summary>
+            <p style={{ fontSize: 12, color: "#4d6a70", margin: "10px 0" }}>Para corrigir o projeto, abra o cálculo original. A revisão exige confirmação e pode afetar peças já conferidas.</p>
+            <button type="button" disabled={!caminho} onClick={() => editar(p, i)}>{caminho ? "Editar no cálculo original" : "Edição direta indisponível"}</button>
+          </details>
         </article>;
       })}
       {!projetos.length && <p>Este pedido não contém projetos de cálculo salvos em um formato reconhecido para conferência.</p>}
     </div>}
-    <p className={styles.conferenciaRodape}>O registro de “medidas conferidas” por projeto e o bloqueio automático de liberação ainda dependem de persistência e validação no Supabase.</p>
+    <p className={styles.conferenciaRodape}>A conferência individual é registrada no Supabase. A liberação parcial para produção permanece indisponível até a implementação das proteções no banco.</p>
   </section>;
 }
 
