@@ -46,11 +46,20 @@ export default function ConfiguracoesPagamento({ empresaId }: { empresaId: strin
 
   function limpar() { setNome(""); setCodigo(""); setDias("0"); setEditando(null); setErro(""); }
   function mudarTipo(novo: Tipo) { setTipo(novo); limpar(); setSucesso(""); }
-  function editar(item: Forma | Condicao) {
-    setEditando(item.id); setNome(item.nome); setCodigo(item.codigo);
-    setDias("dias_vencimento" in item ? item.dias_vencimento.join(",") : "0");
-    setErro(""); setSucesso("");
-  }
+function editar(item: Forma | Condicao) {
+  setEditando(item.id);
+  setNome(item.nome);
+  setCodigo(item.codigo);
+
+  setDias(
+    "dias_vencimento" in item && Array.isArray(item.dias_vencimento)
+      ? item.dias_vencimento.join(",")
+      : "0"
+  );
+
+  setErro("");
+  setSucesso("");
+}
   async function salvar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setErro(""); setSucesso("");
     const nomeFinal = nome.trim();
