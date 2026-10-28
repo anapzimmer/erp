@@ -7,8 +7,10 @@ import { rotasRevisaoPedido } from "@/utils/rotasRevisaoPedido";
 import { REVISAO_CALCULO_KEY, lerRevisaoCalculo, type RevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import {camposRevisao,diferencasItens} from "@/utils/diferencasRevisaoPedido";
 import {quantidadeProjetoPedido} from "@/utils/quantidadeProjetoPedido";
+import { compararValorRevisao } from "@/utils/comparacaoValorRevisao";
 import styles from "./pedidos.module.css";
 import ConferenciaUnidadesAvulsas from "./ConferenciaUnidadesAvulsas";
+import ConferenciaConjuntosBox2Folhas from "./ConferenciaConjuntosBox2Folhas";
 
 type Projeto = Record<string, unknown>;
 type PedidoConferencia = { id: string; versao: number; situacao: string; origem_snapshot: Projeto | null };
@@ -143,6 +145,8 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
   const [conferencia, setConferencia] = useState("");
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+  const [sucesso, setSucesso] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
   const itens = obj(pedido.origem_snapshot?.itens);
   const campo = Array.isArray(itens.documentoPdfCompleto) ? "documentoPdfCompleto" : Array.isArray(itens.projetosPdf) ? "projetosPdf" : "";
@@ -198,6 +202,8 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
       });
       if (error) throw error;
       limpar();
+      setConfirmarDescarte(false);
+      setSucesso("Revisão salva no pedido. O valor contratado foi mantido e o pedido voltou à conferência.");
       concluido();
     } catch (e) {
       setErro(/gc_revisar_medidas_pedido.*schema cache|Could not find the function/i.test((e as Error).message) ? "A atualização de revisão técnica precisa ser instalada no Supabase: 20261026_revisao_medidas_pedido.sql. Sua edição foi mantida." : (e as Error).message);
@@ -212,18 +218,39 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
       <div><h3>Conferência técnica dos projetos</h3><p>Visualize as medidas, desenhos e relações de peças aqui mesmo. Para corrigir, abra o cálculo original e confirme a revisão ao retornar.</p></div>
       <span className={styles.badge}>{editaveis} projeto(s) com editor</span>
     </div>
-    <div className={styles.conferenciaAviso}><strong>Valor comercial protegido</strong><p>A conferência apresenta informações técnicas. A aplicação de revisões segue o fluxo existente; valide as regras do Supabase antes de usar em pedidos reais.</p></div>
+    {!rascunho && <div className={styles.conferenciaAviso}><strong>Valor contratado preservado</strong><p>As revisões técnicas ajustam o projeto sem alterar o valor negociado.</p></div>}
+    {sucesso && !rascunho && <p role="status" className={styles.conferenciaAviso}>{sucesso}</p>}
     {erro && <p role="alert" className={styles.notice}>{erro}</p>}
-    {rascunho ? <section className={styles.conferenciaCard}>
-      <h4>Revisão de medidas em andamento</h4>
-      <p>Confira as informações antes de aplicar a alteração.</p>
+    {rascunho ? <section className={styles.revisaoRetorno} aria-label="Revisar alterações antes de salvar">
+      <header className={styles.revisaoTopo}>
+        <div><span className={styles.revisaoPendente}>Aguardando sua confirmação</span>
+          <h4>Confira o que mudou no projeto</h4>
+          <p>{texto(rascunho.resultado?.projeto || rascunho.original.projeto) || "Projeto editado"} · Projeto {rascunho.indice + 1}</p>
+        </div>
+        <span className={styles.badge}>Valor contratado mantido</span>
+      </header>
+      <ol className={styles.revisaoEtapas} aria-label="Etapas da revisão">
+        <li>1. Editar no cálculo <small>Concluído</small></li>
+        <li aria-current="step">2. Conferir alterações <small>Você está aqui</small></li>
+        <li>3. Salvar no pedido <small>Aguardando confirmação</small></li>
+      </ol>
+      <p className={styles.revisaoExplicacao}>Você voltou do cálculo. As alterações abaixo <strong>ainda não foram aplicadas ao pedido</strong>. Confira a comparação e salve para substituir a versão anterior deste projeto.</p>
       {rascunho.resultado ? <>
         <ComparacaoAlteracoes antes={rascunho.original} depois={rascunho.resultado}/>
-        <label>Motivo da alteração (obrigatório)<textarea id="motivo-revisao" placeholder="Ex.: Medidas ajustadas após conferência na obra" maxLength={500} value={motivo} onChange={e => setMotivo(e.target.value)} /></label>
+        <label className={styles.revisaoMotivo}>Por que o projeto mudou? <small>Obrigatório · mínimo de 3 caracteres</small><textarea id="motivo-revisao" disabled={salvando} placeholder="Ex.: Medidas ajustadas após conferência na obra" maxLength={500} value={motivo} onChange={e => setMotivo(e.target.value)} /></label>
         {["producao", "pronto"].includes(pedido.situacao) && <label>Registre a pausa e a conferência de peças cortadas e materiais utilizados<textarea maxLength={2000} value={conferencia} onChange={e => setConferencia(e.target.value)} /></label>}
-        <button disabled={salvando} onClick={() => void aplicar()}>Confirmar revisão técnica</button>
       </> : <p>A edição foi interrompida sem retornar um cálculo.</p>}
-      <button disabled={salvando} onClick={limpar}>Descartar revisão</button>
+      <footer className={styles.revisaoRodape}>
+        <p>Ao salvar, o pedido volta à conferência.<br /><small>Salvar não libera a produção.</small></p>
+        <div><button type="button" disabled={salvando} onClick={() => setConfirmarDescarte(true)}>Descartar alterações</button>
+          {rascunho.resultado && <button type="button" className={styles.primary} disabled={salvando} onClick={() => void aplicar()}>{salvando ? "Salvando revisão…" : "Salvar revisão no pedido"}</button>}
+        </div>
+      </footer>
+      {confirmarDescarte && <div className={styles.revisaoDescarte} role="group" aria-label="Confirmar descarte">
+        <p>Descartar esta edição e manter o projeto que já está salvo no pedido?</p>
+        <button type="button" disabled={salvando} onClick={() => setConfirmarDescarte(false)}>Continuar conferindo</button>
+        <button type="button" disabled={salvando} onClick={() => { limpar(); setConfirmarDescarte(false); }}>Sim, descartar edição</button>
+      </div>}
     </section> : <div className={styles.conferenciaLista}>
       {projetos.map((p, i) => {
         const caminho = rota(p);
@@ -249,7 +276,12 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
           <details style={{ marginTop: 0, borderTop: "1px solid #d5e0e4", padding: "8px 0" }}>
             <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 400, color: "#4d6a70", padding: "3px 0" }}>Conferência de peças (visualizar e conferir medidas)</summary>
             <div style={{ marginTop: 8 }}>
-              <ConferenciaUnidadesAvulsas key={`${campo}:${texto(p.id) || i}`} pedidoId={pedido.id} empresaId={empresaId} situacaoPedido={pedido.situacao} projetoId={texto(p.id)} origemCampo={campo} integrado />
+              {caminho === "/box2fls" ? (
+                <ConferenciaConjuntosBox2Folhas key={`${pedido.id}:${campo}:${i}`} projeto={p}
+                  pedidoId={pedido.id} versaoPedido={pedido.versao} situacaoPedido={pedido.situacao} campo={campo} />
+              ) : (
+                <ConferenciaUnidadesAvulsas key={`${campo}:${texto(p.id) || i}`} pedidoId={pedido.id} empresaId={empresaId} situacaoPedido={pedido.situacao} projetoId={texto(p.id)} origemCampo={campo} integrado />
+              )}
             </div>
           </details>
           <details style={{ marginTop: 0, borderTop: "1px solid #d5e0e4", padding: "8px 0" }}>
@@ -265,10 +297,54 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
   </section>;
 }
 
-export function ComparacaoAlteracoes({antes,depois}:{antes:Projeto;depois:Projeto}){
- const avulsosAntes=lista(antes.vidrosAvulsos),avulsosDepois=lista(depois.vidrosAvulsos);
- const relacao=avulsosAntes.length>0||avulsosDepois.length>0;
- const diferencas=relacao?diferencasItens(avulsosAntes,avulsosDepois):diferencasItens([{...antes,descricao:antes.projeto,medida:antes.medidas}],[{...depois,descricao:depois.projeto,medida:depois.medidas}]);
- const materiais=relacao?[]:diferencasItens(lista(antes.materiais),lista(depois.materiais));
- return <div><p>{diferencas.length+materiais.length?"Somente os itens alterados são apresentados abaixo.":"Nenhuma alteração técnica identificada nos campos comparados."}</p>{[...diferencas,...materiais].map((d,i)=><section key={i} className={styles.notice} style={{marginTop:12}}><h4>{d.tipo} · {texto((d.depois||d.antes)?.vidro||(d.depois||d.antes)?.descricao||(d.depois||d.antes)?.projeto)||"Item"}</h4><div className={styles.scroll}><table><thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead><tbody>{Object.keys(camposRevisao(d.antes||{})).map(chave=>{const a=camposRevisao(d.antes||{}),b=camposRevisao(d.depois||{});const k=chave as keyof typeof a;const va=texto(a[k]),vb=texto(b[k]);if(va===vb||(!va&&!vb))return null;return <tr key={k}><td>{{descricao:"Descrição",quantidade:"Quantidade",medida:"Medida real",calculo:"Medida de cálculo",cor:"Cor",observacao:"Observação"}[k]}</td><td>{va||"—"}</td><td><strong>{vb||"—"}</strong></td></tr>})}</tbody></table></div></section>)}<details className={styles.reportComposition} style={{marginTop:16}}><summary>Ver relação completa do projeto — antes e depois</summary><div className={styles.fields}><Resumo titulo="Antes" item={antes}/><Resumo titulo="Após recalcular" item={depois}/></div></details></div>;
+export function ComparacaoAlteracoes({ antes, depois }: { antes: Projeto; depois: Projeto }) {
+  const valores = compararValorRevisao(antes, depois);
+  const moeda = (v: number | null) => v === null ? "Não disponível" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const avulsosAntes = lista(antes.vidrosAvulsos), avulsosDepois = lista(depois.vidrosAvulsos);
+  const relacao = avulsosAntes.length > 0 || avulsosDepois.length > 0;
+  const diferencas = relacao ? diferencasItens(avulsosAntes, avulsosDepois)
+    : diferencasItens([{ ...antes, descricao: antes.projeto, medida: antes.medidas }], [{ ...depois, descricao: depois.projeto, medida: depois.medidas }]);
+  const materiais = relacao ? [] : diferencasItens(lista(antes.materiais), lista(depois.materiais));
+  const grupos = [{ titulo: relacao ? "Vidros e materiais avulsos" : "Dados do projeto", itens: diferencas }, { titulo: "Composição de materiais", itens: materiais }];
+  const todos = [...diferencas, ...materiais];
+  const rotulos = { descricao: "Descrição", quantidade: "Quantidade", medida: "Medida real", calculo: "Medida de cálculo", cor: "Cor", observacao: "Observação" };
+  return <div className={styles.revisaoComparacao}>
+    <section className={styles.revisaoValores} aria-label="Comparação de valores do projeto">
+      <h4>Valores deste projeto</h4>
+      <dl>
+        <div><dt>Valor anterior do projeto</dt><dd>{moeda(valores.anterior)}</dd></div>
+        <div><dt>Valor recalculado</dt><dd>{moeda(valores.recalculado)}</dd></div>
+        <div data-variacao={valores.diferenca === null ? "indisponivel" : valores.diferenca > 0 ? "acrescimo" : valores.diferenca < 0 ? "reducao" : "igual"}>
+          <dt>{valores.diferenca === null ? "Diferença" : valores.diferenca > 0 ? "Acréscimo" : valores.diferenca < 0 ? "Redução" : "Sem diferença de valor"}</dt>
+          <dd>{moeda(valores.diferenca === null ? null : Math.abs(valores.diferenca))}</dd>
+        </div>
+      </dl>
+      <p>{valores.diferenca === null && "Um dos totais não está disponível no projeto salvo; não estimamos a diferença. "}Comparação informativa do projeto editado, não do pedido completo. Salvar a revisão técnica mantém o valor contratado e o financeiro. Para mudar a cobrança, é necessária uma revisão comercial confirmada.</p>
+    </section>
+    <div className={styles.revisaoContagens} aria-label="Resumo das diferenças">
+      {(["Alterado", "Incluído", "Removido"] as const).map(tipo => <span key={tipo}><strong>{todos.filter(d => d.tipo === tipo).length}</strong> {tipo === "Alterado" ? "alterado(s)" : tipo === "Incluído" ? "incluído(s)" : "removido(s)"}</span>)}
+    </div>
+    <p className={styles.revisaoLegenda}>{todos.length ? "Exibimos somente as diferenças identificadas. Os itens sem alteração ficam recolhidos na relação completa." : "Nenhuma diferença identificada nos campos comparados. Consulte a relação completa antes de decidir se precisa salvar."}</p>
+    {grupos.filter(g => g.itens.length).map(grupo => <section key={grupo.titulo}>
+      <h4 className={styles.revisaoGrupo}>{grupo.titulo}</h4>
+      {grupo.itens.map((d, i) => {
+        const a = camposRevisao(d.antes || {}), b = camposRevisao(d.depois || {});
+        const item = d.depois || d.antes;
+        return <article key={i} className={styles.revisaoDiferenca}>
+          <header><span className={styles.revisaoTipo} data-tipo={d.tipo}>{d.tipo}</span><h5>{texto(item?.vidro || item?.descricao || item?.projeto) || "Item"}</h5></header>
+          <div className={styles.revisaoTabela}><table>
+            <thead><tr><th>O que mudou</th><th>Salvo no pedido</th><th>Após sua edição</th></tr></thead>
+            <tbody>{(Object.keys(a) as (keyof typeof a)[]).map(k => {
+              const va = texto(a[k]), vb = texto(b[k]);
+              if (va === vb || (!va && !vb)) return null;
+              return <tr key={k}><th scope="row">{rotulos[k]}</th><td>{va || "—"}</td><td className={styles.revisaoNovo}>{vb || "—"}</td></tr>;
+            })}</tbody>
+          </table></div>
+        </article>;
+      })}
+    </section>)}
+    <details className={styles.reportComposition} style={{ marginTop: 16 }}><summary>Consultar projeto completo: versão salva e edição</summary>
+      <div className={styles.fields}><Resumo titulo="Salvo no pedido" item={antes} /><Resumo titulo="Após sua edição — ainda não aplicado" item={depois} /></div>
+    </details>
+  </div>;
 }

@@ -95,3 +95,69 @@
 .finTabelaScroll{width:100%;min-width:0;overflow-x:auto}.finTabela{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px}.finTabela th{text-align:left;color:var(--text-secondary);font-weight:500;font-size:11px}.finTabela th,.finTabela td{padding:11px 8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}.finTabela th:nth-child(1){width:18%}.finTabela th:nth-child(2){width:26%}.finTabela th:nth-child(3){width:30%}.finTabela th:nth-child(4){width:26%}.finTabela td:nth-child(3),.finTabela th:nth-child(3){text-align:right}.finTabela td:nth-child(4),.finTabela th:nth-child(4){text-align:right}.finTabela td small{display:block;color:var(--text-secondary);font-size:10px;margin-top:3px}.finSituacaoPaga{color:#168a4a;font-weight:600}.finSituacaoAtraso{color:#bb3333;font-weight:600}.finSituacao{color:var(--text-secondary)}
 .finAviso{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-primary);line-height:1.5}.finSemParcelas{font-size:12px;color:var(--text-secondary)}.finResumoRodape{display:flex;justify-content:flex-end}.finResumoRodape a{font-size:12px;color:var(--primary);font-weight:600;text-decoration:none}.finResumoRodape a:hover{text-decoration:underline}
 @media(max-width:600px){.finResumoNumeros{gap:8px}.finResumoNumeros strong{font-size:14px}.finTabela{font-size:11px}.finTabela th,.finTabela td{padding:9px 4px}}
+.revisaoRetorno {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: clamp(16px, 2vw, 28px);
+  background: #fff;
+  border: 1px solid var(--border, #dce2e4);
+  border-radius: 16px;
+  color: #38444b;
+}
+.revisaoTopo, .revisaoRodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.revisaoTopo h4 { margin: 8px 0; font-size: 21px; font-weight: 500; }
+.revisaoTopo p, .revisaoRodape p { margin: 0; font-size: 13px; line-height: 1.6; }
+.revisaoPendente { font-size: 12px; color: #716730; background: #f8f8ed; padding: 5px 9px; border-radius: 6px; }
+.revisaoEtapas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }
+.revisaoEtapas li { padding: 12px 14px; border: 1px solid #e5e9ea; border-radius: 8px; font-size: 13px; }
+.revisaoEtapas li[aria-current] { border-color: #c8d463; background: #fafbf3; }
+.revisaoEtapas small { display: block; margin-top: 5px; color: #68777d; font-size: 11px; }
+.revisaoExplicacao { margin: 0; font-size: 14px; line-height: 1.65; max-width: 90ch; }
+.revisaoComparacao { min-width: 0; }
+.revisaoContagens { display: flex; flex-wrap: wrap; gap: 8px; }
+.revisaoContagens span { padding: 8px 12px; border: 1px solid #e5e9ea; border-radius: 8px; font-size: 12px; }
+.revisaoContagens strong { margin-right: 4px; font-size: 16px; font-weight: 500; }
+.revisaoLegenda { color: #68777d; font-size: 12px; line-height: 1.6; }
+.revisaoGrupo { font-size: 14px; font-weight: 500; margin: 20px 0 10px; }
+.revisaoDiferenca { border: 1px solid #dce2e4; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+.revisaoDiferenca header { display: flex; gap: 10px; align-items: center; padding: 12px 16px; }
+.revisaoDiferenca h5 { margin: 0; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.revisaoTipo { font-size: 11px; padding: 4px 7px; border-radius: 5px; background: #f1f3f4; white-space: nowrap; }
+.revisaoTipo[data-tipo="Incluído"] { background: #edf5f0; color: #35614e; }
+.revisaoTipo[data-tipo="Removido"] { background: #f7f1ed; color: #7c5946; }
+.revisaoTabela { overflow-x: auto; }
+.revisaoTabela table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
+.revisaoTabela th, .revisaoTabela td { text-align: left; vertical-align: top; padding: 12px 16px; border-top: 1px solid #e5e9ea; overflow-wrap: anywhere; white-space: normal; }
+.revisaoTabela thead th { color: #68777d; font-size: 11px; font-weight: 500; background: #fafbfb; }
+.revisaoTabela th:first-child { width: 23%; }
+.revisaoTabela tbody th { font-weight: 400; }
+.revisaoNovo { background: #fafbf3; font-weight: 500; }
+.revisaoMotivo { display: grid; gap: 8px; font-size: 14px; }
+.revisaoMotivo small { color: #68777d; font-size: 11px; }
+.revisaoMotivo textarea { min-height: 88px; width: 100%; box-sizing: border-box; }
+.revisaoRodape { border-top: 1px solid #dce2e4; padding-top: 18px; }
+.revisaoRodape > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.revisaoDescarte { border: 1px solid #dce2e4; border-radius: 10px; padding: 14px; font-size: 13px; }
+.revisaoDescarte button { margin: 4px 8px 0 0; }
+@media (max-width: 640px) {
+  .revisaoEtapas { grid-template-columns: 1fr; }
+  .revisaoTabela th, .revisaoTabela td { padding: 10px 8px; font-size: 12px; }
+  .revisaoRodape > div, .revisaoRodape button { width: 100%; }
+}
+.revisaoValores { border: 1px solid #dce2e4; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+.revisaoValores h4 { margin: 0 0 14px; font-size: 14px; font-weight: 500; }
+.revisaoValores dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.revisaoValores dl > div { padding: 14px; border: 1px solid #e5e9ea; border-radius: 9px; min-width: 0; }
+.revisaoValores dt { font-size: 12px; color: #68777d; }
+.revisaoValores dd { margin: 8px 0 0; font-size: clamp(17px, 2vw, 23px); font-weight: 500; overflow-wrap: anywhere; }
+.revisaoValores [data-variacao="acrescimo"] { background: #faf8ee; }
+.revisaoValores [data-variacao="reducao"] { background: #f0f7f3; }
+.revisaoValores p { margin: 14px 0 0; font-size: 12px; line-height: 1.6; color: #68777d; }
+@media (max-width: 640px) { .revisaoValores dl { grid-template-columns: 1fr; } }
