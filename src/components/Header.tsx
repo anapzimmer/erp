@@ -61,6 +61,14 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
+    group: "Gestão",
+    items: [{ label: "Pedidos", href: "/gestao/pedidos" }],
+  },
+  {
+    group: "Financeiro",
+    items: [{ label: "Contas a receber", href: "/gestao/financeiro" }],
+  },
+  {
     group: "Relatórios",
     items: [{ label: "Orçamentos", href: "/admin/relatorio.orcamento" }],
   },

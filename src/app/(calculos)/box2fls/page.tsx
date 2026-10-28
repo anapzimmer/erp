@@ -1,4 +1,6 @@
 "use client";
+import { calcularVidrosBox2Folhas } from "@/utils/calculos-projetos/box2Folhas";
+import { concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
@@ -160,7 +162,6 @@ const formatarVidroCadastro = (vidro: VidroCadastro) => {
   return partes.join(" ");
 };
 
-const arredondar5cm = (valor: number) => Math.ceil(Number(valor || 0) / 50) * 50;
 
 const moeda = (valor: number) =>
   Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -214,7 +215,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
   unidade: unidadeOriginal,
 });
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:box2fls:rascunho";
-const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_PADRAO = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
 const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null) => {
@@ -284,6 +285,8 @@ export default function Box2FlsPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const revisaoPedidoToken = searchParams.get("revisaoPedido") || "";
+  const CENTRAL_IMPRESSAO_KEY = revisaoPedidoToken ? "glasscode:revisao-pedido:itens:" + revisaoPedidoToken : CENTRAL_IMPRESSAO_PADRAO;
   const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId, nomeEmpresa, user, signOut } = useAuth();
@@ -425,7 +428,7 @@ export default function Box2FlsPage() {
         aoFechar: () => router.push(returnTo),
       });
     }
-  }, [centralItemId, returnTo, router]);
+  }, [CENTRAL_IMPRESSAO_KEY, centralItemId, returnTo, router]);
 
   const projetoPdf: ProjetoIndividualDados = useMemo(() => ({ ...dados, materiais }), [dados, materiais]);
   const totalMateriais = useMemo(
@@ -495,37 +498,12 @@ export default function Box2FlsPage() {
 
     return normalizarPrecoCatalogo(precoGrupo?.preco ?? vidroSelecionado.preco ?? 0);
   }, [clienteSelecionado, precosVidroGrupos, vidroSelecionado]);
-  const calculoVidro = useMemo(() => {
-    const quantidadeVaos = Number(dados.quantidade || 0);
-    const alturaAteTeto = dados.trilho === "Até o teto";
-    const larguraFixaMedida = Number(dados.largura || 0) / 2;
-    const larguraMovelMedida = larguraFixaMedida + 50;
-    const alturaFixaMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 55 : 35));
-    const alturaMovelMedida = Math.max(0, Number(dados.altura || 0) - (alturaAteTeto ? 20 : 0));
-    const larguraFixa = arredondar5cm(larguraFixaMedida);
-    const larguraMovel = arredondar5cm(larguraMovelMedida);
-    const alturaFixa = arredondar5cm(alturaFixaMedida);
-    const alturaMovel = arredondar5cm(alturaMovelMedida);
-    const areaFixa = (larguraFixa * alturaFixa * quantidadeVaos) / 1_000_000;
-    const areaMovel = (larguraMovel * alturaMovel * quantidadeVaos) / 1_000_000;
-    const areaTotalCobrada = areaFixa + areaMovel;
-
-    return {
-      larguraCalculo: larguraMovel,
-      alturaCalculo: alturaMovel,
-      larguraFixa,
-      alturaFixa,
-      larguraMovel,
-      alturaMovel,
-      larguraFixaMedida,
-      alturaFixaMedida,
-      larguraMovelMedida,
-      alturaMovelMedida,
-      areaFixa: Number(areaFixa.toFixed(3)),
-      areaMovel: Number(areaMovel.toFixed(3)),
-      areaTotalCobrada: Number(areaTotalCobrada.toFixed(3)),
-    };
-  }, [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
+  const calculoVidro = useMemo(() => calcularVidrosBox2Folhas({
+    largura: dados.largura,
+    altura: dados.altura,
+    quantidade: dados.quantidade,
+    trilho: dados.trilho,
+  }), [dados.altura, dados.largura, dados.quantidade, dados.trilho]);
 
   const selecionarItemCatalogo = (idMaterial: string, item: ItemCatalogo) => {
     setMateriais((lista) =>
@@ -966,6 +944,10 @@ const novoProjeto = () => {
   };
 
   const enviarParaCentralImpressao = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     const itemCentral = montarItemCentral(centralItemId || undefined);
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
@@ -1047,6 +1029,10 @@ const novoProjeto = () => {
   });
 
   const salvarOrcamento = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {
@@ -1272,7 +1258,7 @@ const novoProjeto = () => {
                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Save size={17} />
-                {salvandoOrcamento ? "Salvando..." : "Salvar orçamento"}
+                {salvandoOrcamento ? "Salvando..." : revisaoPedidoToken ? "Voltar à revisão do pedido" : "Salvar orçamento"}
               </button>
             </div>
           </div>
@@ -2117,7 +2103,7 @@ const novoProjeto = () => {
               <Save size={17} />
               {salvandoOrcamento
                 ? "Salvando..."
-                : "Salvar orçamento"}
+                : revisaoPedidoToken ? "Voltar à revisão do pedido" : "Salvar orçamento"}
             </button>
           </div>
         </div>

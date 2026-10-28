@@ -33,6 +33,7 @@ import {
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CalculoVidroPDF } from '@/app/relatorios/calculovidros/CalculoVidroPDF';
 import { useSearchParams } from "next/navigation"
+import { lerRevisaoCalculo, concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 
 interface ItemOrcamento {
   id: string | number;
@@ -242,6 +243,7 @@ export default function RelatorioOrcamento() {
   const searchParams = useSearchParams(); // Adicione esta linha
   const editId = searchParams.get("edit"); // Captura o ID da URL (?edit=...)
   const centralItemId = searchParams.get("centralItem");
+  const revisaoPedidoToken = searchParams.get("revisaoPedido");
   const returnTo = searchParams.get("returnTo") || "/central-impressao";
 
   // Estados do Layout (EXATAMENTE COMO VOCÊ ENVIOU)
@@ -307,7 +309,7 @@ export default function RelatorioOrcamento() {
   const [qtdEdicaoRapidaAdicional, setQtdEdicaoRapidaAdicional] = useState("1");
   const [valorEdicaoRapidaAdicional, setValorEdicaoRapidaAdicional] = useState("");
 
-  const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${editId || "novo"}`;
+  const draftKey = `orcamento_vidros_draft_${empresaId || "sem_empresa"}_${revisaoPedidoToken || editId || "novo"}`;
 
   // Estados para seleção em massa
   const [selecionados, setSelecionados] = useState<Array<string | number>>([]);
@@ -795,8 +797,30 @@ useEffect(() => {
   }
 }, [editId, isMounted, listaClientes.length, buscarOrcamentoParaEdicao]);
 
+  // Modo de revisão técnica: carrega exclusivamente a cópia do pedido,
+  // nunca o item da Central de Impressão nem o orçamento comercial.
   useEffect(() => {
-    if (!centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
+    if (!revisaoPedidoToken || !isMounted || checkingAuth || !empresaId || itemCentralCarregadoRef.current) return;
+    const sessao = lerRevisaoCalculo(revisaoPedidoToken);
+    if (!sessao || sessao.empresaId !== empresaId || !sessao.pedidoId ||
+        sessao.original.origemRota !== "/calculo/calculovidro") {
+      window.alert("Sessão de revisão inválida ou expirada. Abra novamente pelo pedido.");
+      router.replace("/gestao/pedidos");
+      return;
+    }
+    const originais = sessao.original.itensOriginais;
+    if (!Array.isArray(originais) || originais.length === 0) {
+      window.alert("Este pedido não contém os itens originais necessários para revisar os vidros.");
+      router.replace("/gestao/pedidos");
+      return;
+    }
+    setItens(originais as ItemOrcamento[]);
+    draftRestauradoRef.current = true;
+    itemCentralCarregadoRef.current = true;
+  }, [revisaoPedidoToken, isMounted, checkingAuth, empresaId, router]);
+
+  useEffect(() => {
+    if (revisaoPedidoToken || !centralItemId || !isMounted || listaClientes.length === 0 || itemCentralCarregadoRef.current) return;
 
     try {
       const lista = JSON.parse(window.localStorage.getItem(CENTRAL_IMPRESSAO_KEY) || "[]") as CentralVidroEmEdicao[];
@@ -825,7 +849,7 @@ useEffect(() => {
     } catch (erro) {
       console.error("Não foi possível carregar o item de vidros da central:", erro);
     }
-  }, [centralItemId, isMounted, listaClientes]);
+  }, [centralItemId, isMounted, listaClientes, revisaoPedidoToken]);
 
   useEffect(() => {
     if (editandoId == null) return;
@@ -837,7 +861,7 @@ useEffect(() => {
   }, [editandoId]);
 
   useEffect(() => {
-    if (!isMounted || !empresaId || draftRestauradoRef.current || centralItemId) return;
+    if (!isMounted || !empresaId || draftRestauradoRef.current || centralItemId || revisaoPedidoToken) return;
 
     try {
       const raw = sessionStorage.getItem(draftKey);
@@ -872,10 +896,10 @@ useEffect(() => {
     } finally {
       draftRestauradoRef.current = true;
     }
-  }, [centralItemId, isMounted, empresaId, draftKey, listaVidros, listaServicos]);
+  }, [centralItemId, isMounted, empresaId, draftKey, listaVidros, listaServicos, revisaoPedidoToken]);
 
   useEffect(() => {
-    if (!isMounted || !empresaId) return;
+    if (!isMounted || !empresaId || revisaoPedidoToken) return;
 
     const temDadosNaoSalvos =
       itens.length > 0 ||
@@ -903,20 +927,7 @@ useEffect(() => {
     };
 
     sessionStorage.setItem(draftKey, JSON.stringify(payload));
-  }, [
-    isMounted,
-    empresaId,
-    draftKey,
-    clienteId,
-    obra,
-    largura,
-    altura,
-    quantidade,
-    quantidadeServico,
-    vidroSelecionado,
-    servicoSelecionado,
-    itens,
-  ]);
+  }, [isMounted, empresaId, draftKey, clienteId, obra, largura, altura, quantidade, quantidadeServico, vidroSelecionado, servicoSelecionado, itens, revisaoPedidoToken]);
 
   useEffect(() => {
     const temDadosNaoSalvos =
@@ -1424,6 +1435,7 @@ useEffect(() => {
   };
 
   const handleSalvarOrcamento = async () => {
+    if (revisaoPedidoToken) { await enviarParaCentralImpressao(); return; }
     if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
@@ -1904,6 +1916,20 @@ useEffect(() => {
       itensOriginais: itens,
       origemRota: "/calculo/calculovidro",
     };
+    if (revisaoPedidoToken) {
+      const sessao = lerRevisaoCalculo(revisaoPedidoToken);
+      if (!sessao || sessao.empresaId !== empresaId) {
+        window.alert("A sessão de revisão expirou. Volte ao pedido e inicie novamente.");
+        return;
+      }
+      // Mantém a identidade e metadados originais do projeto.
+      // O preço recalculado é técnico; a RPC decide a atualização comercial.
+      const revisado = { ...sessao.original, ...itemCentral, quantidade: totalPecas, id: sessao.original.id,
+        numero: sessao.original.numero, origemRota: "/calculo/calculovidro" };
+      if (!concluirRevisaoCalculo(revisaoPedidoToken, empresaId, revisado)) return;
+      router.push(`/gestao/pedidos?revisaoPedido=${encodeURIComponent(revisaoPedidoToken)}`);
+      return;
+    }
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
     try {

@@ -1,4 +1,5 @@
 ﻿"use client";
+import { concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { preservarPrecosOrcamento } from "@/utils/preservarPrecosOrcamento";
 import DescricaoMaterialInput from "@/components/BuscaMaterialInput";
@@ -222,7 +223,7 @@ const ordemMaterialDescricao = (descricaoOriginal?: string, unidadeOriginal?: st
   unidade: unidadeOriginal,
 });
 const PROJETO_INDIVIDUAL_DRAFT_KEY = "glasscode:pma2f:rascunho";
-const CENTRAL_IMPRESSAO_KEY = "glasscode:central-impressao:composicao";
+const CENTRAL_IMPRESSAO_PADRAO = "glasscode:central-impressao:composicao";
 const CENTRAL_IMPRESSAO_CLIENTE_KEY = "glasscode:central-impressao:cliente";
 
 const montarDescricaoComCor = (codigo: string, nome: string, cor?: string | null) => {
@@ -246,6 +247,8 @@ export default function PMA2FPage() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const centralItemId = searchParams.get("centralItem");
+  const revisaoPedidoToken = searchParams.get("revisaoPedido") || "";
+  const CENTRAL_IMPRESSAO_KEY = revisaoPedidoToken ? "glasscode:revisao-pedido:itens:" + revisaoPedidoToken : CENTRAL_IMPRESSAO_PADRAO;
   const centralLoteId = searchParams.get("loteId");
   const returnTo = searchParams.get("returnTo") || "/admin/relatorio.orcamento";
   const { empresaId, nomeEmpresa } = useAuth();
@@ -385,7 +388,7 @@ export default function PMA2FPage() {
         aoFechar: () => router.push(returnTo),
       });
     }
-  }, [centralItemId, returnTo, router]);
+  }, [CENTRAL_IMPRESSAO_KEY, centralItemId, returnTo, router]);
 
   const projetoPdf: ProjetoIndividualDados = useMemo(() => ({ ...dados, materiais }), [dados, materiais]);
   const totalMateriais = useMemo(
@@ -931,6 +934,10 @@ const novoProjeto = () => {
   };
 
   const enviarParaCentralImpressao = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     const itemCentral = montarItemCentral(centralItemId || undefined);
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
 
@@ -1012,6 +1019,10 @@ const novoProjeto = () => {
   });
 
   const salvarOrcamento = async () => {
+    if (revisaoPedidoToken) {
+      if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
+      return;
+    }
     if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {

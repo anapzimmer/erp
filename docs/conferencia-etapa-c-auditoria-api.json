@@ -1,0 +1,625 @@
+{
+  "consultadoEm": "2026-10-27T22:16:55.430Z",
+  "projeto": "hjrzcjbwfmybffnhurqj.supabase.co",
+  "pedido": {
+    "id": "afd02d1b-b222-47f1-98d0-206d05382d8d",
+    "empresa_id": "b2ac500e-99be-4b50-a96b-39db8989dfd7",
+    "numero": 2,
+    "situacao": "conferencia",
+    "versao": 2,
+    "revisao": 2
+  },
+  "unidades": [
+    {
+      "id": "37d27c02-759e-4401-8048-c41005cd4655",
+      "projeto_id": "0e28c76a-3e49-4b20-9985-0b7abf4dfcd7",
+      "projeto_tipo": "Box de canto",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "7662f0ec-124f-415b-8556-6fe02e3e2ed8",
+      "origem_linha_indice": 1,
+      "numero_unidade": 1,
+      "descricao": "VIDRO MOVEL A 540x2780 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 540,
+      "altura_original_mm": 2780,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "8f0f6034-e29e-48da-8c95-ff3b99d10568",
+      "projeto_id": "0e28c76a-3e49-4b20-9985-0b7abf4dfcd7",
+      "projeto_tipo": "Box de canto",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "787a7856-6662-4396-8686-faabc83e4284",
+      "origem_linha_indice": 0,
+      "numero_unidade": 1,
+      "descricao": "VIDRO FIXO A 490x2745 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 490,
+      "altura_original_mm": 2745,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "1bc65358-f9e8-416b-812a-5dc4b1afe595",
+      "projeto_id": "0e28c76a-3e49-4b20-9985-0b7abf4dfcd7",
+      "projeto_tipo": "Box de canto",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "8b6c4609-a125-4c70-bc13-be6b1ec42011",
+      "origem_linha_indice": 3,
+      "numero_unidade": 1,
+      "descricao": "VIDRO MOVEL B 640x2780 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 640,
+      "altura_original_mm": 2780,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "6da211bd-7076-4862-a402-c642c6e5fe66",
+      "projeto_id": "0e28c76a-3e49-4b20-9985-0b7abf4dfcd7",
+      "projeto_tipo": "Box de canto",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "bd318e2d-7265-4ad1-a952-2faf5f50908e",
+      "origem_linha_indice": 2,
+      "numero_unidade": 1,
+      "descricao": "VIDRO FIXO B 590x2745 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 590,
+      "altura_original_mm": 2745,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "d6b4dc7c-4b76-4d6d-b14b-83d0da7d4bd3",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "b0a62773-b1a6-42f6-b343-ca97863633b5",
+      "origem_linha_indice": 3,
+      "numero_unidade": 1,
+      "descricao": "Kit: KTS6025-BC - Kit Sacada Sem Rolamento 6,10x2,50",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "03338d60-0fac-4575-bdf5-b3e813da30b0",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 1,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "d7adc519-b7a5-427e-a3ab-8aa71e2918ca",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "50330640-5e56-4208-add3-4e6d1e95204a",
+      "origem_linha_indice": 2,
+      "numero_unidade": 1,
+      "descricao": "Kit: KTS3025-BC - Kit Sacada Sem Rolamento 3,05x2,50",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "aa30b1aa-fa6b-4bb9-80f0-29a9413310c4",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "6014e6ac-63de-442e-938c-031ad883681e",
+      "origem_linha_indice": 0,
+      "numero_unidade": 1,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 500,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "d4c50600-bae2-4cf8-bdbd-6ace003f88e1",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "21ebdf80-b8b6-48fc-8617-08e4a0331a3c",
+      "origem_linha_indice": 4,
+      "numero_unidade": 1,
+      "descricao": "Ferragem: ACKTS3025-BC - Conj. Acessorios Kit Sacada 3,05",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "e5161a2b-4776-4d41-95a3-7d8adfacb2fd",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "2ab7f86e-7b0e-4262-bc47-2e1fabea1dd9",
+      "origem_linha_indice": 5,
+      "numero_unidade": 1,
+      "descricao": "Ferragem: ACKTS6025-BC - Conj. Acessorios Kit Sacada 6,10",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "645524b5-082c-4162-ab43-be02db1993e5",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "a32a93ad-a3b4-4b12-b60b-fbae410c53ad",
+      "origem_linha_indice": 6,
+      "numero_unidade": 1,
+      "descricao": "Ferragem: FECKTS-BC - Fechadura V/v Para Kit Sacada",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "a9e1c3ce-b951-49ac-8192-b744fe4cf217",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "6014e6ac-63de-442e-938c-031ad883681e",
+      "origem_linha_indice": 0,
+      "numero_unidade": 2,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 500,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "ff3ad9b0-f182-49ee-a1e4-86964808cea1",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "a32a93ad-a3b4-4b12-b60b-fbae410c53ad",
+      "origem_linha_indice": 6,
+      "numero_unidade": 2,
+      "descricao": "Ferragem: FECKTS-BC - Fechadura V/v Para Kit Sacada",
+      "largura_original_mm": null,
+      "altura_original_mm": null,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "2f9ae27a-4518-4a9c-9662-16ef308838de",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 2,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "30e6784c-9ee6-4387-b597-0f45223a369f",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 3,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "faeffa8a-01da-4b1b-9c4c-1f57075f263d",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 4,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "14919a85-6b5a-4f3a-bc63-811f433377be",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 5,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "3fb1ef89-b353-4c7c-8b71-8f5588ff37c5",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 6,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "33d08619-a70f-449f-9342-3b152dd144c7",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 7,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "cac8f40a-26fc-4e6b-8166-2e4206316c1c",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 8,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "9ab9d5b5-a93e-43e7-b348-27b8cd00e7cc",
+      "projeto_id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto_tipo": "Vidros avulsos",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "df33a861-6ce3-4d4b-b2c6-34f6c24abdfd",
+      "origem_linha_indice": 1,
+      "numero_unidade": 9,
+      "descricao": "Incolor 08mm Temperado",
+      "largura_original_mm": 505,
+      "altura_original_mm": 1500,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "b070aa53-d9c0-41df-88c4-cb70b38f17ac",
+      "projeto_id": "ddb487ad-03bc-432a-ad4b-6d45ba9376e3",
+      "projeto_tipo": "Box 2 folhas",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "6b253fa2-3858-4cee-a041-a9ba2e2e0cc7",
+      "origem_linha_indice": 1,
+      "numero_unidade": 1,
+      "descricao": "VIDRO MOVEL 750x2780 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 750,
+      "altura_original_mm": 2780,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "ffcd7c14-f7d2-4d91-b5db-69ac407dffb0",
+      "projeto_id": "ddb487ad-03bc-432a-ad4b-6d45ba9376e3",
+      "projeto_tipo": "Box 2 folhas",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "d5aae598-7efc-482f-bfff-8992e8a091f9",
+      "origem_linha_indice": 0,
+      "numero_unidade": 1,
+      "descricao": "VIDRO FIXO 700x2745 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 700,
+      "altura_original_mm": 2745,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "157977cd-4b87-4f0c-a90e-81b7a2cd5100",
+      "projeto_id": "ddb487ad-03bc-432a-ad4b-6d45ba9376e3",
+      "projeto_tipo": "Box 2 folhas",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "d5aae598-7efc-482f-bfff-8992e8a091f9",
+      "origem_linha_indice": 0,
+      "numero_unidade": 2,
+      "descricao": "VIDRO FIXO 700x2745 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 700,
+      "altura_original_mm": 2745,
+      "situacao": "pendente",
+      "versao": 1
+    },
+    {
+      "id": "99297719-b910-4bbb-9b0e-6499351eae74",
+      "projeto_id": "ddb487ad-03bc-432a-ad4b-6d45ba9376e3",
+      "projeto_tipo": "Box 2 folhas",
+      "origem_campo": "documentoPdfCompleto",
+      "origem_linha_id": "6b253fa2-3858-4cee-a041-a9ba2e2e0cc7",
+      "origem_linha_indice": 1,
+      "numero_unidade": 2,
+      "descricao": "VIDRO MOVEL 750x2780 INCOLOR 08MM TEMPERADO",
+      "largura_original_mm": 750,
+      "altura_original_mm": 2780,
+      "situacao": "pendente",
+      "versao": 1
+    }
+  ],
+  "schemaApiUnidades": {
+    "required": [
+      "id",
+      "pedido_id",
+      "empresa_id",
+      "projeto_id",
+      "origem_campo",
+      "origem_linha_id",
+      "origem_linha_indice",
+      "numero_unidade",
+      "situacao",
+      "versao",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "properties": {
+      "id": {
+        "default": "gen_random_uuid()",
+        "description": "Note:\nThis is a Primary Key.<pk/>",
+        "format": "uuid",
+        "type": "string"
+      },
+      "pedido_id": {
+        "description": "Note:\nThis is a Foreign Key to `gc_pedidos.id`.<fk table='gc_pedidos' column='id'/>",
+        "format": "uuid",
+        "type": "string"
+      },
+      "empresa_id": {
+        "description": "Note:\nThis is a Foreign Key to `empresas.id`.<fk table='empresas' column='id'/>",
+        "format": "uuid",
+        "type": "string"
+      },
+      "projeto_id": {
+        "format": "text",
+        "type": "string"
+      },
+      "projeto_tipo": {
+        "format": "text",
+        "type": "string"
+      },
+      "origem_campo": {
+        "format": "text",
+        "type": "string"
+      },
+      "origem_linha_id": {
+        "format": "text",
+        "type": "string"
+      },
+      "origem_linha_indice": {
+        "format": "integer",
+        "type": "integer"
+      },
+      "numero_unidade": {
+        "format": "integer",
+        "type": "integer"
+      },
+      "descricao": {
+        "format": "text",
+        "type": "string"
+      },
+      "medida_original": {
+        "format": "text",
+        "type": "string"
+      },
+      "largura_original_mm": {
+        "format": "numeric",
+        "type": "number"
+      },
+      "altura_original_mm": {
+        "format": "numeric",
+        "type": "number"
+      },
+      "largura_conferida_mm": {
+        "format": "numeric",
+        "type": "number"
+      },
+      "altura_conferida_mm": {
+        "format": "numeric",
+        "type": "number"
+      },
+      "observacao_conferencia": {
+        "format": "text",
+        "type": "string"
+      },
+      "situacao": {
+        "default": "pendente",
+        "format": "text",
+        "type": "string"
+      },
+      "versao": {
+        "default": 1,
+        "format": "integer",
+        "type": "integer"
+      },
+      "conferido_por": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "conferido_em": {
+        "format": "timestamp with time zone",
+        "type": "string"
+      },
+      "liberado_por": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "liberado_em": {
+        "format": "timestamp with time zone",
+        "type": "string"
+      },
+      "criado_em": {
+        "default": "now()",
+        "format": "timestamp with time zone",
+        "type": "string"
+      },
+      "atualizado_em": {
+        "default": "now()",
+        "format": "timestamp with time zone",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "funcoesExpostas": [
+    "/rpc/gc_revisar_medidas_pedido",
+    "/rpc/gc_inicializar_unidades_avulsas",
+    "/rpc/gc_inicializar_unidades_desenhos",
+    "/rpc/gc_reabrir_unidade",
+    "/rpc/gc_conferir_unidade",
+    "/rpc/gc_situacao_pedido",
+    "/rpc/gc_revisar_pedido",
+    "/rpc/gc_liberar_unidade"
+  ],
+  "projetosTecnicos": [
+    {
+      "id": "ddb487ad-03bc-432a-ad4b-6d45ba9376e3",
+      "projeto": "Box 2 folhas",
+      "largura": 1400,
+      "altura": 2800,
+      "quantidade": 2,
+      "trilho": "Até o teto",
+      "origemRota": "/box2fls",
+      "origem_campo": "documentoPdfCompleto",
+      "materiais": [
+        {
+          "id": "d5aae598-7efc-482f-bfff-8992e8a091f9",
+          "descricao": "VIDRO FIXO 700x2745 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 3.85
+        },
+        {
+          "id": "6b253fa2-3858-4cee-a041-a9ba2e2e0cc7",
+          "descricao": "VIDRO MOVEL 750x2780 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 4.2
+        },
+        {
+          "id": "ec071460-f02d-4aa2-9059-f480871dcd37",
+          "descricao": "KIT BOX QUADRADO F1 300X150 | PRETO",
+          "unidade": "und",
+          "qtd": 2
+        }
+      ]
+    },
+    {
+      "id": "0e28c76a-3e49-4b20-9985-0b7abf4dfcd7",
+      "projeto": "Box de canto",
+      "largura": 980,
+      "altura": 2800,
+      "quantidade": 1,
+      "trilho": "Até o teto",
+      "origemRota": "/boxcanto",
+      "origem_campo": "documentoPdfCompleto",
+      "materiais": [
+        {
+          "id": "787a7856-6662-4396-8686-faabc83e4284",
+          "descricao": "VIDRO FIXO A 490x2745 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 1.375
+        },
+        {
+          "id": "7662f0ec-124f-415b-8556-6fe02e3e2ed8",
+          "descricao": "VIDRO MOVEL A 540x2780 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 1.54
+        },
+        {
+          "id": "bd318e2d-7265-4ad1-a952-2faf5f50908e",
+          "descricao": "VIDRO FIXO B 590x2745 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 1.65
+        },
+        {
+          "id": "8b6c4609-a125-4c70-bc13-be6b1ec42011",
+          "descricao": "VIDRO MOVEL B 640x2780 INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 1.82
+        },
+        {
+          "id": "1e2e0cf1-4d0a-4586-9b8e-7eaaa32d6e2f",
+          "descricao": "KIT BOX QUADRADO CANTO 300X120X120 | GOLD 27",
+          "unidade": "und",
+          "qtd": 1
+        }
+      ]
+    },
+    {
+      "id": "dda2b681-5c72-4ef2-a336-19fc3fee1d91",
+      "projeto": "Vidros avulsos",
+      "largura": 0,
+      "altura": 0,
+      "quantidade": 1,
+      "trilho": "",
+      "origemRota": "/calculo/calculovidro",
+      "origem_campo": "documentoPdfCompleto",
+      "materiais": [
+        {
+          "id": "68ec5df7-e439-4118-96c9-33fc427c5358",
+          "descricao": "VIDRO 500 X 1500 MM INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 1.5
+        },
+        {
+          "id": "758bb7be-a04c-4d75-b078-13afa608d412",
+          "descricao": "VIDRO 505 X 1500 MM INCOLOR 08MM TEMPERADO",
+          "unidade": "m2",
+          "qtd": 7.425
+        },
+        {
+          "id": "524bd28c-4392-452d-8d9b-a6a993bc7964",
+          "descricao": "KIT: KTS3025-BC - KIT SACADA SEM ROLAMENTO 3,05X2,50",
+          "unidade": "und",
+          "qtd": 1
+        },
+        {
+          "id": "7d473a2a-b32d-4287-8508-c55bc893e287",
+          "descricao": "KIT: KTS6025-BC - KIT SACADA SEM ROLAMENTO 6,10X2,50",
+          "unidade": "und",
+          "qtd": 1
+        },
+        {
+          "id": "db7d55eb-0413-49c8-b414-16c9c4e0b748",
+          "descricao": "FERRAGEM: ACKTS3025-BC - CONJ. ACESSORIOS KIT SACADA 3,05",
+          "unidade": "und",
+          "qtd": 1
+        },
+        {
+          "id": "3bd0d4ed-d5d7-4fe5-b708-7de952ac04b1",
+          "descricao": "FERRAGEM: ACKTS6025-BC - CONJ. ACESSORIOS KIT SACADA 6,10",
+          "unidade": "und",
+          "qtd": 1
+        },
+        {
+          "id": "7511f8e2-a9bd-4dc2-8641-33112d00f8d1",
+          "descricao": "FERRAGEM: FECKTS-BC - FECHADURA V/V PARA KIT SACADA",
+          "unidade": "und",
+          "qtd": 2
+        }
+      ]
+    }
+  ]
+}

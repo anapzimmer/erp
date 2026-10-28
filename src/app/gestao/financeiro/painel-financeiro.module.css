@@ -1,0 +1,35 @@
+.painel{display:grid;gap:22px;color:var(--text-primary,#14383f)}.cabecalho,.blocoTitulo{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.cabecalho h2{font-size:23px;margin:0 0 6px}.cabecalho p,.blocoTitulo p,.nota{font-size:12px;line-height:1.6;color:var(--text-secondary,#4d6a70);margin:0}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.cards>div{border:1px solid var(--border,#d5e0e4);border-radius:14px;padding:20px;background:var(--surface,#fff);min-width:0}.cards span{display:block;font-size:12px;color:var(--text-secondary,#4d6a70);margin-bottom:10px}.cards strong{display:block;font-size:clamp(17px,2vw,24px);font-weight:650;overflow-wrap:anywhere}.filtros{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(130px,1fr)) auto;align-items:end;gap:12px}.filtros label{display:grid;gap:6px;font-size:12px}.filtros input,.filtros select{min-width:0;width:100%;padding:10px;border:1px solid var(--border,#d5e0e4);border-radius:9px;background:var(--surface,#fff);color:inherit}.painel button,.aviso button{border:1px solid var(--border,#d5e0e4);border-radius:9px;background:var(--surface,#fff);color:inherit;padding:10px 12px;cursor:pointer}.painel button:hover{border-color:var(--primary,#1c415b)}.painel button:disabled{opacity:.45;cursor:not-allowed}.bloco{border:1px solid var(--border,#d5e0e4);background:var(--surface,#fff);border-radius:14px;overflow:hidden}.blocoTitulo{padding:20px}.blocoTitulo h3{font-size:17px;margin:0 0 5px}.blocoTitulo>span{font-size:12px;color:var(--text-secondary,#4d6a70)}.rolagem{overflow-x:auto}.rolagem table{width:100%;border-collapse:collapse;min-width:820px;text-align:left}.rolagem th,.rolagem td{padding:12px 16px;border-bottom:1px solid var(--border,#d5e0e4);font-size:12px;vertical-align:middle}.rolagem th{background:var(--surface-secondary,#edf2f4);font-size:11px}.rolagem small{display:block;color:var(--text-secondary,#4d6a70);margin-top:5px}.estado,.paga,.atraso{display:inline-block;padding:5px 9px;border-radius:30px;background:#e8eef4;color:#1c415b}.paga{background:#dff5ed;color:#17674f}.atraso{background:#fff0e8;color:#a34321}.paginacao{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;font-size:12px}.vazio{padding:16px 20px;color:var(--text-secondary,#4d6a70);font-size:13px}.aviso{padding:16px;border:1px solid #cc4b4b;border-radius:10px}@media(max-width:1100px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.filtros{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.cards,.filtros{grid-template-columns:1fr}}
+
+.grafico{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:14px;padding:20px 22px 8px;overflow-x:auto}.grupoMes{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;min-width:90px}.grupoMes small{font-size:10px;color:var(--text-secondary,#4d6a70);text-align:center}.barras{height:160px;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:7px;border-bottom:1px solid var(--border,#d5e0e4)}.barraRecebido,.barraPrevisto{width:26%;min-height:0;border-radius:5px 5px 0 0}.barraRecebido{background:#39b89f}.barraPrevisto{background:#1c415b}.legenda{display:flex;gap:20px;padding:12px 22px 20px;font-size:12px;color:var(--text-secondary,#4d6a70)}.legenda span{display:flex;align-items:center;gap:7px}.pontoRecebido,.pontoPrevisto{display:inline-block;width:10px;height:10px;border-radius:3px;background:#39b89f}.pontoPrevisto{background:#1c415b}@media(max-width:720px){.grafico{grid-template-columns:repeat(6,100px)}}
+
+/* Padronização da tabela financeira */
+
+.rolagem td {
+  font-size: 13px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+.rolagem td:first-child {
+  min-width: 220px;
+}
+
+.rolagem td:first-child strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #14383f);
+}
+
+.rolagem td:first-child small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 4px;
+  color: var(--text-primary, #14383f);
+}
+
+.rolagem td:first-child small:last-child {
+  font-size: 12px;
+  color: var(--text-secondary, #4d6a70);
+}
