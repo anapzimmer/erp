@@ -52,6 +52,7 @@ interface SacadaFrontalPDFProps {
   alturaVaoMm: number;
   quantidadeVaos: number;
   divisoesPorVao: number;
+  tipoSacada?: "panoramica" | "tubo";
   corPerfil: string;
   vidroDescricao: string;
   medidaVidro: string;
@@ -88,8 +89,15 @@ const fmtNumero = (valor: number, casas = 2) =>
     maximumFractionDigits: casas,
   });
 
-const textoMinusculo = (texto?: string | null) =>
-  String(texto || "").toLocaleLowerCase("pt-BR");
+const descricaoComCodigo = (nome?: string | null, codigo?: string | null) => {
+  const descricao = String(nome || "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/(^|[\s\-/])([\p{L}])/gu, (_trecho, separador: string, letra: string) =>
+      separador + letra.toLocaleUpperCase("pt-BR")
+    );
+  const sigla = String(codigo || "").trim().toLocaleUpperCase("pt-BR");
+  return `${descricao}${sigla ? ` (${sigla})` : ""}`;
+};
 
 /*
  * ESTILOS CLONADOS DA SACADA COM TORRE.
@@ -306,6 +314,7 @@ export function SacadaFrontalPDF({
   alturaVaoMm,
   quantidadeVaos,
   divisoesPorVao,
+  tipoSacada = "panoramica",
   corPerfil,
   vidroDescricao,
   medidaVidro,
@@ -336,7 +345,7 @@ export function SacadaFrontalPDF({
   const materiaisPerfis = perfis.map((perfil, index) => ({
     id: `perfil-${perfil.codigo}-${index}`,
     qtd: Number(perfil.quantidadeBarras || 0),
-    descricao: textoMinusculo(`${perfil.nome}${perfil.codigo ? ` (${perfil.codigo})` : ""}`),
+    descricao: descricaoComCodigo(perfil.nome, perfil.codigo),
     unidade: "barra",
     valorUnitario: Number(perfil.precoBarra || 0),
     valorTotal: Number(perfil.valorTotal || 0),
@@ -346,7 +355,7 @@ export function SacadaFrontalPDF({
     ...listaAcessoriosGuardaCorpo.map((item, index) => ({
       id: `acessorio-gc-${item.codigo}-${index}`,
       qtd: Number(item.quantidadePacote ?? item.quantidade ?? 0),
-      descricao: textoMinusculo(`${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`),
+      descricao: descricaoComCodigo(item.nome, item.codigo),
       unidade: "un",
       valorUnitario: Number(item.precoUnitario || 0),
       valorTotal: Number(item.valorTotal || 0),
@@ -354,7 +363,7 @@ export function SacadaFrontalPDF({
     ...listaAcessoriosFechamento.map((item, index) => ({
       id: `acessorio-fech-${item.codigo}-${index}`,
       qtd: Number(item.quantidadePacote ?? item.quantidade ?? 0),
-      descricao: textoMinusculo(`${item.nome}${item.codigo ? ` (${item.codigo})` : ""}`),
+      descricao: descricaoComCodigo(item.nome, item.codigo),
       unidade: "un",
       valorUnitario: Number(item.precoUnitario || 0),
       valorTotal: Number(item.valorTotal || 0),
@@ -539,115 +548,55 @@ export function SacadaFrontalPDF({
           <View style={styles.drawingBox}>
             <Text style={styles.drawingTitle}>Vista frontal</Text>
 
-            <Svg
-              viewBox={`0 0 ${svgW} ${svgH}`}
-              width="100%"
-              height={210}
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <Rect
-                x={x0}
-                y={y0}
-                width={drawW}
-                height={drawH}
-                fill={PDF_COLORS.panelBg}
-                stroke={PDF_COLORS.softMuted}
-                strokeWidth={0.8}
-              />
-
-              {temModulosSupInf ? (
-                <>
-                  {renderPaineis(
-                    "superior",
-                    glassY,
-                    alturaSuperiorDesenho,
-                    divSuperior,
-                    DRAWING_COLORS.glass,
-                    DRAWING_COLORS.frame,
-                  )}
-
-                  <Rect
-                    x={x0}
-                    y={yDivisoria}
-                    width={drawW}
-                    height={rail}
-                    fill={perfilCor.fill}
-                    stroke={perfilCor.stroke}
-                    strokeWidth={0.8}
-                  />
-
-                  {renderPaineis(
-                    "inferior",
-                    yDivisoria + rail,
-                    alturaInferiorDesenho,
-                    divInferior,
-                    DRAWING_COLORS.glass,
-                    DRAWING_COLORS.frame,
-                  )}
-                </>
-              ) : (
-                renderPaineis(
-                  "vidro",
-                  glassY,
-                  glassH,
-                  divPadrao,
-                  DRAWING_COLORS.glass,
-                  DRAWING_COLORS.frame,
-                )
-              )}
-
-              <Rect
-                x={x0}
-                y={y0}
-                width={drawW}
-                height={rail}
-                fill={perfilCor.fill}
-                stroke={perfilCor.stroke}
-                strokeWidth={0.8}
-              />
-              <Rect
-                x={x0}
-                y={y0 + drawH - rail}
-                width={drawW}
-                height={rail}
-                fill={perfilCor.fill}
-                stroke={perfilCor.stroke}
-                strokeWidth={0.8}
-              />
-              <Rect
-                x={x0}
-                y={y0}
-                width={side}
-                height={drawH}
-                fill={perfilCor.fill}
-                stroke={perfilCor.stroke}
-                strokeWidth={0.8}
-              />
-              <Rect
-                x={x0 + drawW - side}
-                y={y0}
-                width={side}
-                height={drawH}
-                fill={perfilCor.fill}
-                stroke={perfilCor.stroke}
-                strokeWidth={0.8}
-              />
-
-              <Line
-                x1={x0}
-                y1={y0 + drawH + 10}
-                x2={x0 + drawW}
-                y2={y0 + drawH + 10}
-                stroke={PDF_COLORS.muted}
-                strokeWidth={0.7}
-              />
-              <Text
-                x={x0 + drawW / 2 - 16}
-                y={y0 + drawH + 22}
-                style={{ fontSize: 10, fill: PDF_COLORS.ink }}
-              >
-                {larguraVaoMm} mm
-              </Text>
+            <Svg viewBox="0 0 430 245" width="100%" height={210} preserveAspectRatio="xMidYMid meet">
+              {(() => {
+                const divs = Math.max(1, Math.floor(divisoesPorVao || 1));
+                const left = 20;
+                const top = 16;
+                const w = 390;
+                const h = Math.max(95, Math.min(185, w * Math.max(0.3, Math.min(0.65, alturaVaoMm / Math.max(larguraVaoMm, 1)))));
+                const pw = w / divs;
+                const tubo = tipoSacada === "tubo";
+                const perfilW = 5;
+                const barraH = 6;
+                const corMetal = perfilCor.fill;
+                const bordaMetal = perfilCor.stroke;
+                const yVidro = top + barraH;
+                const hVidro = tubo ? h - barraH * 2 : h - barraH - 11;
+                return (
+                  <G>
+                    {/* Tubos estruturais ao fundo, apenas na versão com tubo. */}
+                    {tubo && Array.from({ length: divs + 1 }, (_, i) => {
+                      const x = left + i * pw - perfilW / 2;
+                      return <Rect key={`tubo-${i}`} x={x} y={yVidro} width={perfilW} height={h - 2 * barraH} fill={corMetal} stroke={bordaMetal} strokeWidth={0.6} />;
+                    })}
+                    {/* Vidros desenhados na frente dos tubos. */}
+                    {Array.from({ length: divs }, (_, i) => {
+                      const x = left + i * pw;
+                      const px = tubo ? x + 0.5 : x + perfilW / 2;
+                      const largura = tubo ? pw - 1 : pw - perfilW;
+                      return <G key={`vidro-${i}`}>
+                        <Rect x={px} y={yVidro} width={largura} height={hVidro} fill={tubo ? "#E4F0F3" : "#EAF1F3"} fillOpacity={tubo ? 0.63 : 0.76} stroke="#94A6AE" strokeWidth={0.65} />
+                        <Line x1={px + largura * 0.42} y1={yVidro + 6} x2={px + largura * 0.18} y2={yVidro + hVidro * 0.34} stroke="#FFFFFF" strokeWidth={1.5} />
+                      </G>;
+                    })}
+                    {/* Na panorâmica, pontaletes contínuos e bases individuais. */}
+                    {!tubo && Array.from({ length: divs + 1 }, (_, i) => {
+                      const x = left + i * pw - perfilW / 2;
+                      return <G key={`pontalete-${i}`}>
+                        <Rect x={x} y={top} width={perfilW} height={h} fill={corMetal} stroke={bordaMetal} strokeWidth={0.55} />
+                        <Rect x={x - 3} y={top + h - 3} width={perfilW + 6} height={4} fill={corMetal} stroke={bordaMetal} strokeWidth={0.5} />
+                        <Rect x={x - 5} y={top + h + 1} width={perfilW + 10} height={3} fill={corMetal} stroke={bordaMetal} strokeWidth={0.5} />
+                      </G>;
+                    })}
+                    {/* Perfil superior em ambos; inferior somente na versão com tubo. */}
+                    <Rect x={left} y={top} width={w} height={barraH} fill={corMetal} stroke={bordaMetal} strokeWidth={0.7} />
+                    {tubo && <Rect x={left} y={top + h - barraH} width={w} height={barraH} fill={corMetal} stroke={bordaMetal} strokeWidth={0.7} />}
+                    <Line x1={left} y1={top + h + 17} x2={left + w} y2={top + h + 17} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
+                    <Text x={left + w / 2} y={top + h + 30} textAnchor="middle" style={{ fontSize: 9, fill: PDF_COLORS.ink }}>{larguraVaoMm} mm</Text>
+                  </G>
+                );
+              })()}
             </Svg>
           </View>
 
@@ -685,7 +634,7 @@ export function SacadaFrontalPDF({
               <View style={styles.dataItem}>
                 <Text style={styles.label}>Área total</Text>
                 <Text style={styles.value}>
-                  {fmtNumero(areaTotal, 3)} mÂ²
+                  {fmtNumero(areaTotal, 3)} m²
                 </Text>
               </View>
 
@@ -798,7 +747,7 @@ export function SacadaFrontalPDF({
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Área total</Text>
             <Text style={styles.totalValue}>
-              {fmtNumero(areaTotal, 3)} mÂ²
+              {fmtNumero(areaTotal, 3)} m²
             </Text>
           </View>
 

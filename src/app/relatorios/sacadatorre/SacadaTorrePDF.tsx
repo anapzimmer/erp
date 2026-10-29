@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   dataTitle: { fontSize: 9, color: PDF_COLORS.ink, fontWeight: "bold", marginBottom: 7 },
   dataGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   dataItem: {
-    width: "31.8%",
+    width: "23.5%",
     borderTopWidth: 1,
     borderTopColor: PDF_COLORS.border,
     paddingTop: 5,
@@ -240,6 +240,10 @@ export function SacadaTorrePDF({
                 <Text style={styles.value}>{quantidadeVaos}</Text>
               </View>
               <View style={styles.dataItem}>
+                <Text style={styles.label}>Medida do vidro</Text>
+                <Text style={styles.value}>{medidaVidro}</Text>
+              </View>
+              <View style={styles.dataItem}>
                 <Text style={styles.label}>Divisoes</Text>
                 <Text style={styles.value}>{divisoesPorVao}</Text>
               </View>
@@ -258,10 +262,6 @@ export function SacadaTorrePDF({
               <View style={styles.dataItemWide}>
                 <Text style={styles.label}>Torre</Text>
                 <Text style={styles.value}>{torreDescricao}</Text>
-              </View>
-              <View style={styles.dataItemWide}>
-                <Text style={styles.label}>Medida do vidro</Text>
-                <Text style={styles.value}>{medidaVidro}</Text>
               </View>
             </View>
           </View>

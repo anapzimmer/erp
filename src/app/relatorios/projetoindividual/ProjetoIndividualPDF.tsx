@@ -27,6 +27,8 @@ export type ProjetoIndividualMaterial = {
   tamanhoPacote?: number;
   precoPorPacote?: boolean;
   personalizadoCatalogo?: boolean;
+  precoAjustado?: boolean;
+  quantidadeAjustada?: boolean;
   perfilExtra?: import("@/utils/perfisExtras").PerfilExtra;
 };
 

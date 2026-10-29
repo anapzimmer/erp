@@ -53,6 +53,17 @@ const projetos = [
       "kitLabel": "Calcular"
     },
     {
+      "id": "sacadatorre-sem-grapas",
+      "nome": "Sacada com torre sem grapas",
+      "categoria": "Sacadas",
+      "titulo": "Vidros com fixação somente por torres",
+      "descricao": "Modelo com 4 divisões na miniatura, sem grapas laterais ou furação entre vidros.",
+      "status": "Disponível",
+      "imagem": "/desenhos/matriz-sacadatorre-sem-grapas-card.svg",
+      "kitHref": "/calculo/sacadatorre?modelo=sem-grapas",
+      "kitLabel": "Calcular"
+    },
+    {
       "id": "sacadagrapa",
       "nome": "Sacada com grapa",
       "categoria": "Sacadas",

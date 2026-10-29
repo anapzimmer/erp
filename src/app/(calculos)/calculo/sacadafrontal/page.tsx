@@ -1155,6 +1155,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                     alturaVaoMm={alturaNumero}
                     quantidadeVaos={quantidadeNumero}
                     divisoesPorVao={quantidadeDivisoesNumero}
+                    tipoSacada={tipoSacada}
                     corPerfil={corPerfil || "Não selecionada"}
                     vidroDescricao={montarDescricaoVidro(vidroSelecionado)}
                     medidaVidro={`${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm`}

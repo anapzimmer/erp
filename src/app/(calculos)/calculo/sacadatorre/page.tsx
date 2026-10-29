@@ -76,6 +76,8 @@ type SacadaTorreDraft = {
   vidroId: string;
   corPerfil: string;
   torreCodigo: string;
+  usarGrapa3019: boolean;
+  usarGrapa1305: boolean;
 };
 
 type SacadaTorreCentralItem = CentralImpressaoItem & {
@@ -162,10 +164,10 @@ const corPerfilSvg = (cor?: string) => {
 };
 
 const gerarSvgSacadaTorre = ({
-  largura, altura, divisoes, torresPorVidro, corPerfil, codigoTorre,
+  largura, altura, divisoes, torresPorVidro, corPerfil, codigoTorre, usarGrapa3019 = true, usarGrapa1305 = true,
 }: {
   largura: number; altura: number; divisoes: number; torresPorVidro: number;
-  corPerfil?: string; codigoTorre?: string;
+  corPerfil?: string; codigoTorre?: string; usarGrapa3019?: boolean; usarGrapa1305?: boolean;
 }) => {
   // Desenho técnico responsivo: mais divisões ampliam o viewBox horizontal,
   // sem aumentar a altura do cartão nem sobrepor os acessórios.
@@ -194,10 +196,12 @@ const gerarSvgSacadaTorre = ({
     const markerY = top + 39;
     const stroke = "#9AAAB1"; // mesmo contorno do vidro
     if (ponta) {
+      if (!usarGrapa3019) return "";
       const size = 11;
       const centerX = i === 0 ? x + 6 : x - 6;
       return `<g><rect x="${centerX - size / 2}" y="${markerY - size / 2}" width="${size}" height="${size}" rx="0.8" fill="#FFFFFF" stroke="${stroke}" stroke-width="1.1"/></g>`;
     }
+    if (!usarGrapa1305) return "";
     const spacing = 11;
     return `<g>
       <circle cx="${x - spacing}" cy="${markerY}" r="3.2" fill="#FFFFFF" stroke="${stroke}" stroke-width="1.1"/>
@@ -251,6 +255,8 @@ export default function CalculoSacadaTorrePage() {
   const [vidroId, setVidroId] = useState("");
   const [corPerfil, setCorPerfil] = useState("");
   const [torreCodigo, setTorreCodigo] = useState("");
+  const [usarGrapa3019, setUsarGrapa3019] = useState(true);
+  const [usarGrapa1305, setUsarGrapa1305] = useState(true);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -308,6 +314,8 @@ export default function CalculoSacadaTorrePage() {
       if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
       if (typeof draft.corPerfil === "string") setCorPerfil(draft.corPerfil);
       if (typeof draft.torreCodigo === "string") setTorreCodigo(draft.torreCodigo);
+      if (typeof draft.usarGrapa3019 === "boolean") setUsarGrapa3019(draft.usarGrapa3019);
+      if (typeof draft.usarGrapa1305 === "boolean") setUsarGrapa1305(draft.usarGrapa1305);
     } catch (error) {
       console.warn("Nao foi possivel restaurar rascunho da sacada com torre:", error);
     }
@@ -328,6 +336,8 @@ export default function CalculoSacadaTorrePage() {
       vidroId,
       corPerfil,
       torreCodigo,
+      usarGrapa3019,
+      usarGrapa1305,
     };
     window.localStorage.setItem(chaveDraft, JSON.stringify(draft));
   }, [
@@ -344,6 +354,8 @@ export default function CalculoSacadaTorrePage() {
     quantidadeTorresPorVidro,
     quantidadeVaos,
     torreCodigo,
+    usarGrapa3019,
+    usarGrapa1305,
     vidroId,
   ]);
 
@@ -366,6 +378,8 @@ export default function CalculoSacadaTorrePage() {
       setVidroId(dados.vidroId || "");
       setCorPerfil(dados.corPerfil || item?.corPerfil || item?.corKit || "");
       setTorreCodigo(dados.torreCodigo || "");
+      setUsarGrapa3019(dados.usarGrapa3019 ?? true);
+      setUsarGrapa1305(dados.usarGrapa1305 ?? true);
     } catch (error) {
       console.warn("Nao foi possivel restaurar a sacada com torre da central:", error);
     }
@@ -481,7 +495,25 @@ export default function CalculoSacadaTorrePage() {
     ]
   );
 
-  const resultado = useMemo(() => resultadoConformeCor(resultadoCompleto, corPerfil), [resultadoCompleto, corPerfil]);
+  // Acessórios opcionais: remover também quantidade e custo do resultado,
+  // sem alterar a regra de dimensionamento do motor compartilhado.
+  const resultadoFiltrado = useMemo(() => {
+    const excluidos = resultadoCompleto.acessorios.filter((item) =>
+      (normalizarCodigo(item.codigo) === "3019" && !usarGrapa3019) ||
+      (normalizarCodigo(item.codigo) === "1305" && !usarGrapa1305)
+    );
+    const valorRemovido = excluidos.reduce((total, item) => total + item.quantidade * item.precoUnitario, 0);
+    const quantidadeRemovida = excluidos.reduce((total, item) => total + item.quantidade, 0);
+    return {
+      ...resultadoCompleto,
+      acessorios: resultadoCompleto.acessorios.filter((item) => !excluidos.includes(item)),
+      quantidadeGrapas: Math.max(0, resultadoCompleto.quantidadeGrapas - quantidadeRemovida),
+      totalAcessorios: Math.max(0, resultadoCompleto.totalAcessorios - valorRemovido),
+      totalGeral: Math.max(0, resultadoCompleto.totalGeral - valorRemovido),
+    };
+  }, [resultadoCompleto, usarGrapa3019, usarGrapa1305]);
+
+  const resultado = useMemo(() => resultadoConformeCor(resultadoFiltrado, corPerfil), [resultadoFiltrado, corPerfil]);
 
   const svgSacada = useMemo(
     () =>
@@ -492,8 +524,10 @@ export default function CalculoSacadaTorrePage() {
         torresPorVidro: quantidadeTorresNumero,
         corPerfil,
         codigoTorre: torreSelecionada?.codigo || torreCodigo || "Torre",
+        usarGrapa3019,
+        usarGrapa1305,
       }),
-    [alturaNumero, corPerfil, larguraNumero, quantidadeDivisoesNumero, quantidadeTorresNumero, torreCodigo, torreSelecionada?.codigo]
+    [alturaNumero, corPerfil, larguraNumero, quantidadeDivisoesNumero, quantidadeTorresNumero, torreCodigo, torreSelecionada?.codigo, usarGrapa3019, usarGrapa1305]
   );
 
   const desenhoUrl = useMemo(() => svgDataUrl(svgSacada), [svgSacada]);
@@ -547,6 +581,8 @@ export default function CalculoSacadaTorrePage() {
       vidroId,
       corPerfil,
       torreCodigo,
+      usarGrapa3019,
+      usarGrapa1305,
     };
 
     return {
@@ -564,9 +600,9 @@ export default function CalculoSacadaTorrePage() {
       corKit: corPerfil || "Nao selecionada",
       corPerfil: corPerfil || "Nao selecionada",
       trilho: `${quantidadeDivisoesNumero} divisao(oes)`,
-      trinco: `${quantidadeTorresNumero} torre(s) por vidro | 3019 nas pontas | 1305 entre vidros`,
+      trinco: `${quantidadeTorresNumero} torre(s) por vidro | 3019: ${usarGrapa3019 ? "Sim" : "Não"} | 1305: ${usarGrapa1305 ? "Sim" : "Não"}`,
       pecasDivisao: resultado.quantidadeVidrosPorVao,
-      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisoes por vao: ${quantidadeDivisoesNumero}\nTorres por vidro: ${quantidadeTorresNumero}\nTorre: ${torreSelecionada?.codigo || torreCodigo || "-"}\nPontas: 3019\nEntre vidros: 1305`,
+      medidasDetalhadas: `Vidro: ${resultado.larguraVidroMm} x ${resultado.alturaVidroMm} mm\nDivisoes por vao: ${quantidadeDivisoesNumero}\nTorres por vidro: ${quantidadeTorresNumero}\nTorre: ${torreSelecionada?.codigo || torreCodigo || "-"}\nPontas 3019: ${usarGrapa3019 ? "Sim" : "Não"}\nEntre vidros 1305: ${usarGrapa1305 ? "Sim" : "Não"}`,
       valorTotal: resultado.totalGeral,
       materiais: montarMateriaisCentral(),
       origemRota: "/calculo/sacadatorre",
@@ -593,6 +629,8 @@ export default function CalculoSacadaTorrePage() {
     quantidadeVaos,
     resultado,
     torreCodigo,
+    usarGrapa3019,
+    usarGrapa1305,
     torreSelecionada?.codigo,
     vidroId,
     vidroSelecionado,
@@ -647,6 +685,8 @@ export default function CalculoSacadaTorrePage() {
           vidroId,
           vidroDescricao: montarDescricaoVidro(vidroSelecionado),
           torreCodigo,
+          usarGrapa3019,
+          usarGrapa1305,
           resultado,
           itemCentral: montarItemCentral(),
         },
@@ -779,6 +819,8 @@ export default function CalculoSacadaTorrePage() {
                     setVidroId("");
                     setBuscaVidro("");
                     setTorreCodigo("");
+                    setUsarGrapa3019(true);
+                    setUsarGrapa1305(true);
                     setMensagem("");
                     window.localStorage.removeItem(chaveDraft);
                   }}
@@ -873,7 +915,7 @@ export default function CalculoSacadaTorrePage() {
                     </p>
                   </div>
 
-                  <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 w-full">
+                  <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
                     {[
                       ["Largura do vao (mm)", larguraVaoMm, setLarguraVaoMm],
                       ["Altura do vao (mm)", alturaVaoMm, setAlturaVaoMm],
@@ -912,7 +954,7 @@ export default function CalculoSacadaTorrePage() {
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 xl:col-span-2" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 lg:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Cor do vidro
                       </span>
@@ -960,6 +1002,19 @@ export default function CalculoSacadaTorrePage() {
                         ))}
                       </select>
                     </label>
+                    {([
+                      { label: "Grapas laterais 3019", descricao: "Quadradinhos nas extremidades do vidro", ativo: usarGrapa3019, alterar: setUsarGrapa3019 },
+                      { label: "Fixação vidro/vidro 1305", descricao: "Bolinhas nas uniões entre os vidros", ativo: usarGrapa1305, alterar: setUsarGrapa1305 },
+                    ] as const).map((opcao) => (
+                      <fieldset key={opcao.label} className="min-w-0 rounded-lg border px-3 py-2.5" style={{ borderColor: "#DCE2E4", backgroundColor: "#F6F8F8" }}>
+                        <legend className="px-1 text-xs font-semibold" style={{ color: "#38444B" }}>{opcao.label}</legend>
+                        <p className="mb-1 text-[11px] leading-tight" style={{ color: "#78868C" }}>{opcao.descricao}</p>
+                        <div className="flex gap-3 text-sm" style={{ color: "#38444B" }}>
+                          <label className="flex items-center gap-2"><input type="radio" name={opcao.label} checked={opcao.ativo} onChange={() => opcao.alterar(true)} /> Sim</label>
+                          <label className="flex items-center gap-2"><input type="radio" name={opcao.label} checked={!opcao.ativo} onChange={() => opcao.alterar(false)} /> Não</label>
+                        </div>
+                      </fieldset>
+                    ))}
                   </div>
                 </div>
               </section>
@@ -982,7 +1037,7 @@ export default function CalculoSacadaTorrePage() {
                 {[
                   { titulo: "Medida de cada vidro", valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`, detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`, icone: Ruler },
                   { titulo: "Area total de vidro", valor: `${formatarNumero(resultado.areaTotalVidro)} m2`, detalhe: resultado.vidroTipo, icone: SquareStack },
-                  { titulo: "Torres / grapas", valor: `${resultado.quantidadeTotalTorres} / ${resultado.quantidadeGrapas}`, detalhe: "3019 nas pontas e 1305 entre vidros", icone: Package2 },
+                  { titulo: "Torres / grapas", valor: `${resultado.quantidadeTotalTorres} / ${resultado.quantidadeGrapas}`, detalhe: `3019: ${usarGrapa3019 ? "Sim" : "Não"} · 1305: ${usarGrapa1305 ? "Sim" : "Não"}`, icone: Package2 },
                   { titulo: "Total geral", valor: formatarPreco(resultado.totalGeral), detalhe: "Vidro, torre e grapa", icone: Calculator },
                 ].map((card) => (
                   <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
@@ -1004,7 +1059,7 @@ export default function CalculoSacadaTorrePage() {
                 <article className="rounded-xl border shadow-none overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relacao de materiais</h2>
-                    <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Torres pela ferragem selecionada, 3019 nas pontas e 1305 entre vidros.</p>
+                    <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Torres e fixadores conforme as opções selecionadas.</p>
                   </div>
 
                   <div className="overflow-x-auto">

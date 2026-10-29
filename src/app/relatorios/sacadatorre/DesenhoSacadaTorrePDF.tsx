@@ -1,91 +1,83 @@
 import React from "react";
-import { G, Line, Rect, Svg, Text } from "@react-pdf/renderer";
-import { PDF_COLORS } from "../shared/pdfLayout";
+import { Circle, G, Line, Rect, Svg } from "@react-pdf/renderer";
 import { desenhoSalvoPDF } from "./desenhoSalvoPDF";
-export function DesenhoSacadaTorrePDF({ desenhoUrl, larguraVaoMm, alturaVaoMm, divisoesPorVao, torresPorVidro, width = "100%", height = 210 }: {
- desenhoUrl?: string;
- larguraVaoMm: number; alturaVaoMm: number; divisoesPorVao: number; torresPorVidro: number; width?: number | string; height?: number;
-}) {
- const desenhoSalvo = desenhoSalvoPDF(desenhoUrl, width, height);
- if (desenhoSalvo) return desenhoSalvo;
- // Impressão neutra: a cor comercial continua nos dados do orçamento.
- const perfilCor = { fill: "#e5e7e9", stroke: "#9ca3a9" };
-  const svgW = 430;
-  const pad = 16;
-  const drawW = svgW - pad * 2;
-  const ratio = Math.min(Math.max((alturaVaoMm || 1000) / (larguraVaoMm || 2000), 0.35), 0.78);
-  const drawH = Math.round(drawW * ratio);
-  const svgH = drawH + pad * 2;
-  const x0 = pad;
-  const y0 = pad;
-  const rail = 8;
-  const side = 6;
-  const divs = Math.max(Math.floor(divisoesPorVao || 1), 1);
-  const torres = Math.max(Math.floor(torresPorVidro || 0), 0);
-  const panelW = (drawW - side * 2) / divs;
-  const glassY = y0 + rail;
-  const glassH = drawH - rail * 2;
-  const towerH = Math.min(62, Math.max(34, glassH * 0.32));
-  const towerW = 12;
 
- return (
-            <Svg viewBox={`0 0 ${svgW} ${svgH}`} width={width} height={height} preserveAspectRatio="xMidYMid meet">
-              <Rect x={x0} y={y0} width={drawW} height={drawH} fill={"#ffffff"} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />
+type Props = {
+  desenhoUrl?: string;
+  larguraVaoMm: number;
+  alturaVaoMm: number;
+  divisoesPorVao: number;
+  torresPorVidro: number;
+  /** Se omitido, preserva o comportamento anterior: mostrar ferragens. */
+  usarGrapas3019?: boolean;
+  usarFixacao1305?: boolean;
+  width?: number | string;
+  height?: number;
+};
 
-              {Array.from({ length: divs }).map((_, index) => {
-                const x = x0 + side + panelW * index;
-                return (
-                  <G key={`vidro-${index}`}>
-                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill={"#ffffff"} stroke={PDF_COLORS.softMuted} strokeWidth={0.5} />
-                    <Line x1={x + panelW * 0.14} y1={glassY + glassH * 0.9} x2={x + panelW * 0.72} y2={glassY + glassH * 0.1} stroke={PDF_COLORS.white} strokeWidth={3} />
-                    <Line x1={x + panelW * 0.34} y1={glassY + glassH * 0.86} x2={x + panelW * 0.92} y2={glassY + glassH * 0.15} stroke={PDF_COLORS.white} strokeWidth={1.6} />
-                  </G>
-                );
-              })}
+export function DesenhoSacadaTorrePDF({
+  desenhoUrl,
+  larguraVaoMm,
+  alturaVaoMm,
+  divisoesPorVao,
+  torresPorVidro,
+  usarGrapas3019 = true,
+  usarFixacao1305 = true,
+  width = "100%",
+  height = 185,
+}: Props) {
+  // O desenho salvo representa a escolha real do usuário e tem prioridade.
+  const desenhoSalvo = desenhoSalvoPDF(desenhoUrl, width, height);
+  if (desenhoSalvo) return desenhoSalvo;
 
-              <Rect x={x0} y={y0} width={drawW} height={rail} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0} y={y0 + drawH - rail} width={drawW} height={rail} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0} y={y0} width={side} height={drawH} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
-              <Rect x={x0 + drawW - side} y={y0} width={side} height={drawH} fill={perfilCor.fill} stroke={perfilCor.stroke} strokeWidth={0.8} />
+  // Fallback técnico vetorial, sem moldura, trilhos ou códigos sobre os vidros.
+  const divs = Math.max(1, Math.floor(divisoesPorVao || 1));
+  const torres = Math.max(0, Math.floor(torresPorVidro || 0));
+  const svgW = 440;
+  const glassW = 382;
+  const x0 = 29;
+  const glassY = 14;
+  const ratio = Math.max(0.32, Math.min(0.68, (alturaVaoMm || 1100) / Math.max(larguraVaoMm || 3000, 1)));
+  const glassH = Math.round(glassW * ratio);
+  const panelW = glassW / divs;
+  const baseY = glassY + glassH + 11;
+  const svgH = baseY + 25;
+  const stroke = "#91A3AD";
+  const metal = "#DCE3E6";
+  const metalStroke = "#81939C";
 
-              {Array.from({ length: Math.max(divs - 1, 0) }).map((_, index) => {
-                const x = x0 + side + panelW * (index + 1);
-                return <Line key={`div-${index}`} x1={x} y1={y0 + rail} x2={x} y2={y0 + drawH - rail} stroke={PDF_COLORS.softMuted} strokeWidth={0.8} />;
-              })}
-
-              {Array.from({ length: divs + 1 }).map((_, index) => {
-                const ehPonta = index === 0 || index === divs;
-                const codigo = ehPonta ? "3019" : "1305";
-                const x = index === 0 ? x0 + 5 : index === divs ? x0 + drawW - 17 : x0 + side + panelW * index - 11;
-                const y = glassY + 20;
-                const w = ehPonta ? 12 : 22;
-                return (
-                  <G key={`grapa-${index}`}>
-                    <Rect x={x} y={y} width={w} height={18} fill={"#ffffff"} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                    <Text x={x + w + 4} y={y + 12} style={{ fontSize: 5.8, fill: PDF_COLORS.ink }}>{codigo}</Text>
-                  </G>
-                );
-              })}
-
-              {Array.from({ length: divs }).map((_, painel) => {
-                const baseX = x0 + side + panelW * painel;
-                return (
-                  <G key={`torres-painel-${painel}`}>
-                    {Array.from({ length: torres }).map((__, torreIndex) => {
-                      const pos = torres === 1 ? 0.5 : (torreIndex + 1) / (torres + 1);
-                      const x = baseX + panelW * pos - towerW / 2;
-                      const y = y0 + drawH - rail - towerH + 8;
-                      return (
-                        <G key={`torre-${painel}-${torreIndex}`}>
-                          <Rect x={x} y={y} width={towerW} height={towerH} fill={"#ffffff"} stroke={PDF_COLORS.muted} strokeWidth={0.8} />
-                          <Line x1={x + 2} y1={y + 3} x2={x + 2} y2={y + towerH - 3} stroke={PDF_COLORS.white} strokeWidth={0.8} />
-                        </G>
-                      );
-                    })}
-                  </G>
-                );
-              })}
-
-            </Svg>
- );
+  return (
+    <Svg viewBox={`0 0 ${svgW} ${svgH}`} width={width} height={height} preserveAspectRatio="xMidYMid meet">
+      {Array.from({ length: divs }).map((_, i) => (
+        <G key={`vidro-${i}`}>
+          <Rect x={x0 + i * panelW + 0.5} y={glassY} width={panelW - 1} height={glassH} fill="#F7FBFD" stroke={stroke} strokeWidth={1} />
+          <Line x1={x0 + i * panelW + panelW * 0.22} y1={glassY + glassH * 0.68} x2={x0 + i * panelW + panelW * 0.56} y2={glassY + glassH * 0.2} stroke="#FFFFFF" strokeWidth={2.5} />
+        </G>
+      ))}
+      {usarGrapas3019 && [0, divs].map((i) => (
+        <Rect key={`grapa-${i}`} x={x0 + i * panelW + (i === 0 ? 2 : -12)} y={glassY + 26} width={10} height={10} fill="#FFFFFF" stroke={stroke} strokeWidth={1} />
+      ))}
+      {usarFixacao1305 && Array.from({ length: Math.max(0, divs - 1) }).map((_, i) => {
+        const x = x0 + (i + 1) * panelW;
+        return (
+          <G key={`uniao-${i}`}>
+            <Circle cx={x - 10} cy={glassY + 31} r={2.8} fill="#FFFFFF" stroke={stroke} strokeWidth={1} />
+            <Circle cx={x + 10} cy={glassY + 31} r={2.8} fill="#FFFFFF" stroke={stroke} strokeWidth={1} />
+          </G>
+        );
+      })}
+      {Array.from({ length: divs }).map((_, i) =>
+        Array.from({ length: torres }).map((__, j) => {
+          const x = x0 + i * panelW + panelW * (j + 1) / (torres + 1);
+          const towerH = Math.min(48, glassH * 0.4);
+          return (
+            <G key={`torre-${i}-${j}`}>
+              <Rect x={x - 6} y={baseY - towerH} width={12} height={towerH} rx={1.5} fill={metal} stroke={metalStroke} strokeWidth={0.9} />
+              <Rect x={x - 9} y={baseY - 2} width={18} height={4} rx={1} fill={metal} stroke={metalStroke} strokeWidth={0.8} />
+            </G>
+          );
+        })
+      )}
+    </Svg>
+  );
 }

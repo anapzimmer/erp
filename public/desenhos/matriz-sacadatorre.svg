@@ -1,49 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280" role="img" aria-labelledby="title desc">
-  <title id="title">Sacada com torre — Glass Code</title>
-  <desc id="desc">Quatro painéis de vidro com pequenas fixações quadradas nas extremidades, pares de fixadores circulares nas uniões e uma torre de apoio inferior por painel.</desc>
-  <defs>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset=".55" stop-color="#F6F8F8"/>
-      <stop offset="1" stop-color="#EAF1F3"/>
-    </linearGradient>
-    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#F6F8F8"/>
-      <stop offset=".55" stop-color="#DCE2E4"/>
-      <stop offset="1" stop-color="#B6BEC1"/>
-    </linearGradient>
-  </defs>
-  <!-- Vidros sem perfis superior ou inferior: contornos delicados, como na página de cálculo. -->
-  <g fill="url(#glass)" stroke="#9AAAB1" stroke-width="1.2">
-    <rect x="35" y="26" width="162" height="198"/>
-    <rect x="197" y="26" width="162" height="198"/>
-    <rect x="359" y="26" width="162" height="198"/>
-    <rect x="521" y="26" width="162" height="198"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 150" width="360" height="150" role="img" aria-labelledby="title desc">
+  <title id="title">Sacada com torre</title>
+  <desc id="desc">Quatro painéis de vidro, fixadores quadrados nas extremidades, fixadores circulares alinhados nas junções e quatro torres de apoio inferiores.</desc>
+  <!-- Desenho vetorial compacto, dimensionado para os cards da Biblioteca de Projetos. -->
+  <g fill="#F5F8F9" stroke="#9AAAB1" stroke-width="1.45" stroke-linejoin="round">
+    <rect x="20.5" y="15.5" width="79.5" height="99"/>
+    <rect x="100" y="15.5" width="79.5" height="99"/>
+    <rect x="179.5" y="15.5" width="79.5" height="99"/>
+    <rect x="259" y="15.5" width="79.5" height="99"/>
   </g>
-  <g stroke="#FFFFFF" stroke-width="8" opacity=".23" fill="none">
-    <path d="M64 164 l68 -104 M226 164 l68 -104 M388 164 l68 -104 M550 164 l68 -104"/>
+  <!-- Reflexos sutis, sem filtros ou degradês que provoquem aspecto borrado. -->
+  <g stroke="#FFFFFF" stroke-width="2" opacity=".72" stroke-linecap="round">
+    <path d="M34 91 L64 35 M113 91 L143 35 M193 91 L223 35 M272 91 L302 35"/>
   </g>
-  <!-- Fixações de ponta: dois quadrados rigorosamente iguais e alinhados. -->
-  <g fill="#FFFFFF" stroke="#9AAAB1" stroke-width="1.2">
-    <rect x="37" y="61" width="11" height="11" rx=".8"/>
-    <rect x="670" y="61" width="11" height="11" rx=".8"/>
-    <!-- Fixações vidro/vidro: pares de círculos na mesma altura e distância. -->
-    <circle cx="186" cy="66.5" r="3.2"/>
-    <circle cx="208" cy="66.5" r="3.2"/>
-    <circle cx="348" cy="66.5" r="3.2"/>
-    <circle cx="370" cy="66.5" r="3.2"/>
-    <circle cx="510" cy="66.5" r="3.2"/>
-    <circle cx="532" cy="66.5" r="3.2"/>
+  <!-- Fixadores nas extremidades: quadrados de dimensões idênticas. -->
+  <g fill="#FFFFFF" stroke="#8F9AA1" stroke-width="1.35">
+    <rect x="22" y="36" width="8" height="8" rx=".6"/>
+    <rect x="329" y="36" width="8" height="8" rx=".6"/>
   </g>
-  <!-- Torres inferiores: uma por vidro, com leve folga abaixo dos painéis. -->
-  <g fill="url(#metal)" stroke="#8F9AA1" stroke-width="1">
-    <rect x="109" y="182" width="14" height="52" rx="2"/>
-    <rect x="106" y="232" width="20" height="4" rx="1"/>
-    <rect x="271" y="182" width="14" height="52" rx="2"/>
-    <rect x="268" y="232" width="20" height="4" rx="1"/>
-    <rect x="433" y="182" width="14" height="52" rx="2"/>
-    <rect x="430" y="232" width="20" height="4" rx="1"/>
-    <rect x="595" y="182" width="14" height="52" rx="2"/>
-    <rect x="592" y="232" width="20" height="4" rx="1"/>
+  <!-- Fixadores vidro/vidro: mesmo diâmetro, altura e afastamento das junções. -->
+  <g fill="#FFFFFF" stroke="#8F9AA1" stroke-width="1.25">
+    <circle cx="94" cy="40" r="2.6"/><circle cx="106" cy="40" r="2.6"/>
+    <circle cx="173.5" cy="40" r="2.6"/><circle cx="185.5" cy="40" r="2.6"/>
+    <circle cx="253" cy="40" r="2.6"/><circle cx="265" cy="40" r="2.6"/>
+  </g>
+  <!-- Torres de fixação, com base levemente abaixo do vidro. -->
+  <g fill="#DCE2E4" stroke="#8F9AA1" stroke-width="1.25" stroke-linejoin="round">
+    <rect x="56" y="97" width="9" height="29" rx="1"/>
+    <rect x="135.5" y="97" width="9" height="29" rx="1"/>
+    <rect x="215" y="97" width="9" height="29" rx="1"/>
+    <rect x="294.5" y="97" width="9" height="29" rx="1"/>
+    <rect x="53.5" y="125" width="14" height="3" rx=".6"/>
+    <rect x="133" y="125" width="14" height="3" rx=".6"/>
+    <rect x="212.5" y="125" width="14" height="3" rx=".6"/>
+    <rect x="292" y="125" width="14" height="3" rx=".6"/>
   </g>
 </svg>
