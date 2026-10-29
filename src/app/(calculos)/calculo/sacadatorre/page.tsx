@@ -155,114 +155,68 @@ const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeUR
 
 const corPerfilSvg = (cor?: string) => {
   const corNormalizada = normalizarTexto(cor).replace(/\s+/g, "");
-  if (corNormalizada === "branco") return { fill: "#e9eef2", stroke: "#9aa9b7", shadow: "#cfd8df" };
-  if (corNormalizada === "preto") return { fill: "#252a30", stroke: "#121417", shadow: "#4c535b" };
-  if (corNormalizada === "fosco") return { fill: "#9aa0a6", stroke: "#68717a", shadow: "#c4c9ce" };
-  return { fill: "#d8dde2", stroke: "#8c98a4", shadow: "#cfd8df" };
+  if (corNormalizada === "branco") return { fill: "#F6F8F8", stroke: "#8F9AA1", shadow: "#DCE2E4" };
+  if (corNormalizada === "preto") return { fill: "#606A70", stroke: "#38444B", shadow: "#89949A" };
+  if (corNormalizada === "fosco") return { fill: "#B6BEC1", stroke: "#8F9AA1", shadow: "#DCE2E4" };
+  return { fill: "#DCE2E4", stroke: "#8F9AA1", shadow: "#F6F8F8" };
 };
 
 const gerarSvgSacadaTorre = ({
-  largura,
-  altura,
-  divisoes,
-  torresPorVidro,
-  corPerfil,
-  codigoTorre,
+  largura, altura, divisoes, torresPorVidro, corPerfil, codigoTorre,
 }: {
-  largura: number;
-  altura: number;
-  divisoes: number;
-  torresPorVidro: number;
-  corPerfil?: string;
-  codigoTorre?: string;
+  largura: number; altura: number; divisoes: number; torresPorVidro: number;
+  corPerfil?: string; codigoTorre?: string;
 }) => {
-  const svgW = 900;
-  const pad = 44;
-  const labelPad = 24;
-  const drawW = svgW - pad * 2;
-  const ratio = Math.min(Math.max((altura || 1000) / (largura || 2000), 0.36), 0.82);
-  const drawH = Math.round(drawW * ratio);
-  const svgH = drawH + pad * 2 + labelPad;
-  const x0 = pad;
-  const y0 = pad;
-  const rail = 12;
-  const side = 10;
-  const divs = Math.max(Math.floor(divisoes || 1), 1);
-  const towerQty = Math.max(Math.floor(torresPorVidro || 0), 0);
-  const panelW = (drawW - side * 2) / divs;
-  const glassY = y0 + rail;
-  const glassH = drawH - rail * 2;
-  const profile = corPerfilSvg(corPerfil);
-  const towerCode = codigoTorre || "TORRE";
-
-  const divisionLines = Array.from({ length: Math.max(divs - 1, 0) }, (_, index) => {
-    const x = x0 + side + panelW * (index + 1);
-    return `<line x1="${x}" y1="${y0 + rail}" x2="${x}" y2="${y0 + drawH - rail}" stroke="#293442" stroke-width="1.2" opacity="0.75" />`;
+  // Desenho técnico responsivo: mais divisões ampliam o viewBox horizontal,
+  // sem aumentar a altura do cartão nem sobrepor os acessórios.
+  const divs = Math.max(1, Math.floor(divisoes || 1));
+  const towers = Math.max(0, Math.floor(torresPorVidro || 0));
+  const panelW = Math.max(155, Math.min(250, 780 / divs));
+  const glassW = panelW * divs;
+  const glassH = Math.max(160, Math.min(235, panelW * Math.max(0.65, Math.min(1.25, (altura || 1100) / Math.max((largura || 3000) / divs, 1)))));
+  const left = 90;
+  const top = 24;
+  const bottom = top + glassH;
+  const baseY = bottom + 12; // pequena folga abaixo do vidro, como na Sacada Panorâmica
+  const totalW = glassW + left + 56;
+  const totalH = baseY + 88;
+  const perfil = corPerfilSvg(corPerfil);
+  const formatMm = (n: number) => Math.round(n || 0).toLocaleString("pt-BR");
+  const glass = Array.from({ length: divs }, (_, i) => {
+    const x = left + i * panelW;
+    return `<g><rect x="${x + 1}" y="${top}" width="${panelW - 2}" height="${glassH}" fill="url(#gcGlass)" stroke="#9AAAB1" stroke-width="1.1"/>
+      <path d="M${x + panelW * .18} ${top + glassH * .65} l${panelW * .38} ${-glassH * .53}" stroke="#fff" stroke-width="8" opacity=".23"/></g>`;
   }).join("");
-
-  const grapas = Array.from({ length: divs + 1 }, (_, index) => {
-    const ehPonta = index === 0 || index === divs;
-    const codigoGrapa = ehPonta ? "3019" : "1305";
-    const x = index === 0 ? x0 + 8 : index === divs ? x0 + drawW - 26 : x0 + side + panelW * index - 18;
-    const y = glassY + 32;
-    const w = ehPonta ? 18 : 36;
+  // Fixadores com mesma cor, tamanho e alinhamento em todas as divisões.
+  const clamps = Array.from({ length: divs + 1 }, (_, i) => {
+    const x = left + i * panelW;
+    const ponta = i === 0 || i === divs;
+    const markerY = top + 39;
+    const stroke = "#9AAAB1"; // mesmo contorno do vidro
+    if (ponta) {
+      const size = 11;
+      const centerX = i === 0 ? x + 6 : x - 6;
+      return `<g><rect x="${centerX - size / 2}" y="${markerY - size / 2}" width="${size}" height="${size}" rx="0.8" fill="#FFFFFF" stroke="${stroke}" stroke-width="1.1"/></g>`;
+    }
+    const spacing = 11;
     return `<g>
-      <rect x="${x}" y="${y}" width="${w}" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-      <text x="${x + w + 8}" y="${y + 20}" font-family="Inter, Arial, sans-serif" font-size="10" fill="${DRAWING_COLORS.ink}">${codigoGrapa}</text>
+      <circle cx="${x - spacing}" cy="${markerY}" r="3.2" fill="#FFFFFF" stroke="${stroke}" stroke-width="1.1"/>
+      <circle cx="${x + spacing}" cy="${markerY}" r="3.2" fill="#FFFFFF" stroke="${stroke}" stroke-width="1.1"/>
     </g>`;
   }).join("");
-
-  const torres = Array.from({ length: divs }, (_, panelIndex) => {
-    const baseX = x0 + side + panelW * panelIndex;
-    return Array.from({ length: towerQty }, (_, towerIndex) => {
-      const pos = towerQty === 1 ? 0.5 : (towerIndex + 1) / (towerQty + 1);
-      const x = baseX + panelW * pos - 10;
-      const y = y0 + drawH - rail - 80;
-      return `<g>
-        <rect x="${x}" y="${y}" width="20" height="96" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1.1"/>
-        <line x1="${x + 3}" y1="${y + 5}" x2="${x + 3}" y2="${y + 90}" stroke="#ffffff" stroke-opacity="0.45" stroke-width="1"/>
-        ${panelIndex === 0 && towerIndex === 0 ? `<text x="${x + 28}" y="${y + 46}" font-family="Inter, Arial, sans-serif" font-size="11" fill="${DRAWING_COLORS.ink}">${towerCode}</text>` : ""}
-      </g>`;
-    }).join("");
-  }).join("");
-
-  const panels = Array.from({ length: divs }, (_, index) => {
-    const x = x0 + side + panelW * index;
-    return `<g>
-      <rect x="${x}" y="${glassY}" width="${panelW}" height="${glassH}" fill="url(#glassGrad)" stroke="#9db7c7" stroke-width="0.8"/>
-      <path d="M ${x + panelW * 0.1} ${glassY + glassH * 0.92} L ${x + panelW * 0.72} ${glassY + glassH * 0.12}" stroke="#ffffff" stroke-width="7" opacity="0.13"/>
-      <path d="M ${x + panelW * 0.34} ${glassY + glassH * 0.86} L ${x + panelW * 0.9} ${glassY + glassH * 0.16}" stroke="#ffffff" stroke-width="4" opacity="0.16"/>
-    </g>`;
-  }).join("");
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}">
-    <defs>
-      <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#eef8ff"/>
-        <stop offset="55%" stop-color="#dceff8"/>
-        <stop offset="100%" stop-color="#f8fcff"/>
-      </linearGradient>
-      <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="${DRAWING_COLORS.glass}"/>
-        <stop offset="45%" stop-color="${profile.fill}"/>
-        <stop offset="100%" stop-color="${profile.shadow}"/>
-      </linearGradient>
-      <filter id="softShadow" x="-10%" y="-10%" width="120%" height="130%">
-        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.16"/>
-      </filter>
-    </defs>
-    <rect x="${x0}" y="${y0}" width="${drawW}" height="${drawH}" fill="#ffffff" stroke="#d8e0e8" stroke-width="1"/>
-    ${panels}
-    <rect x="${x0}" y="${y0}" width="${drawW}" height="${rail}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
-    <rect x="${x0}" y="${y0 + drawH - rail}" width="${drawW}" height="${rail}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
-    <rect x="${x0}" y="${y0}" width="${side}" height="${drawH}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
-    <rect x="${x0 + drawW - side}" y="${y0}" width="${side}" height="${drawH}" fill="#e5e7e9" stroke="#9ca3a9" stroke-width="1"/>
-    ${divisionLines}
-    <g filter="url(#softShadow)">${grapas}${torres}</g>
-    <line x1="${x0}" y1="${y0 + drawH + 18}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 + drawW / 2}" y="${y0 + drawH + 38}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}">${Math.round(largura || 0)} mm</text>
-    <line x1="${x0 - 18}" y1="${y0}" x2="${x0 - 18}" y2="${y0 + drawH}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 - 30}" y="${y0 + drawH / 2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}" transform="rotate(-90 ${x0 - 30} ${y0 + drawH / 2})">${Math.round(altura || 0)} mm</text>
+  const towersSvg = Array.from({ length: divs }, (_, i) => Array.from({ length: towers }, (_, j) => {
+    const x = left + i * panelW + panelW * (j + 1) / (towers + 1);
+    return `<g><rect x="${x - 7}" y="${baseY - 48}" width="14" height="48" rx="2" fill="url(#gcMetal)" stroke="${perfil.stroke}" stroke-width=".9"/>
+      <rect x="${x - 10}" y="${baseY - 2}" width="20" height="4" rx="1" fill="${perfil.fill}" stroke="${perfil.stroke}" stroke-width=".8"/></g>`;
+  }).join("")).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="Vista frontal de sacada torre com ${divs} vidros e fixações discretas" style="display:block;width:100%;height:auto;max-height:320px">
+    <defs><linearGradient id="gcGlass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset=".55" stop-color="#F6F8F8"/><stop offset="1" stop-color="#EAF1F3"/></linearGradient>
+    <linearGradient id="gcMetal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#F6F8F8"/><stop offset=".55" stop-color="${perfil.fill}"/><stop offset="1" stop-color="${perfil.shadow}"/></linearGradient></defs>
+    ${glass}${clamps}${towersSvg}
+    <g stroke="#A7B2B7" stroke-width=".8" fill="none"><line x1="${left - 25}" y1="${top}" x2="${left - 25}" y2="${bottom}"/><path d="M${left - 31} ${top}h12 M${left - 31} ${bottom}h12"/>
+    <line x1="${left}" y1="${baseY + 43}" x2="${left + glassW}" y2="${baseY + 43}"/><path d="M${left} ${baseY + 37}v12 M${left + glassW} ${baseY + 37}v12"/></g>
+    <text transform="translate(${left - 43} ${top + glassH / 2}) rotate(-90)" font-family="Arial,sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#7E8C93">${formatMm(altura)} mm</text>
+    <text x="${left + glassW / 2}" y="${baseY + 63}" font-family="Arial,sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#7E8C93">${formatMm(largura)} mm</text>
   </svg>`;
 };
 
@@ -716,7 +670,7 @@ export default function CalculoSacadaTorrePage() {
   const conteudoCarregando = loading || carregando;
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: "#F6F8F8" }}>
       <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
@@ -733,14 +687,47 @@ export default function CalculoSacadaTorrePage() {
           handleSignOut={signOut}
         />
 
-        <main className="p-4 md:p-8 flex-1 space-y-6">
+        <main className="gc-torre p-4 md:p-6 flex-1 space-y-5 w-full min-w-0">
           {conteudoCarregando ? (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
               <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: "transparent", borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }} />
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+
+          <style jsx global>{`
+            .gc-torre { --gc-graphite:#38444B; --gc-silver:#8F9AA1; --gc-mist:#DCE2E4; --gc-lime:#C8D463; --gc-ice:#F6F8F8; color:var(--gc-graphite); }
+            .gc-torre .gc-page-title { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 0 4px;color:var(--gc-graphite); }
+            .gc-torre .gc-page-title h1 { font-size:clamp(23px,2vw,29px);font-weight:650;letter-spacing:-.035em;line-height:1.25; }
+            .gc-torre .gc-page-title p { font-size:13px;color:#6E7C83;margin-top:3px; }
+            .gc-torre .gc-eyebrow { display:block;font-size:10px;letter-spacing:.1em;font-weight:650;color:var(--gc-silver);margin-bottom:5px; }
+            .gc-torre .gc-toolbar,.gc-torre .gc-config,.gc-torre .gc-preview-section { background:#fff!important;border-color:var(--gc-mist)!important;box-shadow:none!important; }
+            .gc-torre .gc-toolbar button { border-radius:7px!important;box-shadow:none!important;letter-spacing:.02em;text-transform:none!important;font-size:12px; }
+            .gc-torre .gc-toolbar button:hover { border-color:var(--gc-lime)!important;filter:brightness(.98); }
+            .gc-torre .gc-toolbar input { border-radius:7px!important; }
+            .gc-torre .gc-config > div > div:first-child > div:first-child > div:first-child { border-radius:6px!important;background:#F1F3E5!important;color:var(--gc-graphite)!important; }
+            .gc-torre .gc-config h1 { font-size:18px!important;letter-spacing:-.02em; }
+            .gc-torre .gc-fields label { border-radius:8px!important;border-color:var(--gc-mist)!important;background:var(--gc-ice)!important;transition:border-color .15s ease; }
+            .gc-torre .gc-fields label:focus-within { border-color:var(--gc-lime)!important;box-shadow:0 0 0 2px #C8D46333; }
+            .gc-torre .gc-fields input,.gc-torre .gc-fields select { min-width:0; }
+            .gc-torre section article { border-color:var(--gc-mist)!important;box-shadow:none!important; }
+            .gc-torre section article h2 { font-size:15px!important;font-weight:650!important; }
+            .gc-torre table thead { background:#F1F3F3!important; }
+            .gc-torre table tbody tr:hover { background:#F5F7F0!important; }
+            .gc-torre .gc-section-heading { display:flex;gap:11px;align-items:center;margin:0 0 14px;min-height:44px;color:var(--gc-graphite); }
+            .gc-torre .gc-section-heading h2 { font-size:15px;font-weight:650;letter-spacing:-.015em; }
+            .gc-torre .gc-section-heading p { font-size:12px;color:#78868C;margin-top:1px; }
+            .gc-torre .gc-step { flex-shrink:0;border:1px solid var(--gc-mist);background:#fff;border-radius:7px;font-size:11px;font-weight:650;color:#66747A;padding:8px; }
+            .gc-torre .gc-preview-section { border:1px solid var(--gc-mist);border-radius:12px;padding:18px;background:#fff; }
+            .gc-torre .gc-preview-section > article { max-width:760px;width:100%;margin:14px auto 0;border:0!important;box-shadow:none!important;padding:4px!important; }
+            .gc-torre .gc-materials-section > article { border:1px solid var(--gc-mist);background:#fff; }
+            .gc-torre .gc-preview-section svg { display:block;width:100%;height:auto;max-height:320px;object-fit:contain;margin:0 auto; }
+            .gc-torre .gc-preview-section article > div { width:100%; }
+            .gc-torre .gc-preview-section article > div > div { width:100%; }
+            .gc-torre button:focus-visible,.gc-torre input:focus-visible,.gc-torre select:focus-visible { outline:2px solid var(--gc-lime);outline-offset:2px; }
+          `}</style>
+              <div className="gc-page-title"><div><span className="gc-eyebrow">PROJETOS & CÁLCULOS / SACADAS</span><h1>Sacada Torre</h1><p>Configuração e orçamento técnico</p></div><PanelsTopLeft size={23} strokeWidth={1.5} /></div>
+              <div className="gc-toolbar rounded-xl border px-3 py-3 flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex items-center gap-2 flex-1 relative">
                   <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
                   <div className="relative flex-1">
@@ -803,8 +790,8 @@ export default function CalculoSacadaTorrePage() {
                 <button
                   onClick={handleSalvar}
                   disabled={salvando}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                  style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                  style={{ backgroundColor: "#F1F3E5", color: "#38444B", border: "1px solid #DCE2E4" }}
                 >
                   {salvando ? <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" /> : <Save size={16} />}
                   Salvar
@@ -869,7 +856,7 @@ export default function CalculoSacadaTorrePage() {
                 </span>
               )}
 
-              <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+              <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
@@ -878,7 +865,7 @@ export default function CalculoSacadaTorrePage() {
                         Sacada com Torre
                       </div>
                       <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                        Cálculo de sacada com torre e grapa 3019
+                        01 · Configuração do projeto
                       </h1>
                     </div>
                     <p className="max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
@@ -886,7 +873,7 @@ export default function CalculoSacadaTorrePage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
+                  <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 w-full">
                     {[
                       ["Largura do vao (mm)", larguraVaoMm, setLarguraVaoMm],
                       ["Altura do vao (mm)", alturaVaoMm, setAlturaVaoMm],
@@ -977,6 +964,20 @@ export default function CalculoSacadaTorrePage() {
                 </div>
               </section>
 
+              <section className="gc-preview-section">
+                <div className="gc-section-heading"><span className="gc-step">02</span><div><h2>Vista frontal do projeto</h2><p>Representação proporcional, atualizada conforme as medidas e divisões informadas.</p></div></div>
+                <article className="rounded-xl border p-4 shadow-none" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
+                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Representação proporcional do vão</p>
+                  <div className="mt-4 w-full p-2">
+                    <div className="w-full" dangerouslySetInnerHTML={{ __html: svgSacada }} />
+                  </div>
+                  <p className="mt-2 text-center text-xs" style={{ color: "#8F9AA1" }}>
+                    Vão: {formatarNumero(larguraNumero, 0)} × {formatarNumero(alturaNumero, 0)} mm · {quantidadeDivisoesNumero} {quantidadeDivisoesNumero === 1 ? "peça" : "peças"} por vão · {quantidadeTorresNumero} {quantidadeTorresNumero === 1 ? "torre" : "torres"} por vidro
+                  </p>
+                </article>
+              </section>
+              <div className="gc-section-heading"><span className="gc-step">03</span><div><h2>Resultado do cálculo</h2><p>Medidas e valores calculados automaticamente.</p></div></div>
               <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 {[
                   { titulo: "Medida de cada vidro", valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`, detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`, icone: Ruler },
@@ -998,9 +999,9 @@ export default function CalculoSacadaTorrePage() {
                   </article>
                 ))}
               </section>
-
-              <section className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
-                <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <div className="gc-section-heading"><span className="gc-step">04</span><div><h2>Materiais e resumo técnico</h2><p>Torres, grapas e composição do orçamento.</p></div></div>
+              <section className="gc-materials-section">
+                <article className="rounded-xl border shadow-none overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relacao de materiais</h2>
                     <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Torres pela ferragem selecionada, 3019 nas pontas e 1305 entre vidros.</p>
@@ -1030,14 +1031,6 @@ export default function CalculoSacadaTorrePage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </article>
-
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Desenho conforme divisões, torres, 3019 e 1305.</p>
-                  <div className="mt-4 rounded-2xl border bg-surface p-3" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                    <div dangerouslySetInnerHTML={{ __html: svgSacada }} />
                   </div>
                 </article>
               </section>

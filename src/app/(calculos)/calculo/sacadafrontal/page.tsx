@@ -1122,7 +1122,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                 onClick={handleSalvar}
                 disabled={salvando}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
-                style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
+                style={{ backgroundColor: "#F1F3E5", color: "#38444B", border: "1px solid #DCE2E4" }}
               >
                 {salvando ? (
                   <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
