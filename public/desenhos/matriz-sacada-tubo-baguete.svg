@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 300" role="img" aria-label="Sacada com tubo e baguete, quatro painéis de vidro à frente dos tubos de sustentação">
+<rect width="680" height="300" fill="#FFFFFF"/>
+<g stroke-linejoin="round">
+<!-- Tubos 50x50, nas laterais e atrás das emendas dos vidros -->
+<g fill="#DCE2E4" stroke="#8F9AA1" stroke-width="1.2">
+<rect x="23" y="54" width="10" height="173"/>
+<rect x="180" y="54" width="10" height="173"/>
+<rect x="337" y="54" width="10" height="173"/>
+<rect x="494" y="54" width="10" height="173"/>
+<rect x="651" y="54" width="10" height="173"/>
+</g>
+<!-- Vidros em primeiro plano: as juntas deixam visível o tubo atrás -->
+<g fill="#F6F8F8" fill-opacity=".83" stroke="#8F9AA1" stroke-width="1.15">
+<rect x="29" y="59" width="157" height="162"/>
+<rect x="186" y="59" width="157" height="162"/>
+<rect x="343" y="59" width="157" height="162"/>
+<rect x="500" y="59" width="157" height="162"/>
+</g>
+<g stroke="#FFFFFF" stroke-width="2.4" opacity=".85" fill="none">
+<path d="M75 70l-34 55 M91 72l-25 41 M232 70l-34 55 M248 72l-25 41 M389 70l-34 55 M405 72l-25 41 M546 70l-34 55 M562 72l-25 41"/>
+</g>
+<!-- Baguetes/perfil U somente no perímetro; não nas emendas -->
+<g fill="#DCE2E4" stroke="#8F9AA1" stroke-width="1.15">
+<rect x="18" y="43" width="644" height="11" rx="1"/>
+<rect x="18" y="222" width="644" height="9" rx="1"/>
+<rect x="20" y="54" width="7" height="168"/>
+<rect x="655" y="54" width="7" height="168"/>
+</g>
+<path d="M22 46H658 M22 225H658" stroke="#FFFFFF" stroke-width="2" opacity=".8"/>
+</g>
+</svg>

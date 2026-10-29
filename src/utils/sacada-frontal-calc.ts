@@ -120,12 +120,12 @@ export const calcularSacadaFrontal = ({
         ? Array.from({ length: quantidadeNormalizada }, () => larguraNormalizada)
         : perfilConfig.codigo === "TQ047"
           ? Array.from({ length: quantidadeTotalPontaletes }, () => alturaNormalizada)
-          : Array.from({ length: quantidadeTotalVidros }).flatMap(() => [
-              larguraVidroMm,
-              larguraVidroMm,
-              alturaVidroMm,
-              alturaVidroMm,
-            ]);
+       : Array.from({ length: quantidadeNormalizada }).flatMap(() => [
+    larguraNormalizada, // Perfil U superior
+    larguraNormalizada, // Perfil U inferior
+    alturaNormalizada,  // Perfil U lateral esquerda, junto ao tubo 50x50
+    alturaNormalizada,  // Perfil U lateral direita, junto ao tubo 50x50
+  ])
 
       const cortesValidos = prepararCortesPorBarra(
         cortes.map((corte) => Math.round(corte)).filter((corte) => corte > 0),

@@ -21,13 +21,24 @@ const projetos = [
     },
     {
       "id": "sacadafrontal",
-      "nome": "Sacada frontal",
+      "nome": "Sacada panorâmica",
       "categoria": "Sacadas",
-      "titulo": "Fixação frontal",
+      "titulo": "Vidros com fixação panorâmica",
       "descricao": "Configure os vidros, as divisões e os perfis da sacada frontal.",
       "status": "Disponível",
       "imagem": "/desenhos/matriz-sacadafrontal.svg",
-      "kitHref": "/calculo/sacadafrontal",
+      "kitHref": "/calculo/sacadafrontal?tipoSacada=panoramica",
+      "kitLabel": "Calcular"
+    },
+    {
+      "id": "sacada-tubo-baguete",
+      "nome": "Sacada com tubo e baguete",
+      "categoria": "Sacadas",
+      "titulo": "Tubos nas emendas e baguetes",
+      "descricao": "Vidros à frente dos tubos, com acabamento em baguete.",
+      "status": "Disponível",
+      "imagem": "/desenhos/matriz-sacada-tubo-baguete.svg",
+      "kitHref": "/calculo/sacadafrontal?tipoSacada=tubo",
       "kitLabel": "Calcular"
     },
     {

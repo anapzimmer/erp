@@ -326,7 +326,8 @@ export default function CalculoSacadaFrontalPage() {
   const [alturaVaoMm, setAlturaVaoMm] = useState("");
   const [quantidadeVaos, setQuantidadeVaos] = useState("");
   const [quantidadeDivisoesLargura, setQuantidadeDivisoesLargura] = useState("");
-  const [tipoSacada, setTipoSacada] = useState<"panoramica" | "tubo">("panoramica");
+  const tipoSacadaDaMatriz = searchParams.get("tipoSacada");
+  const [tipoSacada, setTipoSacada] = useState<"panoramica" | "tubo">(tipoSacadaDaMatriz === "tubo" ? "tubo" : "panoramica");
   const [vidros, setVidros] = useState<Vidro[]>([]);
   const [perfisTabela, setPerfisTabela] = useState<PerfilTabela[]>([]);
   const [ferragensTabela, setFerragensTabela] = useState<FerragemTabela[]>([]);
@@ -336,6 +337,10 @@ export default function CalculoSacadaFrontalPage() {
   const [precosEspeciais, setPrecosEspeciais] = useState<PrecoEspecial[]>([]);
   const [carregandoInsumos, setCarregandoInsumos] = useState(true);
   const [draftHidratado, setDraftHidratado] = useState(false);
+
+  useEffect(() => {
+    if (!editId && !centralItemId && (tipoSacadaDaMatriz === "tubo" || tipoSacadaDaMatriz === "panoramica")) setTipoSacada(tipoSacadaDaMatriz);
+  }, [tipoSacadaDaMatriz, editId, centralItemId]);
 
   const chaveDraft = useMemo(
     () => `${SACADA_FRONTAL_DRAFT_KEY}:${empresaId || "global"}`,
@@ -366,7 +371,8 @@ export default function CalculoSacadaFrontalPage() {
       if (typeof draft.alturaVaoMm === "string") setAlturaVaoMm(draft.alturaVaoMm);
       if (typeof draft.quantidadeVaos === "string") setQuantidadeVaos(draft.quantidadeVaos);
       if (typeof draft.quantidadeDivisoesLargura === "string") setQuantidadeDivisoesLargura(draft.quantidadeDivisoesLargura);
-      if (draft.tipoSacada === "tubo" || draft.tipoSacada === "panoramica") setTipoSacada(draft.tipoSacada);
+      if (tipoSacadaDaMatriz === "tubo" || tipoSacadaDaMatriz === "panoramica") setTipoSacada(tipoSacadaDaMatriz);
+       else if (draft.tipoSacada === "tubo" || draft.tipoSacada === "panoramica") setTipoSacada(draft.tipoSacada);
       if (typeof draft.buscaVidro === "string") setBuscaVidro(draft.buscaVidro);
       if (typeof draft.vidroId === "string") setVidroId(draft.vidroId);
       if (typeof draft.corPerfil === "string") setCorPerfil(draft.corPerfil);
@@ -375,7 +381,7 @@ export default function CalculoSacadaFrontalPage() {
     } finally {
       setDraftHidratado(true);
     }
-  }, [centralItemId, chaveDraft, editId]);
+  }, [centralItemId, chaveDraft, editId, tipoSacadaDaMatriz]);
 
   useEffect(() => {
     if (!draftHidratado || typeof window === "undefined" || editId || centralItemId) {
@@ -1416,7 +1422,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
                           </>
                         )}
 
-                        {/* Glass panels & pontaletes */}
+                        {panoramica ? (
+                          <>
+                        {/* Panorâmica: desenho original preservado */}
                         {Array.from({ length: divisoes }).map((_, i) => {
                           const pX = x0 + i * (glassW + postW);
                           const gX = pX + postW;
@@ -1454,6 +1462,41 @@ const acessoriosComPrecoTabela = useMemo(() => {
                           <>
                             <rect x={x0 + divisoes * (glassW + postW) - 2.5} y={y0 + drawH - 3} width={postW + 5} height={3} rx={0.7} fill={corAluminioBorda} opacity={0.75} />
                             <rect x={x0 + divisoes * (glassW + postW) - 4} y={y0 + drawH} width={postW + 8} height={2} rx={0.6} fill={corAluminio} stroke={corAluminioBorda} strokeWidth={0.4} />
+                          </>
+                        )}
+
+                          </>
+                        ) : (
+                          <>
+                            {/* Tubos estruturais ao fundo, com brilho metálico discreto. */}
+                            {Array.from({ length: divisoes + 1 }, (_, i) => {
+                              const px = x0 + (drawW * i) / divisoes;
+                              const tuboX = Math.max(x0, Math.min(px - postW / 2, x0 + drawW - postW));
+                              return (
+                                <g key={`tubo-${i}`}>
+                                  <rect x={tuboX} y={y0 + railH} width={postW} height={drawH - railH * 2} fill="url(#railGrad)" stroke={corAluminioBorda} strokeWidth={0.5} />
+                                  <line x1={tuboX + postW * 0.25} y1={y0 + railH + 1} x2={tuboX + postW * 0.25} y2={y0 + drawH - railH - 1} stroke="#fff" strokeOpacity={0.28} strokeWidth={0.55} />
+                                </g>
+                              );
+                            })}
+                            {/* Painéis sobrepostos aos tubos: a transparência deixa a estrutura aparecer por trás. */}
+                            {Array.from({ length: divisoes }, (_, i) => {
+                              const larguraPainel = drawW / divisoes;
+                              const px = x0 + i * larguraPainel;
+                              const junta = Math.max(0.45, Math.min(0.8, larguraPainel * 0.008));
+                              return (
+                                <g key={`vidro-tubo-${i}`}>
+                                  <rect x={px + junta / 2} y={y0 + railH + 0.8} width={Math.max(larguraPainel - junta, 0)} height={Math.max(drawH - railH * 2 - 1.6, 0)} fill="#D8E8ED" fillOpacity={0.32} stroke="#94AAB3" strokeWidth={0.35} strokeOpacity={0.42} />
+                                  <path d={`M ${px + larguraPainel * 0.47} ${y0 + railH + 5} l ${-larguraPainel * 0.23} ${Math.min(drawH * 0.31, 42)}`} stroke="#fff" strokeWidth={1.15} strokeOpacity={0.35} fill="none" />
+                                  <path d={`M ${px + larguraPainel * 0.52} ${y0 + railH + 5} l ${-larguraPainel * 0.23} ${Math.min(drawH * 0.31, 42)}`} stroke="#fff" strokeWidth={0.6} strokeOpacity={0.22} fill="none" />
+                                </g>
+                              );
+                            })}
+                            {/* Perfil U apenas no perímetro. Tubo superior horizontal preservado. */}
+                            <rect x={x0} y={y0} width={drawW} height={railH} fill="url(#railGrad)" stroke={corAluminioBorda} strokeWidth={0.55} />
+                            <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="url(#railGrad)" stroke={corAluminioBorda} strokeWidth={0.5} />
+                            <rect x={x0} y={y0 + railH} width={Math.max(1.4, postW * 0.35)} height={drawH - railH * 2} fill={corAluminio} stroke={corAluminioBorda} strokeWidth={0.3} />
+                            <rect x={x0 + drawW - Math.max(1.4, postW * 0.35)} y={y0 + railH} width={Math.max(1.4, postW * 0.35)} height={drawH - railH * 2} fill={corAluminio} stroke={corAluminioBorda} strokeWidth={0.3} />
                           </>
                         )}
 
