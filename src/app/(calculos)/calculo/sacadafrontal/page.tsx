@@ -18,7 +18,6 @@ import Header from "@/components/Header";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
-import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
@@ -321,6 +320,7 @@ export default function CalculoSacadaFrontalPage() {
   const [mensagemSalvo, setMensagemSalvo] = useState("");
   const [editNumeroFormatado, setEditNumeroFormatado] = useState("");
   const editCarregadoRef = useRef(false);
+  const envioEmAndamentoRef = useRef(false);
 
   const [larguraVaoMm, setLarguraVaoMm] = useState("");
   const [alturaVaoMm, setAlturaVaoMm] = useState("");
@@ -886,6 +886,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
   };
 
   const enviarParaCentralImpressao = async () => {
+    if (envioEmAndamentoRef.current) return;
+    envioEmAndamentoRef.current = true;
+    setSalvando(true);
     try {
       const itemCentral = montarItemCentral(centralItemId || undefined);
     if (!await confirmarEnvioOrcamento([itemCentral])) return;
@@ -904,13 +907,17 @@ const acessoriosComPrecoTabela = useMemo(() => {
       console.warn("Não foi possível enviar a sacada frontal para a central:", erro);
       setMensagemSalvo("Erro ao enviar para a central de impressão.");
       setTimeout(() => setMensagemSalvo(""), 5000);
+    } finally {
+      envioEmAndamentoRef.current = false;
+      setSalvando(false);
     }
   };
 
   const handleSalvar = async () => {
-    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
-    if (centralItemId) {
-      enviarParaCentralImpressao();
+    // Novos projetos e itens da Central não geram registros/números novos aqui.
+    // A Central mantém a composição e controla a finalização do orçamento.
+    if (!editId || orcamentoAtivo || centralItemId) {
+      await enviarParaCentralImpressao();
       return;
     }
 
@@ -919,11 +926,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
     setMensagemSalvo("");
 
     try {
-      let numeroFinal = editNumeroFormatado;
-
-      if (!editId) {
-        numeroFinal = await gerarNumeroOrcamentoPadrao(supabase);
-      }
+      const numeroFinal = editNumeroFormatado;
 
       const dadosParaSalvar = {
         numero_formatado: numeroFinal,
@@ -949,16 +952,10 @@ const acessoriosComPrecoTabela = useMemo(() => {
         theme_color: DRAWING_COLORS.ink,
       };
 
-      if (editId) {
-        const { error } = await supabase.from("orcamentos").update(dadosParaSalvar).eq("id", editId);
-        if (error) throw error;
-        setMensagemSalvo(`Orçamento ${numeroFinal} atualizado com sucesso!`);
-        setTimeout(() => router.push("/admin/relatorio.orcamento"), 1200);
-      } else {
-        const { error } = await supabase.from("orcamentos").insert([dadosParaSalvar]);
-        if (error) throw error;
-        setMensagemSalvo(`Orçamento ${numeroFinal} salvo com sucesso!`);
-      }
+      const { error } = await supabase.from("orcamentos").update(dadosParaSalvar).eq("id", editId).eq("empresa_id", empresaId);
+      if (error) throw error;
+      setMensagemSalvo(`Orçamento ${numeroFinal} atualizado com sucesso!`);
+      setTimeout(() => router.push("/admin/relatorio.orcamento"), 1200);
       setTimeout(() => setMensagemSalvo(""), 4000);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -973,7 +970,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
   const conteudoCarregando = loading || carregandoInsumos;
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: theme.screenBackgroundColor }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: "#F6F8F8" }}>
       <Sidebar
         showMobileMenu={showMobileMenu}
         setShowMobileMenu={setShowMobileMenu}
@@ -990,7 +987,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
           handleSignOut={signOut}
         />
 
-        <main className="p-4 md:p-8 flex-1 space-y-6">
+        <main className="gc-sacada p-4 md:p-6 flex-1 space-y-5">
 
           {conteudoCarregando ? (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
@@ -998,8 +995,44 @@ const acessoriosComPrecoTabela = useMemo(() => {
             </div>
           ) : (<>
 
+          <div className="gc-page-title"><div><span className="gc-eyebrow">PROJETOS & CÁLCULOS / SACADAS</span><h1>Sacada frontal</h1><p>Configuração e orçamento técnico</p></div><PanelsTopLeft size={23} strokeWidth={1.5} /></div>
+
+
+          <style jsx global>{`
+            .gc-sacada { --gc-graphite:#38444B; --gc-silver:#8F9AA1; --gc-mist:#DCE2E4; --gc-lime:#C8D463; --gc-ice:#F6F8F8; color:var(--gc-graphite); }
+            .gc-sacada .gc-page-title { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:2px 0 4px; color:var(--gc-graphite); }
+            .gc-sacada .gc-page-title h1 { font-size:clamp(23px,2vw,29px); font-weight:650; letter-spacing:-.035em; line-height:1.25; }
+            .gc-sacada .gc-page-title p { font-size:13px; color:#6E7C83; margin-top:3px; }
+            .gc-sacada .gc-eyebrow { display:block; font-size:10px; letter-spacing:.1em; font-weight:650; color:var(--gc-silver); margin-bottom:5px; }
+            .gc-sacada .gc-toolbar,.gc-sacada .gc-config,.gc-sacada .gc-preview-section { background:#fff!important; border-color:var(--gc-mist)!important; box-shadow:none!important; }
+            .gc-sacada .gc-toolbar button { border-radius:7px!important; box-shadow:none!important; letter-spacing:.02em; text-transform:none!important; font-size:12px; }
+            .gc-sacada .gc-toolbar button:hover { border-color:var(--gc-lime)!important; filter:brightness(.97); }
+            .gc-sacada .gc-toolbar input { border-radius:7px!important; }
+            .gc-sacada .gc-config-heading > div:first-child { border-radius:6px!important; background:#F1F3E5!important; color:var(--gc-graphite)!important; letter-spacing:.08em!important; }
+            .gc-sacada .gc-config-heading h1 { font-size:18px!important; letter-spacing:-.02em; }
+            .gc-sacada .gc-fields label { border-radius:8px!important; border-color:var(--gc-mist)!important; background:var(--gc-ice)!important; transition:border-color .15s ease; }
+            .gc-sacada .gc-fields label:focus-within { border-color:var(--gc-lime)!important; box-shadow:0 0 0 2px #C8D46333; }
+            .gc-sacada .gc-fields input,.gc-sacada .gc-fields select { min-width:0; }
+            .gc-sacada .gc-section-heading { display:flex; gap:11px; align-items:center; margin:0 0 14px; min-height:44px; color:var(--gc-graphite); }
+            .gc-sacada .gc-section-heading > div { min-width:0; }
+            .gc-sacada .gc-section-heading h2,.gc-sacada .gc-section-heading p { line-height:1.45; }
+            .gc-sacada .gc-section-heading h2 { font-size:15px; font-weight:650; letter-spacing:-.015em; }
+            .gc-sacada .gc-section-heading p { font-size:12px; color:#78868C; margin-top:1px; }
+            .gc-sacada .gc-step { flex-shrink:0; border:1px solid var(--gc-mist); background:#fff; border-radius:7px; font-size:11px; font-weight:650; color:#66747A; padding:8px; }
+            .gc-sacada .gc-preview-section { border:1px solid var(--gc-mist); border-radius:12px; padding:18px; }
+            .gc-sacada .gc-preview-section > article { max-width:760px; margin:14px auto 0; border:0!important; box-shadow:none!important; padding:4px!important; }
+            .gc-sacada .gc-preview-section svg { max-height:320px; }
+            .gc-sacada section article { border-color:var(--gc-mist)!important; box-shadow:none!important; }
+            .gc-sacada section article h2,.gc-sacada section article h3 { font-size:15px!important; font-weight:650!important; }
+            .gc-sacada table thead { background:#F1F3F3!important; }
+            .gc-sacada table th { letter-spacing:.05em!important; }
+            .gc-sacada table tbody tr:hover { background:#F5F7F0!important; }
+            .gc-sacada button:focus-visible,.gc-sacada input:focus-visible,.gc-sacada select:focus-visible { outline:2px solid var(--gc-lime); outline-offset:2px; }
+            @media(max-width:640px) { .gc-sacada .gc-toolbar > div:last-of-type { flex-wrap:wrap; } .gc-sacada .gc-preview-section { padding:12px; } }
+          `}</style>
+
           {/* CLIENTE / OBRA / AÇÕES */}
-          <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+          <div className="gc-toolbar rounded-xl border px-3 py-3 flex flex-col xl:flex-row xl:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             {/* Cliente */}
             <div className="flex items-center gap-2 flex-1 relative">
               <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
@@ -1156,23 +1189,23 @@ const acessoriosComPrecoTabela = useMemo(() => {
             )}
           </div>
 
-          <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+          <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             <div className="flex flex-col gap-4">
-              <div className="max-w-3xl">
+              <div className="gc-config-heading max-w-3xl">
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                   <PanelsTopLeft size={14} />
                   Sacada Frontal
                 </div>
                 <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                  Cálculo de Orçamento sacada com gradil de alumínio
+                  01 · Configuração do projeto
                 </h1>
                 <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>
                   Informe as dimensoes em mm, quantas pecas dividem cada vao na largura e selecione o vidro da sacada. O sistema arredonda o vidro, calcula perfis e barras.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+              <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 w-full">
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Largura do vao (mm)
                   </span>
@@ -1185,7 +1218,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Altura do vao (mm)
                   </span>
@@ -1198,7 +1231,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Quantidade de vãos
                   </span>
@@ -1211,7 +1244,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Pecas por vao na largura
                   </span>
@@ -1224,7 +1257,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Tipo de sacada
                   </span>
@@ -1242,7 +1275,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Cor dos perfis
                   </span>
@@ -1261,7 +1294,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Cor do Vidro
                   </span>
@@ -1296,6 +1329,171 @@ const acessoriosComPrecoTabela = useMemo(() => {
             </div>
           </section>
 
+          {/* Prévia técnica dinâmica — o desenho e seus cálculos originais foram preservados. */}
+          <section className="gc-preview-section">
+            <div className="gc-section-heading"><span className="gc-step">02</span><div><h2>Vista frontal do projeto</h2><p>Representação proporcional, atualizada conforme as medidas informadas.</p></div></div>
+              <article className="rounded-xl border p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
+                  Vista frontal
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
+                  Representação proporcional do vão
+                </p>
+                <div className="mt-4">
+                  {(() => {
+                    const divisoes = Math.max(quantidadeDivisoesNumero, 1);
+                    const larg = larguraNumero || 2000;
+                    const alt = alturaNumero || 1000;
+
+                    const svgW = 360;
+                    const padL = 40;
+                    const padR = 10;
+                    const padTop = 15;
+                    const padBot = 40;
+                    const drawW = svgW - padL - padR;
+
+                    const ratio = Math.min(Math.max(alt / larg, 0.3), 2.0);
+                    const drawH = drawW * ratio;
+                    const svgH = drawH + padTop + padBot;
+
+                    const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
+                    const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
+
+                    const numPosts = divisoes + 1;
+                    const totalPostW = numPosts * postW;
+                    const glassW = (drawW - totalPostW) / divisoes;
+                    const glassH = drawH - railH * 2;
+                    const panoramica = tipoSacada === "panoramica";
+                    // Folga inferior apenas visual: não altera medidas ou cálculos.
+                    const folgaInferiorVisual = panoramica ? Math.max(7, Math.min(13, drawH * 0.075)) : 0;
+                    const alturaVidroVisual = panoramica ? drawH - railH - folgaInferiorVisual : glassH;
+
+                    const x0 = padL;
+                    const y0 = padTop;
+
+
+                    // Cor do perfil conforme seleção
+                    const corPerfilNorm = normalizarTextoComparacao(corPerfil);
+                    const corAluminio = corPerfilNorm === "branco" ? "#E5E9EA"
+                      : corPerfilNorm === "preto" ? "#596269"
+                        : corPerfilNorm === "fosco" ? "#A4ADB1"
+                          : "#B6BEC1";
+                    const corAluminioBorda = corPerfilNorm === "branco" ? "#BBC4C8"
+                      : corPerfilNorm === "preto" ? "#424C53"
+                        : corPerfilNorm === "fosco" ? "#89959B"
+                          : "#929EA3";
+
+                    // Cor do vidro (tom esverdeado/azulado de vidro temperado)
+                    const corVidroFill = panoramica ? "#9EADB1" : DRAWING_COLORS.glass;
+                    const corVidroBorda = panoramica ? "#8B989E" : DRAWING_COLORS.frame;
+                    const corVidroReflexo = "#ffffff";
+
+                    return (
+                      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor={corVidroFill} stopOpacity={panoramica ? 0.18 : 0.35} />
+                            <stop offset="50%" stopColor={corVidroFill} stopOpacity={panoramica ? 0.11 : 0.18} />
+                            <stop offset="100%" stopColor={corVidroFill} stopOpacity={panoramica ? 0.19 : 0.3} />
+                          </linearGradient>
+                          <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={corAluminio} />
+                            <stop offset="50%" stopColor={corAluminioBorda} />
+                            <stop offset="100%" stopColor={corAluminio} />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Top rail - corrimão */}
+                        <rect x={x0} y={y0} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
+                        <rect x={x0} y={y0} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
+
+                        {/* Na panorâmica, vidro livre na base, como no guarda-corpo da referência.
+                            Na sacada tubo, manter o trilho inferior do desenho original. */}
+                        {!panoramica && (
+                          <>
+                            <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
+                            <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
+                          </>
+                        )}
+
+                        {/* Glass panels & pontaletes */}
+                        {Array.from({ length: divisoes }).map((_, i) => {
+                          const pX = x0 + i * (glassW + postW);
+                          const gX = pX + postW;
+                          return (
+                            <g key={i}>
+                              {/* Pontalete */}
+                              <rect x={pX} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
+                              <rect x={pX} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
+
+                              {/* Base individual do pontalete: discreta e visível na panorâmica */}
+                              {panoramica && (
+                                <>
+                                  <rect x={pX - 2.5} y={y0 + drawH - 3} width={postW + 5} height={3} rx={0.7} fill={corAluminioBorda} opacity={0.75} />
+                                  <rect x={pX - 4} y={y0 + drawH} width={postW + 8} height={2} rx={0.6} fill={corAluminio} stroke={corAluminioBorda} strokeWidth={0.4} />
+                                </>
+                              )}
+
+                              {/* Vidro */}
+                              <rect x={gX} y={y0 + railH} width={glassW} height={alturaVidroVisual} fill="url(#glassGrad)" rx={1} />
+                              <rect x={gX} y={y0 + railH} width={glassW} height={alturaVidroVisual} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={1} />
+
+                              {/* Reflexo diagonal */}
+                              <line x1={gX + glassW * 0.18} y1={y0 + railH + (alturaVidroVisual) * 0.06} x2={gX + glassW * 0.08} y2={y0 + railH + (alturaVidroVisual) * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
+                              <line x1={gX + glassW * 0.24} y1={y0 + railH + (alturaVidroVisual) * 0.06} x2={gX + glassW * 0.14} y2={y0 + railH + (alturaVidroVisual) * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
+
+                            </g>
+                          );
+                        })}
+
+                        {/* Last pontalete */}
+                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
+                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
+
+                        {panoramica && (
+                          <>
+                            <rect x={x0 + divisoes * (glassW + postW) - 2.5} y={y0 + drawH - 3} width={postW + 5} height={3} rx={0.7} fill={corAluminioBorda} opacity={0.75} />
+                            <rect x={x0 + divisoes * (glassW + postW) - 4} y={y0 + drawH} width={postW + 8} height={2} rx={0.6} fill={corAluminio} stroke={corAluminioBorda} strokeWidth={0.4} />
+                          </>
+                        )}
+
+                        {/* Dimension: largura (bottom) */}
+                        <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
+                          {formatarNumero(larg, 0)} mm
+                        </text>
+
+                        {/* Dimension: altura (left) */}
+                        <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
+                          {formatarNumero(alt, 0)} mm
+                        </text>
+                      </svg>
+                    );
+                  })()}
+                </div>
+                {/* Medida do vidro e info de vãos */}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                  <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
+                    Vidro: {formatarNumero(resultado.larguraVidroMm, 0)} x {formatarNumero(resultado.alturaVidroMm, 0)} mm
+                  </span>
+                  {quantidadeNumero > 1 && (
+                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
+                      x {quantidadeNumero} vãos
+                    </span>
+                  )}
+                  <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
+                    {quantidadeDivisoesNumero} {quantidadeDivisoesNumero === 1 ? "peça" : "peças"} por vão
+                  </span>
+                </div>
+              </article>
+          </section>
+
+          <div className="gc-section-heading"><span className="gc-step">03</span><div><h2>Resultado do cálculo</h2><p>Medidas e valores calculados automaticamente.</p></div></div>
           <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             {[
               {
@@ -1323,7 +1521,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                 icone: Calculator,
               },
             ].map((card) => (
-              <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <article key={card.titulo} className="rounded-xl border px-3 py-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
@@ -1344,8 +1542,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
             ))}
           </section>
 
+          <div className="gc-section-heading"><span className="gc-step">04</span><div><h2>Materiais e resumo técnico</h2><p>Perfis, acessórios e composição do orçamento.</p></div></div>
           <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
-            <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+            <article className="rounded-xl border overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
               <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Perfis de alumínio
@@ -1444,151 +1643,9 @@ const acessoriosComPrecoTabela = useMemo(() => {
             </article>
 
             <div className="space-y-6">
-              {/* Preview visual da sacada */}
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
-                  Vista frontal
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
-                  Representação proporcional do vão
-                </p>
-                <div className="mt-4">
-                  {(() => {
-                    const divisoes = Math.max(quantidadeDivisoesNumero, 1);
-                    const larg = larguraNumero || 2000;
-                    const alt = alturaNumero || 1000;
 
-                    const svgW = 360;
-                    const padL = 40;
-                    const padR = 10;
-                    const padTop = 15;
-                    const padBot = 40;
-                    const drawW = svgW - padL - padR;
 
-                    const ratio = Math.min(Math.max(alt / larg, 0.3), 2.0);
-                    const drawH = drawW * ratio;
-                    const svgH = drawH + padTop + padBot;
-
-                    const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
-                    const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
-
-                    const numPosts = divisoes + 1;
-                    const totalPostW = numPosts * postW;
-                    const glassW = (drawW - totalPostW) / divisoes;
-                    const glassH = drawH - railH * 2;
-
-                    const x0 = padL;
-                    const y0 = padTop;
-
-                    const vidroLargMm = resultado.larguraVidroMm;
-                    const showLabelInside = divisoes <= 8 && glassW > 28;
-
-                    // Cor do perfil conforme seleção
-                    const corPerfilNorm = normalizarTextoComparacao(corPerfil);
-                    const corAluminio = corPerfilNorm === "branco" ? "#e8e8e8"
-                      : corPerfilNorm === "preto" ? "#2a2a2a"
-                        : corPerfilNorm === "fosco" ? "#8c8c8c"
-                          : "#9e9e9e";
-                    const corAluminioBorda = corPerfilNorm === "branco" ? "#c0c0c0"
-                      : corPerfilNorm === "preto" ? "#1a1a1a"
-                        : corPerfilNorm === "fosco" ? "#6b6b6b"
-                          : "#787878";
-
-                    // Cor do vidro (tom esverdeado/azulado de vidro temperado)
-                    const corVidroFill = DRAWING_COLORS.glass;
-                    const corVidroBorda = DRAWING_COLORS.frame;
-                    const corVidroReflexo = "#ffffff";
-
-                    return (
-                      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stopColor={corVidroFill} stopOpacity={0.35} />
-                            <stop offset="50%" stopColor={corVidroFill} stopOpacity={0.18} />
-                            <stop offset="100%" stopColor={corVidroFill} stopOpacity={0.3} />
-                          </linearGradient>
-                          <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={corAluminio} />
-                            <stop offset="50%" stopColor={corAluminioBorda} />
-                            <stop offset="100%" stopColor={corAluminio} />
-                          </linearGradient>
-                        </defs>
-
-                        {/* Top rail - corrimão */}
-                        <rect x={x0} y={y0} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
-                        <rect x={x0} y={y0} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
-
-                        {/* Bottom rail - perfil inferior */}
-                        <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
-                        <rect x={x0} y={y0 + drawH - railH} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
-
-                        {/* Glass panels & pontaletes */}
-                        {Array.from({ length: divisoes }).map((_, i) => {
-                          const pX = x0 + i * (glassW + postW);
-                          const gX = pX + postW;
-                          return (
-                            <g key={i}>
-                              {/* Pontalete */}
-                              <rect x={pX} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
-                              <rect x={pX} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
-
-                              {/* Vidro */}
-                              <rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="url(#glassGrad)" rx={1} />
-                              <rect x={gX} y={y0 + railH} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={1} />
-
-                              {/* Reflexo diagonal */}
-                              <line x1={gX + glassW * 0.18} y1={y0 + railH + glassH * 0.06} x2={gX + glassW * 0.08} y2={y0 + railH + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
-                              <line x1={gX + glassW * 0.24} y1={y0 + railH + glassH * 0.06} x2={gX + glassW * 0.14} y2={y0 + railH + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
-
-                              {showLabelInside && (
-                                <text x={gX + glassW / 2} y={y0 + railH + glassH / 2 + 3} textAnchor="middle" fontSize={glassW > 55 ? 7.5 : 6} fill="#4a7a73" opacity={0.55} fontWeight={600} fontFamily="Inter, Arial, sans-serif">
-                                  {formatarNumero(vidroLargMm, 0)}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        })}
-
-                        {/* Last pontalete */}
-                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill={corAluminio} rx={0.5} />
-                        <rect x={x0 + divisoes * (glassW + postW)} y={y0} width={postW} height={drawH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
-
-                        {/* Dimension: largura (bottom) */}
-                        <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
-                          {formatarNumero(larg, 0)} mm
-                        </text>
-
-                        {/* Dimension: altura (left) */}
-                        <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
-                          {formatarNumero(alt, 0)} mm
-                        </text>
-                      </svg>
-                    );
-                  })()}
-                </div>
-                {/* Medida do vidro e info de vãos */}
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                  <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
-                    Vidro: {formatarNumero(resultado.larguraVidroMm, 0)} x {formatarNumero(resultado.alturaVidroMm, 0)} mm
-                  </span>
-                  {quantidadeNumero > 1 && (
-                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                      x {quantidadeNumero} vãos
-                    </span>
-                  )}
-                  <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                    {quantidadeDivisoesNumero} {quantidadeDivisoesNumero === 1 ? "peça" : "peças"} por vão
-                  </span>
-                </div>
-              </article>
-
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <article className="rounded-xl border p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Resumo técnico
                 </h2>
