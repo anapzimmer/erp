@@ -1,4 +1,5 @@
 ﻿"use client";
+import { codigoPuxadorCompativel } from "@/utils/codigoPuxador";
 import { concluirRevisaoCalculo } from "@/utils/revisaoCalculoPedido";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
@@ -768,6 +769,12 @@ export default function PFV2FKitPage() {
 
   const buscarFerragemPorCodigo = useCallback((codigo: string, opcoes?: { ignorarCor?: boolean }) => {
     const codigoNormalizado = normalizarTexto(codigo);
+    if (/^PUXBC(?:30|60|80)$/i.test(codigo)) {
+      return buscarFerragem((_, ferragem) =>
+        codigoPuxadorCompativel(ferragem.codigo, codigo) ||
+        codigoPuxadorCompativel(ferragem.codigo_interno, codigo), opcoes);
+    }
+
 
     return buscarFerragem((_, ferragem) => {
       const codigoFerragem = normalizarTexto(ferragem.codigo);

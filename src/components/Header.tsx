@@ -53,8 +53,11 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
       { label: "Cálculo Espelhos", href: "/calculo/espelhos" },
       { label: "Cálculo Vidros", href: "/calculo/calculovidro" },
       { label: "Projetos Técnicos", href: "/matriz-projetos" },
-      { label: "Matriz de Impressão", href: "/central-impressao" }
     ],
+  },
+  {
+    group: "Comercial",
+    items: [{ label: "Matriz de Impressão", href: "/central-impressao" }],
   },
    {
     group: "Pedidos",

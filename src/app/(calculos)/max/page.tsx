@@ -816,11 +816,13 @@ export default function MaxPage() {
   const buscarPerfilPorCodigo = useCallback((codigo: string) => {
     const codigoNormalizado = normalizarTexto(codigo);
 
-    return perfis.find((perfil) => {
+    if (!dados.corKit || dados.corKit === "Escolher") return null;
+    const candidatos = perfis.filter((perfil) => {
       const codigoOk = codigoFerragemCompativel(normalizarTexto(perfil.codigo), codigoNormalizado);
-      return codigoOk;
-    }) || null;
-  }, [corFerragemSelecionada, perfis]);
+      return codigoOk && (corCatalogoCompativel(perfil.cores, dados.corKit) || corPadraoCatalogo(perfil.cores));
+    });
+    return escolherItemPorCor(candidatos, dados.corKit, (perfil) => perfil.cores);
+  }, [dados.corKit, perfis]);
 
   const codigosItensAutomaticos = useMemo(
     () => ["VT66", "VT10", "VT17", "VT47", "CT004", "KTM30VA", "1134", "HT40VA", "CJVA", "CJVV"].map(normalizarTexto),
