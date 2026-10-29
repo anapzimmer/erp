@@ -990,6 +990,9 @@ export default function FixoBandeiraPage() {
 
 
   useEffect(() => {
+    // A restauração enfileira dados e materiais juntos. Não apagar os vidros
+    // salvos usando os campos vazios da primeira renderização.
+    if (!rascunhoRestaurado || carregandoVidros) return;
     const vidroNome = dados.vidro && dados.vidro !== "Escolher" ? dados.vidro.replace(/^vidro\s+/i, "").trim()
       : "";
     const vidroBandeiraNome = dados.vidroBandeira && dados.vidroBandeira !== "Escolher" ? dados.vidroBandeira.replace(/^vidro\s+/i, "").trim()
@@ -1024,7 +1027,7 @@ export default function FixoBandeiraPage() {
       const semVidrosAutomaticos = lista.filter((item) => item.perfilExtra || (!normalizarTexto(item.descricao).includes("vidro inferior") && !normalizarTexto(item.descricao).includes("vidro bandeira")));
       return [vidroInferior, vidroBandeira, ...semVidrosAutomaticos].filter((item): item is ProjetoIndividualMaterial => Boolean(item));
     })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2, regraMedidaVidro]);
+  }, [rascunhoRestaurado, carregandoVidros, calculoVidro.alturaBandeiraMedida, calculoVidro.alturaMedida, calculoVidro.areaBandeira, calculoVidro.areaInferior, calculoVidro.larguraBandeiraMedida, calculoVidro.larguraMedida, dados.vidro, dados.vidroBandeira, precoVidroBandeiraM2, precoVidroM2, regraMedidaVidro]);
 
   useEffect(() => {
     setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {

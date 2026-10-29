@@ -48,22 +48,22 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
-    group: "Orçamentos",
+    group: "Projetos & Cálculos",
     items: [
-      { label: "Espelhos", href: "/calculo/espelhos" },
-      { label: "Vidros", href: "/calculo/calculovidro" },
-      { label: "Matriz de Orçamentos", href: "/matriz-projetos" },
+      { label: "Cálculo Espelhos", href: "/calculo/espelhos" },
+      { label: "Cálculo Vidros", href: "/calculo/calculovidro" },
+      { label: "Projetos Técnicos", href: "/matriz-projetos" },
     ],
   },
   {
-    group: "Projetos",
+    group: "Comercial",
     items: [
-      { label: "Central de Impressão", href: "/central-impressao" },
+      { label: "Matriz de Impressão", href: "/central-impressao" },
     ],
   },
   {
-    group: "Gestão",
-    items: [{ label: "Pedidos", href: "/gestao/pedidos" }, { label: "Compras · Em construção", href: "/gestao/compras", disabled: true }],
+    group: "Pedidos",
+    items: [{ label: "Gestão de Pedidos", href: "/gestao/pedidos" }, { label: "Compras · Em construção", href: "/gestao/compras", disabled: true }],
   },
   { group: "Produção", items: [{ label: "Plano de corte de perfis · Em construção", href: "/producao/perfis", disabled: true }, { label: "Plano de corte de vidros · Em construção", href: "/producao/vidros", disabled: true }, { label: "Estoque · Em construção", href: "/producao/estoque", disabled: true }],
   },

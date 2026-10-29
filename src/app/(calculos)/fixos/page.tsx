@@ -702,6 +702,7 @@ export default function FixosPage() {
 
 
   useEffect(() => {
+    if (!rascunhoRestaurado || carregandoVidros) return;
     if (!dados.vidro || dados.vidro === "Escolher") return;
 
     const vidroNome = dados.vidro
@@ -732,7 +733,7 @@ export default function FixosPage() {
         index === indiceVidro ? itemAtualizado : item
       );
     })(), Boolean(editId || centralItemId || searchParams.get("loteId"))));
-  }, [calculoVidro.alturaMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMedida, dados.vidro, precoVidroM2, regraMedidaVidro]);
+  }, [rascunhoRestaurado, carregandoVidros, calculoVidro.alturaMedida, calculoVidro.areaTotalCobrada, calculoVidro.larguraMedida, dados.vidro, precoVidroM2, regraMedidaVidro]);
 
   useEffect(() => {
     setMateriais((lista) => preservarPrecosOrcamento(lista, (() => {
