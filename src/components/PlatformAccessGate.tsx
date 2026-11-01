@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { diasParaRegularizar, mensagens, situacoes, type Situacao } from "@/lib/situacaoConta";
 import AvisoConta from "@/components/AvisoConta";
-import AvisoTesteExpirado from "@/components/AvisoTesteExpirado";
+import TelaAcessoIndisponivel from "@/components/TelaAcessoIndisponivel";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function PlatformAccessGate({ children }: { children: React.ReactNode }) {
@@ -81,12 +81,14 @@ const publica = ehRotaPublica(pathname);
   const fimTeste = detalhe?.teste?.expira_em ? Date.parse(detalhe.teste.expira_em) : NaN;
   const diasTeste = Number.isFinite(fimTeste) ? Math.max(0, Math.ceil((fimTeste - Date.now()) / 86400000)) : null;
   if (estado === "liberado") return <>{diasTeste !== null && <div role="status" className="border-b border-border bg-surface-secondary px-4 py-1.5 text-center text-xs text-text-secondary">Teste gratuito · {diasTeste <= 1 ? "menos de 1 dia restante" : `${diasTeste} dias restantes`} · <a className="underline underline-offset-2" href="https://wa.me/5546988271599?text=Ol%C3%A1!%20Quero%20continuar%20usando%20o%20Glass%20Code." target="_blank" rel="noopener noreferrer">Falar com a equipe</a></div>}{children}{detalhe && detalhe.situacao !== "ativa" && identificador && <AvisoConta identificador={identificador} aviso={aviso} titulo={situacoes[detalhe.situacao]}><p>{texto}</p>{prazo}{diasRestantes !== null && Number.isFinite(diasRestantes) && diasRestantes >= 0 && <p className="mt-2 font-medium">{diasRestantes === 0 ? "O prazo de regularização termina hoje." : `Você tem ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"} para regularizar.`}</p>}{atendimento}</AvisoConta>}</>;
-  return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-lg rounded-2xl border border-border bg-surface p-8 text-text-primary">
-    <p className="mb-5 text-xs uppercase tracking-widest text-text-secondary">Glass Code · Atendimento da conta</p>
-    <h1 className="text-xl font-medium">{testeExpirado ? "Seu prazo de teste expirou" : estado === "bloqueado" ? detalhe?.situacao === "cancelada" ? "Conta cancelada" : "Acesso temporariamente suspenso" : "Não foi possível verificar seu acesso"}</h1>
-    {testeExpirado ? <AvisoTesteExpirado /> : <p className="mt-4 text-sm leading-6 text-text-secondary">{estado === "bloqueado" ? texto : "Confira sua conexão e tente novamente."}</p>}{estado === "bloqueado" && <>{prazo}{atendimento}</>}
-    <div className="mt-6 flex flex-wrap gap-3"><button onClick={() => setTentativa(t => t + 1)} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">Verificar situação novamente</button><button className="rounded-lg border border-border px-4 py-2 text-sm" onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}>Sair da conta</button></div>
-  </section></main>;
+  return <TelaAcessoIndisponivel
+    titulo={testeExpirado ? "Seu prazo de teste expirou" : estado === "bloqueado" ? detalhe?.situacao === "cancelada" ? "Conta cancelada" : "Acesso temporariamente suspenso" : "Não foi possível verificar seu acesso"}
+    texto={estado === "erro" ? "Confira sua conexão e tente novamente." : testeExpirado ? "Seu período de experiência terminou. Fale com nossa equipe para escolher o plano que acompanha seus próximos projetos." : texto}
+    testeExpirado={testeExpirado}
+    erro={estado === "erro"}
+    verificar={() => setTentativa(t => t + 1)}
+    sair={async () => { const { error } = await supabase.auth.signOut(); if (error) throw error; router.replace('/login'); }}
+  >{estado === "bloqueado" && <>{prazo}{atendimento}</>}</TelaAcessoIndisponivel>;
 }
 
 function CarregamentoAcesso({ sucesso }: { sucesso: boolean }) {
