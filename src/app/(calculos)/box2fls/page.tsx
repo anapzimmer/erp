@@ -1289,7 +1289,7 @@ const novoProjeto = () => {
                 disabled={salvandoOrcamento}
                 onClick={salvarOrcamento}
                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+               data-gc-save="true">
                 <Save size={17} />
                 {salvandoOrcamento ? "Salvando..." : revisaoPedidoToken ? "Voltar à revisão do pedido" : "Salvar orçamento"}
               </button>
@@ -2133,7 +2133,7 @@ const novoProjeto = () => {
               disabled={salvandoOrcamento}
               onClick={salvarOrcamento}
               className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary transition hover:brightness-95 disabled:opacity-60"
-            >
+             data-gc-save="true">
               <Save size={17} />
               {salvandoOrcamento
                 ? "Salvando..."

@@ -1,1 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" width="280" height="200"><g stroke="#38444B" stroke-width="2" stroke-linejoin="round"><rect x="30" y="30" width="220" height="140" fill="#F6F8F8" stroke="#8F9AA1" stroke-width="2"/><line x1="103" y1="30" x2="103" y2="170" /><line x1="177" y1="30" x2="177" y2="170" /><line x1="48" y1="130" x2="82" y2="55" stroke="#fff" stroke-width="4"/><line x1="120" y1="130" x2="154" y2="55" stroke="#fff" stroke-width="4"/><line x1="194" y1="130" x2="228" y2="55" stroke="#fff" stroke-width="4"/><rect x="25" y="58" width="10" height="16" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/><rect x="25" y="130" width="10" height="16" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/><rect x="245" y="58" width="10" height="16" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/><rect x="245" y="130" width="10" height="16" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/><rect x="95" y="93" width="16" height="12" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/><rect x="169" y="93" width="16" height="12" fill="#DCE2E4" stroke="#38444B" stroke-width="1.5"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 150" width="360" height="150" role="img" aria-labelledby="title desc">
+  <title id="title">Sacada com grapa</title>
+  <desc id="desc">Quatro painéis de vidro com grapas quadradas nas laterais e na base e fixadores nas junções.</desc>
+  <!-- Desenho vetorial compacto, dimensionado para os cards da Biblioteca de Projetos. -->
+  <g fill="#F5F8F9" stroke="#9AAAB1" stroke-width="1.45" stroke-linejoin="round">
+    <rect x="20.5" y="15.5" width="79.5" height="99"/>
+    <rect x="100" y="15.5" width="79.5" height="99"/>
+    <rect x="179.5" y="15.5" width="79.5" height="99"/>
+    <rect x="259" y="15.5" width="79.5" height="99"/>
+  </g>
+  <!-- Reflexos sutis, sem filtros ou degradês que provoquem aspecto borrado. -->
+  <g stroke="#FFFFFF" stroke-width="2" opacity=".72" stroke-linecap="round">
+    <path d="M34 91 L64 35 M113 91 L143 35 M193 91 L223 35 M272 91 L302 35"/>
+  </g>
+  <!-- Fixadores nas extremidades: quadrados de dimensões idênticas. -->
+  <g fill="#FFFFFF" stroke="#8F9AA1" stroke-width="1.35">
+    <rect x="22" y="36" width="8" height="8" rx=".6"/>
+    <rect x="329" y="36" width="8" height="8" rx=".6"/>
+  </g>
+  <!-- Fixadores vidro/vidro: mesmo diâmetro, altura e afastamento das junções. -->
+  <g fill="#FFFFFF" stroke="#8F9AA1" stroke-width="1.25">
+    <circle cx="94" cy="40" r="2.6"/><circle cx="106" cy="40" r="2.6"/>
+    <circle cx="173.5" cy="40" r="2.6"/><circle cx="185.5" cy="40" r="2.6"/>
+    <circle cx="253" cy="40" r="2.6"/><circle cx="265" cy="40" r="2.6"/>
+  </g>
+  <!-- Grapas inferiores, sem torres ou moldura ao redor do vidro. -->
+  <g fill="#FFFFFF" stroke="#8F9AA1" stroke-width="1.35">
+    <rect x="43" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="70" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="122.5" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="149.5" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="202" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="229" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="281.5" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="308.5" y="110.5" width="8" height="8" rx=".6"/>
+    <rect x="22" y="90" width="8" height="8" rx=".6"/>
+    <rect x="329" y="90" width="8" height="8" rx=".6"/>
+  </g>
+</svg>

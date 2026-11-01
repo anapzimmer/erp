@@ -1337,7 +1337,7 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
               </button>
               <button onClick={salvarVidro} disabled={carregando}
                 className="rounded-2xl px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: "var(--primary)" }}>
+                style={{ backgroundColor: "var(--primary)" }} data-gc-save="true">
                 {carregando ? "Processando..." : editando ? "Atualizar" : "Salvar Vidro"}
               </button>
             </div>

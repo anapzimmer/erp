@@ -1,6 +1,8 @@
 //app/calculo/peledevidro/page.tsx
 "use client";
 import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import { TituloCalculoTecnico, EtapaCalculoTecnico } from "@/components/CalculoTecnicoLayout";
+import layout from "@/components/CalculoTecnicoLayout.module.css";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
@@ -327,7 +329,7 @@ export default function CalculoPeleDeVidroPage() {
 
   // Interligar perfis e acessórios com os cadastros do banco
   const resultado = useMemo(() => {
-    
+
     const res = calcularPeleDeVidro({
       regraMedidaVidro,
       larguraVaoMm: larguraNum,
@@ -773,7 +775,7 @@ export default function CalculoPeleDeVidroPage() {
           handleSignOut={signOut}
         />
 
-        <main className="p-4 md:p-8 flex-1 space-y-6">
+        <main className={`${layout.page} p-4 md:p-6 flex-1 space-y-5`}>
           {conteudoCarregando ? (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
               <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: "transparent", borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }} />
@@ -781,7 +783,8 @@ export default function CalculoPeleDeVidroPage() {
           ) : (<>
 
             {/* CLIENTE / OBRA / AÇÕES */}
-            <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+            <TituloCalculoTecnico titulo="Pele de Vidro" />
+<div className="gc-toolbar rounded-xl border px-3 py-3 flex flex-col xl:flex-row xl:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex items-center gap-2 flex-1 relative">
                 <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
                 <div className="relative flex-1">
@@ -851,7 +854,7 @@ export default function CalculoPeleDeVidroPage() {
                   disabled={salvando}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                   style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
-                >
+                 data-gc-save="true">
                   {salvando ? (
                     <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                   ) : (
@@ -912,24 +915,22 @@ export default function CalculoPeleDeVidroPage() {
             </div>
 
             {/* HEADER + INPUTS */}
-            <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+            <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex flex-col gap-4">
-                <div className="max-w-3xl">
+                <div className="gc-config-heading max-w-3xl">
                   <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                     <Grid3X3 size={14} />
                     Pele de Vidro
                   </div>
-                  <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                    Cálculo de orçamento pele de vidro
-                  </h1>
+                  <h2 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>01 · Configuração do projeto</h2>
                   <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>
                     Informe as dimensões em mm, a quantidade de quadros na horizontal e vertical, e selecione o vidro. O sistema calcula perfis, acessórios e barras automaticamente.
                   </p>
                 </div>
 
                 {/* GRID DE INPUTS: 4 COLUNAS PADRONIZADAS (2 LINHAS DE 4) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 w-full">
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-3 w-full">
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Largura do vão (mm)
                     </span>
@@ -942,7 +943,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Altura do vão (mm)
                     </span>
@@ -955,7 +956,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Qtd. de vãos / fachadas
                     </span>
@@ -969,7 +970,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros horizontal
                     </span>
@@ -982,7 +983,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros vertical
                     </span>
@@ -995,7 +996,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quantidade de lajes
                     </span>
@@ -1009,7 +1010,9 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                </div>
+                <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 w-full">
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Quadros móveis
                     </span>
@@ -1023,7 +1026,7 @@ export default function CalculoPeleDeVidroPage() {
                     />
                   </label>
 
-                  <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                  <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                       Vidro da fachada
                     </span>
@@ -1054,11 +1057,11 @@ export default function CalculoPeleDeVidroPage() {
                       </select>
                     </div>
                   </label>
-                </div>
+
 
                 {/* PAINEL DE VALORES PADRONIZADOS / AUTOMÁTICOS VISÍVEIS */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
-                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+
+                  <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
                       Qtd. de Quadros (Automático)
                     </span>
@@ -1067,7 +1070,7 @@ export default function CalculoPeleDeVidroPage() {
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+                  <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
                       Qtd. de Meia Coluna (Automático)
                     </span>
@@ -1076,7 +1079,7 @@ export default function CalculoPeleDeVidroPage() {
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
+                  <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
                     <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
                       Qtd. de Coluna Centro (Automático)
                     </span>
@@ -1090,7 +1093,106 @@ export default function CalculoPeleDeVidroPage() {
             </section>
 
             {/* CARDS RESUMO */}
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <section className="gc-preview-section"><EtapaCalculoTecnico numero="02" titulo="Vista frontal do projeto" descricao="Representação atualizada conforme as medidas informadas." /><article className="rounded-xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+
+
+                  <div className="mt-4">
+                    {(() => {
+                      const nH = Math.max(qH, 1);
+                      const nV = Math.max(qV, 1);
+                      const larg = larguraNum || 2000;
+                      const alt = alturaNum || 2000;
+
+                      const svgW = 360;
+                      const padL = 40;
+                      const padR = 10;
+                      const padTop = 15;
+                      const padBot = 40;
+                      const drawW = svgW - padL - padR;
+
+                      const ratio = Math.min(Math.max(alt / larg, 0.3), 2.5);
+                      const drawH = drawW * ratio;
+                      const svgH = drawH + padTop + padBot;
+
+                      const mullionW = Math.max(2, Math.min(6, drawW * 0.012));
+                      const glassW = (drawW - (nH + 1) * mullionW) / nH;
+                      const glassH = (drawH - (nV + 1) * mullionW) / nV;
+
+                      const x0 = padL;
+                      const y0 = padTop;
+
+                      const corAluminio = "#e8e8e8";
+                      const corAluminioBorda = "#e8e8e8";
+
+                      const corVidroFill = DRAWING_COLORS.glass;
+                      const corVidroBorda = DRAWING_COLORS.frame;
+                      const corVidroReflexo = "#ffffff";
+
+                      return (
+                        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <linearGradient id="pvRailGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={corAluminio} />
+                              <stop offset="50%" stopColor={typeof corAluminioBorda === "string" ? corAluminioBorda : "#787878"} />
+                              <stop offset="100%" stopColor={corAluminio} />
+                            </linearGradient>
+                            <linearGradient id="pvGlassGrad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor={corVidroFill} stopOpacity={0.35} />
+                              <stop offset="50%" stopColor={corVidroFill} stopOpacity={0.18} />
+                              <stop offset="100%" stopColor={corVidroFill} stopOpacity={0.3} />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Background frame */}
+                          <rect x={x0} y={y0} width={drawW} height={drawH} fill="url(#pvRailGrad)" rx={2} />
+                          <rect x={x0} y={y0} width={drawW} height={drawH} fill="none" stroke={typeof corAluminioBorda === "string" ? corAluminioBorda : "#787878"} strokeWidth={0.7} rx={2} />
+
+                          {/* Glass panels grid */}
+                          {Array.from({ length: nH }).map((_, col) =>
+                            Array.from({ length: nV }).map((_, row) => {
+                              const gX = x0 + mullionW + col * (glassW + mullionW);
+                              const gY = y0 + mullionW + row * (glassH + mullionW);
+                              return (
+                                <g key={`${col}-${row}`}>
+                                  <rect x={gX} y={gY} width={glassW} height={glassH} fill="url(#pvGlassGrad)" rx={0.5} />
+                                  <rect x={gX} y={gY} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={0.5} />
+                                  <line x1={gX + glassW * 0.18} y1={gY + glassH * 0.06} x2={gX + glassW * 0.08} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
+                                  <line x1={gX + glassW * 0.24} y1={gY + glassH * 0.06} x2={gX + glassW * 0.14} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
+                                </g>
+                              );
+                            })
+                          )}
+
+                          {/* Dimension: largura */}
+                          <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
+                            {formatarNumero(larg, 0)} mm
+                          </text>
+
+                          {/* Dimension: altura */}
+                          <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
+                          <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
+                            {formatarNumero(alt, 0)} mm
+                          </text>
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
+                      Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} x {formatarNumero(resultado.alturaQuadroMm, 0)} mm
+                    </span>
+                    <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
+                      {qH}x{qV} = {qH * qV} quadros{fachadas > 1 ? ` x ${fachadas} vãos` : ""}{lajes > 0 ? ` x ${lajes} lajes` : ""}
+                    </span>
+                  </div>
+                </article></section>
+<EtapaCalculoTecnico numero="03" titulo="Resultado do cálculo" descricao="Medidas e valores calculados automaticamente." />
+<section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {[
                 {
                   titulo: "Medida de cada quadro",
@@ -1117,7 +1219,7 @@ export default function CalculoPeleDeVidroPage() {
                   icone: Calculator,
                 },
               ].map((card) => (
-                <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                <article key={card.titulo} className="rounded-lg border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>{card.titulo}</p>
@@ -1133,8 +1235,9 @@ export default function CalculoPeleDeVidroPage() {
             </section>
 
             {/* TABELAS + PREVIEW */}
-            <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
-              <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+            <EtapaCalculoTecnico numero="04" titulo="Materiais e resumo técnico" descricao="Materiais e composição do orçamento." />
+<section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
+              <article className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 {/* Perfis */}
                 <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Perfis de alumínio</h2>
@@ -1327,107 +1430,10 @@ export default function CalculoPeleDeVidroPage() {
 
               <div className="space-y-6">
                 {/* Preview visual */}
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Representação proporcional da fachada</p>
-                  <div className="mt-4">
-                    {(() => {
-                      const nH = Math.max(qH, 1);
-                      const nV = Math.max(qV, 1);
-                      const larg = larguraNum || 2000;
-                      const alt = alturaNum || 2000;
 
-                      const svgW = 360;
-                      const padL = 40;
-                      const padR = 10;
-                      const padTop = 15;
-                      const padBot = 40;
-                      const drawW = svgW - padL - padR;
-
-                      const ratio = Math.min(Math.max(alt / larg, 0.3), 2.5);
-                      const drawH = drawW * ratio;
-                      const svgH = drawH + padTop + padBot;
-
-                      const mullionW = Math.max(2, Math.min(6, drawW * 0.012));
-                      const glassW = (drawW - (nH + 1) * mullionW) / nH;
-                      const glassH = (drawH - (nV + 1) * mullionW) / nV;
-
-                      const x0 = padL;
-                      const y0 = padTop;
-
-                      const corAluminio = "#e8e8e8";
-                      const corAluminioBorda = "#e8e8e8";
-
-                      const corVidroFill = DRAWING_COLORS.glass;
-                      const corVidroBorda = DRAWING_COLORS.frame;
-                      const corVidroReflexo = "#ffffff";
-
-                      return (
-                        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
-                          <defs>
-                            <linearGradient id="pvRailGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={corAluminio} />
-                              <stop offset="50%" stopColor={typeof corAluminioBorda === "string" ? corAluminioBorda : "#787878"} />
-                              <stop offset="100%" stopColor={corAluminio} />
-                            </linearGradient>
-                            <linearGradient id="pvGlassGrad" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stopColor={corVidroFill} stopOpacity={0.35} />
-                              <stop offset="50%" stopColor={corVidroFill} stopOpacity={0.18} />
-                              <stop offset="100%" stopColor={corVidroFill} stopOpacity={0.3} />
-                            </linearGradient>
-                          </defs>
-
-                          {/* Background frame */}
-                          <rect x={x0} y={y0} width={drawW} height={drawH} fill="url(#pvRailGrad)" rx={2} />
-                          <rect x={x0} y={y0} width={drawW} height={drawH} fill="none" stroke={typeof corAluminioBorda === "string" ? corAluminioBorda : "#787878"} strokeWidth={0.7} rx={2} />
-
-                          {/* Glass panels grid */}
-                          {Array.from({ length: nH }).map((_, col) =>
-                            Array.from({ length: nV }).map((_, row) => {
-                              const gX = x0 + mullionW + col * (glassW + mullionW);
-                              const gY = y0 + mullionW + row * (glassH + mullionW);
-                              return (
-                                <g key={`${col}-${row}`}>
-                                  <rect x={gX} y={gY} width={glassW} height={glassH} fill="url(#pvGlassGrad)" rx={0.5} />
-                                  <rect x={gX} y={gY} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={0.5} />
-                                  <line x1={gX + glassW * 0.18} y1={gY + glassH * 0.06} x2={gX + glassW * 0.08} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
-                                  <line x1={gX + glassW * 0.24} y1={gY + glassH * 0.06} x2={gX + glassW * 0.14} y2={gY + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.4} strokeOpacity={0.18} />
-                                </g>
-                              );
-                            })
-                          )}
-
-                          {/* Dimension: largura */}
-                          <line x1={x0} y1={y0 + drawH + 14} x2={x0 + drawW} y2={y0 + drawH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <line x1={x0} y1={y0 + drawH + 10} x2={x0} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <line x1={x0 + drawW} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <text x={x0 + drawW / 2} y={y0 + drawH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
-                            {formatarNumero(larg, 0)} mm
-                          </text>
-
-                          {/* Dimension: altura */}
-                          <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <line x1={x0 - 14} y1={y0 + drawH} x2={x0 - 6} y2={y0 + drawH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                          <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + drawH / 2}) rotate(-90)`}>
-                            {formatarNumero(alt, 0)} mm
-                          </text>
-                        </svg>
-                      );
-                    })()}
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
-                      Quadro: {formatarNumero(resultado.larguraQuadroMm, 0)} x {formatarNumero(resultado.alturaQuadroMm, 0)} mm
-                    </span>
-                    <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                      {qH}x{qV} = {qH * qV} quadros{fachadas > 1 ? ` x ${fachadas} vãos` : ""}{lajes > 0 ? ` x ${lajes} lajes` : ""}
-                    </span>
-                  </div>
-                </article>
 
                 {/* Resumo técnico */}
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                <article className="rounded-xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Resumo técnico</h2>
                   <div className="mt-5 space-y-4">
                     {[

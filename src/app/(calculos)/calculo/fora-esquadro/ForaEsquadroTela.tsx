@@ -1,5 +1,7 @@
 "use client";
 import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import { TituloCalculoTecnico, EtapaCalculoTecnico } from "@/components/CalculoTecnicoLayout";
+import layout from "@/components/CalculoTecnicoLayout.module.css";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { aplicarAcrescimoPorMedida, precoMaterialVidro } from "@/utils/regraMedidaVidro";
@@ -213,7 +215,7 @@ function CampoMedida({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+    <label className={`${styles.superficieBranca} rounded-lg border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
       <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
       <span className="mt-1.5 flex items-end gap-2">
         <input
@@ -243,7 +245,7 @@ function ResumoCard({
   detalhe: string;
 }) {
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <article className="rounded-lg border border-border bg-surface p-4 shadow-sm">
       <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">{titulo}</p>
       <p className="mt-2 text-xl font-medium leading-tight text-text-primary">{valor}</p>
       <p className="mt-1 text-xs leading-5 text-text-secondary">{detalhe}</p>
@@ -273,7 +275,7 @@ function CampoBusca<T extends { id: string }>({
   const [aberto, setAberto] = useState(false);
 
   return (
-    <label className={`${styles.superficieBranca} relative rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+    <label className={`${styles.superficieBranca} relative rounded-lg border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
       <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">{label}</span>
       <span className="mt-1.5 flex items-center gap-2">
         <Search size={15} className="text-text-secondary" />
@@ -290,7 +292,7 @@ function CampoBusca<T extends { id: string }>({
       </span>
 
       {aberto ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-lg border border-border bg-surface shadow-xl">
           {carregando ? (
             <div className="px-3 py-2.5 text-xs text-text-secondary">Carregando...</div>
           ) : itens.length > 0 ? (
@@ -351,7 +353,7 @@ function DesenhoForaEsquadro({
   };
 
   return (
-    <article className="rounded-3xl border border-border bg-surface p-4 shadow-sm">
+    <article className="rounded-xl border border-border bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-secondary">Vista frontal</p>
@@ -751,28 +753,9 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
         logoUrl={theme.logoLightUrl}
       />
 
-      <section className="mx-auto flex w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6 print:px-0">
-        <section
-          className="rounded-3xl border p-4 shadow-sm md:p-5"
-          style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}
-        >
-          <div className="flex flex-col gap-4">
-            {erroEdicao && <p role="alert" className="text-sm text-danger">{erroEdicao}</p>}
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div
-                  className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}
-                >
-                  <Calculator size={14} />
-                  Fora de esquadro
-                </div>
-                <h1 className="mt-2 text-xl font-medium leading-tight md:text-2xl" style={{ color: theme.contentTextLightBg }}>
-                  {lateral ? "Fora de esquadro lateral · altura fixa" : "Cálculo de vidro fora de esquadro"}
-                </h1>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
+      <section className={`${layout.page} flex w-full flex-col gap-5 p-4 md:p-6 print:px-0`}>
+<TituloCalculoTecnico titulo={lateral ? "Fora do Esquadro Lateral" : "Fora do Esquadro"} />
+<div className="gc-toolbar rounded-xl border border-border bg-white px-3 py-3"><div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setMostrarPreco((atual) => !atual)}
@@ -824,7 +807,7 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
                   disabled={Boolean(centralItemId && itemCarregado !== centralItemId)}
                   className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-surface/70"
                   style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 13%, transparent)`, color: theme.contentTextLightBg }}
-                >
+                 data-gc-save="true">
                   <FilePlus2 size={17} /> {centralItemId ? "Salvar na central" : "PDF+"}
                 </button>
                 <button
@@ -835,17 +818,37 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
                 >
                   <Eraser size={17} /> Limpar
                 </button>
+              </div></div>
+
+        <section
+          className="gc-config rounded-xl border p-4 md:p-5"
+          style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}
+        >
+          <div className="flex flex-col gap-4">
+            {erroEdicao && <p role="alert" className="text-sm text-danger">{erroEdicao}</p>}
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div
+                  className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
+                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}
+                >
+                  <Calculator size={14} />
+                  Fora de esquadro
+                </div>
+                <h2 className="mt-2 text-xl font-medium leading-tight md:text-2xl" style={{ color: theme.contentTextLightBg }}>01 · Configuração do projeto</h2>
               </div>
+
+
             </div>
 
-            <nav className="flex gap-4"><Link href="/calculo/fora-esquadro">Alturas diferentes</Link><Link href="/calculo/fora-esquadro-lateral">Larguras diferentes · altura fixa</Link></nav>
-            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-5">
+            <nav className="gc-variants"><Link aria-current={!lateral ? "page" : undefined} href="/calculo/fora-esquadro">Alturas diferentes</Link><Link aria-current={lateral ? "page" : undefined} href="/calculo/fora-esquadro-lateral">Larguras diferentes · altura fixa</Link></nav>
+            <div className="gc-fields gc-white-fields grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <CampoMedida label={lateral ? "Altura fixa" : "Largura"} value={largura} onChange={setLargura} />
               <CampoMedida label={lateral ? "Largura superior" : "Altura inicial"} value={alturaInicial} onChange={setAlturaInicial} />
               <CampoMedida label={lateral ? "Largura inferior" : "Altura final"} value={alturaFinal} onChange={setAlturaFinal} />
               <CampoMedida label="Quantidade" value={quantidade} suffix="und" maxDigitos={3} onChange={(valor) => setQuantidade(Math.max(1, valor))} />
 
-              <label className={`${styles.superficieBranca} rounded-2xl border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
+              <label className={`${styles.superficieBranca} rounded-lg border border-border/80 bg-white px-3 py-2.5 transition focus-within:border-success-soft focus-within:bg-white focus-within:ring-4 focus-within:ring-success/10`}>
                 <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-text-secondary">Divisões</span>
                 <select
                   value={divisoes}
@@ -866,7 +869,7 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
             <label className="flex items-center gap-3 rounded-xl border border-border bg-white p-3 text-sm"><input type="checkbox" checked={molde} onChange={e => setMolde(e.target.checked)} />Vidro com molde com acréscimo de 30%.</label>
 
             {mostrarPreco ? (
-              <div className="grid gap-2.5 rounded-3xl border border-border bg-surface/80 p-3 md:grid-cols-[1.1fr_1.1fr_0.7fr_0.7fr]">
+              <div className="grid gap-2.5 rounded-xl border border-border bg-surface/80 p-3 md:grid-cols-[1.1fr_1.1fr_0.7fr_0.7fr]">
                 <CampoBusca
                   label="Cliente"
                   value={clienteBusca}
@@ -902,9 +905,14 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
-          <div className="flex flex-col gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+        <section className="gc-preview-section"><EtapaCalculoTecnico numero="02" titulo="Desenho do projeto" descricao="Confira as medidas indicadas no desenho ilustrativo." />{lateral ? <DesenhoForaEsquadroLateral dados={dadosLateral} /> : <DesenhoForaEsquadro
+            largura={largura}
+            alturaInicial={alturaInicial}
+            alturaFinal={alturaFinal}
+            divisoes={divisoes}
+            pecas={pecas}
+          />}</section>
+<EtapaCalculoTecnico numero="03" titulo="Resultado do cálculo" descricao="Medidas e áreas calculadas automaticamente." /><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <ResumoCard
                 titulo={lateral ? "Diferença das larguras" : "Queda total"}
                 valor={formatarMm(Math.abs(quedaTotal))}
@@ -926,14 +934,13 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
                 detalhe={`Considerando ${quantidade || 1} vão(s)`}
               />
             </div>
-
-            <article className={`${styles.superficieBranca} rounded-3xl border border-border bg-white p-4 shadow-sm md:p-5`}>
+<EtapaCalculoTecnico numero="04" titulo="Relação das peças" descricao="Medidas individuais e área de cada peça." /><article className={`${styles.superficieBranca} rounded-xl border border-border bg-white p-4 shadow-sm md:p-5`}>
               <div className="mb-4 flex items-center gap-2">
                 <Layers3 size={18} className="text-success" />
                 <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-text-primary">Relação das peças</h2>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border border-border">
+              <div className="overflow-x-auto rounded-lg border border-border">
                 {valorVidros > 0 && <AvisoAcrescimoVidro regra={regraMedidaVidro} medidas={pecas.map(p => ({ largura: lateral ? Math.max(p.larguraSuperior || 0, p.larguraInferior || 0) : p.largura, altura: lateral ? largura : Math.max(p.alturaEsquerda, p.alturaDireita) }))} />}
                   <table className="w-full min-w-[900px] border-collapse text-sm">
                   <thead className="bg-white text-[11px] uppercase tracking-[0.12em] text-text-secondary">
@@ -963,16 +970,6 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
                 </table>
               </div>
             </article>
-          </div>
-
-          {lateral ? <DesenhoForaEsquadroLateral dados={dadosLateral} /> : <DesenhoForaEsquadro
-            largura={largura}
-            alturaInicial={alturaInicial}
-            alturaFinal={alturaFinal}
-            divisoes={divisoes}
-            pecas={pecas}
-          />}
-        </section>
       </section>
     </main>
   );

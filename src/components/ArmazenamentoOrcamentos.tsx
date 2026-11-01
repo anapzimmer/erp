@@ -65,7 +65,7 @@ export default function ArmazenamentoOrcamentos() {
     {config?.autorizado && <fieldset disabled={ocupado} className="mt-5 space-y-6 disabled:opacity-60">
       <div hidden={aba!=="prazo"}><div className="flex flex-wrap items-end gap-3">
         <label className="grid gap-2 text-sm">Manter orçamentos por<select className={campo} value={dias} onChange={e => setDias(e.target.value)}><option value="">Manter sempre</option>{[30,90,180,365].map(n => <option key={n} value={n}>{n} dias</option>)}</select></label>
-        <button type="button" className={botao} onClick={() => void executar(async () => { await rpc("configurar", {p_dias: dias ? Number(dias) : null}); await carregar(); setMensagem("Prazo salvo. A limpeza automática é processada diariamente quando o agendamento do banco está ativo."); })}>Salvar prazo</button>
+        <button type="button" className={botao} onClick={() => void executar(async () => { await rpc("configurar", {p_dias: dias ? Number(dias) : null}); await carregar(); setMensagem("Prazo salvo. A limpeza automática é processada diariamente quando o agendamento do banco está ativo."); })} data-gc-save="true">Salvar prazo</button>
       </div>
       </div><div hidden={aba!=="limpeza"} className="pt-2">
         <h3 className="text-sm font-medium">Limpeza manual</h3>

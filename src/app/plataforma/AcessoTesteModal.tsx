@@ -43,7 +43,7 @@ export default function AcessoTesteModal({ usuario, onFechar, onSalvo }: {
         <p>{teste ? teste.pendente ? "Teste aguardando ativação." : `Acesso de teste até ${new Date(teste.expira_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (horário de Brasília).` : "Esta conta ainda não tem um prazo de teste."}</p>
         <label>Dias liberados a partir de agora<input className={styles.input} type="number" min={1} max={365} step={1} required value={dias} onChange={e => setDias(Number(e.target.value))} /></label>
         <p>Salvar inicia um novo prazo a partir de agora. Suspensões manuais do usuário ou da empresa continuam valendo.</p>
-        <button className={styles.button} type="submit">Salvar prazo de teste</button>
+        <button className={styles.button} type="submit" data-gc-save="true">Salvar prazo de teste</button>
       </fieldset>
     </form>
     <form onSubmit={e => { e.preventDefault(); void salvar("senha_usuario"); }}>

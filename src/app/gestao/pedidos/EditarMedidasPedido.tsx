@@ -243,7 +243,7 @@ export default function EditarMedidasPedido({ pedido, empresaId, concluido }: { 
       <footer className={styles.revisaoRodape}>
         <p>Ao salvar, o pedido volta à conferência.<br /><small>Salvar não libera a produção.</small></p>
         <div><button type="button" disabled={salvando} onClick={() => setConfirmarDescarte(true)}>Descartar alterações</button>
-          {rascunho.resultado && <button type="button" className={styles.primary} disabled={salvando} onClick={() => void aplicar()}>{salvando ? "Salvando revisão…" : "Salvar revisão no pedido"}</button>}
+          {rascunho.resultado && <button type="button" className={styles.primary} disabled={salvando} onClick={() => void aplicar()} data-gc-save="true">{salvando ? "Salvando revisão…" : "Salvar revisão no pedido"}</button>}
         </div>
       </footer>
       {confirmarDescarte && <div className={styles.revisaoDescarte} role="group" aria-label="Confirmar descarte">

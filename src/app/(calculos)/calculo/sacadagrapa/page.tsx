@@ -1,12 +1,14 @@
 "use client";
 import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import { TituloCalculoTecnico, EtapaCalculoTecnico } from "@/components/CalculoTecnicoLayout";
+import layout from "@/components/CalculoTecnicoLayout.module.css";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { resultadoConformeCor } from "@/utils/materiaisConformeCor";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
 import { useClienteOrcamento } from "@/context/OrcamentoContext";
-import { DRAWING_COLORS } from "@/design/drawing";
+import { gerarSvgSacadaGrapa } from "@/utils/desenhoSacadaGrapa";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, FilePlus2, Package2, PanelsTopLeft, Printer, Ruler, Save, Search, SquareStack } from "lucide-react";
@@ -160,158 +162,6 @@ const formatarNumero = (valor: number, casasDecimais = 3) =>
   });
 
 const svgDataUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-
-const corPerfilSvg = () => {
-  return { fill: "var(--drawing-glass)", stroke: "#aeb9c3", shadow: "#d9e0e6" };
-};
-
-const posicaoVerticalGrapa = (index: number, total: number, glassY: number, glassH: number, alturaGrapa: number) => {
-  if (total <= 1) return glassY + glassH * 0.16 - alturaGrapa / 2;
-  const inicio = glassY + glassH * 0.14;
-  const fim = glassY + glassH * 0.86;
-  return inicio + ((fim - inicio) * index) / (total - 1) - alturaGrapa / 2;
-};
-
-const gerarSvgsacadagrapa = ({
-  largura,
-  altura,
-  divisoes,
-  grapasLaterais,
-  grapasInferiores,
-  grapas1305PorUniao,
-  tuboPosicao,
-  corPerfil,
-}: {
-  largura: number;
-  altura: number;
-  divisoes: number;
-  grapasLaterais: number;
-  grapasInferiores: number;
-  grapas1305PorUniao: number;
-  tuboPosicao: "sem" | "em-cima" | "entre-meios" | "em-cima-e-entre-meios";
-  corPerfil?: string;
-}) => {
-  const svgW = 900;
-  const pad = 44;
-  const labelPad = 24;
-  const drawW = svgW - pad * 2;
-  const ratio = Math.min(Math.max((altura || 1000) / (largura || 2000), 0.36), 0.82);
-  const drawH = Math.round(drawW * ratio);
-  const svgH = drawH + pad * 2 + labelPad;
-  const x0 = pad;
-  const y0 = pad;
-  const rail = 12;
-  const side = 10;
-  const divs = Math.max(Math.floor(divisoes || 1), 1);
-  const laterais = Math.max(Math.floor(grapasLaterais || 0), 0);
-  const inferiores = Math.max(Math.floor(grapasInferiores || 0), 0);
-  const grapasPorUniao = Math.max(Math.floor(grapas1305PorUniao || 0), 0);
-  const panelW = (drawW - side * 2) / divs;
-  const glassY = y0 + rail;
-  const glassH = drawH - rail * 2;
-  const profile = corPerfilSvg();
-  const tubo = { fill: "#8b949e", stroke: "#58616b" };
-  const temTuboEmCima = tuboPosicao === "em-cima" || tuboPosicao === "em-cima-e-entre-meios";
-  const temTuboNoMeio = tuboPosicao === "entre-meios" || tuboPosicao === "em-cima-e-entre-meios";
-
-  const divisionLines = Array.from({ length: Math.max(divs - 1, 0) }, (_, index) => {
-    const x = x0 + side + panelW * (index + 1);
-    return `<line x1="${x}" y1="${y0 + rail}" x2="${x}" y2="${y0 + drawH - rail}" stroke="#293442" stroke-width="1.2" opacity="0.75" />`;
-  }).join("");
-
-  const grapasLateraisSvg = Array.from({ length: laterais }, (_, index) => {
-    const y = posicaoVerticalGrapa(index, laterais, glassY, glassH, 30);
-    return `<g>
-      <rect x="${x0 + 1}" y="${y}" width="20" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-      <rect x="${x0 + drawW - 21}" y="${y}" width="20" height="30" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    </g>`;
-  }).join("");
-
-  const grapasInferioresSvg = Array.from({ length: divs }, (_, painelIndex) => {
-    const painelX = x0 + side + panelW * painelIndex;
-    return Array.from({ length: inferiores }, (_, index) => {
-      const x = painelX + ((index + 1) / (inferiores + 1)) * panelW - 12;
-      const y = y0 + drawH - rail - 3;
-      return `<rect x="${x}" y="${y}" width="24" height="26" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>`;
-    }).join("");
-  }).join("");
-
-  const grapas1305Svg = temTuboNoMeio ? "" : Array.from({ length: Math.max(divs - 1, 0) }, (_, uniaoIndex) => {
-    const x = x0 + side + panelW * (uniaoIndex + 1) - 18;
-    return Array.from({ length: grapasPorUniao }, (_, index) => {
-      const y = posicaoVerticalGrapa(index, grapasPorUniao, glassY, glassH, 28);
-      return `<g>
-        <rect x="${x}" y="${y}" width="36" height="28" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-        ${index === 0 ? `<text x="${x + 42}" y="${y + 18}" font-family="Inter, Arial, sans-serif" font-size="10" fill="${DRAWING_COLORS.ink}">1305</text>` : ""}
-      </g>`;
-    }).join("");
-  }).join("");
-
-  const tubosEmCimaSvg = temTuboEmCima
-    ? `<rect x="${x0 - 3}" y="${y0 - 17}" width="${drawW + 6}" height="20" rx="2" fill="${tubo.fill}" stroke="${tubo.stroke}" stroke-width="1.2"/>
-       <text x="${x0 + drawW / 2}" y="${y0 - 24}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="${DRAWING_COLORS.ink}">TUBO NA LARGURA</text>`
-    : "";
-
-  const tubosMeioSvg = temTuboNoMeio
-    ? Array.from({ length: Math.max(divs - 1, 0) }, (_, uniaoIndex) => {
-      const tuboW = 18;
-      const x = x0 + side + panelW * (uniaoIndex + 1) - tuboW / 2;
-      const grapasNosLados = Array.from({ length: laterais }, (_, index) => {
-        const y = posicaoVerticalGrapa(index, laterais, glassY, glassH, 24);
-        return `<g>
-          <rect x="${x - 24}" y="${y}" width="20" height="24" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-          <rect x="${x + tuboW + 4}" y="${y}" width="20" height="24" rx="2" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-        </g>`;
-      }).join("");
-      return `<g>
-        <rect x="${x}" y="${glassY}" width="${tuboW}" height="${glassH}" rx="2" fill="${tubo.fill}" stroke="${tubo.stroke}" stroke-width="1.2"/>
-        ${grapasNosLados}
-      </g>`;
-    }).join("")
-    : "";
-
-  const tubosSvg = `${tubosEmCimaSvg}${tubosMeioSvg}`;
-
-  const panels = Array.from({ length: divs }, (_, index) => {
-    const x = x0 + side + panelW * index;
-    return `<g>
-      <rect x="${x}" y="${glassY}" width="${panelW}" height="${glassH}" fill="url(#glassGrad)" stroke="#9db7c7" stroke-width="0.8"/>
-      <path d="M ${x + panelW * 0.1} ${glassY + glassH * 0.92} L ${x + panelW * 0.72} ${glassY + glassH * 0.12}" stroke="#ffffff" stroke-width="7" opacity="0.13"/>
-      <path d="M ${x + panelW * 0.34} ${glassY + glassH * 0.86} L ${x + panelW * 0.9} ${glassY + glassH * 0.16}" stroke="#ffffff" stroke-width="4" opacity="0.16"/>
-    </g>`;
-  }).join("");
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}">
-    <defs>
-      <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#eef8ff"/>
-        <stop offset="55%" stop-color="#dceff8"/>
-        <stop offset="100%" stop-color="#f8fcff"/>
-      </linearGradient>
-      <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="${DRAWING_COLORS.glass}"/>
-        <stop offset="45%" stop-color="${profile.fill}"/>
-        <stop offset="100%" stop-color="${profile.shadow}"/>
-      </linearGradient>
-      <filter id="softShadow" x="-10%" y="-10%" width="120%" height="130%">
-        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.16"/>
-      </filter>
-    </defs>
-    <rect x="${x0}" y="${y0}" width="${drawW}" height="${drawH}" fill="#ffffff" stroke="#d8e0e8" stroke-width="1"/>
-    ${panels}
-    <rect x="${x0}" y="${y0}" width="${drawW}" height="${rail}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0}" y="${y0 + drawH - rail}" width="${drawW}" height="${rail}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    <rect x="${x0 + drawW - side}" y="${y0}" width="${side}" height="${drawH}" fill="url(#metalGrad)" stroke="${profile.stroke}" stroke-width="1"/>
-    ${divisionLines}
-    ${tubosSvg}
-    <g filter="url(#softShadow)">${grapasLateraisSvg}${grapasInferioresSvg}${grapas1305Svg}</g>
-    <line x1="${x0}" y1="${y0 + drawH + 18}" x2="${x0 + drawW}" y2="${y0 + drawH + 18}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 + drawW / 2}" y="${y0 + drawH + 38}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}">${Math.round(largura || 0)} mm</text>
-    <line x1="${x0 - 18}" y1="${y0}" x2="${x0 - 18}" y2="${y0 + drawH}" stroke="#1d7ed6" stroke-width="1"/>
-    <text x="${x0 - 30}" y="${y0 + drawH / 2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="${DRAWING_COLORS.ink}" transform="rotate(-90 ${x0 - 30} ${y0 + drawH / 2})">${Math.round(altura || 0)} mm</text>
-  </svg>`;
-};
 
 export default function CalculosacadagrapaPage() {
   const { regra: regraMedidaVidro } = useRegraMedidaVidro();
@@ -599,7 +449,7 @@ export default function CalculosacadagrapaPage() {
 
   const svgSacada = useMemo(
     () =>
-      gerarSvgsacadagrapa({
+      gerarSvgSacadaGrapa({
         largura: larguraNumero || 2000,
         altura: alturaNumero || 1000,
         divisoes: quantidadeDivisoesNumero,
@@ -815,14 +665,15 @@ export default function CalculosacadagrapaPage() {
           handleSignOut={signOut}
         />
 
-        <main className="p-4 md:p-8 flex-1 space-y-6">
+        <main className={`${layout.page} p-4 md:p-6 flex-1 space-y-5`}>
           {conteudoCarregando ? (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
               <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderTopColor: "transparent", borderRightColor: theme.menuIconColor, borderBottomColor: theme.menuIconColor, borderLeftColor: theme.menuIconColor }} />
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border p-4 shadow-sm flex flex-col md:flex-row md:items-center gap-4" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+              <TituloCalculoTecnico titulo="Sacada com Grapa" />
+<div className="gc-toolbar rounded-xl border px-3 py-3 flex flex-col xl:flex-row xl:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex items-center gap-2 flex-1 relative">
                   <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
                   <div className="relative flex-1">
@@ -890,7 +741,7 @@ export default function CalculosacadagrapaPage() {
                   disabled={salvando}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                   style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
-                >
+                 data-gc-save="true">
                   {salvando ? <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" /> : <Save size={16} />}
                   Salvar
                 </button>
@@ -956,7 +807,7 @@ export default function CalculosacadagrapaPage() {
                 </span>
               )}
 
-              <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+              <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
@@ -964,16 +815,14 @@ export default function CalculosacadagrapaPage() {
                       <PanelsTopLeft size={14} />
                       Sacada com Grapa
                       </div>
-                      <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                        Cálculo de sacada com grapa
-                      </h1>
+                      <h2 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>01 · Configuração do projeto</h2>
                     </div>
                     <p className="max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
                       Informe medidas, divisões, grapas e tubo opcional. O desenho e a relação de materiais atualizam automaticamente.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
+                  <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-3 w-full">
                     {[
                       ["Largura do vao (mm)", larguraVaoMm, setLarguraVaoMm],
                       ["Altura do vao (mm)", alturaVaoMm, setAlturaVaoMm],
@@ -983,7 +832,7 @@ export default function CalculosacadagrapaPage() {
                       ["Grapas embaixo por vidro", grapasInferioresPorVao, setGrapasInferioresPorVao],
                       ["1305 por uniao", grapas1305PorUniao, setGrapas1305PorUniao],
                     ].map(([label, value, setter]) => (
-                      <label key={String(label)} className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                      <label key={String(label)} className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                         <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                           {String(label)}
                         </span>
@@ -997,7 +846,7 @@ export default function CalculosacadagrapaPage() {
                       </label>
                     ))}
 
-                    <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Cor dos perfis
                       </span>
@@ -1014,7 +863,7 @@ export default function CalculosacadagrapaPage() {
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 xl:col-span-2" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-lg border px-3 py-2.5 col-span-1 sm:col-span-2 xl:col-span-2" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Cor do vidro
                       </span>
@@ -1040,7 +889,7 @@ export default function CalculosacadagrapaPage() {
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-lg border px-3 py-2.5 col-span-1 sm:col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Tubo opcional
                       </span>
@@ -1059,7 +908,7 @@ export default function CalculosacadagrapaPage() {
                       </select>
                     </label>
 
-                    <label className="rounded-2xl border px-3 py-2.5 col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                    <label className="rounded-lg border px-3 py-2.5 col-span-1 sm:col-span-2 md:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                       <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                         Posicao do tubo
                       </span>
@@ -1078,7 +927,15 @@ export default function CalculosacadagrapaPage() {
                 </div>
               </section>
 
-              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <section className="gc-preview-section"><EtapaCalculoTecnico numero="02" titulo="Vista frontal do projeto" descricao="Representação atualizada conforme as medidas informadas." /><article className="rounded-xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+
+
+                  <div className="mt-4 rounded-2xl border bg-surface p-3" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+                    <div dangerouslySetInnerHTML={{ __html: svgSacada }} />
+                  </div>
+                </article></section>
+<EtapaCalculoTecnico numero="03" titulo="Resultado do cálculo" descricao="Medidas e valores calculados automaticamente." />
+<section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 {[
                   { titulo: "Medida de cada vidro", valor: `${formatarNumero(resultado.larguraVidroMm, 0)} x ${formatarNumero(resultado.alturaVidroMm, 0)} mm`, detalhe: `${resultado.quantidadeVidrosPorVao} vidros por vao`, icone: Ruler },
                   { titulo: "Area total de vidro", valor: `${formatarNumero(resultado.areaTotalVidro)} m2`, detalhe: resultado.vidroTipo, icone: SquareStack },
@@ -1100,8 +957,9 @@ export default function CalculosacadagrapaPage() {
                 ))}
               </section>
 
-              <section className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
-                <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <EtapaCalculoTecnico numero="04" titulo="Materiais e resumo técnico" descricao="Materiais e composição do orçamento." />
+<section className="gc-materials-section">
+                <article className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                   <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                     <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Relação de materiais</h2>
                     <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>3019 nas laterais/embaixo, 1305 nas uniões e tubo opcional.</p>
@@ -1134,13 +992,7 @@ export default function CalculosacadagrapaPage() {
                   </div>
                 </article>
 
-                <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Desenho conforme divisões, grapas, 1305 e tubo opcional.</p>
-                  <div className="mt-4 rounded-2xl border bg-surface p-3" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                    <div dangerouslySetInnerHTML={{ __html: svgSacada }} />
-                  </div>
-                </article>
+
               </section>
             </>
           )}

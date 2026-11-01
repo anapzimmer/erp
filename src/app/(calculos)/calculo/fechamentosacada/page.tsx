@@ -1,5 +1,7 @@
 "use client";
 import { avisosAcrescimoVidro } from "@/utils/avisosMedidaVidro";
+import { TituloCalculoTecnico, EtapaCalculoTecnico } from "@/components/CalculoTecnicoLayout";
+import layout from "@/components/CalculoTecnicoLayout.module.css";
 import AvisoAcrescimoVidro from "@/components/AvisoAcrescimoVidro";
 import { precoMaterialVidro } from "@/utils/regraMedidaVidro";
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
@@ -21,6 +23,7 @@ import { gerarNumeroOrcamentoPadrao } from "@/utils/orcamentoNumero";
 import { formatarPreco } from "@/utils/formatarPreco";
 import { normalizarPrecoCatalogo } from "@/utils/precos";
 import { localizarVidroPorDescricao } from "@/utils/vidros";
+import { gerarSvgFechamentoSacada } from "@/utils/desenhoFechamentoSacada";
 import { calcularSacadaFrontal } from "@/utils/sacada-frontal-calc";
 import { calcularBarrasPorCortes, prepararCortesPorBarra } from "@/utils/barras";
 import { escolherItemPorCor } from "@/utils/catalogo-cor";
@@ -77,6 +80,7 @@ type PrecoEspecial = {
 };
 
 type SacadaFrontalDraft = {
+  tipoSacada?: "panoramica" | "tubo";
   clienteId: string;
   buscaCliente: string;
   obra: string;
@@ -568,6 +572,7 @@ export default function CalculoFechamentoSacadaPage() {
   const editCarregadoRef = useRef(false);
 
   const [larguraVaoMm, setLarguraVaoMm] = useState("");
+  const [tipoSacada, setTipoSacada] = useState<"panoramica" | "tubo">("panoramica");
   const [alturaInferiorMm, setAlturaInferiorMm] = useState("");
   const [alturaSuperiorMm, setAlturaSuperiorMm] = useState("");
   const [quantidadeVaos, setQuantidadeVaos] = useState("");
@@ -612,6 +617,7 @@ export default function CalculoFechamentoSacadaPage() {
       if (typeof draft.buscaCliente === "string") setBuscaCliente(draft.buscaCliente);
       if (typeof draft.obra === "string") setObra(draft.obra);
       if (typeof draft.larguraVaoMm === "string") setLarguraVaoMm(draft.larguraVaoMm);
+      setTipoSacada(draft.tipoSacada === "tubo" ? "tubo" : "panoramica");
       if (typeof draft.alturaInferiorMm === "string") setAlturaInferiorMm(draft.alturaInferiorMm);
       if (typeof draft.alturaSuperiorMm === "string") setAlturaSuperiorMm(draft.alturaSuperiorMm);
       if (typeof draft.quantidadeVaos === "string") setQuantidadeVaos(draft.quantidadeVaos);
@@ -639,6 +645,7 @@ export default function CalculoFechamentoSacadaPage() {
       buscaCliente,
       obra,
       larguraVaoMm,
+      tipoSacada,
       alturaInferiorMm,
       alturaSuperiorMm,
       quantidadeVaos,
@@ -653,6 +660,7 @@ export default function CalculoFechamentoSacadaPage() {
 
     window.localStorage.setItem(chaveDraft, JSON.stringify(draft));
   }, [
+    tipoSacada,
     alturaInferiorMm,
     alturaSuperiorMm,
     buscaCliente,
@@ -791,6 +799,7 @@ export default function CalculoFechamentoSacadaPage() {
       setEditNumeroFormatado(orc.numero_formatado || "");
 
       if (itensData.larguraVaoMm != null) setLarguraVaoMm(String(itensData.larguraVaoMm));
+      setTipoSacada(itensData.tipoSacada === "tubo" ? "tubo" : "panoramica");
       if (itensData.alturaInferiorMm != null) {
         setAlturaInferiorMm(String(itensData.alturaInferiorMm));
       } else if (itensData.alturaVaoMm != null) {
@@ -845,6 +854,7 @@ export default function CalculoFechamentoSacadaPage() {
       setBuscaCliente(dados.buscaCliente || item?.cliente || "");
       setObra(dados.obra || "");
       setLarguraVaoMm(dados.larguraVaoMm || "");
+      setTipoSacada(dados.tipoSacada === "tubo" ? "tubo" : "panoramica");
       setAlturaInferiorMm(dados.alturaInferiorMm || "");
       setAlturaSuperiorMm(dados.alturaSuperiorMm || "");
       setQuantidadeVaos(dados.quantidadeVaos || "");
@@ -952,12 +962,13 @@ export default function CalculoFechamentoSacadaPage() {
         regraMedidaVidro,
       larguraVaoMm: larguraNumero,
       alturaVaoMm: alturaInferiorNumero,
+      tipoSacada,
       quantidadeVaos: quantidadeNumero,
       quantidadeDivisoesLargura: quantidadeDivisoesInferiorNumero,
       precoVidroM2: precoVidroM2Inferior,
       vidroDescricao: montarDescricaoVidro(vidroSelecionadoInferior),
     }),
-    [regraMedidaVidro, alturaInferiorNumero, larguraNumero, quantidadeDivisoesInferiorNumero, quantidadeNumero, precoVidroM2Inferior, vidroSelecionadoInferior]
+    [tipoSacada, regraMedidaVidro, alturaInferiorNumero, larguraNumero, quantidadeDivisoesInferiorNumero, quantidadeNumero, precoVidroM2Inferior, vidroSelecionadoInferior]
   );
 
   const resultadoSuperior = useMemo(
@@ -999,19 +1010,24 @@ export default function CalculoFechamentoSacadaPage() {
 const acessoriosComPrecoTabela = useMemo(() => {
     if (!corMaterialSelecionada(corPerfil)) return [];
   const pontoDivisao = (quantidadeDivisoesInferiorNumero + 1) * quantidadeNumero;
-  const guarnicaoMm = (resultadoInferior.larguraVidroMm * 2 + 50) * resultadoInferior.quantidadeTotalVidros;
+  const quantidadeFixadores = pontoDivisao * 2;
+  const guarnicaoM = Number(((resultadoInferior.larguraVidroMm * 2 * resultadoInferior.quantidadeTotalVidros) / 1000).toFixed(2));
 
-  const regras = [
-    { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
-    { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
-    { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
-    { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
-    { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Porca 1/4", codigo: "POR517", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: pontoDivisao, pacote: 100 },
-    { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesInferiorNumero * 3 * quantidadeNumero, pacote: 100, precoPorPacote: true },
-    { nome: "Guarnicao", codigo: "GUA033", quantidade: Number((guarnicaoMm / 1000).toFixed(2)), pacote: 50 },
-  ];
+  const regras = tipoSacada === "tubo"
+    ? [
+      { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
+    ]
+    : [
+      { nome: "Canopla", codigo: "CAN625", quantidade: pontoDivisao },
+      { nome: "Chumbador", codigo: "CHU842", quantidade: pontoDivisao },
+      { nome: "Suporte fixacao corrimao", codigo: "SUP626", quantidade: pontoDivisao },
+      { nome: "Suporte fixacao vidro", codigo: "SUP627", quantidade: pontoDivisao },
+      { nome: "Parafuso 1/4 x 5/8", codigo: "PAR656", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Porca 1/4", codigo: "POR517", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Tampa nylon 3/4", codigo: "NYL314", quantidade: quantidadeFixadores, pacote: 100 },
+      { nome: "Tapa furo 3/8", codigo: "NYL042", quantidade: quantidadeDivisoesInferiorNumero * 3, pacote: 100, precoPorPacote: true },
+      { nome: "Guarnicao", codigo: "GUA33", quantidade: guarnicaoM, pacote: 50 },
+    ];
 
   return regras.map(({ nome, codigo, quantidade, pacote, precoPorPacote }) => {
     const corUsar = resolverCorAcessorio(codigo, corPerfil);
@@ -1067,6 +1083,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
   ferragensTabela,
   quantidadeDivisoesInferiorNumero,
   quantidadeNumero,
+  tipoSacada,
   resultadoInferior,
 ]);
 
@@ -1196,7 +1213,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
   // Log debug fechamento de sacada
   useEffect(() => {
     if (ferragensTabela.length > 0) {
-      console.group("[SACADA] Debug Fechamento de Sacada");
+      console.group("[SACADA] Debug Fechamento de Sacada com Guarda-corpo");
       console.table(
         acessoriosFechamentoSacadaTabela.map((item) => ({
           nome: item.nome,
@@ -1346,12 +1363,15 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     })),
   ];
 
+  const desenhoUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(gerarSvgFechamentoSacada({ largura: larguraNumero, alturaInferior: alturaInferiorNumero, alturaSuperior: alturaSuperiorNumero, divisoesInferior: quantidadeDivisoesInferiorNumero, divisoesSuperior: quantidadeDivisoesSuperiorNumero, tipoSacada }));
+
   const montarItemCentral = (id?: string): FechamentoSacadaCentralItem => {
     const centralDados: SacadaFrontalDraft = {
       clienteId,
       buscaCliente,
       obra,
       larguraVaoMm,
+      tipoSacada,
       alturaInferiorMm,
       alturaSuperiorMm,
       quantidadeVaos,
@@ -1367,14 +1387,14 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
     return {
       id: id || (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())),
       numero: "Novo Orçamento",
-      projeto: "Fechamento de sacada",
+      projeto: "Fechamento de Sacada com Guarda-corpo",
       cliente: nomeClienteSelecionado || buscaCliente || "",
       medidas: `${larguraNumero} x ${alturaTotalNumero} mm`,
       largura: larguraNumero,
       altura: alturaTotalNumero,
       quantidade: quantidadeNumero,
       modo: "Cálculo",
-      desenhoUrl: "",
+      desenhoUrl,
       vidro: montarDescricaoVidro(vidroSelecionadoInferior),
       vidroBandeira: montarDescricaoVidro(vidroSelecionadoSuperior),
       corKit: corPerfil || "Não selecionada",
@@ -1439,6 +1459,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
         obra_referencia: obra || "Geral",
         itens: {
           tipo: "fechamento_sacada",
+          tipoSacada,
           larguraVaoMm: larguraNumero,
           alturaVaoMm: alturaTotalNumero,
           alturaInferiorMm: alturaInferiorNumero,
@@ -1507,7 +1528,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           handleSignOut={signOut}
         />
 
-        <main className="p-4 md:p-8 flex-1 space-y-6">
+        <main className={`${layout.page} p-4 md:p-6 flex-1 space-y-5`}>
 
           {conteudoCarregando ? (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
@@ -1516,7 +1537,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
           ) : (<>
 
           {/* CLIENTE / OBRA / AÇÕES */}
-          <div className="rounded-2xl border px-3 py-2.5 shadow-sm flex flex-col md:flex-row md:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+          <TituloCalculoTecnico titulo="Fechamento de Sacada com Guarda-corpo" />
+<div className="gc-toolbar rounded-xl border px-3 py-3 flex flex-col xl:flex-row xl:items-center gap-3" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             {/* Cliente */}
             <div className="flex items-center gap-2 flex-1 relative">
               <span className="text-[11px] font-medium uppercase tracking-wide whitespace-nowrap" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>Cliente:</span>
@@ -1581,6 +1603,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   setBuscaCliente("");
                   setObra("");
                   setLarguraVaoMm("");
+                  setTipoSacada("panoramica");
                   setAlturaInferiorMm("");
                   setAlturaSuperiorMm("");
                   setQuantidadeVaos("");
@@ -1605,7 +1628,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 disabled={salvando}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                 style={{ backgroundColor: theme.menuIconColor, color: "var(--on-primary)" }}
-              >
+               data-gc-save="true">
                 {salvando ? (
                   <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                 ) : (
@@ -1630,7 +1653,8 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                     nomeEmpresa={nomeEmpresa}
                     logoUrl={theme.logoLightUrl || undefined}
                     themeColor={theme.contentTextLightBg}
-                    tituloDocumento="Fechamento de sacada AL"
+                    tituloDocumento="Fechamento de Sacada com Guarda-corpo"
+                    tipoSacada={tipoSacada}
                     nomeCliente={nomeClienteSelecionado || "Não selecionado"}
                     nomeObra={obra || "Geral"}
                     larguraVaoMm={larguraNumero}
@@ -1687,23 +1711,21 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             )}
           </div>
 
-          <section className="rounded-3xl border p-4 md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
+          <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             <div className="flex flex-col gap-4">
-              <div className="max-w-3xl">
+              <div className="gc-config-heading max-w-3xl">
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
                   <PanelsTopLeft size={14} />
                   Fechamento Sacada
                 </div>
-                <h1 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>
-                  Cálculo de fechamento de sacada com gradil de alumínio
-                </h1>
+                <h2 className="mt-2 text-xl md:text-2xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>01 · Configuração do projeto</h2>
                 <p className="mt-2 max-w-2xl text-xs md:text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 70%, transparent)` }}>
                   Informe as dimensoes em mm para os módulos inferior e superior, com divisões e vidros independentes. O sistema calcula cada módulo separado e soma no total.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5 w-full">
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+              <div className="gc-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-3 w-full">
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Largura do vao (mm)
                   </span>
@@ -1716,7 +1738,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Altura sacada inferior (mm)
                   </span>
@@ -1729,7 +1751,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Altura fechamento superior (mm)
                   </span>
@@ -1742,7 +1764,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Quantidade de vãos
                   </span>
@@ -1755,7 +1777,14 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border border-border bg-white px-3 py-2.5">
+                  <span className="text-[10px] uppercase tracking-[0.12em]">Modelo do guarda-corpo</span>
+                  <select value={tipoSacada} onChange={(e) => setTipoSacada(e.target.value === "tubo" ? "tubo" : "panoramica")} className="mt-1.5 w-full bg-transparent text-sm outline-none">
+                    <option value="panoramica">Sacada panorâmica</option>
+                    <option value="tubo">Sacada com tubo e baguete</option>
+                  </select>
+                </label>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Divisão sacada (inferior)
                   </span>
@@ -1768,7 +1797,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Divisão sacada (superior)
                   </span>
@@ -1781,7 +1810,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   />
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Cor dos perfis
                   </span>
@@ -1800,9 +1829,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
-                    Vidro (inferio)
+                    Vidro do guarda-corpo (inferior)
                   </span>
                   <input
                     value={buscaVidroInferior}
@@ -1832,7 +1861,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                   </select>
                 </label>
 
-                <label className="rounded-2xl border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
+                <label className="rounded-lg border px-3 py-2.5 sm:col-span-2 xl:col-span-1" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)`, backgroundColor: theme.screenBackgroundColor }}>
                   <span className="text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 50%, transparent)` }}>
                     Vidro (superior)
                   </span>
@@ -1867,7 +1896,30 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <section className="gc-preview-section"><EtapaCalculoTecnico numero="02" titulo="Vista frontal do projeto" descricao="Representação atualizada conforme as medidas informadas." /><article className="rounded-xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+
+
+                <div className="mt-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={desenhoUrl} alt="Fechamento de sacada sobre guarda-corpo" className="w-full" />
+                </div>
+                {/* Medida do vidro e info de vãos */}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                  <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
+                    SUP: {formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x {formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm · INF: {formatarNumero(resultadoInferior.larguraVidroMm, 0)} x {formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm
+                  </span>
+                  {quantidadeNumero > 1 && (
+                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
+                      x {quantidadeNumero} vãos
+                    </span>
+                  )}
+                  <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
+                    SUP: {quantidadeDivisoesSuperiorNumero} {quantidadeDivisoesSuperiorNumero === 1 ? "peça" : "peças"} · INF: {quantidadeDivisoesInferiorNumero} {quantidadeDivisoesInferiorNumero === 1 ? "peça" : "peças"} por vão
+                  </span>
+                </div>
+              </article></section>
+<EtapaCalculoTecnico numero="03" titulo="Resultado do cálculo" descricao="Medidas e valores calculados automaticamente." />
+<section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             {[
               {
                 titulo: "Medida de cada vidro",
@@ -1894,7 +1946,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
                 icone: Calculator,
               },
             ].map((card) => (
-              <article key={card.titulo} className="rounded-2xl border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <article key={card.titulo} className="rounded-lg border px-3 py-2.5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
@@ -1915,8 +1967,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
             ))}
           </section>
 
-          <section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
-            <article className="rounded-3xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+          <EtapaCalculoTecnico numero="04" titulo="Materiais e resumo técnico" descricao="Materiais e composição do orçamento." />
+<section className="grid grid-cols-1 xl:grid-cols-[1.5fr_0.9fr] gap-3">
+            <article className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
               <div className="px-5 py-4 border-b" style={{ borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Perfis do guarda corpo
@@ -2065,209 +2118,9 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
 
             <div className="space-y-6">
               {/* Preview visual da sacada */}
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
-                  Vista frontal
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
-                  Representação proporcional do vão
-                </p>
-                <div className="mt-4">
-                  {(() => {
-                    const divisoesInferior = Math.max(quantidadeDivisoesInferiorNumero, 1);
-                    const divisoesSuperior = Math.max(quantidadeDivisoesSuperiorNumero, 1);
-                    const larg = larguraNumero || 2000;
-                    const altInf = alturaInferiorNumero || 1000;
-                    const altSup = alturaSuperiorNumero || 1000;
-                    const alt = altInf + altSup;
 
-                    const svgW = 360;
-                    const padL = 40;
-                    const padR = 10;
-                    const padTop = 15;
-                    const padBot = 40;
-                    const drawW = svgW - padL - padR;
 
-                    // Ajuste visual para evitar aparência achatada no preview.
-                    const ratioBase = alt / larg;
-                    const ratio = Math.min(Math.max(ratioBase * 1.46, 0.62), 2.45);
-                    const drawH = Math.min(drawW * ratio, 230);
-                    const svgH = drawH + padTop + padBot;
-
-                    const postW = Math.max(2.5, Math.min(7, drawW * 0.014));
-                    const railH = Math.max(3.5, Math.min(10, drawH * 0.03));
-
-                    const areaUtilH = Math.max(drawH - railH * 3, 60);
-                    const moduloSupH = areaUtilH * (altSup / (alt || 1));
-                    const moduloInfH = areaUtilH * (altInf / (alt || 1));
-
-                    const x0 = padL;
-                    const y0 = padTop;
-                    const yModuloSup = y0 + railH;
-                    const yMeio = yModuloSup + moduloSupH;
-                    const yModuloInf = yMeio + railH;
-                    const yBase = yModuloInf + moduloInfH;
-
-                    // Cor do perfil conforme seleção
-                    const corPerfilNorm = normalizarTextoComparacao(corPerfil);
-                    const corAluminio = corPerfilNorm === "branco"
-                      ? "#e8e8e8"
-                      : corPerfilNorm === "preto"
-                        ? "#5f666d"
-                        : corPerfilNorm === "fosco"
-                          ? "#a3a9af"
-                          : "#9e9e9e";
-                    const corAluminioBorda = corPerfilNorm === "branco"
-                      ? "#c0c0c0"
-                      : corPerfilNorm === "preto"
-                        ? "#4f555b"
-                        : corPerfilNorm === "fosco"
-                          ? "#8f959a"
-                          : "#787878";
-
-                    // Cor do vidro por módulo (suportando vidros diferentes)
-                    const corVidroFillSup = DRAWING_COLORS.glass;
-                    const corVidroBordaSup = DRAWING_COLORS.frame;
-                    const corVidroFillInf = DRAWING_COLORS.glass;
-                    const corVidroBordaInf = DRAWING_COLORS.frame;
-                    const corVidroReflexo = "#ffffff";
-
-                    const renderModulo = (
-                      modulo: "SUP" | "INF",
-                      yModulo: number,
-                      moduloH: number,
-                      divisoes: number,
-                      larguraVidroMm: number,
-                      corVidroFill: string,
-                      corVidroBorda: string
-                    ) => {
-                      const numPosts = divisoes + 1;
-                      const totalPostW = numPosts * postW;
-                      const glassW = (drawW - totalPostW) / divisoes;
-                      const glassH = Math.max(moduloH, 10);
-                      const showLabelInside = divisoes <= 8 && glassW > 28;
-
-                      return (
-                        <g key={modulo}>
-                          {Array.from({ length: divisoes }).map((_, i) => {
-                            const pX = x0 + i * (glassW + postW);
-                            const gX = pX + postW;
-
-                            return (
-                              <g key={`${modulo}-${i}`}>
-                                <rect x={pX} y={yModulo} width={postW} height={glassH} fill={corAluminio} rx={0.5} />
-                                <rect x={pX} y={yModulo} width={postW} height={glassH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
-
-                                <rect x={gX} y={yModulo} width={glassW} height={glassH} fill={corVidroFill} fillOpacity={0.35} rx={1} />
-                                <rect x={gX} y={yModulo} width={glassW} height={glassH} fill="none" stroke={corVidroBorda} strokeWidth={0.6} strokeOpacity={0.5} rx={1} />
-
-                                <line x1={gX + glassW * 0.18} y1={yModulo + glassH * 0.06} x2={gX + glassW * 0.08} y2={yModulo + glassH * 0.38} stroke={corVidroReflexo} strokeWidth={0.7} strokeOpacity={0.3} />
-
-                                {showLabelInside && (
-                                  <text
-                                    x={gX + glassW / 2}
-                                    y={yModulo + glassH / 2 + 3}
-                                    textAnchor="middle"
-                                    fontSize={glassW > 55 ? 7.5 : 6}
-                                    fill="#4a7a73"
-                                    opacity={0.55}
-                                    fontWeight={600}
-                                    fontFamily="Inter, Arial, sans-serif"
-                                  >
-                                    {formatarNumero(larguraVidroMm, 0)}
-                                  </text>
-                                )}
-                              </g>
-                            );
-                          })}
-
-                          <rect x={x0 + divisoes * (glassW + postW)} y={yModulo} width={postW} height={glassH} fill={corAluminio} rx={0.5} />
-                          <rect x={x0 + divisoes * (glassW + postW)} y={yModulo} width={postW} height={glassH} fill="none" stroke={corAluminioBorda} strokeWidth={0.4} rx={0.5} />
-
-                          <text x={x0 + 3} y={yModulo + 11} fontSize={8} fill={theme.contentTextLightBg} opacity={0.55} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
-                            {modulo}
-                          </text>
-                        </g>
-                      );
-                    };
-
-                    return (
-                      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <linearGradient id="railGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={corAluminio} />
-                            <stop offset="50%" stopColor={corAluminioBorda} />
-                            <stop offset="100%" stopColor={corAluminio} />
-                          </linearGradient>
-                        </defs>
-
-                        {/* Top rail */}
-                        <rect x={x0} y={y0} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
-                        <rect x={x0} y={y0} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
-
-                        {/* Mid rail */}
-                        <rect x={x0} y={yMeio} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
-                        <rect x={x0} y={yMeio} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
-
-                        {/* Bottom rail */}
-                        <rect x={x0} y={yBase} width={drawW} height={railH} fill="url(#railGrad)" rx={1.5} />
-                        <rect x={x0} y={yBase} width={drawW} height={railH} fill="none" stroke={corAluminioBorda} strokeWidth={0.5} rx={1.5} />
-
-                        {renderModulo(
-                          "SUP",
-                          yModuloSup,
-                          moduloSupH,
-                          divisoesSuperior,
-                          resultadoSuperior.larguraVidroMm,
-                          corVidroFillSup,
-                          corVidroBordaSup
-                        )}
-                        {renderModulo(
-                          "INF",
-                          yModuloInf,
-                          moduloInfH,
-                          divisoesInferior,
-                          resultadoInferior.larguraVidroMm,
-                          corVidroFillInf,
-                          corVidroBordaInf
-                        )}
-
-                        {/* Dimension: largura (bottom) */}
-                        <line x1={x0} y1={yBase + railH + 14} x2={x0 + drawW} y2={yBase + railH + 14} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0} y1={yBase + railH + 10} x2={x0} y2={yBase + railH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 + drawW} y1={yBase + railH + 10} x2={x0 + drawW} y2={yBase + railH + 18} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={x0 + drawW / 2} y={yBase + railH + 28} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif">
-                          {formatarNumero(larg, 0)} mm
-                        </text>
-
-                        {/* Dimension: altura (left) */}
-                        <line x1={x0 - 10} y1={y0} x2={x0 - 10} y2={yBase + railH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 - 14} y1={y0} x2={x0 - 6} y2={y0} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <line x1={x0 - 14} y1={yBase + railH} x2={x0 - 6} y2={yBase + railH} stroke={theme.contentTextLightBg} strokeWidth={0.6} strokeOpacity={0.4} />
-                        <text x={0} y={0} textAnchor="middle" fontSize={9.5} fill={theme.contentTextLightBg} opacity={0.6} fontWeight={700} fontFamily="Inter, Arial, sans-serif" transform={`translate(${x0 - 22}, ${y0 + (yBase + railH - y0) / 2}) rotate(-90)`}>
-                          {formatarNumero(alt, 0)} mm
-                        </text>
-                      </svg>
-                    );
-                  })()}
-                </div>
-                {/* Medida do vidro e info de vãos */}
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                  <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 44%, transparent)` }}>
-                    SUP: {formatarNumero(resultadoSuperior.larguraVidroMm, 0)} x {formatarNumero(resultadoSuperior.alturaVidroMm, 0)} mm · INF: {formatarNumero(resultadoInferior.larguraVidroMm, 0)} x {formatarNumero(resultadoInferior.alturaVidroMm, 0)} mm
-                  </span>
-                  {quantidadeNumero > 1 && (
-                    <span className="text-xs font-semibold" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                      x {quantidadeNumero} vãos
-                    </span>
-                  )}
-                  <span className="text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 31%, transparent)` }}>
-                    SUP: {quantidadeDivisoesSuperiorNumero} {quantidadeDivisoesSuperiorNumero === 1 ? "peça" : "peças"} · INF: {quantidadeDivisoesInferiorNumero} {quantidadeDivisoesInferiorNumero === 1 ? "peça" : "peças"} por vão
-                  </span>
-                </div>
-              </article>
-
-              <article className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
+              <article className="rounded-xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
                 <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
                   Resumo técnico
                 </h2>

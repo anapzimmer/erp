@@ -1052,7 +1052,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                   backgroundColor: darkTertiary,
                   color: "#FFFFFF"
                 }}
-              >
+               data-gc-save="true">
                 {carregando ? "Processando..." : editando ? "Atualizar" : "Salvar Perfil"}
               </button>
             </div>

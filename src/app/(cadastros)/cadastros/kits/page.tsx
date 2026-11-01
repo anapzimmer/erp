@@ -1064,7 +1064,7 @@ export default function KitsPage() {
                 ultimaDeteccaoRef.current = { largura: null, altura: null };
                 setEspessuraDetectada("");
               }} className="rounded-2xl bg-surface-secondary px-7 py-3 text-sm font-semibold text-text-secondary transition-all hover:bg-border">Cancelar</button>
-              <button onClick={salvarKit} disabled={carregando} className="rounded-2xl px-8 py-3 text-sm font-semibold shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: "#FFFFFF" }}>
+              <button onClick={salvarKit} disabled={carregando} className="rounded-2xl px-8 py-3 text-sm font-semibold shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" style={{ backgroundColor: darkTertiary, color: "#FFFFFF" }} data-gc-save="true">
                 {carregando ? "Processando..." : (editando ? "Atualizar" : "Salvar Kit")}
               </button>
             </div>

@@ -1095,7 +1095,7 @@ export default function CalculoPinazioPage() {
               type="button"
               onClick={() => setShowModalSalvar(true)}
               className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-surface-secondary"
-            >
+             data-gc-save="true">
               <Save size={17} />
               Salvar
             </button>
@@ -1830,7 +1830,7 @@ export default function CalculoPinazioPage() {
                 onClick={handleSalvarOrcamento}
                 className="w-full px-4 py-3 rounded-xl font-semibold text-on-primary transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
                 style={{ backgroundColor: theme.buttonDarkBg }}
-              >
+               data-gc-save="true">
                 <Save size={16} />
                 Salvar Orçamento
               </button>

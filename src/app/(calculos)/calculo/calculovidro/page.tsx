@@ -2175,7 +2175,7 @@ export default function RelatorioOrcamento() {
                 onClick={revisaoPedidoToken ? enviarParaCentralImpressao : handleSalvarOrcamento}
                 disabled={itens.length === 0}
                 className="flex shrink-0 items-center gap-2 rounded-xl bg-primary text-on-primary px-4 py-2 text-xs font-bold transition hover:opacity-90 disabled:opacity-40"
-              >
+               data-gc-save="true">
                 <Save size={16} />
                 {revisaoPedidoToken ? "Retornar revisão ao pedido" : "Salvar Orçamento"}
               </button>
@@ -2709,7 +2709,7 @@ export default function RelatorioOrcamento() {
                                     <button
                                       onClick={salvarEdicaoRapidaAdicional}
                                       className="px-2.5 py-1.5 rounded-lg bg-warning-soft text-warning text-[11px] font-bold hover:bg-warning-soft transition-colors"
-                                    >
+                                     data-gc-save="true">
                                       Salvar aqui
                                     </button>
                                     <button

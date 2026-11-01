@@ -1,6 +1,7 @@
 ﻿// app/relatorios/sacadafrontal/SacadaFrontalPDF.tsx
 "use client";
 
+import { geometriaFechamentoSacada } from "@/utils/desenhoFechamentoSacada";
 import React from "react";
 import { DRAWING_COLORS } from "@/design/drawing";
 import {
@@ -540,7 +541,7 @@ export function SacadaFrontalPDF({
 
           <View style={styles.infoBox}>
             <Text style={styles.label}>Projeto</Text>
-            <Text style={styles.value}>Sacada frontal panorâmica</Text>
+            <Text style={styles.value}>{temModulosSupInf ? "Fechamento de Sacada com Guarda-corpo" : tipoSacada === "tubo" ? "Sacada com tubo e baguete" : "Sacada frontal panorâmica"}</Text>
           </View>
         </View>
 
@@ -550,6 +551,10 @@ export function SacadaFrontalPDF({
 
             <Svg viewBox="0 0 430 245" width="100%" height={210} preserveAspectRatio="xMidYMid meet">
               {(() => {
+                if (temModulosSupInf) {
+                  const g = geometriaFechamentoSacada({ largura: larguraVaoMm, alturaInferior: alturaInferiorMm || 0, alturaSuperior: alturaSuperiorMm || 0, divisoesInferior: divInferior, divisoesSuperior: divSuperior, tipoSacada });
+                  return <G>{g.rects.map((r,i)=><Rect key={i} {...r} strokeWidth={0.8}/>)}{g.linhas.map((l,i)=><Line key={i} {...l} stroke="#FFFFFF" strokeWidth={1.5}/>)}</G>;
+                }
                 const divs = Math.max(1, Math.floor(divisoesPorVao || 1));
                 const left = 20;
                 const top = 16;

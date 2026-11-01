@@ -1012,7 +1012,7 @@ export default function CalculoEspelhosPage() {
               onClick={handleSalvarOrcamento}
               disabled={listaItens.length === 0}
               className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-40"
-            >
+             data-gc-save="true">
               <Save size={18} />
               Salvar
             </button>
@@ -1545,7 +1545,7 @@ export default function CalculoEspelhosPage() {
                 onClick={handleSalvarOrcamento}
                 className="w-full px-4 py-3 rounded-xl font-semibold text-on-primary transition-all text-sm flex items-center justify-center gap-2 hover:opacity-90"
                 style={{ backgroundColor: theme.buttonDarkBg }}
-              >
+               data-gc-save="true">
                 <Save size={16} />
                 Salvar Orçamento
               </button>

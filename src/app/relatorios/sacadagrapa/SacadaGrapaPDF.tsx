@@ -1,8 +1,10 @@
 ﻿//app/relatorios/sacadagrapa/SacadaGrapaPDF.tsx
 "use client";
 
+import { geometriaSacadaGrapa } from "@/utils/desenhoSacadaGrapa";
+
 import React from "react";
-import { Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Circle, Document, G, Image, Line, Page, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import type { ProjetoIndividualMaterial } from "@/app/relatorios/projetoindividual/ProjetoIndividualPDF";
 import { PDF_COLORS, buildPdfFooterText } from "../shared/pdfLayout";
 
@@ -349,107 +351,15 @@ const casasQtd =
 
 
 export function DesenhoSacadaGrapaPDF({ larguraVaoMm, alturaVaoMm, divisoesPorVao, grapasLateraisPorVao, grapasInferioresPorVao, grapas1305PorUniao, tuboDescricao, width = 450, height = 210 }: Pick<SacadaGrapaPDFProps, "larguraVaoMm" | "alturaVaoMm" | "divisoesPorVao" | "grapasLateraisPorVao" | "grapasInferioresPorVao" | "grapas1305PorUniao" | "tuboDescricao"> & { width?: number; height?: number }) {
-  const perfilCor = { fill: PDF_COLORS.panelBg, stroke: PDF_COLORS.softMuted };
-  const tuboCor = { fill: PDF_COLORS.border, stroke: PDF_COLORS.softMuted };
-  const svgW = 430;
-  const pad = 16;
-  const drawW = svgW - pad * 2;
-  const ratio = Math.min(Math.max((alturaVaoMm || 1000) / (larguraVaoMm || 2000), 0.35), 0.78);
-  const drawH = Math.round(drawW * ratio);
-  const svgH = drawH + pad * 2 + 18;
-  const x0 = pad;
-  const y0 = pad;
-  const rail = 0;
-  const side = 0;
-  const divs = Math.max(Math.floor(divisoesPorVao || 1), 1);
-  const laterais = Math.max(Math.floor(grapasLateraisPorVao || 0), 0);
-  const inferiores = Math.max(Math.floor(grapasInferioresPorVao || 0), 0);
-  const grapasPorUniao = Math.max(Math.floor(grapas1305PorUniao || 0), 0);
-  const panelW = (drawW - side * 2) / divs;
-  const glassY = y0 + rail;
-  const glassH = drawH - rail * 2;
-  const tuboTexto = String(tuboDescricao || "Sem tubo");
-  const temTuboEmCima = /em cima|largura/i.test(tuboTexto);
-  const temTuboEntreMeios = /entre|meio/i.test(tuboTexto);
-  const posicaoY = (index: number, total: number, alturaGrapa: number) => {
-    if (total <= 1) return glassY + glassH * 0.16 - alturaGrapa / 2;
-    const inicio = glassY + glassH * 0.14;
-    const fim = glassY + glassH * 0.86;
-    return inicio + ((fim - inicio) * index) / (total - 1) - alturaGrapa / 2;
-  };
-
-  return (<Svg viewBox={`0 0 ${svgW} ${svgH}`} width={width} height={height} preserveAspectRatio="xMidYMid meet">
-
-              {Array.from({ length: divs }).map((_, index) => {
-                const x = x0 + side + panelW * index;
-                return (
-                  <G key={`vidro-${index}`}>
-                    <Rect x={x} y={glassY} width={panelW} height={glassH} fill={PDF_COLORS.white} stroke={PDF_COLORS.softMuted} strokeWidth={0.5} />
-                    <Line x1={x + panelW * 0.14} y1={glassY + glassH * 0.9} x2={x + panelW * 0.72} y2={glassY + glassH * 0.1} stroke={PDF_COLORS.white} strokeWidth={3} />
-                    <Line x1={x + panelW * 0.34} y1={glassY + glassH * 0.86} x2={x + panelW * 0.92} y2={glassY + glassH * 0.15} stroke={PDF_COLORS.white} strokeWidth={1.6} />
-                  </G>
-                );
-              })}
-
-
-              {temTuboEmCima ? (
-                <Rect x={x0 - 2} y={y0 - 10} width={drawW + 4} height={11} fill={tuboCor.fill} stroke={tuboCor.stroke} strokeWidth={0.7} />
-              ) : null}
-
-              {temTuboEntreMeios ? Array.from({ length: Math.max(divs - 1, 0) }).map((_, index) => {
-                const tuboW = 10;
-                const x = x0 + side + panelW * (index + 1) - tuboW / 2;
-                return (
-                  <G key={`tubo-meio-${index}`}>
-                    <Rect x={x} y={glassY} width={tuboW} height={glassH} fill={tuboCor.fill} stroke={tuboCor.stroke} strokeWidth={0.7} />
-                    {Array.from({ length: laterais }).map((__, grapaIndex) => {
-                      const y = posicaoY(grapaIndex, laterais, 14);
-                      return (
-                        <G key={`grapa-tubo-${index}-${grapaIndex}`}>
-                          <Rect x={x - 10} y={y} width={10} height={14} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                          <Rect x={x + tuboW} y={y} width={10} height={14} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                        </G>
-                      );
-                    })}
-                  </G>
-                );
-              }) : null}
-
-              {Array.from({ length: laterais }).map((_, index) => {
-                const y = posicaoY(index, laterais, 17);
-                return (
-                  <G key={`grapa-lateral-${index}`}>
-                    <Rect x={x0 + 1} y={y} width={12} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                    <Rect x={x0 + drawW - 13} y={y} width={12} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-                  </G>
-                );
-              })}
-
-              {Array.from({ length: divs }).map((_, painelIndex) => {
-                const painelX = x0 + side + panelW * painelIndex;
-                return (
-                  <G key={`grapas-inf-painel-${painelIndex}`}>
-                    {Array.from({ length: inferiores }).map((__, index) => {
-                      const x = painelX + ((index + 1) / (inferiores + 1)) * panelW - 7;
-                      return <Rect key={`grapa-inf-${painelIndex}-${index}`} x={x} y={y0 + drawH - 10} width={14} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
-                    })}
-                  </G>
-                );
-              })}
-
-              {!temTuboEntreMeios ? Array.from({ length: Math.max(divs - 1, 0) }).map((_, uniaoIndex) => {
-                const x = x0 + side + panelW * (uniaoIndex + 1) - 11;
-                return (
-                  <G key={`grapas-1305-${uniaoIndex}`}>
-                    {Array.from({ length: grapasPorUniao }).map((__, index) => {
-                      const y = posicaoY(index, grapasPorUniao, 17);
-                      return <Rect key={`1305-${uniaoIndex}-${index}`} x={x} y={y} width={22} height={17} fill={PDF_COLORS.white} stroke={PDF_COLORS.muted} strokeWidth={0.7} />;
-                    })}
-                  </G>
-                );
-              }) : null}
-
-              <Line x1={x0} y1={y0 + drawH + 10} x2={x0 + drawW} y2={y0 + drawH + 10} stroke={PDF_COLORS.muted} strokeWidth={0.7} />
-              <Text x={x0 + drawW / 2 - 16} y={y0 + drawH + 22} style={{ fontSize: 7, fill: PDF_COLORS.ink }}>{larguraVaoMm} mm</Text>
-            </Svg>);
+  const cima = /em cima|largura/i.test(tuboDescricao || "");
+  const meio = /entre|meio/i.test(tuboDescricao || "");
+  const g = geometriaSacadaGrapa({ largura: larguraVaoMm, altura: alturaVaoMm, divisoes: divisoesPorVao, grapasLaterais: grapasLateraisPorVao, grapasInferiores: grapasInferioresPorVao, grapas1305PorUniao, tuboPosicao: cima && meio ? "em-cima-e-entre-meios" : cima ? "em-cima" : meio ? "entre-meios" : "sem" });
+  return <Svg viewBox={`0 0 ${g.width} ${g.height}`} width={width} height={height} preserveAspectRatio="xMidYMid meet">
+    {g.vidros.map((r, i) => <G key={`vidro-${i}`}><Rect {...r} fill="#F6F8F8" stroke="#9AAAB1" strokeWidth={1.1} /><Line x1={r.x + r.width * .18} y1={r.y + r.height * .65} x2={r.x + r.width * .56} y2={r.y + r.height * .12} stroke="#FFFFFF" strokeWidth={4} /></G>)}
+    {g.tubos.map((r, i) => <Rect key={`tubo-${i}`} {...r} fill="#E7ECEE" stroke="#A7B2B7" strokeWidth={1.1} />)}
+    {g.grapas.map((r, i) => <Rect key={`grapa-${i}`} {...r} fill="#FFFFFF" stroke="#9AAAB1" strokeWidth={1.1} />)}
+    {g.unioes.map((p, i) => <Circle key={`uniao-${i}`} cx={p.x} cy={p.y} r={3.2} fill="#FFFFFF" stroke="#9AAAB1" strokeWidth={1.1} />)}
+    <Line x1={g.left} y1={g.bottom + 55} x2={g.left + g.glassW} y2={g.bottom + 55} stroke="#A7B2B7" strokeWidth={.8} />
+    <Text x={g.left + g.glassW / 2} y={g.bottom + 75} textAnchor="middle" style={{fontSize:14,fill:"#7E8C93"}}>{larguraVaoMm} mm</Text>
+  </Svg>;
 }

@@ -1123,7 +1123,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                 disabled={salvando}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium uppercase tracking-wider transition-all active:scale-95 shadow-sm"
                 style={{ backgroundColor: "#F1F3E5", color: "#38444B", border: "1px solid #DCE2E4" }}
-              >
+               data-gc-save="true">
                 {salvando ? (
                   <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" />
                 ) : (
@@ -1340,12 +1340,8 @@ const acessoriosComPrecoTabela = useMemo(() => {
           <section className="gc-preview-section">
             <div className="gc-section-heading"><span className="gc-step">02</span><div><h2>Vista frontal do projeto</h2><p>Representação proporcional, atualizada conforme as medidas informadas.</p></div></div>
               <article className="rounded-xl border p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>
-                  Vista frontal
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>
-                  Representação proporcional do vão
-                </p>
+
+
                 <div className="mt-4">
                   {(() => {
                     const divisoes = Math.max(quantidadeDivisoesNumero, 1);

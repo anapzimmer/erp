@@ -2367,7 +2367,7 @@ router.push(
                   disabled={salvando}
                   className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text-secondary"
                   title="Salvar esta composição como Orçamento único."
-                >
+                 data-gc-save="true">
                   <Save size={16} />
                   {salvando ? "Salvando..." : "Salvar Orçamento"}
                 </button>

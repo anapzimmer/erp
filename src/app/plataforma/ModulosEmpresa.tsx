@@ -15,7 +15,7 @@ export default function ModulosEmpresa({ empresa, fechar }: { empresa: { id: str
  <label className="flex gap-3"><input type="checkbox" checked={gestao} onChange={e=>{setGestao(e.target.checked);if(!e.target.checked)setProducao(false)}}/>Gestão — pedidos e financeiro</label>
  <label className="flex gap-3"><input type="checkbox" checked={producao} onChange={e=>{setProducao(e.target.checked);if(e.target.checked)setGestao(true)}}/>Produção — estoque e planos de corte (exige Gestão)</label>
  <label className="block">Motivo da alteração<textarea className="mt-2 w-full rounded border p-2" maxLength={500} value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ex.: contratação do módulo Gestão"/></label>
- <button type="button" disabled={motivo.trim().length<3} onClick={()=>void salvar()} className="rounded border px-4 py-2 disabled:opacity-40">{salvando?"Salvando…":"Salvar liberações"}</button>
+ <button type="button" disabled={motivo.trim().length<3} onClick={()=>void salvar()} className="rounded border px-4 py-2 disabled:opacity-40" data-gc-save="true">{salvando?"Salvando…":"Salvar liberações"}</button>
  </fieldset>
  <div className="mt-6 text-sm"><p>Últimas alterações</p>{historico.map((h,i)=><p className="mt-2 border-t pt-2" key={i}>{new Date(h.criado_em).toLocaleString("pt-BR")} · Gestão: {h.novo.gestao?"ativa":"inativa"} · Produção: {h.novo.producao?"ativa":"inativa"} · {h.motivo}</p>)}</div>
  </ConfiguracaoModal>

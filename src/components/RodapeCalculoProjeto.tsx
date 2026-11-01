@@ -19,7 +19,7 @@ export default function RodapeCalculoProjeto({ area, pecas, total, documento, ar
         <BotaoImprimirPDF documento={documento} arquivo={arquivo} className={botao} />
         <button type="button" className={botao} onClick={onEnviar}><FileText size={17}/>PDF +</button>
         <Link href="/central-impressao" className={botao}><FolderOpen size={17}/>Central</Link>
-        <button type="button" onClick={onSalvar} disabled={salvando} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary disabled:opacity-60"><Save size={17}/>{salvando ? "Salvando..." : "Salvar orçamento"}</button>
+        <button type="button" onClick={onSalvar} disabled={salvando} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-on-primary disabled:opacity-60" data-gc-save="true"><Save size={17}/>{salvando ? "Salvando..." : "Salvar orçamento"}</button>
       </div>
     </div>
   </footer>;

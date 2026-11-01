@@ -35,7 +35,7 @@ export default function ConfiguracaoMedidaVidro() {
       try { await salvar({ limite_mm: Number(limite), percentual: Number(percentual) }); setMensagem("Regra salva para a empresa."); }
       catch (e) { setMensagem(e instanceof Error ? e.message : "Não foi possível salvar."); }
       finally { setOcupado(false); }
-    }}>{ocupado ? "Salvando…" : "Salvar regra"}</button>
+    }} data-gc-save="true">{ocupado ? "Salvando…" : "Salvar regra"}</button>
     </div>
     </ConfiguracaoModal>
   </>;

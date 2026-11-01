@@ -772,7 +772,7 @@ export default function CadastroClientes({ somenteNovo = false, onClose, onCreat
 
             <div className="flex items-center justify-end gap-3 border-t border-border bg-surface px-5 py-4 md:px-7">
               <button onClick={fecharModal} className="rounded-xl bg-surface-secondary px-5 py-2.5 text-sm font-medium text-text-secondary hover:bg-border">Cancelar</button>
-              <button onClick={salvarCliente} disabled={carregando || consultandoCnpj} className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-60" style={{ backgroundColor: theme.buttonDarkBg }}>
+              <button onClick={salvarCliente} disabled={carregando || consultandoCnpj} className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-60" style={{ backgroundColor: theme.buttonDarkBg }} data-gc-save="true">
                 {carregando && <Loader2 size={17} className="animate-spin" />}{editando ? "Salvar alterações" : "Cadastrar cliente"}
               </button>
             </div>

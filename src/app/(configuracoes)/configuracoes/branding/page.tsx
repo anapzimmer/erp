@@ -210,7 +210,7 @@ const handleSave = async () => {
               ))}
             </div>
             {errorMessage && <p role="alert" className="text-danger">{errorMessage}</p>}
-            <button className="gc-action" onClick={handleSave} disabled={loading || !empresaId}><Save size={17} />{loading ? "Salvando…" : "Salvar logos"}</button>
+            <button className="gc-action" onClick={handleSave} disabled={loading || !empresaId} data-gc-save="true"><Save size={17} />{loading ? "Salvando…" : "Salvar logos"}</button>
           </section>
         </main>
       </div>

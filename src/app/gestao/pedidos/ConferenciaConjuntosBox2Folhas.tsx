@@ -337,7 +337,7 @@ function Vao({
         }}
       >
         <button type="button" className={styles.primary} onClick={() => void salvar()}
-          disabled={bloqueado || "erro" in previa || (!!salvo && !alterado)}>
+          disabled={bloqueado || "erro" in previa || (!!salvo && !alterado)} data-gc-save="true">
           {salvando ? "Salvando…" : "Salvar conferência"}
         </button>
         <button

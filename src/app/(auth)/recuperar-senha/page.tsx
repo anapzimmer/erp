@@ -432,7 +432,7 @@ export default function RecuperarSenhaPage() {
               type="submit"
               disabled={loading}
               className="w-full h-12 rounded-xl bg-[#38444B] text-white text-sm font-semibold flex items-center justify-center gap-2 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-            >
+             data-gc-save="true">
               {loading ? (
                 <>
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />

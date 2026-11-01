@@ -834,7 +834,7 @@ export default function CalculoSacadaTorrePage() {
                   disabled={salvando}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
                   style={{ backgroundColor: "#F1F3E5", color: "#38444B", border: "1px solid #DCE2E4" }}
-                >
+                 data-gc-save="true">
                   {salvando ? <div className="w-4 h-4 border-2 border-border border-t-white rounded-full animate-spin" /> : <Save size={16} />}
                   Salvar
                 </button>
@@ -1022,8 +1022,8 @@ export default function CalculoSacadaTorrePage() {
               <section className="gc-preview-section">
                 <div className="gc-section-heading"><span className="gc-step">02</span><div><h2>Vista frontal do projeto</h2><p>Representação proporcional, atualizada conforme as medidas e divisões informadas.</p></div></div>
                 <article className="rounded-xl border p-4 shadow-none" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 6%, transparent)` }}>
-                  <h2 className="text-lg font-medium" style={{ color: theme.contentTextLightBg }}>Vista frontal</h2>
-                  <p className="mt-1 text-sm" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 60%, transparent)` }}>Representação proporcional do vão</p>
+
+
                   <div className="mt-4 w-full p-2">
                     <div className="w-full" dangerouslySetInnerHTML={{ __html: svgSacada }} />
                   </div>

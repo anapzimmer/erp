@@ -76,10 +76,10 @@ const projetos = [
     },
     {
       "id": "fechamentosacada",
-      "nome": "Fechamento de sacada",
+      "nome": "Fechamento de Sacada com Guarda-corpo",
       "categoria": "Sacadas",
       "titulo": "Painéis e divisões",
-      "descricao": "Configure o fechamento de sacada conforme as medidas do vão.",
+      "descricao": "Escolha o guarda-corpo inferior e configure o fechamento superior.",
       "status": "Disponível",
       "imagem": "/desenhos/matriz-fechamentosacada.svg",
       "kitHref": "/calculo/fechamentosacada",

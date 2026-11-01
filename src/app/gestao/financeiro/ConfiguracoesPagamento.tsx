@@ -426,7 +426,7 @@ export default function ConfiguracoesPagamento({
               type="submit"
               className={styles.primary}
               disabled={salvando}
-            >
+             data-gc-save="true">
               {salvando
                 ? "Salvando…"
                 : editando

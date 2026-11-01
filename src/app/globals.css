@@ -2,6 +2,33 @@
 @import "../design/tokens.css";
 @import "../design/components.css";
 
+/* Ação de salvar: identidade consistente inclusive nas telas com tema inline. */
+button[data-gc-save="true"] {
+  background-color: var(--primary) !important;
+  color: var(--on-primary) !important;
+  border-color: var(--primary) !important;
+  background-image: none !important;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+button[data-gc-save="true"]:hover:not(:disabled) {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+}
+button[data-gc-save="true"]:active:not(:disabled) {
+  background-color: var(--primary-active) !important;
+}
+button[data-gc-save="true"]:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+button[data-gc-save="true"]:focus-visible {
+  outline: 2px solid #71812a;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  button[data-gc-save="true"] { transition: none; }
+}
+
 :root {
   --font-app: var(--font-inter), Arial, sans-serif;
 }

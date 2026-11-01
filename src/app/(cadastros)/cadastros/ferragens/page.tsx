@@ -975,7 +975,7 @@ export default function FerragensPage() {
                 disabled={carregando}
                 className="rounded-2xl px-8 py-3 text-sm font-semibold shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: darkTertiary, color: "#FFFFFF" }}
-              >
+               data-gc-save="true">
                 {carregando ? "Processando..." : (editando ? "Atualizar" : "Salvar Ferragem")}
               </button>
             </div>
