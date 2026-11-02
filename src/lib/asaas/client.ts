@@ -8,6 +8,58 @@ type AsaasRequestOptions = {
   body?: unknown;
 };
 
+export class AsaasApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly codigo: string,
+    public readonly descricao: string
+  ) {
+    super(`ASAAS_HTTP_${status}: ${codigo} - ${descricao}`);
+    this.name = "AsaasApiError";
+  }
+}
+
+function extrairErroAsaas(
+  texto: string
+): { codigo: string; descricao: string } {
+  try {
+    const resposta: unknown = JSON.parse(texto);
+
+    if (typeof resposta !== "object" || resposta === null) {
+      return {
+        codigo: "RESPOSTA_INVALIDA",
+        descricao: "Resposta de erro não estruturada.",
+      };
+    }
+
+    const dados = resposta as Record<string, unknown>;
+    const erros = Array.isArray(dados.errors) ? dados.errors : [];
+    const primeiro = erros[0];
+
+    if (typeof primeiro === "object" && primeiro !== null) {
+      const erro = primeiro as Record<string, unknown>;
+
+      return {
+        codigo:
+          typeof erro.code === "string"
+            ? erro.code.slice(0, 100)
+            : "ERRO_ASAAS",
+        descricao:
+          typeof erro.description === "string"
+            ? erro.description.slice(0, 300)
+            : "O Asaas rejeitou a solicitação.",
+      };
+    }
+  } catch {
+    // Não expor respostas não estruturadas.
+  }
+
+  return {
+    codigo: "ERRO_ASAAS",
+    descricao: "O Asaas não retornou detalhes estruturados.",
+  };
+}
+
 export async function asaasRequest<T>(
   path: string,
   options: AsaasRequestOptions = {}
@@ -20,7 +72,9 @@ export async function asaasRequest<T>(
   }
 
   if (ambiente !== "sandbox") {
-    throw new Error("Integração Asaas limitada ao Sandbox nesta etapa.");
+    throw new Error(
+      "Integração Asaas limitada ao Sandbox nesta etapa."
+    );
   }
 
   if (!path.startsWith("/") || path.startsWith("//")) {
@@ -31,6 +85,7 @@ export async function asaasRequest<T>(
     method: options.method ?? "GET",
     headers: {
       access_token: apiKey,
+      "User-Agent": "GlassCode/1.0",
       accept: "application/json",
       "Content-Type": "application/json",
     },
@@ -43,9 +98,12 @@ export async function asaasRequest<T>(
   const texto = await response.text();
 
   if (!response.ok) {
-    // Não registrar a chave, os dados financeiros ou a resposta completa.
-    throw new Error(
-      `Falha na comunicação com o Asaas (HTTP ${response.status}).`
+    const erro = extrairErroAsaas(texto);
+
+    throw new AsaasApiError(
+      response.status,
+      erro.codigo,
+      erro.descricao
     );
   }
 
@@ -53,5 +111,9 @@ export async function asaasRequest<T>(
     throw new Error("O Asaas retornou uma resposta vazia.");
   }
 
-  return JSON.parse(texto) as T;
+  try {
+    return JSON.parse(texto) as T;
+  } catch {
+    throw new Error("O Asaas retornou JSON inválido.");
+  }
 }

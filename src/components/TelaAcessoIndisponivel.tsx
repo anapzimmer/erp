@@ -52,11 +52,47 @@ export default function TelaAcessoIndisponivel({ titulo, texto, testeExpirado, e
           <p>{texto}</p>
           {children}
         </div>
-        <div className={styles.actions}>
-          {!erro && <a className={styles.primary} href={`https://wa.me/5546988271599?text=${encodeURIComponent(mensagem)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />{testeExpirado ? "Quero continuar com o Glass Code" : "Falar com o atendimento"}<ArrowUpRight size={17} /></a>}
-          {testeExpirado && <Link className={styles.secondary} href="/planos">Conhecer os planos <ArrowUpRight size={16} /></Link>}
-          <button className={erro ? styles.primary : styles.secondary} onClick={verificar}><RefreshCw size={15} />{erro ? "Tentar novamente" : "Verificar situação novamente"}</button>
-        </div>
+     
+<div className={styles.actions}>
+  {testeExpirado && !erro ? (
+    <>
+      <Link className={styles.primary} href="/contratar">
+        Escolher meu plano
+        <ArrowUpRight size={17} />
+      </Link>
+
+      <a
+        className={styles.secondary}
+        href={`https://wa.me/5546988271599?text=${encodeURIComponent(mensagem)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <MessageCircle size={17} />
+        Falar com o atendimento
+      </a>
+    </>
+  ) : !erro ? (
+    <a
+      className={styles.primary}
+      href={`https://wa.me/5546988271599?text=${encodeURIComponent(mensagem)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <MessageCircle size={18} />
+      Falar com o atendimento
+      <ArrowUpRight size={17} />
+    </a>
+  ) : null}
+
+  <button
+    className={erro ? styles.primary : styles.secondary}
+    onClick={verificar}
+  >
+    <RefreshCw size={15} />
+    {erro ? "Tentar novamente" : "Verificar situação novamente"}
+  </button>
+</div>
+
         <p className={styles.hint}>{erro ? "Assim que a conexão for restabelecida, verificaremos seu acesso." : "Já conversou com a equipe? Verifique novamente após a confirmação da liberação."}</p>
         <button className={styles.exit} disabled={saindo} onClick={async () => {
           setSaindo(true); setFalhaSaida(false);
