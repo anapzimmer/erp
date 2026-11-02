@@ -18,7 +18,6 @@ import {
   precosPlanosCentavos,
   moedaComercial,
 } from "@/config/comercial";
-import { documentoFiscalValido } from "@/utils/validarDocumentoFiscal";
 import CarregamentoAcesso from "@/components/CarregamentoAcesso";
 import styles from "./contratar.module.css";
 
@@ -43,12 +42,6 @@ const planos = [
 type Plano = (typeof planos)[number]["id"];
 type Pagamento = "PIX" | "CREDIT_CARD";
 
-type DadosFaturamento = {
-  nome: string;
-  documento: string;
-  email: string;
-};
-
 type RespostaPagamento = {
   url?: string;
   erro?: string;
@@ -59,34 +52,13 @@ export default function ContratarPage() {
   const router = useRouter();
 
   const [verificando, setVerificando] = useState(true);
-  const [mostrarSucesso, setMostrarSucesso] = useState(false);
   const [empresaAutorizada, setEmpresaAutorizada] = useState(false);
   const [erroContratacao, setErroContratacao] = useState<string | null>(null);
 
   const [plano, setPlano] = useState<Plano>("essencial");
   const [pagamento, setPagamento] = useState<Pagamento>("CREDIT_CARD");
 
-  const [faturamento, setFaturamento] = useState<DadosFaturamento>({
-    nome: "",
-    documento: "",
-    email: "",
-  });
-
-  const [tentouContinuar, setTentouContinuar] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
-
-  const documentoCorreto = documentoFiscalValido(
-    faturamento.documento
-  );
-
-  const nomeCorreto = faturamento.nome.trim().length >= 2;
-
-  const emailCorreto = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-    faturamento.email.trim()
-  );
-
-  const faturamentoValido =
-    nomeCorreto && documentoCorreto && emailCorreto;
 
   useEffect(() => {
     let ativo = true;
@@ -136,7 +108,7 @@ export default function ContratarPage() {
         if (resultado.autorizado && resultado.empresaId) {
           setEmpresaAutorizada(true);
           setErroContratacao(null);
-          setMostrarSucesso(true);
+          
         } else {
           setErroContratacao(
             "Não foi possível identificar a empresa responsável pela contratação."
@@ -162,28 +134,10 @@ export default function ContratarPage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (!mostrarSucesso) return;
-
-    const timer = window.setTimeout(() => {
-      setMostrarSucesso(false);
-    }, 500);
-
-    return () => window.clearTimeout(timer);
-  }, [mostrarSucesso]);
-
   async function continuarPagamento() {
-    setTentouContinuar(true);
     setErroContratacao(null);
 
     if (processandoPagamento || !empresaAutorizada) {
-      return;
-    }
-
-    if (!faturamentoValido) {
-      setErroContratacao(
-        "Confira o nome, o CPF/CNPJ e o e-mail antes de continuar."
-      );
       return;
     }
 
@@ -214,9 +168,6 @@ export default function ContratarPage() {
         body: JSON.stringify({
           plano,
           pagamento,
-          nome: faturamento.nome.trim(),
-          documento: faturamento.documento,
-          email: faturamento.email.trim(),
         }),
       });
 
@@ -264,8 +215,8 @@ export default function ContratarPage() {
     }
   }
 
-  if (verificando || mostrarSucesso) {
-    return <CarregamentoAcesso sucesso={mostrarSucesso} />;
+  if (verificando) {
+    return <CarregamentoAcesso sucesso={false} />;
   }
 
   return (
@@ -376,7 +327,7 @@ export default function ContratarPage() {
             <div className={styles.checkoutLeft}>
               <div className={styles.checkoutIntro}>
                 <span className={styles.step}>
-                  02 / PAGAMENTO
+                  02 / PAGAMENTO SEGURO
                 </span>
                 <h2>Finalize sua contratação</h2>
                 <p>
@@ -388,7 +339,7 @@ export default function ContratarPage() {
                 <button
                   type="button"
                   aria-pressed={pagamento === "PIX"}
-                  disabled={processandoPagamento}
+                  disabled
                   onClick={() => setPagamento("PIX")}
                   className={`${styles.paymentOption} ${
                     pagamento === "PIX"
@@ -399,7 +350,7 @@ export default function ContratarPage() {
                   <span className={styles.paymentIcon}>
                     ◆
                   </span>
-                  <span>Pix</span>
+                  <span>Pix (em breve)</span>
                   {pagamento === "PIX" && (
                     <Check size={16} />
                   )}
@@ -428,88 +379,6 @@ export default function ContratarPage() {
                 </button>
               </div>
 
-              <div className={styles.billing}>
-                <div className={styles.checkoutIntro}>
-                  <span className={styles.step}>
-                    03 / DADOS DE FATURAMENTO
-                  </span>
-
-                  <h2>Dados para cobrança</h2>
-
-                  <p>
-                    Confirme os dados que serão utilizados
-                    na assinatura do Glass Code.
-                  </p>
-                </div>
-
-                <div className={styles.billingFields}>
-                  <label>
-                    Nome ou razão social
-                    <input
-                      type="text"
-                      autoComplete="organization"
-                      maxLength={150}
-                      disabled={processandoPagamento}
-                      value={faturamento.nome}
-                      onChange={(event) =>
-                        setFaturamento((atual) => ({
-                          ...atual,
-                          nome: event.target.value,
-                        }))
-                      }
-                      placeholder="Nome ou razão social"
-                    />
-                  </label>
-
-                  <label>
-                    CPF ou CNPJ
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      maxLength={18}
-                      disabled={processandoPagamento}
-                      value={faturamento.documento}
-                      onChange={(event) =>
-                        setFaturamento((atual) => ({
-                          ...atual,
-                          documento: event.target.value,
-                        }))
-                      }
-                      placeholder="Informe um CPF ou CNPJ válido"
-                    />
-                  </label>
-
-                  <label>
-                    E-mail para cobrança
-                    <input
-                      type="email"
-                      autoComplete="email"
-                      maxLength={254}
-                      disabled={processandoPagamento}
-                      value={faturamento.email}
-                      onChange={(event) =>
-                        setFaturamento((atual) => ({
-                          ...atual,
-                          email: event.target.value,
-                        }))
-                      }
-                      placeholder="email@empresa.com.br"
-                    />
-                  </label>
-                </div>
-
-                {tentouContinuar &&
-                  !faturamentoValido && (
-                    <p
-                      role="alert"
-                      className={styles.pending}
-                    >
-                      Confira o nome, o CPF/CNPJ e
-                      o e-mail antes de continuar.
-                    </p>
-                  )}
-              </div>
             </div>
 
             <div className={styles.checkoutRight}>
