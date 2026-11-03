@@ -40,11 +40,12 @@ const planos = [
 ] as const;
 
 type Plano = (typeof planos)[number]["id"];
-type Pagamento = "PIX" | "CREDIT_CARD";
+type Pagamento = "PIX" | "CREDIT_CARD" | "BOLETO";
 
 type RespostaPagamento = {
   url?: string;
   erro?: string;
+  mensagem?: string;
   reutilizado?: boolean;
 };
 
@@ -141,10 +142,8 @@ export default function ContratarPage() {
       return;
     }
 
-    if (pagamento !== "CREDIT_CARD") {
-      setErroContratacao(
-        "Por enquanto, a assinatura está disponível apenas por cartão de crédito."
-      );
+    if (pagamento === "PIX") {
+      setErroContratacao("Pix ainda não está disponível.");
       return;
     }
 
@@ -158,7 +157,11 @@ export default function ContratarPage() {
         return;
       }
 
-      const resposta = await fetch("/api/asaas/contratar", {
+      const resposta = await fetch(
+        pagamento === "BOLETO"
+          ? "/api/asaas/contratar-boleto"
+          : "/api/asaas/contratar",
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +172,8 @@ export default function ContratarPage() {
           plano,
           pagamento,
         }),
-      });
+        }
+      );
 
       const resultado: RespostaPagamento = await resposta.json();
 
@@ -178,6 +182,14 @@ export default function ContratarPage() {
           resultado.erro ||
             "Não foi possível iniciar o pagamento."
         );
+      }
+
+      if (resposta.status === 202) {
+        setErroContratacao(
+          resultado.mensagem ??
+            "O Asaas está preparando sua cobrança. Consulte novamente em instantes."
+        );
+        return;
       }
 
       if (!resultado.url) {
@@ -377,6 +389,27 @@ export default function ContratarPage() {
                     <Check size={16} />
                   )}
                 </button>
+
+                
+<button
+  type="button"
+  aria-pressed={pagamento === "BOLETO"}
+  disabled={processandoPagamento}
+  onClick={() => {
+    setPagamento("BOLETO");
+    setErroContratacao(null);
+  }}
+  className={`${styles.paymentOption} ${
+    pagamento === "BOLETO"
+      ? styles.paymentSelected
+      : ""
+  }`}
+>
+  <span className={styles.paymentIcon}>▤</span>
+  <span>Boleto bancário</span>
+  {pagamento === "BOLETO" && <Check size={16} />}
+</button>
+
               </div>
 
             </div>
@@ -404,9 +437,11 @@ export default function ContratarPage() {
 
                 <small>
                   Mensalidade ·{" "}
-                  {pagamento === "PIX"
-                    ? "Pix"
-                    : "Cartão"}
+                 {pagamento === "PIX"
+  ? "Pix"
+  : pagamento === "BOLETO"
+    ? "Boleto bancário · 1º vencimento em 3 dias"
+    : "Cartão"}
                 </small>
               </div>
 
