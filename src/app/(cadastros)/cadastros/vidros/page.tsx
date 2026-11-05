@@ -656,7 +656,7 @@ useEffect(() => {
           onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: theme.menuIconColor }} />
+            <Icon className="w-5 h-5" style={{ color: "var(--info)" }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
         </div>
@@ -753,7 +753,7 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
                   style={{
                     backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
-                    color: theme.menuIconColor,
+                    color: "var(--info)",
                   }}
                 >
                   <Square size={23} strokeWidth={1.8} />
@@ -869,7 +869,7 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                   style={{
-                    color: theme.menuIconColor,
+                    color: "var(--info)",
                     backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`,
                   }}
                 >
@@ -1261,7 +1261,7 @@ const logoLight = branding?.logo_light || branding?.logo_dark || null;
                     <button
                       onClick={() => setPrecosGruposModal([...precosGruposModal, { id: "", vidro_id: editando?.id || "", grupo_preco_id: "", preco: 0, grupo_nome: "" }])}
                       className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition hover:bg-surface-secondary"
-                      style={{ color: "var(--primary)" }}
+                      style={{ color: "var(--info)" }}
                     >
                       <PlusCircle size={14} /> Adicionar
                     </button>

@@ -2367,7 +2367,7 @@ export default function RelatorioOrcamento() {
                         }`}
                       >
                         <span>Sem Serviço Adicional</span>
-                        {!servicoSelecionado && <PackageCheck size={14} className="text-primary" />}
+                        {!servicoSelecionado && <PackageCheck size={14} className="text-info" />}
                       </div>
 
                       {listaServicos.map((s) => {
@@ -3101,7 +3101,7 @@ export default function RelatorioOrcamento() {
 
               <div
                 className="p-2 rounded-xl shrink-0"
-                style={{ color: theme.menuIconColor }}
+                style={{ color: "var(--info)" }}
               >
                 <Sparkles size={20} />
               </div>
@@ -3118,7 +3118,7 @@ export default function RelatorioOrcamento() {
                 </div>
 
                 <p className="text-[11px] text-text-secondary mt-0.5 font-sans">
-                  Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
+                  Ref: <span className="font-bold" style={{ color: "var(--info)" }}>{ultimoNumeroGerado}</span>
                 </p>
 
                 <button

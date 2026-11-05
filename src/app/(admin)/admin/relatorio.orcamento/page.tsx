@@ -843,7 +843,7 @@ export default function RelatorioOrcamento() {
                             <div>
                                 <div
                                     className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]"
-                                    style={{ color: theme.menuIconColor }}
+                                    style={{ color: "var(--info)" }}
                                 >
                                     <ClipboardList size={15} />
                                     Orçamentos
@@ -872,7 +872,7 @@ export default function RelatorioOrcamento() {
 
                         <div className={styles.metrics}>
                             {[
-                                { label: "Valor total", valor: valorTotalOrcamentos, icon: ClipboardList, color: theme.menuIconColor },
+                                { label: "Valor total", valor: valorTotalOrcamentos, icon: ClipboardList, color: "var(--info)" },
                                 { label: "Orçado hoje", valor: totais.diario, icon: CalendarDays, color: "#0f8b8d" },
                                 { label: "Orçado na semana", valor: totais.semanal, icon: CalendarRange, color: "#587ca5" },
                                 { label: "Orçado no mês", valor: totais.mensal, icon: CalendarClock, color: "#7c6bb3" },
@@ -929,7 +929,7 @@ export default function RelatorioOrcamento() {
                                     type="button"
                                     onClick={() => aplicarPeriodoRapido(30)}
                                     className="h-11 rounded-xl border px-4 text-sm font-bold transition"
-                                    style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 33%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)`, color: theme.menuIconColor }}
+                                    style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 33%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)`, color: "var(--info)" }}
                                 >
                                     30 dias
                                 </button>
@@ -973,7 +973,7 @@ export default function RelatorioOrcamento() {
                                     <h2 className="text-lg font-black" style={{ color: theme.contentTextLightBg }}>Orçamentos encontrados</h2>
                                     <span
                                         className="rounded-full px-2.5 py-1 text-xs font-bold"
-                                        style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}
+                                        style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: "var(--info)" }}
                                     >
                                         {orcamentosFiltrados.length}
                                     </span>
@@ -1054,8 +1054,8 @@ export default function RelatorioOrcamento() {
                                                 <span
                                                     className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide"
                                                     style={{
-                                                        backgroundColor: expiraHoje ? "var(--danger-soft)" : urgente ? "var(--warning-soft)" : `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`,
-                                                        color: expiraHoje ? "var(--danger)" : urgente ? "var(--warning)" : theme.menuIconColor,
+                                                        backgroundColor: expiraHoje ? "var(--danger-soft)" : urgente ? "var(--warning-soft)" : "var(--primary)",
+                                                        color: expiraHoje ? "var(--danger)" : urgente ? "var(--warning)" : "var(--on-primary)",
                                                     }}
                                                 >
                                                     {expiraHoje ? "Expira hoje" : urgente ? "Atenção" : "Ativo"}
@@ -1080,7 +1080,7 @@ export default function RelatorioOrcamento() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Valor</p>
-                                                    <p className="mt-1 text-sm " style={{ color: theme.menuIconColor }}>{valorFormatado}</p>
+                                                    <p className="mt-1 text-sm " style={{ color: "var(--info)" }}>{valorFormatado}</p>
                                                 </div>
                                             </div>
 
@@ -1140,7 +1140,7 @@ export default function RelatorioOrcamento() {
                             <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3">
                                 <span className="text-xs font-semibold text-text-secondary">Exibindo {orcamentosFiltrados.length} de {orcamentos.length} orçamentos</span>
                                 {(filtro || dataInicio || dataFim) && (
-                                    <button type="button" onClick={limparFiltros} className="text-xs font-bold" style={{ color: theme.menuIconColor }}>Mostrar todos</button>
+                                    <button type="button" onClick={limparFiltros} className="text-xs font-bold" style={{ color: "var(--info)" }}>Mostrar todos</button>
                                 )}
                             </div>
                         )}
@@ -1172,7 +1172,7 @@ export default function RelatorioOrcamento() {
                     >
                         <div
                             className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
-                            style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 13%, transparent)`, color: theme.menuIconColor }}
+                            style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 13%, transparent)`, color: "var(--info)" }}
                         >
                             <Trash2 size={20} />
                         </div>

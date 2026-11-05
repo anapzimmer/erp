@@ -4,12 +4,13 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, Users, History, Wallet, ArrowLeft, ShieldCheck, Headphones } from "lucide-react";
+import { Building2, Users, History, Wallet, CreditCard, ArrowLeft, ShieldCheck, Headphones } from "lucide-react";
 import SituacaoContaModal, { type AlvoSituacao } from "./SituacaoContaModal";
 import { dataBrasil, type SituacaoDados, type Situacao } from "@/lib/situacaoConta";
 import SituacaoBadge from "./SituacaoBadge";
 import HistoricoAcessos from "./HistoricoAcessos";
 import FinanceiroPanel from "./Financeiro";
+import AsaasPanel from "./AsaasPanel";
 import styles from "./plataforma.module.css";
 import { consultarPlataforma } from "@/lib/plataforma";
 import SuportePanel from "./SuportePanel";
@@ -31,9 +32,9 @@ function PlataformaConteudo() {
   const [usuarioFinanceiro,setUsuarioFinanceiro]=useState<Usuario|null>(null);
   const [empresaModulos,setEmpresaModulos]=useState<Empresa|null>(null);
   const parametros = useSearchParams();
-  useEffect(() => { if (parametros.get('aba') === 'suporte') setAba('suporte'); }, [parametros]);
   const [painel, setPainel] = useState<Painel | null>(null);
-  const [aba, setAba] = useState<"empresas" | "usuarios" | "historico" | "financeiro" | "acessos" | "suporte">("empresas");
+  const [aba, setAba] = useState<"empresas" | "usuarios" | "historico" | "financeiro" | "acessos" | "suporte" | "asaas">("empresas");
+  useEffect(() => { const destino = parametros.get('aba'); if (destino === 'suporte' || destino === 'asaas') setAba(destino); }, [parametros]);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
   const [pagina, setPagina] = useState(0);
@@ -86,6 +87,7 @@ function PlataformaConteudo() {
   { id: "empresas", nome: "Empresas", Icon: Building2 },
   { id: "usuarios", nome: "Usuários", Icon: Users },
   { id: "financeiro", nome: "Financeiro", Icon: Wallet },
+  { id: "asaas", nome: "Assinaturas Asaas", Icon: CreditCard },
   { id: "suporte", nome: "Suporte", Icon: Headphones },
   { id: "acessos", nome: "Histórico de acessos", Icon: History },
   { id: "historico", nome: "Bloqueios e liberações", Icon: ShieldCheck },
@@ -109,16 +111,18 @@ function PlataformaConteudo() {
     <div className={`${styles.workspace} space-y-6`}>
       <div className={styles.topline}><span>GLASS CODE / CONTROLE DA PLATAFORMA</span><span className={styles.owner}><ShieldCheck size={14} />Acesso da proprietária</span></div>
       <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-6">
-        <div><p className="text-xs uppercase tracking-widest text-text-secondary">Glass Code · Administração da plataforma</p><h1 className="mt-2 text-2xl font-medium">{aba === "financeiro" ? "Gestão financeira" : aba === "usuarios" ? "Usuários da plataforma" : aba === "acessos" ? "Histórico de acessos" : aba === "historico" ? "Bloqueios e liberações" : "Empresas e relacionamento"}</h1><p className="mt-1 text-sm text-text-secondary">{aba === "financeiro" ? "Mensalidades, vencimentos e acompanhamento de recebimentos." : "Acompanhe sua base de clientes e gerencie o acesso ao Glass Code."}</p></div>
+        <div><p className="text-xs uppercase tracking-widest text-text-secondary">Glass Code · Administração da plataforma</p><h1 className="mt-2 text-2xl font-medium">{aba === "asaas" ? "Assinaturas Asaas" : aba === "financeiro" ? "Gestão financeira" : aba === "usuarios" ? "Usuários da plataforma" : aba === "acessos" ? "Histórico de acessos" : aba === "historico" ? "Bloqueios e liberações" : "Empresas e relacionamento"}</h1><p className="mt-1 text-sm text-text-secondary">{aba === "asaas" ? "Vincule as assinaturas às empresas para liberar o acesso após a confirmação do pagamento." : aba === "financeiro" ? "Mensalidades, vencimentos e acompanhamento de recebimentos." : "Acompanhe sua base de clientes e gerencie o acesso ao Glass Code."}</p></div>
         <div className="flex gap-2"><Link className={botao} href="/dashboard">Voltar ao ERP</Link><button className={botao} disabled={carregando || salvando} onClick={() => void carregar()}>Atualizar</button></div>
       </header>
       {erro && <p role="alert" className="rounded-xl border border-danger-soft bg-danger-soft p-4 text-sm text-danger">{erro}</p>}
       {aviso && <p role="status" className="rounded-xl border border-border bg-surface p-4 text-sm">{aviso}</p>}
       {!painel && carregando && <p role="status">Verificando acesso ao painel…</p>}
+      {painel && aba === "asaas" && <AsaasPanel key={parametros.get("empresa") || "nova"} empresaId={parametros.get("empresa") || ""} />}
       {painel && aba === "financeiro" && <FinanceiroPanel />}
       {painel && aba === "acessos" && <HistoricoAcessos />}
       {painel && aba === "suporte" && <SuportePanel />}
       {painel &&
+        aba !== "asaas" &&
         aba !== "financeiro" &&
         aba !== "acessos" &&
         aba !== "suporte" && <>
@@ -132,7 +136,7 @@ function PlataformaConteudo() {
             <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-surface-secondary text-xs uppercase text-text-secondary"><tr>
               {(aba === 'empresas' ? ['Empresa', 'Usuários', 'Acesso', 'Ação'] : aba === 'usuarios' ? ['Usuário', 'Empresa', 'Situação', 'Último acesso', 'Ação'] : ['Data', 'Cadastro', 'Alteração', 'Motivo']).map(t => <th key={t} className="px-5 py-3 font-medium">{t}</th>)}
             </tr></thead><tbody className="divide-y divide-border">
-                {aba === 'empresas' && painel.empresas.map(e => <tr key={e.id}><td className="px-5 py-4"><div className={styles.companyName}><span className={styles.companyAvatar} aria-hidden="true">{e.nome.slice(0,2).toLocaleUpperCase("pt-BR")}</span><span>{e.nome}</span></div></td><td className="px-5 py-4"><span className={styles.userCount}>{e.usuarios}</span></td><td className="px-5 py-4"><SituacaoBadge situacao={e.situacao || (e.bloqueado ? 'suspensa_outro' : 'ativa')} />{e.prazo && <p className="mt-1 text-xs text-text-secondary">{e.prazo < dataBrasil() ? "Prazo vencido · conferir" : "Regularizar até"}: {e.prazo.split("-").reverse().join("/")}</p>}{e.bloqueado && <p className="mt-1 max-w-xs text-xs text-text-secondary">{e.motivo}</p>}</td><td className="px-5 py-4"><div className={styles.companyActions}><button className={botao} onClick={()=>setEmpresaModulos(e)}>Módulos</button>{e.protegida ? 'Sua empresa' : <button className={botao} disabled={carregando || salvando} onClick={() => abrir('empresa', e.id, e.nome, e.bloqueado)}>Gerenciar situação</button>}</div></td></tr>)}
+                {aba === 'empresas' && painel.empresas.map(e => <tr key={e.id}><td className="px-5 py-4"><div className={styles.companyName}><span className={styles.companyAvatar} aria-hidden="true">{e.nome.slice(0,2).toLocaleUpperCase("pt-BR")}</span><span>{e.nome}</span></div></td><td className="px-5 py-4"><span className={styles.userCount}>{e.usuarios}</span></td><td className="px-5 py-4"><SituacaoBadge situacao={e.situacao || (e.bloqueado ? 'suspensa_outro' : 'ativa')} />{e.prazo && <p className="mt-1 text-xs text-text-secondary">{e.prazo < dataBrasil() ? "Prazo vencido · conferir" : "Regularizar até"}: {e.prazo.split("-").reverse().join("/")}</p>}{e.bloqueado && <p className="mt-1 max-w-xs text-xs text-text-secondary">{e.motivo}</p>}</td><td className="px-5 py-4"><div className={styles.companyActions}><button className={botao} onClick={()=>setEmpresaModulos(e)}>Módulos</button><Link className={botao} href={`/plataforma?aba=asaas&empresa=${encodeURIComponent(e.id)}`}>Assinatura Asaas</Link>{e.protegida ? 'Sua empresa' : <button className={botao} disabled={carregando || salvando} onClick={() => abrir('empresa', e.id, e.nome, e.bloqueado)}>Gerenciar situação</button>}</div></td></tr>)}
                 {aba === 'usuarios' && painel.usuarios.map(u => <tr key={u.id}><td className="px-5 py-4">{u.email}<p className="mt-1 text-xs text-text-secondary">{u.confirmado ? 'E-mail confirmado' : 'Confirmação pendente'}</p></td><td className="px-5 py-4">{u.empresa || 'Sem empresa vinculada'}</td><td className="px-5 py-4"><SituacaoBadge situacao={u.empresa_bloqueada || u.teste?.pendente || (u.teste && Date.parse(u.teste.expira_em) <= Date.now()) ? 'suspensa_outro' : u.situacao || (u.bloqueado ? 'suspensa_outro' : 'ativa')} texto={u.empresa_bloqueada ? 'Empresa suspensa' : u.teste?.pendente ? 'Teste aguardando ativação' : u.teste && Date.parse(u.teste.expira_em) <= Date.now() ? 'Teste encerrado' : undefined} />{u.teste && <p className="mt-1 text-xs text-text-secondary">{u.teste.pendente ? "Teste aguardando ativação" : `${Date.parse(u.teste.expira_em) <= Date.now() ? "Teste encerrado" : "Teste até"}: ${new Date(u.teste.expira_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`}</p>}{u.bloqueado && <p className="mt-1 max-w-xs text-xs text-text-secondary">{u.motivo}</p>}</td><td className="px-5 py-4">{data(u.ultimo_acesso)}</td><td className="px-5 py-4"><div className="flex flex-col items-start gap-2"><button type="button" className={botao} disabled={u.confirmado || carregando || salvando || reenviando !== null} onClick={() => void reenviarConfirmacao(u)}>{u.confirmado ? 'E-mail já confirmado' : reenviando === u.id ? 'Reenviando…' : 'Reenviar confirmação'}</button>{u.protegida ? 'Proprietária' : <button className={botao} disabled={carregando || salvando} onClick={() => abrir('usuario', u.id, u.email, u.bloqueado)}>Gerenciar situação</button>}<button className={botao} disabled={!u.empresa||carregando||salvando} onClick={()=>setUsuarioFinanceiro(u)}>Permissão financeira</button>{!u.protegida && <button className={botao} disabled={carregando || salvando} onClick={() => setAcessoTeste(u)}>Senha e período de teste</button>}</div></td></tr>)}
                 {aba === 'historico' && painel.historico.map(h => <tr key={h.id}><td className="px-5 py-4 whitespace-nowrap">{data(h.criado_em)}</td><td className="px-5 py-4">{h.alvo_nome}<p className="text-xs text-text-secondary">{h.tipo === 'empresa' ? 'Empresa' : 'Usuário'}</p></td><td className="px-5 py-4"><SituacaoBadge situacao={h.situacao || (h.bloqueado ? 'suspensa_outro' : 'ativa')} texto={h.situacao ? undefined : h.bloqueado ? 'Acesso bloqueado' : 'Acesso liberado'} /></td><td className="max-w-md break-words px-5 py-4">{h.motivo}</td></tr>)}
                 {!painel[aba].length && <tr><td colSpan={5} className="p-8 text-center text-text-secondary">Nenhum registro encontrado.</td></tr>}

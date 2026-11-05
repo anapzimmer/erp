@@ -830,7 +830,7 @@ function ForaEsquadroConteudo({ lateral }: { lateral: boolean }) {
               <div>
                 <div
                   className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]"
-                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: "var(--info)" }}
                 >
                   <Calculator size={14} />
                   Fora de esquadro

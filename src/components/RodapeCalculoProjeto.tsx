@@ -13,7 +13,7 @@ export default function RodapeCalculoProjeto({ area, pecas, total, documento, ar
       <div className="flex shrink-0 items-center gap-6">
         <div><p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">Área</p><p className="text-sm font-semibold">{area} m²</p></div>
         <div><p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">Vidros</p><p className="text-sm font-semibold">{pecas} peças</p></div>
-        <div className="border-l border-border pl-6"><p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">Total do projeto</p><p className="text-lg font-bold text-primary">{total}</p></div>
+        <div className="border-l border-border pl-6"><p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">Total do projeto</p><p className="text-lg font-bold text-info">{total}</p></div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <BotaoImprimirPDF documento={documento} arquivo={arquivo} className={botao} />

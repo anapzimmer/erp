@@ -17,7 +17,7 @@
 .pedidoAbas{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--border);min-width:0;scrollbar-width:thin}
 .form .pedidoAbas button{flex:0 0 auto;white-space:nowrap;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:12px 16px;color:var(--text-secondary);font-size:13px;font-weight:500}
 .form .pedidoAbas button:hover{color:var(--text-primary);background:var(--surface-secondary)}
-.form .pedidoAbas .pedidoAbaAtiva{color:var(--primary);border-bottom-color:var(--primary);background:transparent}
+.form .pedidoAbas .pedidoAbaAtiva{color:var(--info);border-bottom-color:var(--primary);background:transparent}
 .pedidoConteudo{display:grid;gap:18px;min-width:0}
 .pedidoConteudo h3{font-size:16px;font-weight:550;margin:4px 0 0}
 .pedidoResumo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -39,7 +39,7 @@
 .form .pedidoMenuConteudo button{width:100%;text-align:left;border:0;background:transparent;color:var(--text-primary)}
 .form .pedidoMenuConteudo button:hover{background:var(--surface-secondary)}
 .pedidoOrigemLink{font-size:12px;color:var(--text-secondary)}
-.pedidoOrigemLink a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+.pedidoOrigemLink a{color:var(--info);text-decoration:underline;text-underline-offset:3px}
 @media(max-width:600px){.pedidoBarraAcoes{align-items:stretch}.pedidoAcoesTitulo{width:100%}.pedidoAcoesBotoes{width:100%}.pedidoAcoesBotoes>button{flex:1}}
 
 /* Menu único de ações no cabeçalho — sem barra intermediária */
@@ -93,7 +93,7 @@
 .finProgresso{display:grid;gap:10px}.finProgresso>div:first-child{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--text-secondary)}.finProgresso strong{color:var(--text-primary)}.finTrilha{height:7px;background:var(--surface-secondary);border-radius:10px;overflow:hidden}.finTrilha>div{height:100%;background:#39b89f;border-radius:10px;transition:width .2s}
 .finParcelasCabecalho{border-top:1px solid var(--border);padding-top:18px;display:flex;justify-content:space-between;align-items:center;gap:10px}.finParcelasCabecalho h4{margin:0;font-size:14px;font-weight:600}.finParcelasCabecalho span{font-size:12px;color:var(--text-secondary)}
 .finTabelaScroll{width:100%;min-width:0;overflow-x:auto}.finTabela{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px}.finTabela th{text-align:left;color:var(--text-secondary);font-weight:500;font-size:11px}.finTabela th,.finTabela td{padding:11px 8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}.finTabela th:nth-child(1){width:18%}.finTabela th:nth-child(2){width:26%}.finTabela th:nth-child(3){width:30%}.finTabela th:nth-child(4){width:26%}.finTabela td:nth-child(3),.finTabela th:nth-child(3){text-align:right}.finTabela td:nth-child(4),.finTabela th:nth-child(4){text-align:right}.finTabela td small{display:block;color:var(--text-secondary);font-size:10px;margin-top:3px}.finSituacaoPaga{color:#168a4a;font-weight:600}.finSituacaoAtraso{color:#bb3333;font-weight:600}.finSituacao{color:var(--text-secondary)}
-.finAviso{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-primary);line-height:1.5}.finSemParcelas{font-size:12px;color:var(--text-secondary)}.finResumoRodape{display:flex;justify-content:flex-end}.finResumoRodape a{font-size:12px;color:var(--primary);font-weight:600;text-decoration:none}.finResumoRodape a:hover{text-decoration:underline}
+.finAviso{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-primary);line-height:1.5}.finSemParcelas{font-size:12px;color:var(--text-secondary)}.finResumoRodape{display:flex;justify-content:flex-end}.finResumoRodape a{font-size:12px;color:var(--info);font-weight:600;text-decoration:none}.finResumoRodape a:hover{text-decoration:underline}
 @media(max-width:600px){.finResumoNumeros{gap:8px}.finResumoNumeros strong{font-size:14px}.finTabela{font-size:11px}.finTabela th,.finTabela td{padding:9px 4px}}
 .revisaoRetorno {
   display: grid;

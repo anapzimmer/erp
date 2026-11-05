@@ -1,12 +1,11 @@
 
 import "server-only";
 
-const ASAAS_SANDBOX_URL = "https://api-sandbox.asaas.com/v3";
-
-type AsaasRequestOptions = {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
-  body?: unknown;
-};
+export function ambienteAsaas(): "sandbox" | "production" {
+ const ambiente = process.env.ASAAS_AMBIENTE;
+ if (ambiente !== "sandbox" && ambiente !== "production") throw new Error("ASAAS_AMBIENTE inválido.");
+ return ambiente;
+}
 
 export class AsaasApiError extends Error {
   constructor(
@@ -61,38 +60,32 @@ function extrairErroAsaas(
 }
 
 export async function asaasRequest<T>(
-  path: string,
-  options: AsaasRequestOptions = {}
+  path: string
 ): Promise<T> {
   const apiKey = process.env.ASAAS_API_KEY;
-  const ambiente = process.env.ASAAS_AMBIENTE;
+  const ambiente = ambienteAsaas();
 
-  if (!apiKey) {
+  if (!apiKey?.trim()) {
     throw new Error("ASAAS_API_KEY não configurada no servidor.");
   }
 
-  if (ambiente !== "sandbox") {
-    throw new Error(
-      "Integração Asaas limitada ao Sandbox nesta etapa."
-    );
-  }
+  if ((ambiente === "production" && apiKey.includes("_hmlg_")) || (ambiente === "sandbox" && apiKey.includes("_prod_"))) throw new Error("ASAAS_AMBIENTE incompatível com a chave.");
 
   if (!path.startsWith("/") || path.startsWith("//")) {
     throw new Error("Caminho da API Asaas inválido.");
   }
 
-  const response = await fetch(`${ASAAS_SANDBOX_URL}${path}`, {
-    method: options.method ?? "GET",
+  const response = await fetch(`${ambiente === "production" ? "https://api.asaas.com/v3" : "https://api-sandbox.asaas.com/v3"}${path}`, {
+    method: "GET",
     headers: {
       access_token: apiKey,
       "User-Agent": "GlassCode/1.0",
       accept: "application/json",
       "Content-Type": "application/json",
     },
-    ...(options.body !== undefined
-      ? { body: JSON.stringify(options.body) }
-      : {}),
     cache: "no-store",
+    signal: AbortSignal.timeout(20000),
+    redirect: "error",
   });
 
   const texto = await response.text();
@@ -116,4 +109,16 @@ export async function asaasRequest<T>(
   } catch {
     throw new Error("O Asaas retornou JSON inválido.");
   }
+}
+
+// Only fixed categories may enter logs or diagnostic responses.
+export function categoriaErroAsaas(error: unknown): string {
+  if (error instanceof AsaasApiError) return `ASAAS_HTTP_${error.status}`;
+  if (!(error instanceof Error)) return "ERRO_DESCONHECIDO";
+  if (error.name === "TimeoutError" || error.name === "AbortError") return "TEMPO_ESGOTADO";
+  if (error.message.includes("ASAAS_API_KEY")) return "CHAVE_NAO_CONFIGURADA";
+  if (error.message.includes("ASAAS_AMBIENTE")) return "AMBIENTE_INCORRETO";
+  if (error.message.includes("fetch failed")) return "FALHA_DE_REDE";
+  if (error.message.includes("JSON") || error.message.includes("resposta vazia")) return "RESPOSTA_INVALIDA";
+  return "ERRO_DESCONHECIDO";
 }

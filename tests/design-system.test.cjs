@@ -20,7 +20,7 @@ function luminance(hex) {
 test('text, actions and status tones meet 4.5:1 contrast in both themes', () => {
   for (const mode of ['light','dark']) {
     const palette=tokens[mode];
-    const pairs=[['text-primary','surface'],['text-secondary','surface'],['text-secondary','background'],['on-primary','primary'],['on-primary','primary-hover'],['selection-text','selection']];
+    const pairs=[['text-primary','surface'],['text-secondary','surface'],['text-secondary','background'],['on-primary','primary'],['on-primary','primary-hover'],['on-primary','primary-active'],['info','surface'],['info','background'],['selection-text','selection']];
     for(const state of ['success','warning','danger','info'])pairs.push([state,state+'-soft'],['on-'+state,state]);
     for(const [fg,bg] of pairs){const a=luminance(palette[fg]),b=luminance(palette[bg]),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);assert.ok(ratio>=4.5,`${mode} ${fg}/${bg}: ${ratio.toFixed(2)}`);}
   }

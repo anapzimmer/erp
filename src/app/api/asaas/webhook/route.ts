@@ -3,21 +3,12 @@ import "server-only";
 
 import { timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { asaasRequest } from "@/lib/asaas/client";
+import { categoriaErroAsaas } from "@/lib/asaas/client";
+
+import { processarEventoAsaas } from "@/lib/asaas/pagamentos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type PagamentoAsaas = {
-  id?: string;
-  status?: string;
-  value?: number;
-  dueDate?: string;
-  subscription?: string;
-  customer?: string;
-  billingType?: string;
-  deleted?: boolean;
-};
 
 function tokenValido(recebido: string | null): boolean {
   const esperado = process.env.ASAAS_WEBHOOK_TOKEN;
@@ -30,19 +21,8 @@ function tokenValido(recebido: string | null): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function dataValida(valor: unknown): valor is string {
-  if (typeof valor !== "string") return false;
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
-
-  const data = new Date(`${valor}T00:00:00.000Z`);
-
-  return !Number.isNaN(data.getTime()) &&
-    data.toISOString().slice(0, 10) === valor;
-}
-
 export async function POST(request: Request) {
-  if (process.env.ASAAS_AMBIENTE !== "sandbox") {
+  if (!["sandbox", "production"].includes(process.env.ASAAS_AMBIENTE || "")) {
     return Response.json(
       { erro: "Ambiente indisponível." },
       { status: 503 }
@@ -172,105 +152,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!pagamentoId || !pagamentoId.startsWith("pay_")) {
-      return Response.json({
-        recebido: true,
-        registrado,
-        processamento: "sem_pagamento",
-      });
-    }
- console.log("ASAAS DIAGNOSTICO:", {
-      ambiente: process.env.ASAAS_AMBIENTE,
-      chaveDisponivel: Boolean(process.env.ASAAS_API_KEY),
-      tamanhoChave: process.env.ASAAS_API_KEY?.length ?? 0,
-      tokenDisponivel: Boolean(process.env.ASAAS_WEBHOOK_TOKEN),
-    });
-    
-    // Consultar a situação atual diretamente no Asaas.
-    const pagamento = await asaasRequest<PagamentoAsaas>(
-      `/payments/${encodeURIComponent(pagamentoId)}`
-    );
-
-    if (
-      pagamento.id !== pagamentoId ||
-      pagamento.deleted === true ||
-      pagamento.billingType !== "BOLETO" ||
-      !pagamento.subscription ||
-      !pagamento.customer ||
-      typeof pagamento.value !== "number" ||
-      !Number.isFinite(pagamento.value) ||
-      !dataValida(pagamento.dueDate)
-    ) {
-      return Response.json(
-        { erro: "Dados da cobrança inválidos." },
-        { status: 422 }
-      );
-    }
-
-    // A primeira versão da função SQL ainda não trata
-    // estornos, cancelamentos e outros estados.
-    if (
-      pagamento.status !== "PENDING" &&
-      pagamento.status !== "CONFIRMED" &&
-      pagamento.status !== "RECEIVED"
-    ) {
-      return Response.json(
-        {
-          recebido: true,
-          registrado,
-          processamento: "estado_nao_suportado",
-        },
-        { status: 200 }
-      );
-    }
-
-    const valorCentavos = Math.round(pagamento.value * 100);
-
-    if (
-      Math.abs(pagamento.value * 100 - valorCentavos) > 0.001
-    ) {
-      return Response.json(
-        { erro: "Valor monetário inválido." },
-        { status: 422 }
-      );
-    }
-
-    const { data: resultado, error: erroProcessamento } =
-      await supabase.rpc("gc_asaas_processar_pagamento", {
-        p_pagamento_id: pagamento.id,
-        p_assinatura_asaas_id: pagamento.subscription,
-        p_cliente_asaas_id: pagamento.customer,
-        p_valor_centavos: valorCentavos,
-        p_vencimento: pagamento.dueDate,
-        p_status: pagamento.status,
-        p_modalidade: pagamento.billingType,
-      });
-
-    if (erroProcessamento) {
-      console.error(
-        "Falha ao processar pagamento Asaas:",
-        erroProcessamento.code
-      );
-
-      return Response.json(
-        { erro: "Falha ao processar pagamento." },
-        { status: 500 }
-      );
-    }
-
-    return Response.json({
-      recebido: true,
-      registrado,
-      processamento: "concluido",
-      resultado,
-    });
+    const processamento = await processarEventoAsaas(supabase, evento);
+    return Response.json({ recebido: true, registrado, processamento });
     } catch (erro) {
-    if (erro instanceof Error) {
-      console.error("ASAAS WEBHOOK - TIPO:", erro.name);
-      console.error("ASAAS WEBHOOK - MENSAGEM:", erro.message);
-    } else {
-      console.error("ASAAS WEBHOOK - ERRO DESCONHECIDO");
-    }
+    console.error("ASAAS WEBHOOK:", categoriaErroAsaas(erro));
 
     return Response.json(
       { erro: "Erro interno." },

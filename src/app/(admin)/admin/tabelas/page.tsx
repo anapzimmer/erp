@@ -856,7 +856,7 @@ const { error } = await supabase
               <div className="flex items-start gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
-                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 18%, transparent)`, color: theme.menuIconColor }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 18%, transparent)`, color: "var(--info)" }}
                 >
                   <TableProperties size={22} />
                 </div>
@@ -892,7 +892,7 @@ const { error } = await supabase
 
           <div className="mb-5 flex flex-col gap-4 rounded-[22px] border p-4 md:flex-row md:items-center md:justify-between md:p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`, color: theme.menuIconColor }}>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, borderColor: `color-mix(in srgb, ${theme.menuIconColor} 15%, transparent)`, color: "var(--info)" }}>
                 <FileText size={19} />
               </div>
               <div>
@@ -929,7 +929,7 @@ const { error } = await supabase
 
             <div className="h-fit rounded-[22px] border p-5 shadow-sm xl:col-span-1" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 8%, transparent)` }}>
               <h2 className="mb-4 flex items-center gap-2 text-base font-semibold" style={{ color: theme.contentTextLightBg }}>
-                <Layers3 size={18} style={{ color: theme.menuIconColor }} /> Grupos de Preço
+                <Layers3 size={18} style={{ color: "var(--info)" }} /> Grupos de Preço
               </h2>
 
               <div className="relative mb-5 group/add">
@@ -1004,7 +1004,7 @@ const { error } = await supabase
                         </>
                       ) : (
                         <>
-                          {tabelaSelecionada?.id === t.id && <Check size={17} style={{ color: theme.menuIconColor }} />}
+                          {tabelaSelecionada?.id === t.id && <Check size={17} style={{ color: "var(--info)" }} />}
 
                           <button
                             type="button"
@@ -1144,7 +1144,7 @@ const { error } = await supabase
                                   <button
                                     onClick={() => salvarEdicaoPreco(item.id)}
                                     className="hover:scale-110 transition-transform p-1 rounded-md"
-                                    style={{ color: theme.menuIconColor }} // Check cor Turquesa
+                                    style={{ color: "var(--info)" }} // Check cor Turquesa
                                   >
                                     <Check size={20} />
                                   </button>
@@ -1217,7 +1217,7 @@ const { error } = await supabase
             <div className="p-5 md:p-7 border-b border-border flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles size={20} style={{ color: theme.menuIconColor }} />
+                  <Sparkles size={20} style={{ color: "var(--info)" }} />
                   <h2 className="text-xl md:text-2xl font-black" style={{ color: theme.modalTextColor }}>Conferir produtos da importação</h2>
                 </div>
                 <p className="text-sm text-text-secondary">
@@ -1260,7 +1260,7 @@ const { error } = await supabase
                     {item.acao === "vincular" && (
                       <div>
                         {item.sugestaoVidroId && item.vidroSelecionadoId === item.sugestaoVidroId && (
-                          <p className="text-xs font-semibold mb-2" style={{ color: theme.menuIconColor }}>Sugestão automática encontrada</p>
+                          <p className="text-xs font-semibold mb-2" style={{ color: "var(--info)" }}>Sugestão automática encontrada</p>
                         )}
                         <select value={item.vidroSelecionadoId} onChange={(e) => atualizarItemPendente(indice, { vidroSelecionadoId: e.target.value })} className="w-full p-3 rounded-xl border border-border bg-surface text-sm">
                           <option value="">Selecione um vidro cadastrado</option>

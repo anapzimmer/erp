@@ -811,7 +811,7 @@ export default function CalculosacadagrapaPage() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}>
+                      <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: "var(--info)" }}>
                       <PanelsTopLeft size={14} />
                       Sacada com Grapa
                       </div>
@@ -949,7 +949,7 @@ export default function CalculosacadagrapaPage() {
                         <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
                         <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 64%, transparent)` }}>{card.detalhe}</p>
                       </div>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: "var(--info)" }}>
                         <card.icone size={19} />
                       </div>
                     </div>

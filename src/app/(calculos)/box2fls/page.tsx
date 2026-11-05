@@ -1234,7 +1234,7 @@ const novoProjeto = () => {
 
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface">
-                  <Grid2X2 size={22} strokeWidth={1.7} className="text-primary" />
+                  <Grid2X2 size={22} strokeWidth={1.7} className="text-info" />
                 </div>
 
                 <div>
@@ -1648,7 +1648,7 @@ const novoProjeto = () => {
     {kitSelecionado ? (
       <CheckCircle2
         size={15}
-        className="mt-0.5 shrink-0 text-primary"
+        className="mt-0.5 shrink-0 text-info"
       />
     ) : (
       <AlertTriangle
@@ -1684,7 +1684,7 @@ const novoProjeto = () => {
   <div className="flex items-start gap-2">
     <CheckCircle2
       size={15}
-      className="mt-0.5 shrink-0 text-primary"
+      className="mt-0.5 shrink-0 text-info"
     />
 
     <div>
@@ -1702,7 +1702,7 @@ const novoProjeto = () => {
   <div className="flex items-start gap-2">
     <CheckCircle2
       size={15}
-      className="mt-0.5 shrink-0 text-primary"
+      className="mt-0.5 shrink-0 text-info"
     />
 
     <div>
@@ -1721,7 +1721,7 @@ const novoProjeto = () => {
     {precoVidroM2 > 0 ? (
       <CheckCircle2
         size={15}
-        className="mt-0.5 shrink-0 text-primary"
+        className="mt-0.5 shrink-0 text-info"
       />
     ) : (
       <AlertTriangle
@@ -1781,7 +1781,7 @@ const novoProjeto = () => {
                   <div className="flex items-center gap-2">
                     <CheckCircle2
                       size={18}
-                      className="text-primary"
+                      className="text-info"
                     />
                     <span className="text-sm font-semibold text-text-primary">
                       Projeto calculado
@@ -2059,7 +2059,7 @@ const novoProjeto = () => {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                 Valor total
               </p>
-              <p className="mt-1 text-xl font-bold text-primary">
+              <p className="mt-1 text-xl font-bold text-info">
                 {moeda(totalMateriais)}
               </p>
             </div>
@@ -2095,7 +2095,7 @@ const novoProjeto = () => {
               <p className="text-[9px] font-semibold uppercase tracking-wide text-text-secondary">
                 Total do projeto
               </p>
-              <p className="text-lg font-bold text-primary">
+              <p className="text-lg font-bold text-info">
                 {moeda(totalMateriais)}
               </p>
             </div>

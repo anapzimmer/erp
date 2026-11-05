@@ -1247,7 +1247,7 @@ export default function CalculoEspelhosPage() {
                   className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm border-2 transition-all disabled:opacity-30 active:scale-95"
                   style={{
                     borderColor: theme.menuIconColor,
-                    color: theme.menuIconColor,
+                    color: "var(--info)",
                     backgroundColor: 'transparent'
                   }}
                   onMouseEnter={(e) => {
@@ -1385,7 +1385,7 @@ export default function CalculoEspelhosPage() {
           >
             {/* LADO ESQUERDO */}
             <div className="p-8 md:w-2/5 flex flex-col justify-center items-center text-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 3%, transparent)` }}>
-              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
+              <div className="p-4 rounded-full mb-6" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: "var(--info)" }}>
                 <ClipboardList size={32} />
               </div>
               <h3 className="text-xl font-bold tracking-tight mb-2">Finalizar Orçamento</h3>
@@ -1498,7 +1498,7 @@ export default function CalculoEspelhosPage() {
                 className="p-4 rounded-full mb-6"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`,
-                  color: theme.menuIconColor,
+                  color: "var(--info)",
                 }}
               >
                 <Save size={32} />
@@ -1567,7 +1567,7 @@ export default function CalculoEspelhosPage() {
             {/* Ícone com a cor do tema */}
             <div
               className="p-2 rounded-xl shrink-0"
-              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}
+              style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: "var(--info)" }}
             >
               <Sparkles size={20} />
             </div>
@@ -1584,7 +1584,7 @@ export default function CalculoEspelhosPage() {
               </div>
 
               <p className="text-[11px] mt-0.5 font-sans opacity-60">
-                Ref: <span className="font-bold" style={{ color: theme.menuIconColor }}>{ultimoNumeroGerado}</span>
+                Ref: <span className="font-bold" style={{ color: "var(--info)" }}>{ultimoNumeroGerado}</span>
               </p>
 
               <button
@@ -1626,7 +1626,7 @@ export default function CalculoEspelhosPage() {
               className="px-8 py-2 rounded-xl text-sm transition-all border hover:bg-opacity-10 active:bg-opacity-100"
               style={{
                 borderColor: theme.menuIconColor,
-                color: theme.menuIconColor,
+                color: "var(--info)",
                 backgroundColor: 'transparent'
               }}
             >

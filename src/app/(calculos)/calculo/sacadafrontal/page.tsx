@@ -1199,7 +1199,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
           <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
             <div className="flex flex-col gap-4">
               <div className="gc-config-heading max-w-3xl">
-                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: "var(--info)" }}>
                   <PanelsTopLeft size={14} />
                   Sacada Frontal
                 </div>
@@ -1574,7 +1574,7 @@ const acessoriosComPrecoTabela = useMemo(() => {
                       {card.detalhe}
                     </p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: "var(--info)" }}>
                     <card.icone size={19} />
                   </div>
                 </div>

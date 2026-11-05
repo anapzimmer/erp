@@ -569,7 +569,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
           }}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+            <Icon className="w-5 h-5" style={{ color: "var(--info)" }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
         </div>
@@ -634,7 +634,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: darkTertiary }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: "var(--info)" }}
                 >
                   <Square size={23} strokeWidth={1.8} />
                 </div>
@@ -712,7 +712,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ color: darkTertiary, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}
+                  style={{ color: "var(--info)", backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}
                 >
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
@@ -879,7 +879,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
                       <td className="px-4 py-3.5 text-text-primary font-normal"><span style={{ color: lightTertiary }}>{p.nome}</span></td>
                       <td className="px-4 py-3.5">
                         <span className="px-3 py-1 rounded-full text-[10px] font-normal uppercase border"
-                          style={{ color: darkTertiary, borderColor: `color-mix(in srgb, ${darkTertiary} 27%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)` }}>
+                          style={{ color: "var(--info)", borderColor: `color-mix(in srgb, ${darkTertiary} 27%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)` }}>
                           {p.cores || "Padrão"}
                         </span>
                       </td>
@@ -1078,7 +1078,7 @@ const importarCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
           <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-border bg-surface p-6 text-center shadow-[0_24px_70px_var(--shadow)]">
             <div className="relative mb-4">
-              <Loader2 size={34} className="animate-spin" style={{ color: darkTertiary }} />
+              <Loader2 size={34} className="animate-spin" style={{ color: "var(--info)" }} />
               <Upload size={15} className="absolute inset-0 m-auto text-text-secondary" />
             </div>
             <h3 className="mb-1 text-base font-semibold text-text-primary">Importando dados</h3>

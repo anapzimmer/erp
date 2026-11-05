@@ -918,7 +918,7 @@ export default function CalculoPeleDeVidroPage() {
             <section className="gc-config rounded-xl border p-4 md:p-5" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
               <div className="flex flex-col gap-4">
                 <div className="gc-config-heading max-w-3xl">
-                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: theme.menuIconColor }}>
+                  <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 7%, transparent)`, color: "var(--info)" }}>
                     <Grid3X3 size={14} />
                     Pele de Vidro
                   </div>
@@ -1062,7 +1062,7 @@ export default function CalculoPeleDeVidroPage() {
                 {/* PAINEL DE VALORES PADRONIZADOS / AUTOMÁTICOS VISÍVEIS */}
 
                   <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: "var(--info)" }}>
                       Qtd. de Quadros (Automático)
                     </span>
                     <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
@@ -1071,7 +1071,7 @@ export default function CalculoPeleDeVidroPage() {
                   </div>
 
                   <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: "var(--info)" }}>
                       Qtd. de Meia Coluna (Automático)
                     </span>
                     <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
@@ -1080,7 +1080,7 @@ export default function CalculoPeleDeVidroPage() {
                   </div>
 
                   <div className="rounded-lg border px-3 py-2 flex flex-col justify-center" style={{ borderColor: `color-mix(in srgb, ${theme.menuIconColor} 30%, transparent)`, backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 5%, transparent)` }}>
-                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: theme.menuIconColor }}>
+                    <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: "var(--info)" }}>
                       Qtd. de Coluna Centro (Automático)
                     </span>
                     <span className="mt-0.5 text-sm font-semibold" style={{ color: theme.contentTextLightBg }}>
@@ -1226,7 +1226,7 @@ export default function CalculoPeleDeVidroPage() {
                       <p className="mt-2 text-xl font-medium leading-tight" style={{ color: theme.contentTextLightBg }}>{card.valor}</p>
                       <p className="mt-1 text-xs" style={{ color: `color-mix(in srgb, ${theme.contentTextLightBg} 64%, transparent)` }}>{card.detalhe}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: theme.menuIconColor }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 8%, transparent)`, color: "var(--info)" }}>
                       <card.icone size={19} />
                     </div>
                   </div>

@@ -557,14 +557,14 @@ export default function ImagensPage() {
         <main className="flex-1 space-y-5 p-4 md:p-8">
           {conteudoCarregando ? (
             <div className="flex min-h-[60vh] items-center justify-center">
-              <Loader2 className="size-8 animate-spin" style={{ color: theme.menuIconColor }} />
+              <Loader2 className="size-8 animate-spin" style={{ color: "var(--info)" }} />
             </div>
           ) : (
             <>
               <section className="rounded-3xl border p-5 shadow-sm" style={{ backgroundColor: theme.contentTextDarkBg, borderColor: `color-mix(in srgb, ${theme.contentTextLightBg} 7%, transparent)` }}>
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: theme.menuIconColor }}>
+                    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ backgroundColor: `color-mix(in srgb, ${theme.menuIconColor} 6%, transparent)`, color: "var(--info)" }}>
                       <ImageIcon size={14} />
                       Imagens
                     </div>

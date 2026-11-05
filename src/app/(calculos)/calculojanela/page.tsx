@@ -224,7 +224,7 @@ import { useClienteOrcamento } from "@/context/OrcamentoContext";
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary rounded-lg shadow-sm"><Home className="text-white" size={24} /></div>
+            <div className="p-2 bg-primary rounded-lg shadow-sm"><Home className="text-on-primary" size={24} /></div>
             <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">Cálculo de Janelas</h1>
             </div>
             <div className="flex gap-2">

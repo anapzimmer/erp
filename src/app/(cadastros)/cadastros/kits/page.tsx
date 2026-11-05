@@ -467,7 +467,7 @@ export default function KitsPage() {
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: darkTertiary }} />
+            <Icon className="w-5 h-5" style={{ color: "var(--info)" }} />
             <span className="font-medium text-sm">{item.nome}</span>
           </div>
         </div>
@@ -615,7 +615,7 @@ export default function KitsPage() {
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: darkTertiary }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: "var(--info)" }}
                 >
                   <Square size={23} strokeWidth={1.8} />
                 </div>
@@ -705,7 +705,7 @@ export default function KitsPage() {
               { titulo: "Categorias", valor: new Set(kits.map(k => k.categoria)).size, icone: Package }
             ].map(card => (
               <div key={card.titulo} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: darkTertiary, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: "var(--info)", backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
                 <div>
@@ -865,7 +865,7 @@ export default function KitsPage() {
                         <td className="px-4 py-3.5 text-text-secondary">{k.altura}</td>
                         <td className="px-4 py-3.5">
                           <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
-                            style={{ color: darkTertiary, borderColor: `color-mix(in srgb, ${darkTertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
+                            style={{ color: "var(--info)", borderColor: `color-mix(in srgb, ${darkTertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                             {k.cores || "Padrão"}
                           </span>
                         </td>
@@ -954,11 +954,11 @@ export default function KitsPage() {
                       />
                       <div className="mt-2 px-1 text-[11px] leading-relaxed text-text-secondary">
                         Medidas podem ser sugeridas pelo nome do kit.
-                        <button type="button" onClick={aplicarMedidasDoNome} className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                        <button type="button" onClick={aplicarMedidasDoNome} className="ml-2 font-semibold" style={{ color: "var(--info)" }}>
                           Reaplicar medidas
                         </button>
                         {espessuraDetectada && (
-                          <span className="ml-2 font-semibold" style={{ color: darkTertiary }}>
+                          <span className="ml-2 font-semibold" style={{ color: "var(--info)" }}>
                             Espessura: {espessuraDetectada}
                           </span>
                         )}
@@ -1076,7 +1076,7 @@ export default function KitsPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navigation/30 px-4 py-6 backdrop-blur-[2px]">
           <div className="flex w-full max-w-sm flex-col items-center rounded-[22px] border border-border bg-surface p-6 text-center shadow-[0_24px_70px_var(--shadow)]">
             <div className="relative mb-4">
-              <Loader2 size={34} className="animate-spin" style={{ color: darkTertiary }} />
+              <Loader2 size={34} className="animate-spin" style={{ color: "var(--info)" }} />
               <Upload size={15} className="absolute inset-0 m-auto text-text-secondary" />
             </div>
             <h3 className="mb-1 text-base font-semibold text-text-primary">Importando dados</h3>

@@ -580,7 +580,7 @@ export default function FerragensPage() {
               <div className="flex min-w-0 items-center gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: darkTertiary }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${darkTertiary} 7%, transparent)`, color: "var(--info)" }}
                 >
                   <Square size={23} strokeWidth={1.8} />
                 </div>
@@ -649,7 +649,7 @@ export default function FerragensPage() {
               { titulo: "Categorias", valor: new Set(ferragens.map(f => f.categoria)).size, icone: Package }
             ].map(card => (
               <div key={card.titulo} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: darkTertiary, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: "var(--info)", backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                   <card.icone size={19} strokeWidth={1.8} />
                 </div>
                 <div>
@@ -803,7 +803,7 @@ export default function FerragensPage() {
                       <td className="px-4 py-3.5 text-text-primary">{f.nome}</td>
                       <td className="px-4 py-3.5">
                         <span className="rounded-full border px-2.5 py-1 text-[11px] font-normal"
-                          style={{ color: darkTertiary, borderColor: `color-mix(in srgb, ${darkTertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
+                          style={{ color: "var(--info)", borderColor: `color-mix(in srgb, ${darkTertiary} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${darkTertiary} 6%, transparent)` }}>
                           {f.cores || "Padrão"}
                         </span>
                       </td>
