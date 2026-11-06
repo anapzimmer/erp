@@ -2,7 +2,7 @@
 import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
-import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
@@ -800,7 +800,7 @@ export default function CalculoEspelhosPage() {
   }, [largura, altura, acabamentoId, acabamentosDB, divisoesLargura, divisoesAltura]);
 
   const handleSalvarOrcamento = async () => {
-    if (orcamentoAtivo) { enviarParaCentralImpressao(true); return; }
+    if (orcamentoAtivo && !editId) { enviarParaCentralImpressao(true); return; }
     const itensParaSalvar = obterItensParaSalvar();
     if (!itensParaSalvar) return;
     // Validação
@@ -888,6 +888,7 @@ export default function CalculoEspelhosPage() {
 
       if (editId) {
         sessionStorage.removeItem(draftKey);
+        encerrarOrcamentoAtivo(editId);
         router.push('/admin/relatorio.orcamento');
         return;
       }

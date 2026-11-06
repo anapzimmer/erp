@@ -45,8 +45,8 @@ const consultaExpirada = (consulta?: string | null) => {
   return dias > 30;
 };
 
-export function encerrarOrcamentoAtivo() {
-  window.dispatchEvent(new Event(ORCAMENTO_ENCERRADO));
+export function encerrarOrcamentoAtivo(id?: string) {
+  window.dispatchEvent(new CustomEvent(ORCAMENTO_ENCERRADO, { detail: { id } }));
 }
 
 export async function retomarOrcamentoAtivo(dados: { id: string; empresaId: string; cliente: string; obra: string; rotaEdicao: string }) {
@@ -199,7 +199,14 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
         if (salvo?.empresaId === empresaId && salvo.cliente?.id) setAtivo(salvo);
       } catch { setErro("Não foi possível recuperar o orçamento em andamento."); }
     }, 0);
-    const encerrar = () => {
+    const encerrar = (evento: Event) => {
+      const id = (evento as CustomEvent<{ id?: string }>).detail?.id;
+      if (id) {
+        try {
+          const salvo = JSON.parse(localStorage.getItem(chaveArmazenamento) || "null") as OrcamentoAtivo | null;
+          if (salvo?.id !== id) return;
+        } catch { return; }
+      }
       if (chaveArmazenamento) localStorage.removeItem(chaveArmazenamento);
       setAtivo(null);
       setClienteId("");
@@ -363,7 +370,7 @@ function OrcamentoAutenticado({ children }: { children: ReactNode }) {
         <Link href="/matriz-projetos" className="hover:underline">Adicionar item</Link>
         <Link href={destino} className="hover:underline">Ver orçamento{quantidade ? ` (${quantidade})` : ""}</Link>
         {pathname === "/central-impressao" ? (
-          <button type="button" className="hover:underline" onClick={encerrarOrcamentoAtivo} title="Encerrar o atendimento deste cliente, mantendo os itens na central. Não salva o orçamento.">
+          <button type="button" className="hover:underline" onClick={() => encerrarOrcamentoAtivo()} title="Encerrar o atendimento deste cliente, mantendo os itens na central. Não salva o orçamento.">
             Encerrar orçamento
           </button>
         ) : (

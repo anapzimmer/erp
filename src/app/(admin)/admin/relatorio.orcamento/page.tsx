@@ -363,6 +363,8 @@ export default function RelatorioOrcamento() {
     const [orcamentos, setOrcamentos] = useState<Orcamento[]>([])
     const [filtro, setFiltro] = useState("")
     const [loadingDados, setLoadingDados] = useState(true)
+    const [erroCarregamento, setErroCarregamento] = useState("");
+    const [tentativaCarregamento, setTentativaCarregamento] = useState(0);
     const [perfisDb, setPerfisDb] = useState<PerfilCadastro[]>([]);
     const [acessoriosDb, setAcessoriosDb] = useState<AcessorioCadastro[]>([]);
     useEffect(() => {
@@ -471,21 +473,30 @@ export default function RelatorioOrcamento() {
     };
 
     useEffect(() => {
+        let ativo = true;
+        const controller = new AbortController();
         const fetchData = async () => {
+            setLoadingDados(true);
+            setErroCarregamento("");
             try {
-                const { data: authData } = await supabase.auth.getUser();
+                const { data: authData, error: authError } = await supabase.auth.getUser();
+                if (!ativo) return;
+                if (authError) throw authError;
                 if (!authData.user) {
                     router.push("/login");
                     return;
                 }
                 setUsuarioEmail(authData.user.email || "Usuário");
 
-                const { data: perfil } = await supabase
+                const { data: perfil, error: perfilError } = await supabase
                     .from("perfis_usuarios")
                     .select("empresa_id")
                     .eq("id", authData.user.id)
                     .maybeSingle();
 
+                if (!ativo) return;
+                if (perfilError) throw perfilError;
+                if (!perfil?.empresa_id) throw new Error("EMPRESA_NAO_IDENTIFICADA");
                 if (perfil?.empresa_id) {
                     setEmpresaIdAtual(perfil.empresa_id);
 
@@ -506,30 +517,38 @@ export default function RelatorioOrcamento() {
                     setLogoEmpresaPdf(brandingData?.logo_light || null);
                 }
 
-                const { data: orcData, error } = await supabase
-                    .from('orcamentos')
-                    .select(`*`)
-                    .eq('empresa_id', perfil?.empresa_id)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error("Detalhes do erro Supabase:", error); // Isso vai revelar o problema real
-                    throw error;
+                const lista: Orcamento[] = [];
+                for (let inicio = 0; ; inicio += 50) {
+                    const { data: orcData, error } = await supabase
+                        .from("orcamentos").select("*")
+                        .eq("empresa_id", perfil.empresa_id)
+                        .order("created_at", { ascending: false })
+                        .order("id", { ascending: false })
+                        .range(inicio, inicio + 49)
+                        .abortSignal(controller.signal);
+                    if (!ativo) return;
+                    if (error) throw error;
+                    lista.push(...(orcData || []));
+                    if (!orcData || orcData.length < 50) break;
                 }
-
-                if (orcData) {
-                    setOrcamentos(orcData);
-                }
-
+                if (ativo) setOrcamentos(lista);
             } catch (error) {
-                console.error("Erro ao carregar histórico:", error);
+                if (!ativo) return;
+                const falha = error as { code?: string; message?: string };
+                const codigo = typeof falha?.code === "string" && /^[A-Z0-9_]{1,30}$/.test(falha.code) ? falha.code : "";
+                const mensagem = falha?.message === "EMPRESA_NAO_IDENTIFICADA"
+                    ? "Não foi possível identificar a empresa da sua conta. Entre novamente no sistema."
+                    : "Não foi possível carregar os orçamentos. Confira sua conexão e tente novamente." + (codigo ? " Código: " + codigo : "");
+                setErroCarregamento(mensagem);
             } finally {
+                if (!ativo) return;
                 setCheckingAuth(false);
                 setLoadingDados(false);
             }
         };
-        fetchData();
-    }, [router]);
+        void fetchData();
+        return () => { ativo = false; controller.abort(); };
+    }, [router, tentativaCarregamento]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -838,6 +857,10 @@ export default function RelatorioOrcamento() {
                 />
 
                 <main className={styles.main}>
+                    {erroCarregamento && <div role="alert" className="mb-4 rounded-xl border border-danger-soft bg-danger-soft p-4 text-sm text-danger">
+                        <p>{erroCarregamento}</p>
+                        <button type="button" disabled={loadingDados} className="mt-3 rounded-lg border border-border bg-surface px-3 py-2 text-text-primary" onClick={() => setTentativaCarregamento(v => v + 1)}>Tentar novamente</button>
+                    </div>}
                     <div className={styles.content}>
                         <div className={styles.hero}>
                             <div>

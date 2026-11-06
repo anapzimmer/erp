@@ -1490,7 +1490,7 @@ export default function RelatorioOrcamento() {
   };
 
   const handleSalvarOrcamento = async () => {
-    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
+    if (orcamentoAtivo && !editId) { enviarParaCentralImpressao(); return; }
     if (itens.length === 0) {
       setModalAvisoTitulo("Atenção");
       setModalAvisoMensagem("Adicione pelo menos um item antes de salvar o Orçamento.");
@@ -1536,7 +1536,7 @@ export default function RelatorioOrcamento() {
       let idRetornado = editId;
 
       if (editId) {
-        const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId);
+        const { error: err } = await supabase.from('orcamentos').update(dadosParaSalvar).eq('id', editId).eq('empresa_id', empresaId).select('id').single();
         if (err) throw err;
       } else {
         const { data: insertedData, error: err } = await supabase.from('orcamentos').insert([dadosParaSalvar]).select("id").single();
@@ -1548,6 +1548,12 @@ export default function RelatorioOrcamento() {
         }
       }
 
+      if (editId) {
+        sessionStorage.removeItem(draftKey);
+        encerrarOrcamentoAtivo(editId);
+        router.push("/admin/relatorio.orcamento");
+        return;
+      }
       setUltimoNumeroGerado(numeroFinal);
       sessionStorage.removeItem(draftKey);
       setMostrarModalSucesso(true);

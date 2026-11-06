@@ -15,7 +15,7 @@ import Header from "@/components/Header";
 import CadastroClientes from "@/components/CadastroClientes";
 import PerfisExtrasProjeto from "@/components/PerfisExtrasProjeto";
 import { DRAWING_COLORS } from "@/design/drawing";
-import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BotaoImprimirPDF from "@/components/BotaoImprimirPDF";
@@ -1066,7 +1066,7 @@ const novoProjeto = () => {
       if (concluirRevisaoCalculo(revisaoPedidoToken, empresaId, montarItemCentral(centralItemId || undefined))) router.push("/gestao/pedidos?revisaoPedido=" + encodeURIComponent(revisaoPedidoToken));
       return;
     }
-    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
+    if (orcamentoAtivo && !editId) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       try {
         setSalvandoOrcamento(true);
@@ -1159,11 +1159,17 @@ const novoProjeto = () => {
         theme_color: DRAWING_COLORS.ink,
       };
 
-      const { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId)
+      const { error } = editId ? await supabase.from("orcamentos").update(payload).eq("id", editId).eq("empresa_id", empresaId).select("id").single()
         : await supabase.from("orcamentos").insert([payload]);
 
       if (error) throw error;
 
+      if (editId) {
+        window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
+        encerrarOrcamentoAtivo(editId);
+        router.push(returnTo);
+        return;
+      }
       setDados(dadosAtualizados);
       window.localStorage.removeItem(PROJETO_INDIVIDUAL_DRAFT_KEY);
       setMensagemSistema({

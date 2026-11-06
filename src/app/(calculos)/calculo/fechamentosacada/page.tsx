@@ -8,7 +8,7 @@ import { useRegraMedidaVidro } from "@/context/RegraMedidaVidroContext";
 import { corMaterialSelecionada } from "@/utils/materiaisConformeCor";
 import { localizarClientePorNome } from "@/utils/tabelaClienteOrcamento";
 import { confirmarEnvioOrcamento } from "@/utils/envioOrcamento";
-import { useClienteOrcamento } from "@/context/OrcamentoContext";
+import { encerrarOrcamentoAtivo, useClienteOrcamento } from "@/context/OrcamentoContext";
 import { DRAWING_COLORS } from "@/design/drawing";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -1436,7 +1436,7 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
   };
 
   const handleSalvar = async () => {
-    if (orcamentoAtivo) { enviarParaCentralImpressao(); return; }
+    if (orcamentoAtivo && !editId) { enviarParaCentralImpressao(); return; }
     if (centralItemId) {
       enviarParaCentralImpressao();
       return;
@@ -1488,10 +1488,11 @@ const acessoriosFechamentoSacadaTabela = useMemo(() => {
       };
 
       if (editId) {
-        const { error } = await supabase.from("orcamentos").update(dadosParaSalvar).eq("id", editId);
+        const { error } = await supabase.from("orcamentos").update(dadosParaSalvar).eq("id", editId).eq("empresa_id", empresaId).select("id").single();
         if (error) throw error;
         setMensagemSalvo(`Orçamento ${numeroFinal} atualizado com sucesso!`);
-        setTimeout(() => router.push("/admin/relatorio.orcamento"), 1200);
+        encerrarOrcamentoAtivo(editId);
+        router.push("/admin/relatorio.orcamento");
       } else {
         const { error } = await supabase.from("orcamentos").insert([dadosParaSalvar]);
         if (error) throw error;
