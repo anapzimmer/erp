@@ -61,7 +61,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
   },
    {
     group: "Pedidos",
-    items: [{ label: "Gestão de Pedidos", href: "/gestao/pedidos" }, { label: "Necessidades de compra", href: "/gestao/compras" }],
+    items: [{ label: "Gestão de Pedidos", href: "/gestao/pedidos" }, { label: "Gestão de Compras", href: "/gestao/compras" }],
   },
   { group: "Produção", items: [{ label: "Plano de corte de perfis · Em construção", href: "/producao/perfis", disabled: true }, { label: "Plano de corte de vidros · Em construção", href: "/producao/vidros", disabled: true }, { label: "Estoque · Em construção", href: "/producao/estoque", disabled: true }],
   },

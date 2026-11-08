@@ -41,7 +41,7 @@ export default function ComprasPage() {
   const visiveis = (empresaCarregada === empresaId ? pedidos : []).filter(p => (p.numero + " " + p.cliente + " " + p.obra).toLocaleLowerCase("pt-BR").includes(busca.toLocaleLowerCase("pt-BR")));
   return <div><Header nomeEmpresa={nomeEmpresa || ""} usuarioEmail={user?.email || ""} handleSignOut={signOut}/>
     <main className={styles.main}>
-      <div className={styles.heading}><div><p className={styles.eyebrow}>GESTÃO · COMPRAS</p><h1>Necessidades de compra</h1><p>Materiais dos pedidos ativos, organizados por cliente e obra.</p></div><button disabled={carregando} onClick={() => void carregar()}>Atualizar</button></div>
+      <div className={styles.heading}><div><p className={styles.eyebrow}>GESTÃO · COMPRAS</p><h1>Compras</h1><p>Materiais dos pedidos ativos, organizados por cliente e obra.</p></div><button disabled={carregando} onClick={() => void carregar()}>Atualizar</button></div>
       <p className={styles.notice}>Ao aprovar um orçamento e criar o pedido, sua composição aparece aqui automaticamente. As quantidades ainda não descontam estoque. Confira medidas, unidades, cores e disponibilidade antes de comprar. Esta lista não emite compras nem envia solicitações a fornecedores.</p>
       <Link href="/gestao/pedidos">Abrir Gestão de Pedidos</Link>
       <div className={styles.form}><label>Buscar pedido, cliente ou obra<input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Número, cliente ou obra"/></label></div>
