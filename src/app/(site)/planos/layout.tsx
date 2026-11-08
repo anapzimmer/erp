@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { precosPlanosCentavos, moedaComercial } from "@/config/comercial";
+
+const descricaoPlanos = `Planos do software para vidraçarias a partir de ${moedaComercial(precosPlanosCentavos.essencial)}/mês. Cálculos de vidros, espelhos, projetos e orçamentos em PDF com atendimento personalizado.`;
 
 export const metadata: Metadata = {
   title: "Planos do Software para Vidraçarias",
 
   description:
-    "Conheça os planos do Glass Code para empresas do setor de vidro. Tenha orçamentos, cálculos de vidros, projetos, materiais, propostas em PDF e gestão comercial em um único sistema.",
+    descricaoPlanos,
 
   alternates: {
     canonical: "/planos",
@@ -13,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Planos Glass Code | Software para o Setor de Vidro",
     description:
-      "Escolha o plano Glass Code ideal para sua operação, com recursos para orçamentos, cálculos, projetos e gestão comercial.",
+      descricaoPlanos,
     url: "/planos",
   },
 };

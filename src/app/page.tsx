@@ -1,10 +1,39 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./glasscode.module.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Sistema para Vidraçaria: Orçamentos e Cálculos",
+    description: "Sistema para pequenas vidraçarias: calcule vidros, espelhos e projetos, gere orçamentos em PDF e conte com atendimento personalizado. Conheça o Glass Code.",
+    alternates: { canonical: "/" },
+    openGraph: {
+        type: "website",
+        locale: "pt_BR",
+        url: "https://www.glasscode.com.br/",
+        siteName: "Glass Code",
+        title: "Sistema para Vidraçaria: Orçamentos e Cálculos | Glass Code",
+        description: "Cálculos, projetos e orçamentos em PDF para pequenas vidraçarias, com atendimento próximo para ajudar no dia a dia.",
+    },
+    robots: {
+        index: true,
+        follow: true,
+        "max-image-preview": "none",
+        googleBot: { index: true, follow: true, "max-image-preview": "none" },
+    },
+};
 
 export default function GlassCodeSitePage() {
     return (
         <main className={styles.page}>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@graph": [
+                    { "@type": "Organization", "@id": "https://www.glasscode.com.br/#organizacao", name: "Glass Code", url: "https://www.glasscode.com.br" },
+                    { "@type": "WebSite", "@id": "https://www.glasscode.com.br/#site", name: "Glass Code", url: "https://www.glasscode.com.br", inLanguage: "pt-BR", publisher: { "@id": "https://www.glasscode.com.br/#organizacao" } }
+                ]
+            }).replace(/</g, "\\u003c") }} />
+
             <header className={styles.header}>
                 <div className={styles.headerInner}>
                     <Link href="/" className={styles.brand}>
@@ -36,21 +65,20 @@ export default function GlassCodeSitePage() {
                             <path d="M94 207 308 83Q319 77 319 88V294Q319 305 309 311L95 433Q85 438 85 426V223Q85 213 94 207Z" className={styles.watermarkLime} />
                         </svg>
                         <div className={styles.eyebrow}>
-                            Software para o setor de vidro
+                            Feito para pequenas vidraçarias
                         </div>
 
                         <h1 className={styles.title}>
-                            Mais controle para um mercado que <strong>não para.</strong>
+                            Sistema simples e rápido para sua <strong>vidraçaria.</strong>
                         </h1>
 
                         <p className={styles.description}>
-                            Projetos, cálculos, materiais e orçamentos conectados em uma
-                            única plataforma desenvolvida para a rotina do setor vidreiro.
+                            Calcule vidros e espelhos, organize projetos e prepare orçamentos em PDF. O Glass Code ajuda pequenas vidraçarias a trabalhar com mais organização, com atendimento personalizado para as dúvidas do dia a dia.
                         </p>
 
                         <div className={styles.actions}>
-                            <Link href="/login" className={styles.primaryButton}>
-                                Conhecer o Glass Code
+                            <Link href="/recursos" className={styles.primaryButton}>
+                                Conhecer os recursos
                             </Link>
 
                             <Link href="/como-funciona" className={styles.secondaryButton}>
@@ -143,10 +171,10 @@ export default function GlassCodeSitePage() {
                 </div>
 
                 <div className={styles.heroFooter}>
-                    <span>Gestão</span>
+                    <span>Cálculos de vidros e espelhos</span>
                     <span>Projetos</span>
-                    <span>Processos</span>
-                    <span>Resultados</span>
+                    <span>Orçamentos em PDF</span>
+                    <span>Atendimento personalizado</span>
                 </div>
             </section>
         </main>

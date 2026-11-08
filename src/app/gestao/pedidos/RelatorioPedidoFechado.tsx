@@ -1,5 +1,6 @@
 "use client";
 import styles from "./pedidos.module.css";
+import { projetosPedido } from "@/utils/necessidadesCompra";
 
 type Registro = Record<string, unknown>;
 const obj = (v:unknown):Registro => v && typeof v === "object" && !Array.isArray(v) ? v as Registro : {};
@@ -13,7 +14,7 @@ export default function RelatorioPedidoFechado({snapshot,total}:{snapshot:Regist
  if (!snapshot) return <p className={styles.notice}>Este pedido não possui um orçamento de origem preservado.</p>;
  const raiz = obj(snapshot);
  const conteudo = obj(raiz.itens);
- const projetos = lista(conteudo.documentoPdfCompleto ?? conteudo.projetosPdf ?? conteudo.projetos ?? conteudo.itens ?? raiz.itens);
+ const projetos = projetosPedido(snapshot);
  const avulsos = lista(conteudo.materiaisAvulsos);
  return <section className={styles.report} aria-label="Projetos aprovados do pedido">
   <h3>Projetos do orçamento aprovado</h3>

@@ -5,6 +5,31 @@ const lista = (v: unknown): Registro[] => Array.isArray(v) ? v.map(objeto) : [];
 const texto = (v: unknown) => typeof v === "string" || typeof v === "number" ? String(v) : "";
 export type PedidoCompraOrigem = { id: string; numero: number; cliente: string; obra: string; situacao: string; itens: unknown; origem_snapshot: unknown };
 export type NecessidadeCompra = { chave: string; projeto: string; descricao: string; quantidade: number; unidade: string; medida: string; cor: string };
+/** Lê somente a versão aprovada: central e cálculo individual usam formatos diferentes. */
+export function projetosPedido(snapshot: unknown): Registro[] {
+  const raiz = objeto(snapshot), conteudo = objeto(raiz.itens);
+  const central = conteudo.documentoPdfCompleto ?? conteudo.projetosPdf ?? conteudo.projetos ?? conteudo.itens ?? raiz.itens;
+  if (Array.isArray(central)) return lista(central);
+  const dados = objeto(conteudo.dados);
+  if (Object.keys(dados).length && Array.isArray(conteudo.materiais)) {
+    const puxador = dados.puxador === "Com puxador";
+    const evidence = texto(dados.trinco).toLowerCase().includes("evidence");
+    const desenhos: Record<string, string> = {
+      box2fls: evidence ? (puxador ? "/desenhos/box-eleganceduplo.png" : "/desenhos/box-elegancesimples.png") : (puxador ? "/desenhos/box-padraopuxador.png" : "/desenhos/box-padrao.png"),
+      boxcanto: puxador ? "/desenhos/box-canto4fpd.png" : "/desenhos/box-canto4f.png",
+      boxcanto3f: puxador ? "/desenhos/box-canto3fcp.png" : "/desenhos/box-canto3f.png",
+    };
+    return [{
+      ...dados,
+      desenhoUrl: dados.desenhoUrl || desenhos[texto(conteudo.tipo)],
+      materiais: conteudo.materiais,
+      valorTotal: objeto(conteudo.resumo).valorTotal ?? raiz.valor_total,
+    }];
+  }
+  const itemCentral = objeto(conteudo.itemCentral);
+  if (Object.keys(itemCentral).length) return [itemCentral];
+  return [];
+}
 export function necessidadesCompra(pedido: PedidoCompraOrigem) {
   const itens: NecessidadeCompra[] = [], avisos: string[] = [];
   if (["cancelado", "entregue"].includes(pedido.situacao)) return { itens, avisos };
@@ -25,7 +50,7 @@ export function necessidadesCompra(pedido: PedidoCompraOrigem) {
     return { itens, avisos };
   }
   const raiz = objeto(pedido.origem_snapshot), conteudo = objeto(raiz.itens);
-  const projetos = lista(conteudo.documentoPdfCompleto ?? conteudo.projetosPdf ?? conteudo.projetos ?? conteudo.itens ?? raiz.itens);
+  const projetos = projetosPedido(pedido.origem_snapshot);
   projetos.forEach((p, i) => {
     const nome = texto(p.projeto || p.descricao || p.nome) || "Projeto " + (i + 1);
     const materiais = lista(p.materiais), vidros = lista(p.vidrosAvulsos);

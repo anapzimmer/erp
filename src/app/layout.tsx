@@ -27,19 +27,9 @@ export const metadata: Metadata = {
   },
 
   description:
-    "Software para vidraçarias: cálculos de vidros e espelhos, projetos e orçamentos em PDF, com atendimento personalizado e evolução contínua.",
+    "Sistema simples para pequenas vidraçarias: agilize cálculos de vidros e espelhos e orçamentos em PDF, com atendimento personalizado para ajudar no dia a dia.",
 
-  keywords: [
-    "software para indústria de vidro",
-    "software para indústria de vidro temperado",
-    "sistema para temperadora",
-    "sistema para indústria de vidros",
-    "software para vidraçaria",
-    "sistema para orçamento de vidros",
-    "programa para orçamento de vidros",
-    "ERP para indústria de vidro",
-    "Glass Code",
-  ],
+  keywords: ["software para vidraçaria", "sistema para pequenas vidraçarias", "orçamento de vidros", "cálculo de vidros e espelhos", "Glass Code"],
 
   alternates: {
     canonical: "/",
@@ -52,7 +42,7 @@ export const metadata: Metadata = {
     siteName: "Glass Code",
     title: "Glass Code | Software para Vidraçarias",
     description:
-      "Orçamentos, cálculos de vidros e materiais, clientes, tabelas de preços e projetos em um só sistema.",
+      "Orçamentos e cálculos para pequenas vidraçarias, com organização e atendimento próximo para ajudar sua empresa.",
   },
 
   robots: {

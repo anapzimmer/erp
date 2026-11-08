@@ -47,7 +47,7 @@ const etapas = [
     {
         numero: "04",
         etiqueta: "PRECIFICAÇÃO",
-        titulo: "Aplique os preços da sua indústria.",
+        titulo: "Aplique os preços da sua vidraçaria.",
         texto:
             "Vidros, materiais e condições comerciais entram na composição conforme os cadastros e tabelas da empresa.",
         detalhes: [
@@ -205,7 +205,7 @@ export default function ComoFuncionaPage() {
 
                         <p>
                             O Glass Code organiza as etapas do orçamento da sua
-                            indústria de vidro temperado em um único fluxo:
+                            vidraçaria em um único fluxo:
                             cliente, projeto, cálculo, preço e proposta.
                         </p>
 
@@ -315,7 +315,7 @@ export default function ComoFuncionaPage() {
                             </h2>
 
                             <p>
-                                Sua indústria ganha um processo comercial mais
+                                Sua vidraçaria ganha um processo comercial mais
                                 organizado, enquanto o cliente recebe uma proposta
                                 clara e profissional.
                             </p>
@@ -359,7 +359,7 @@ export default function ComoFuncionaPage() {
 
                     <p>
                         Conheça os planos e escolha a estrutura ideal
-                        para sua indústria.
+                        para sua vidraçaria.
                     </p>
 
                     <div className={styles.finalActions}>

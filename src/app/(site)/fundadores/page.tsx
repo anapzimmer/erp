@@ -11,7 +11,7 @@ import styles from "./fundadores.module.css";
 
 export const metadata: Metadata = {
   title: "Parceiros Fundadores",
-  description: "Conheça o Programa Parceiros Fundadores do Glass Code: primeira turma de até 30 empresas, cálculos e projetos do Completo, três usuários, votações consultivas e pontos por contribuições reconhecidas.",
+  description: `Parceiros Fundadores Glass Code: plano Completo por ${moedaComercial(oferta.precoPromocionalCentavos)}/mês nas primeiras ${oferta.mensalidadesPagasPromocionais} mensalidades pagas; depois ${moedaComercial(oferta.precoRegularCentavos)}/mês. Até ${oferta.limiteEmpresas} empresas.`,
   alternates: { canonical: "https://www.glasscode.com.br/fundadores" },
   openGraph: {
     title: "Parceiros Fundadores | Glass Code",

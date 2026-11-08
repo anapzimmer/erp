@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: "Recursos do Glass Code para Indústrias de Vidro",
+    title: "Cálculos e Orçamentos para Vidraçarias | Glass Code",
     description:
-      "Orçamentos, cálculos, projetos, materiais, preços e gestão comercial em uma plataforma desenvolvida para indústrias de vidro temperado.",
+      "Calcule vidros, espelhos e materiais de box, portas e janelas. Prepare orçamentos em PDF com os preços da sua empresa e atendimento personalizado.",
     url: "/recursos",
   },
 };
@@ -28,7 +28,7 @@ const recursos = [
     numero: "01",
     titulo: "Orçamentos para seus clientes",
     texto:
-      "Monte orçamentos completos para vidraçarias, serralherias, construtoras e demais clientes da sua indústria, reunindo diferentes projetos em uma única proposta.",
+      "Monte orçamentos completos para vidraçarias, serralherias, construtoras e demais clientes da sua empresa, reunindo diferentes projetos em uma única proposta.",
     itens: [
       "Orçamento por cliente",
       "Múltiplos projetos no mesmo orçamento",
@@ -40,7 +40,7 @@ const recursos = [
   },
   {
     numero: "02",
-    titulo: "Cálculos para a indústria de vidro",
+    titulo: "Cálculo de vidros, espelhos e projetos",
     texto:
       "Receba as medidas do cliente e transforme as informações em projetos calculados, com vidro, componentes e valores organizados para o orçamento.",
     itens: [
@@ -57,7 +57,7 @@ const recursos = [
     numero: "03",
     titulo: "Precificação e materiais",
     texto:
-      "Cadastre os materiais e preços utilizados pela sua indústria para que cada orçamento seja calculado de acordo com a sua realidade comercial.",
+      "Cadastre os materiais e preços utilizados pela sua vidraçaria para que cada orçamento seja calculado de acordo com a sua realidade comercial.",
     itens: [
       "Vidros",
       "Ferragens",
@@ -84,9 +84,9 @@ const recursos = [
   },
   {
     numero: "05",
-    titulo: "Organização comercial da indústria",
+    titulo: "Organização comercial da vidraçaria",
     texto:
-      "Centralize clientes, preços e orçamentos para acompanhar melhor o movimento comercial da sua indústria e manter o histórico de cada atendimento.",
+      "Centralize clientes, preços e orçamentos para acompanhar melhor o movimento comercial da sua empresa e manter o histórico de cada atendimento.",
     itens: [
       "Cadastro de clientes",
       "Tabelas por cliente",
@@ -876,18 +876,18 @@ export default function RecursosPage() {
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <div className={styles.eyebrow}>
-            Recursos para indústrias de vidro temperado
+            Recursos para vidraçarias e empresas de vidro
           </div>
 
           <h1>
-            Do pedido do cliente
+            Cálculos de vidros e projetos
             <br />
-            <strong>ao orçamento pronto.</strong>
+            <strong>para orçar com clareza.</strong>
           </h1>
 
           <p>
             O Glass Code reúne cálculo, projetos, preços e clientes
-            para tornar o orçamento da sua indústria mais rápido,
+            para tornar o orçamento da sua empresa mais rápido,
             organizado e profissional.
           </p>
         </div>
@@ -915,7 +915,7 @@ export default function RecursosPage() {
             <p>
               Centralize clientes, projetos, tabelas de preços e cálculos
               em uma plataforma desenvolvida para a rotina comercial
-              de indústrias de vidro temperado.
+              de vidraçarias e empresas do setor de vidro.
             </p>
           </div>
         </div>
@@ -965,6 +965,28 @@ export default function RecursosPage() {
       </section>
 
 
+      <section className={styles.intro} aria-labelledby="exemplos-orcamento">
+        <div className={styles.container}>
+          <h2 id="exemplos-orcamento">Como fazer um orçamento de vidraçaria no Glass Code</h2>
+          <div className={styles.introGrid}>
+            <div>
+              <h3>Vidros e espelhos sob medida</h3>
+              <p>Informe largura, altura e quantidade, escolha o vidro e os acabamentos cadastrados pela sua empresa. Confira a área cobrada e os valores antes de adicionar as peças ao orçamento.</p>
+              <h3>Box, portas e janelas</h3>
+              <p>Escolha o modelo, preencha as medidas do vão e selecione vidro, cor e componentes. Revise a composição de kits, perfis e ferragens apresentada pelo cálculo antes de salvar a proposta.</p>
+            </div>
+            <div>
+              <h3>Uma proposta em PDF para o cliente</h3>
+              <p>Reúna os projetos na central de impressão, confira cliente, obra, quantidades e valores e gere o orçamento em PDF. A relação de materiais ajuda a revisar os itens previstos para cada projeto.</p>
+              <h3>Atendimento para a sua rotina</h3>
+              <p>O Glass Code está em desenvolvimento contínuo. O atendimento orienta o uso do sistema e recebe sugestões e relatos de problemas. Confira os recursos e as condições de suporte incluídos em cada plano.</p>
+              <p><Link href="/planos">Comparar planos e atendimento →</Link></p>
+              <p><Link href="/fundadores">Conhecer o Programa Parceiros Fundadores →</Link></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className={styles.container}><ModulosFuturos variante="recursos" /></div>
       <section className={styles.finalCta} id="comecar">
         <div className={styles.finalGlow} />
@@ -973,7 +995,7 @@ export default function RecursosPage() {
 
 
           <h2>
-            Sua indústria pode orçar
+            Sua vidraçaria pode orçar
             <br />
             <strong>com muito mais agilidade.</strong>
           </h2>
@@ -981,7 +1003,7 @@ export default function RecursosPage() {
           <p>
             Do cálculo à proposta enviada ao cliente, tenha uma
             plataforma preparada para organizar o processo comercial
-            da sua indústria de vidro temperado.
+            da sua empresa de vidro temperado.
           </p>
 
           <div className={styles.finalActions}>
