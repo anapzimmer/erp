@@ -4,26 +4,13 @@ export const prefixoNumeroOrcamento = (data = new Date()) => {
   return `OR${dia}${mes}`;
 };
 
-export async function gerarNumeroOrcamentoPadrao(supabase: any) {
-  const prefixoData = prefixoNumeroOrcamento();
-
-  const { data, error } = await supabase
-    .from("orcamentos")
-    .select("numero_formatado")
-    .like("numero_formatado", `${prefixoData}%`);
-
-  if (error) throw error;
-
-  let maiorSequencia = 0;
-
-  for (const orcamento of data || []) {
-    const numero = String(orcamento.numero_formatado || "");
-    const sequencia = Number.parseInt(numero.slice(prefixoData.length), 10);
-
-    if (Number.isFinite(sequencia) && sequencia > maiorSequencia) {
-      maiorSequencia = sequencia;
-    }
+type ClienteNumeracao = { rpc: (nome: string) => PromiseLike<{data: unknown; error: {code?: string; message?: string} | null}> };
+export async function gerarNumeroOrcamentoPadrao(supabase: ClienteNumeracao) {
+  const {data,error}=await supabase.rpc("gc_reservar_numero_orcamento");
+  if(error){
+    if(["PGRST202","42883"].includes(error.code||"")) throw new Error("A numeração segura precisa ser atualizada no banco antes de salvar novos orçamentos.");
+    throw error;
   }
-
-  return `${prefixoData}${(maiorSequencia + 1).toString().padStart(2, "0")}`;
+  if(typeof data!=="string"||!/^OR\d{6,}$/.test(data)) throw new Error("Não foi possível reservar o número do orçamento. Tente novamente.");
+  return data;
 }
