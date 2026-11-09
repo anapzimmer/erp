@@ -1,4 +1,14 @@
 import type { NecessidadeCompra } from "./necessidadesCompra";
+/** Converte somente o campo de entrada; saldos antigos continuam na unidade original. */
+export function quantidadePorPeca(m: NecessidadeCompra): number | null {
+  if (!m.vidro) return 1;
+  if (!/^m[²2]$/i.test(m.unidade)) return 1;
+  return m.pecas && m.pecas > 0 ? m.quantidade / m.pecas : null;
+}
+export function quantidadeEmPecas(m: NecessidadeCompra, quantidade: number): number | null {
+  const fator = quantidadePorPeca(m);
+  return fator ? Math.round(quantidade / fator * 1000000) / 1000000 : null;
+}
 /** Apresentação apenas: identidade original permanece intacta para compras já registradas. */
 export function apresentacaoMaterial(m: NecessidadeCompra) {
   if (!m.vidro) return { descricao:m.descricao, medida:m.medida };

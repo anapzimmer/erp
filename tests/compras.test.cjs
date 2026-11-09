@@ -5,6 +5,16 @@ const ts = require('typescript');
 const mod = {exports:{}};
 new Function('module','exports',ts.transpileModule(fs.readFileSync('src/utils/compras.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(mod,mod.exports);
 const {saldoCompra} = mod.exports;
+test('quantidade de peças não repete m² e mantém conversão parcial',()=>{
+ for(const [area,pecas] of [[1.5,2],[7.425,9],[1.65,1]]){
+  const m={vidro:true,unidade:'m2',quantidade:area,pecas};
+  assert.equal(mod.exports.quantidadeEmPecas(m,area),pecas);
+  assert.ok(Math.abs(mod.exports.quantidadePorPeca(m)*pecas-area)<0.000001);
+ }
+ assert.equal(mod.exports.quantidadeEmPecas({vidro:true,unidade:'m2',quantidade:7.425,pecas:9},2.475),3);
+ assert.equal(mod.exports.quantidadeEmPecas({vidro:true,unidade:'und',quantidade:2},2),2);
+ assert.equal(mod.exports.quantidadeEmPecas({vidro:true,unidade:'m2',quantidade:2},2),null);
+});
 test('medidas saem da descrição somente na apresentação, sem mudar identidade',()=>{
  const m={descricao:'VIDRO FIXO 635x1865 INCOLOR 08MM TEMPERADO',medida:'',vidro:true};
  assert.deepEqual(mod.exports.apresentacaoMaterial(m),{descricao:'VIDRO FIXO INCOLOR 08MM TEMPERADO',medida:'635 × 1865 mm'});
