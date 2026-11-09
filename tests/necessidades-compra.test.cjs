@@ -6,6 +6,22 @@ const loaded = { exports: {} };
 new Function("module", "exports", ts.transpileModule(fs.readFileSync("src/utils/necessidadesCompra.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(loaded, loaded.exports);
 const { necessidadesCompra: extrair } = loaded.exports;
 const base = { id: "ficticio", numero: 1, cliente: "Teste", obra: "Teste", situacao: "conferencia", itens: [], origem_snapshot: null };
+test("preços vêm das linhas salvas, nunca do total do projeto",()=>{
+ const manual=extrair({...base,itens:[{tipo:'vidro',vidro:'Incolor',largura:565,altura:985,quantidade:2,preco:98.87,unidade:'und',catalogo:{precoM2:164.78}}]}).itens[0];
+ assert.equal(manual.precoOrcadoUnitario,98.87);assert.equal(manual.precoOrcadoM2,164.78);
+ const projeto=extrair({...base,itens:[{descricao:'VIDRO FIXO 635x1865 INCOLOR',quantidade:1.235,unidade:'m2',valorUnitario:164.78}]}).itens[0];
+ assert.equal(projeto.precoOrcadoM2,164.78);
+ const desconhecido=extrair({...base,itens:[{tipo:'vidro',vidro:'Incolor',largura:1000,altura:1000,quantidade:1,total:500}]}).itens[0];
+ assert.equal(desconhecido.precoOrcadoUnitario,undefined);
+});
+test("vidro manual fornece área comercial sem alterar quantidade e identidade legadas", () => {
+ const m=extrair({...base,itens:[{tipo:"vidro",vidro:"Incolor 8",largura:565,altura:985,quantidade:2,unidade:"und"}]}).itens[0];
+ assert.equal(m.quantidade,2);assert.equal(m.unidade,"und");assert.equal(m.areaPorUnidade,0.6);assert.equal(m.pecas,2);assert.equal(m.vidro,true);
+});
+test("vidro de projeto em m² não multiplica a área novamente", () => {
+ const m=extrair({...base,itens:[{descricao:"VIDRO FIXO 635×1865 INCOLOR",quantidade:1.235,unidade:"m2"}]}).itens[0];
+ assert.equal(m.quantidade,1.235);assert.equal(m.areaPorUnidade,1);assert.equal(m.pecas,1);assert.equal(m.medida,"");
+});
 test("pedido manual exclui serviços e mantém medidas", () => {
  const r = extrair({ ...base, itens: [{ tipo: "vidro", vidro: "Incolor", quantidade: 2, largura: 1000, altura: 800 }, { tipo: "servico", descricao: "Instalação", quantidade: 1 }] });
  assert.equal(r.itens.length, 1); assert.equal(r.itens[0].medida, "1000 × 800 mm"); assert.equal(r.itens[0].quantidade, 2);

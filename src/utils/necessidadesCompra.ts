@@ -4,7 +4,7 @@ const objeto = (v: unknown): Registro => v && typeof v === "object" && !Array.is
 const lista = (v: unknown): Registro[] => Array.isArray(v) ? v.map(objeto) : [];
 const texto = (v: unknown) => typeof v === "string" || typeof v === "number" ? String(v) : "";
 export type PedidoCompraOrigem = { id: string; numero: number; cliente: string; obra: string; situacao: string; itens: unknown; origem_snapshot: unknown };
-export type NecessidadeCompra = { chave: string; projeto: string; descricao: string; quantidade: number; unidade: string; medida: string; cor: string };
+export type NecessidadeCompra = { chave: string; projeto: string; descricao: string; quantidade: number; unidade: string; medida: string; cor: string; vidro?: boolean; areaPorUnidade?: number; pecas?: number; precoOrcadoUnitario?: number; precoOrcadoM2?: number };
 /** Lê somente a versão aprovada: central e cálculo individual usam formatos diferentes. */
 export function projetosPedido(snapshot: unknown): Registro[] {
   const raiz = objeto(snapshot), conteudo = objeto(raiz.itens);
@@ -43,7 +43,19 @@ export function necessidadesCompra(pedido: PedidoCompraOrigem) {
     }
     const unidade = texto(m.unidade) || (m.tipo === "vidro" || m.vidro ? "peças" : "");
     if (!unidade) avisos.push(projeto + ": conferir a unidade de " + descricao + ".");
-    itens.push({ chave, projeto, descricao, quantidade, unidade: unidade || "Conferir", medida: texto(m.medidaReal || m.medida || (m.largura && m.altura ? m.largura + " × " + m.altura + " mm" : "")), cor: texto(m.corSelecionada || m.cor || m.corMaterial) || cor });
+    const vidro = m.tipo === "vidro" || Boolean(m.vidro) || /^vidro\b/i.test(descricao);
+    const medida = texto(m.medidaReal || m.medida || (m.largura && m.altura ? m.largura + " × " + m.altura + " mm" : ""));
+    const dimensoes = (medida || descricao).match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i);
+    const areaPeca = dimensoes ? Math.ceil(Number(dimensoes[1].replace(",", "."))/50)*50 * Math.ceil(Number(dimensoes[2].replace(",", "."))/50)*50 / 1000000 : 0;
+    const emM2 = /^m[²2]$/i.test(unidade);
+    const numeroPreco = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : typeof v === "string" && v.trim() && Number.isFinite(Number(v)) && Number(v)>=0 ? Number(v) : undefined;
+    const precoM2 = vidro ? numeroPreco(m.precoVidroM2 ?? objeto(m.catalogo).precoM2) : undefined;
+    // Apenas valores da linha salva; nunca usar total do projeto ou preço atual do cadastro.
+    const precoUnitario = numeroPreco(m.valorUnitario ?? m.preco) ?? (precoM2 !== undefined && (emM2 || areaPeca>0) ? precoM2*(emM2?1:areaPeca) : undefined);
+    itens.push({ chave, projeto, descricao, quantidade, unidade: unidade || "Conferir", medida, cor: texto(m.corSelecionada || m.cor || m.corMaterial) || cor,
+      ...(precoUnitario !== undefined ? {precoOrcadoUnitario:precoUnitario} : {}),
+      ...(vidro && (precoM2 !== undefined || precoUnitario !== undefined && (emM2 || areaPeca>0)) ? {precoOrcadoM2:precoM2 ?? precoUnitario!/(emM2?1:areaPeca)} : {}),
+      ...(vidro ? { vidro: true, areaPorUnidade: emM2 ? 1 : areaPeca || undefined, pecas: !emM2 ? quantidade : areaPeca && Math.abs(quantidade/areaPeca-Math.round(quantidade/areaPeca))<0.001 ? Math.round(quantidade/areaPeca) : undefined } : {}) });
   }
   if (!pedido.origem_snapshot) {
     lista(pedido.itens).forEach((m, i) => adicionar(m, pedido.id + ":manual:" + i, "Pedido manual"));

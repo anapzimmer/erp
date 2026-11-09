@@ -39,6 +39,7 @@ const HEADER_MENU_GROUPS: MenuGroup[] = [
     group: "Cadastros",
     items: [
       { label: "Clientes", href: "/cadastros/clientes" },
+      { label: "Fornecedores", href: "/cadastros/fornecedores" },
       { label: "Vidros", href: "/cadastros/vidros" },
       { label: "Perfis", href: "/cadastros/perfis" },
       { label: "Ferragens", href: "/cadastros/ferragens" },
